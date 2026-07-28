@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echoes of Legend</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Icon databases -->
+<!-- RPG Awesome: ~500 fantasy/RPG glyphs (swords, shields, elements, creatures) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css">
+<!-- Remix Icon: ~2800 general UI glyphs -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-grid"></div>
+
+<!-- ==================== HOME / DASHBOARD ==================== -->
+<section class="view home" data-view="home">
+  <div class="home-inner">
+    <div class="home-emblem">
+      <i class="ra ra-crossed-swords"></i>
+    </div>
+
+    <h1 class="home-title">
+      <span class="ht-line">Echoes</span>
+      <span class="ht-of">of</span>
+      <span class="ht-line">Legend</span>
+    </h1>
+
+    <div class="home-rule">
+      <span></span><i class="ra ra-diamond"></i><span></span>
+    </div>
+
+    <p class="home-sub">A 6v6 Folklore Card Battler</p>
+
+    <div class="home-actions">
+      <button class="btn btn-primary" id="btn-play">
+        <i class="ra ra-crossed-swords"></i>
+        <span>Play</span>
+      </button>
+      <button class="btn btn-ghost" id="btn-collection">
+        <i class="ra ra-book"></i>
+        <span>Collection</span>
+      </button>
+    </div>
+
+    <div class="play-note" id="play-note">
+      <i class="ri-tools-line"></i> Battle mode is not implemented yet.
+    </div>
+
+    <div class="home-stats">
+      <span><b>24</b> Heroes</span>
+      <span class="sep">◆</span>
+      <span><b>4</b> Factions</span>
+      <span class="sep">◆</span>
+      <span><b>6v6</b> Battles</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== COLLECTION ==================== -->
+<section class="view collection" data-view="collection">
+  <header class="col-header">
+    <button class="back-btn" id="btn-back">
+      <i class="ri-arrow-left-line"></i><span>Back</span>
+    </button>
+    <div class="col-titles">
+      <h2 class="col-title">Collection</h2>
+      <p class="col-sub"><span id="visible-count">0</span> of <span id="total-count">0</span> heroes</p>
+    </div>
+  </header>
+
+  <!-- static toolbar: intentionally NOT sticky -->
+  <div class="toolbar">
+    <div class="filters" id="filters"></div>
+    <div class="tool-right">
+      <div class="search-wrap">
+        <i class="ri-search-line"></i>
+        <input type="text" id="search" placeholder="Search heroes...">
+      </div>
+      <button class="reset-btn" id="reset" title="Reset filters">
+        <i class="ri-refresh-line"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="card-grid" id="roster"></div>
+
+  <div class="empty-state" id="empty">
+    <i class="ra ra-broken-shield"></i>
+    No heroes match these filters.
+  </div>
+
+  <footer>Echoes of Legend &mdash; Prototype</footer>
+</section>
+
+
+<!-- ==================== BATTLE ==================== -->
+<section class="view battle" data-view="battle">
+
+  <!-- TOP: both commanders + energy -->
+  <header class="hud">
+    <button class="back-btn small" id="btn-leave">
+      <i class="ri-arrow-left-line"></i><span>Leave</span>
+    </button>
+
+    <div class="hud-side player">
+      <div class="pf-icon" id="pf-player"><i class="ra ra-player"></i></div>
+      <div class="pf-body">
+        <div class="pf-name">You
+          <span class="pf-alive"><i class="ra ra-health"></i><span id="alive-player">6</span></span>
+        </div>
+        <div class="en-bar"><span class="en-fill" id="en-fill-player"></span></div>
+      </div>
+      <div class="en-txt">
+        <i class="ra ra-lightning-bolt"></i>
+        <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
+      </div>
+    </div>
+
+    <div class="hud-center">
+      <span class="round-label">Round</span>
+      <span class="round-num" id="round-num">1</span>
+      <span class="turn-label" id="turn-label">Your Turn</span>
+    </div>
+
+    <div class="hud-side enemy">
+      <div class="en-txt">
+        <i class="ra ra-lightning-bolt"></i>
+        <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
+      </div>
+      <div class="pf-body">
+        <div class="pf-name">
+          <span class="pf-alive"><i class="ra ra-health"></i><span id="alive-enemy">6</span></span>
+          Enemy Bot
+        </div>
+        <div class="en-bar"><span class="en-fill" id="en-fill-enemy"></span></div>
+      </div>
+      <div class="pf-icon" id="pf-enemy"><i class="ra ra-skull"></i></div>
+    </div>
+
+    <button class="endturn-btn" id="btn-endturn">
+      <span class="et-label"><i class="ri-skip-forward-fill"></i> End Turn</span>
+      <span class="et-count"></span>
+    </button>
+  </header>
+
+  <!-- MIDDLE: teams face each other left vs right -->
+  <main class="board" id="board">
+    <!-- floating hero panel: appears in the empty space beside the board.
+         Allies show it on the left, enemies on the right. -->
+    <aside class="flyout" id="flyout"></aside>
+
+    <section class="team-side player-side">
+      <div class="row-tag player-tag"><i class="ra ra-player"></i> Your Team</div>
+      <div class="bgrid" id="grid-player"></div>
+    </section>
+
+    <div class="clash"><span></span><i class="ra ra-crossed-swords"></i><span></span></div>
+
+    <section class="team-side enemy-side">
+      <div class="row-tag enemy-tag">Enemy <i class="ra ra-skull"></i></div>
+      <div class="bgrid" id="grid-enemy"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="result" id="result">
+    <div class="result-card">
+      <div class="result-icon"><i class="ra ra-crown"></i></div>
+      <h2 class="result-title">Victory</h2>
+      <p class="result-sub"></p>
+      <p class="result-rounds"></p>
+      <div class="result-actions">
+        <button class="btn btn-primary" id="btn-rematch"><i class="ra ra-cycle"></i><span>Rematch</span></button>
+        <button class="btn btn-ghost" id="btn-result-home"><i class="ri-home-4-line"></i><span>Home</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Card data: one file per faction -->
+<script src="js/text.js"></script>
+<script src="data/_schema.js"></script>
+<script src="data/roles.js"></script>
+<script src="data/camelot.js"></script>
+<script src="data/olympus.js"></script>
+<script src="data/eastern-legends.js"></script>
+<script src="data/grimmwood.js"></script>
+
+<script src="js/engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
