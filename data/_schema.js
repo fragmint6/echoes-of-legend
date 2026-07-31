@@ -114,19 +114,28 @@ window.EOL.rules = (function () {
   function splitCapped(pool, rng) {
     rng = rng || Math.random;
     for (var attempt = 0; attempt < 100; attempt++) {
-      var idx = pool.map(function (_, i) { return i; });
+      var idx = pool.map(function (_, i) {
+        return i;
+      });
       for (var i = idx.length - 1; i > 0; i--) {
         var j = Math.floor(rng() * (i + 1));
-        var t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+        var t = idx[i];
+        idx[i] = idx[j];
+        idx[j] = t;
       }
-      var teams = [[], []], counts = [{}, {}], cur = 0;
+      var teams = [[], []],
+        counts = [{}, {}],
+        cur = 0;
       for (var k = 0; k < idx.length; k++) {
         var e = pool[idx[k]];
         var role = (e.card || e).role;
         if ((counts[cur][role] || 0) >= MAX_PER_ROLE) continue;
         teams[cur].push(e);
         counts[cur][role] = (counts[cur][role] || 0) + 1;
-        if (teams[cur].length === 6) { cur++; if (cur === 2) break; }
+        if (teams[cur].length === 6) {
+          cur++;
+          if (cur === 2) break;
+        }
       }
       if (teams[0].length === 6 && teams[1].length === 6) return teams;
     }
@@ -137,7 +146,7 @@ window.EOL.rules = (function () {
     MAX_PER_ROLE: MAX_PER_ROLE,
     roleCount: roleCount,
     withinRoleCap: withinRoleCap,
-    splitCapped: splitCapped
+    splitCapped: splitCapped,
   };
 })();
 
@@ -164,7 +173,8 @@ window.EOL.deckRules = (function () {
      every hero distinct, at most MAX_PER_ROLE of any role. */
   function isLegal(entries) {
     if (!entries || entries.length !== DECK_SIZE) return false;
-    var seen = {}, cnt = {};
+    var seen = {},
+      cnt = {};
     for (var i = 0; i < entries.length; i++) {
       var card = entries[i].card || entries[i];
       if (!card || !card.id) return false;
@@ -189,12 +199,17 @@ window.EOL.deckRules = (function () {
      an entry pool ({card,faction}). Used for the Classic bot. */
   function randomDeck(pool, rng) {
     rng = rng || Math.random;
-    var idx = pool.map(function (_, i) { return i; });
+    var idx = pool.map(function (_, i) {
+      return i;
+    });
     for (var i = idx.length - 1; i > 0; i--) {
       var j = Math.floor(rng() * (i + 1));
-      var t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+      var t = idx[i];
+      idx[i] = idx[j];
+      idx[j] = t;
     }
-    var out = [], cnt = {};
+    var out = [],
+      cnt = {};
     for (var k = 0; k < idx.length && out.length < DECK_SIZE; k++) {
       var e = pool[idx[k]];
       var role = e.card.role;
@@ -214,15 +229,19 @@ window.EOL.deckRules = (function () {
       (byRole[e.card.role] = byRole[e.card.role] || []).push(e);
     });
     var roles = Object.keys(byRole);
-    var canSnap = roles.every(function (r) { return byRole[r].length >= 6; });
-    if (!canSnap) return pool.slice();    // current roster: just use every card
+    var canSnap = roles.every(function (r) {
+      return byRole[r].length >= 6;
+    });
+    if (!canSnap) return pool.slice(); // current roster: just use every card
     rng = rng || Math.random;
     var out = [];
     roles.forEach(function (r) {
       var list = byRole[r].slice();
       for (var i = list.length - 1; i > 0; i--) {
         var j = Math.floor(rng() * (i + 1));
-        var t = list[i]; list[i] = list[j]; list[j] = t;
+        var t = list[i];
+        list[i] = list[j];
+        list[j] = t;
       }
       out = out.concat(list.slice(0, 6));
     });
@@ -237,6 +256,6 @@ window.EOL.deckRules = (function () {
     isLegal: isLegal,
     capBlocked: capBlocked,
     randomDeck: randomDeck,
-    draftPool: draftPool
+    draftPool: draftPool,
   };
 })();

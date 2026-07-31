@@ -1,598 +1,624 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Echoes of Legend</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Echoes of Legend</title>
 
-<!-- Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
-<!-- Icon databases -->
-<!-- RPG Awesome: ~500 fantasy/RPG glyphs (swords, shields, elements, creatures) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css">
-<!-- Remix Icon: ~2800 general UI glyphs -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+    <!-- Icon databases -->
+    <!-- RPG Awesome: ~500 fantasy/RPG glyphs (swords, shields, elements, creatures) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css"
+    />
+    <!-- Remix Icon: ~2800 general UI glyphs -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css"
+    />
 
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="bg-layer"></div>
+    <div class="bg-grid"></div>
 
-<div class="bg-layer"></div>
-<div class="bg-grid"></div>
-
-<!-- ==================== HOME / DASHBOARD ==================== -->
-<section class="view home" data-view="home">
-  <div class="home-inner">
-    <div class="home-emblem">
-      <i class="ra ra-crossed-swords"></i>
-    </div>
-
-    <h1 class="home-title">
-      <span class="ht-line">Echoes</span>
-      <span class="ht-of">of</span>
-      <span class="ht-line">Legend</span>
-    </h1>
-
-    <div class="home-rule">
-      <span></span><i class="ra ra-diamond"></i><span></span>
-    </div>
-
-    <p class="home-sub">A 6v6 Folklore Card Battler</p>
-
-    <div class="home-actions">
-      <button class="btn btn-primary" id="btn-play">
-        <i class="ra ra-crossed-swords"></i>
-        <span>Play</span>
-      </button>
-      <button class="btn btn-ghost" id="btn-shop">
-        <i class="ri-store-2-line"></i>
-        <span>Shop</span>
-      </button>
-      <button class="btn btn-ghost" id="btn-collection">
-        <i class="ra ra-book"></i>
-        <span>Collection</span>
-      </button>
-    </div>
-
-    <div class="home-stats">
-      <span><b id="stat-heroes"></b> Heroes</span>
-      <i class="ra ra-diamond sep"></i>
-      <span><b id="stat-factions"></b> Factions</span>
-      <i class="ra ra-diamond sep"></i>
-      <span><b>6v6</b> Battles</span>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== COLLECTION ==================== -->
-<section class="view collection" data-view="collection">
-  <header class="col-header">
-    <button class="back-btn" id="btn-back">
-      <i class="ri-arrow-left-line"></i><span>Back</span>
-    </button>
-    <div class="col-titles">
-      <h2 class="col-title">Collection</h2>
-      <p class="col-sub"><span id="visible-count">0</span> of <span id="total-count">0</span> heroes</p>
-    </div>
-
-    <!-- Heroes / Decks tabs -->
-    <div class="col-tabs" role="tablist">
-      <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
-        <i class="ra ra-player"></i><span>Heroes</span>
-      </button>
-      <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
-        <i class="ri-stack-line"></i><span>Decks</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- tab: heroes (the collection, unchanged) -->
-  <div class="col-panel" id="cpanel-heroes">
-    <!-- static toolbar: intentionally NOT sticky -->
-    <div class="toolbar">
-      <div class="filters" id="filters"></div>
-      <div class="tool-right">
-        <div class="search-wrap">
-          <i class="ri-search-line"></i>
-          <input type="text" id="search" placeholder="Search heroes...">
+    <!-- ==================== HOME / DASHBOARD ==================== -->
+    <section class="view home" data-view="home">
+      <div class="home-inner">
+        <div class="home-emblem">
+          <i class="ra ra-crossed-swords"></i>
         </div>
-        <button class="reset-btn" id="reset" title="Reset filters">
-          <i class="ri-refresh-line"></i>
-        </button>
-      </div>
-    </div>
 
-    <div class="card-grid" id="roster"></div>
-    <div class="roster-sentinel" id="roster-sentinel" aria-hidden="true"><span></span></div>
+        <h1 class="home-title">
+          <span class="ht-line">Echoes</span>
+          <span class="ht-of">of</span>
+          <span class="ht-line">Legend</span>
+        </h1>
 
-    <div class="empty-state" id="empty">
-      <i class="ra ra-broken-shield"></i>
-      No heroes match these filters.
-    </div>
-  </div>
+        <div class="home-rule"><span></span><i class="ra ra-diamond"></i><span></span></div>
 
-  <!-- tab: decks (the deck manager) -->
-  <div class="col-panel" id="cpanel-decks" hidden>
-    <div class="decks-head">
-      <p class="decks-intro">
-        <i class="ri-information-line"></i>
-        A deck holds <b>12 heroes</b> (max 4 per role). When a battle begins, the
-        enemy bans 2 of them and you field 6 of the survivors.
-      </p>
-      <button class="btn btn-primary btn-slim" id="btn-new-deck">
-        <i class="ri-add-line"></i><span>New deck</span>
-      </button>
-    </div>
-    <div class="decks-list" id="decks-list"></div>
-    <div class="empty-state" id="decks-empty">
-      <i class="ri-stack-line"></i>
-      No decks yet — forge your first squad of twelve.
-    </div>
-  </div>
+        <p class="home-sub">A 6v6 Folklore Card Battler</p>
 
-  <footer>Echoes of Legend &mdash; Prototype</footer>
-</section>
-
-
-<!-- ==================== DECK EDITOR ==================== -->
-<section class="view deck" data-view="deck">
-  <header class="col-header">
-    <button class="back-btn" id="btn-deck-back">
-      <i class="ri-arrow-left-line"></i><span>Back</span>
-    </button>
-    <div class="col-titles">
-      <h2 class="col-title">Deck Editor</h2>
-      <p class="col-sub"><span id="deck-count">0</span> of 12 heroes &mdash; max 4 per role</p>
-    </div>
-    <input class="deck-name-input" id="deck-name" maxlength="24"
-           placeholder="Name this deck" autocomplete="off" spellcheck="false">
-  </header>
-
-  <div class="deck-tray">
-    <div class="deck-rows">
-      <div class="deck-row-tag"><i class="ra ra-diamond"></i> Your Twelve
-        <span class="deck-row-note">order here doesn't matter &mdash; you pick your battle six when the fight starts</span></div>
-      <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
-    </div>
-    <div class="deck-side">
-      <div class="deck-hint"><i class="ri-information-line"></i>
-        Click a hero to add or remove them. Saves itself as you build &mdash;
-        12 heroes and at most 4 of any role makes it battle-ready.
-      </div>
-      <div class="deck-actions">
-        <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
-          <i class="ri-refresh-line"></i><span>Clear</span>
-        </button>
-        <button class="btn btn-primary btn-slim" id="btn-deck-save">
-          <i class="ri-check-line"></i><span>Done</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- same toolbar as the collection -->
-  <div class="toolbar">
-    <div class="filters" id="deck-filters"></div>
-    <div class="tool-right">
-      <div class="search-wrap">
-        <i class="ri-search-line"></i>
-        <input type="text" id="deck-search" placeholder="Search heroes...">
-      </div>
-      <button class="reset-btn" id="deck-reset" title="Reset filters">
-        <i class="ri-refresh-line"></i>
-      </button>
-    </div>
-  </div>
-
-  <div class="card-grid deck-grid" id="deck-grid"></div>
-
-  <div class="empty-state" id="deck-empty">
-    <i class="ra ra-broken-shield"></i>
-    No heroes match these filters.
-  </div>
-
-  <footer>Echoes of Legend &mdash; Prototype</footer>
-</section>
-
-
-<!-- ==================== SHOP ==================== -->
-<section class="view shop" data-view="shop">
-  <header class="col-header">
-    <button class="back-btn" id="btn-shop-back">
-      <i class="ri-arrow-left-line"></i><span>Back</span>
-    </button>
-    <div class="col-titles">
-      <h2 class="col-title">Shop</h2>
-      <p class="col-sub">Pack preview &mdash; your collection is already complete</p>
-    </div>
-  </header>
-
-  <div class="shop-body">
-    <article class="product">
-      <div class="product-pack pk-host">
-        <div class="product-sheen"></div>
-      </div>
-      <div class="product-info">
-        <h3 class="product-name">Echoes Pack</h3>
-        <p class="product-desc">
-          Five heroes from across all six factions. The final card is always
-          <b>Epic</b> rarity or better.
-        </p>
-        <p class="product-odds" id="product-odds"></p>
-        <p class="product-note">
-          <i class="ri-information-line"></i>
-          Preview only: heroes you reveal here are <b>not</b> added anywhere &mdash;
-          you already own the full collection.
-        </p>
-        <button class="btn btn-primary" id="btn-open-pack">
-          <i class="ra ra-gem"></i><span>Open Pack</span>
-        </button>
-      </div>
-    </article>
-  </div>
-
-  <!-- cinematic pack opening -->
-  <div class="pack-opening" id="pack-opening" aria-hidden="true">
-    <div class="po-vignette"></div>
-    <div class="po-rays"><span></span><span></span></div>
-    <button class="po-skip" id="po-skip">
-      <i class="ri-skip-forward-fill"></i><span>Skip</span>
-    </button>
-    <div class="po-packwrap" id="po-packwrap">
-      <div class="po-pack" id="po-pack" role="button" tabindex="0" aria-label="Open the pack">
-        <div class="po-pack-main pk-host"></div>
-        <div class="po-pack-seam"></div>
-        <div class="po-halves">
-          <span class="po-half top pk-host"></span>
-          <span class="po-half bot pk-host"></span>
+        <div class="home-actions">
+          <button class="btn btn-primary" id="btn-play">
+            <i class="ra ra-crossed-swords"></i>
+            <span>Play</span>
+          </button>
+          <button class="btn btn-ghost" id="btn-shop">
+            <i class="ri-store-2-line"></i>
+            <span>Shop</span>
+          </button>
+          <button class="btn btn-ghost" id="btn-collection">
+            <i class="ra ra-book"></i>
+            <span>Collection</span>
+          </button>
         </div>
-        <div class="po-pack-glow"></div>
+
+        <div class="home-stats">
+          <span><b id="stat-heroes"></b> Heroes</span>
+          <i class="ra ra-diamond sep"></i>
+          <span><b id="stat-factions"></b> Factions</span>
+          <i class="ra ra-diamond sep"></i>
+          <span><b>6v6</b> Battles</span>
+        </div>
       </div>
-      <div class="po-hint" id="po-hint">Click the pack to open it</div>
-    </div>
-    <div class="po-particles" id="po-particles"></div>
-    <div class="po-flash" id="po-flash"></div>
-    <div class="po-cards" id="po-cards"></div>
-    <div class="po-legend-banner" id="po-legend-banner"></div>
-    <div class="po-summary" id="po-summary">
-      <h3 class="po-sum-title">Pack Contents</h3>
-      <p class="po-sum-note">
-        <i class="ri-information-line"></i>
-        Preview only &mdash; nothing was added to your collection.
-      </p>
-      <div class="po-sum-actions">
-        <button class="btn btn-ghost btn-slim" id="po-again">
-          <i class="ra ra-gem"></i><span>Open Another</span>
+    </section>
+
+    <!-- ==================== COLLECTION ==================== -->
+    <section class="view collection" data-view="collection">
+      <header class="col-header">
+        <button class="back-btn" id="btn-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
-        <button class="btn btn-primary btn-slim" id="po-done">
-          <i class="ri-check-line"></i><span>Done</span>
+        <div class="col-titles">
+          <h2 class="col-title">Collection</h2>
+          <p class="col-sub">
+            <span id="visible-count">0</span> of <span id="total-count">0</span> heroes
+          </p>
+        </div>
+
+        <!-- Heroes / Decks tabs -->
+        <div class="col-tabs" role="tablist">
+          <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
+            <i class="ra ra-player"></i><span>Heroes</span>
+          </button>
+          <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
+            <i class="ri-stack-line"></i><span>Decks</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- tab: heroes (the collection, unchanged) -->
+      <div class="col-panel" id="cpanel-heroes">
+        <!-- static toolbar: intentionally NOT sticky -->
+        <div class="toolbar">
+          <div class="filters" id="filters"></div>
+          <div class="tool-right">
+            <div class="search-wrap">
+              <i class="ri-search-line"></i>
+              <input type="text" id="search" placeholder="Search heroes..." />
+            </div>
+            <button class="reset-btn" id="reset" title="Reset filters">
+              <i class="ri-refresh-line"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-grid" id="roster"></div>
+        <div class="roster-sentinel" id="roster-sentinel" aria-hidden="true"><span></span></div>
+
+        <div class="empty-state" id="empty">
+          <i class="ra ra-broken-shield"></i>
+          No heroes match these filters.
+        </div>
+      </div>
+
+      <!-- tab: decks (the deck manager) -->
+      <div class="col-panel" id="cpanel-decks" hidden>
+        <div class="decks-head">
+          <p class="decks-intro">
+            <i class="ri-information-line"></i>
+            A deck holds <b>12 heroes</b> (max 4 per role). When a battle begins, the enemy bans 2
+            of them and you field 6 of the survivors.
+          </p>
+          <button class="btn btn-primary btn-slim" id="btn-new-deck">
+            <i class="ri-add-line"></i><span>New deck</span>
+          </button>
+        </div>
+        <div class="decks-list" id="decks-list"></div>
+        <div class="empty-state" id="decks-empty">
+          <i class="ri-stack-line"></i>
+          No decks yet — forge your first squad of twelve.
+        </div>
+      </div>
+
+      <footer>Echoes of Legend &mdash; Prototype</footer>
+    </section>
+
+    <!-- ==================== DECK EDITOR ==================== -->
+    <section class="view deck" data-view="deck">
+      <header class="col-header">
+        <button class="back-btn" id="btn-deck-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <h2 class="col-title">Deck Editor</h2>
+          <p class="col-sub"><span id="deck-count">0</span> of 12 heroes &mdash; max 4 per role</p>
+        </div>
+        <input
+          class="deck-name-input"
+          id="deck-name"
+          maxlength="24"
+          placeholder="Name this deck"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </header>
+
+      <div class="deck-tray">
+        <div class="deck-rows">
+          <div class="deck-row-tag">
+            <i class="ra ra-diamond"></i> Your Twelve
+            <span class="deck-row-note"
+              >order here doesn't matter &mdash; you pick your battle six when the fight
+              starts</span
+            >
+          </div>
+          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
+        </div>
+        <div class="deck-side">
+          <div class="deck-hint">
+            <i class="ri-information-line"></i>
+            Click a hero to add or remove them. Saves itself as you build &mdash; 12 heroes and at
+            most 4 of any role makes it battle-ready.
+          </div>
+          <div class="deck-actions">
+            <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
+              <i class="ri-refresh-line"></i><span>Clear</span>
+            </button>
+            <button class="btn btn-primary btn-slim" id="btn-deck-save">
+              <i class="ri-check-line"></i><span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- same toolbar as the collection -->
+      <div class="toolbar">
+        <div class="filters" id="deck-filters"></div>
+        <div class="tool-right">
+          <div class="search-wrap">
+            <i class="ri-search-line"></i>
+            <input type="text" id="deck-search" placeholder="Search heroes..." />
+          </div>
+          <button class="reset-btn" id="deck-reset" title="Reset filters">
+            <i class="ri-refresh-line"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-grid deck-grid" id="deck-grid"></div>
+
+      <div class="empty-state" id="deck-empty">
+        <i class="ra ra-broken-shield"></i>
+        No heroes match these filters.
+      </div>
+
+      <footer>Echoes of Legend &mdash; Prototype</footer>
+    </section>
+
+    <!-- ==================== SHOP ==================== -->
+    <section class="view shop" data-view="shop">
+      <header class="col-header">
+        <button class="back-btn" id="btn-shop-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <h2 class="col-title">Shop</h2>
+          <p class="col-sub">Pack preview &mdash; your collection is already complete</p>
+        </div>
+      </header>
+
+      <div class="shop-body">
+        <article class="product">
+          <div class="product-pack pk-host">
+            <div class="product-sheen"></div>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">Echoes Pack</h3>
+            <p class="product-desc">
+              Five heroes from across all six factions. The final card is always
+              <b>Epic</b> rarity or better.
+            </p>
+            <p class="product-odds" id="product-odds"></p>
+            <p class="product-note">
+              <i class="ri-information-line"></i>
+              Preview only: heroes you reveal here are <b>not</b> added anywhere &mdash; you already
+              own the full collection.
+            </p>
+            <button class="btn btn-primary" id="btn-open-pack">
+              <i class="ra ra-gem"></i><span>Open Pack</span>
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <!-- cinematic pack opening -->
+      <div class="pack-opening" id="pack-opening" aria-hidden="true">
+        <div class="po-vignette"></div>
+        <div class="po-rays"><span></span><span></span></div>
+        <button class="po-skip" id="po-skip">
+          <i class="ri-skip-forward-fill"></i><span>Skip</span>
+        </button>
+        <div class="po-packwrap" id="po-packwrap">
+          <div class="po-pack" id="po-pack" role="button" tabindex="0" aria-label="Open the pack">
+            <div class="po-pack-main pk-host"></div>
+            <div class="po-pack-seam"></div>
+            <div class="po-halves">
+              <span class="po-half top pk-host"></span>
+              <span class="po-half bot pk-host"></span>
+            </div>
+            <div class="po-pack-glow"></div>
+          </div>
+          <div class="po-hint" id="po-hint">Click the pack to open it</div>
+        </div>
+        <div class="po-particles" id="po-particles"></div>
+        <div class="po-flash" id="po-flash"></div>
+        <div class="po-cards" id="po-cards"></div>
+        <div class="po-legend-banner" id="po-legend-banner"></div>
+        <div class="po-summary" id="po-summary">
+          <h3 class="po-sum-title">Pack Contents</h3>
+          <p class="po-sum-note">
+            <i class="ri-information-line"></i>
+            Preview only &mdash; nothing was added to your collection.
+          </p>
+          <div class="po-sum-actions">
+            <button class="btn btn-ghost btn-slim" id="po-again">
+              <i class="ra ra-gem"></i><span>Open Another</span>
+            </button>
+            <button class="btn btn-primary btn-slim" id="po-done">
+              <i class="ri-check-line"></i><span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PLAY (mode select) ==================== -->
+    <section class="view play" data-view="play">
+      <header class="col-header">
+        <button class="back-btn" id="btn-play-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <h2 class="col-title">Play</h2>
+          <p class="col-sub">Choose your battlefield</p>
+        </div>
+      </header>
+
+      <div class="mode-grid">
+        <button class="mode-card" id="mode-classic">
+          <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
+          <i class="mode-glyph ra ra-crossed-swords"></i>
+          <span class="mode-name">Classic</span>
+          <span class="mode-desc">
+            Bring a saved deck of 12. Ban 2 of the enemy's heroes, field your six, fight.
+          </span>
+          <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
+        </button>
+
+        <button class="mode-card" id="mode-draft">
+          <i class="mode-wm ra ra-clovers-card" aria-hidden="true"></i>
+          <i class="mode-glyph ra ra-clovers-card"></i>
+          <span class="mode-name">Draft</span>
+          <span class="mode-desc">
+            Build from nothing &mdash; snake-draft 12 heroes against the bot, then the same bans and
+            battle as Classic.
+          </span>
+          <span class="mode-cta">Enter draft <i class="ri-arrow-right-line"></i></span>
+        </button>
+
+        <button class="mode-card soon" id="mode-campaign" disabled>
+          <span class="mode-soon-tag">Coming soon</span>
+          <i class="mode-wm ra ra-compass" aria-hidden="true"></i>
+          <i class="mode-glyph ra ra-compass"></i>
+          <span class="mode-name">Campaign</span>
+          <span class="mode-desc"> The road of legends &mdash; a journey for another day. </span>
         </button>
       </div>
-    </div>
-  </div>
-</section>
 
-
-<!-- ==================== PLAY (mode select) ==================== -->
-<section class="view play" data-view="play">
-  <header class="col-header">
-    <button class="back-btn" id="btn-play-back">
-      <i class="ri-arrow-left-line"></i><span>Back</span>
-    </button>
-    <div class="col-titles">
-      <h2 class="col-title">Play</h2>
-      <p class="col-sub">Choose your battlefield</p>
-    </div>
-  </header>
-
-  <div class="mode-grid">
-    <button class="mode-card" id="mode-classic">
-      <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
-      <i class="mode-glyph ra ra-crossed-swords"></i>
-      <span class="mode-name">Classic</span>
-      <span class="mode-desc">
-        Bring a saved deck of 12. Ban 2 of the enemy's heroes, field your six, fight.
-      </span>
-      <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
-    </button>
-
-    <button class="mode-card" id="mode-draft">
-      <i class="mode-wm ra ra-clovers-card" aria-hidden="true"></i>
-      <i class="mode-glyph ra ra-clovers-card"></i>
-      <span class="mode-name">Draft</span>
-      <span class="mode-desc">
-        Build from nothing &mdash; snake-draft 12 heroes against the bot, then the
-        same bans and battle as Classic.
-      </span>
-      <span class="mode-cta">Enter draft <i class="ri-arrow-right-line"></i></span>
-    </button>
-
-    <button class="mode-card soon" id="mode-campaign" disabled>
-      <span class="mode-soon-tag">Coming soon</span>
-      <i class="mode-wm ra ra-compass" aria-hidden="true"></i>
-      <i class="mode-glyph ra ra-compass"></i>
-      <span class="mode-name">Campaign</span>
-      <span class="mode-desc">
-        The road of legends &mdash; a journey for another day.
-      </span>
-    </button>
-  </div>
-
-  <!-- classic: pick one of your saved decks -->
-  <div class="deck-modal" id="deck-modal" aria-hidden="true">
-    <div class="dm-card">
-      <h3 class="dm-title">Choose your deck</h3>
-      <p class="dm-sub">The enemy builds a random squad of 12 &mdash; max 4 of a role, like yours.</p>
-      <div class="dm-list" id="dm-list"></div>
-      <div class="dm-foot">
-        <button class="btn btn-ghost btn-slim" id="dm-new">
-          <i class="ri-add-line"></i><span>New deck</span>
-        </button>
-        <button class="btn btn-ghost btn-slim" id="dm-cancel">
-          <i class="ri-close-line"></i><span>Cancel</span>
-        </button>
+      <!-- classic: pick one of your saved decks -->
+      <div class="deck-modal" id="deck-modal" aria-hidden="true">
+        <div class="dm-card">
+          <h3 class="dm-title">Choose your deck</h3>
+          <p class="dm-sub">
+            The enemy builds a random squad of 12 &mdash; max 4 of a role, like yours.
+          </p>
+          <div class="dm-list" id="dm-list"></div>
+          <div class="dm-foot">
+            <button class="btn btn-ghost btn-slim" id="dm-new">
+              <i class="ri-add-line"></i><span>New deck</span>
+            </button>
+            <button class="btn btn-ghost btn-slim" id="dm-cancel">
+              <i class="ri-close-line"></i><span>Cancel</span>
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <footer>Echoes of Legend &mdash; Prototype</footer>
-</section>
+      <footer>Echoes of Legend &mdash; Prototype</footer>
+    </section>
 
+    <!-- ==================== PREPARATION (bans + field six) ==================== -->
+    <section class="view prep" data-view="prep" id="prep-view">
+      <header class="col-header">
+        <button class="back-btn" id="btn-prep-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <h2 class="col-title">Preparation</h2>
+          <p class="col-sub" id="prep-sub">Phase 1 &mdash; ban 2 of the enemy's heroes</p>
+        </div>
+        <div class="prep-steps">
+          <span class="pstep sel" id="pstep-ban"><b>1</b> Bans</span>
+          <span class="pstep" id="pstep-pick"><b>2</b> Field Six</span>
+          <span class="pstep" id="pstep-fight"><b>3</b> Battle</span>
+        </div>
+      </header>
 
-<!-- ==================== PREPARATION (bans + field six) ==================== -->
-<section class="view prep" data-view="prep" id="prep-view">
-  <header class="col-header">
-    <button class="back-btn" id="btn-prep-back">
-      <i class="ri-arrow-left-line"></i><span>Back</span>
-    </button>
-    <div class="col-titles">
-      <h2 class="col-title">Preparation</h2>
-      <p class="col-sub" id="prep-sub">Phase 1 &mdash; ban 2 of the enemy's heroes</p>
-    </div>
-    <div class="prep-steps">
-      <span class="pstep sel" id="pstep-ban"><b>1</b> Bans</span>
-      <span class="pstep" id="pstep-pick"><b>2</b> Field Six</span>
-      <span class="pstep" id="pstep-fight"><b>3</b> Battle</span>
-    </div>
-  </header>
-
-  <!-- phase 1: your deck left, the enemy's right. phase 2: their side
+      <!-- phase 1: your deck left, the enemy's right. phase 2: their side
        folds away and the formation tray takes its place -->
-  <div class="prep-board" id="prep-board">
-    <section class="prep-side you" id="prep-side-you">
-      <div class="prep-side-tag">
-        <i class="ra ra-player"></i><span>Your Deck</span>
-        <span class="prep-note" id="prep-player-note">the enemy's bans are hidden until you commit yours</span>
-      </div>
-      <div class="prep-cards" id="prep-player"></div>
-    </section>
+      <div class="prep-board" id="prep-board">
+        <section class="prep-side you" id="prep-side-you">
+          <div class="prep-side-tag">
+            <i class="ra ra-player"></i><span>Your Deck</span>
+            <span class="prep-note" id="prep-player-note"
+              >the enemy's bans are hidden until you commit yours</span
+            >
+          </div>
+          <div class="prep-cards" id="prep-player"></div>
+        </section>
 
-    <div class="prep-vs" id="prep-vs" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
-
-    <section class="prep-side foe" id="prep-side-foe">
-      <div class="prep-side-tag">
-        <i class="ra ra-skull"></i><span>Enemy Deck</span>
-        <span class="prep-note" id="prep-enemy-note">tap 2 to ban</span>
-      </div>
-      <div class="prep-cards" id="prep-enemy"></div>
-    </section>
-
-    <section class="prep-side field" id="prep-field" hidden>
-      <div class="prep-side-tag">
-        <i class="ra ra-diamond"></i><span>Your Battle Six</span>
-        <span class="prep-note">tap a slotted hero to swap rows &mdash; front soaks the hits</span>
-      </div>
-      <div class="prep-field-body">
-        <div class="field-rows">
-          <span class="field-row-tag">Front</span>
-          <div class="field-slots" id="field-front"></div>
+        <div class="prep-vs" id="prep-vs" aria-hidden="true">
+          <i class="ra ra-crossed-swords"></i>
         </div>
-        <div class="field-rows">
-          <span class="field-row-tag">Back</span>
-          <div class="field-slots" id="field-back"></div>
-        </div>
-        <div class="field-count"><b id="field-n">0</b><span>/6 fielded</span></div>
+
+        <section class="prep-side foe" id="prep-side-foe">
+          <div class="prep-side-tag">
+            <i class="ra ra-skull"></i><span>Enemy Deck</span>
+            <span class="prep-note" id="prep-enemy-note">tap 2 to ban</span>
+          </div>
+          <div class="prep-cards" id="prep-enemy"></div>
+        </section>
+
+        <section class="prep-side field" id="prep-field" hidden>
+          <div class="prep-side-tag">
+            <i class="ra ra-diamond"></i><span>Your Battle Six</span>
+            <span class="prep-note"
+              >tap a slotted hero to swap rows &mdash; front soaks the hits</span
+            >
+          </div>
+          <div class="prep-field-body">
+            <div class="field-rows">
+              <span class="field-row-tag">Front</span>
+              <div class="field-slots" id="field-front"></div>
+            </div>
+            <div class="field-rows">
+              <span class="field-row-tag">Back</span>
+              <div class="field-slots" id="field-back"></div>
+            </div>
+            <div class="field-count"><b id="field-n">0</b><span>/6 fielded</span></div>
+          </div>
+          <div class="prep-actions">
+            <button class="btn btn-primary" id="prep-confirm" disabled>
+              <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
+            </button>
+          </div>
+        </section>
       </div>
-      <div class="prep-actions">
-        <button class="btn btn-primary" id="prep-confirm" disabled>
-          <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
+
+      <!-- phase 1 dock: the confirm lives under the board until the tray opens -->
+      <div class="prep-actions main" id="prep-actions-main">
+        <button class="btn btn-primary" id="prep-confirm-main" disabled>
+          <i class="ra ra-crossed-swords"></i><span id="prep-confirm-main-txt">Confirm bans</span>
         </button>
       </div>
+
+      <!-- hover tooltip: the battle board's floating hero panel, same skin -->
+      <aside class="flyout" id="prep-tip" data-rarity="common" aria-hidden="true"></aside>
     </section>
-  </div>
 
-  <!-- phase 1 dock: the confirm lives under the board until the tray opens -->
-  <div class="prep-actions main" id="prep-actions-main">
-    <button class="btn btn-primary" id="prep-confirm-main" disabled>
-      <i class="ra ra-crossed-swords"></i><span id="prep-confirm-main-txt">Confirm bans</span>
-    </button>
-  </div>
-
-  <!-- hover tooltip: the battle board's floating hero panel, same skin -->
-  <aside class="flyout" id="prep-tip" data-rarity="common" aria-hidden="true"></aside>
-</section>
-
-
-<!-- ==================== DRAFT ==================== -->
-<section class="view draft" data-view="draft">
-  <header class="col-header">
-    <button class="back-btn" id="btn-draft-back">
-      <i class="ri-arrow-left-line"></i><span>Back</span>
-    </button>
-    <div class="col-titles">
-      <h2 class="col-title">Draft</h2>
-      <p class="col-sub" id="draft-sub">Pack 1 of 12 &mdash; your pick</p>
-    </div>
-    <div class="draft-order" id="draft-order"></div>
-  </header>
-
-  <div class="draft-pack" id="draft-pack"></div>
-
-  <div class="draft-piles">
-    <div class="draft-pile you">
-      <div class="dpile-tag"><i class="ra ra-player"></i><span>Your squad</span>
-        <b><span id="dp-you-n">0</span>/12</b></div>
-      <div class="dpile-strip" id="dpile-you"></div>
-    </div>
-    <div class="draft-pile foe">
-      <div class="dpile-tag"><i class="ra ra-skull"></i><span>Enemy squad</span>
-        <b><span id="dp-foe-n">0</span>/12</b></div>
-      <div class="dpile-strip" id="dpile-foe"></div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ==================== COACH OVERLAY + TOASTS ==================== -->
-<div class="coach" id="coach" aria-hidden="true">
-  <div class="coach-card">
-    <div class="coach-ico"><i id="coach-ico" class="ra ra-clovers-card"></i></div>
-    <h3 class="coach-title" id="coach-title"></h3>
-    <p class="coach-body" id="coach-body"></p>
-    <button class="btn btn-primary btn-slim coach-ok" id="coach-ok">
-      <i class="ri-check-line"></i><span>Got it</span>
-    </button>
-  </div>
-</div>
-<div class="toasts" id="toasts" aria-live="polite"></div>
-
-
-<!-- ==================== BATTLE ==================== -->
-<section class="view battle" data-view="battle">
-
-  <!-- TOP: both commanders + energy -->
-  <header class="hud">
-    <div class="hud-side player">
-      <div class="pf-icon" id="pf-player"><i class="ra ra-player"></i></div>
-      <div class="pf-body">
-        <div class="pf-name">You
-          <span class="pf-alive"><i class="ra ra-health"></i><span id="alive-player">6</span></span>
+    <!-- ==================== DRAFT ==================== -->
+    <section class="view draft" data-view="draft">
+      <header class="col-header">
+        <button class="back-btn" id="btn-draft-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <h2 class="col-title">Draft</h2>
+          <p class="col-sub" id="draft-sub">Pack 1 of 12 &mdash; your pick</p>
         </div>
-        <div class="en-bar"><span class="en-fill" id="en-fill-player"></span></div>
-      </div>
-      <div class="en-txt">
-        <i class="ra ra-lightning-bolt"></i>
-        <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
-      </div>
-    </div>
+        <div class="draft-order" id="draft-order"></div>
+      </header>
 
-    <div class="hud-center">
-      <div class="hud-round">
-        <span class="round-label">Round</span>
-        <span class="round-num" id="round-num">1</span>
-        <span class="turn-label" id="turn-label">Your Turn</span>
-        <span class="init-tag" id="init-tag" title="Round 1 opening limit">
-          <i class="ra ra-hourglass"></i><b id="init-val">Round 1: Basics only</b>
-        </span>
-        <span class="ramp-tag" id="ramp-tag" title="All heroes gain ATK each round">
-          <i class="ra ra-muscle-up"></i><b id="ramp-val">+0%</b> ATK
-        </span>
-      </div>
-      <button class="endturn-btn" id="btn-endturn">
-        <span class="et-label"><i class="ri-skip-forward-fill"></i> Pass</span>
-        <span class="et-count"></span>
-      </button>
-    </div>
+      <div class="draft-pack" id="draft-pack"></div>
 
-    <div class="hud-side enemy">
-      <div class="en-txt">
-        <i class="ra ra-lightning-bolt"></i>
-        <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
-      </div>
-      <div class="pf-body">
-        <div class="pf-name">
-          <span class="pf-alive"><i class="ra ra-health"></i><span id="alive-enemy">6</span></span>
-          Enemy Bot
+      <div class="draft-piles">
+        <div class="draft-pile you">
+          <div class="dpile-tag">
+            <i class="ra ra-player"></i><span>Your squad</span>
+            <b><span id="dp-you-n">0</span>/12</b>
+          </div>
+          <div class="dpile-strip" id="dpile-you"></div>
         </div>
-        <div class="en-bar"><span class="en-fill" id="en-fill-enemy"></span></div>
+        <div class="draft-pile foe">
+          <div class="dpile-tag">
+            <i class="ra ra-skull"></i><span>Enemy squad</span>
+            <b><span id="dp-foe-n">0</span>/12</b>
+          </div>
+          <div class="dpile-strip" id="dpile-foe"></div>
+        </div>
       </div>
-      <div class="pf-icon" id="pf-enemy"><i class="ra ra-skull"></i></div>
-    </div>
+    </section>
 
-  </header>
+    <!-- ==================== COACH OVERLAY + TOASTS ==================== -->
+    <div class="coach" id="coach" aria-hidden="true">
+      <div class="coach-card">
+        <div class="coach-ico"><i id="coach-ico" class="ra ra-clovers-card"></i></div>
+        <h3 class="coach-title" id="coach-title"></h3>
+        <p class="coach-body" id="coach-body"></p>
+        <button class="btn btn-primary btn-slim coach-ok" id="coach-ok">
+          <i class="ri-check-line"></i><span>Got it</span>
+        </button>
+      </div>
+    </div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
 
-  <!-- MIDDLE: teams face each other left vs right -->
-  <main class="board" id="board">
-    <!-- ambient arena dressing, back to front -->
-    <div class="arena-sky"></div>
-    <div class="arena-stars"></div>
-    <div class="arena-pillars">
-      <span></span><span></span><span></span><span></span>
-    </div>
-    <div class="arena-floor"></div>
-    <div class="arena-runes">
-      <span></span><span></span><span></span>
-    </div>
-    <div class="arena-fog"></div>
-    <div class="arena-motes"></div>
-    <div class="arena-embers">
-      <span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
-    <div class="arena-beams"><span></span><span></span></div>
-    <div class="arena-vignette"></div>
-    <!-- floating hero panel: appears in the empty space beside the board.
+    <!-- ==================== BATTLE ==================== -->
+    <section class="view battle" data-view="battle">
+      <!-- TOP: both commanders + energy -->
+      <header class="hud">
+        <div class="hud-side player">
+          <div class="pf-icon" id="pf-player"><i class="ra ra-player"></i></div>
+          <div class="pf-body">
+            <div class="pf-name">
+              You
+              <span class="pf-alive"
+                ><i class="ra ra-health"></i><span id="alive-player">6</span></span
+              >
+            </div>
+            <div class="en-bar"><span class="en-fill" id="en-fill-player"></span></div>
+          </div>
+          <div class="en-txt">
+            <i class="ra ra-lightning-bolt"></i>
+            <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="hud-round">
+            <span class="round-label">Round</span>
+            <span class="round-num" id="round-num">1</span>
+            <span class="turn-label" id="turn-label">Your Turn</span>
+            <span class="init-tag" id="init-tag" title="Round 1 opening limit">
+              <i class="ra ra-hourglass"></i><b id="init-val">Round 1: Basics only</b>
+            </span>
+            <span class="ramp-tag" id="ramp-tag" title="All heroes gain ATK each round">
+              <i class="ra ra-muscle-up"></i><b id="ramp-val">+0%</b> ATK
+            </span>
+          </div>
+          <button class="endturn-btn" id="btn-endturn">
+            <span class="et-label"><i class="ri-skip-forward-fill"></i> Pass</span>
+            <span class="et-count"></span>
+          </button>
+        </div>
+
+        <div class="hud-side enemy">
+          <div class="en-txt">
+            <i class="ra ra-lightning-bolt"></i>
+            <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
+          </div>
+          <div class="pf-body">
+            <div class="pf-name">
+              <span class="pf-alive"
+                ><i class="ra ra-health"></i><span id="alive-enemy">6</span></span
+              >
+              Enemy Bot
+            </div>
+            <div class="en-bar"><span class="en-fill" id="en-fill-enemy"></span></div>
+          </div>
+          <div class="pf-icon" id="pf-enemy"><i class="ra ra-skull"></i></div>
+        </div>
+      </header>
+
+      <!-- MIDDLE: teams face each other left vs right -->
+      <main class="board" id="board">
+        <!-- ambient arena dressing, back to front -->
+        <div class="arena-sky"></div>
+        <div class="arena-stars"></div>
+        <div class="arena-pillars"><span></span><span></span><span></span><span></span></div>
+        <div class="arena-floor"></div>
+        <div class="arena-runes"><span></span><span></span><span></span></div>
+        <div class="arena-fog"></div>
+        <div class="arena-motes"></div>
+        <div class="arena-embers">
+          <span></span><span></span><span></span><span></span><span></span> <span></span
+          ><span></span><span></span><span></span><span></span> <span></span><span></span
+          ><span></span><span></span><span></span>
+        </div>
+        <div class="arena-beams"><span></span><span></span></div>
+        <div class="arena-vignette"></div>
+        <!-- floating hero panel: appears in the empty space beside the board.
          Allies show it on the left, enemies on the right. -->
-    <aside class="flyout" id="flyout"></aside>
+        <aside class="flyout" id="flyout"></aside>
 
-    <section class="team-side player-side">
-      <div class="row-tag player-tag"><i class="ra ra-player"></i> Your Team</div>
-      <div class="bgrid" id="grid-player"></div>
-    </section>
+        <section class="team-side player-side">
+          <div class="row-tag player-tag"><i class="ra ra-player"></i> Your Team</div>
+          <div class="bgrid" id="grid-player"></div>
+        </section>
 
-    <div class="clash"><span></span><i class="ra ra-crossed-swords"></i><span></span></div>
+        <div class="clash"><span></span><i class="ra ra-crossed-swords"></i><span></span></div>
 
-    <section class="team-side enemy-side">
-      <div class="row-tag enemy-tag">Enemy <i class="ra ra-skull"></i></div>
-      <div class="bgrid" id="grid-enemy"></div>
-    </section>
-  </main>
+        <section class="team-side enemy-side">
+          <div class="row-tag enemy-tag">Enemy <i class="ra ra-skull"></i></div>
+          <div class="bgrid" id="grid-enemy"></div>
+        </section>
+      </main>
 
-  <!-- cinematic announcements: rounds, phases and turn handovers.
+      <!-- cinematic announcements: rounds, phases and turn handovers.
        Fixed overlay, pointer-transparent — never blocks the board. -->
-  <div class="cine" id="cine" role="status" aria-live="polite">
-    <div class="cine-title" id="cine-title"></div>
-    <div class="cine-sub" id="cine-sub"></div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-  <div class="result" id="result">
-    <div class="result-card">
-      <div class="result-icon"><i class="ra ra-crown"></i></div>
-      <h2 class="result-title">Victory</h2>
-      <p class="result-sub"></p>
-      <p class="result-rounds"></p>
-      <div class="result-actions">
-        <button class="btn btn-primary" id="btn-rematch"><i class="ra ra-cycle"></i><span>Rematch</span></button>
-        <button class="btn btn-ghost" id="btn-result-home"><i class="ri-home-4-line"></i><span>Home</span></button>
+      <div class="cine" id="cine" role="status" aria-live="polite">
+        <div class="cine-title" id="cine-title"></div>
+        <div class="cine-sub" id="cine-sub"></div>
       </div>
-    </div>
-  </div>
-</section>
 
-<!-- Card data: one file per faction -->
-<script src="js/text.js"></script>
-<script src="data/_schema.js"></script>
-<script src="data/roles.js"></script>
-<script src="data/camelot.js"></script>
-<script src="data/olympus.js"></script>
-<script src="data/yamato.js"></script>
+      <div class="toast" id="toast"></div>
 
-<script src="data/grimmwood.js"></script>
-<script src="data/sherwood.js"></script>
-<script src="data/huaxia.js"></script>
+      <div class="result" id="result">
+        <div class="result-card">
+          <div class="result-icon"><i class="ra ra-crown"></i></div>
+          <h2 class="result-title">Victory</h2>
+          <p class="result-sub"></p>
+          <p class="result-rounds"></p>
+          <div class="result-actions">
+            <button class="btn btn-primary" id="btn-rematch">
+              <i class="ra ra-cycle"></i><span>Rematch</span>
+            </button>
+            <button class="btn btn-ghost" id="btn-result-home">
+              <i class="ri-home-4-line"></i><span>Home</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-<script src="js/engine.js"></script>
-<script src="js/ai.js"></script>
-<script src="js/battle.js"></script>
-<script src="js/deck.js"></script>
-<script src="js/play.js"></script>
-<script src="js/shop.js"></script>
-<script src="js/app.js"></script>
-</body>
+    <!-- Card data: one file per faction -->
+    <script src="js/text.js"></script>
+    <script src="data/_schema.js"></script>
+    <script src="data/roles.js"></script>
+    <script src="data/camelot.js"></script>
+    <script src="data/olympus.js"></script>
+    <script src="data/yamato.js"></script>
+
+    <script src="data/grimmwood.js"></script>
+    <script src="data/sherwood.js"></script>
+    <script src="data/huaxia.js"></script>
+
+    <script src="js/engine.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/battle.js"></script>
+    <script src="js/deck.js"></script>
+    <script src="js/play.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/app.js"></script>
+  </body>
 </html>

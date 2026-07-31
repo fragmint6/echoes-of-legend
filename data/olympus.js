@@ -26,18 +26,24 @@ window.EOL.registerFaction({
               k: 'branch',
               cond: { anyTargetMarked: true },
               then: [
-                { k: 'stat', stat: 'def', amt: -20, turns: 2, to: 'targets', onlyMarked: true, when: 'now' },
+                {
+                  k: 'stat',
+                  stat: 'def',
+                  amt: -20,
+                  turns: 2,
+                  to: 'targets',
+                  onlyMarked: true,
+                  when: 'now',
+                },
                 { k: 'dmg', power: 1.3, element: 'Lightning', onlyMarked: true },
-                { k: 'consumeMark' }
+                { k: 'consumeMark' },
               ],
-              other: [
-                { k: 'mark', to: 'targets', when: 'now' }
-              ]
-            }
-          ]
-        }
+              other: [{ k: 'mark', to: 'targets', when: 'now' }],
+            },
+          ],
+        },
       },
-      icon: 'ra-lightning-bolt'
+      icon: 'ra-lightning-bolt',
     },
     {
       id: 'olympus-athena',
@@ -57,12 +63,12 @@ window.EOL.registerFaction({
           teamWide: true,
           effects: [
             { k: 'damageMult', mult: 0.85, firstPerRound: true },
-            { k: 'damageMult', mult: 0.90, ifAttackerMarked: true },
-            { k: 'mark', to: 'targets' }
-          ]
-        }
+            { k: 'damageMult', mult: 0.9, ifAttackerMarked: true },
+            { k: 'mark', to: 'targets' },
+          ],
+        },
       },
-      icon: 'ra-shield'
+      icon: 'ra-shield',
     },
     {
       id: 'olympus-hercules',
@@ -82,11 +88,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'stat', stat: 'def', amt: 25, turns: 2, to: 'self' },
             { k: 'stat', stat: 'atk', amt: 20, turns: 2, to: 'self' },
-            { k: 'taunt', turns: 2, to: 'self', shieldOnEnd: 15 }
-          ]
-        }
+            { k: 'taunt', turns: 2, to: 'self', shieldOnEnd: 15 },
+          ],
+        },
       },
-      icon: 'ra-muscle-fat'
+      icon: 'ra-muscle-fat',
     },
     {
       id: 'olympus-apollo',
@@ -106,11 +112,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'heal', pctMaxHp: 35 },
             { k: 'stat', stat: 'crit', amt: 15, turns: 2, to: 'targets' },
-            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' }
-          ]
-        }
+            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' },
+          ],
+        },
       },
-      icon: 'ra-sun-symbol'
+      icon: 'ra-sun-symbol',
     },
     {
       id: 'olympus-medusa',
@@ -120,21 +126,18 @@ window.EOL.registerFaction({
       element: 'Shadow',
       stats: { hp: 4310, atk: 1860, def: 10 },
       ability: {
-        type: 'Active',
+        type: 'Passive',
         name: 'Petrifying Gaze',
-        cost: 45,
-        text: 'Deal <b>180% ATK Shadow Damage</b> and apply <b>Mark</b>; the target is also <b>Exposed</b> for 1 round.',
+        cost: null,
+        text: 'When Medusa is attacked, the attacker is <b>Exposed</b> for 1 round (first attack each round).',
         note: null,
-        spec: {
-          target: { side: 'enemy', pick: 'single', row: 'any' },
-          effects: [
-            { k: 'dmg', power: 1.8, element: 'Shadow' },
-            { k: 'mark', to: 'targets', when: 'now' },
-            { k: 'exposed', turns: 1, to: 'targets', when: 'now' }
-          ]
-        }
+        passive: {
+          trigger: 'wasAttacked',
+          firstPerRound: true,
+          effects: [{ k: 'exposed', turns: 1, to: 'targets' }],
+        },
       },
-      icon: 'ra-snake'
+      icon: 'ra-snake',
     },
     {
       id: 'olympus-ares',
@@ -152,15 +155,23 @@ window.EOL.registerFaction({
         passive: {
           trigger: 'selfAttacked',
           effects: [
-            { k: 'stat', stat: 'atk', amt: 8, turns: 99, to: 'self', stackTag: 'bloodlust', maxStacks: 5 }
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: 8,
+              turns: 99,
+              to: 'self',
+              stackTag: 'bloodlust',
+              maxStacks: 5,
+            },
           ],
           onHit: [
-            { k: 'dmg', power: 0.40, element: 'inherit', ifTargetMarked: true },
-            { k: 'burn', turns: 2, ifTargetMarked: true }
-          ]
-        }
+            { k: 'dmg', power: 0.4, element: 'inherit', ifTargetMarked: true },
+            { k: 'burn', turns: 2, ifTargetMarked: true },
+          ],
+        },
       },
-      icon: 'ra-bleeding-hearts'
-    }
-  ]
+      icon: 'ra-bleeding-hearts',
+    },
+  ],
 });

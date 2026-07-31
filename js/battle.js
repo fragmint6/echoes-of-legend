@@ -5,31 +5,54 @@
 (function () {
   'use strict';
 
-  var E, AI, B = null;
-  var sel = null;        // { unit, ability, needed, chosen[] }
-  var busy = false;      // blocks input while the bot acts
-  var playerDone = false;   // has the player taken their turn this round?
-  var enemyDone = false;    // has the bot taken its turn this round?
+  var E,
+    AI,
+    B = null;
+  var sel = null; // { unit, ability, needed, chosen[] }
+  var busy = false; // blocks input while the bot acts
+  var playerDone = false; // has the player taken their turn this round?
+  var enemyDone = false; // has the bot taken its turn this round?
   var ROLE_ICON = {
-    Tank: 'ra-shield', Bruiser: 'ra-battered-axe', Caster: 'ra-fairy-wand',
-    Controller: 'ra-gears', Medic: 'ra-health', Sniper: 'ra-archery-target'
+    Tank: 'ra-shield',
+    Bruiser: 'ra-battered-axe',
+    Caster: 'ra-fairy-wand',
+    Controller: 'ra-gears',
+    Medic: 'ra-health',
+    Sniper: 'ra-archery-target',
   };
   var ELEMENT_ICON = {
-    Physical: 'ra-crossed-swords', Magic: 'ra-crystals', Shadow: 'ra-moon-sun',
-    Light: 'ra-sun', Lightning: 'ra-lightning-bolt', Fire: 'ra-fire', Nature: 'ra-leaf'
+    Physical: 'ra-crossed-swords',
+    Magic: 'ra-crystals',
+    Shadow: 'ra-moon-sun',
+    Light: 'ra-sun',
+    Lightning: 'ra-lightning-bolt',
+    Fire: 'ra-fire',
+    Nature: 'ra-leaf',
   };
   var ELEMENT_COLOR = {
-    Physical: 'var(--e-physical)', Magic: 'var(--e-magic)', Shadow: 'var(--e-shadow)',
-    Light: 'var(--e-light)', Lightning: 'var(--e-lightning)', Fire: 'var(--e-fire)',
-    Nature: 'var(--e-nature)'
+    Physical: 'var(--e-physical)',
+    Magic: 'var(--e-magic)',
+    Shadow: 'var(--e-shadow)',
+    Light: 'var(--e-light)',
+    Lightning: 'var(--e-lightning)',
+    Fire: 'var(--e-fire)',
+    Nature: 'var(--e-nature)',
   };
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
-  function $(id) { return document.getElementById(id); }
-  function rich(t) { return window.EOL.colorElements(String(t)); }
-  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function $(id) {
+    return document.getElementById(id);
+  }
+  function rich(t) {
+    return window.EOL.colorElements(String(t));
+  }
+  function sleep(ms) {
+    return new Promise(function (r) {
+      setTimeout(r, ms);
+    });
+  }
 
   /* ---------------------------------------------------------
      team building
@@ -38,12 +61,14 @@
      fields exactly those heroes, and the enemy draws 6 distinct random
      heroes from the remaining pool. Without a deck, both sides are
      random — 12 distinct heroes split 6v6, as before. */
-  var playerDeck = null;   // card ids of the last deck used (for rematch)
+  var playerDeck = null; // card ids of the last deck used (for rematch)
 
   function flatten() {
     var all = [];
     window.EOL.factions.forEach(function (f) {
-      f.cards.forEach(function (c) { all.push({ card: c, faction: f }); });
+      f.cards.forEach(function (c) {
+        all.push({ card: c, faction: f });
+      });
     });
     return all;
   }
@@ -51,13 +76,20 @@
   function buildTeams(deckIds) {
     var all = flatten();
     var byId = {};
-    all.forEach(function (e) { byId[e.card.id] = e; });
-    var deckEntries = deckIds && deckIds.length === 6
-      ? deckIds.map(function (id) { return byId[id]; }) : null;
-    var legal = deckEntries &&
+    all.forEach(function (e) {
+      byId[e.card.id] = e;
+    });
+    var deckEntries =
+      deckIds && deckIds.length === 6
+        ? deckIds.map(function (id) {
+            return byId[id];
+          })
+        : null;
+    var legal =
+      deckEntries &&
       deckEntries.every(Boolean) &&
       new Set(deckIds).size === 6 &&
-      window.EOL.rules.withinRoleCap(deckEntries);   // hard deck rule: <=3 per role
+      window.EOL.rules.withinRoleCap(deckEntries); // hard deck rule: <=3 per role
 
     if (!legal) {
       var rnd = window.EOL.rules.splitCapped(all, Math.random);
@@ -71,9 +103,16 @@
     }
 
     var inDeck = {};
-    deckIds.forEach(function (id) { inDeck[id] = true; });
-    var rest = all.filter(function (e) { return !inDeck[e.card.id]; })
-      .sort(function () { return Math.random() - 0.5; });
+    deckIds.forEach(function (id) {
+      inDeck[id] = true;
+    });
+    var rest = all
+      .filter(function (e) {
+        return !inDeck[e.card.id];
+      })
+      .sort(function () {
+        return Math.random() - 0.5;
+      });
     /* The bot drafts, too — its team is half luck, half judgement:
        three capped randoms from the leftover pool, then three picks
        drafted around them. */
@@ -90,9 +129,11 @@
     return {
       /* the deck's array order IS the player's formation: slots 0-2 are
          the front row, 3-5 the back row (deck builder guarantees this). */
-      player: deckIds.map(function (id) { return byId[id]; }),
+      player: deckIds.map(function (id) {
+        return byId[id];
+      }),
       enemy: enemy,
-      explicit: true
+      explicit: true,
     };
   }
 
@@ -109,18 +150,23 @@
 
   function markSets() {
     if (MARK_SETS) return MARK_SETS;
-    var src = {}, con = {};
+    var src = {},
+      con = {};
     function see(e, id) {
       if (e.k === 'mark') src[id] = true;
-      if (e.k === 'consumeMark' || e.onlyMarked || e.ifTargetMarked ||
-          e.ifAttackerMarked) con[id] = true;
+      if (e.k === 'consumeMark' || e.onlyMarked || e.ifTargetMarked || e.ifAttackerMarked)
+        con[id] = true;
       if (e.if && (e.if.targetMarked || e.if.ifTargetMarked)) con[id] = true;
       if (e.when && (e.when.targetMarked || e.when.ifAttackerMarked)) con[id] = true;
       if (e.cond && (e.cond.anyTargetMarked || e.cond.anyEnemyMarked)) con[id] = true;
       if (e.then) walk(e.then, id);
       if (e.other) walk(e.other, id);
     }
-    function walk(effects, id) { (effects || []).forEach(function (e) { see(e, id); }); }
+    function walk(effects, id) {
+      (effects || []).forEach(function (e) {
+        see(e, id);
+      });
+    }
     window.EOL.factions.forEach(function (f) {
       f.cards.forEach(function (c) {
         walk(c.ability.spec && c.ability.spec.effects, c.id);
@@ -143,10 +189,12 @@
       var rev = ms.con[cand.card.id] && ms.src[t.card.id];
       if (fwd || rev) s += 6;
       if (fwd && rev) s += 2;
-      if (cand.faction.id === t.faction.id) s += 1;            // flavour clump
+      if (cand.faction.id === t.faction.id) s += 1; // flavour clump
     });
     var counts = {};
-    team.forEach(function (t) { counts[t.card.role] = (counts[t.card.role] || 0) + 1; });
+    team.forEach(function (t) {
+      counts[t.card.role] = (counts[t.card.role] || 0) + 1;
+    });
     var role = cand.card.role;
     /* coverage beats synergy by a nose: the first Tank outranks any
        single synergy pull (a tankless team of combos is the classic
@@ -170,25 +218,32 @@
     var rest = pool.slice();
     while (team.length < 6) {
       var counts = {};
-      team.forEach(function (t) { counts[t.card.role] = (counts[t.card.role] || 0) + 1; });
+      team.forEach(function (t) {
+        counts[t.card.role] = (counts[t.card.role] || 0) + 1;
+      });
       var slotsLeft = 6 - team.length;
-      var needTank = !counts.Tank, needMedic = !counts.Medic;
+      var needTank = !counts.Tank,
+        needMedic = !counts.Medic;
       var forced = null;
       if (needTank && slotsLeft <= (needMedic ? 2 : 1)) forced = 'Tank';
       else if (needMedic && slotsLeft <= 1) forced = 'Medic';
 
-      var best = -1, bestScore = -Infinity;
+      var best = -1,
+        bestScore = -Infinity;
       for (var passForced = 0; passForced < 2 && best < 0; passForced++) {
         for (var i = 0; i < rest.length; i++) {
           var cand = rest[i];
           if ((counts[cand.card.role] || 0) >= window.EOL.rules.MAX_PER_ROLE) continue;
           if (forced && !passForced && cand.card.role !== forced) continue;
           var v = draftValue(team, cand) + Math.random() * 2.5;
-          if (v > bestScore) { bestScore = v; best = i; }
+          if (v > bestScore) {
+            bestScore = v;
+            best = i;
+          }
         }
         /* forced role absent from the pool: drop the rail */
       }
-      if (best < 0) break;                 // pool exhausted under the cap
+      if (best < 0) break; // pool exhausted under the cap
       team.push(rest.splice(best, 1)[0]);
     }
     return team;
@@ -202,8 +257,8 @@
      card would already show its restored HP and new buffs while the
      death/resurrection is still playing out on screen. */
   function unitCardHTML(u, deadView) {
-    var pct = deadView ? 0 : Math.max(0, u.hp / u.maxHp * 100);
-    var shieldPct = deadView ? 0 : Math.min(100, u.shield / u.maxHp * 100);
+    var pct = deadView ? 0 : Math.max(0, (u.hp / u.maxHp) * 100);
+    var shieldPct = deadView ? 0 : Math.min(100, (u.shield / u.maxHp) * 100);
     var atk = deadView ? u.baseAtk : E.atkOf(u);
     var def = deadView ? u.baseDef : E.defOf(u);
     var atkDelta = deadView ? 0 : atk - u.baseAtk;
@@ -216,73 +271,123 @@
       var up = (m.flat || 0) > 0 || (m.pct || 0) > 0;
       var key = up ? 'costup' : 'costdown';
       var def = window.EOL.STATUS[key];
-      var hit = sts.filter(function (o) { return o.key === key; })[0];
+      var hit = sts.filter(function (o) {
+        return o.key === key;
+      })[0];
       if (hit) hit.count += 1;
-      else sts.push({ key: key, icon: def.icon, kind: def.kind, label: def.label,
-                      turns: m.turns, count: 1 });
+      else
+        sts.push({
+          key: key,
+          icon: def.icon,
+          kind: def.kind,
+          label: def.label,
+          turns: m.turns,
+          count: 1,
+        });
     });
 
     if (deadView) sts = [];
 
-    var chips = sts.map(function (st) {
-      var tip = st.label + (st.turns ? ' (' + st.turns + ' round' + (st.turns > 1 ? 's' : '') + ')' : '');
-      var sdef = window.EOL.STATUS[st.key] || {};
-      var big = (st.key === 'burn' || st.key === 'exposed') ? ' big-status' : '';
-      return '<span class="st-chip ' + st.kind + big + '"' +
-        (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
-        ' title="' + esc(tip) + '">' +
-        '<i class="ra ' + st.icon + '"></i>' +
-        (st.count > 1 ? '<b class="st-n">' + st.count + '</b>' : '') +
-      '</span>';
-    }).join('');
+    var chips = sts
+      .map(function (st) {
+        var tip =
+          st.label + (st.turns ? ' (' + st.turns + ' round' + (st.turns > 1 ? 's' : '') + ')' : '');
+        var sdef = window.EOL.STATUS[st.key] || {};
+        var big = st.key === 'burn' || st.key === 'exposed' ? ' big-status' : '';
+        return (
+          '<span class="st-chip ' +
+          st.kind +
+          big +
+          '"' +
+          (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
+          ' title="' +
+          esc(tip) +
+          '">' +
+          '<i class="ra ' +
+          st.icon +
+          '"></i>' +
+          (st.count > 1 ? '<b class="st-n">' + st.count + '</b>' : '') +
+          '</span>'
+        );
+      })
+      .join('');
 
     var acted = deadView ? false : B.acted[u.side][u.uid];
 
-    return '' +
+    return (
+      '' +
       '<div class="bstats">' +
-        '<div class="bhp">' +
-          '<i class="ra ra-health bhp-ico"></i>' +
-          '<span class="bbar">' +
-            '<span class="bbar-fill" style="width:' + pct + '%"></span>' +
-            (!deadView && u.shield > 0 ? '<span class="bbar-shield" style="width:' + shieldPct + '%"></span>' : '') +
-          '</span>' +
-          '<span class="bhp-txt' + (!deadView && u.shield > 0 ? ' shielded' : '') + '">' +
-            (deadView ? '0' : Math.ceil(u.hp + u.shield).toLocaleString()) + '</span>' +
-        '</div>' +
-        '<div class="bnums">' +
-          '<span class="bnum' + (atkDelta > 0 ? ' up' : atkDelta < 0 ? ' down' : '') + '">' +
-            '<i class="ra ra-sword"></i>' + atk + '</span>' +
-          '<span class="bnum' + (defDelta > 0 ? ' up' : defDelta < 0 ? ' down' : '') + '">' +
-            '<i class="ra ra-shield"></i>' + def + '%</span>' +
-        '</div>' +
+      '<div class="bhp">' +
+      '<i class="ra ra-health bhp-ico"></i>' +
+      '<span class="bbar">' +
+      '<span class="bbar-fill" style="width:' +
+      pct +
+      '%"></span>' +
+      (!deadView && u.shield > 0
+        ? '<span class="bbar-shield" style="width:' + shieldPct + '%"></span>'
+        : '') +
+      '</span>' +
+      '<span class="bhp-txt' +
+      (!deadView && u.shield > 0 ? ' shielded' : '') +
+      '">' +
+      (deadView ? '0' : Math.ceil(u.hp + u.shield).toLocaleString()) +
+      '</span>' +
       '</div>' +
-
+      '<div class="bnums">' +
+      '<span class="bnum' +
+      (atkDelta > 0 ? ' up' : atkDelta < 0 ? ' down' : '') +
+      '">' +
+      '<i class="ra ra-sword"></i>' +
+      atk +
+      '</span>' +
+      '<span class="bnum' +
+      (defDelta > 0 ? ' up' : defDelta < 0 ? ' down' : '') +
+      '">' +
+      '<i class="ra ra-shield"></i>' +
+      def +
+      '%</span>' +
+      '</div>' +
+      '</div>' +
       /* card art, styled to match the collection: rarity frame, corner
          filigree, rune ring, element orb, rarity pip and role plate */
       '<div class="bcard">' +
       '<div class="bcard-inner">' +
-        '<div class="bcard-art">' +
-          '<span class="bart-ring"></span>' +
-          '<i class="ra ' + u.card.icon + '"></i>' +
-        '</div>' +
-        '<div class="bcard-vig"></div>' +
-        '<div class="bcard-frame"></div>' +
-        '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
-        '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
-        '<div class="bcard-top">' +
-          '<span class="borb" title="' + esc(u.element) + '">' +
-            '<i class="ra ' + (ELEMENT_ICON[u.element] || 'ra-player') + '"></i></span>' +
-        '</div>' +
-        '<div class="bcard-chips">' + chips + '</div>' +
-        '<div class="bcard-foot">' +
-          '<div class="bcard-role"><i class="ra ' + (ROLE_ICON[u.role] || 'ra-player') + '"></i>' +
-            esc(u.role) + '</div>' +
-          '<div class="bcard-name">' + esc(u.name) + '</div>' +
-        '</div>' +
-        (acted ? '<div class="bcard-acted"><i class="ri-check-line"></i></div>' : '') +
-        '<div class="bcard-ring"></div>' +
+      '<div class="bcard-art">' +
+      '<span class="bart-ring"></span>' +
+      '<i class="ra ' +
+      u.card.icon +
+      '"></i>' +
       '</div>' +
-      '</div>';
+      '<div class="bcard-vig"></div>' +
+      '<div class="bcard-frame"></div>' +
+      '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
+      '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
+      '<div class="bcard-top">' +
+      '<span class="borb" title="' +
+      esc(u.element) +
+      '">' +
+      '<i class="ra ' +
+      (ELEMENT_ICON[u.element] || 'ra-player') +
+      '"></i></span>' +
+      '</div>' +
+      '<div class="bcard-chips">' +
+      chips +
+      '</div>' +
+      '<div class="bcard-foot">' +
+      '<div class="bcard-role"><i class="ra ' +
+      (ROLE_ICON[u.role] || 'ra-player') +
+      '"></i>' +
+      esc(u.role) +
+      '</div>' +
+      '<div class="bcard-name">' +
+      esc(u.name) +
+      '</div>' +
+      '</div>' +
+      (acted ? '<div class="bcard-acted"><i class="ri-check-line"></i></div>' : '') +
+      '<div class="bcard-ring"></div>' +
+      '</div>' +
+      '</div>'
+    );
   }
 
   function abilityTip(u) {
@@ -291,25 +396,51 @@
     function row(a, isSig) {
       var cost = a.type === 'Active' ? E.costOf(B, u, a) : null;
       var afford = a.type !== 'Active' || B.energy[u.side] >= cost;
-      return '<div class="tip-ab' + (afford ? '' : ' poor') + '">' +
+      return (
+        '<div class="tip-ab' +
+        (afford ? '' : ' poor') +
+        '">' +
         '<div class="tip-ab-top">' +
-          '<span class="tip-tag ' + (a.type === 'Passive' ? 'passive' : (isSig ? 'sig' : 'role')) + '">' +
-            (a.type === 'Passive' ? 'Passive' : (isSig ? 'Skill' : 'Basic')) + '</span>' +
-          '<span class="tip-ab-name">' + esc(a.name) + '</span>' +
-          (a.type === 'Active'
-            ? '<span class="tip-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>' : '') +
+        '<span class="tip-tag ' +
+        (a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role') +
+        '">' +
+        (a.type === 'Passive' ? 'Passive' : isSig ? 'Skill' : 'Basic') +
+        '</span>' +
+        '<span class="tip-ab-name">' +
+        esc(a.name) +
+        '</span>' +
+        (a.type === 'Active'
+          ? '<span class="tip-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>'
+          : '') +
         '</div>' +
-        '<div class="tip-ab-text">' + a.text +
-          (a.note ? '<div class="tip-note">' + a.note + '</div>' : '') + '</div>' +
-      '</div>';
+        '<div class="tip-ab-text">' +
+        a.text +
+        (a.note ? '<div class="tip-note">' + a.note + '</div>' : '') +
+        '</div>' +
+        '</div>'
+      );
     }
-    return '<div class="btip">' +
+    return (
+      '<div class="btip">' +
       '<div class="tip-head">' +
-        '<span class="tip-name">' + esc(u.name) + '</span>' +
-        '<span class="tip-meta">' + esc(u.role) +
-          '<i class="ra ra-diamond tip-dot"></i><span style="color:' + (ELEMENT_COLOR[u.element] || '#fff') + '">' + esc(u.element) + '</span>' +
-          '<i class="ra ra-diamond tip-dot"></i>' + (E.isFront(u) ? 'Front' : 'Back') + ' Row</span>' +
-      '</div>' + row(sig, true) + row(role, false) + '</div>';
+      '<span class="tip-name">' +
+      esc(u.name) +
+      '</span>' +
+      '<span class="tip-meta">' +
+      esc(u.role) +
+      '<i class="ra ra-diamond tip-dot"></i><span style="color:' +
+      (ELEMENT_COLOR[u.element] || '#fff') +
+      '">' +
+      esc(u.element) +
+      '</span>' +
+      '<i class="ra ra-diamond tip-dot"></i>' +
+      (E.isFront(u) ? 'Front' : 'Back') +
+      ' Row</span>' +
+      '</div>' +
+      row(sig, true) +
+      row(role, false) +
+      '</div>'
+    );
   }
 
   /* FLIP: remember where every card sits before a rebuild so we can
@@ -332,7 +463,8 @@
       var old = before[card.dataset.uid];
       if (!old) return;
       var r = el.getBoundingClientRect();
-      var dx = old.x - r.left, dy = old.y - r.top;
+      var dx = old.x - r.left,
+        dy = old.y - r.top;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
       // jump back to the old spot, then release for a smooth glide
       el.style.transition = 'none';
@@ -356,19 +488,26 @@
          FRONT row (slots 0-2) takes the column nearest the centre line:
            player (left side)  -> front row is the RIGHT column
            enemy  (right side) -> front row is the LEFT column */
-      var order = side === 'player'
-        ? [3, 0, 4, 1, 5, 2]   // rows of: back, front
-        : [0, 3, 1, 4, 2, 5];  // rows of: front, back
+      var order =
+        side === 'player'
+          ? [3, 0, 4, 1, 5, 2] // rows of: back, front
+          : [0, 3, 1, 4, 2, 5]; // rows of: front, back
       order.forEach(function (slot) {
-        var u = B.units.filter(function (x) { return x.side === side && x.slot === slot; })[0];
+        var u = B.units.filter(function (x) {
+          return x.side === side && x.slot === slot;
+        })[0];
         var cell = document.createElement('div');
         cell.className = 'bcell';
-        if (!u) { cell.classList.add('empty'); wrap.appendChild(cell); return; }
+        if (!u) {
+          cell.classList.add('empty');
+          wrap.appendChild(cell);
+          return;
+        }
 
         // a hero whose resurrection hasn't lit yet still reads as a corpse
         var vdead = !u.alive || isDownForRevive(u.uid);
-        cell.className = 'bcell-wrap ' + side + (vdead ? ' dead' : '') +
-          (E.isFront(u) ? ' front' : ' back');
+        cell.className =
+          'bcell-wrap ' + side + (vdead ? ' dead' : '') + (E.isFront(u) ? ' front' : ' back');
         cell.dataset.uid = u.uid;
         cell.style.setProperty('--fc-primary', u.faction.colors.primary);
         cell.style.setProperty('--el', ELEMENT_COLOR[u.element] || '#fff');
@@ -390,9 +529,15 @@
             ev.stopPropagation();
             onCardClick(u);
           });
-          hit.addEventListener('mouseenter', function () { hoverUnit = u; paintDock(); });
+          hit.addEventListener('mouseenter', function () {
+            hoverUnit = u;
+            paintDock();
+          });
           hit.addEventListener('mouseleave', function () {
-            if (hoverUnit === u) { hoverUnit = null; paintDock(); }
+            if (hoverUnit === u) {
+              hoverUnit = null;
+              paintDock();
+            }
           });
         }
         wrap.appendChild(cell);
@@ -403,7 +548,7 @@
     ['player', 'enemy'].forEach(function (s) {
       var en = B.energy[s];
       var cap = E.energyForRound(B.round);
-      $('en-fill-' + s).style.width = Math.min(100, en / 100 * 100) + '%';
+      $('en-fill-' + s).style.width = Math.min(100, (en / 100) * 100) + '%';
       $('en-val-' + s).textContent = en;
       $('en-cap-' + s).textContent = '/' + cap;
       var alive = E.unitsOf(B, s).length;
@@ -420,41 +565,48 @@
       rt.classList.toggle('on', ramp > 0);
       $('ramp-val').textContent = '+' + ramp + '%';
       var next = Math.round((E.rampMult(B.round + 1) - 1) * 100);
-      rt.title = ramp > 0
-        ? 'All heroes have +' + ramp + '% ATK. Next round: +' + next + '%.'
-        : 'From round ' + E.RAMP_FROM + ', all heroes gain +' +
-          Math.round(E.RAMP_STEP * 100) + '% ATK each round.';
+      rt.title =
+        ramp > 0
+          ? 'All heroes have +' + ramp + '% ATK. Next round: +' + next + '%.'
+          : 'From round ' +
+            E.RAMP_FROM +
+            ', all heroes gain +' +
+            Math.round(E.RAMP_STEP * 100) +
+            '% ATK each round.';
     }
     var tl = $('turn-label');
-    tl.textContent = B.over ? 'Battle Over'
-      : (B.turn === 'player' ? 'Your Action' : 'Enemy Action');
+    tl.textContent = B.over ? 'Battle Over' : B.turn === 'player' ? 'Your Action' : 'Enemy Action';
     tl.classList.toggle('enemy-turn', !B.over && B.turn === 'enemy');
 
     /* Status line under the round counter. States plainly what the game
        is waiting on, which the old "who opened the round" badge did not. */
     var it = $('init-tag');
     if (it) {
-      var msg, cls = false;
+      var msg,
+        cls = false;
       /* SHORT texts only — the pill is centre-clipped to ~150 px so it
          can never creep back over the energy readouts or the Pass
          button (full text lives in the pill's tooltip). */
       if (B.over) {
         msg = 'Battle over';
       } else if (B.passed.player && !B.passed.enemy) {
-        msg = 'Enemy finishing';               cls = true;
+        msg = 'Enemy finishing';
+        cls = true;
       } else if (B.passed.enemy && !B.passed.player) {
         msg = 'Enemy passed';
       } else if (B.turnPassed.enemy && B.turn === 'player') {
-        msg = 'Enemy skipped';                 // back-to-back chance: act!
+        msg = 'Enemy skipped'; // back-to-back chance: act!
       } else if (B.turn === 'enemy') {
-        msg = 'Enemy thinking';                cls = true;
+        msg = 'Enemy thinking';
+        cls = true;
       } else {
         msg = 'Your action';
       }
       it.classList.toggle('on', true);
       it.classList.toggle('enemy', cls);
       $('init-val').textContent = msg;
-      it.title = 'Sides trade one action at a time. Passing skips only ' +
+      it.title =
+        'Sides trade one action at a time. Passing skips only ' +
         'that action — the round ends when both sides pass back-to-back.';
     }
     document.body.dataset.turn = B.turn;
@@ -483,7 +635,7 @@
       var statsH = stats.getBoundingClientRect().height;
       var gap = 5;
       var artH = Math.max(40, rowH - statsH - gap);
-      grid.style.setProperty('--cardw', Math.floor(artH * 250 / 355) + 'px');
+      grid.style.setProperty('--cardw', Math.floor((artH * 250) / 355) + 'px');
     });
     fitNames();
   }
@@ -596,13 +748,15 @@
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable — greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
-    var tag = a.type === 'Passive' ? 'passive' : (isSig ? 'sig' : 'role');
-    var tagTxt = a.type === 'Passive' ? 'Passive' : (isSig ? 'Skill' : 'Basic');
+    var tag = a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role';
+    var tagTxt = a.type === 'Passive' ? 'Passive' : isSig ? 'Skill' : 'Basic';
     /* roleAbility() builds a fresh object every render, so for Basics the
        identity check fails right after re-paint and the selection's blue
        vanishes (signatures keep their gold because the card ref is stable).
        Match Basics by name + side instead. */
-    var isSel = sel && sel.ability &&
+    var isSel =
+      sel &&
+      sel.ability &&
       (sel.ability === a ||
         (a.basic && sel.ability.basic && sel.ability.name === a.name && sel.unit === u));
 
@@ -623,21 +777,47 @@
     }
 
     var el = interactive && isActive && !dis ? 'button' : 'div';
-    return '<' + el + ' class="dk-ab ' + tag +
-        (interactive && isActive ? ' act' : '') +
-        (dis ? ' dis' : '') + (isSel ? ' sel' : '') + '"' +
-        (interactive && isActive && !dis ? ' data-ab="' + idx + '"' : '') +
-        (lockTooltip ? ' title="' + esc(lockTooltip) + '"' : '') + '>' +
+    return (
+      '<' +
+      el +
+      ' class="dk-ab ' +
+      tag +
+      (interactive && isActive ? ' act' : '') +
+      (dis ? ' dis' : '') +
+      (isSel ? ' sel' : '') +
+      '"' +
+      (interactive && isActive && !dis ? ' data-ab="' + idx + '"' : '') +
+      (lockTooltip ? ' title="' + esc(lockTooltip) + '"' : '') +
+      '>' +
       '<div class="dk-ab-top">' +
-        '<span class="dk-tag ' + tag + '">' + tagTxt + '</span>' +
-        '<span class="dk-ab-name">' + esc(a.name) + '</span>' +
-        (lockedPhase ? '<span class="dk-lock-badge" title="' + esc(lockTooltip) + '"><i class="ri-lock-fill"></i></span>' : '') +
-        (isActive && !lockedPhase ? '<span class="dk-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>' : '') +
+      '<span class="dk-tag ' +
+      tag +
+      '">' +
+      tagTxt +
+      '</span>' +
+      '<span class="dk-ab-name">' +
+      esc(a.name) +
+      '</span>' +
+      (lockedPhase
+        ? '<span class="dk-lock-badge" title="' +
+          esc(lockTooltip) +
+          '"><i class="ri-lock-fill"></i></span>'
+        : '') +
+      (isActive && !lockedPhase
+        ? '<span class="dk-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>'
+        : '') +
       '</div>' +
-      '<div class="dk-ab-text">' + rich(a.text) +
-        (a.note ? '<div class="dk-note">' + rich(a.note) + '</div>' : '') + '</div>' +
-      (reason ? '<div class="dk-reason"><i class="ri-error-warning-line"></i>' + reason + '</div>' : '') +
-      '</' + el + '>';
+      '<div class="dk-ab-text">' +
+      rich(a.text) +
+      (a.note ? '<div class="dk-note">' + rich(a.note) + '</div>' : '') +
+      '</div>' +
+      (reason
+        ? '<div class="dk-reason"><i class="ri-error-warning-line"></i>' + reason + '</div>'
+        : '') +
+      '</' +
+      el +
+      '>'
+    );
   }
 
   /* Human-readable description for each active status. */
@@ -649,21 +829,41 @@
       if (k === st.key) amt += b.amt;
     });
     switch (st.key) {
-      case 'atk+': case 'atk-': return (amt > 0 ? '+' : '') + amt + '% Attack';
-      case 'def+': case 'def-': return (amt > 0 ? '+' : '') + amt + '% Defence';
-      case 'crit+': case 'crit-': return (amt > 0 ? '+' : '') + amt + '% Crit Chance';
-      case 'shield': return 'Absorbs ' + u.shield.toLocaleString() + ' damage';
-      case 'taunt': return 'Forces enemies to attack this hero';
-      case 'untargetable': return 'Cannot be targeted by enemies';
-      case 'silence': return 'Skill blocked — Basic still usable';
-      case 'marked': return 'This unit is marked for special interactions with certain abilities';
-      case 'burn': return 'Takes ' + Math.round(u.maxHp * 0.05).toLocaleString() +
-        ' damage on every turn this hero\'s side takes';
-      case 'exposed': return 'Defence reduced to 0%';
-      case 'healdown': return 'Healing received reduced by ' + Math.abs(u.flags.healMod) + '%';
-      case 'costup': return 'Ability costs increased';
-      case 'costdown': return 'Ability costs reduced';
-      default: return '';
+      case 'atk+':
+      case 'atk-':
+        return (amt > 0 ? '+' : '') + amt + '% Attack';
+      case 'def+':
+      case 'def-':
+        return (amt > 0 ? '+' : '') + amt + '% Defence';
+      case 'crit+':
+      case 'crit-':
+        return (amt > 0 ? '+' : '') + amt + '% Crit Chance';
+      case 'shield':
+        return 'Absorbs ' + u.shield.toLocaleString() + ' damage';
+      case 'taunt':
+        return 'Forces enemies to attack this hero';
+      case 'untargetable':
+        return 'Cannot be targeted by enemies';
+      case 'silence':
+        return 'Skill blocked — Basic still usable';
+      case 'marked':
+        return 'This unit is marked for special interactions with certain abilities';
+      case 'burn':
+        return (
+          'Takes ' +
+          Math.round(u.maxHp * 0.05).toLocaleString() +
+          " damage on every turn this hero's side takes"
+        );
+      case 'exposed':
+        return 'Defence reduced to 0%';
+      case 'healdown':
+        return 'Healing received reduced by ' + Math.abs(u.flags.healMod) + '%';
+      case 'costup':
+        return 'Ability costs increased';
+      case 'costdown':
+        return 'Ability costs reduced';
+      default:
+        return '';
     }
   }
 
@@ -672,30 +872,55 @@
     (B.costMods[u.side] || []).forEach(function (m) {
       var up = (m.flat || 0) > 0 || (m.pct || 0) > 0;
       var key = up ? 'costup' : 'costdown';
-      if (!sts.some(function (o) { return o.key === key; })) {
+      if (
+        !sts.some(function (o) {
+          return o.key === key;
+        })
+      ) {
         var d = window.EOL.STATUS[key];
-        sts.push({ key: key, icon: d.icon, kind: d.kind, label: d.label,
-                   turns: m.turns, count: 1 });
+        sts.push({
+          key: key,
+          icon: d.icon,
+          kind: d.kind,
+          label: d.label,
+          turns: m.turns,
+          count: 1,
+        });
       }
     });
     if (!sts.length) return '';
 
-    return '<div class="dk-sts">' +
-      sts.map(function (st) {
-        return '<div class="dk-st ' + st.kind + '">' +
-          '<i class="ra ' + st.icon + '"></i>' +
-          '<div class="dk-st-body">' +
+    return (
+      '<div class="dk-sts">' +
+      sts
+        .map(function (st) {
+          return (
+            '<div class="dk-st ' +
+            st.kind +
+            '">' +
+            '<i class="ra ' +
+            st.icon +
+            '"></i>' +
+            '<div class="dk-st-body">' +
             '<div class="dk-st-top">' +
-              '<span class="dk-st-name">' + esc(st.label) + '</span>' +
-              (st.count > 1 ? '<span class="dk-st-x">x' + st.count + '</span>' : '') +
-              (st.turns ? '<span class="dk-st-t">' + st.turns +
-                          '<i class="ra ra-hourglass"></i></span>' : '') +
+            '<span class="dk-st-name">' +
+            esc(st.label) +
+            '</span>' +
+            (st.count > 1 ? '<span class="dk-st-x">x' + st.count + '</span>' : '') +
+            (st.turns
+              ? '<span class="dk-st-t">' + st.turns + '<i class="ra ra-hourglass"></i></span>'
+              : '') +
             '</div>' +
-            '<div class="dk-st-desc">' + esc(statusDesc(u, st)) + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
+            '<div class="dk-st-desc">' +
+            esc(statusDesc(u, st)) +
+            '</div>' +
+            '</div>' +
+            '</div>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
   }
 
   /* Roster-wide maxima for the flyout's stat bars. Computed once from
@@ -705,7 +930,9 @@
   var STAT_MAX = null;
   function statMax() {
     if (STAT_MAX) return STAT_MAX;
-    var hp = 0, atk = 0, def = 0;
+    var hp = 0,
+      atk = 0,
+      def = 0;
     (window.EOL.factions || []).forEach(function (f) {
       f.cards.forEach(function (c) {
         if (c.stats.hp > hp) hp = c.stats.hp;
@@ -713,17 +940,32 @@
         if (c.stats.def > def) def = c.stats.def;
       });
     });
-    STAT_MAX = { hp: hp || 7000, atk: Math.round((atk || 2000) * 1.35),
-                 def: Math.max(def || 30, 40) };
+    STAT_MAX = {
+      hp: hp || 7000,
+      atk: Math.round((atk || 2000) * 1.35),
+      def: Math.max(def || 30, 40),
+    };
     return STAT_MAX;
   }
 
   function statLine(icon, key, val, pct, color) {
-    return '<div class="dk-stat" style="--sc:' + color + '">' +
-      '<i class="ra ' + icon + '"></i>' +
-      '<span class="dk-stat-k">' + key + '</span>' +
-      '<span class="dk-stat-bar"><span style="width:' + Math.max(2, pct) + '%"></span></span>' +
-      '<span class="dk-stat-v">' + val + '</span></div>';
+    return (
+      '<div class="dk-stat" style="--sc:' +
+      color +
+      '">' +
+      '<i class="ra ' +
+      icon +
+      '"></i>' +
+      '<span class="dk-stat-k">' +
+      key +
+      '</span>' +
+      '<span class="dk-stat-bar"><span style="width:' +
+      Math.max(2, pct) +
+      '%"></span></span>' +
+      '<span class="dk-stat-v">' +
+      val +
+      '</span></div>'
+    );
   }
 
   /* Decide what the panel shows: a locked selection beats a hover. */
@@ -737,7 +979,11 @@
     var u = (sel && sel.unit) || hoverUnit;
     // a hero mid-resurrection has no live stats to show
     if (u && isDownForRevive(u.uid)) u = null;
-    if (!u) { fly.classList.remove('show'); dockKey = ''; return; }
+    if (!u) {
+      fly.classList.remove('show');
+      dockKey = '';
+      return;
+    }
 
     var locked = !!(sel && sel.unit);
     var sig = u.card.ability;
@@ -752,51 +998,95 @@
     var hint = '';
     if (interactive && sel.ability) {
       var left = sel.needed - sel.chosen.length;
-      hint = sel.needed === 0 ? 'Resolving...'
-        : (left > 0 ? 'Select <b>' + left + '</b> target' + (left > 1 ? 's' : '') : 'Confirming...');
+      hint =
+        sel.needed === 0
+          ? 'Resolving...'
+          : left > 0
+            ? 'Select <b>' + left + '</b> target' + (left > 1 ? 's' : '')
+            : 'Confirming...';
     }
 
     var choices = '';
     if (interactive && sel.ability && sel.ability.spec && sel.ability.spec.choose) {
       choices = '<div class="dk-choices">';
       sel.ability.spec.choose.forEach(function (c, i) {
-        choices += '<button class="dk-choice' + (sel.choose === i ? ' sel' : '') +
-          '" data-choice="' + i + '"><i class="ra ' + (c.icon || 'ra-diamond') + '"></i>' +
-          esc(c.label) + '</button>';
+        choices +=
+          '<button class="dk-choice' +
+          (sel.choose === i ? ' sel' : '') +
+          '" data-choice="' +
+          i +
+          '"><i class="ra ' +
+          (c.icon || 'ra-diamond') +
+          '"></i>' +
+          esc(c.label) +
+          '</button>';
       });
       choices += '</div>';
     }
 
     fly.innerHTML =
       '<div class="dk-head">' +
-        '<div class="dk-portrait" style="--fc-primary:' + u.faction.colors.primary + '">' +
-          '<i class="ra ' + u.card.icon + '"></i>' +
-        '</div>' +
-        '<div class="dk-id">' +
-          '<div class="dk-name">' + esc(u.name) + '</div>' +
-          '<div class="dk-meta">' +
-            '<span>' + esc(u.role) + '</span>' +
-            '<span style="color:' + (ELEMENT_COLOR[u.element] || '#fff') + '">' + esc(u.element) + '</span>' +
-          '</div>' +
-          '<div class="dk-pos">' + esc(u.faction.name) + '</div>' +
-        '</div>' +
+      '<div class="dk-portrait" style="--fc-primary:' +
+      u.faction.colors.primary +
+      '">' +
+      '<i class="ra ' +
+      u.card.icon +
+      '"></i>' +
       '</div>' +
-
+      '<div class="dk-id">' +
+      '<div class="dk-name">' +
+      esc(u.name) +
+      '</div>' +
+      '<div class="dk-meta">' +
+      '<span>' +
+      esc(u.role) +
+      '</span>' +
+      '<span style="color:' +
+      (ELEMENT_COLOR[u.element] || '#fff') +
+      '">' +
+      esc(u.element) +
+      '</span>' +
+      '</div>' +
+      '<div class="dk-pos">' +
+      esc(u.faction.name) +
+      '</div>' +
+      '</div>' +
+      '</div>' +
       '<div class="dk-stats">' +
-        statLine('ra-health', 'HP',
-                 Math.ceil(u.hp + u.shield).toLocaleString() + ' / ' + u.maxHp.toLocaleString(),
-                 u.hp / u.maxHp * 100, '#ff5f7e') +
-        statLine('ra-sword', 'ATK', E.atkOf(u),
-                 Math.min(100, E.atkOf(u) / statMax().atk * 100), '#ffb347') +
-        statLine('ra-shield', 'DEF', E.defOf(u) + '%',
-                 Math.min(100, E.defOf(u) / statMax().def * 100), '#5fb2ff') +
-        (u.shield > 0 ? statLine('ra-round-shield', 'SHD', u.shield,
-                 Math.min(100, u.shield / u.maxHp * 100), '#9fd8ff') : '') +
+      statLine(
+        'ra-health',
+        'HP',
+        Math.ceil(u.hp + u.shield).toLocaleString() + ' / ' + u.maxHp.toLocaleString(),
+        (u.hp / u.maxHp) * 100,
+        '#ff5f7e'
+      ) +
+      statLine(
+        'ra-sword',
+        'ATK',
+        E.atkOf(u),
+        Math.min(100, (E.atkOf(u) / statMax().atk) * 100),
+        '#ffb347'
+      ) +
+      statLine(
+        'ra-shield',
+        'DEF',
+        E.defOf(u) + '%',
+        Math.min(100, (E.defOf(u) / statMax().def) * 100),
+        '#5fb2ff'
+      ) +
+      (u.shield > 0
+        ? statLine(
+            'ra-round-shield',
+            'SHD',
+            u.shield,
+            Math.min(100, (u.shield / u.maxHp) * 100),
+            '#9fd8ff'
+          )
+        : '') +
       '</div>' +
-
       '<div class="dk-abs">' +
-        abilityRowHTML(u, sig, true, interactive, 0) +
-        abilityRowHTML(u, role, false, interactive, 1) +
+      abilityRowHTML(u, sig, true, interactive, 0) +
+      abilityRowHTML(u, role, false, interactive, 1) +
       '</div>' +
       statusListHTML(u) +
       choices +
@@ -814,7 +1104,9 @@
       // drop the class once it's done so a later rebuild of the SAME hero
       // (e.g. hover -> click) doesn't leave it armed and replay
       clearTimeout(swapTimer);
-      swapTimer = setTimeout(function () { fly.classList.remove('swap'); }, 280);
+      swapTimer = setTimeout(function () {
+        fly.classList.remove('swap');
+      }, 280);
     }
     fly.classList.add('show');
     positionDock();
@@ -872,9 +1164,19 @@
       var pool = E.legalTargets(B, sel.unit, sel.ability);
       var forced = E.forcedTarget(B, sel.unit, sel.ability);
       if (forced) pool = [forced];
-      if (pool.some(function (x) { return x.uid === u.uid; })) {
-        if (sel.chosen.some(function (x) { return x.uid === u.uid; })) {
-          sel.chosen = sel.chosen.filter(function (x) { return x.uid !== u.uid; });
+      if (
+        pool.some(function (x) {
+          return x.uid === u.uid;
+        })
+      ) {
+        if (
+          sel.chosen.some(function (x) {
+            return x.uid === u.uid;
+          })
+        ) {
+          sel.chosen = sel.chosen.filter(function (x) {
+            return x.uid !== u.uid;
+          });
         } else {
           sel.chosen.push(u);
         }
@@ -887,7 +1189,10 @@
 
     // Enemy cards are not selectable outside of target picking — clicking
     // one just clears any pending selection.
-    if (u.side !== 'player') { clearSel(); return; }
+    if (u.side !== 'player') {
+      clearSel();
+      return;
+    }
 
     // your own heroes that can't act are view-only
     if (B.acted.player[u.uid]) {
@@ -906,13 +1211,18 @@
     if (!s || !s.ability) return;
     var mark = B.log.length;
     var res = E.useAbility(B, s.unit, s.ability, s.chosen, s.choose);
-    if (!res.ok) { toast('Cannot use that: ' + res.reason); return; }
+    if (!res.ok) {
+      toast('Cannot use that: ' + res.reason);
+      return;
+    }
     clearSel();
     render();
 
     // A coin flip has to be watched before anything else resolves, so
     // block input, play it, then release the rest of the log.
-    var coin = B.log.slice(mark).filter(function (l) { return l.type === 'coin'; })[0];
+    var coin = B.log.slice(mark).filter(function (l) {
+      return l.type === 'coin';
+    })[0];
     if (coin) {
       busy = true;
       document.body.dataset.busy = '1';
@@ -959,10 +1269,14 @@
      click it to go immediately.
      --------------------------------------------------------- */
   var AUTO_MS = 5000;
-  var autoRaf = null, autoStart = 0;
+  var autoRaf = null,
+    autoStart = 0;
 
   function cancelAuto() {
-    if (autoRaf) { cancelAnimationFrame(autoRaf); autoRaf = null; }
+    if (autoRaf) {
+      cancelAnimationFrame(autoRaf);
+      autoRaf = null;
+    }
     var btn = $('btn-endturn');
     if (btn) {
       btn.classList.remove('counting');
@@ -980,12 +1294,19 @@
     autoStart = performance.now();
 
     function frame(now) {
-      if (B.over || B.turn !== 'player') { cancelAuto(); return; }
+      if (B.over || B.turn !== 'player') {
+        cancelAuto();
+        return;
+      }
       var t = Math.min(1, (now - autoStart) / AUTO_MS);
       btn.style.setProperty('--fill', (t * 100).toFixed(1) + '%');
       var lbl = btn.querySelector('.et-count');
-      if (lbl) lbl.textContent = Math.ceil((1 - t) * AUTO_MS / 1000) + 's';
-      if (t >= 1) { cancelAuto(); endTurn(); return; }
+      if (lbl) lbl.textContent = Math.ceil(((1 - t) * AUTO_MS) / 1000) + 's';
+      if (t >= 1) {
+        cancelAuto();
+        endTurn();
+        return;
+      }
       autoRaf = requestAnimationFrame(frame);
     }
     autoRaf = requestAnimationFrame(frame);
@@ -1022,9 +1343,9 @@
      live at depth 4 exactly as it always has. */
   var PONDER_MIN_DEPTH = 4;
   var PONDER_MAX_DEPTH = 8;
-  var PONDER_BUDGET_MS = 1600;   // total compute per player window
-  var PONDER_GAP_MS = 90;        // breathing room between deep passes
-  var ponder = null;             // live pondering session
+  var PONDER_BUDGET_MS = 1600; // total compute per player window
+  var PONDER_GAP_MS = 90; // breathing room between deep passes
+  var ponder = null; // live pondering session
   var ponderTimer = null;
   /* Diagnostics: how often the arriving position is one pondering
      searched. Exposed as EOL.battle.ponderStats() for tuning.
@@ -1032,7 +1353,10 @@
   var ponderStats = { kicks: 0, decisions: 0, hits: 0, lastDepth: 0 };
 
   function ponderCancel() {
-    if (ponderTimer) { clearTimeout(ponderTimer); ponderTimer = null; }
+    if (ponderTimer) {
+      clearTimeout(ponderTimer);
+      ponderTimer = null;
+    }
     if (ponder) ponder.cancelled = true;
     ponder = null;
   }
@@ -1044,38 +1368,78 @@
   function stateKey(S) {
     var actedP = Object.keys(S.acted.player).sort().join(',');
     var actedE = Object.keys(S.acted.enemy).sort().join(',');
-    var costM = ['player', 'enemy'].map(function (s) {
-      return (S.costMods[s] || []).map(function (m) {
-        return (m.flat || 0) + '/' + (m.pct || 0) + '/' + m.turns;
-      }).join(',');
-    }).join('|');
-    var units = S.units.map(function (u) {
-      var bf = (u.buffs || []).map(function (b) {
-        return (b.stat || '') + (b.amt != null ? b.amt : '') + ':' + b.turns +
-               (b.tag ? '#' + b.tag : '');
-      }).sort().join(',');
-      var fl = [];
-      for (var k in u.flags) if (u.flags[k]) fl.push(k + '=' + u.flags[k]);
-      var pd = (u.pending || []).map(function (p) { return p.tag + ':' + p.turns; }).join(',');
-      return [u.uid, u.alive ? 1 : 0, Math.round(u.hp), Math.round(u.shield),
-              bf, fl.sort().join(','), pd].join('|');
-    }).join(';');
-    return [S.round, S.turn, S.energy.player, S.energy.enemy,
-            S.passed.player ? 1 : 0, S.passed.enemy ? 1 : 0,
-            S.turnPassed.player ? 1 : 0, S.turnPassed.enemy ? 1 : 0,
-            actedP, actedE, costM, units].join('#');
+    var costM = ['player', 'enemy']
+      .map(function (s) {
+        return (S.costMods[s] || [])
+          .map(function (m) {
+            return (m.flat || 0) + '/' + (m.pct || 0) + '/' + m.turns;
+          })
+          .join(',');
+      })
+      .join('|');
+    var units = S.units
+      .map(function (u) {
+        var bf = (u.buffs || [])
+          .map(function (b) {
+            return (
+              (b.stat || '') +
+              (b.amt != null ? b.amt : '') +
+              ':' +
+              b.turns +
+              (b.tag ? '#' + b.tag : '')
+            );
+          })
+          .sort()
+          .join(',');
+        var fl = [];
+        for (var k in u.flags) if (u.flags[k]) fl.push(k + '=' + u.flags[k]);
+        var pd = (u.pending || [])
+          .map(function (p) {
+            return p.tag + ':' + p.turns;
+          })
+          .join(',');
+        return [
+          u.uid,
+          u.alive ? 1 : 0,
+          Math.round(u.hp),
+          Math.round(u.shield),
+          bf,
+          fl.sort().join(','),
+          pd,
+        ].join('|');
+      })
+      .join(';');
+    return [
+      S.round,
+      S.turn,
+      S.energy.player,
+      S.energy.enemy,
+      S.passed.player ? 1 : 0,
+      S.passed.enemy ? 1 : 0,
+      S.turnPassed.player ? 1 : 0,
+      S.turnPassed.enemy ? 1 : 0,
+      actedP,
+      actedE,
+      costM,
+      units,
+    ].join('#');
   }
 
   /* Map an action described against one battle onto its twin in a
      clone (units matched by uid) — mirrors the AI's own rebind. */
   function ponderRebind(C, act) {
     var byUid = {};
-    C.units.forEach(function (u) { byUid[u.uid] = u; });
+    C.units.forEach(function (u) {
+      byUid[u.uid] = u;
+    });
     var unit = byUid[act.unit.uid];
     if (!unit) return null;
     var ability = act.ability.basic ? E.roleAbility(unit) : unit.card.ability;
-    var chosen = (act.chosen || []).map(function (t) { return byUid[t.uid]; })
-                                   .filter(Boolean);
+    var chosen = (act.chosen || [])
+      .map(function (t) {
+        return byUid[t.uid];
+      })
+      .filter(Boolean);
     if ((act.chosen || []).length !== chosen.length) return null;
     return { unit: unit, ability: ability, chosen: chosen, choose: act.choose };
   }
@@ -1107,21 +1471,31 @@
 
     var preds = [];
     if (!E.canAct(B, 'player')) {
-      preds.push({ pass: true });        // the only move — a free hit
+      preds.push({ pass: true }); // the only move — a free hit
     } else {
-      var cand = AI.candidates(B, 'player')
-        .sort(function (a, b) { return b.score - a.score; });
+      var cand = AI.candidates(B, 'player').sort(function (a, b) {
+        return b.score - a.score;
+      });
       var seen = {};
       for (var i = 0; i < cand.length && preds.length < 3; i++) {
         var c = cand[i];
-        var id = c.unit.uid + '|' + c.ability.name + '|' +
-          (c.chosen || []).map(function (t) { return t.uid; }).join(',') +
-          '|' + (c.choose || 0);
+        var id =
+          c.unit.uid +
+          '|' +
+          c.ability.name +
+          '|' +
+          (c.chosen || [])
+            .map(function (t) {
+              return t.uid;
+            })
+            .join(',') +
+          '|' +
+          (c.choose || 0);
         if (seen[id]) continue;
         seen[id] = true;
         preds.push({ act: c });
       }
-      preds.push({ pass: true });        // voluntary-pass hedge
+      preds.push({ pass: true }); // voluntary-pass hedge
     }
 
     var session = { t0: performance.now(), cancelled: false, branches: [] };
@@ -1152,10 +1526,10 @@
       AI.setDepth(d);
       var act = AI.bestAction(br.C, 'enemy');
       AI.resetDepth();
-      return act || true;   // a null (pass) result needs no deeper passes
+      return act || true; // a null (pass) result needs no deeper passes
     } catch (e) {
       AI.resetDepth();
-      return null;          // scrap this branch
+      return null; // scrap this branch
     }
   }
 
@@ -1168,8 +1542,11 @@
     var act = ponderOnce(br, d);
     if (act === null) {
       session.branches.splice(i, 1);
-      if (!session.branches.length) { ponderCancel(); return; }
-      ponderSchedule(session, d, i);       // same slot: the next branch
+      if (!session.branches.length) {
+        ponderCancel();
+        return;
+      }
+      ponderSchedule(session, d, i); // same slot: the next branch
       return;
     }
     br.depth = d;
@@ -1184,8 +1561,10 @@
         uid: act.unit.uid,
         basic: !!act.ability.basic,
         name: act.ability.name,
-        chosen: (act.chosen || []).map(function (t) { return t.uid; }),
-        choose: act.choose || 0
+        chosen: (act.chosen || []).map(function (t) {
+          return t.uid;
+        }),
+        choose: act.choose || 0,
       };
     }
     ponderSchedule(session, d, i + 1);
@@ -1193,12 +1572,16 @@
 
   function ponderSchedule(session, d, i) {
     if (performance.now() - session.t0 > PONDER_BUDGET_MS) return;
-    var nd = d, ni = i;
+    var nd = d,
+      ni = i;
     if (ni >= session.branches.length) {
-      nd = d + 1; ni = 0;                  // everyone has depth d — climb
+      nd = d + 1;
+      ni = 0; // everyone has depth d — climb
       if (nd > PONDER_MAX_DEPTH) return;
     }
-    ponderTimer = setTimeout(function () { ponderStep(session, nd, ni); }, PONDER_GAP_MS);
+    ponderTimer = setTimeout(function () {
+      ponderStep(session, nd, ni);
+    }, PONDER_GAP_MS);
   }
 
   /* Pull a pondered move if the arriving position matches a searched
@@ -1210,18 +1593,26 @@
     var br = null;
     for (var i = 0; i < ponder.branches.length; i++) {
       var b = ponder.branches[i];
-      if (b.depth >= PONDER_MIN_DEPTH && b.key === key) { br = b; break; }
+      if (b.depth >= PONDER_MIN_DEPTH && b.key === key) {
+        br = b;
+        break;
+      }
     }
     if (!br) return null;
     /* the search itself ruled passing best on this exact position —
        no need to burn the live search just to agree */
     if (!br.move) {
-      if (br.passed) { ponderStats.hits++; return { pass: true }; }
+      if (br.passed) {
+        ponderStats.hits++;
+        return { pass: true };
+      }
       return null;
     }
 
     var unit = null;
-    B.units.forEach(function (u) { if (u.uid === br.move.uid) unit = u; });
+    B.units.forEach(function (u) {
+      if (u.uid === br.move.uid) unit = u;
+    });
     if (!unit || !unit.alive || unit.side !== 'enemy') return null;
     if (B.acted.enemy[unit.uid]) return null;
 
@@ -1229,11 +1620,15 @@
     if (!ability || ability.name !== br.move.name) return null;
     if (!E.canUse(B, unit, ability)) return null;
 
-    var chosen = br.move.chosen.map(function (uid) {
-      var t = null;
-      B.units.forEach(function (u) { if (u.uid === uid) t = u; });
-      return t;
-    }).filter(Boolean);
+    var chosen = br.move.chosen
+      .map(function (uid) {
+        var t = null;
+        B.units.forEach(function (u) {
+          if (u.uid === uid) t = u;
+        });
+        return t;
+      })
+      .filter(Boolean);
     if (chosen.length !== br.move.chosen.length) return null;
 
     var need = E.pickCount(ability);
@@ -1243,14 +1638,21 @@
       var forced = E.forcedTarget(B, unit, ability);
       if (forced) pool = [forced];
       var legal = chosen.every(function (t) {
-        return pool.some(function (p) { return p.uid === t.uid; });
+        return pool.some(function (p) {
+          return p.uid === t.uid;
+        });
       });
       if (!legal) return null;
     }
     ponderStats.hits++;
     ponderStats.lastDepth = br.depth;
-    return { unit: unit, ability: ability, targets: chosen,
-             chosen: chosen, choose: br.move.choose };
+    return {
+      unit: unit,
+      ability: ability,
+      targets: chosen,
+      chosen: chosen,
+      choose: br.move.choose,
+    };
   }
 
   /* ---------------------------------------------------------
@@ -1269,8 +1671,15 @@
   function afterPlayerAction() {
     if (B.over) return endBattle();
     var nxt = E.advanceAction(B);
-    if (!nxt) { startNextRound(); return; }
-    if (nxt === 'enemy') { render(); runEnemyAction(); return; }
+    if (!nxt) {
+      startNextRound();
+      return;
+    }
+    if (nxt === 'enemy') {
+      render();
+      runEnemyAction();
+      return;
+    }
     // still the player's action (the enemy passed)
     render();
     maybeAutoEndTurn();
@@ -1291,12 +1700,21 @@
   /* Roll the round over and hand control to whoever opens it. */
   function startNextRound() {
     E.nextRound(B);
-    if (B.over) { render(); return endBattle(); }
+    if (B.over) {
+      render();
+      return endBattle();
+    }
     render();
     announceRound();
     var nxt = E.advanceAction(B);
-    if (!nxt) { startNextRound(); return; }
-    if (nxt === 'enemy') { runEnemyAction(); return; }
+    if (!nxt) {
+      startNextRound();
+      return;
+    }
+    if (nxt === 'enemy') {
+      runEnemyAction();
+      return;
+    }
     maybeAutoEndTurn();
   }
 
@@ -1308,13 +1726,13 @@
        pondering saw. A pondered move is depth 4-8; the live fallback is
        the usual depth 4. A pondered PASS is trusted outright. */
     ponderStats.decisions++;
-    var decision = ponderAction();     // act | { pass: true } | null
+    var decision = ponderAction(); // act | { pass: true } | null
     ponderCancel();
     var act = null;
     if (decision && decision.pass) {
-      act = null;                      // pondering's verdict: pass
+      act = null; // pondering's verdict: pass
     } else if (decision) {
-      act = decision;                  // pondered move (depth 4-8)
+      act = decision; // pondered move (depth 4-8)
     } else {
       act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
     }
@@ -1344,7 +1762,9 @@
       E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
       render();
 
-      var coin = B.log.slice(mark).filter(function (l) { return l.type === 'coin'; })[0];
+      var coin = B.log.slice(mark).filter(function (l) {
+        return l.type === 'coin';
+      })[0];
       if (coin) await sleep(playCoinFlip(coin.meta.coin));
 
       await sleep(flashRecent() || 0);
@@ -1356,8 +1776,14 @@
     if (B.over) return endBattle();
 
     var nxt = E.advanceAction(B);
-    if (!nxt) { startNextRound(); return; }
-    if (nxt === 'enemy') { runEnemyAction(); return; }   // player passed
+    if (!nxt) {
+      startNextRound();
+      return;
+    }
+    if (nxt === 'enemy') {
+      runEnemyAction();
+      return;
+    } // player passed
     render();
     maybeAutoEndTurn();
   }
@@ -1384,23 +1810,31 @@
   var turnBannerSide = null;
 
   function cine(title, sub, tone, ms, slim) {
-    cineQ.push({ title: title, sub: sub || '', tone: tone || 'round',
-                 ms: ms || 1350, slim: !!slim });
-    if (cineQ.length > 4) cineQ.shift();   // announcements never pile up
+    cineQ.push({
+      title: title,
+      sub: sub || '',
+      tone: tone || 'round',
+      ms: ms || 1350,
+      slim: !!slim,
+    });
+    if (cineQ.length > 4) cineQ.shift(); // announcements never pile up
     cineDrain();
   }
 
   function cineDrain() {
     if (cineLive || !cineQ.length) return;
     var c = $('cine');
-    if (!c) { cineQ.length = 0; return; }
+    if (!c) {
+      cineQ.length = 0;
+      return;
+    }
     var it = cineQ.shift();
     cineLive = true;
     $('cine-title').textContent = it.title;
     $('cine-sub').textContent = it.sub;
     c.className = 'cine tone-' + it.tone + (it.slim ? ' slim' : '');
-    c.style.setProperty('--cd', (it.ms / 1000) + 's');
-    void c.offsetWidth;                 // restart the cycle animation
+    c.style.setProperty('--cd', it.ms / 1000 + 's');
+    void c.offsetWidth; // restart the cycle animation
     c.classList.add('show');
     cineTimer = setTimeout(function () {
       c.classList.remove('show');
@@ -1418,23 +1852,27 @@
   }
 
   function announceRound() {
-    turnBannerSide = null;   // a fresh round re-announces its opener
-    var sub = B.round === 1
-      ? 'Phase 1 — basics only'
-      : B.round === 2
-        ? 'Phase 2 — skills unlocked'
-        : (B.round === E.RAMP_FROM
-          ? 'ATK ramp begins — +' + Math.round(E.RAMP_STEP * 100) + '% each round'
-          : '');
+    turnBannerSide = null; // a fresh round re-announces its opener
+    var sub =
+      B.round === 1
+        ? 'Phase 1 — basics only'
+        : B.round === 2
+          ? 'Phase 2 — skills unlocked'
+          : B.round === E.RAMP_FROM
+            ? 'ATK ramp begins — +' + Math.round(E.RAMP_STEP * 100) + '% each round'
+            : '';
     cine('ROUND ' + B.round, sub, 'round', 2100);
   }
 
   function announceTurn(side) {
-    if (turnBannerSide === side) return;   // same streak — stay quiet
+    if (turnBannerSide === side) return; // same streak — stay quiet
     turnBannerSide = side;
-    var sub = side === 'enemy' && B.passed.player ? 'Finishing the round'
-            : side === 'player' && B.passed.enemy ? 'The round is yours'
-            : '';
+    var sub =
+      side === 'enemy' && B.passed.player
+        ? 'Finishing the round'
+        : side === 'player' && B.passed.enemy
+          ? 'The round is yours'
+          : '';
     cine(side === 'player' ? 'YOUR TURN' : 'ENEMY TURN', sub, side, 1000, true);
   }
 
@@ -1445,8 +1883,8 @@
   async function cineGate() {
     var guard = 0;
     while ((cineLive || cineQ.length) && guard++ < 80) await sleep(60);
-    if (guard >= 80) return sleep(700);   // wedged queue — floor beat
-    return sleep(1100);                   // quiet beat after the last fade
+    if (guard >= 80) return sleep(700); // wedged queue — floor beat
+    return sleep(1100); // quiet beat after the last fade
   }
 
   /* ---------------------------------------------------------
@@ -1460,13 +1898,55 @@
      flinches, and the board shakes on a big hit.
      --------------------------------------------------------- */
   var ELEMENT_FX = {
-    Physical:  { color: '#ffb27a', style: 'slash',  trail: '#d8894f', sigil: 'ra-crossed-swords',  shape: 'blade' },
-    Magic:     { color: '#c3aaff', style: 'orb',    trail: '#9b7bff', sigil: 'ra-rune-stone',      shape: 'arcane' },
-    Shadow:    { color: '#d08cff', style: 'wisp',   trail: '#a05cd8', sigil: 'ra-moon-sun',        shape: 'void' },
-    Light:     { color: '#ffe9a8', style: 'beam',   trail: '#ffd977', sigil: 'ra-sun-symbol',      shape: 'holy' },
-    Lightning: { color: '#9fe8ff', style: 'bolt',   trail: '#63d7ff', sigil: 'ra-lightning-bolt',  shape: 'storm' },
-    Fire:      { color: '#ffb07a', style: 'flame',  trail: '#ff7a4d', sigil: 'ra-fire-symbol',     shape: 'ember' },
-    Nature:    { color: '#a6f0c2', style: 'thorn',  trail: '#5fd48a', sigil: 'ra-pine-tree',       shape: 'bloom' }
+    Physical: {
+      color: '#ffb27a',
+      style: 'slash',
+      trail: '#d8894f',
+      sigil: 'ra-crossed-swords',
+      shape: 'blade',
+    },
+    Magic: {
+      color: '#c3aaff',
+      style: 'orb',
+      trail: '#9b7bff',
+      sigil: 'ra-rune-stone',
+      shape: 'arcane',
+    },
+    Shadow: {
+      color: '#d08cff',
+      style: 'wisp',
+      trail: '#a05cd8',
+      sigil: 'ra-moon-sun',
+      shape: 'void',
+    },
+    Light: {
+      color: '#ffe9a8',
+      style: 'beam',
+      trail: '#ffd977',
+      sigil: 'ra-sun-symbol',
+      shape: 'holy',
+    },
+    Lightning: {
+      color: '#9fe8ff',
+      style: 'bolt',
+      trail: '#63d7ff',
+      sigil: 'ra-lightning-bolt',
+      shape: 'storm',
+    },
+    Fire: {
+      color: '#ffb07a',
+      style: 'flame',
+      trail: '#ff7a4d',
+      sigil: 'ra-fire-symbol',
+      shape: 'ember',
+    },
+    Nature: {
+      color: '#a6f0c2',
+      style: 'thorn',
+      trail: '#5fd48a',
+      sigil: 'ra-pine-tree',
+      shape: 'bloom',
+    },
   };
 
   function fxLayer() {
@@ -1496,7 +1976,9 @@
     n.style.top = y + 'px';
     if (color) n.style.setProperty('--fx', color);
     fxLayer().appendChild(n);
-    setTimeout(function () { n.remove(); }, life);
+    setTimeout(function () {
+      n.remove();
+    }, life);
     return n;
   }
 
@@ -1523,11 +2005,10 @@
     for (var i = 0; i < n; i++) {
       var ang = (i / n) * Math.PI * 2;
       var d = 34 + Math.random() * 18;
-      var m = spawn('fx-gather', a.x + Math.cos(ang) * d, a.y + Math.sin(ang) * d,
-                    fx.color, 460);
-      m.style.setProperty('--gx', (-Math.cos(ang) * d) + 'px');
-      m.style.setProperty('--gy', (-Math.sin(ang) * d) + 'px');
-      m.style.animationDelay = (i * 22) + 'ms';
+      var m = spawn('fx-gather', a.x + Math.cos(ang) * d, a.y + Math.sin(ang) * d, fx.color, 460);
+      m.style.setProperty('--gx', -Math.cos(ang) * d + 'px');
+      m.style.setProperty('--gy', -Math.sin(ang) * d + 'px');
+      m.style.animationDelay = i * 22 + 'ms';
     }
 
     if (a.el) {
@@ -1535,7 +2016,10 @@
       a.el.style.setProperty('--cast', fx.color);
       setTimeout(function () {
         var n2 = document.querySelector('.bcard[data-uid="' + uid + '"]');
-        if (n2) { n2.classList.remove('casting'); n2.style.removeProperty('--cast'); }
+        if (n2) {
+          n2.classList.remove('casting');
+          n2.style.removeProperty('--cast');
+        }
       }, 620);
     }
   }
@@ -1545,11 +2029,13 @@
      Each element gets its own projectile treatment.
      -------------------------------------------------------- */
   function playStrike(srcUid, tgtUid, element, crit) {
-    var a = centreOf(srcUid), t = centreOf(tgtUid);
+    var a = centreOf(srcUid),
+      t = centreOf(tgtUid);
     if (!a || !t) return;
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Physical;
-    var dx = t.x - a.x, dy = t.y - a.y;
-    var ang = Math.atan2(dy, dx) * 180 / Math.PI;
+    var dx = t.x - a.x,
+      dy = t.y - a.y;
+    var ang = (Math.atan2(dy, dx) * 180) / Math.PI;
     var dist = Math.hypot(dx, dy);
 
     // 1. wind-up flare at the attacker
@@ -1581,14 +2067,16 @@
           setTimeout(function () {
             var p = k / 4;
             var sp = spawn('fx-spark', a.x + dx * p, a.y + dy * p, fx.color, 420);
-            sp.style.setProperty('--sx', (Math.random() * 26 - 13) + 'px');
-            sp.style.setProperty('--sy', (Math.random() * 26 - 13) + 'px');
+            sp.style.setProperty('--sx', Math.random() * 26 - 13 + 'px');
+            sp.style.setProperty('--sy', Math.random() * 26 - 13 + 'px');
           }, k * 34);
         })(i);
       }
 
       // 3. impact
-      setTimeout(function () { playImpact(t.x, t.y, fx, crit, element); }, 190);
+      setTimeout(function () {
+        playImpact(t.x, t.y, fx, crit, element);
+      }, 190);
     }, 130);
   }
 
@@ -1599,7 +2087,8 @@
     var lr = layer.getBoundingClientRect();
 
     var dim = spawn('fx-dim', lr.width / 2, lr.height / 2, null, 620);
-    dim.style.left = '0'; dim.style.top = '0';
+    dim.style.left = '0';
+    dim.style.top = '0';
 
     var slash = spawn('fx-crit-slash', x, y, '#ffd050', 700);
     slash.innerHTML = '<span></span><span></span>';
@@ -1613,25 +2102,33 @@
       var dist = 40 + Math.random() * 60;
       d.style.setProperty('--sx', Math.cos(ang) * dist + 'px');
       d.style.setProperty('--sy', Math.sin(ang) * dist + 'px');
-      d.style.animationDelay = (i * 16) + 'ms';
+      d.style.animationDelay = i * 16 + 'ms';
     }
 
     var bd = $('board');
     bd.classList.add('shake', 'crit-flash');
-    setTimeout(function () { bd.classList.remove('shake', 'crit-flash'); }, 520);
+    setTimeout(function () {
+      bd.classList.remove('shake', 'crit-flash');
+    }, 520);
 
     var word = spawn('fx-crit', x, y, '#ffd050', 1200);
     word.textContent = 'CRITICAL';
   }
 
   function playImpact(x, y, fx, crit, element) {
-    if (crit) { playCritImpact(x, y, fx); }
+    if (crit) {
+      playCritImpact(x, y, fx);
+    }
     var burst = spawn('fx-burst' + (crit ? ' crit' : ''), x, y, fx.color, 620);
     var shards = crit ? 10 : 7;
     var html = '';
     for (var i = 0; i < shards; i++) {
-      html += '<span style="--a:' + (i * (360 / shards)) + 'deg;--d:' +
-        (16 + Math.random() * 14) + 'px"></span>';
+      html +=
+        '<span style="--a:' +
+        i * (360 / shards) +
+        'deg;--d:' +
+        (16 + Math.random() * 14) +
+        'px"></span>';
     }
     burst.innerHTML = html;
 
@@ -1644,9 +2141,9 @@
     var shape = fx.shape || 'blade';
     for (var j = 0; j < 6; j++) {
       var d = spawn('fx-dust s-' + shape, x, y, fx.trail, 700);
-      d.style.setProperty('--sx', (Math.random() * 70 - 35) + 'px');
-      d.style.setProperty('--sy', (-18 - Math.random() * 40) + 'px');
-      d.style.animationDelay = (j * 22) + 'ms';
+      d.style.setProperty('--sx', Math.random() * 70 - 35 + 'px');
+      d.style.setProperty('--sy', -18 - Math.random() * 40 + 'px');
+      d.style.animationDelay = j * 22 + 'ms';
     }
 
     // a few heavier chunks thrown along the hit direction
@@ -1657,7 +2154,7 @@
       ch.style.setProperty('--sx', (Math.cos(ca) * cd).toFixed(1) + 'px');
       ch.style.setProperty('--sy', (Math.sin(ca) * cd - 12).toFixed(1) + 'px');
       ch.style.setProperty('--rot', Math.floor(Math.random() * 540 - 270) + 'deg');
-      ch.style.animationDelay = (q * 26) + 'ms';
+      ch.style.animationDelay = q * 26 + 'ms';
     }
   }
 
@@ -1682,12 +2179,17 @@
     }, 460);
 
     targetUids.forEach(function (uid, i) {
-      setTimeout(function () {
-        var t = centreOf(uid);
-        if (!t) return;
-        playAoeStrike(t, fx, el);
-        setTimeout(function () { playImpact(t.x, t.y, fx, false, element); }, 170);
-      }, 90 + i * 80);
+      setTimeout(
+        function () {
+          var t = centreOf(uid);
+          if (!t) return;
+          playAoeStrike(t, fx, el);
+          setTimeout(function () {
+            playImpact(t.x, t.y, fx, false, element);
+          }, 170);
+        },
+        90 + i * 80
+      );
     });
   }
 
@@ -1702,10 +2204,10 @@
         // twin forks crashing down — the flicker is what sells it
         var z = spawn('fx-zigzag', t.x, 0, fx.color, 500);
         z.style.top = '0px';
-        z.style.setProperty('--h', (t.y + 44) + 'px');
+        z.style.setProperty('--h', t.y + 44 + 'px');
         var z2 = spawn('fx-zigzag', t.x + (Math.random() * 36 - 18), 0, fx.trail, 560);
         z2.style.top = '0px';
-        z2.style.setProperty('--h', (t.y + 44) + 'px');
+        z2.style.setProperty('--h', t.y + 44 + 'px');
         z2.style.animationDelay = '90ms';
         break;
       }
@@ -1715,9 +2217,9 @@
           (function (k) {
             setTimeout(function () {
               var me = spawn('fx-meteor', t.x, t.y, k === 2 ? '#ffd9a0' : fx.color, 740);
-              me.style.setProperty('--mx', (110 + Math.random() * 90) + 'px');
-              me.style.setProperty('--my', (-(200 + Math.random() * 130)) + 'px');
-              me.style.setProperty('--ta', (26 + Math.random() * 22) + 'deg');
+              me.style.setProperty('--mx', 110 + Math.random() * 90 + 'px');
+              me.style.setProperty('--my', -(200 + Math.random() * 130) + 'px');
+              me.style.setProperty('--ta', 26 + Math.random() * 22 + 'deg');
             }, k * 90);
           })(m);
         }
@@ -1727,8 +2229,14 @@
         var bl = spawn('fx-bloom', t.x, t.y, fx.color, 1000);
         var html = '';
         for (var p = 0; p < 8; p++) {
-          html += '<i class="ra ' + (p % 2 ? 'ra-leaf' : fx.sigil) +
-            '" style="--a:' + (p * 45) + 'deg;animation-delay:' + (p * 24) + 'ms"></i>';
+          html +=
+            '<i class="ra ' +
+            (p % 2 ? 'ra-leaf' : fx.sigil) +
+            '" style="--a:' +
+            p * 45 +
+            'deg;animation-delay:' +
+            p * 24 +
+            'ms"></i>';
         }
         bl.innerHTML = html;
         spawn('fx-ring slow', t.x, t.y, fx.trail, 700);
@@ -1739,12 +2247,12 @@
         var ry = spawn('fx-rays', t.x, t.y, fx.color, 640);
         var rh = '';
         for (var r = 0; r < 8; r++) {
-          rh += '<span style="transform: rotate(' + (r * 45) + 'deg)"></span>';
+          rh += '<span style="transform: rotate(' + r * 45 + 'deg)"></span>';
         }
         ry.innerHTML = rh;
         var col = spawn('fx-column', t.x, 0, fx.color, 520);
         col.style.top = '0px';
-        col.style.setProperty('--h', (t.y + 40) + 'px');
+        col.style.setProperty('--h', t.y + 40 + 'px');
         break;
       }
       case 'Magic': {
@@ -1754,7 +2262,7 @@
         var col2 = spawn('fx-column', t.x, 0, fx.trail, 500);
         col2.style.top = '0px';
         col2.style.opacity = '.55';
-        col2.style.setProperty('--h', (t.y + 40) + 'px');
+        col2.style.setProperty('--h', t.y + 40 + 'px');
         break;
       }
       case 'Shadow':
@@ -1771,7 +2279,9 @@
       default:
         // physical: shock rings pound out of the impact point
         spawn('fx-quake', t.x, t.y, fx.color, 560);
-        setTimeout(function () { spawn('fx-quake', t.x, t.y, fx.trail, 700); }, 110);
+        setTimeout(function () {
+          spawn('fx-quake', t.x, t.y, fx.trail, 700);
+        }, 110);
     }
   }
 
@@ -1794,7 +2304,7 @@
   var REVIVE_DOWN_MS = 500;
   var REVIVE_RESTORE_MS = 700;
   var REVIVE_TOTAL_MS = REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
-  var reviveFx = {};   // uid -> { phase, at } so render() can resume the anim
+  var reviveFx = {}; // uid -> { phase, at } so render() can resume the anim
 
   /* true while the hero should still be drawn as a corpse */
   function isDownForRevive(uid) {
@@ -1823,7 +2333,10 @@
     if (phase) reviveFx[uid] = { phase: phase, at: performance.now() };
     else delete reviveFx[uid];
     render();
-    if (next) setTimeout(function () { next(); }, ms);
+    if (next)
+      setTimeout(function () {
+        next();
+      }, ms);
   }
 
   function playRevive(uid, label) {
@@ -1833,17 +2346,33 @@
 
     // the board holds its breath
     var dim = spawn('fx-dim', 0, 0, null, REVIVE_TOTAL_MS + 300);
-    dim.style.left = '0'; dim.style.top = '0';
-    dim.style.animationDuration = (REVIVE_TOTAL_MS + 300) + 'ms';
+    dim.style.left = '0';
+    dim.style.top = '0';
+    dim.style.animationDuration = REVIVE_TOTAL_MS + 300 + 'ms';
 
     // 0. the hero visibly falls, stays down, then is restored
-    reviveStep(uid, 'falling', function () {
-      reviveStep(uid, 'down', function () {
-        reviveStep(uid, 'restoring', function () {
-          reviveStep(uid, null);
-        }, REVIVE_RESTORE_MS);
-      }, REVIVE_DOWN_MS);
-    }, REVIVE_FALL_MS);
+    reviveStep(
+      uid,
+      'falling',
+      function () {
+        reviveStep(
+          uid,
+          'down',
+          function () {
+            reviveStep(
+              uid,
+              'restoring',
+              function () {
+                reviveStep(uid, null);
+              },
+              REVIVE_RESTORE_MS
+            );
+          },
+          REVIVE_DOWN_MS
+        );
+      },
+      REVIVE_FALL_MS
+    );
 
     // 1. transformation smoke rolls over the card
     for (var s = 0; s < 9; s++) {
@@ -1852,7 +2381,7 @@
       var sd = 18 + Math.random() * 34;
       pf.style.setProperty('--sx', (Math.cos(sa) * sd).toFixed(1) + 'px');
       pf.style.setProperty('--sy', (Math.sin(sa) * sd - 10).toFixed(1) + 'px');
-      pf.style.animationDelay = (REVIVE_FALL_MS * 0.5 + s * 26) + 'ms';
+      pf.style.animationDelay = REVIVE_FALL_MS * 0.5 + s * 26 + 'ms';
     }
 
     // 2. pillar of golden light climbs out of the smoke
@@ -1860,13 +2389,15 @@
       // pillar stands on the card and rises off the top of the board
       // (CSS pins it to top:0, so --h is the distance down to the hero)
       var col = spawn('fx-revive-pillar', c.x, c.y, GOLD, 1200);
-      col.style.top = '0px';                       // spawn() sets top inline
-      col.style.setProperty('--h', (c.y + 40) + 'px');
+      col.style.top = '0px'; // spawn() sets top inline
+      col.style.setProperty('--h', c.y + 40 + 'px');
       spawn('fx-revive-flare', c.x, c.y, GOLD, 900);
 
       // 3. three rings snap outward, one behind the other
       [0, 130, 260].forEach(function (d) {
-        setTimeout(function () { spawn('fx-revive-ring', c.x, c.y, GOLD, 820); }, d);
+        setTimeout(function () {
+          spawn('fx-revive-ring', c.x, c.y, GOLD, 820);
+        }, d);
       });
 
       // 4. embers stream upward
@@ -1874,7 +2405,7 @@
         var m = spawn('fx-revive-mote', c.x, c.y, i % 3 ? GOLD : '#fff3c4', 1200);
         m.style.setProperty('--sx', (Math.random() * 96 - 48).toFixed(1) + 'px');
         m.style.setProperty('--sy', (-46 - Math.random() * 82).toFixed(1) + 'px');
-        m.style.animationDelay = (i * 30) + 'ms';
+        m.style.animationDelay = i * 30 + 'ms';
       }
 
       // 5. the card pulses gold as it comes back. render() has rebuilt the
@@ -1890,7 +2421,9 @@
 
       var bd = $('board');
       bd.classList.add('revive-flash');
-      setTimeout(function () { bd.classList.remove('revive-flash'); }, 700);
+      setTimeout(function () {
+        bd.classList.remove('revive-flash');
+      }, 700);
 
       // 6. callout
       var word = spawn('fx-revive-word', c.x, c.y, GOLD, 1400);
@@ -1908,23 +2441,29 @@
     var lr = layer.getBoundingClientRect();
     var wrap = document.createElement('div');
     wrap.className = 'fx-coin-wrap';
-    wrap.style.left = (lr.width / 2) + 'px';
-    wrap.style.top = (lr.height * 0.34) + 'px';
+    wrap.style.left = lr.width / 2 + 'px';
+    wrap.style.top = lr.height * 0.34 + 'px';
     wrap.innerHTML =
-      '<div class="fx-coin ' + face + '">' +
-        '<div class="coin-face heads"><i class="ra ra-crown"></i></div>' +
-        '<div class="coin-face tails"><i class="ra ra-moon-sun"></i></div>' +
+      '<div class="fx-coin ' +
+      face +
+      '">' +
+      '<div class="coin-face heads"><i class="ra ra-crown"></i></div>' +
+      '<div class="coin-face tails"><i class="ra ra-moon-sun"></i></div>' +
       '</div>' +
       '<div class="fx-coin-label"></div>';
     layer.appendChild(wrap);
     // reveal the result text once the coin settles
     setTimeout(function () {
       var t = wrap.querySelector('.fx-coin-label');
-      t.textContent = (face === 'heads' ? 'HEADS' : 'TAILS');
+      t.textContent = face === 'heads' ? 'HEADS' : 'TAILS';
       t.classList.add('show');
     }, 1150);
-    setTimeout(function () { wrap.classList.add('out'); }, 1900);
-    setTimeout(function () { wrap.remove(); }, 2300);
+    setTimeout(function () {
+      wrap.classList.add('out');
+    }, 1900);
+    setTimeout(function () {
+      wrap.remove();
+    }, 2300);
     return 2100;
   }
 
@@ -1933,31 +2472,36 @@
      showier version than Basics.
      -------------------------------------------------------- */
   var STATUS_FX = {
-    taunt:        { color: '#ffd98a', icon: 'ra-shield',          kind: 'buff' },
-    untargetable: { color: '#a9e9ff', icon: 'ra-aura',            kind: 'buff' },
-    shield:       { color: '#9fd8ff', icon: 'ra-round-shield',    kind: 'buff' },
-    silence:      { color: '#e0a3ff', icon: 'ra-uncertainty',     kind: 'debuff' },
-    marked:       { color: '#ffe066', icon: 'ra-lightning-storm', kind: 'debuff' },
-    burn:         { color: '#ff7a3c', icon: 'ra-burning-embers',  kind: 'debuff' },
-    exposed:      { color: '#ff5f7e', icon: 'ra-broken-shield',   kind: 'debuff' },
-    healdown:     { color: '#ff9d9d', icon: 'ra-broken-heart',    kind: 'debuff' },
-    costup:       { color: '#ff9d9d', icon: 'ra-hourglass',       kind: 'debuff' },
-    costdown:     { color: '#8fe3b0', icon: 'ra-hourglass',       kind: 'buff' },
-    atk:          { color: '#ffb347', icon: 'ra-muscle-up',       kind: 'buff' },
-    def:          { color: '#5fb2ff', icon: 'ra-heavy-shield',    kind: 'buff' },
-    crit:         { color: '#ffd050', icon: 'ra-target-arrows',   kind: 'buff' }
+    taunt: { color: '#ffd98a', icon: 'ra-shield', kind: 'buff' },
+    untargetable: { color: '#a9e9ff', icon: 'ra-aura', kind: 'buff' },
+    shield: { color: '#9fd8ff', icon: 'ra-round-shield', kind: 'buff' },
+    silence: { color: '#e0a3ff', icon: 'ra-uncertainty', kind: 'debuff' },
+    marked: { color: '#ffe066', icon: 'ra-lightning-storm', kind: 'debuff' },
+    burn: { color: '#ff7a3c', icon: 'ra-burning-embers', kind: 'debuff' },
+    exposed: { color: '#ff5f7e', icon: 'ra-broken-shield', kind: 'debuff' },
+    healdown: { color: '#ff9d9d', icon: 'ra-broken-heart', kind: 'debuff' },
+    costup: { color: '#ff9d9d', icon: 'ra-hourglass', kind: 'debuff' },
+    costdown: { color: '#8fe3b0', icon: 'ra-hourglass', kind: 'buff' },
+    atk: { color: '#ffb347', icon: 'ra-muscle-up', kind: 'buff' },
+    def: { color: '#5fb2ff', icon: 'ra-heavy-shield', kind: 'buff' },
+    crit: { color: '#ffd050', icon: 'ra-target-arrows', kind: 'buff' },
   };
 
   function playStatus(uid, key, positive, signature) {
     var t = centreOf(uid);
     if (!t) return;
     var def = STATUS_FX[key] || STATUS_FX.atk;
-    var color = positive ? def.color : (def.kind === 'buff' ? '#ff9d9d' : def.color);
+    var color = positive ? def.color : def.kind === 'buff' ? '#ff9d9d' : def.color;
     var big = signature ? ' big' : '';
 
     // rising or sinking glyph
-    var g = spawn('fx-status ' + (positive ? 'up' : 'down') + big,
-                  t.x, t.y + (positive ? 16 : -16), color, 1000);
+    var g = spawn(
+      'fx-status ' + (positive ? 'up' : 'down') + big,
+      t.x,
+      t.y + (positive ? 16 : -16),
+      color,
+      1000
+    );
     g.innerHTML = '<i class="ra ' + def.icon + '"></i>';
 
     // ring sweeping the card
@@ -1968,15 +2512,17 @@
       spawn('fx-rune ' + (positive ? 'up' : 'down'), t.x, t.y, color, 900);
       for (var i = 0; i < 6; i++) {
         var m = spawn('fx-mote', t.x, t.y, color, 860);
-        m.style.setProperty('--a', (i * 60) + 'deg');
-        m.style.animationDelay = (i * 45) + 'ms';
+        m.style.setProperty('--a', i * 60 + 'deg');
+        m.style.animationDelay = i * 45 + 'ms';
       }
     }
     var el = t.el;
     if (el) {
       var cls = positive ? 'buffed' : 'debuffed';
       el.classList.add(cls);
-      setTimeout(function () { el.classList.remove(cls); }, 620);
+      setTimeout(function () {
+        el.classList.remove(cls);
+      }, 620);
     }
   }
 
@@ -2000,7 +2546,7 @@
       var f = spawn('fx-burn-flame', t.x, t.y, i % 3 ? C : '#ffc46b', 820);
       f.style.setProperty('--sx', (Math.random() * 46 - 23).toFixed(1) + 'px');
       f.style.setProperty('--sy', (-30 - Math.random() * 44).toFixed(1) + 'px');
-      f.style.animationDelay = (i * 40) + 'ms';
+      f.style.animationDelay = i * 40 + 'ms';
     }
     if (t.el) {
       t.el.classList.add('burning-hit');
@@ -2020,14 +2566,14 @@
       spawn('fx-heal-ring', t.x, t.y, '#7ef0a8', 820);
       for (var i = 0; i < 5; i++) {
         var m = spawn('fx-plus', t.x + (Math.random() * 44 - 22), t.y + 14, '#7ef0a8', 900);
-        m.style.animationDelay = (i * 70) + 'ms';
+        m.style.animationDelay = i * 70 + 'ms';
       }
       // motes spiralling upward
       for (var k = 0; k < 8; k++) {
         var sp = spawn('fx-heal-mote', t.x, t.y + 18, '#9dffc4', 950);
         sp.style.setProperty('--sx', (Math.random() * 58 - 29).toFixed(1) + 'px');
         sp.style.setProperty('--sy', (-40 - Math.random() * 46).toFixed(1) + 'px');
-        sp.style.animationDelay = (k * 46) + 'ms';
+        sp.style.animationDelay = k * 46 + 'ms';
       }
     }
   }
@@ -2043,7 +2589,7 @@
       var a = (i / 6) * Math.PI * 2;
       sh.style.setProperty('--sx', (Math.cos(a) * 40).toFixed(1) + 'px');
       sh.style.setProperty('--sy', (Math.sin(a) * 40).toFixed(1) + 'px');
-      sh.style.animationDelay = (i * 30) + 'ms';
+      sh.style.animationDelay = i * 30 + 'ms';
     }
   }
 
@@ -2056,7 +2602,7 @@
       var p = spawn('fx-cleanse-mote', t.x, t.y, '#e8f6ff', 820);
       p.style.setProperty('--sx', (Math.random() * 60 - 30).toFixed(1) + 'px');
       p.style.setProperty('--sy', (-34 - Math.random() * 40).toFixed(1) + 'px');
-      p.style.animationDelay = (i * 34) + 'ms';
+      p.style.animationDelay = i * 34 + 'ms';
     }
   }
 
@@ -2069,8 +2615,11 @@
     for (var i = 0; i < 5; i++) {
       var b = spawn('fx-energy-bit', t.x, t.y, c, 700);
       b.style.setProperty('--sx', (Math.random() * 50 - 25).toFixed(1) + 'px');
-      b.style.setProperty('--sy', ((positive ? -1 : 1) * (24 + Math.random() * 30)).toFixed(1) + 'px');
-      b.style.animationDelay = (i * 40) + 'ms';
+      b.style.setProperty(
+        '--sy',
+        ((positive ? -1 : 1) * (24 + Math.random() * 30)).toFixed(1) + 'px'
+      );
+      b.style.animationDelay = i * 40 + 'ms';
     }
   }
 
@@ -2087,7 +2636,10 @@
     fresh.forEach(function (l) {
       if (l.type !== 'damage' || !l.meta || !l.meta.src) return;
       var k = l.meta.src + '|' + (l.meta.element || '');
-      if (!groups[k]) { groups[k] = []; order.push(k); }
+      if (!groups[k]) {
+        groups[k] = [];
+        order.push(k);
+      }
       groups[k].push(l);
     });
 
@@ -2108,10 +2660,10 @@
       });
     });
 
-    var seq = {};        // per-target hit counter, so repeat hits stagger
-    var absorbed = {};   // targets whose shield already played this blow
-    var lastHit = {};    // uid -> offset of the most recent blow
-    var revived = {};    // uid -> ms to hold back follow-up status pops
+    var seq = {}; // per-target hit counter, so repeat hits stagger
+    var absorbed = {}; // targets whose shield already played this blow
+    var lastHit = {}; // uid -> offset of the most recent blow
+    var revived = {}; // uid -> ms to hold back follow-up status pops
     fresh.forEach(function (l) {
       if (!l.meta) return;
       if (!l.meta.uid && !l.meta.side) return;
@@ -2150,7 +2702,9 @@
         revived[l.meta.uid] = rdelay + REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
         hold = Math.max(hold, rdelay + REVIVE_TOTAL_MS + 500);
         (function (uid, d) {
-          setTimeout(function () { playRevive(uid, 'REBORN'); }, d);
+          setTimeout(function () {
+            playRevive(uid, 'REBORN');
+          }, d);
         })(l.meta.uid, rdelay);
         return;
       }
@@ -2193,8 +2747,7 @@
         popNumber(l, 0);
         return;
       }
-      if (l.type === 'buff' || l.type === 'debuff' ||
-          l.type === 'shield' || l.type === 'mark') {
+      if (l.type === 'buff' || l.type === 'debuff' || l.type === 'shield' || l.type === 'mark') {
         var key = l.meta.status || l.meta.stat;
         if (!key) return;
         var positive = l.type === 'buff' || l.type === 'shield';
@@ -2203,7 +2756,9 @@
         var wait = revived[l.meta.uid] || 0;
         if (wait) {
           (function (uid, k, pos, sig, d) {
-            setTimeout(function () { playStatus(uid, k, pos, sig); }, d);
+            setTimeout(function () {
+              playStatus(uid, k, pos, sig);
+            }, d);
           })(l.meta.uid, key, positive, l.meta.signature, wait);
           return;
         }
@@ -2221,12 +2776,17 @@
      card so a dying card's grayscale filter can't wash it out. */
   function popNumber(l, delay) {
     if (l.meta.amount == null) return;
-    var kind = l.type === 'heal' ? 'heal'
-             : l.type === 'absorb' ? 'absorb'
-             : l.type === 'shield' ? 'shieldgain'
-             : l.type === 'burn' ? 'burn'
-             : 'damage';
-    var sign = (kind === 'heal' || kind === 'shieldgain') ? '+' : '-';
+    var kind =
+      l.type === 'heal'
+        ? 'heal'
+        : l.type === 'absorb'
+          ? 'absorb'
+          : l.type === 'shield'
+            ? 'shieldgain'
+            : l.type === 'burn'
+              ? 'burn'
+              : 'damage';
+    var sign = kind === 'heal' || kind === 'shieldgain' ? '+' : '-';
 
     setTimeout(function () {
       var c = centreOf(l.meta.uid);
@@ -2241,14 +2801,18 @@
         popLane[l.meta.uid] = Math.max(0, (popLane[l.meta.uid] || 1) - 1);
       }, 900);
       pop.style.left = c.x + 'px';
-      pop.style.top = (c.y - lane * 26) + 'px';
+      pop.style.top = c.y - lane * 26 + 'px';
       fxLayer().appendChild(pop);
-      setTimeout(function () { pop.remove(); }, 1100);
+      setTimeout(function () {
+        pop.remove();
+      }, 1100);
 
       if (l.meta.uid && c.el) {
-        var cls = (kind === 'heal' || kind === 'shieldgain') ? 'healed' : 'hit';
+        var cls = kind === 'heal' || kind === 'shieldgain' ? 'healed' : 'hit';
         c.el.classList.add(cls);
-        setTimeout(function () { c.el.classList.remove('hit', 'healed'); }, 1000);
+        setTimeout(function () {
+          c.el.classList.remove('hit', 'healed');
+        }, 1000);
       }
     }, delay);
   }
@@ -2260,7 +2824,9 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+    toastTimer = setTimeout(function () {
+      t.classList.remove('show');
+    }, 2000);
   }
 
   function endBattle() {
@@ -2273,8 +2839,9 @@
     var ov = $('result');
     ov.className = 'result show ' + (win ? 'win' : 'lose');
     ov.querySelector('.result-title').textContent = win ? 'Victory' : 'Defeat';
-    ov.querySelector('.result-sub').textContent =
-      win ? 'The enemy team has fallen.' : 'Your team has fallen.';
+    ov.querySelector('.result-sub').textContent = win
+      ? 'The enemy team has fallen.'
+      : 'Your team has fallen.';
     ov.querySelector('.result-rounds').textContent =
       B.round === 1 ? 'Won in a single round' : 'Lasted ' + B.round + ' rounds';
   }
@@ -2282,7 +2849,9 @@
   /* Flyouts are CSS-driven and live inside each card, so nothing to
      position here. Kept so callers can force-clear any stray node. */
   function hideTip() {
-    document.querySelectorAll('.tip-wrap').forEach(function (t) { t.remove(); });
+    document.querySelectorAll('.tip-wrap').forEach(function (t) {
+      t.remove();
+    });
   }
 
   /* ---------------------------------------------------------
@@ -2302,10 +2871,10 @@
     AI = window.EOL.ai;
     opts = opts || {};
     if (opts.teams && opts.teams.player && opts.teams.enemy) {
-      playerDeck = null;   // mode flows own their rematch config
-      B = E.createBattle(opts.teams.player,
-                         E.optimizeFormation(opts.teams.enemy),
-                         { roleAware: false });
+      playerDeck = null; // mode flows own their rematch config
+      B = E.createBattle(opts.teams.player, E.optimizeFormation(opts.teams.enemy), {
+        roleAware: false,
+      });
     } else {
       if (opts.deck) playerDeck = opts.deck.slice();
       var teams = buildTeams(playerDeck);
@@ -2315,8 +2884,12 @@
         ? E.createBattle(teams.player, E.optimizeFormation(teams.enemy), { roleAware: false })
         : E.createBattle(teams.player, teams.enemy, { roleAware: true });
     }
-    sel = null; busy = false; hoverUnit = null; lastLogLen = 0;
-    playerDone = false; enemyDone = false;
+    sel = null;
+    busy = false;
+    hoverUnit = null;
+    lastLogLen = 0;
+    playerDone = false;
+    enemyDone = false;
     reviveFx = {};
     document.body.dataset.busy = '0';
     hideTip();
@@ -2341,14 +2914,16 @@
   window.EOL.battle = {
     start: start,
     endTurn: endTurn,
-    getState: function () { return B; },
+    getState: function () {
+      return B;
+    },
     ponderStats: function () {
       return {
         kicks: ponderStats.kicks,
         decisions: ponderStats.decisions,
         hits: ponderStats.hits,
         misses: Math.max(0, ponderStats.decisions - ponderStats.hits),
-        lastDepth: ponderStats.lastDepth
+        lastDepth: ponderStats.lastDepth,
       };
     },
     clearSel: clearSel,
@@ -2369,21 +2944,29 @@
     /* test hooks for the bot's draft (harness only) */
     _draft: draftBotTeam,
     _draftValue: draftValue,
-    _markSets: markSets
+    _markSets: markSets,
   };
 
-  window.addEventListener('resize', function () { if (B) { sizeBoard(); } });
+  window.addEventListener('resize', function () {
+    if (B) {
+      sizeBoard();
+    }
+  });
 
   document.addEventListener('DOMContentLoaded', function () {
     var et = $('btn-endturn');
     if (et) et.addEventListener('click', endTurn);
     var rm = $('btn-rematch');
-    if (rm) rm.addEventListener('click', function () {
-      if (window.EOL.play && window.EOL.play.rematch) window.EOL.play.rematch();
-      else start();
-    });
+    if (rm)
+      rm.addEventListener('click', function () {
+        if (window.EOL.play && window.EOL.play.rematch) window.EOL.play.rematch();
+        else start();
+      });
     // clicking empty space cancels a pending selection
     var board = $('board');
-    if (board) board.addEventListener('click', function () { if (!busy) clearSel(); });
+    if (board)
+      board.addEventListener('click', function () {
+        if (!busy) clearSel();
+      });
   });
 })();

@@ -27,19 +27,17 @@ window.EOL.registerFaction({
             {
               k: 'branch',
               cond: { selfShielded: true },
-              then: [
-                { k: 'stat', stat: 'atk', amt: 12, turns: 2, to: 'allies' }
-              ],
+              then: [{ k: 'stat', stat: 'atk', amt: 12, turns: 2, to: 'allies' }],
               other: [
                 { k: 'shield', pctMaxHp: 15, to: 'self' },
                 { k: 'shield', pctMaxHp: 15, to: 'triggerTarget' },
-                { k: 'taunt', turns: 1, to: 'self' }
-              ]
-            }
-          ]
-        }
+                { k: 'taunt', turns: 1, to: 'self' },
+              ],
+            },
+          ],
+        },
       },
-      icon: 'ra-crown'
+      icon: 'ra-crown',
     },
     {
       id: 'camelot-merlin',
@@ -59,11 +57,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'costMod', flat: -15, turns: 1, side: 'ally' },
             { k: 'costMod', flat: 15, turns: 1, side: 'enemy', when: 'now' },
-            { k: 'shield', pctMaxHp: 10, to: 'allies' }
-          ]
-        }
+            { k: 'shield', pctMaxHp: 10, to: 'allies' },
+          ],
+        },
       },
-      icon: 'ra-crystal-wand'
+      icon: 'ra-crystal-wand',
     },
     {
       id: 'camelot-lancelot',
@@ -81,13 +79,36 @@ window.EOL.registerFaction({
         passive: {
           triggers: ['allyWarded', 'allyStruckExposed'],
           effects: [
-            { k: 'stat', stat: 'atk', amt: 10, turns: 99, to: 'self', stackTag: 'finest-knight-atk', maxStacks: 5 },
-            { k: 'stat', stat: 'crit', amt: 6, turns: 99, to: 'self', stackTag: 'finest-knight-crit', maxStacks: 5 },
-            { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'self', ifStacks: { tag: 'finest-knight-atk', min: 3 } }
-          ]
-        }
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: 10,
+              turns: 99,
+              to: 'self',
+              stackTag: 'finest-knight-atk',
+              maxStacks: 5,
+            },
+            {
+              k: 'stat',
+              stat: 'crit',
+              amt: 6,
+              turns: 99,
+              to: 'self',
+              stackTag: 'finest-knight-crit',
+              maxStacks: 5,
+            },
+            {
+              k: 'stat',
+              stat: 'def',
+              amt: 10,
+              turns: 2,
+              to: 'self',
+              ifStacks: { tag: 'finest-knight-atk', min: 3 },
+            },
+          ],
+        },
       },
-      icon: 'ra-sword'
+      icon: 'ra-sword',
     },
     {
       id: 'camelot-morgan-le-fay',
@@ -108,11 +129,11 @@ window.EOL.registerFaction({
             { k: 'swapTargets' },
             { k: 'stat', stat: 'atk', amt: -30, turns: 2, to: 'targets', when: 'now' },
             { k: 'exposed', turns: 2, to: 'targets', when: 'now' },
-            { k: 'dmg', power: 0.6, element: 'Shadow' }
-          ]
-        }
+            { k: 'dmg', power: 0.6, element: 'Shadow' },
+          ],
+        },
       },
-      icon: 'ra-raven'
+      icon: 'ra-raven',
     },
     {
       id: 'camelot-guinevere',
@@ -125,19 +146,18 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Royal Blessing',
         cost: 30,
-        text: 'Immediately heal an ally for <b>26% Max HP</b> and grant them a <b>12% Max HP Shield</b>, healing a further <b>10% Max HP</b> if Guinevere is Shielded, and grant all allies a <b>6% Max HP Shield</b>.',
+        text: 'Heal an ally for <b>22% Max HP</b> and grant a <b>12% Max HP Shield</b>. If they were already <b>Shielded</b>, they gain <b>10% ATK</b> for 2 rounds.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'single', row: 'any' },
           effects: [
-            { k: 'heal', pctMaxHp: 26 },
-            { k: 'shield', pctMaxHp: 12, to: 'targets' },
-            { k: 'heal', pctMaxHp: 10, if: { selfShielded: true } },
-            { k: 'shield', pctMaxHp: 6, to: 'allies' }
-          ]
-        }
+            { k: 'heal', pctMaxHp: 22 },
+            { k: 'stat', stat: 'atk', amt: 10, turns: 2, if: { targetShielded: true } },
+            { k: 'shield', pctMaxHp: 12 },
+          ],
+        },
       },
-      icon: 'ra-heart-tower'
+      icon: 'ra-heart-tower',
     },
     {
       id: 'camelot-mordred',
@@ -157,11 +177,17 @@ window.EOL.registerFaction({
           effects: [
             { k: 'dmg', power: 1.8, element: 'Shadow' },
             { k: 'gainEnergy', amt: 10, if: { targetExposed: true } },
-            { k: 'exposed', turns: 1, to: 'adjacentTargets', if: { targetExposed: true }, when: 'now' }
-          ]
-        }
+            {
+              k: 'exposed',
+              turns: 1,
+              to: 'adjacentTargets',
+              if: { targetExposed: true },
+              when: 'now',
+            },
+          ],
+        },
       },
-      icon: 'ra-dripping-blade'
-    }
-  ]
+      icon: 'ra-dripping-blade',
+    },
+  ],
 });

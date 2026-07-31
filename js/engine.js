@@ -21,10 +21,10 @@
   /* Energy is maxed from round 5, so from round 6 the pressure to close
      the game switches over to a compounding ATK bonus instead. */
   var RAMP_FROM = 6;
-  var RAMP_STEP = 0.15;   // +15% ATK per round past the threshold
+  var RAMP_STEP = 0.15; // +15% ATK per round past the threshold
 
   /* Losing your whole front row exposes the back line. */
-  var BACKLINE_DEF_PENALTY = 5;   // percent
+  var BACKLINE_DEF_PENALTY = 5; // percent
 
   /* Burn: a damage-over-time debuff. Ticks for a flat share of the
      victim's Max HP at the START OF THEIR OWN TURN, so a 2-turn Burn
@@ -41,13 +41,17 @@
      Medics below 36%), and the late-game decay put a hard timer on their only
      job. healDecay() is kept as a stable API (exported + called in healUnit)
      but now always returns 1. */
-  function healDecay() { return 1; }
+  function healDecay() {
+    return 1;
+  }
 
   function energyForRound(r) {
     return ENERGY_BY_ROUND[Math.min(r - 1, ENERGY_BY_ROUND.length - 1)];
   }
 
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
 
   /* ---------------------------------------------------------
      Unit
@@ -55,12 +59,12 @@
   var uid = 0;
   function makeUnit(card, faction, side, slot) {
     return {
-      battle: null,   // set on createBattle so stats can read round/board state
-      uid: 'u' + (++uid),
+      battle: null, // set on createBattle so stats can read round/board state
+      uid: 'u' + ++uid,
       card: card,
       faction: faction,
-      side: side,               // 'player' | 'enemy'
-      slot: slot,               // 0..5  (0-2 front row, 3-5 back row)
+      side: side, // 'player' | 'enemy'
+      slot: slot, // 0..5  (0-2 front row, 3-5 back row)
       name: card.name,
       role: card.role,
       element: card.element,
@@ -69,27 +73,31 @@
       baseAtk: card.stats.atk,
       baseDef: card.stats.def,
       shield: 0,
-      shieldSrc: null,          // uid of the last hero who granted a shield
+      shieldSrc: null, // uid of the last hero who granted a shield
       alive: true,
-      buffs: [],                // {stat, amt, turns, tag, kind}
-      flags: {},                // taunt / untargetable / silence -> turns
-      usedOnce: {},             // once-per-battle passive tracking
-      roundFlags: {},           // once-per-round passive tracking
-      pending: [],              // delayed effects landing on this unit
-      streakUid: null,          // Will Scarlet: uid of the current victim
-      lastDamagedRound: -1      // round in which this unit last took damage
+      buffs: [], // {stat, amt, turns, tag, kind}
+      flags: {}, // taunt / untargetable / silence -> turns
+      usedOnce: {}, // once-per-battle passive tracking
+      roundFlags: {}, // once-per-round passive tracking
+      pending: [], // delayed effects landing on this unit
+      streakUid: null, // Will Scarlet: uid of the current victim
+      lastDamagedRound: -1, // round in which this unit last took damage
     };
   }
 
   /* front row = slots 0,1,2  |  back row = slots 3,4,5 */
-  function isFront(u) { return u.slot < 3; }
+  function isFront(u) {
+    return u.slot < 3;
+  }
 
   /* ---------------------------------------------------------
      Derived stats — base + additive percent buffs
      --------------------------------------------------------- */
   function sumBuffs(u, stat) {
     var t = 0;
-    u.buffs.forEach(function (b) { if (b.stat === stat) t += b.amt; });
+    u.buffs.forEach(function (b) {
+      if (b.stat === stat) t += b.amt;
+    });
     return t;
   }
   function atkOf(u) {
@@ -114,14 +122,25 @@
       return u.side === side && u.slot < 3;
     });
     if (!front.length) return false;
-    return front.every(function (u) { return !u.alive; });
+    return front.every(function (u) {
+      return !u.alive;
+    });
   }
-  function critOf(u) { return clamp(sumBuffs(u, 'crit'), 0, 100); }
+  function critOf(u) {
+    return clamp(sumBuffs(u, 'crit'), 0, 100);
+  }
 
   function hasDebuff(u) {
-    return u.buffs.some(function (b) { return b.amt < 0; }) ||
-      u.flags.silence > 0 || !!u.flags.healMod ||
-      u.flags.burn > 0 || u.flags.exposed > 0 || u.flags.marked > 0;
+    return (
+      u.buffs.some(function (b) {
+        return b.amt < 0;
+      }) ||
+      u.flags.silence > 0 ||
+      !!u.flags.healMod ||
+      u.flags.burn > 0 ||
+      u.flags.exposed > 0 ||
+      u.flags.marked > 0
+    );
   }
 
   /* ---------------------------------------------------------
@@ -169,7 +188,9 @@
 
      Since pass 4 the opener ALTERNATES: P1 opens round 1, P2 opens
      round 2, and so on, so opening tempo is shared fairly. */
-  function firstMover(round) { return (round % 2 === 1) ? 'player' : 'enemy'; }
+  function firstMover(round) {
+    return round % 2 === 1 ? 'player' : 'enemy';
+  }
 
   /* How many opening rounds the first mover is limited to Basics for.
      Both sides are now restricted for round 1 only — symmetric by rule. */
@@ -179,14 +200,14 @@
      Only ACTIVE signature Skills are locked — role Basics are always
      allowed, and Passives are never locked at all. */
   function signatureBlocked(B, unit, ability) {
-    if (B.noOpeningLimit) return false;   // unit-test escape hatch
+    if (B.noOpeningLimit) return false; // unit-test escape hatch
     if (ability.basic) return false;
-    if (ability.type !== 'Active') return false;   // passives always work
+    if (ability.type !== 'Active') return false; // passives always work
     if (B.round <= FIRST_MOVER_BASIC_ROUNDS) return true;
     return false;
   }
 
-    /* Optimize team formation: Tanks & Bruisers in front (slots 0-2),
+  /* Optimize team formation: Tanks & Bruisers in front (slots 0-2),
      Medics, Casters, Controllers & Snipers in back (slots 3-5).
      Front gets overflow priority by durability (effective HP): if more
      than 3 frontline-role heroes are present the most durable three stay
@@ -202,19 +223,24 @@
       return s.hp / Math.max(0.25, 1 - s.def / 100);
     }
 
-    var frontline = [], backline = [];
+    var frontline = [],
+      backline = [];
     entries.forEach(function (e) {
       (FRONT_ROLES[e.card.role] ? frontline : backline).push(e);
     });
 
     // too many natural frontliners: keep the most durable 3 up front
     if (frontline.length > 3) {
-      frontline.sort(function (a, b) { return ehp(b) - ehp(a); });
+      frontline.sort(function (a, b) {
+        return ehp(b) - ehp(a);
+      });
       while (frontline.length > 3) backline.unshift(frontline.pop());
     }
     // too few: pull the most durable backliners forward
     if (frontline.length < 3) {
-      backline.sort(function (a, b) { return ehp(b) - ehp(a); });
+      backline.sort(function (a, b) {
+        return ehp(b) - ehp(a);
+      });
       while (frontline.length < 3 && backline.length) frontline.push(backline.shift());
     }
 
@@ -241,18 +267,19 @@
          counts toward ending the round while it is unanswered). */
       passed: { player: false, enemy: false },
       turnPassed: { player: false, enemy: false },
-      lastActor: null,  // who took the previous action this round
-      actionNo: 0,    // actions taken this round, both sides combined
-      turnId: 0,      // increments on every action (see setTurn/takeAction)
+      lastActor: null, // who took the previous action this round
+      actionNo: 0, // actions taken this round, both sides combined
+      turnId: 0, // increments on every action (see setTurn/takeAction)
       units: [],
       energy: { player: energyForRound(1), enemy: energyForRound(1) },
-      costMods: { player: [], enemy: [] },  // {flat,pct,turns}
+      costMods: { player: [], enemy: [] }, // {flat,pct,turns}
       log: [],
-      deferred: [],   // buffs/debuffs waiting for the turn to end
+      simulation: !!opts.simulation,
+      deferred: [], // buffs/debuffs waiting for the turn to end
       over: false,
       winner: null,
-      acted: { player: {}, enemy: {} },     // uid -> true for this round
-      rng: opts.rng || Math.random
+      acted: { player: {}, enemy: {} }, // uid -> true for this round
+      rng: opts.rng || Math.random,
     };
 
     playerCards.forEach(function (e, i) {
@@ -261,7 +288,9 @@
     enemyCards.forEach(function (e, i) {
       B.units.push(makeUnit(e.card, e.faction, 'enemy', i));
     });
-    B.units.forEach(function (u) { u.battle = B; });
+    B.units.forEach(function (u) {
+      u.battle = B;
+    });
 
     return B;
   }
@@ -279,8 +308,8 @@
     var c = {
       battle: B2,
       uid: u.uid,
-      card: u.card,            // shared, never mutated
-      faction: u.faction,      // shared, never mutated
+      card: u.card, // shared, never mutated
+      faction: u.faction, // shared, never mutated
       side: u.side,
       slot: u.slot,
       name: u.name,
@@ -299,20 +328,24 @@
       flags: {},
       usedOnce: {},
       roundFlags: {},
-      pending: new Array(u.pending.length)
+      pending: new Array(u.pending.length),
     };
     for (var i = 0; i < u.buffs.length; i++) {
       var b = u.buffs[i];
-      c.buffs[i] = { stat: b.stat, amt: b.amt, turns: b.turns,
-                     tag: b.tag };
+      c.buffs[i] = { stat: b.stat, amt: b.amt, turns: b.turns, tag: b.tag };
     }
     for (var k in u.flags) c.flags[k] = u.flags[k];
     for (var k2 in u.usedOnce) c.usedOnce[k2] = u.usedOnce[k2];
     for (var k3 in u.roundFlags) c.roundFlags[k3] = u.roundFlags[k3];
     for (var j = 0; j < u.pending.length; j++) {
       var pn = u.pending[j];
-      c.pending[j] = { turns: pn.turns, tag: pn.tag, srcUid: pn.srcUid,
-                       effects: pn.effects, scale: pn.scale };
+      c.pending[j] = {
+        turns: pn.turns,
+        tag: pn.tag,
+        srcUid: pn.srcUid,
+        effects: pn.effects,
+        scale: pn.scale,
+      };
     }
     if (u.costMods) {
       c.costMods = u.costMods.map(function (m) {
@@ -338,6 +371,7 @@
       actionNo: B.actionNo,
       turnId: B.turnId,
       units: new Array(B.units.length),
+      uidMap: {},
       energy: { player: B.energy.player, enemy: B.energy.enemy },
       costMods: {
         player: B.costMods.player.map(function (m) {
@@ -345,40 +379,54 @@
         }),
         enemy: B.costMods.enemy.map(function (m) {
           return { flat: m.flat, pct: m.pct, turns: m.turns };
-        })
+        }),
       },
-      log: [],                 // search never reads the log
-      silent: true,            // suppress log writes entirely
+      log: [],
+      simulation: !!B.simulation,
+      silent: true, // suppress log writes entirely
       deferred: B.deferred.map(function (d) {
-        return { phase: d.phase, armAt: d.armAt, srcUid: d.srcUid,
-                 targetUids: d.targetUids.slice(), effect: d.effect,
-                 ctx: d.ctx, side: d.side };
+        return {
+          phase: d.phase,
+          armAt: d.armAt,
+          srcUid: d.srcUid,
+          targetUids: d.targetUids.slice(),
+          effect: d.effect,
+          ctx: d.ctx,
+          side: d.side,
+        };
       }),
       over: B.over,
       winner: B.winner,
       acted: { player: {}, enemy: {} },
-      rng: rng || B.rng
+      rng: rng || B.rng,
     };
     for (var s1 in B.acted.player) B2.acted.player[s1] = B.acted.player[s1];
     for (var s2 in B.acted.enemy) B2.acted.enemy[s2] = B.acted.enemy[s2];
     for (var i = 0; i < B.units.length; i++) {
       B2.units[i] = cloneUnit(B.units[i], B2);
+      B2.uidMap[B2.units[i].uid] = B2.units[i];
     }
     return B2;
   }
 
   function unitsOf(B, side) {
-    return B.units.filter(function (u) { return u.side === side && u.alive; });
-  }
-  function opposite(side) { return side === 'player' ? 'enemy' : 'player'; }
-  function unitAt(B, side, slot) {
     return B.units.filter(function (u) {
-      return u.side === side && u.slot === slot && u.alive;
-    })[0] || null;
+      return u.side === side && u.alive;
+    });
+  }
+  function opposite(side) {
+    return side === 'player' ? 'enemy' : 'player';
+  }
+  function unitAt(B, side, slot) {
+    return (
+      B.units.filter(function (u) {
+        return u.side === side && u.slot === slot && u.alive;
+      })[0] || null
+    );
   }
 
   function logMsg(B, type, text, meta) {
-    if (B.silent) return;   // AI search rollouts don't build a log
+    if (B.silent || B.simulation) return; // search/sim runs do not build visual logs
     B.log.push({ round: B.round, type: type, text: text, meta: meta || {} });
   }
 
@@ -399,7 +447,8 @@
   function costOf(B, unit, ability) {
     var base = ability.cost || 0;
     if (base === 0) return 0;
-    var flat = 0, pct = 0;
+    var flat = 0,
+      pct = 0;
     B.costMods[unit.side].forEach(function (m) {
       flat += m.flat || 0;
       pct += m.pct || 0;
@@ -435,18 +484,22 @@
 
     if (side !== unit.side) {
       // untargetable enemies are skipped entirely
-      pool = pool.filter(function (u) { return !(u.flags.untargetable > 0); });
+      pool = pool.filter(function (u) {
+        return !(u.flags.untargetable > 0);
+      });
 
       // Taunt overrides everything else
-      var taunts = pool.filter(function (u) { return u.flags.taunt > 0; });
+      var taunts = pool.filter(function (u) {
+        return u.flags.taunt > 0;
+      });
       if (taunts.length) return taunts;
 
       // row restriction: role default, overridden by the ability spec
       var row = t.row;
-      if (!row) row = (unit.role === 'Tank' || unit.role === 'Bruiser') ? 'front' : 'any';
+      if (!row) row = unit.role === 'Tank' || unit.role === 'Bruiser' ? 'front' : 'any';
       if (row === 'front') {
         var front = pool.filter(isFront);
-        if (front.length) pool = front;   // back row only once front is cleared
+        if (front.length) pool = front; // back row only once front is cleared
       }
     }
     return pool;
@@ -457,7 +510,7 @@
     var t = (ability.spec && ability.spec.target) || {};
     if (t.pick === 'two') return 2;
     if (t.pick === 'single') return 1;
-    return 0;   // all / auto / self / none
+    return 0; // all / auto / self / none
   }
 
   /* resolve the final target list once the player has chosen */
@@ -473,9 +526,13 @@
     if (t.pick === 'auto') {
       var sorted = pool.slice();
       if (t.auto === 'lowestHp') {
-        sorted.sort(function (a, b) { return a.hp - b.hp; });
+        sorted.sort(function (a, b) {
+          return a.hp - b.hp;
+        });
       } else if (t.auto === 'highestAtk') {
-        sorted.sort(function (a, b) { return atkOf(b) - atkOf(a); });
+        sorted.sort(function (a, b) {
+          return atkOf(b) - atkOf(a);
+        });
       }
       return sorted.slice(0, 1);
     }
@@ -491,7 +548,9 @@
     if (!pool.length) return null;
     var s = pool.slice();
     if (p.forceTarget === 'highestAtk') {
-      s.sort(function (a, b) { return atkOf(b) - atkOf(a); });
+      s.sort(function (a, b) {
+        return atkOf(b) - atkOf(a);
+      });
     }
     return s[0];
   }
@@ -510,7 +569,7 @@
       turnIdAtStart: ctx.turnIdAtStart,
       killedSomething: ctx.killedSomething,
       scale: ctx.scale,
-      signature: ctx.signature
+      signature: ctx.signature,
     };
   }
 
@@ -523,7 +582,9 @@
     if (cond.targetHpAbove != null) {
       if (!tgt || tgt.hp / tgt.maxHp <= cond.targetHpAbove) return false;
     }
-    if (cond.targetBackRow) { if (!tgt || isFront(tgt)) return false; }
+    if (cond.targetBackRow) {
+      if (!tgt || isFront(tgt)) return false;
+    }
     if (cond.targetHasDebuff != null) {
       if (!tgt) return false;
       if (hasDebuff(tgt) !== !!cond.targetHasDebuff) return false;
@@ -533,12 +594,36 @@
       // multi-hit ability can't trigger the follow-up off its own first hit.
       if (!tgt || !ctx.preDamaged || !ctx.preDamaged[tgt.uid]) return false;
     }
-    if (cond.targetElement) { if (!tgt || tgt.element !== cond.targetElement) return false; }
-    if (cond.targetExposed) { if (!tgt || !(tgt.flags.exposed > 0)) return false; }
-    if (cond.targetMarked) { if (!tgt || !(tgt.flags.marked > 0)) return false; }
-    if (cond.targetBurning) { if (!tgt || !(tgt.flags.burn > 0)) return false; }
-    if (cond.selfShielded) { if (!ctx.self || ctx.self.shield <= 0) return false; }
-    if (cond.killedTarget) { if (!ctx.killedSomething) return false; }
+    if (cond.targetElement) {
+      if (!tgt || tgt.element !== cond.targetElement) return false;
+    }
+    if (cond.targetExposed) {
+      if (!tgt || !(tgt.flags.exposed > 0)) return false;
+    }
+    if (cond.targetMarked) {
+      if (!tgt || !(tgt.flags.marked > 0)) return false;
+    }
+    if (cond.targetBurning) {
+      if (!tgt || !(tgt.flags.burn > 0)) return false;
+    }
+    if (cond.selfShielded) {
+      if (!ctx.self || ctx.self.shield <= 0) return false;
+    }
+    if (cond.targetShielded) {
+      if (!tgt || tgt.shield <= 0) return false;
+    }
+    if (cond.selfEnergyAbove != null) {
+      if (!ctx.self || B.energy[ctx.self.side] <= cond.selfEnergyAbove) return false;
+    }
+    if (cond.selfEnergyBelow != null) {
+      if (!ctx.self || B.energy[ctx.self.side] >= cond.selfEnergyBelow) return false;
+    }
+    if (cond.killedTarget) {
+      if (!ctx.killedSomething) return false;
+    }
+    if (cond.drainedEnergyAbove != null) {
+      if ((ctx.drainedEnergy || 0) < cond.drainedEnergyAbove) return false;
+    }
     return true;
   }
 
@@ -547,7 +632,7 @@
      --------------------------------------------------------- */
   function passiveOf(u) {
     var a = u.card.ability;
-    return (a.type === 'Passive' && a.passive) ? a.passive : null;
+    return a.type === 'Passive' && a.passive ? a.passive : null;
   }
 
   /* A passive may declare a single `trigger` or a `triggers` array of
@@ -563,12 +648,18 @@
       var p = passiveOf(u);
       if (!hasTrig(p, 'allyWarded')) return;
       var before = u.buffs.length;
-      emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                trigger: 'allyWarded', round: B.round });
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'allyWarded',
+        round: B.round,
+      });
       applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: warded });
       if (u.buffs.length > before) {
-        logMsg(B, 'passive', u.name + ' stands taller — ' + u.card.ability.name + '!',
-          { uid: u.uid });
+        logMsg(B, 'passive', u.name + ' stands taller — ' + u.card.ability.name + '!', {
+          uid: u.uid,
+        });
       }
     });
   }
@@ -580,8 +671,13 @@
       var p = passiveOf(u);
       if (!hasTrig(p, 'allyStruckDebuffed')) return;
       var before = u.buffs.length;
-      emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                trigger: 'allyStruckDebuffed', round: B.round });
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'allyStruckDebuffed',
+        round: B.round,
+      });
       applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: target });
       if (u.buffs.length > before) {
         logMsg(B, 'passive', u.name + ' presses the advantage.', { uid: u.uid });
@@ -594,11 +690,17 @@
     unitsOf(B, attacker.side).forEach(function (u) {
       var p = passiveOf(u);
       if (!hasTrig(p, 'allyStruckExposed')) return;
-      emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                trigger: 'allyStruckExposed', round: B.round });
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'allyStruckExposed',
+        round: B.round,
+      });
       applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: target });
-      logMsg(B, 'passive', u.name + ' exploits the opening — ' + u.card.ability.name + '.',
-        { uid: u.uid });
+      logMsg(B, 'passive', u.name + ' exploits the opening — ' + u.card.ability.name + '.', {
+        uid: u.uid,
+      });
     });
   }
 
@@ -609,7 +711,7 @@
     if (p && hasTrig(p, 'static')) {
       (p.effects || []).forEach(function (e) {
         if (e.k !== 'outgoingMult') return;
-        if (condMet(B, e.when, { target: target })) m *= e.mult;
+        if (condMet(B, e.when, { target: target, self: attacker })) m *= e.mult;
       });
     }
     return m;
@@ -621,9 +723,9 @@
     var m = 1;
     unitsOf(B, defender.side).forEach(function (u) {
       var p = passiveOf(u);
-      if (!hasTrig(p, 'incomingAbilityDamage')) return;
+      if (!p || (!hasTrig(p, 'incomingAbilityDamage') && !hasTrig(p, 'static'))) return;
       (p.effects || []).forEach(function (e) {
-        if (e.k !== 'damageMult') return;
+        if (e.k !== 'damageMult' && e.k !== 'damageResist') return;
         var applied = false;
         if (e.firstPerRound) {
           // only signature Skills, and only the first one each round
@@ -632,8 +734,7 @@
           u.roundFlags.athenaFirst = true;
           m *= e.mult;
           applied = true;
-          logMsg(B, 'passive', u.name + "'s Divine Strategy blunts the attack.",
-            { uid: u.uid });
+          logMsg(B, 'passive', u.name + "'s Divine Strategy blunts the attack.", { uid: u.uid });
         } else if (e.ifAttackerMarked) {
           if (!(attacker.flags.marked > 0)) return;
           m *= e.mult;
@@ -646,8 +747,13 @@
           // statistics: remember who blunted this blow so dealDamage can
           // credit the damage it prevented
           (B._multTrail = B._multTrail || []).push({ owner: u.uid, mult: e.mult });
-          emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                    trigger: 'incomingAbilityDamage', round: B.round });
+          emit(B, {
+            t: 'proc',
+            owner: u.uid,
+            ability: u.card.ability.name,
+            trigger: 'incomingAbilityDamage',
+            round: B.round,
+          });
         }
       });
     });
@@ -664,7 +770,7 @@
     var hadShield = tgt.shield > 0;
 
     var outM = outgoingMult(B, src, tgt);
-    B._multTrail = null;   // incomingMult fills this with who blunted the blow
+    B._multTrail = null; // incomingMult fills this with who blunted the blow
     var inM = incomingMult(B, src, tgt, isAbility);
     var mult = outM * inM;
     var afterDef = raw * mult * (1 - defOf(tgt) / 100);
@@ -686,8 +792,11 @@
       dmg -= absorbed;
       if (absorbed > 0) {
         // flagged as absorb so the UI can show it in shield colour
-        logMsg(B, 'absorb', tgt.name + "'s shield absorbs " + absorbed + '.',
-          { uid: tgt.uid, amount: absorbed, src: src.uid });
+        logMsg(B, 'absorb', tgt.name + "'s shield absorbs " + absorbed + '.', {
+          uid: tgt.uid,
+          amount: absorbed,
+          src: src.uid,
+        });
       }
     }
 
@@ -700,15 +809,38 @@
     /* A Mark is spent the moment an ability damages the target. Captured
        before it is cleared so riders that key off "was Marked" (Ares'
        Burn, Athena's damage cut) still see it for this same blow. */
+    // Benkei's one-time death-cheat is a passive condition, not a status.
+    var deathPassive = passiveOf(tgt);
+    if (tgt.hp <= 0 && deathPassive && deathPassive.deathCheat && !tgt.deathCheated) {
+      tgt.deathCheated = true;
+      tgt.hp = Math.max(1, Math.round(tgt.maxHp * 0.02));
+      B.energy[tgt.side] = deathPassive.deathEnergy != null ? deathPassive.deathEnergy : 10;
+      emit(B, {
+        t: 'proc',
+        owner: tgt.uid,
+        ability: tgt.card.ability.name,
+        trigger: 'deathCheat',
+        round: B.round,
+      });
+      logMsg(B, 'passive', tgt.name + ' refuses to fall — Standing Death!', { uid: tgt.uid });
+    }
+
     var wasMarked = tgt.flags.marked > 0;
-    var wasDebuffed = hasDebuff(tgt);   // pre-hit prey state (Red Riding Hood)
+    var wasDebuffed = hasDebuff(tgt); // pre-hit prey state (Red Riding Hood)
     if (wasMarked && isAbility && dmg > 0) {
       tgt.flags.marked = 0;
       tgt.flags.markedTurns = 0;
-      logMsg(B, 'markConsumed', tgt.name + "'s mark is consumed.",
-        { uid: tgt.uid, status: 'marked' });
-      emit(B, { t: 'markConsumed', tgt: tgt.uid, by: src.uid,
-                damage: dmg + absorbed, round: B.round });
+      logMsg(B, 'markConsumed', tgt.name + "'s mark is consumed.", {
+        uid: tgt.uid,
+        status: 'marked',
+      });
+      emit(B, {
+        t: 'markConsumed',
+        tgt: tgt.uid,
+        by: src.uid,
+        damage: dmg + absorbed,
+        round: B.round,
+      });
     }
 
     /* ---- statistics event ------------------------------------------
@@ -736,21 +868,32 @@
       if (xd > 0) exposedBonus = Math.round(raw * mult * (xd / 100) * (crit ? 1.5 : 1));
     }
     emit(B, {
-      t: 'dmg', src: src.uid, tgt: tgt.uid,
-      amount: dmg, absorbed: absorbed,
+      t: 'dmg',
+      src: src.uid,
+      tgt: tgt.uid,
+      amount: dmg,
+      absorbed: absorbed,
       overkill: Math.max(0, dmg - hpBefore),
-      crit: crit, element: element, ability: !!isAbility,
+      crit: crit,
+      element: element,
+      ability: !!isAbility,
       killed: tgt.hp <= 0,
-      tgtFront: isFront(tgt), tgtTaunting: tgt.flags.taunt > 0,
-      tgtMarked: wasMarked, tgtDefFlags: tgt.flags.exposed > 0,
-      exposedBonus: exposedBonus, prevents: prevents,
-      round: B.round
+      tgtFront: isFront(tgt),
+      tgtTaunting: tgt.flags.taunt > 0,
+      tgtMarked: wasMarked,
+      tgtDefFlags: tgt.flags.exposed > 0,
+      exposedBonus: exposedBonus,
+      prevents: prevents,
+      round: B.round,
     });
 
     if (dmg > 0) {
-      logMsg(B, 'damage',
+      logMsg(
+        B,
+        'damage',
         src.name + ' hits ' + tgt.name + ' for ' + dmg + (crit ? ' (CRIT)' : '') + '.',
-        { uid: tgt.uid, src: src.uid, amount: dmg, crit: crit, element: element });
+        { uid: tgt.uid, src: src.uid, amount: dmg, crit: crit, element: element }
+      );
     } else {
       logMsg(B, 'shield', tgt.name + ' takes no damage.', { uid: tgt.uid });
     }
@@ -758,8 +901,13 @@
     // Ares: gains ATK when attacking, and burns Marked victims
     var sp = passiveOf(src);
     if (sp && hasTrig(sp, 'selfAttacked')) {
-      emit(B, { t: 'proc', owner: src.uid, ability: src.card.ability.name,
-                trigger: 'selfAttacked', round: B.round });
+      emit(B, {
+        t: 'proc',
+        owner: src.uid,
+        ability: src.card.ability.name,
+        trigger: 'selfAttacked',
+        round: B.round,
+      });
       applyEffects(B, src, [src], sp.effects, { immediate: true });
     }
 
@@ -794,13 +942,39 @@
     if (wp && hasTrig(wp, 'sameTargetStreak')) {
       if (src.streakUid !== tgt.uid) {
         // new victim: the oldest stack decays away (not the whole pile)
-        var si = src.buffs.findIndex(function (b) { return b.tag === wp.stackTag; });
+        var si = src.buffs.findIndex(function (b) {
+          return b.tag === wp.stackTag;
+        });
         if (si >= 0) src.buffs.splice(si, 1);
         src.streakUid = tgt.uid;
       } else {
-        emit(B, { t: 'proc', owner: src.uid, ability: src.card.ability.name,
-                  trigger: 'sameTargetStreak', round: B.round });
+        emit(B, {
+          t: 'proc',
+          owner: src.uid,
+          ability: src.card.ability.name,
+          trigger: 'sameTargetStreak',
+          round: B.round,
+        });
         applyEffects(B, src, [src], wp.effects, { immediate: true });
+      }
+    }
+
+    // Defender reactions (Medusa): once each round if requested.
+    if (tgt.alive) {
+      var dp = passiveOf(tgt);
+      if (hasTrig(dp, 'wasAttacked') && (!dp.firstPerRound || !tgt.roundFlags.wasAttacked)) {
+        if (dp.firstPerRound) tgt.roundFlags.wasAttacked = true;
+        emit(B, {
+          t: 'proc',
+          owner: tgt.uid,
+          ability: tgt.card.ability.name,
+          trigger: 'wasAttacked',
+          round: B.round,
+        });
+        applyEffects(B, tgt, [src], dp.effects, { immediate: true, triggerTarget: src });
+        logMsg(B, 'passive', tgt.name + ' answers with ' + tgt.card.ability.name + '!', {
+          uid: tgt.uid,
+        });
       }
     }
 
@@ -809,8 +983,13 @@
       if (u.uid === tgt.uid) return;
       var p = passiveOf(u);
       if (p && hasTrig(p, 'allyDamaged')) {
-        emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                  trigger: 'allyDamaged', round: B.round });
+        emit(B, {
+          t: 'proc',
+          owner: u.uid,
+          ability: u.card.ability.name,
+          trigger: 'allyDamaged',
+          round: B.round,
+        });
         applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: tgt });
       }
     });
@@ -830,10 +1009,17 @@
         if (u.roundFlags['allyBelowHp']) return;
         u.roundFlags['allyBelowHp'] = true;
       }
-      emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                trigger: 'allyBelowHp', round: B.round });
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'allyBelowHp',
+        round: B.round,
+      });
       applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: tgt });
-      logMsg(B, 'passive', u.name + ' answers the call — ' + u.card.ability.name + '!', { uid: u.uid });
+      logMsg(B, 'passive', u.name + ' answers the call — ' + u.card.ability.name + '!', {
+        uid: u.uid,
+      });
     });
 
     /* Guan Yu: an enemy attacking him while Shielded eats a counter-strike.
@@ -850,11 +1036,24 @@
           });
           if (su && su.side === tgt.side) striker = su;
         }
-        logMsg(B, 'damage', striker.name + (striker === tgt ? ' counter-strikes '
-          : ' guards ' + tgt.name + ' and counter-strikes ') + src.name + '!',
-          { uid: src.uid });
-        emit(B, { t: 'proc', owner: striker.uid, ability: striker.card.ability.name,
-                  trigger: 'counterStrike', round: B.round });
+        logMsg(
+          B,
+          'damage',
+          striker.name +
+            (striker === tgt
+              ? ' counter-strikes '
+              : ' guards ' + tgt.name + ' and counter-strikes ') +
+            src.name +
+            '!',
+          { uid: src.uid }
+        );
+        emit(B, {
+          t: 'proc',
+          owner: striker.uid,
+          ability: striker.card.ability.name,
+          trigger: 'counterStrike',
+          round: B.round,
+        });
         dealDamage(B, striker, src, atkOf(striker) * cPow, striker.element, true, true);
       }
     }
@@ -869,12 +1068,24 @@
     if (p && hasTrig(p, 'wouldDie') && !u.usedOnce.wouldDie) {
       u.usedOnce.wouldDie = true;
       // logged first so the UI can play the revive before the buffs it grants
-      logMsg(B, 'revive', u.name + ' refuses to fall — ' + u.card.ability.name + '!',
-        { uid: u.uid, ability: u.card.ability.name });
-      emit(B, { t: 'proc', owner: u.uid, ability: u.card.ability.name,
-                trigger: 'wouldDie', round: B.round });
-      emit(B, { t: 'revive', uid: u.uid, by: u.uid, round: B.round,
-                amount: Math.round(u.maxHp * ((p.effects[0] || {}).pctMaxHp || 0) / 100) });
+      logMsg(B, 'revive', u.name + ' refuses to fall — ' + u.card.ability.name + '!', {
+        uid: u.uid,
+        ability: u.card.ability.name,
+      });
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'wouldDie',
+        round: B.round,
+      });
+      emit(B, {
+        t: 'revive',
+        uid: u.uid,
+        by: u.uid,
+        round: B.round,
+        amount: Math.round((u.maxHp * ((p.effects[0] || {}).pctMaxHp || 0)) / 100),
+      });
       applyEffects(B, u, [u], p.effects, { immediate: true });
       return;
     }
@@ -887,18 +1098,28 @@
     /* Lu Bu: the killer's own passives care that THEY landed the kill.
        killerUid is supplied by the damage path (ability or Burn). */
     if (killerUid) {
-      var killer = B.units.filter(function (x) { return x.uid === killerUid; })[0];
+      var killer = B.units.filter(function (x) {
+        return x.uid === killerUid;
+      })[0];
       if (killer && killer.side !== u.side) {
         unitsOf(B, killer.side).forEach(function (w) {
           var kp = passiveOf(w);
           if (!hasTrig(kp, 'selfKilled')) return;
-          var kse = (kp.effects || []).filter(function (x) { return x.k !== 'outgoingMult'; });
+          var kse = (kp.effects || []).filter(function (x) {
+            return x.k !== 'outgoingMult';
+          });
           if (!kse.length) return;
-          emit(B, { t: 'proc', owner: w.uid, ability: w.card.ability.name,
-                    trigger: 'selfKilled', round: B.round });
+          emit(B, {
+            t: 'proc',
+            owner: w.uid,
+            ability: w.card.ability.name,
+            trigger: 'selfKilled',
+            round: B.round,
+          });
           applyEffects(B, w, [w], kse, { immediate: true, triggerTarget: u });
-          logMsg(B, 'passive', w.name + ' presses the rout — ' + w.card.ability.name + '!',
-            { uid: w.uid });
+          logMsg(B, 'passive', w.name + ' presses the rout — ' + w.card.ability.name + '!', {
+            uid: w.uid,
+          });
         });
       }
     }
@@ -907,8 +1128,13 @@
     unitsOf(B, u.side).forEach(function (a) {
       var ap = passiveOf(a);
       if (ap && hasTrig(ap, 'allyDied')) {
-        emit(B, { t: 'proc', owner: a.uid, ability: a.card.ability.name,
-                  trigger: 'allyDied', round: B.round });
+        emit(B, {
+          t: 'proc',
+          owner: a.uid,
+          ability: a.card.ability.name,
+          trigger: 'allyDied',
+          round: B.round,
+        });
         applyEffects(B, a, [a], ap.effects, { immediate: true });
         logMsg(B, 'passive', a.name + "'s resolve hardens.", { uid: a.uid });
       }
@@ -926,8 +1152,10 @@
     tgt.hp = Math.min(tgt.maxHp, tgt.hp + amt);
     var real = tgt.hp - before;
     if (real > 0) {
-      logMsg(B, 'heal', src.name + ' heals ' + tgt.name + ' for ' + real + '.',
-        { uid: tgt.uid, amount: real });
+      logMsg(B, 'heal', src.name + ' heals ' + tgt.name + ' for ' + real + '.', {
+        uid: tgt.uid,
+        amount: real,
+      });
       emit(B, { t: 'heal', src: src.uid, tgt: tgt.uid, amount: real, round: B.round });
     }
     /* Overheal rider (Restore): whatever the heal cannot restore becomes a
@@ -936,11 +1164,21 @@
     if (opts && opts.overflowShield && overflow > 0) {
       overflow = Math.round(overflow);
       tgt.shield += overflow;
-      tgt.shieldSrc = src.uid;   // granter credited for absorbs
-      logMsg(B, 'shield', tgt.name + "'s overflow hardens into a " + overflow + ' shield.',
-        { uid: tgt.uid, status: 'shield', amount: overflow });
-      emit(B, { t: 'shield', src: src.uid, tgt: tgt.uid, amount: overflow,
-                signature: !!opts.signature, overflow: true, round: B.round });
+      tgt.shieldSrc = src.uid; // granter credited for absorbs
+      logMsg(B, 'shield', tgt.name + "'s overflow hardens into a " + overflow + ' shield.', {
+        uid: tgt.uid,
+        status: 'shield',
+        amount: overflow,
+      });
+      emit(B, {
+        t: 'shield',
+        src: src.uid,
+        tgt: tgt.uid,
+        amount: overflow,
+        signature: !!opts.signature,
+        overflow: true,
+        round: B.round,
+      });
       fireAllyWarded(B, tgt);
     }
     return real;
@@ -968,13 +1206,18 @@
      an effect lasts 1 round unless it says otherwise.
      --------------------------------------------------------- */
   var TIMED_KINDS = {
-    stat: 1, taunt: 1, untargetable: 1, silence: 1,
-    healMod: 1, costMod: 1, shield: 1
+    stat: 1,
+    taunt: 1,
+    untargetable: 1,
+    silence: 1,
+    healMod: 1,
+    costMod: 1,
+    shield: 1,
   };
 
   function timingOf(e, src, targets) {
-    if (e.when) return e.when;                 // explicit wins
-    return 'now';                              // everything else is immediate
+    if (e.when) return e.when; // explicit wins
+    return 'now'; // everything else is immediate
   }
 
   function applyEffects(B, src, targets, effects, ctx) {
@@ -991,22 +1234,34 @@
           phase: 'next',
           armAt: B.turnId,
           srcUid: src.uid,
-          targetUids: (targets || []).map(function (t) { return t.uid; }),
+          targetUids: (targets || []).map(function (t) {
+            return t.uid;
+          }),
           effect: e,
-          ctx: { scale: ctx.scale, preDamaged: ctx.preDamaged,
-                 killedSomething: ctx.killedSomething, signature: ctx.signature },
-          side: src.side
+          ctx: {
+            scale: ctx.scale,
+            preDamaged: ctx.preDamaged,
+            killedSomething: ctx.killedSomething,
+            signature: ctx.signature,
+          },
+          side: src.side,
         });
         return;
       }
       B.deferred.push({
-        phase: when,                           // 'turn' | 'round'
+        phase: when, // 'turn' | 'round'
         srcUid: src.uid,
-        targetUids: (targets || []).map(function (t) { return t.uid; }),
+        targetUids: (targets || []).map(function (t) {
+          return t.uid;
+        }),
         effect: e,
-        ctx: { scale: ctx.scale, preDamaged: ctx.preDamaged,
-               killedSomething: ctx.killedSomething, signature: ctx.signature },
-        side: src.side
+        ctx: {
+          scale: ctx.scale,
+          preDamaged: ctx.preDamaged,
+          killedSomething: ctx.killedSomething,
+          signature: ctx.signature,
+        },
+        side: src.side,
       });
     });
   }
@@ -1024,18 +1279,26 @@
       return true;
     };
     var mine = B.deferred.filter(take);
-    B.deferred = B.deferred.filter(function (d) { return !take(d); });
+    B.deferred = B.deferred.filter(function (d) {
+      return !take(d);
+    });
     if (!mine.length) return 0;
 
     B.resolvingDeferred = true;
     mine.forEach(function (d) {
-      var src = B.units.filter(function (u) { return u.uid === d.srcUid; })[0];
+      var src = B.units.filter(function (u) {
+        return u.uid === d.srcUid;
+      })[0];
       if (!src) return;
       var targets = d.targetUids
         .map(function (id) {
-          return B.units.filter(function (u) { return u.uid === id; })[0];
+          return B.units.filter(function (u) {
+            return u.uid === id;
+          })[0];
         })
-        .filter(function (u) { return u && u.alive; });
+        .filter(function (u) {
+          return u && u.alive;
+        });
       applyEffect(B, src, targets, d.effect, d.ctx || {});
     });
     B.resolvingDeferred = false;
@@ -1044,7 +1307,9 @@
 
   function addBuff(B, u, stat, amt, turns, tag, maxStacks) {
     if (tag && maxStacks) {
-      var n = u.buffs.filter(function (b) { return b.tag === tag; }).length;
+      var n = u.buffs.filter(function (b) {
+        return b.tag === tag;
+      }).length;
       if (n >= maxStacks) return false;
     }
     u.buffs.push({ stat: stat, amt: amt, turns: turns, tag: tag || null });
@@ -1055,14 +1320,18 @@
     /* stack-count gate (Lancelot's DEF rider): only applies once the
        given stackTag has reached the minimum stack count */
     if (e.ifStacks) {
-      var stacks = src.buffs.filter(function (b) { return b.tag === e.ifStacks.tag; }).length;
+      var stacks = src.buffs.filter(function (b) {
+        return b.tag === e.ifStacks.tag;
+      }).length;
       if (stacks < e.ifStacks.min) return;
     }
     var list = targets || [];
     ctx = ctx || {};
-    ctx.self = src;   // so `selfShielded` conditions can read the caster
+    ctx.self = src; // so `selfShielded` conditions can read the caster
     if (e.onlyMarked) {
-      list = list.filter(function (t) { return t.flags.marked > 0; });
+      list = list.filter(function (t) {
+        return t.flags.marked > 0;
+      });
       if (!list.length) return;
     }
 
@@ -1078,7 +1347,9 @@
         });
       });
       var e2 = {};
-      Object.keys(e).forEach(function (k) { if (k !== 'if' && k !== 'to') e2[k] = e[k]; });
+      Object.keys(e).forEach(function (k) {
+        if (k !== 'if' && k !== 'to') e2[k] = e[k];
+      });
       applyEffect(B, src, adj, e2, ctx);
       return;
     }
@@ -1087,10 +1358,18 @@
     if (e.to === 'self') list = [src];
     else if (e.to === 'allies') list = unitsOf(B, src.side);
     else if (e.to === 'frontAllies') list = unitsOf(B, src.side).filter(isFront);
+    else if (e.to === 'lowestHpAlly') {
+      list = unitsOf(B, src.side)
+        .sort(function (a, b) {
+          return a.hp / a.maxHp - b.hp / b.maxHp;
+        })
+        .slice(0, 1);
+    }
     /* every living ally EXCEPT the ability's own targets (Restore triage) */
-    else if (e.to === 'otherAllies') list = unitsOf(B, src.side).filter(function (u) {
-      return targets.indexOf(u) < 0;
-    });
+    else if (e.to === 'otherAllies')
+      list = unitsOf(B, src.side).filter(function (u) {
+        return targets.indexOf(u) < 0;
+      });
     else if (e.to === 'enemies') list = unitsOf(B, opposite(src.side));
     else if (e.to === 'triggerTarget') list = ctx.triggerTarget ? [ctx.triggerTarget] : [];
     /* 'targets' (or no redirect): KEEP the incoming list as filtered
@@ -1103,9 +1382,13 @@
     if (e.take && list && list.length > e.take.n) {
       var tk = list.slice();
       if (e.take.by === 'highestAtk') {
-        tk.sort(function (a, b) { return atkOf(b) - atkOf(a); });
+        tk.sort(function (a, b) {
+          return atkOf(b) - atkOf(a);
+        });
       } else if (e.take.by === 'lowestHp') {
-        tk.sort(function (a, b) { return a.hp - b.hp; });
+        tk.sort(function (a, b) {
+          return a.hp - b.hp;
+        });
       }
       list = tk.slice(0, e.take.n);
     }
@@ -1124,6 +1407,18 @@
           }
           var dealt = dealDamage(B, src, t, raw, element, true);
           ctx.lastDamage = (ctx.lastDamage || 0) + dealt;
+          if (e.energyBonus && dealt > 0) {
+            var eb = Math.min(100, B.energy[src.side] + e.energyBonus);
+            B.energy[src.side] = eb;
+            emit(B, {
+              t: 'energy',
+              side: src.side,
+              uid: src.uid,
+              amount: e.energyBonus,
+              kind: 'bonus',
+              round: B.round,
+            });
+          }
           if (!t.alive) ctx.killedSomething = true;
         });
         break;
@@ -1132,11 +1427,11 @@
       case 'heal': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          var amt = e.pctMaxHp != null
-            ? t.maxHp * (e.pctMaxHp / 100)
-            : atkOf(src) * (e.power || 1);
-          healUnit(B, src, t, amt * (ctx.scale || 1),
-            { overflowShield: e.overflow === 'shield', signature: !!ctx.signature });
+          var amt = e.pctMaxHp != null ? t.maxHp * (e.pctMaxHp / 100) : atkOf(src) * (e.power || 1);
+          healUnit(B, src, t, amt * (ctx.scale || 1), {
+            overflowShield: e.overflow === 'shield',
+            signature: !!ctx.signature,
+          });
         });
         break;
       }
@@ -1155,12 +1450,28 @@
           var amt = e.amt * (ctx.scale || 1);
           var ok = addBuff(B, t, e.stat, Math.round(amt), e.turns, e.stackTag, e.maxStacks);
           if (ok) {
-            logMsg(B, amt >= 0 ? 'buff' : 'debuff',
-              t.name + ' ' + (amt >= 0 ? '+' : '') + Math.round(amt) + '% ' + e.stat.toUpperCase() + '.',
-              { uid: t.uid, stat: e.stat, amt: Math.round(amt), signature: !!ctx.signature });
-            emit(B, { t: 'stat', stat: e.stat, amt: Math.round(amt), turns: e.turns,
-                      src: src.uid, tgt: t.uid, signature: !!ctx.signature,
-                      round: B.round });
+            logMsg(
+              B,
+              amt >= 0 ? 'buff' : 'debuff',
+              t.name +
+                ' ' +
+                (amt >= 0 ? '+' : '') +
+                Math.round(amt) +
+                '% ' +
+                e.stat.toUpperCase() +
+                '.',
+              { uid: t.uid, stat: e.stat, amt: Math.round(amt), signature: !!ctx.signature }
+            );
+            emit(B, {
+              t: 'stat',
+              stat: e.stat,
+              amt: Math.round(amt),
+              turns: e.turns,
+              src: src.uid,
+              tgt: t.uid,
+              signature: !!ctx.signature,
+              round: B.round,
+            });
           }
         });
         break;
@@ -1170,11 +1481,21 @@
         list.forEach(function (t) {
           var amt = Math.round(t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1));
           t.shield += amt;
-          t.shieldSrc = src.uid;   // last granter is credited for absorbs
-          logMsg(B, 'shield', t.name + ' gains a ' + amt + ' shield.',
-            { uid: t.uid, status: 'shield', amount: amt, signature: !!ctx.signature });
-          emit(B, { t: 'shield', src: src.uid, tgt: t.uid, amount: amt,
-                    signature: !!ctx.signature, round: B.round });
+          t.shieldSrc = src.uid; // last granter is credited for absorbs
+          logMsg(B, 'shield', t.name + ' gains a ' + amt + ' shield.', {
+            uid: t.uid,
+            status: 'shield',
+            amount: amt,
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'shield',
+            src: src.uid,
+            tgt: t.uid,
+            amount: amt,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
           fireAllyWarded(B, t);
         });
         break;
@@ -1192,10 +1513,20 @@
           if (e.healOnHit) {
             t.flags.tauntHeal = e.healOnHit;
           }
-          logMsg(B, 'buff', t.name + ' taunts the enemy.',
-            { uid: t.uid, status: 'taunt', signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'taunt', src: src.uid, tgt: t.uid,
-                    turns: t.flags.taunt, signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'buff', t.name + ' taunts the enemy.', {
+            uid: t.uid,
+            status: 'taunt',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'taunt',
+            src: src.uid,
+            tgt: t.uid,
+            turns: t.flags.taunt,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
           fireAllyWarded(B, t);
         });
         break;
@@ -1203,20 +1534,40 @@
       case 'untargetable':
         list.forEach(function (t) {
           t.flags.untargetable = e.turns;
-          logMsg(B, 'buff', t.name + ' cannot be targeted.',
-            { uid: t.uid, status: 'untargetable', signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'untargetable', src: src.uid, tgt: t.uid,
-                    turns: e.turns, signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'buff', t.name + ' cannot be targeted.', {
+            uid: t.uid,
+            status: 'untargetable',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'untargetable',
+            src: src.uid,
+            tgt: t.uid,
+            turns: e.turns,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
         });
         break;
 
       case 'silence':
         list.forEach(function (t) {
           t.flags.silence = e.turns;
-          logMsg(B, 'debuff', t.name + ' is silenced.',
-            { uid: t.uid, status: 'silence', signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'silence', src: src.uid, tgt: t.uid,
-                    turns: e.turns, signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'debuff', t.name + ' is silenced.', {
+            uid: t.uid,
+            status: 'silence',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'silence',
+            src: src.uid,
+            tgt: t.uid,
+            turns: e.turns,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
         });
         break;
 
@@ -1224,10 +1575,20 @@
         list.forEach(function (t) {
           t.flags.healMod = e.pct;
           t.flags.healModTurns = e.turns;
-          logMsg(B, 'debuff', t.name + ' healing reduced.',
-            { uid: t.uid, status: 'healdown', signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'healMod', src: src.uid, tgt: t.uid,
-                    turns: e.turns, signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'debuff', t.name + ' healing reduced.', {
+            uid: t.uid,
+            status: 'healdown',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'healMod',
+            src: src.uid,
+            tgt: t.uid,
+            turns: e.turns,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
         });
         break;
 
@@ -1241,11 +1602,21 @@
           t.flags.burnFresh = true;
           // remember who lit it so the kill is credited correctly
           t.flags.burnSrc = src.uid;
-          logMsg(B, 'debuff', t.name + ' is set alight.',
-            { uid: t.uid, status: 'burn', signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'burn', src: src.uid, tgt: t.uid,
-                    turns: turns, refreshed: refreshed,
-                    signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'debuff', t.name + ' is set alight.', {
+            uid: t.uid,
+            status: 'burn',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'burn',
+            src: src.uid,
+            tgt: t.uid,
+            turns: turns,
+            refreshed: refreshed,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
         });
         break;
       }
@@ -1256,11 +1627,21 @@
           var turns = e.turns || 1;
           var refreshed = (t.flags.exposed || 0) > 0;
           t.flags.exposed = Math.max(t.flags.exposed || 0, turns);
-          logMsg(B, 'debuff', t.name + ' is exposed.',
-            { uid: t.uid, status: 'exposed', signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'exposed', src: src.uid, tgt: t.uid,
-                    turns: turns, refreshed: refreshed,
-                    signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'debuff', t.name + ' is exposed.', {
+            uid: t.uid,
+            status: 'exposed',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'exposed',
+            src: src.uid,
+            tgt: t.uid,
+            turns: turns,
+            refreshed: refreshed,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
         });
         break;
       }
@@ -1273,23 +1654,38 @@
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var any = false;
           t.buffs.forEach(function (b) {
-            if (b.amt < 0) { b.turns += addT; any = true; }
+            if (b.amt < 0) {
+              b.turns += addT;
+              any = true;
+            }
           });
           // Mark is deliberately absent: it has no duration to extend,
           // it persists until an ability damages the target.
           ['silence', 'burn', 'exposed'].forEach(function (f) {
-            if (t.flags[f] > 0) { t.flags[f] += addT; any = true; }
+            if (t.flags[f] > 0) {
+              t.flags[f] += addT;
+              any = true;
+            }
           });
           // a standing Mark still counts as an affliction worth reporting
           if (t.flags.marked > 0) any = true;
-          if (t.flags.healModTurns > 0) { t.flags.healModTurns += addT; any = true; }
+          if (t.flags.healModTurns > 0) {
+            t.flags.healModTurns += addT;
+            any = true;
+          }
           (t.costMods || []).forEach(function (m) {
-            if ((m.flat || 0) > 0 || (m.pct || 0) > 0) { m.turns += addT; any = true; }
+            if ((m.flat || 0) > 0 || (m.pct || 0) > 0) {
+              m.turns += addT;
+              any = true;
+            }
           });
           if (any) {
             touched++;
-            logMsg(B, 'debuff', t.name + "'s afflictions linger.",
-              { uid: t.uid, status: 'marked', signature: !!ctx.signature });
+            logMsg(B, 'debuff', t.name + "'s afflictions linger.", {
+              uid: t.uid,
+              status: 'marked',
+              signature: !!ctx.signature,
+            });
           }
         });
         ctx.extendedAny = touched > 0;
@@ -1304,27 +1700,48 @@
             if (t.flags[e.only] > 0) {
               t.flags[e.only] = 0;
               logMsg(B, 'cleanse', t.name + ' is cleansed of ' + e.only + '.', { uid: t.uid });
-              emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid, what: [e.only],
-                        round: B.round });
+              emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid, what: [e.only], round: B.round });
             }
             return;
           }
-          var n = e.count || 1, removed = 0, removedWhat = [];
+          var n = e.count || 1,
+            removed = 0,
+            removedWhat = [];
           for (var i = 0; i < n; i++) {
-            var idx = t.buffs.findIndex(function (b) { return b.amt < 0; });
+            var idx = t.buffs.findIndex(function (b) {
+              return b.amt < 0;
+            });
             if (idx >= 0) {
-              removedWhat.push(t.buffs[idx].stat + (t.buffs[idx].tag ? ':' + t.buffs[idx].tag : ''));
-              t.buffs.splice(idx, 1); removed++;
+              removedWhat.push(
+                t.buffs[idx].stat + (t.buffs[idx].tag ? ':' + t.buffs[idx].tag : '')
+              );
+              t.buffs.splice(idx, 1);
+              removed++;
+            } else if (t.flags.burn > 0) {
+              t.flags.burn = 0;
+              removed++;
+              removedWhat.push('burn');
+            } else if (t.flags.exposed > 0) {
+              t.flags.exposed = 0;
+              removed++;
+              removedWhat.push('exposed');
+            } else if (t.flags.silence > 0) {
+              t.flags.silence = 0;
+              removed++;
+              removedWhat.push('silence');
+            } else if (t.flags.healMod) {
+              t.flags.healMod = 0;
+              removed++;
+              removedWhat.push('healMod');
+            } else if (t.flags.marked > 0) {
+              t.flags.marked = 0;
+              removed++;
+              removedWhat.push('marked');
             }
-            else if (t.flags.burn > 0) { t.flags.burn = 0; removed++; removedWhat.push('burn'); }
-            else if (t.flags.exposed > 0) { t.flags.exposed = 0; removed++; removedWhat.push('exposed'); }
-            else if (t.flags.silence > 0) { t.flags.silence = 0; removed++; removedWhat.push('silence'); }
-            else if (t.flags.healMod) { t.flags.healMod = 0; removed++; removedWhat.push('healMod'); }
-            else if (t.flags.marked > 0) { t.flags.marked = 0; removed++; removedWhat.push('marked'); }
           }
           if (removed) logMsg(B, 'cleanse', t.name + ' is cleansed.', { uid: t.uid });
-          if (removed) emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid,
-                                 what: removedWhat, round: B.round });
+          if (removed)
+            emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid, what: removedWhat, round: B.round });
         });
         break;
       }
@@ -1335,9 +1752,12 @@
           var s = e.side === 'ally' ? src.side : opposite(src.side);
           B.costMods[s].push({ flat: e.flat || 0, pct: e.pct || 0, turns: e.turns });
           var up = (e.flat || 0) > 0 || (e.pct || 0) > 0;
-          logMsg(B, up ? 'debuff' : 'buff', 'Ability costs shifted for ' +
-            (s === 'player' ? 'your team' : 'the enemy') + '.',
-            { side: s, status: up ? 'costup' : 'costdown', signature: !!ctx.signature });
+          logMsg(
+            B,
+            up ? 'debuff' : 'buff',
+            'Ability costs shifted for ' + (s === 'player' ? 'your team' : 'the enemy') + '.',
+            { side: s, status: up ? 'costup' : 'costdown', signature: !!ctx.signature }
+          );
         } else {
           list.forEach(function (t) {
             t.costMods = t.costMods || [];
@@ -1357,10 +1777,18 @@
         }
         if (okE) {
           B.energy[src.side] = Math.min(100, B.energy[src.side] + e.amt);
-          logMsg(B, 'energy', src.name + ' gains ' + e.amt + ' Energy.',
-            { uid: src.uid, amount: e.amt });
-          emit(B, { t: 'energy', side: src.side, uid: src.uid, amount: e.amt,
-                    kind: 'gain', round: B.round });
+          logMsg(B, 'energy', src.name + ' gains ' + e.amt + ' Energy.', {
+            uid: src.uid,
+            amount: e.amt,
+          });
+          emit(B, {
+            t: 'energy',
+            side: src.side,
+            uid: src.uid,
+            amount: e.amt,
+            kind: 'gain',
+            round: B.round,
+          });
         }
         break;
       }
@@ -1371,8 +1799,14 @@
         B.energy[foe] -= take;
         B.energy[src.side] = Math.min(100, B.energy[src.side] + take);
         logMsg(B, 'energy', 'Stole ' + take + ' Energy.', {});
-        emit(B, { t: 'energy', side: src.side, uid: src.uid, amount: take,
-                  kind: 'steal', round: B.round });
+        emit(B, {
+          t: 'energy',
+          side: src.side,
+          uid: src.uid,
+          amount: take,
+          kind: 'steal',
+          round: B.round,
+        });
         break;
       }
 
@@ -1381,10 +1815,61 @@
         var foe3 = opposite(src.side);
         var rem = Math.min(B.energy[foe3], e.amt);
         B.energy[foe3] = Math.max(0, B.energy[foe3] - rem);
-        logMsg(B, 'energy', 'Drained ' + rem + ' Energy from ' +
-          (foe3 === 'player' ? 'your team' : 'the enemy') + '.', {});
-        emit(B, { t: 'energy', side: src.side, uid: src.uid, amount: rem,
-                  kind: 'drain', round: B.round });
+        logMsg(
+          B,
+          'energy',
+          'Drained ' +
+            rem +
+            ' Energy from ' +
+            (foe3 === 'player' ? 'your team' : 'the enemy') +
+            '.',
+          {}
+        );
+        emit(B, {
+          t: 'energy',
+          side: src.side,
+          uid: src.uid,
+          amount: rem,
+          kind: 'drain',
+          round: B.round,
+        });
+        break;
+      }
+
+      case 'loseEnergy': {
+        var lost =
+          e.setTo != null
+            ? Math.max(0, B.energy[src.side] - e.setTo)
+            : Math.min(B.energy[src.side], e.amt || 0);
+        B.energy[src.side] = e.setTo != null ? e.setTo : B.energy[src.side] - lost;
+        emit(B, {
+          t: 'energy',
+          side: src.side,
+          uid: src.uid,
+          amount: lost,
+          kind: 'lose',
+          round: B.round,
+        });
+        break;
+      }
+      case 'drainTax': {
+        var foe4 = opposite(src.side),
+          drained = Math.min(B.energy[foe4], e.amt || 0);
+        B.energy[foe4] -= drained;
+        if (drained > 0)
+          B.costMods[foe4].push({
+            flat: (e.costPer10 || 5) * Math.floor(drained / 10),
+            turns: e.turns || 1,
+          });
+        ctx.drainedEnergy = (ctx.drainedEnergy || 0) + drained;
+        emit(B, {
+          t: 'energy',
+          side: src.side,
+          uid: src.uid,
+          amount: drained,
+          kind: 'drainTax',
+          round: B.round,
+        });
         break;
       }
 
@@ -1395,22 +1880,34 @@
       case 'counterStrike': {
         list.forEach(function (t) {
           t.flags.counterPow = e.power;
-          t.flags.counterPowMarked = (e.markedPower != null ? e.markedPower : e.power);
+          t.flags.counterPowMarked = e.markedPower != null ? e.markedPower : e.power;
           t.flags.counterTurns = e.turns || 1;
           if (e.src === 'caster') t.flags.counterSrc = src.uid;
           else delete t.flags.counterSrc;
-          logMsg(B, 'buff', t.name + ' readies a counter-strike.',
-            { uid: t.uid, signature: !!ctx.signature });
-          emit(B, { t: 'statusApply', status: 'counterStrike', src: src.uid, tgt: t.uid,
-                    turns: t.flags.counterTurns, signature: !!ctx.signature, round: B.round });
+          logMsg(B, 'buff', t.name + ' readies a counter-strike.', {
+            uid: t.uid,
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'counterStrike',
+            src: src.uid,
+            tgt: t.uid,
+            turns: t.flags.counterTurns,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
         });
         break;
       }
 
       case 'swapTargets': {
         if (list.length >= 2) {
-          var a = list[0], b = list[1];
-          var tmp = a.slot; a.slot = b.slot; b.slot = tmp;
+          var a = list[0],
+            b = list[1];
+          var tmp = a.slot;
+          a.slot = b.slot;
+          b.slot = tmp;
           logMsg(B, 'move', a.name + ' and ' + b.name + ' swap places.', {});
           emit(B, { t: 'swap', src: src.uid, a: a.uid, b: b.uid, round: B.round });
         }
@@ -1421,8 +1918,7 @@
         list.forEach(function (t) {
           t.alive = true;
           t.hp = Math.round(t.maxHp * (e.pctMaxHp / 100));
-          emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round,
-                    amount: t.hp });
+          emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
         });
         break;
       }
@@ -1434,7 +1930,7 @@
             tag: e.tag,
             srcUid: src.uid,
             effects: e.effects,
-            scale: ctx.scale || 1
+            scale: ctx.scale || 1,
           });
         });
         logMsg(B, 'mark', list.length + ' enemies are marked.', {});
@@ -1445,18 +1941,23 @@
         var cond = e.cond || {};
         var pass = true;
         if (cond.anyTargetMarked) {
-          pass = list.some(function (t) { return t.flags.marked > 0; });
+          pass = list.some(function (t) {
+            return t.flags.marked > 0;
+          });
         }
         if (cond.anyTargetDebuffed) {
-          pass = list.some(function (t) { return hasDebuff(t); });
+          pass = list.some(function (t) {
+            return hasDebuff(t);
+          });
         }
         if (cond.anyEnemyMarked) {
-          pass = unitsOf(B, opposite(src.side))
-            .some(function (t) { return t.flags.marked > 0; });
+          pass = unitsOf(B, opposite(src.side)).some(function (t) {
+            return t.flags.marked > 0;
+          });
         }
         /* branch-level "is the (single) target debuffed" (Hua Tuo, pass 9) */
         if (cond.targetHasDebuff != null) {
-          pass = list.length > 0 && (hasDebuff(list[0]) === !!cond.targetHasDebuff);
+          pass = list.length > 0 && hasDebuff(list[0]) === !!cond.targetHasDebuff;
         }
         if (cond.selfShielded) pass = src.shield > 0;
         applyEffects(B, src, list, pass ? e.then : e.other, ctx);
@@ -1473,10 +1974,20 @@
           if (t.flags.marked) return;
           t.flags.marked = 1;
           if (e.turns) t.flags.markedTurns = e.turns;
-          logMsg(B, 'mark', t.name + ' is marked.',
-            { uid: t.uid, status: 'marked', signature: true });
-          emit(B, { t: 'statusApply', status: 'marked', src: src.uid, tgt: t.uid,
-                    turns: e.turns || null, signature: true, round: B.round });
+          logMsg(B, 'mark', t.name + ' is marked.', {
+            uid: t.uid,
+            status: 'marked',
+            signature: true,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'marked',
+            src: src.uid,
+            tgt: t.uid,
+            turns: e.turns || null,
+            signature: true,
+            round: B.round,
+          });
         });
         break;
       }
@@ -1484,8 +1995,7 @@
       case 'consumeMark': {
         list.forEach(function (t) {
           if (t.flags.marked) {
-            emit(B, { t: 'markConsumed', tgt: t.uid, by: src.uid,
-                      damage: 0, round: B.round });
+            emit(B, { t: 'markConsumed', tgt: t.uid, by: src.uid, damage: 0, round: B.round });
           }
           t.flags.marked = 0;
           t.flags.markedTurns = 0;
@@ -1496,8 +2006,10 @@
       case 'coinFlip': {
         var heads = B.rng() < 0.5;
         var face = heads ? e.heads : e.tails;
-        logMsg(B, 'coin', (heads ? 'Heads! ' : 'Tails! ') + face.label + '.',
-          { coin: heads ? 'heads' : 'tails', uid: src.uid });
+        logMsg(B, 'coin', (heads ? 'Heads! ' : 'Tails! ') + face.label + '.', {
+          coin: heads ? 'heads' : 'tails',
+          uid: src.uid,
+        });
         applyEffects(B, src, list, face.effects, ctx);
         break;
       }
@@ -1505,7 +2017,7 @@
       case 'randomOf': {
         list.forEach(function (t) {
           var opt = e.options[Math.floor(B.rng() * e.options.length)];
-          applyEffect(B, src, [t], opt, ctx);   // already inside resolution
+          applyEffect(B, src, [t], opt, ctx); // already inside resolution
         });
         break;
       }
@@ -1523,14 +2035,19 @@
         logMsg(B, 'info', src.name + ' copies ' + copied.name + '.', { uid: src.uid });
         var sub = copied.spec;
         var subTargets = resolveTargets(B, src, copied, autoPick(B, src, copied));
-        var subCtx = { scale: (ctx.scale || 1) * (e.scale || 1) };
+        var subCtx = {
+          scale: (ctx.scale || 1) * (e.scale || 1),
+          killedSomething: ctx.killedSomething,
+        };
         var eff = sub.effects || (sub.choose && sub.choose[0].effects) || [];
         if (e.bonusBuffTurns) {
           // deep-ish copy so the ally's own card data isn't mutated
           eff = eff.map(function (x) {
             if (x.k === 'stat' && x.amt > 0 && x.turns && x.turns < 90) {
               var c2 = {};
-              Object.keys(x).forEach(function (k) { c2[k] = x[k]; });
+              Object.keys(x).forEach(function (k) {
+                c2[k] = x[k];
+              });
               c2.turns = x.turns + e.bonusBuffTurns;
               return c2;
             }
@@ -1538,6 +2055,7 @@
           });
         }
         applyEffects(B, src, subTargets, eff, subCtx);
+        if (subCtx.killedSomething) ctx.killedSomething = true;
         break;
       }
 
@@ -1552,12 +2070,16 @@
     if (!n) return [];
     var pool = legalTargets(B, unit, ability);
     if (!pool.length) return [];
-    var t = (ability.spec.target || {});
+    var t = ability.spec.target || {};
     var sorted = pool.slice();
     if (t.side === 'ally') {
-      sorted.sort(function (a, b) { return (a.hp / a.maxHp) - (b.hp / b.maxHp); });
+      sorted.sort(function (a, b) {
+        return a.hp / a.maxHp - b.hp / b.maxHp;
+      });
     } else {
-      sorted.sort(function (a, b) { return a.hp - b.hp; });
+      sorted.sort(function (a, b) {
+        return a.hp - b.hp;
+      });
     }
     return sorted.slice(0, n);
   }
@@ -1580,14 +2102,16 @@
     B.energy[unit.side] -= cost;
     B.acted[unit.side][unit.uid] = true;
 
-    logMsg(B, 'action',
+    logMsg(
+      B,
+      'action',
       unit.name + ' uses ' + ability.name + (cost ? ' (' + cost + ' EN)' : '') + '.',
-      { uid: unit.uid, ability: ability.name,
-        element: unit.element, signature: !ability.basic });
+      { uid: unit.uid, ability: ability.name, element: unit.element, signature: !ability.basic }
+    );
 
     var ctx0 = { turnIdAtStart: B.turnId, preDamaged: {}, signature: !ability.basic };
     targets.forEach(function (t) {
-      ctx0.preDamaged[t.uid] = (t.lastDamagedRound === B.round);
+      ctx0.preDamaged[t.uid] = t.lastDamagedRound === B.round;
     });
 
     var effects = spec.effects;
@@ -1600,6 +2124,22 @@
     applyEffects(B, unit, targets, effects, ctx0);
     checkEnd(B);
 
+    if (!ability.basic && !B.over) {
+      unitsOf(B, unit.side).forEach(function (w) {
+        if (w.uid === unit.uid) return;
+        var ap = passiveOf(w);
+        if (!hasTrig(ap, 'alliedCastSkill')) return;
+        emit(B, {
+          t: 'proc',
+          owner: w.uid,
+          ability: w.card.ability.name,
+          trigger: 'alliedCastSkill',
+          round: B.round,
+        });
+        applyEffects(B, w, [w], ap.effects, { immediate: true, triggerTarget: unit });
+      });
+    }
+
     /* Athena: an enemy casting a Skill (signature Active) draws her Mark.
        Only kinds meaningful to a trigger fire are applied (her team-wide
        damageMult entries are not castable effects). */
@@ -1607,13 +2147,21 @@
       unitsOf(B, opposite(unit.side)).forEach(function (w) {
         var ap = passiveOf(w);
         if (!hasTrig(ap, 'enemyCastSkill')) return;
-        var cse = (ap.effects || []).filter(function (x) { return x.k !== 'damageMult'; });
+        var cse = (ap.effects || []).filter(function (x) {
+          return x.k !== 'damageMult';
+        });
         if (!cse.length) return;
-        emit(B, { t: 'proc', owner: w.uid, ability: w.card.ability.name,
-                  trigger: 'enemyCastSkill', round: B.round });
+        emit(B, {
+          t: 'proc',
+          owner: w.uid,
+          ability: w.card.ability.name,
+          trigger: 'enemyCastSkill',
+          round: B.round,
+        });
         applyEffects(B, w, [unit], cse, { immediate: true, triggerTarget: unit });
-        logMsg(B, 'passive', w.name + ' marks the aggressor — ' + w.card.ability.name + '.',
-          { uid: w.uid });
+        logMsg(B, 'passive', w.name + ' marks the aggressor — ' + w.card.ability.name + '.', {
+          uid: w.uid,
+        });
       });
     }
 
@@ -1650,7 +2198,7 @@
       cost: base.cost,
       basic: true,
       text: base.text.replace('{ELEMENT}', u.element),
-      spec: base.spec
+      spec: base.spec,
     };
   }
 
@@ -1671,12 +2219,21 @@
       var hpBefore = u.hp;
       u.hp = Math.max(0, u.hp - dmg);
       u.lastDamagedRound = B.round;
-      logMsg(B, 'burn', u.name + ' burns for ' + dmg + '.',
-        { uid: u.uid, amount: dmg, element: 'Fire', status: 'burn' });
-      emit(B, { t: 'burnTick', uid: u.uid, src: u.flags.burnSrc || null,
-                amount: Math.min(dmg, hpBefore),
-                overkill: Math.max(0, dmg - hpBefore),
-                killed: u.hp <= 0, round: B.round });
+      logMsg(B, 'burn', u.name + ' burns for ' + dmg + '.', {
+        uid: u.uid,
+        amount: dmg,
+        element: 'Fire',
+        status: 'burn',
+      });
+      emit(B, {
+        t: 'burnTick',
+        uid: u.uid,
+        src: u.flags.burnSrc || null,
+        amount: Math.min(dmg, hpBefore),
+        overkill: Math.max(0, dmg - hpBefore),
+        killed: u.hp <= 0,
+        round: B.round,
+      });
       if (u.hp <= 0) handleDeath(B, u, u.flags.burnSrc);
     });
   }
@@ -1714,8 +2271,10 @@
   function passSide(B, side) {
     if (B.passed[side]) return false;
     B.passed[side] = true;
-    logMsg(B, 'pass', (side === 'player' ? 'You pass' : 'The enemy passes') + '.',
-      { side: side, kind: 'round' });
+    logMsg(B, 'pass', (side === 'player' ? 'You pass' : 'The enemy passes') + '.', {
+      side: side,
+      kind: 'round',
+    });
     return true;
   }
 
@@ -1723,10 +2282,12 @@
      stands until any action answers it; the round ends when both flags
      stand together, or when neither side can act. */
   function passTurn(B, side) {
-    if (B.passed[side]) return false;   // already out for the round
+    if (B.passed[side]) return false; // already out for the round
     B.turnPassed[side] = true;
-    logMsg(B, 'pass', (side === 'player' ? 'You pass' : 'The enemy passes') + '.',
-      { side: side, kind: 'turn' });
+    logMsg(B, 'pass', (side === 'player' ? 'You pass' : 'The enemy passes') + '.', {
+      side: side,
+      kind: 'turn',
+    });
     return true;
   }
 
@@ -1739,7 +2300,7 @@
   function nextActor(B) {
     if (B.over) return null;
     if (roundComplete(B)) return null;
-    var prefer = (B.lastActor == null) ? B.first : opposite(B.lastActor);
+    var prefer = B.lastActor == null ? B.first : opposite(B.lastActor);
     var other = opposite(prefer);
     if (!B.passed[prefer] && !B.turnPassed[prefer] && canAct(B, prefer)) return prefer;
     if (!B.passed[other] && !B.turnPassed[other] && canAct(B, other)) return other;
@@ -1794,7 +2355,8 @@
       ['untargetable', 'silence', 'counterTurns'].forEach(function (f) {
         if (u.flags[f] > 0) u.flags[f] -= 1;
         if (f === 'counterTurns' && u.flags[f] <= 0) {
-          u.flags.counterPow = 0; u.flags.counterPowMarked = 0;
+          u.flags.counterPow = 0;
+          u.flags.counterPowMarked = 0;
           delete u.flags.counterSrc;
         }
       });
@@ -1807,10 +2369,20 @@
           u.shield += amt;
           u.shieldSrc = u.uid;
           u.flags.tauntShield = null;
-          logMsg(B, 'shield', u.name + "'s labors end — a " + amt + ' shield forms.',
-            { uid: u.uid, status: 'shield', amount: amt, signature: true });
-          emit(B, { t: 'shield', src: u.uid, tgt: u.uid, amount: amt,
-                    signature: true, round: B.round });
+          logMsg(B, 'shield', u.name + "'s labors end — a " + amt + ' shield forms.', {
+            uid: u.uid,
+            status: 'shield',
+            amount: amt,
+            signature: true,
+          });
+          emit(B, {
+            t: 'shield',
+            src: u.uid,
+            tgt: u.uid,
+            amount: amt,
+            signature: true,
+            round: B.round,
+          });
           fireAllyWarded(B, u);
         }
       }
@@ -1819,12 +2391,18 @@
       // (markedTurns) expire here like every other status.
       if (u.flags.markedTurns > 0) {
         u.flags.markedTurns -= 1;
-        if (u.flags.markedTurns <= 0) { u.flags.marked = 0; u.flags.markedTurns = 0; }
+        if (u.flags.markedTurns <= 0) {
+          u.flags.marked = 0;
+          u.flags.markedTurns = 0;
+        }
       }
       if (u.flags.exposed > 0) u.flags.exposed -= 1;
       if (u.flags.burn > 0) {
         u.flags.burn -= 1;
-        if (u.flags.burn <= 0) { u.flags.burn = 0; u.flags.burnSrc = null; }
+        if (u.flags.burn <= 0) {
+          u.flags.burn = 0;
+          u.flags.burnSrc = null;
+        }
       }
       if (u.flags.healModTurns > 0) {
         u.flags.healModTurns -= 1;
@@ -1854,7 +2432,7 @@
   function nextRound(B) {
     B.round += 1;
     var e = energyForRound(B.round);
-    B.energy.player = e;   // energy does NOT carry over
+    B.energy.player = e; // energy does NOT carry over
     B.energy.enemy = e;
     B.acted = { player: {}, enemy: {} };
     B.passed = { player: false, enemy: false };
@@ -1864,7 +2442,9 @@
     B.first = firstMover(B.round);
     B.turn = B.first;
 
-    B.units.forEach(function (u) { u.roundFlags = {}; });
+    B.units.forEach(function (u) {
+      u.roundFlags = {};
+    });
     tickTimers(B);
 
     // end-of-round effects land AFTER this round's durations tick, so they
@@ -1878,8 +2458,13 @@
       var still = [];
       u.pending.forEach(function (p) {
         p.turns -= 1;
-        if (p.turns > 0) { still.push(p); return; }
-        var src = B.units.filter(function (x) { return x.uid === p.srcUid; })[0];
+        if (p.turns > 0) {
+          still.push(p);
+          return;
+        }
+        var src = B.units.filter(function (x) {
+          return x.uid === p.srcUid;
+        })[0];
         if (src && u.alive) {
           applyEffects(B, src, [u], p.effects, { scale: p.scale, immediate: true });
         }
@@ -1955,6 +2540,6 @@
     advanceAction: advanceAction,
     cloneBattle: cloneBattle,
     BURN_PCT_MAX_HP: BURN_PCT_MAX_HP,
-    tickBurn: tickBurn
+    tickBurn: tickBurn,
   };
 })();

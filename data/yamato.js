@@ -1,4 +1,4 @@
-/* Faction: Yamato — Momentum (formerly Eastern Legends) */
+/* Faction: Yamato — Energy economy */
 window.EOL.registerFaction({
   id: 'yamato',
   name: 'Yamato',
@@ -7,24 +7,109 @@ window.EOL.registerFaction({
   colors: { primary: '#e05a4a', secondary: '#f0c05a', glow: '#ff9b7a' },
   cards: [
     {
-      id: 'yamato-kaguya',
-      name: 'Kaguya',
-      rarity: 'epic',
-      role: 'Caster',
-      element: 'Magic',
-      stats: { hp: 4740, atk: 1905, def: 15 },
+      id: 'yamato-yoshitsune',
+      name: 'Minamoto no Yoshitsune',
+      rarity: 'legendary',
+      role: 'Bruiser',
+      element: 'Physical',
+      stats: { hp: 6100, atk: 1740, def: 22 },
       ability: {
         type: 'Active',
-        name: 'Moon Reflection',
-        cost: 45,
-        text: "Copy a random allied Active Skill at <b>70% effectiveness</b>; any buffs it grants last 1 extra round.",
+        name: 'War Drums',
+        cost: 55,
+        text: 'Deal <b>150% ATK</b>, gaining <b>+6% per 10 Energy above 20</b> (max +30%). Kill: refund 20 Energy.',
         note: null,
         spec: {
-          target: { side: 'auto' },
-          effects: [{ k: 'copyAllyActive', scale: 0.7, bonusBuffTurns: 1 }]
-        }
+          target: { side: 'enemy', pick: 'single', row: 'any' },
+          effects: [
+            {
+              k: 'dmg',
+              power: 1.5,
+              element: 'Physical',
+              ifMult: [{ when: { selfEnergyAbove: 20 }, mult: 1.3 }],
+            },
+            { k: 'gainEnergy', amt: 20, if: { killedTarget: true } },
+          ],
+        },
       },
-      icon: 'ra-moon-sun'
+      icon: 'ra-drum',
+    },
+    {
+      id: 'yamato-tomoe-gozen',
+      name: 'Tomoe Gozen',
+      rarity: 'rare',
+      role: 'Sniper',
+      element: 'Physical',
+      stats: { hp: 4420, atk: 1740, def: 12 },
+      ability: {
+        type: 'Active',
+        name: 'Beheading Volley',
+        cost: 45,
+        text: 'Deal <b>145% ATK</b> and steal 8 Energy. Kill: steal 4 more.',
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'single', row: 'any' },
+          effects: [
+            { k: 'dmg', power: 1.45, element: 'Physical' },
+            { k: 'stealEnergy', amt: 8 },
+            { k: 'stealEnergy', amt: 4, if: { killedTarget: true } },
+          ],
+        },
+      },
+      icon: 'ra-arrow-flights',
+    },
+    {
+      id: 'yamato-benkei',
+      name: 'Benkei',
+      rarity: 'epic',
+      role: 'Tank',
+      element: 'Physical',
+      stats: { hp: 6900, atk: 1000, def: 30 },
+      ability: {
+        type: 'Passive',
+        name: 'Standing Death',
+        cost: null,
+        text: 'At <b>50+ Energy</b>, take 15% less damage. The first lethal blow leaves Benkei at 1% HP and sets Energy to 0.',
+        note: null,
+        passive: {
+          trigger: 'static',
+          deathCheat: true,
+          deathEnergy: 0,
+          effects: [{ k: 'damageResist', mult: 0.85, when: { selfEnergyAbove: 49 } }],
+        },
+      },
+      icon: 'ra-samurai-helmet',
+    },
+    {
+      id: 'yamato-abe-no-seimei',
+      name: 'Abe no Seimei',
+      rarity: 'epic',
+      role: 'Controller',
+      element: 'Magic',
+      stats: { hp: 5755, atk: 1290, def: 25 },
+      ability: {
+        type: 'Active',
+        name: 'Binding Seal',
+        cost: 40,
+        text: 'Deal <b>70% Magic</b> twice and drain 20 Energy; add <b>+5 enemy cost per 10 drained</b>. Drain 20+ Energy: Silence the highest-ATK enemy.',
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'single', row: 'any' },
+          effects: [
+            { k: 'dmg', power: 0.7, element: 'Magic' },
+            { k: 'dmg', power: 0.7, element: 'Magic' },
+            { k: 'drainTax', amt: 20, costPer10: 5, turns: 1 },
+            {
+              k: 'silence',
+              turns: 1,
+              to: 'enemies',
+              take: { n: 1, by: 'highestAtk' },
+              if: { drainedEnergyAbove: 20 },
+            },
+          ],
+        },
+      },
+      icon: 'ra-crystal-ball',
     },
     {
       id: 'yamato-momotaro',
@@ -37,51 +122,43 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Legendary Companions',
         cost: 35,
-        text: 'Immediately give all allies <b>10% DEF for 2 rounds</b> and your <b>front row</b> a <b>10% Max HP Shield</b>, and remove <b>Burn</b>.',
+        text: 'At 30+ Energy, allies gain <b>12% DEF</b> for 2 rounds and front allies a <b>12% Shield</b>; otherwise heal all allies 20% and cleanse Burn.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'all' },
           effects: [
-            { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'targets' },
-            { k: 'shield', pctMaxHp: 10, to: 'frontAllies' },
-            { k: 'cleanse', only: 'burn', to: 'targets' }
-          ]
-        }
+            {
+              k: 'stat',
+              stat: 'def',
+              amt: 12,
+              turns: 2,
+              to: 'targets',
+              if: { selfEnergyAbove: 29 },
+            },
+            { k: 'shield', pctMaxHp: 12, to: 'frontAllies', if: { selfEnergyAbove: 29 } },
+            { k: 'heal', pctMaxHp: 20, to: 'targets', if: { selfEnergyBelow: 30 } },
+            { k: 'cleanse', only: 'burn', to: 'targets', if: { selfEnergyBelow: 30 } },
+          ],
+        },
       },
-      icon: 'ra-round-shield'
+      icon: 'ra-round-shield',
     },
-    /* Reskinned from Princess Bari (Joseon) — same kit, new identity:
-       the legendary onmyoji steadies debuffs instead of guiding souls. */
     {
-      id: 'yamato-abe-no-seimei',
-      name: 'Abe no Seimei',
+      id: 'yamato-kaguya',
+      name: 'Kaguya',
       rarity: 'epic',
-      role: 'Controller',
-      element: 'Light',
-      stats: { hp: 5755, atk: 1290, def: 25 },
+      role: 'Caster',
+      element: 'Magic',
+      stats: { hp: 4740, atk: 1905, def: 15 },
       ability: {
         type: 'Active',
-        name: 'Guiding Spirit',
-        cost: 30,
-        text: "Immediately extend every enemy debuff by 1 round, or apply <b>Exposed</b> to all enemies for 1 round if none are debuffed.",
+        name: 'Moon Reflection',
+        cost: 45,
+        text: 'Copy a random allied Active Skill at <b>70% effectiveness</b>.',
         note: null,
-        spec: {
-          target: { side: 'enemy', pick: 'all', row: 'any' },
-          effects: [
-            {
-              k: 'branch',
-              cond: { anyTargetDebuffed: true },
-              then: [
-                { k: 'extendDebuffs', turns: 1, to: 'targets', when: 'now' }
-              ],
-              other: [
-                { k: 'exposed', turns: 1, to: 'targets', when: 'now' }
-              ]
-            }
-          ]
-        }
+        spec: { target: { side: 'auto' }, effects: [{ k: 'copyAllyActive', scale: 0.7 }] },
       },
-      icon: 'ra-crystal-ball'
-    }
-  ]
+      icon: 'ra-moon-sun',
+    },
+  ],
 });

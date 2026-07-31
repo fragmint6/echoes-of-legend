@@ -21,22 +21,26 @@
   var DECK_SIZE = (window.EOL.deckRules && window.EOL.deckRules.DECK_SIZE) || 12;
   var MAX_PER_ROLE = (window.EOL.deckRules && window.EOL.deckRules.MAX_PER_ROLE) || 4;
 
-  var decks = [];                 // [{id,name,ids,ts}]
-  var editing = null;             // deck object currently in the editor
+  var decks = []; // [{id,name,ids,ts}]
+  var editing = null; // deck object currently in the editor
   var stateFilter = { faction: 'all', rarity: 'all', role: 'all', q: '' };
   var BY_ID = null;
   var idSeq = 1;
   var hintTimer = null;
 
-  function $(id) { return document.getElementById(id); }
+  function $(id) {
+    return document.getElementById(id);
+  }
   function esc(s) {
-    return (window.EOL.ui && window.EOL.ui.esc) ? window.EOL.ui.esc(s) : String(s);
+    return window.EOL.ui && window.EOL.ui.esc ? window.EOL.ui.esc(s) : String(s);
   }
 
   function roster() {
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      f.cards.forEach(function (c) { out.push({ card: c, faction: f }); });
+      f.cards.forEach(function (c) {
+        out.push({ card: c, faction: f });
+      });
     });
     return out;
   }
@@ -44,24 +48,38 @@
   function byId() {
     if (!BY_ID) {
       BY_ID = {};
-      roster().forEach(function (e) { BY_ID[e.card.id] = e; });
+      roster().forEach(function (e) {
+        BY_ID[e.card.id] = e;
+      });
     }
     return BY_ID;
   }
 
   /* ---------------- persistence ---------------- */
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(decks)); } catch (e) { /* private mode */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+    } catch (e) {
+      /* private mode */
+    }
   }
 
   /* One-time import of the legacy 6-hero squad. Prefills an
      incomplete deck the player can finish in the editor. */
   function migrate() {
     var raw;
-    try { raw = localStorage.getItem(LEGACY_KEY); } catch (e) { return false; }
+    try {
+      raw = localStorage.getItem(LEGACY_KEY);
+    } catch (e) {
+      return false;
+    }
     if (!raw) return false;
     var ids;
-    try { ids = JSON.parse(raw); } catch (e) { return false; }
+    try {
+      ids = JSON.parse(raw);
+    } catch (e) {
+      return false;
+    }
     if (!Array.isArray(ids) || !ids.length) return false;
     var dict = byId();
     var known = [];
@@ -70,10 +88,10 @@
     });
     if (!known.length) return false;
     decks.push({
-      id: 'd' + (idSeq++),
+      id: 'd' + idSeq++,
       name: 'Legacy Squad',
       ids: known.slice(0, DECK_SIZE),
-      ts: Date.now()
+      ts: Date.now(),
     });
     return true;
   }
@@ -81,28 +99,38 @@
   function load() {
     decks = [];
     var raw;
-    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      return;
+    }
     if (!raw) {
-      if (migrate()) save();          // first boot after the 12-card change
+      if (migrate()) save(); // first boot after the 12-card change
       return;
     }
     var arr;
-    try { arr = JSON.parse(raw); } catch (e) { return; }
+    try {
+      arr = JSON.parse(raw);
+    } catch (e) {
+      return;
+    }
     if (!Array.isArray(arr)) return;
     var dict = byId();
     arr.forEach(function (d) {
       if (!d || !Array.isArray(d.ids)) return;
-      var seen = {}, ids = [];
+      var seen = {},
+        ids = [];
       d.ids.forEach(function (id) {
         if (id && dict[id] && !seen[id] && ids.length < DECK_SIZE) {
-          seen[id] = true; ids.push(id);
+          seen[id] = true;
+          ids.push(id);
         }
       });
       var deck = {
-        id: d.id || ('d' + (idSeq++)),
+        id: d.id || 'd' + idSeq++,
         name: (d.name || '').trim() || 'Squad',
         ids: ids,
-        ts: d.ts || Date.now()
+        ts: d.ts || Date.now(),
       };
       decks.push(deck);
       var n = parseInt(String(deck.id).slice(1), 10);
@@ -111,7 +139,9 @@
   }
 
   /* ---------------- deck api ---------------- */
-  function list() { return decks.slice(); }
+  function list() {
+    return decks.slice();
+  }
 
   function get(id) {
     for (var i = 0; i < decks.length; i++) if (decks[i].id === id) return decks[i];
@@ -120,7 +150,11 @@
 
   function entriesOf(deck) {
     var dict = byId();
-    return deck.ids.map(function (id) { return dict[id]; }).filter(Boolean);
+    return deck.ids
+      .map(function (id) {
+        return dict[id];
+      })
+      .filter(Boolean);
   }
 
   /* A deck is battle-ready exactly when the 12-card rule is satisfied. */
@@ -129,17 +163,24 @@
   }
 
   function freshName() {
-    var n = decks.length + 1, name;
-    do { name = 'Squad ' + (n++); } while (decks.some(function (d) { return d.name === name; }));
+    var n = decks.length + 1,
+      name;
+    do {
+      name = 'Squad ' + n++;
+    } while (
+      decks.some(function (d) {
+        return d.name === name;
+      })
+    );
     return name;
   }
 
   function create(ids, name) {
     var deck = {
-      id: 'd' + (idSeq++),
+      id: 'd' + idSeq++,
       name: name || freshName(),
       ids: (ids || []).slice(0, DECK_SIZE),
-      ts: Date.now()
+      ts: Date.now(),
     };
     decks.push(deck);
     save();
@@ -155,7 +196,9 @@
   }
 
   function removeDeck(id) {
-    var i = decks.findIndex(function (d) { return d.id === id; });
+    var i = decks.findIndex(function (d) {
+      return d.id === id;
+    });
     if (i < 0) return;
     decks.splice(i, 1);
     if (editing && editing.id === id) editing = null;
@@ -163,8 +206,12 @@
   }
 
   /* ---------------- editor state ---------------- */
-  function count() { return editing ? editing.ids.length : 0; }
-  function has(id) { return !!editing && editing.ids.indexOf(id) >= 0; }
+  function count() {
+    return editing ? editing.ids.length : 0;
+  }
+  function has(id) {
+    return !!editing && editing.ids.indexOf(id) >= 0;
+  }
 
   /* Flash a rule warning in the tray hint. */
   function hintWarn(msg) {
@@ -188,13 +235,21 @@
     }
     var cand = byId()[id].card;
     if (window.EOL.deckRules.capBlocked(entriesOf(editing), cand)) {
-      hintWarn('Max ' + MAX_PER_ROLE + ' heroes per role — this deck already runs ' +
-        MAX_PER_ROLE + ' ' + cand.role + 's.');
+      hintWarn(
+        'Max ' +
+          MAX_PER_ROLE +
+          ' heroes per role — this deck already runs ' +
+          MAX_PER_ROLE +
+          ' ' +
+          cand.role +
+          's.'
+      );
       return false;
     }
     editing.ids.push(id);
     editing.ts = Date.now();
-    save(); render();
+    save();
+    render();
     return true;
   }
 
@@ -204,16 +259,20 @@
     if (i < 0) return false;
     editing.ids.splice(i, 1);
     editing.ts = Date.now();
-    save(); render();
+    save();
+    render();
     return true;
   }
 
-  function toggle(id) { return has(id) ? removeCard(id) : add(id); }
+  function toggle(id) {
+    return has(id) ? removeCard(id) : add(id);
+  }
 
   function clear() {
     if (!editing || !count()) return;
     editing.ids = [];
-    save(); render();
+    save();
+    render();
   }
 
   function openEditor(id) {
@@ -236,10 +295,18 @@
   /* ---------------- collection tabs ---------------- */
   function showTab(which) {
     var heroes = which === 'heroes';
-    var ch = $('ctab-heroes'), cd = $('ctab-decks');
-    if (ch) { ch.classList.toggle('sel', heroes); ch.setAttribute('aria-selected', String(heroes)); }
-    if (cd) { cd.classList.toggle('sel', !heroes); cd.setAttribute('aria-selected', String(!heroes)); }
-    var ph = $('cpanel-heroes'), pd = $('cpanel-decks');
+    var ch = $('ctab-heroes'),
+      cd = $('ctab-decks');
+    if (ch) {
+      ch.classList.toggle('sel', heroes);
+      ch.setAttribute('aria-selected', String(heroes));
+    }
+    if (cd) {
+      cd.classList.toggle('sel', !heroes);
+      cd.setAttribute('aria-selected', String(!heroes));
+    }
+    var ph = $('cpanel-heroes'),
+      pd = $('cpanel-decks');
     if (ph) ph.hidden = !heroes;
     if (pd) pd.hidden = heroes;
     if (!heroes) renderManager();
@@ -247,15 +314,25 @@
 
   /* ---------------- manager rendering ---------------- */
   function roleChips(deck) {
-    var dict = byId(), cnt = {};
+    var dict = byId(),
+      cnt = {};
     deck.ids.forEach(function (id) {
       var r = dict[id].card.role;
       cnt[r] = (cnt[r] || 0) + 1;
     });
     var icons = window.EOL.ui.ROLE_ICON;
-    return Object.keys(cnt).sort().map(function (r) {
-      return '<span class="dc-role"><i class="ra ' + (icons[r] || 'ra-player') + '"></i>' + cnt[r] + '</span>';
-    }).join('');
+    return Object.keys(cnt)
+      .sort()
+      .map(function (r) {
+        return (
+          '<span class="dc-role"><i class="ra ' +
+          (icons[r] || 'ra-player') +
+          '"></i>' +
+          cnt[r] +
+          '</span>'
+        );
+      })
+      .join('');
   }
 
   function renderManager() {
@@ -267,28 +344,51 @@
     decks.forEach(function (d) {
       var el = document.createElement('article');
       el.className = 'deck-card' + (isComplete(d) ? '' : ' incomplete');
-      var strip = d.ids.map(function (id) {
-        var e = dict[id];
-        return '<span class="dc-pip rarity-' + e.card.rarity + '" title="' + esc(e.card.name) + '">' +
-          '<i class="ra ' + e.card.icon + '"></i></span>';
-      }).join('');
+      var strip = d.ids
+        .map(function (id) {
+          var e = dict[id];
+          return (
+            '<span class="dc-pip rarity-' +
+            e.card.rarity +
+            '" title="' +
+            esc(e.card.name) +
+            '">' +
+            '<i class="ra ' +
+            e.card.icon +
+            '"></i></span>'
+          );
+        })
+        .join('');
       for (var i = d.ids.length; i < DECK_SIZE; i++) {
         strip += '<span class="dc-pip empty"><i class="ri-add-line"></i></span>';
       }
       el.innerHTML =
         '<div class="dc-head">' +
-          '<span class="dc-name">' + esc(d.name) + '</span>' +
-          '<span class="dc-count' + (isComplete(d) ? ' ok' : '') + '">' +
-            d.ids.length + '/' + DECK_SIZE + (isComplete(d) ? ' <i class="ri-check-line"></i>' : '') +
-          '</span>' +
+        '<span class="dc-name">' +
+        esc(d.name) +
+        '</span>' +
+        '<span class="dc-count' +
+        (isComplete(d) ? ' ok' : '') +
+        '">' +
+        d.ids.length +
+        '/' +
+        DECK_SIZE +
+        (isComplete(d) ? ' <i class="ri-check-line"></i>' : '') +
+        '</span>' +
         '</div>' +
-        '<div class="dc-strip">' + strip + '</div>' +
-        '<div class="dc-roles">' + roleChips(d) + '</div>' +
+        '<div class="dc-strip">' +
+        strip +
+        '</div>' +
+        '<div class="dc-roles">' +
+        roleChips(d) +
+        '</div>' +
         '<div class="dc-actions">' +
-          '<button class="btn btn-ghost btn-slim dc-edit"><i class="ri-edit-line"></i><span>Edit</span></button>' +
-          '<button class="btn btn-ghost btn-slim dc-del"><i class="ri-delete-bin-line"></i><span>Delete</span></button>' +
+        '<button class="btn btn-ghost btn-slim dc-edit"><i class="ri-edit-line"></i><span>Edit</span></button>' +
+        '<button class="btn btn-ghost btn-slim dc-del"><i class="ri-delete-bin-line"></i><span>Delete</span></button>' +
         '</div>';
-      el.querySelector('.dc-edit').addEventListener('click', function () { openEditor(d.id); });
+      el.querySelector('.dc-edit').addEventListener('click', function () {
+        openEditor(d.id);
+      });
       el.querySelector('.dc-del').addEventListener('click', function () {
         removeDeck(d.id);
         renderManager();
@@ -311,15 +411,28 @@
         cell.className = 'deck-slot filled rarity-' + e.card.rarity;
         cell.style.setProperty('--fc-primary', e.faction.colors.primary);
         cell.innerHTML =
-          '<span class="ds-order">' + (slot + 1) + '</span>' +
-          '<i class="ds-glyph ra ' + e.card.icon + '"></i>' +
-          '<span class="ds-name">' + esc(e.card.name) + '</span>' +
+          '<span class="ds-order">' +
+          (slot + 1) +
+          '</span>' +
+          '<i class="ds-glyph ra ' +
+          e.card.icon +
+          '"></i>' +
+          '<span class="ds-name">' +
+          esc(e.card.name) +
+          '</span>' +
           '<span class="ds-role"><i class="ra ' +
-            (window.EOL.ui.ROLE_ICON[e.card.role] || 'ra-player') + '"></i>' +
-            esc(e.card.role) + '</span>' +
-          '<button class="ds-x" title="Remove ' + esc(e.card.name) + '" aria-label="Remove ' +
-            esc(e.card.name) + '"><i class="ri-close-line"></i></button>';
-        cell.addEventListener('click', function () { removeCard(id); });
+          (window.EOL.ui.ROLE_ICON[e.card.role] || 'ra-player') +
+          '"></i>' +
+          esc(e.card.role) +
+          '</span>' +
+          '<button class="ds-x" title="Remove ' +
+          esc(e.card.name) +
+          '" aria-label="Remove ' +
+          esc(e.card.name) +
+          '"><i class="ri-close-line"></i></button>';
+        cell.addEventListener('click', function () {
+          removeCard(id);
+        });
       } else {
         cell.className = 'deck-slot empty';
         cell.innerHTML = '<span class="ds-num">' + (slot + 1) + '</span>';
@@ -401,20 +514,30 @@
       { value: 'legendary', text: 'Legendary' },
       { value: 'epic', text: 'Epic' },
       { value: 'rare', text: 'Rare' },
-      { value: 'common', text: 'Common' }
+      { value: 'common', text: 'Common' },
     ];
 
     var roleOpts = [{ value: 'all', text: 'All Roles', icon: 'ri-team-line' }];
     ['Tank', 'Bruiser', 'Caster', 'Controller', 'Medic', 'Sniper'].forEach(function (r) {
-      roleOpts.push({ value: r, text: r, icon: 'ra ' + (window.EOL.ui.ROLE_ICON[r] || 'ra-player') });
+      roleOpts.push({
+        value: r,
+        text: r,
+        icon: 'ra ' + (window.EOL.ui.ROLE_ICON[r] || 'ra-player'),
+      });
     });
 
-    window.EOL.ui.buildDropdown(host, 'Faction', factionOpts,
-      function (v) { stateFilter.faction = v; applyGridFilter(); });
-    window.EOL.ui.buildDropdown(host, 'Rarity', rarityOpts,
-      function (v) { stateFilter.rarity = v; applyGridFilter(); });
-    window.EOL.ui.buildDropdown(host, 'Role', roleOpts,
-      function (v) { stateFilter.role = v; applyGridFilter(); });
+    window.EOL.ui.buildDropdown(host, 'Faction', factionOpts, function (v) {
+      stateFilter.faction = v;
+      applyGridFilter();
+    });
+    window.EOL.ui.buildDropdown(host, 'Rarity', rarityOpts, function (v) {
+      stateFilter.rarity = v;
+      applyGridFilter();
+    });
+    window.EOL.ui.buildDropdown(host, 'Role', roleOpts, function (v) {
+      stateFilter.role = v;
+      applyGridFilter();
+    });
 
     var s = $('deck-search');
     if (s) {
@@ -444,9 +567,11 @@
     var grid = $('deck-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    var sorted = roster().slice().sort(function (a, b) {
-      return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
-    });
+    var sorted = roster()
+      .slice()
+      .sort(function (a, b) {
+        return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
+      });
     sorted.forEach(function (e, i) {
       var el = window.EOL.ui.buildCard(e.card, e.faction, i);
       var fab = document.createElement('button');
@@ -475,12 +600,22 @@
     load();
     render();
 
-    var tabH = $('ctab-heroes'), tabD = $('ctab-decks');
-    if (tabH) tabH.addEventListener('click', function () { showTab('heroes'); });
-    if (tabD) tabD.addEventListener('click', function () { showTab('decks'); });
+    var tabH = $('ctab-heroes'),
+      tabD = $('ctab-decks');
+    if (tabH)
+      tabH.addEventListener('click', function () {
+        showTab('heroes');
+      });
+    if (tabD)
+      tabD.addEventListener('click', function () {
+        showTab('decks');
+      });
 
     var nw = $('btn-new-deck');
-    if (nw) nw.addEventListener('click', function () { openEditor(); });
+    if (nw)
+      nw.addEventListener('click', function () {
+        openEditor();
+      });
 
     var clearBtn = $('btn-deck-clear');
     if (clearBtn) clearBtn.addEventListener('click', clear);
@@ -520,10 +655,14 @@
     clear: clear,
     count: count,
     has: has,
-    editingId: function () { return editing ? editing.id : null; },
-    editingIds: function () { return editing ? editing.ids.slice() : []; },
+    editingId: function () {
+      return editing ? editing.id : null;
+    },
+    editingIds: function () {
+      return editing ? editing.ids.slice() : [];
+    },
     refresh: render,
     reload: load,
-    renderManager: renderManager
+    renderManager: renderManager,
   };
 })();

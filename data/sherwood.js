@@ -18,17 +18,17 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Ruthless Pursuit',
         cost: 45,
-        text: 'Deal <b>180% ATK Shadow Damage</b> to an enemy, immediately striking again for <b>100% ATK</b> if that enemy is below <b>35% HP</b>.',
+        text: 'Deal <b>180% ATK Shadow Damage</b> to an enemy, immediately striking again for <b>100% ATK</b> if that enemy is below <b>40% HP</b>.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'front' },
           effects: [
             { k: 'dmg', power: 1.8, element: 'Shadow' },
-            { k: 'dmg', power: 1.0, element: 'Shadow', if: { targetHpBelow: 0.35 } }
-          ]
-        }
+            { k: 'dmg', power: 1.0, element: 'Shadow', if: { targetHpBelow: 0.4 } },
+          ],
+        },
       },
-      icon: 'ra-knight-helmet'
+      icon: 'ra-knight-helmet',
     },
     {
       id: 'sherwood-robin-hood',
@@ -48,11 +48,11 @@ window.EOL.registerFaction({
           forceTarget: 'highestAtk',
           effects: [
             { k: 'outgoingMult', mult: 1.12, when: { targetHasDebuff: true } },
-            { k: 'outgoingMult', mult: 1.1, when: { targetMarked: true } }
-          ]
-        }
+            { k: 'outgoingMult', mult: 1.1, when: { targetMarked: true } },
+          ],
+        },
       },
-      icon: 'ra-archer'
+      icon: 'ra-archer',
     },
     {
       id: 'sherwood-will-scarlet',
@@ -71,12 +71,19 @@ window.EOL.registerFaction({
           trigger: 'sameTargetStreak',
           stackTag: 'daring-duelist',
           effects: [
-            { k: 'stat', stat: 'atk', amt: 7, turns: 99, to: 'self',
-              stackTag: 'daring-duelist', maxStacks: 4 }
-          ]
-        }
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: 7,
+              turns: 99,
+              to: 'self',
+              stackTag: 'daring-duelist',
+              maxStacks: 4,
+            },
+          ],
+        },
       },
-      icon: 'ra-daggers'
+      icon: 'ra-daggers',
     },
     {
       id: 'sherwood-little-john',
@@ -100,11 +107,11 @@ window.EOL.registerFaction({
             { k: 'shield', pctMaxHp: 10, to: 'targets' },
             /* Pass 9 (option B): the guard plants the counter on the ALLY,
                but Little John himself swings back (engine: counterSrc). */
-            { k: 'counterStrike', power: 0.6, turns: 2, to: 'targets', src: 'caster' }
-          ]
-        }
+            { k: 'counterStrike', power: 0.6, turns: 2, to: 'targets', src: 'caster' },
+          ],
+        },
       },
-      icon: 'ra-heavy-shield'
+      icon: 'ra-heavy-shield',
     },
     {
       id: 'sherwood-maid-marian',
@@ -114,22 +121,17 @@ window.EOL.registerFaction({
       element: 'Light',
       stats: { hp: 4900, atk: 1080, def: 20 },
       ability: {
-        type: 'Active',
+        type: 'Passive',
         name: 'Rallying Spirit',
-        cost: 25,
-        text: 'Immediately heal an ally for <b>25% Max HP</b> and grant them <b>18% Crit Chance</b> and <b>10% ATK for 2 rounds</b>, and all allies <b>10% DEF for 2 rounds</b>.',
+        cost: null,
+        text: 'When an ally uses a Signature Skill, heal the lowest-HP ally for <b>12% Max HP</b>.',
         note: null,
-        spec: {
-          target: { side: 'ally', pick: 'single', row: 'any' },
-          effects: [
-            { k: 'heal', pctMaxHp: 25 },
-            { k: 'stat', stat: 'crit', amt: 18, turns: 2, to: 'targets' },
-            { k: 'stat', stat: 'atk', amt: 10, turns: 2, to: 'targets' },
-            { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'allies' }
-          ]
-        }
+        passive: {
+          trigger: 'alliedCastSkill',
+          effects: [{ k: 'heal', pctMaxHp: 12, to: 'lowestHpAlly' }],
+        },
       },
-      icon: 'ra-two-hearts'
+      icon: 'ra-two-hearts',
     },
     {
       id: 'sherwood-friar-tuck',
@@ -147,14 +149,13 @@ window.EOL.registerFaction({
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
-            { k: 'exposed', turns: 1, to: 'targets',
-              if: { targetHasDebuff: true }, when: 'now' },
+            { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
             { k: 'dmg', power: 0.95, element: 'Light' },
-            { k: 'stat', stat: 'atk', amt: -25, turns: 2, to: 'targets', when: 'now' }
-          ]
-        }
+            { k: 'stat', stat: 'atk', amt: -25, turns: 2, to: 'targets', when: 'now' },
+          ],
+        },
       },
-      icon: 'ra-beer'
-    }
-  ]
+      icon: 'ra-beer',
+    },
+  ],
 });

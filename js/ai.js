@@ -51,17 +51,34 @@
      identically. */
   var SEARCH_DEPTH = 4;
   var DEFAULT_DEPTH = 4;
-  var BEAM_WIDTH   = 8;    // candidate opening moves carried into search
-  var SIM_BUDGET   = 2400; // rollout budget per decision
-  var MIN_ROLLOUTS = 5;    // per surviving candidate
+  var BEAM_WIDTH = 8; // candidate opening moves carried into search
+  var SIM_BUDGET = 2400; // rollout budget per decision
+  var MIN_ROLLOUTS = 5; // per surviving candidate
   var MAX_ROLLOUTS = 18;
-  var TIME_BUDGET  = 90;   // ms; hard ceiling so the UI stays responsive
+  var TIME_BUDGET = 90; // ms; hard ceiling so the UI stays responsive
 
   /* Successive halving: cheap first pass over the whole beam, then
      spend the remaining budget only on the survivors. */
-  var PRUNE_KEEP = 4;      // candidates kept for the deep pass
+  var PRUNE_KEEP = 4; // candidates kept for the deep pass
 
-  function hpFrac(u) { return u.hp / u.maxHp; }
+  /* Simulation can use a smaller, explicit search budget while retaining
+     depth-2 lookahead. Gameplay defaults above remain unchanged. */
+  var SIMULATION_BUDGET = null;
+  function activeBudget() {
+    return (
+      SIMULATION_BUDGET || {
+        beamWidth: BEAM_WIDTH,
+        pruneKeep: PRUNE_KEEP,
+        minRollouts: MIN_ROLLOUTS,
+        maxRollouts: MAX_ROLLOUTS,
+        timeBudget: TIME_BUDGET,
+      }
+    );
+  }
+
+  function hpFrac(u) {
+    return u.hp / u.maxHp;
+  }
 
   /* -----------------------------------------------------------
      Deterministic RNG so a search is reproducible and so the
@@ -72,9 +89,11 @@
     var x = seed | 0;
     if (x === 0) x = 0x9e3779b9;
     return function () {
-      x ^= x << 13; x |= 0;
+      x ^= x << 13;
+      x |= 0;
       x ^= x >>> 17;
-      x ^= x << 5;  x |= 0;
+      x ^= x << 5;
+      x |= 0;
       return ((x >>> 0) % 100000) / 100000;
     };
   }
@@ -91,12 +110,12 @@
      action every round for the rest of the game. Support roles are
      worth more than their statline suggests. */
   var ROLE_VALUE = {
-    Medic:      1.45,
-    Tank:       1.10,
-    Controller: 1.20,
-    Caster:     1.15,
-    Sniper:     1.15,
-    Bruiser:    1.05
+    Medic: 1.45,
+    Tank: 1.1,
+    Controller: 1.2,
+    Caster: 1.15,
+    Sniper: 1.15,
+    Bruiser: 1.05,
   };
 
   function unitValue(B, u) {
@@ -120,20 +139,22 @@
     if (u.flags.burn > 0) {
       v -= u.maxHp * 0.05 * u.flags.burn * 1.05;
     }
-    (u.pending || []).forEach(function () { v -= 420; });
+    (u.pending || []).forEach(function () {
+      v -= 420;
+    });
 
     // ---- states that change how damage resolves ----
-    if (u.flags.exposed > 0) v -= u.maxHp * 0.10 + E.defOf(u) * 12;
-    if (u.flags.marked > 0)  v -= 220;
-    if (u.flags.silence > 0) v -= 520;   // signature locked out
-    if (u.flags.healMod)     v -= 200;
+    if (u.flags.exposed > 0) v -= u.maxHp * 0.1 + E.defOf(u) * 12;
+    if (u.flags.marked > 0) v -= 220;
+    if (u.flags.silence > 0) v -= 520; // signature locked out
+    if (u.flags.healMod) v -= 200;
     if (u.flags.untargetable > 0) v += 620;
-    if (u.flags.taunt > 0)   v += 240;
+    if (u.flags.taunt > 0) v += 240;
 
     // low-HP heroes are at risk of being finished off; value them
     // slightly under their raw numbers so the bot protects them
     var f = hpFrac(u);
-    if (f < 0.30) v -= 380 * (0.30 - f) / 0.30;
+    if (f < 0.3) v -= (380 * (0.3 - f)) / 0.3;
 
     return v;
   }
@@ -146,13 +167,21 @@
       return 0;
     }
     var foe = E.opposite(side);
-    var mine = 0, theirs = 0, myAlive = 0, foeAlive = 0;
+    var mine = 0,
+      theirs = 0,
+      myAlive = 0,
+      foeAlive = 0;
 
     B.units.forEach(function (u) {
       if (!u.alive) return;
       var v = unitValue(B, u);
-      if (u.side === side) { mine += v; myAlive++; }
-      else { theirs += v; foeAlive++; }
+      if (u.side === side) {
+        mine += v;
+        myAlive++;
+      } else {
+        theirs += v;
+        foeAlive++;
+      }
     });
 
     var s = mine - theirs;
@@ -179,8 +208,13 @@
   function scoreAction(B, unit, ability, targets) {
     var spec = ability.spec || {};
     var atk = E.atkOf(unit);
-    var s = scoreEffects(B, unit,
-      spec.effects || (spec.choose && spec.choose[0].effects) || [], targets, atk);
+    var s = scoreEffects(
+      B,
+      unit,
+      spec.effects || (spec.choose && spec.choose[0].effects) || [],
+      targets,
+      atk
+    );
 
     var cost = E.costOf(B, unit, ability);
     s -= cost * 3.2;
@@ -239,41 +273,45 @@
     if (e.to === 'self') return [unit];
     if (e.to === 'allies') return E.unitsOf(B, unit.side);
     if (e.to === 'frontAllies') return E.unitsOf(B, unit.side).filter(E.isFront);
-    if (e.to === 'otherAllies') return E.unitsOf(B, unit.side).filter(function (u) {
-      return targets.indexOf(u) < 0;
-    });
+    if (e.to === 'otherAllies')
+      return E.unitsOf(B, unit.side).filter(function (u) {
+        return targets.indexOf(u) < 0;
+      });
     if (e.to === 'enemies') return E.unitsOf(B, E.opposite(unit.side));
-    return targets;   // triggerTarget / adjacentTargets: approximate by targets
+    return targets; // triggerTarget / adjacentTargets: approximate by targets
   }
 
   function scoreEffects(B, unit, effects, targets, atk) {
     var s = 0;
     (effects || []).forEach(function (e) {
       if (e.ifStacks) {
-        var sc = unit.buffs.filter(function (b) { return b.tag === e.ifStacks.tag; }).length;
-        if (sc + 1 < e.ifStacks.min) return;   // this proc would not reach it
+        var sc = unit.buffs.filter(function (b) {
+          return b.tag === e.ifStacks.tag;
+        }).length;
+        if (sc + 1 < e.ifStacks.min) return; // this proc would not reach it
       }
       var ft = fxTargets(B, unit, e, targets);
       switch (e.k) {
         case 'dmg': {
           ft.forEach(function (t) {
             var raw = atk * e.power * (1 - E.defOf(t) / 100);
-            if (raw >= t.hp) s += 900 + raw * 0.4;   // finishing blow
+            if (raw >= t.hp)
+              s += 900 + raw * 0.4; // finishing blow
             else s += raw;
-            s += (1 - hpFrac(t)) * 120;              // focus the wounded
+            s += (1 - hpFrac(t)) * 120; // focus the wounded
           });
           break;
         }
         case 'heal': {
           targets.forEach(function (t) {
-            var amt = e.pctMaxHp != null ? t.maxHp * e.pctMaxHp / 100 : atk * (e.power || 1);
+            var amt = e.pctMaxHp != null ? (t.maxHp * e.pctMaxHp) / 100 : atk * (e.power || 1);
             var missing = t.maxHp - t.hp;
             s += Math.min(amt, missing) * (hpFrac(t) < 0.4 ? 1.5 : 0.65);
             if (e.overflow === 'shield') {
               // overflow is not waste: it comes back as burst protection
               s += Math.max(0, amt - missing) * 0.5;
             } else if (missing < t.maxHp * 0.08) {
-              s -= 260;  // plain healing of a full bar is still a waste
+              s -= 260; // plain healing of a full bar is still a waste
             }
           });
           break;
@@ -281,9 +319,12 @@
         case 'stat': {
           var per = 0;
           targets.forEach(function (t) {
-            var base = e.stat === 'atk' ? E.atkOf(t) * 1.1
-                     : e.stat === 'def' ? t.maxHp * 0.30
-                     : E.atkOf(t) * 0.9;
+            var base =
+              e.stat === 'atk'
+                ? E.atkOf(t) * 1.1
+                : e.stat === 'def'
+                  ? t.maxHp * 0.3
+                  : E.atkOf(t) * 0.9;
             per += base * (Math.abs(e.amt) / 100);
           });
           if (!ft.length) per = Math.abs(e.amt) * 12;
@@ -291,68 +332,110 @@
           break;
         }
         case 'shield': {
-          targets.forEach(function (t) { s += t.maxHp * ((e.pctMaxHp || 0) / 100) * 0.9; });
+          targets.forEach(function (t) {
+            s += t.maxHp * ((e.pctMaxHp || 0) / 100) * 0.9;
+          });
           break;
         }
         case 'taunt': {
-          targets.forEach(function (t) { s += t.hp * 0.16 + 180; });
+          targets.forEach(function (t) {
+            s += t.hp * 0.16 + 180;
+          });
           break;
         }
         case 'mark': {
           // A Mark is spent on use, so re-marking an already marked target
           // is worthless — only fresh marks count (bounded by `take`).
-          var fresh = ft.filter(function (t) { return !(t.flags.marked > 0); }).length;
+          var fresh = ft.filter(function (t) {
+            return !(t.flags.marked > 0);
+          }).length;
           if (e.take && fresh > e.take.n) fresh = e.take.n;
           s += fresh * 130;
           break;
         }
-        case 'consumeMark': break;
-        case 'silence':     s += 330; break;
-        case 'stealEnergy': s += 300; break;
-        case 'drainEnergy': s += (e.amt || 10) * 20; break;
+        case 'consumeMark':
+          break;
+        case 'silence':
+          s += 330;
+          break;
+        case 'stealEnergy':
+          s += 300;
+          break;
+        case 'drainTax':
+          s += 300;
+          break;
+        case 'loseEnergy':
+          s -= 80;
+          break;
+        case 'drainEnergy':
+          s += (e.amt || 10) * 20;
+          break;
         case 'counterStrike': {
-          targets.forEach(function (t) { s += t.hp * 0.12 + 160; });
+          targets.forEach(function (t) {
+            s += t.hp * 0.12 + 160;
+          });
           break;
         }
-        case 'costMod':     s += 190; break;
-        case 'healMod':     s += 150; break;
+        case 'costMod':
+          s += 190;
+          break;
+        case 'healMod':
+          s += 150;
+          break;
         case 'delayed': {
           s += 300 + scoreEffects(B, unit, e.effects, targets, atk) * 0.7;
           break;
         }
-        case 'randomOf':    s += 130; break;
+        case 'randomOf':
+          s += 130;
+          break;
         case 'coinFlip': {
-          var h  = scoreEffects(B, unit, e.heads && e.heads.effects, targets, atk);
+          var h = scoreEffects(B, unit, e.heads && e.heads.effects, targets, atk);
           var tl = scoreEffects(B, unit, e.tails && e.tails.effects, targets, atk);
           s += (h + tl) / 2;
           break;
         }
-        case 'copyAllyActive': s += 340; break;
-        case 'lifesteal':      s += 90;  break;
-        case 'gainEnergy':     s += (e.amt || 0) * 5; break;
+        case 'copyAllyActive':
+          s += 340;
+          break;
+        case 'lifesteal':
+          s += 90;
+          break;
+        case 'gainEnergy':
+          s += (e.amt || 0) * 5;
+          break;
         case 'burn': {
           targets.forEach(function (t) {
             var tick = t.maxHp * 0.05;
-            if (t.flags.burn > 0) s += tick * 0.4;          // only a refresh
+            if (t.flags.burn > 0)
+              s += tick * 0.4; // only a refresh
             else s += tick * (e.turns || 2) * 0.95;
           });
           break;
         }
         case 'exposed': {
           targets.forEach(function (t) {
-            if (t.flags.exposed > 0) { s += 40; return; }
+            if (t.flags.exposed > 0) {
+              s += 40;
+              return;
+            }
             s += 180 + E.defOf(t) * 14;
           });
           break;
         }
         case 'extendDebuffs': {
-          var any = ft.filter(function (t) { return E.hasDebuff(t); }).length;
+          var any = ft.filter(function (t) {
+            return E.hasDebuff(t);
+          }).length;
           s += any ? 150 + any * 90 : -60;
           break;
         }
         case 'cleanse': {
           targets.forEach(function (t) {
-            if (e.only) { s += t.flags[e.only] > 0 ? 200 : -30; return; }
+            if (e.only) {
+              s += t.flags[e.only] > 0 ? 200 : -30;
+              return;
+            }
             s += E.hasDebuff(t) ? 150 : -25;
           });
           break;
@@ -360,20 +443,28 @@
         case 'branch': {
           var c = e.cond || {};
           var pass = true;
-          if (c.anyTargetMarked)   pass = targets.some(function (t) { return t.flags.marked > 0; });
-          if (c.anyTargetDebuffed) pass = targets.some(function (t) { return E.hasDebuff(t); });
+          if (c.anyTargetMarked)
+            pass = targets.some(function (t) {
+              return t.flags.marked > 0;
+            });
+          if (c.anyTargetDebuffed)
+            pass = targets.some(function (t) {
+              return E.hasDebuff(t);
+            });
           if (c.anyEnemyMarked) {
-            pass = E.unitsOf(B, E.opposite(unit.side))
-              .some(function (t) { return t.flags.marked > 0; });
+            pass = E.unitsOf(B, E.opposite(unit.side)).some(function (t) {
+              return t.flags.marked > 0;
+            });
           }
           if (c.targetHasDebuff != null) {
-            pass = targets.length > 0 && (E.hasDebuff(targets[0]) === !!c.targetHasDebuff);
+            pass = targets.length > 0 && E.hasDebuff(targets[0]) === !!c.targetHasDebuff;
           }
-          if (c.selfShielded)      pass = unit.shield > 0;
+          if (c.selfShielded) pass = unit.shield > 0;
           s += scoreEffects(B, unit, pass ? e.then : e.other, targets, atk);
           break;
         }
-        default: s += 40;
+        default:
+          s += 40;
       }
     });
     return s;
@@ -390,38 +481,90 @@
         if (!E.canUse(B, unit, ability)) return;
 
         var need = E.pickCount(ability);
-        var chooseCount = (ability.spec && ability.spec.choose) ? ability.spec.choose.length : 1;
+        var chooseCount = ability.spec && ability.spec.choose ? ability.spec.choose.length : 1;
 
         for (var ci = 0; ci < chooseCount; ci++) {
           if (need === 0) {
             var t0 = E.resolveTargets(B, unit, ability, []);
-            out.push({ unit: unit, ability: ability, targets: t0, chosen: [], choose: ci,
-                       score: scoreAction(B, unit, ability, t0),
-                       lethal: lethalCount(B, unit, ability, t0),
-                       lethalVal: lethalValue(B, unit, ability, t0) });
+            out.push({
+              unit: unit,
+              ability: ability,
+              targets: t0,
+              chosen: [],
+              choose: ci,
+              score: scoreAction(B, unit, ability, t0),
+              lethal: lethalCount(B, unit, ability, t0),
+              lethalVal: lethalValue(B, unit, ability, t0),
+            });
           } else {
             var pool = E.legalTargets(B, unit, ability);
             if (!pool.length) continue;
 
-            var forced = E.forcedTarget(B, unit, ability);   // Robin Hood
+            var forced = E.forcedTarget(B, unit, ability); // Robin Hood
             if (forced) pool = [forced];
 
             if (need === 1) {
+              /* Simulation/gameplay search pruning: target types rather than
+                 every legal unit. Preserve execute, threat, Tank, Mark and
+                 Exposed choices; cap the expensive depth search at 3. */
+              if (pool.length > 3) {
+                var ranked = pool.slice();
+                var low = ranked.slice().sort(function (a, b) {
+                  return a.hp / a.maxHp - b.hp / b.maxHp;
+                })[0];
+                var high = ranked.slice().sort(function (a, b) {
+                  return E.atkOf(b) - E.atkOf(a);
+                })[0];
+                var prey = ranked
+                  .filter(function (t) {
+                    return t.flags.marked > 0 || t.flags.exposed > 0;
+                  })
+                  .sort(function (a, b) {
+                    return a.hp / a.maxHp - b.hp / b.maxHp;
+                  })[0];
+                var tank = ranked
+                  .filter(function (t) {
+                    return t.role === 'Tank';
+                  })
+                  .sort(function (a, b) {
+                    return E.atkOf(b) - E.atkOf(a);
+                  })[0];
+                var kept = [];
+                [low, prey, high, tank].forEach(function (t) {
+                  if (t && kept.indexOf(t) < 0 && kept.length < 3) kept.push(t);
+                });
+                pool = kept;
+              }
               pool.forEach(function (t) {
-                out.push({ unit: unit, ability: ability, targets: [t], chosen: [t], choose: ci,
-                           score: scoreAction(B, unit, ability, [t]),
-                           lethal: lethalCount(B, unit, ability, [t]),
-                           lethalVal: lethalValue(B, unit, ability, [t]) });
+                out.push({
+                  unit: unit,
+                  ability: ability,
+                  targets: [t],
+                  chosen: [t],
+                  choose: ci,
+                  score: scoreAction(B, unit, ability, [t]),
+                  lethal: lethalCount(B, unit, ability, [t]),
+                  lethalVal: lethalValue(B, unit, ability, [t]),
+                });
               });
             } else {
-              var two = pool.slice().sort(function (a, b) {
-                return E.atkOf(b) - E.atkOf(a);
-              }).slice(0, need);
+              var two = pool
+                .slice()
+                .sort(function (a, b) {
+                  return E.atkOf(b) - E.atkOf(a);
+                })
+                .slice(0, need);
               if (two.length === need) {
-                out.push({ unit: unit, ability: ability, targets: two, chosen: two, choose: ci,
-                           score: scoreAction(B, unit, ability, two),
-                           lethal: lethalCount(B, unit, ability, two),
-                           lethalVal: lethalValue(B, unit, ability, two) });
+                out.push({
+                  unit: unit,
+                  ability: ability,
+                  targets: two,
+                  chosen: two,
+                  choose: ci,
+                  score: scoreAction(B, unit, ability, two),
+                  lethal: lethalCount(B, unit, ability, two),
+                  lethalVal: lethalValue(B, unit, ability, two),
+                });
               }
             }
           }
@@ -436,11 +579,15 @@
   function policyAction(B, side, rng) {
     var list = candidates(B, side);
     if (!list.length) return null;
-    var best = null, bestScore = -Infinity;
+    var best = null,
+      bestScore = -Infinity;
     for (var i = 0; i < list.length; i++) {
       // light jitter keeps repeated rollouts from being identical
       var sc = list[i].score + (rng() - 0.5) * 90;
-      if (sc > bestScore) { bestScore = sc; best = list[i]; }
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = list[i];
+      }
     }
     if (best && best.score < -120) return null;
     return best;
@@ -476,9 +623,15 @@
      passing, which the live flow then grants anyway. */
   function actOnce(C, side, rng) {
     var a = policyAction(C, side, rng);
-    if (!a) { E.passSide(C, side); return false; }
+    if (!a) {
+      E.passSide(C, side);
+      return false;
+    }
     var r = E.useAbility(C, a.unit, a.ability, a.chosen, a.choose);
-    if (!r.ok) { C.acted[side][a.unit.uid] = true; return false; }
+    if (!r.ok) {
+      C.acted[side][a.unit.uid] = true;
+      return false;
+    }
     return true;
   }
 
@@ -498,13 +651,19 @@
   /* Map an action described against the real battle onto its twin in a
      cloned battle (units are matched by uid). */
   function rebind(C, act) {
-    var byUid = {};
-    C.units.forEach(function (u) { byUid[u.uid] = u; });
+    var byUid = C.uidMap || {};
+    if (!C.uidMap)
+      C.units.forEach(function (u) {
+        byUid[u.uid] = u;
+      });
     var unit = byUid[act.unit.uid];
     if (!unit) return null;
     var ability = act.ability.basic ? E.roleAbility(unit) : unit.card.ability;
-    var chosen = (act.chosen || []).map(function (t) { return byUid[t.uid]; })
-                                   .filter(Boolean);
+    var chosen = (act.chosen || [])
+      .map(function (t) {
+        return byUid[t.uid];
+      })
+      .filter(Boolean);
     if ((act.chosen || []).length !== chosen.length) return null;
     return { unit: unit, ability: ability, chosen: chosen, choose: act.choose };
   }
@@ -544,11 +703,15 @@
      TOP LEVEL
      ============================================================= */
 
-  var lastSearch = null;   // diagnostics for the UI / tests
+  var lastSearch = null; // diagnostics for the UI / tests
 
   function bestAction(B, side) {
+    var budget = activeBudget();
     var list = candidates(B, side);
-    if (!list.length) { lastSearch = null; return null; }
+    if (!list.length) {
+      lastSearch = null;
+      return null;
+    }
 
     // Only one legal move: no point searching.
     if (list.length === 1) {
@@ -557,15 +720,16 @@
     }
 
     // ---- beam: keep the most promising openings ----
-    list.sort(function (a, b) { return b.score - a.score; });
-    var beam = list.slice(0, Math.min(BEAM_WIDTH, list.length));
+    list.sort(function (a, b) {
+      return b.score - a.score;
+    });
+    var beam = list.slice(0, Math.min(budget.beamWidth, list.length));
 
     var seedBase = Math.floor(B.rng() * 0x7fffffff) | 0;
-    var t0 = (typeof performance !== 'undefined' && performance.now)
-      ? performance.now() : Date.now();
+    var t0 = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
     function elapsed() {
-      var now = (typeof performance !== 'undefined' && performance.now)
-        ? performance.now() : Date.now();
+      var now =
+        typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
       return now - t0;
     }
 
@@ -577,7 +741,10 @@
     function sample(rec, n) {
       for (var k = 0; k < n; k++) {
         var v = rollout(B, side, rec.act, seedBase + (rec.n + k) * 7919);
-        if (v === -Infinity) { rec.invalid = true; continue; }
+        if (v === -Infinity) {
+          rec.invalid = true;
+          continue;
+        }
         rec.sum += v;
         if (v < rec.worst) rec.worst = v;
         if (v > rec.best) rec.best = v;
@@ -607,31 +774,38 @@
 
     // ---- stage 1: a shallow look at every candidate ----
     for (var i = 0; i < recs.length; i++) {
-      sample(recs[i], MIN_ROLLOUTS);
-      if (elapsed() > TIME_BUDGET) break;
+      sample(recs[i], budget.minRollouts);
+      if (elapsed() > budget.timeBudget) break;
     }
 
     // A forced win found this early is worth taking immediately.
     for (var w = 0; w < recs.length; w++) {
       if (recs[w].n && recs[w].worst >= 1e6) {
-        lastSearch = { depth: SEARCH_DEPTH, considered: list.length,
-                       beam: beam.length, rollouts: totalRollouts,
-                       perCandidate: MIN_ROLLOUTS,
-                       value: Math.round(valueOf(recs[w])), decisive: true };
+        lastSearch = {
+          depth: SEARCH_DEPTH,
+          considered: list.length,
+          beam: beam.length,
+          rollouts: totalRollouts,
+          perCandidate: budget.minRollouts,
+          value: Math.round(valueOf(recs[w])),
+          decisive: true,
+        };
         return recs[w].act;
       }
     }
 
     // ---- stage 2: spend what's left on the strongest few ----
-    recs.sort(function (a, b) { return valueOf(b) - valueOf(a); });
-    var keep = recs.slice(0, Math.min(PRUNE_KEEP, recs.length));
+    recs.sort(function (a, b) {
+      return valueOf(b) - valueOf(a);
+    });
+    var keep = recs.slice(0, Math.min(budget.pruneKeep, recs.length));
     var extra = Math.floor(SIM_BUDGET / Math.max(1, keep.length));
-    extra = Math.max(0, Math.min(MAX_ROLLOUTS, extra) - MIN_ROLLOUTS);
+    extra = Math.max(0, Math.min(budget.maxRollouts, extra) - budget.minRollouts);
 
     for (var pass = 0; pass < extra && elapsed() < TIME_BUDGET; pass++) {
       for (var j = 0; j < keep.length; j++) {
         sample(keep[j], 1);
-        if (elapsed() > TIME_BUDGET) break;
+        if (elapsed() > budget.timeBudget) break;
       }
     }
 
@@ -639,19 +813,28 @@
        is made *among those only*: taking a free body off the board is
        never worse than a speculative line, and leaving it to the scoring
        alone let rollout variance drop the kill a few times in sixty. */
-    var anyLethal = recs.some(function (r) { return r.n && (r.act.lethal || 0) > 0; });
-    var best = null, bestVal = -Infinity;
+    var anyLethal = recs.some(function (r) {
+      return r.n && (r.act.lethal || 0) > 0;
+    });
+    var best = null,
+      bestVal = -Infinity;
     recs.forEach(function (r) {
       if (!r.n) return;
       if (anyLethal && !(r.act.lethal > 0)) return;
       var v = valueOf(r);
-      if (v > bestVal) { bestVal = v; best = r.act; }
+      if (v > bestVal) {
+        bestVal = v;
+        best = r.act;
+      }
     });
     // fall back to the full field if the lethal set somehow scored nothing
     if (!best) {
       recs.forEach(function (r) {
         var v = valueOf(r);
-        if (v > bestVal) { bestVal = v; best = r.act; }
+        if (v > bestVal) {
+          bestVal = v;
+          best = r.act;
+        }
       });
     }
 
@@ -661,7 +844,7 @@
       beam: beam.length,
       rollouts: totalRollouts,
       ms: Math.round(elapsed()),
-      value: Math.round(bestVal)
+      value: Math.round(bestVal),
     };
 
     if (!best) return null;
@@ -686,11 +869,27 @@
       window.EOL.ai.SEARCH_DEPTH = SEARCH_DEPTH;
       return SEARCH_DEPTH;
     },
+    setSimulationBudget: function (opts) {
+      opts = opts || {};
+      SIMULATION_BUDGET = {
+        beamWidth: Math.max(1, opts.beamWidth || 5),
+        pruneKeep: Math.max(1, opts.pruneKeep || 2),
+        minRollouts: Math.max(1, opts.minRollouts || 2),
+        maxRollouts: Math.max(1, opts.maxRollouts || 6),
+        timeBudget: Math.max(1, opts.timeBudget || 25),
+      };
+      return SIMULATION_BUDGET;
+    },
+    clearSimulationBudget: function () {
+      SIMULATION_BUDGET = null;
+    },
     resetDepth: function () {
       SEARCH_DEPTH = DEFAULT_DEPTH;
       window.EOL.ai.SEARCH_DEPTH = SEARCH_DEPTH;
       return SEARCH_DEPTH;
     },
-    lastSearch: function () { return lastSearch; }
+    lastSearch: function () {
+      return lastSearch;
+    },
   };
 })();

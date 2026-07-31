@@ -27,9 +27,9 @@ window.EOL.roleAbilities = {
         /* Pass 8: Guard becomes interception — Taunt overrides even row
            restrictions, so a guarding tank soaks single-target shots aimed
            at the back line. */
-        { k: 'taunt', turns: 1, to: 'self' }
-      ]
-    }
+        { k: 'taunt', turns: 1, to: 'self' },
+      ],
+    },
   },
 
   Bruiser: {
@@ -42,9 +42,9 @@ window.EOL.roleAbilities = {
       target: { side: 'enemy', pick: 'single', row: 'front' },
       effects: [
         { k: 'dmg', power: 0.85, element: 'Physical' },
-        { k: 'stat', stat: 'atk', amt: 15, turns: 2, to: 'self', if: { killedTarget: true } }
-      ]
-    }
+        { k: 'stat', stat: 'atk', amt: 15, turns: 2, to: 'self', if: { killedTarget: true } },
+      ],
+    },
   },
 
   Caster: {
@@ -57,11 +57,13 @@ window.EOL.roleAbilities = {
       target: { side: 'enemy', pick: 'single', row: 'any' },
       effects: [
         {
-          k: 'dmg', power: 0.75, element: 'inherit',
-          ifMult: [{ when: { targetHasDebuff: true }, mult: 1.2 }]
-        }
-      ]
-    }
+          k: 'dmg',
+          power: 0.75,
+          element: 'inherit',
+          ifMult: [{ when: { targetHasDebuff: true }, mult: 1.2 }],
+        },
+      ],
+    },
   },
 
   Controller: {
@@ -75,15 +77,16 @@ window.EOL.roleAbilities = {
       effects: [
         { k: 'dmg', power: 0.7, element: 'Magic' },
         {
-          k: 'randomOf', when: 'now',
+          k: 'randomOf',
+          when: 'now',
           options: [
             { k: 'stat', stat: 'atk', amt: -15, turns: 2, label: '-15% ATK' },
             { k: 'costMod', unit: true, pct: 15, turns: 2, label: '+15% ability cost' },
-            { k: 'stat', stat: 'def', amt: -15, turns: 2, label: '-15% DEF' }
-          ]
-        }
-      ]
-    }
+            { k: 'stat', stat: 'def', amt: -15, turns: 2, label: '-15% DEF' },
+          ],
+        },
+      ],
+    },
   },
 
   Medic: {
@@ -101,9 +104,9 @@ window.EOL.roleAbilities = {
         /* Pass 8: battlefield triage — the rest of the team gets a light
            splash, same overflow rule, so Restore contributes to the whole
            squad rather than one health bar. */
-        { k: 'heal', power: 0.15, overflow: 'shield', to: 'otherAllies' }
-      ]
-    }
+        { k: 'heal', power: 0.15, overflow: 'shield', to: 'otherAllies' },
+      ],
+    },
   },
 
   Sniper: {
@@ -116,8 +119,8 @@ window.EOL.roleAbilities = {
       target: { side: 'enemy', pick: 'single', row: 'any' },
       effects: [
         { k: 'dmg', power: 0.85, element: 'Physical' },
-        { k: 'dmg', power: 0.05, element: 'Physical', if: { targetBackRow: true } }
-      ]
-    }
-  }
+        { k: 'dmg', power: 0.05, element: 'Physical', if: { targetBackRow: true } },
+      ],
+    },
+  },
 };

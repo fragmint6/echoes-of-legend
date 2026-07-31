@@ -11,24 +11,36 @@
 
   var PACK_SIZE = 5;
   /* Card odds, slots 1-4. The 5th card is always Epic or better. */
-  var ODDS = [['common', 45], ['rare', 35], ['epic', 16], ['legendary', 4]];
-  var FINAL_ODDS = [['epic', 80], ['legendary', 20]];
+  var ODDS = [
+    ['common', 45],
+    ['rare', 35],
+    ['epic', 16],
+    ['legendary', 4],
+  ];
+  var FINAL_ODDS = [
+    ['epic', 80],
+    ['legendary', 20],
+  ];
 
   /* Sequence timings (ms) — cinematic pacing; tests set FAST mode. */
   var DUR = {
-    introDrop: 950,     // pack falls in
-    hintDelay: 650,     // "click to open" fades up after the drop
-    charge: 700,        // shake + glow build-up
-    burst: 620,         // flash + halves + particles
-    cardStagger: 300,   // delay between reveals
-    cardFlipLag: 230,   // back shown, then flip
-    settle: 550,        // pause before summary
-    legendHold: 1700    // legendary banner on screen
+    introDrop: 950, // pack falls in
+    hintDelay: 650, // "click to open" fades up after the drop
+    charge: 700, // shake + glow build-up
+    burst: 620, // flash + halves + particles
+    cardStagger: 300, // delay between reveals
+    cardFlipLag: 230, // back shown, then flip
+    settle: 550, // pause before summary
+    legendHold: 1700, // legendary banner on screen
   };
   var FAST = false;
-  function dur(k) { return FAST ? 0 : DUR[k]; }
+  function dur(k) {
+    return FAST ? 0 : DUR[k];
+  }
 
-  function $(id) { return document.getElementById(id); }
+  function $(id) {
+    return document.getElementById(id);
+  }
 
   /* ---------------- pack contents (pure) ---------------- */
   function poolByRarity() {
@@ -43,7 +55,9 @@
 
   function rollRarity(table, rng) {
     var total = 0;
-    table.forEach(function (row) { total += row[1]; });
+    table.forEach(function (row) {
+      total += row[1];
+    });
     var r = rng() * total;
     for (var i = 0; i < table.length; i++) {
       r -= table[i][1];
@@ -59,9 +73,10 @@
     function pickFrom(rarity) {
       /* buckets are never empty with the current roster, but fall back
          gracefully if one ever is */
-      var order = rarity === 'common'
-        ? ['common', 'rare', 'epic', 'legendary']
-        : [rarity, 'epic', 'rare', 'legendary', 'common'];
+      var order =
+        rarity === 'common'
+          ? ['common', 'rare', 'epic', 'legendary']
+          : [rarity, 'epic', 'rare', 'legendary', 'common'];
       for (var i = 0; i < order.length; i++) {
         var p = pools[order[i]];
         if (p && p.length) return p[Math.floor(rng() * p.length)];
@@ -75,20 +90,29 @@
   }
 
   /* ---------------- opening state machine ---------------- */
-  var state = 'idle';      // idle | intro | await | charging | burst | reveal | summary
+  var state = 'idle'; // idle | intro | await | charging | burst | reveal | summary
   var results = [];
   var timers = [];
   var revealed = 0;
 
   function later(fn, ms) {
-    timers.push(setTimeout(function () { fn(); }, FAST ? 0 : ms));
+    timers.push(
+      setTimeout(
+        function () {
+          fn();
+        },
+        FAST ? 0 : ms
+      )
+    );
   }
   function clearTimers() {
     timers.forEach(clearTimeout);
     timers = [];
   }
 
-  function el(id) { return document.getElementById(id); }
+  function el(id) {
+    return document.getElementById(id);
+  }
 
   function resetStage() {
     clearTimers();
@@ -186,9 +210,9 @@
     flip.style.setProperty('--i', i - (results.length - 1) / 2);
     flip.innerHTML =
       '<div class="po-flip-inner">' +
-        '<div class="po-back"><div class="po-back-ring"></div>' +
-          '<i class="ra ra-crossed-swords"></i></div>' +
-        '<div class="po-front"></div>' +
+      '<div class="po-back"><div class="po-back-ring"></div>' +
+      '<i class="ra ra-crossed-swords"></i></div>' +
+      '<div class="po-front"></div>' +
       '</div>';
     var front = flip.querySelector('.po-front');
     front.appendChild(window.EOL.ui.buildCard(entry.card, entry.faction, i));
@@ -197,10 +221,12 @@
 
   function legendBanner(name) {
     var b = el('po-legend-banner');
-    b.innerHTML = '<i class="ra ra-crown"></i><span>Legendary &mdash; ' +
-      window.EOL.ui.esc(name) + '</span>';
+    b.innerHTML =
+      '<i class="ra ra-crown"></i><span>Legendary &mdash; ' + window.EOL.ui.esc(name) + '</span>';
     b.classList.add('show');
-    later(function () { b.classList.remove('show'); }, dur('legendHold'));
+    later(function () {
+      b.classList.remove('show');
+    }, dur('legendHold'));
   }
 
   /* 4 — fan settles, actions appear */
@@ -233,7 +259,10 @@
   /* Skip: jump every not-yet-shown card straight to its flipped state,
      then land on the summary without the remaining timeline. */
   function skip() {
-    if (state === 'summary') { close(); return; }
+    if (state === 'summary') {
+      close();
+      return;
+    }
     if (state === 'idle' || state === 'summary') return;
     clearTimers();
     el('po-packwrap').classList.add('gone');
@@ -289,9 +318,9 @@
       '<span class="pk-corner tl"></span><span class="pk-corner tr"></span>' +
       '<span class="pk-corner bl"></span><span class="pk-corner br"></span>' +
       '<div class="pk-emblem">' +
-        '<div class="pk-ring outer"></div>' +
-        '<div class="pk-ring inner"></div>' +
-        '<i class="ra ra-crossed-swords"></i>' +
+      '<div class="pk-ring outer"></div>' +
+      '<div class="pk-ring inner"></div>' +
+      '<i class="ra ra-crossed-swords"></i>' +
       '</div>' +
       '<div class="pk-wordmark"><span>Echoes</span><i class="ra ra-diamond"></i><span>Pack</span></div>';
     host.insertBefore(face, host.firstChild);
@@ -315,13 +344,17 @@
     el('po-skip').addEventListener('click', skip);
     el('po-pack').addEventListener('click', charge);
     el('po-pack').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); charge(); }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        charge();
+      }
     });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
       if (document.body.dataset.view !== 'shop') return;
       if (!el('pack-opening').classList.contains('on')) return;
-      if (state === 'summary') close(); else skip();
+      if (state === 'summary') close();
+      else skip();
     });
   }
 
@@ -337,8 +370,14 @@
     charge: charge,
     skip: skip,
     close: close,
-    state: function () { return state; },
-    results: function () { return results.slice(); },
-    setFast: function (v) { FAST = !!v; }   // test hook: zero-duration timers
+    state: function () {
+      return state;
+    },
+    results: function () {
+      return results.slice();
+    },
+    setFast: function (v) {
+      FAST = !!v;
+    }, // test hook: zero-duration timers
   };
 })();

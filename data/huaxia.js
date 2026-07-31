@@ -39,11 +39,11 @@ window.EOL.registerFaction({
           target: { side: 'enemy', pick: 'all', row: 'any' },
           effects: [
             { k: 'dmg', power: 0.5, element: 'Magic' },
-            { k: 'mark', to: 'targets', take: { n: 2, by: 'highestAtk' }, when: 'now' }
-          ]
-        }
+            { k: 'mark', to: 'targets', take: { n: 2, by: 'highestAtk' }, when: 'now' },
+          ],
+        },
       },
-      icon: 'ra-scroll-unfurled'
+      icon: 'ra-scroll-unfurled',
     },
     {
       id: 'huaxia-lu-bu',
@@ -63,11 +63,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'outgoingMult', mult: 1.15, when: { targetMarked: true } },
             { k: 'gainEnergy', amt: 15 },
-            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' }
-          ]
-        }
+            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' },
+          ],
+        },
       },
-      icon: 'ra-halberd'
+      icon: 'ra-halberd',
     },
     {
       id: 'huaxia-zhuge-liang',
@@ -88,11 +88,11 @@ window.EOL.registerFaction({
             { k: 'dmg', power: 0.7, element: 'Magic' },
             { k: 'mark', to: 'targets', when: 'now' },
             { k: 'stat', stat: 'def', amt: -20, turns: 2, to: 'targets', when: 'now' },
-            { k: 'drainEnergy', amt: 15 }
-          ]
-        }
+            { k: 'drainEnergy', amt: 15 },
+          ],
+        },
       },
-      icon: 'ra-crystal-ball'
+      icon: 'ra-crystal-ball',
     },
     {
       id: 'huaxia-guan-yu',
@@ -112,11 +112,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'shield', pctMaxHp: 15, to: 'self' },
             { k: 'taunt', turns: 1, to: 'self' },
-            { k: 'counterStrike', power: 0.7, markedPower: 1.2, turns: 1, to: 'self' }
-          ]
-        }
+            { k: 'counterStrike', power: 0.7, markedPower: 1.2, turns: 1, to: 'self' },
+          ],
+        },
       },
-      icon: 'ra-broadsword'
+      icon: 'ra-broadsword',
     },
     {
       id: 'huaxia-hua-tuo',
@@ -141,18 +141,18 @@ window.EOL.registerFaction({
                 { k: 'heal', pctMaxHp: 35 },
                 { k: 'stat', stat: 'def', amt: 15, turns: 2, to: 'targets' },
                 { k: 'cleanse', count: 1, to: 'targets' },
-                { k: 'shield', pctMaxHp: 10, to: 'targets' }
+                { k: 'shield', pctMaxHp: 10, to: 'targets' },
               ],
               other: [
                 { k: 'heal', pctMaxHp: 35 },
                 { k: 'stat', stat: 'def', amt: 15, turns: 2, to: 'targets' },
-                { k: 'heal', pctMaxHp: 10 }
-              ]
-            }
-          ]
-        }
+                { k: 'heal', pctMaxHp: 10 },
+              ],
+            },
+          ],
+        },
       },
-      icon: 'ra-pawprint'
+      icon: 'ra-pawprint',
     },
     {
       id: 'huaxia-huang-zhong',
@@ -177,16 +177,14 @@ window.EOL.registerFaction({
                 { k: 'dmg', power: 1.8, element: 'Physical' },
                 { k: 'dmg', power: 0.6, element: 'Physical' },
                 { k: 'consumeMark' },
-                { k: 'exposed', turns: 1, to: 'targets', when: 'now' }
+                { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
               ],
-              other: [
-                { k: 'dmg', power: 1.8, element: 'Physical' }
-              ]
-            }
-          ]
-        }
+              other: [{ k: 'dmg', power: 1.8, element: 'Physical' }],
+            },
+          ],
+        },
       },
-      icon: 'ra-arrow-cluster'
+      icon: 'ra-arrow-cluster',
     },
     {
       id: 'huaxia-sun-wukong',
@@ -209,11 +207,11 @@ window.EOL.registerFaction({
             { k: 'shield', pctMaxHp: 20, to: 'self' },
             { k: 'untargetable', turns: 1, to: 'self' },
             { k: 'taunt', turns: 1, to: 'self' },
-            { k: 'stat', stat: 'atk', amt: 25, turns: 99, to: 'self' }
-          ]
-        }
+            { k: 'stat', stat: 'atk', amt: 25, turns: 99, to: 'self' },
+          ],
+        },
       },
-      icon: 'ra-aura'
+      icon: 'ra-aura',
     },
     {
       id: 'huaxia-nezha',
@@ -233,11 +231,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'dmg', power: 1.8, element: 'Fire' },
             { k: 'dmg', power: 0.6, element: 'Fire', if: { targetDamagedBefore: true } },
-            { k: 'burn', turns: 2, to: 'targets', if: { targetDamagedBefore: true }, when: 'now' }
-          ]
-        }
+            { k: 'burn', turns: 2, to: 'targets', if: { targetDamagedBefore: true }, when: 'now' },
+          ],
+        },
       },
-      icon: 'ra-fire-symbol'
+      icon: 'ra-fire-symbol',
     },
     {
       id: 'huaxia-mulan',
@@ -256,12 +254,28 @@ window.EOL.registerFaction({
           triggers: ['allyDied', 'allyBelowHp'],
           threshold: 0.4,
           effects: [
-            { k: 'stat', stat: 'atk', amt: 12, turns: 99, to: 'self', stackTag: 'warriors-resolve-atk', maxStacks: 4 },
-            { k: 'stat', stat: 'crit', amt: 10, turns: 99, to: 'self', stackTag: 'warriors-resolve-crit', maxStacks: 4 }
-          ]
-        }
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: 12,
+              turns: 99,
+              to: 'self',
+              stackTag: 'warriors-resolve-atk',
+              maxStacks: 4,
+            },
+            {
+              k: 'stat',
+              stat: 'crit',
+              amt: 10,
+              turns: 99,
+              to: 'self',
+              stackTag: 'warriors-resolve-crit',
+              maxStacks: 4,
+            },
+          ],
+        },
       },
-      icon: 'ra-crossbow'
-    }
-  ]
+      icon: 'ra-crossbow',
+    },
+  ],
 });

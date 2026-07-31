@@ -26,7 +26,7 @@
     Light: 'ra-sun',
     Lightning: 'ra-lightning-bolt',
     Fire: 'ra-fire',
-    Nature: 'ra-leaf'
+    Nature: 'ra-leaf',
   };
   var ELEMENT_COLOR = {
     Physical: 'var(--e-physical)',
@@ -35,7 +35,7 @@
     Light: 'var(--e-light)',
     Lightning: 'var(--e-lightning)',
     Fire: 'var(--e-fire)',
-    Nature: 'var(--e-nature)'
+    Nature: 'var(--e-nature)',
   };
   var ROLE_ICON = {
     Tank: 'ra-shield',
@@ -43,7 +43,7 @@
     Caster: 'ra-fairy-wand',
     Controller: 'ra-gears',
     Medic: 'ra-health',
-    Sniper: 'ra-archery-target'
+    Sniper: 'ra-archery-target',
   };
 
   /* bar scaling maxima */
@@ -51,7 +51,9 @@
      of hard-coded ceilings — the old atk: 1150 meant almost every hero
      showed a full ATK bar. */
   var MAX = (function () {
-    var hp = 0, atk = 0, def = 0;
+    var hp = 0,
+      atk = 0,
+      def = 0;
     (window.EOL.factions || []).forEach(function (f) {
       f.cards.forEach(function (c) {
         if (c.stats.hp > hp) hp = c.stats.hp;
@@ -59,9 +61,11 @@
         if (c.stats.def > def) def = c.stats.def;
       });
     });
-    return { hp: Math.round((hp || 7000) * 1.05),
-             atk: Math.round((atk || 2000) * 1.05),
-             def: Math.max(def || 30, 35) };
+    return {
+      hp: Math.round((hp || 7000) * 1.05),
+      atk: Math.round((atk || 2000) * 1.05),
+      def: Math.max(def || 30, 35),
+    };
   })();
 
   function esc(s) {
@@ -69,16 +73,28 @@
   }
   // ability text may contain intentional <b> tags from the data files;
   // element names get colour-coded on the way out
-  function rich(s) { return window.EOL.colorElements(String(s)); }
+  function rich(s) {
+    return window.EOL.colorElements(String(s));
+  }
 
   function statRow(icon, key, val, display, max, color) {
     var pct = Math.max(4, Math.min(100, (val / max) * 100));
     return (
-      '<div class="stat-row" style="--sc:' + color + ';--pct:' + pct.toFixed(1) + '%">' +
-        '<i class="stat-ico ra ' + icon + '"></i>' +
-        '<span class="stat-key">' + key + '</span>' +
-        '<span class="stat-bar"><span class="stat-fill"></span></span>' +
-        '<span class="stat-val">' + display + '</span>' +
+      '<div class="stat-row" style="--sc:' +
+      color +
+      ';--pct:' +
+      pct.toFixed(1) +
+      '%">' +
+      '<i class="stat-ico ra ' +
+      icon +
+      '"></i>' +
+      '<span class="stat-key">' +
+      key +
+      '</span>' +
+      '<span class="stat-bar"><span class="stat-fill"></span></span>' +
+      '<span class="stat-val">' +
+      display +
+      '</span>' +
       '</div>'
     );
   }
@@ -100,62 +116,102 @@
     var isActive = card.ability.type === 'Active';
     var abColor = isActive ? 'var(--rar-1)' : '#7fe3c0';
 
-    var costTag = isActive && card.ability.cost != null
-      ? '<span class="ab-cost"><i class="ra ra-lightning-bolt"></i>' + card.ability.cost + '</span>'
-      : '';
+    var costTag =
+      isActive && card.ability.cost != null
+        ? '<span class="ab-cost"><i class="ra ra-lightning-bolt"></i>' +
+          card.ability.cost +
+          '</span>'
+        : '';
 
     el.innerHTML =
       '<div class="card-art">' +
-        '<div class="art-ring"></div>' +
-        '<i class="art-glyph ra ' + card.icon + '"></i>' +
+      '<div class="art-ring"></div>' +
+      '<i class="art-glyph ra ' +
+      card.icon +
+      '"></i>' +
       '</div>' +
       '<div class="card-vignette"></div>' +
       '<div class="card-sheen"></div>' +
       '<div class="card-frame"></div>' +
       '<span class="corner tl"></span><span class="corner tr"></span>' +
       '<span class="corner bl"></span><span class="corner br"></span>' +
-
       '<div class="card-top">' +
-        '<span class="rarity-tag">' + esc(card.rarity) + '</span>' +
-        '<span class="element-orb" title="' + esc(card.element) + '">' +
-          '<i class="ra ' + (ELEMENT_ICON[card.element] || 'ra-player') + '"></i>' +
-        '</span>' +
+      '<span class="rarity-tag">' +
+      esc(card.rarity) +
+      '</span>' +
+      '<span class="element-orb" title="' +
+      esc(card.element) +
+      '">' +
+      '<i class="ra ' +
+      (ELEMENT_ICON[card.element] || 'ra-player') +
+      '"></i>' +
+      '</span>' +
       '</div>' +
-
       '<div class="card-plate">' +
-        '<div class="plate-role">' +
-          '<i class="ra ' + (ROLE_ICON[card.role] || 'ra-player') + '"></i>' + esc(card.role) +
-        '</div>' +
-        '<h3 class="card-name">' + esc(card.name) + '</h3>' +
-        '<div class="plate-hint"><i class="ri-cursor-line"></i><span class="hint-txt"></span></div>' +
+      '<div class="plate-role">' +
+      '<i class="ra ' +
+      (ROLE_ICON[card.role] || 'ra-player') +
+      '"></i>' +
+      esc(card.role) +
       '</div>' +
-
+      '<h3 class="card-name">' +
+      esc(card.name) +
+      '</h3>' +
+      '<div class="plate-hint"><i class="ri-cursor-line"></i><span class="hint-txt"></span></div>' +
+      '</div>' +
       '<div class="card-overlay">' +
-        '<div class="ov-head">' +
-          '<h3 class="ov-name">' + esc(card.name) + '</h3>' +
-          '<div class="ov-meta">' + esc(card.rarity) +
-            '<i class="ra ra-diamond dot"></i>' + esc(card.role) +
-            '<i class="ra ra-diamond dot"></i><span class="el">' + esc(card.element) + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="stat-block">' +
-          statRow('ra-health', 'HP', card.stats.hp, card.stats.hp.toLocaleString(), MAX.hp, '#ff5f7e') +
-          statRow('ra-sword', 'ATK', card.stats.atk, card.stats.atk.toLocaleString(), MAX.atk, '#ffb347') +
-          statRow('ra-shield', 'DEF', card.stats.def, card.stats.def + '%', MAX.def, '#5fb2ff') +
-        '</div>' +
-        '<div class="ability" style="--ab-c:' + abColor + '">' +
-          '<div class="ab-top">' +
-            '<span class="ab-type">' + esc(card.ability.type) + '</span>' + costTag +
-          '</div>' +
-          '<div class="ab-name">' + esc(card.ability.name) + '</div>' +
-          '<div class="ab-text">' + rich(card.ability.text) +
-            (card.ability.note ? '<div class="ab-note">' + rich(card.ability.note) + '</div>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="ov-foot">' +
-          '<span class="role-pill"><i class="ra ' + (ROLE_ICON[card.role] || 'ra-player') + '"></i> ' + esc(card.role) + '</span>' +
-          '<span>' + esc(faction.name) + '</span>' +
-        '</div>' +
+      '<div class="ov-head">' +
+      '<h3 class="ov-name">' +
+      esc(card.name) +
+      '</h3>' +
+      '<div class="ov-meta">' +
+      esc(card.rarity) +
+      '<i class="ra ra-diamond dot"></i>' +
+      esc(card.role) +
+      '<i class="ra ra-diamond dot"></i><span class="el">' +
+      esc(card.element) +
+      '</span>' +
+      '</div>' +
+      '</div>' +
+      '<div class="stat-block">' +
+      statRow('ra-health', 'HP', card.stats.hp, card.stats.hp.toLocaleString(), MAX.hp, '#ff5f7e') +
+      statRow(
+        'ra-sword',
+        'ATK',
+        card.stats.atk,
+        card.stats.atk.toLocaleString(),
+        MAX.atk,
+        '#ffb347'
+      ) +
+      statRow('ra-shield', 'DEF', card.stats.def, card.stats.def + '%', MAX.def, '#5fb2ff') +
+      '</div>' +
+      '<div class="ability" style="--ab-c:' +
+      abColor +
+      '">' +
+      '<div class="ab-top">' +
+      '<span class="ab-type">' +
+      esc(card.ability.type) +
+      '</span>' +
+      costTag +
+      '</div>' +
+      '<div class="ab-name">' +
+      esc(card.ability.name) +
+      '</div>' +
+      '<div class="ab-text">' +
+      rich(card.ability.text) +
+      (card.ability.note ? '<div class="ab-note">' + rich(card.ability.note) + '</div>' : '') +
+      '</div>' +
+      '</div>' +
+      '<div class="ov-foot">' +
+      '<span class="role-pill"><i class="ra ' +
+      (ROLE_ICON[card.role] || 'ra-player') +
+      '"></i> ' +
+      esc(card.role) +
+      '</span>' +
+      '<span>' +
+      esc(faction.name) +
+      '</span>' +
+      '</div>' +
       '</div>';
 
     /* tap-to-toggle on touch devices */
@@ -190,7 +246,9 @@
     ELEMENT_COLOR: ELEMENT_COLOR,
     buildDropdown: buildDropdown,
     closeAllMenus: closeAllMenus,
-    show: function (view) { show(view); }
+    show: function (view) {
+      show(view);
+    },
   };
 
   /* ---------------- lazy rendering ----------------
@@ -198,17 +256,19 @@
      grid pulls in the next batch as it approaches the viewport, so the
      DOM only ever holds what the user has scrolled to. */
   var state = { faction: 'all', rarity: 'all', role: 'all', q: '' };
-  var PAGE = 12;                  // cards per lazy batch
-  var filtered = ROSTER.slice();  // entries matching the current filters
-  var rendered = 0;               // how many of `filtered` are in the DOM
+  var PAGE = 12; // cards per lazy batch
+  var filtered = ROSTER.slice(); // entries matching the current filters
+  var rendered = 0; // how many of `filtered` are in the DOM
 
   function matching() {
     return ROSTER.filter(function (entry) {
       var c = entry.card;
-      return (state.faction === 'all' || entry.faction.id === state.faction) &&
-             (state.rarity === 'all' || c.rarity === state.rarity) &&
-             (state.role === 'all' || c.role === state.role) &&
-             (state.q === '' || c.name.toLowerCase().indexOf(state.q) !== -1);
+      return (
+        (state.faction === 'all' || entry.faction.id === state.faction) &&
+        (state.rarity === 'all' || c.rarity === state.rarity) &&
+        (state.role === 'all' || c.role === state.role) &&
+        (state.q === '' || c.name.toLowerCase().indexOf(state.q) !== -1)
+      );
     });
   }
 
@@ -265,11 +325,17 @@
     menu.setAttribute('role', 'listbox');
 
     function paint(v) {
-      var o = opts.filter(function (x) { return x.value === v; })[0] || opts[0];
+      var o =
+        opts.filter(function (x) {
+          return x.value === v;
+        })[0] || opts[0];
       btn.innerHTML =
-        '<span class="dd-label">' + label + '</span>' +
+        '<span class="dd-label">' +
+        label +
+        '</span>' +
         '<span class="dd-value">' +
-          (o.icon ? '<i class="' + o.icon + '"></i>' : '') + esc(o.text) +
+        (o.icon ? '<i class="' + o.icon + '"></i>' : '') +
+        esc(o.text) +
         '</span>' +
         '<i class="dd-caret ri-arrow-down-s-line"></i>';
       menu.querySelectorAll('.dd-opt').forEach(function (el) {
@@ -285,8 +351,11 @@
       b.type = 'button';
       b.dataset.value = o.value;
       b.setAttribute('role', 'option');
-      b.innerHTML = (o.icon ? '<i class="' + o.icon + '"></i>' : '<i class="dd-blank"></i>') +
-        '<span>' + esc(o.text) + '</span><i class="dd-check ri-check-line"></i>';
+      b.innerHTML =
+        (o.icon ? '<i class="' + o.icon + '"></i>' : '<i class="dd-blank"></i>') +
+        '<span>' +
+        esc(o.text) +
+        '</span><i class="dd-check ri-check-line"></i>';
       b.addEventListener('click', function () {
         paint(o.value);
         dd.classList.remove('open');
@@ -325,7 +394,7 @@
       { value: 'legendary', text: 'Legendary' },
       { value: 'epic', text: 'Epic' },
       { value: 'rare', text: 'Rare' },
-      { value: 'common', text: 'Common' }
+      { value: 'common', text: 'Common' },
     ];
 
     var roleOpts = [{ value: 'all', text: 'All Roles', icon: 'ri-team-line' }];
@@ -333,11 +402,22 @@
       roleOpts.push({ value: r, text: r, icon: 'ra ' + ROLE_ICON[r] });
     });
 
-    buildDropdown(host, 'Faction', factionOpts, function (v) { state.faction = v; applyFilters(); });
-    buildDropdown(host, 'Rarity', rarityOpts, function (v) { state.rarity = v; applyFilters(); });
-    buildDropdown(host, 'Role', roleOpts, function (v) { state.role = v; applyFilters(); });
+    buildDropdown(host, 'Faction', factionOpts, function (v) {
+      state.faction = v;
+      applyFilters();
+    });
+    buildDropdown(host, 'Rarity', rarityOpts, function (v) {
+      state.rarity = v;
+      applyFilters();
+    });
+    buildDropdown(host, 'Role', roleOpts, function (v) {
+      state.role = v;
+      applyFilters();
+    });
 
-    document.addEventListener('click', function () { closeAllMenus(null); });
+    document.addEventListener('click', function () {
+      closeAllMenus(null);
+    });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeAllMenus(null);
     });
@@ -395,11 +475,14 @@
        browsers without IntersectionObserver */
     var sent = document.getElementById('roster-sentinel');
     if (sent && 'IntersectionObserver' in window) {
-      new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) renderBatch();
-        });
-      }, { root: null, rootMargin: '900px 0px' }).observe(sent);
+      new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) renderBatch();
+          });
+        },
+        { root: null, rootMargin: '900px 0px' }
+      ).observe(sent);
     } else {
       PAGE = ROSTER.length;
     }

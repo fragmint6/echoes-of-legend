@@ -24,11 +24,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'shield', pctMaxHp: 15, to: 'self' },
             { k: 'shield', pctMaxHp: 15, to: 'allies', take: { n: 1, by: 'lowestHp' } },
-            { k: 'taunt', turns: 1, to: 'self', healOnHit: 4 }
-          ]
-        }
+            { k: 'taunt', turns: 1, to: 'self', healOnHit: 4 },
+          ],
+        },
       },
-      icon: 'ra-candle'
+      icon: 'ra-candle',
     },
     {
       id: 'grimmwood-rumpelstiltskin',
@@ -39,7 +39,7 @@ window.EOL.registerFaction({
       stats: { hp: 5615, atk: 1350, def: 20 },
       ability: {
         type: 'Active',
-        name: "Cruel Bargain",
+        name: 'Cruel Bargain',
         cost: 40,
         text: 'Strike a bargain. <b>Heads:</b> apply <b>Burn</b> to all enemies for 2 rounds and reduce their ATK by <b>15%</b>. <b>Tails:</b> reduce all enemy healing by <b>60% for 2 rounds</b> and apply <b>Exposed</b> for 1 round.',
         note: null,
@@ -52,21 +52,21 @@ window.EOL.registerFaction({
                 label: 'Heads — all enemies Burn',
                 effects: [
                   { k: 'burn', turns: 2, to: 'targets', when: 'now' },
-                  { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'targets', when: 'now' }
-                ]
+                  { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'targets', when: 'now' },
+                ],
               },
               tails: {
                 label: 'Tails — enemy healing reduced 60%',
                 effects: [
                   { k: 'healMod', pct: -60, turns: 2, to: 'targets', when: 'now' },
-                  { k: 'exposed', turns: 1, to: 'targets', when: 'now' }
-                ]
-              }
-            }
-          ]
-        }
+                  { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
+                ],
+              },
+            },
+          ],
+        },
       },
-      icon: 'ra-gold-bar'
+      icon: 'ra-gold-bar',
     },
     {
       id: 'grimmwood-big-bad-wolf',
@@ -86,11 +86,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'dmg', power: 2.0, element: 'Nature' },
             { k: 'lifesteal', pct: 25, if: { targetHasDebuff: false } },
-            { k: 'lifesteal', pct: 40, if: { targetHasDebuff: true } }
-          ]
-        }
+            { k: 'lifesteal', pct: 40, if: { targetHasDebuff: true } },
+          ],
+        },
       },
-      icon: 'ra-wolf-head'
+      icon: 'ra-wolf-head',
     },
     {
       id: 'grimmwood-snow-white',
@@ -110,11 +110,11 @@ window.EOL.registerFaction({
           effects: [
             { k: 'heal', pctMaxHp: 22 },
             { k: 'cleanse', count: 1, to: 'targets' },
-            { k: 'stat', stat: 'def', amt: 15, turns: 2, to: 'targets' }
-          ]
-        }
+            { k: 'stat', stat: 'def', amt: 15, turns: 2, to: 'targets' },
+          ],
+        },
       },
-      icon: 'ra-apple'
+      icon: 'ra-apple',
     },
     {
       id: 'grimmwood-red-riding-hood',
@@ -132,16 +132,30 @@ window.EOL.registerFaction({
         passive: {
           trigger: 'allyStruckDebuffed',
           effects: [
-            { k: 'stat', stat: 'crit', amt: 8, turns: 2, to: 'self', stackTag: 'hunters-courage-crit', maxStacks: 4 },
-            { k: 'stat', stat: 'atk', amt: 5, turns: 2, to: 'self', stackTag: 'hunters-courage-atk', maxStacks: 4 },
-            { k: 'shield', pctMaxHp: 10, to: 'self' }
+            {
+              k: 'stat',
+              stat: 'crit',
+              amt: 8,
+              turns: 2,
+              to: 'self',
+              stackTag: 'hunters-courage-crit',
+              maxStacks: 4,
+            },
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: 5,
+              turns: 2,
+              to: 'self',
+              stackTag: 'hunters-courage-atk',
+              maxStacks: 4,
+            },
+            { k: 'shield', pctMaxHp: 10, to: 'self' },
           ],
-          onHit: [
-            { k: 'lifesteal', pct: 25, ifTargetDebuffed: true }
-          ]
-        }
+          onHit: [{ k: 'lifesteal', pct: 25, ifTargetDebuffed: true }],
+        },
       },
-      icon: 'ra-hood'
+      icon: 'ra-hood',
     },
     {
       id: 'grimmwood-pied-piper',
@@ -154,18 +168,18 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Enchanted Melody',
         cost: 20,
-        text: "Deal <b>60% ATK Magic Damage</b> to <b>2 enemies</b> and reduce their ATK by <b>20% for 2 rounds</b>, also applying <b>Exposed</b> for 1 round to any already debuffed.",
+        text: 'Deal <b>60% ATK Magic Damage</b> to <b>2 enemies</b> and reduce their ATK by <b>20% for 2 rounds</b>, also applying <b>Exposed</b> for 1 round to any already debuffed.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'two', row: 'any' },
           effects: [
             { k: 'dmg', power: 0.6, element: 'Magic' },
             { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
-            { k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'targets', when: 'now' }
-          ]
-        }
+            { k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'targets', when: 'now' },
+          ],
+        },
       },
-      icon: 'ra-horn-call'
-    }
-  ]
+      icon: 'ra-horn-call',
+    },
+  ],
 });

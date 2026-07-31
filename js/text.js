@@ -17,45 +17,69 @@
      "Light", "Crit Chance" before "Crit"). */
   var STATUS_WORDS = [
     ['Untargetable', 'untargetable'],
-    ['Exposed',      'exposed'],
-    ['Burning',      'burn'],
-    ['Burn',         'burn'],
-    ['Marked',       'marked'],
-    ['Mark',         'marked'],
-    ['Marks',        'marked'],
-    ['Shielded',     'shield'],
-    ['Shield',       'shield'],
-    ['Taunts',       'taunt'],
-    ['Taunting',     'taunt'],
-    ['Taunt',        'taunt'],
-    ['Silenced',     'silence'],
-    ['Silence',      'silence']
+    ['Exposed', 'exposed'],
+    ['Burning', 'burn'],
+    ['Burn', 'burn'],
+    ['Marked', 'marked'],
+    ['Mark', 'marked'],
+    ['Marks', 'marked'],
+    ['Shielded', 'shield'],
+    ['Shield', 'shield'],
+    ['Taunts', 'taunt'],
+    ['Taunting', 'taunt'],
+    ['Taunt', 'taunt'],
+    ['Silenced', 'silence'],
+    ['Silence', 'silence'],
   ];
   var STAT_WORDS = [
     ['Crit Chance', 'crit'],
-    ['Crit',        'crit'],
-    ['Max HP',      'hp'],
-    ['HP',          'hp'],
-    ['ATK',         'atk'],
-    ['DEF',         'def'],
-    ['Energy',      'energy']
+    ['Crit', 'crit'],
+    ['Max HP', 'hp'],
+    ['HP', 'hp'],
+    ['ATK', 'atk'],
+    ['DEF', 'def'],
+    ['Energy', 'energy'],
   ];
 
-  function esc(w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function esc(w) {
+    return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
 
   /* Build one alternation of every keyword, longest first so that e.g.
      "Marks" wins over "Mark" and "Max HP" over "HP". */
   var ALL = []
-    .concat(ELEMENTS.map(function (w) { return [w, 'el-' + w.toLowerCase()]; }))
-    .concat(STATUS_WORDS.map(function (p) { return [p[0], 'st-' + p[1]]; }))
-    .concat(STAT_WORDS.map(function (p) { return [p[0], 'sv-' + p[1]]; }));
-  ALL.sort(function (a, b) { return b[0].length - a[0].length; });
+    .concat(
+      ELEMENTS.map(function (w) {
+        return [w, 'el-' + w.toLowerCase()];
+      })
+    )
+    .concat(
+      STATUS_WORDS.map(function (p) {
+        return [p[0], 'st-' + p[1]];
+      })
+    )
+    .concat(
+      STAT_WORDS.map(function (p) {
+        return [p[0], 'sv-' + p[1]];
+      })
+    );
+  ALL.sort(function (a, b) {
+    return b[0].length - a[0].length;
+  });
 
   var CLASS_OF = {};
-  ALL.forEach(function (p) { CLASS_OF[p[0].toLowerCase()] = p[1]; });
+  ALL.forEach(function (p) {
+    CLASS_OF[p[0].toLowerCase()] = p[1];
+  });
 
   var KEY_RE = new RegExp(
-    '\\b(' + ALL.map(function (p) { return esc(p[0]); }).join('|') + ')\\b', 'g');
+    '\\b(' +
+      ALL.map(function (p) {
+        return esc(p[0]);
+      }).join('|') +
+      ')\\b',
+    'g'
+  );
 
   /* Wrap every known keyword in ability text with a coloured span.
      Runs on already-built HTML, so it must not touch text inside tags. */
@@ -65,11 +89,17 @@
     var i = 0;
     while (i < html.length) {
       var lt = html.indexOf('<', i);
-      if (lt === -1) { out += html.slice(i).replace(KEY_RE, tag); break; }
+      if (lt === -1) {
+        out += html.slice(i).replace(KEY_RE, tag);
+        break;
+      }
       out += html.slice(i, lt).replace(KEY_RE, tag);
       var gt = html.indexOf('>', lt);
-      if (gt === -1) { out += html.slice(lt); break; }
-      out += html.slice(lt, gt + 1);   // leave the tag itself alone
+      if (gt === -1) {
+        out += html.slice(lt);
+        break;
+      }
+      out += html.slice(lt, gt + 1); // leave the tag itself alone
       i = gt + 1;
     }
     return out;
@@ -88,24 +118,29 @@
      ----------------------------------------------------------- */
   window.EOL.STATUS = {
     // --- stat buffs ---
-    'atk+':   { icon: 'ra-muscle-up',      kind: 'buff',   label: 'ATK Up',   color: '#ffb347' },
-    'def+':   { icon: 'ra-heavy-shield',   kind: 'buff',   label: 'DEF Up',   color: '#8fd0ff' },
-    'crit+':  { icon: 'ra-target-arrows',  kind: 'buff',   label: 'Crit Up',  color: '#ffd050' },
+    'atk+': { icon: 'ra-muscle-up', kind: 'buff', label: 'ATK Up', color: '#ffb347' },
+    'def+': { icon: 'ra-heavy-shield', kind: 'buff', label: 'DEF Up', color: '#8fd0ff' },
+    'crit+': { icon: 'ra-target-arrows', kind: 'buff', label: 'Crit Up', color: '#ffd050' },
     // --- stat debuffs ---
-    'atk-':   { icon: 'ra-broken-bone',    kind: 'debuff', label: 'ATK Down', color: '#ff9d9d' },
-    'def-':   { icon: 'ra-cracked-shield', kind: 'debuff', label: 'DEF Down', color: '#ff9d9d' },
-    'crit-':  { icon: 'ra-target-arrows',  kind: 'debuff', label: 'Crit Down', color: '#ff9d9d' },
+    'atk-': { icon: 'ra-broken-bone', kind: 'debuff', label: 'ATK Down', color: '#ff9d9d' },
+    'def-': { icon: 'ra-cracked-shield', kind: 'debuff', label: 'DEF Down', color: '#ff9d9d' },
+    'crit-': { icon: 'ra-target-arrows', kind: 'debuff', label: 'Crit Down', color: '#ff9d9d' },
     // --- flags / special states ---
-    taunt:        { icon: 'ra-shield',          kind: 'buff',   label: 'Taunting',        color: '#ffd98a' },
-    untargetable: { icon: 'ra-aura',            kind: 'buff',   label: 'Untargetable',    color: '#a9e9ff' },
-    shield:       { icon: 'ra-round-shield',    kind: 'buff',   label: 'Shielded',        color: '#9fd8ff' },
-    silence:      { icon: 'ra-uncertainty',     kind: 'debuff', label: 'Silenced',        color: '#e0a3ff' },
-    marked:       { icon: 'ra-lightning-storm', kind: 'debuff', label: 'Marked',          color: '#ffe066' },
-    burn:         { icon: 'ra-burning-embers',  kind: 'debuff', label: 'Burning',         color: '#ff7a3c' },
-    exposed:      { icon: 'ra-broken-shield',   kind: 'debuff', label: 'Exposed',         color: '#ff5f7e' },
-    healdown:     { icon: 'ra-broken-heart',    kind: 'debuff', label: 'Healing Reduced', color: '#ff9d9d' },
-    costup:       { icon: 'ra-hourglass',       kind: 'debuff', label: 'Ability Cost Up', color: '#ff9d9d' },
-    costdown:     { icon: 'ra-hourglass',       kind: 'buff',   label: 'Ability Cost Down', color: '#8fe3b0' }
+    taunt: { icon: 'ra-shield', kind: 'buff', label: 'Taunting', color: '#ffd98a' },
+    untargetable: { icon: 'ra-aura', kind: 'buff', label: 'Untargetable', color: '#a9e9ff' },
+    shield: { icon: 'ra-round-shield', kind: 'buff', label: 'Shielded', color: '#9fd8ff' },
+    silence: { icon: 'ra-uncertainty', kind: 'debuff', label: 'Silenced', color: '#e0a3ff' },
+    marked: { icon: 'ra-lightning-storm', kind: 'debuff', label: 'Marked', color: '#ffe066' },
+    burn: { icon: 'ra-burning-embers', kind: 'debuff', label: 'Burning', color: '#ff7a3c' },
+    exposed: { icon: 'ra-broken-shield', kind: 'debuff', label: 'Exposed', color: '#ff5f7e' },
+    healdown: {
+      icon: 'ra-broken-heart',
+      kind: 'debuff',
+      label: 'Healing Reduced',
+      color: '#ff9d9d',
+    },
+    costup: { icon: 'ra-hourglass', kind: 'debuff', label: 'Ability Cost Up', color: '#ff9d9d' },
+    costdown: { icon: 'ra-hourglass', kind: 'buff', label: 'Ability Cost Down', color: '#8fe3b0' },
   };
 
   /* Collapse a unit's live state into a de-duplicated icon list.
@@ -115,10 +150,21 @@
     function push(key, turns, count) {
       var def = window.EOL.STATUS[key];
       if (!def) return;
-      var hit = out.filter(function (o) { return o.key === key; })[0];
-      if (hit) { hit.count += (count || 1); return; }
-      out.push({ key: key, icon: def.icon, kind: def.kind, label: def.label,
-                 turns: turns, count: count || 1 });
+      var hit = out.filter(function (o) {
+        return o.key === key;
+      })[0];
+      if (hit) {
+        hit.count += count || 1;
+        return;
+      }
+      out.push({
+        key: key,
+        icon: def.icon,
+        kind: def.kind,
+        label: def.label,
+        turns: turns,
+        count: count || 1,
+      });
     }
 
     (u.buffs || []).forEach(function (b) {
