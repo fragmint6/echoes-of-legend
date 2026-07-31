@@ -6564,6 +6564,11 @@ body[data-turn='player'] .turn-label {
   font-weight: 700;
   line-height: 1.15;
   color: var(--txt);
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-align: center;
 }
 .deck-slot .ds-role {
   font-size: 9.5px;
@@ -8888,9 +8893,12 @@ body[data-turn='player'] .turn-label {
   line-height: 1.15;
   color: var(--txt);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* long names wrap onto extra lines instead of being cut with an
+     ellipsis — "Constantine the Great" now reads in full */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-align: center;
 }
 .fs-role {
   display: inline-flex;
@@ -9004,6 +9012,62 @@ body[data-turn='player'] .turn-label {
 #prep-tip {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* Prep card names wrap onto multiple lines rather than being clipped.
+   The battle board shrinks long names to one line via fitNames() in
+   battle.js; in prep there is vertical room in the foot, so the name is
+   allowed to run to two or three lines at a steady size instead. The
+   .prep-c scope keeps the battlefield's behaviour unchanged. */
+.prep-c .bcard-foot {
+  padding: 14px 5px 6px;
+}
+.prep-c .bcard-name {
+  font-size: 10.5px !important; /* belt-and-braces: fitNames() is scoped away from .prep-c */
+  line-height: 1.14;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* ANCHORED PLACEMENT (prep only).
+   The battle flyout is pinned to the far left/right of the board at
+   top:50%, which in the ban/pick grids meant the panel sat on top of the
+   very cards you were reading. In prep it is positioned next to the
+   hovered card instead — placePrepTip() in play.js writes inline
+   left/top, so the centring transform has to go, otherwise it would
+   fight the measured coordinates. */
+#prep-tip.anchored {
+  top: 0;
+  left: 0;
+  right: auto;
+  transform: translateX(-8px) scale(0.98);
+  transform-origin: left center;
+  max-height: calc(100vh - 20px);
+}
+#prep-tip.anchored.from-left {
+  transform: translateX(8px) scale(0.98);
+  transform-origin: right center;
+}
+#prep-tip.anchored.show {
+  transform: translateX(0) scale(1);
+}
+#prep-tip.anchored.swap {
+  animation: prep-tip-swap 0.26s var(--ease);
+}
+@keyframes prep-tip-swap {
+  from {
+    opacity: 0.35;
+    transform: translateX(var(--swap-x, -8px)) scale(0.985);
+  }
+}
+#prep-tip.anchored.from-left.swap {
+  --swap-x: 8px;
 }
 #prep-tip::-webkit-scrollbar {
   width: 0;
@@ -9397,3 +9461,4 @@ body[data-turn='player'] .turn-label {
     gap: 12px;
   }
 }
+

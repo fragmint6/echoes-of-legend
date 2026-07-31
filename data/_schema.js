@@ -259,3 +259,4 @@ window.EOL.deckRules = (function () {
     draftPool: draftPool,
   };
 })();
+

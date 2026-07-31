@@ -98,7 +98,9 @@ window.EOL.registerFaction({
       rarity: 'rare',
       role: 'Medic',
       element: 'Nature',
-      stats: { hp: 4680, atk: 990, def: 24 },
+      /* DEF 24 -> 22: was outside the Medic band (18-22). Corrected
+         2026-07-31 alongside the Abe no Seimei stat fix. */
+      stats: { hp: 4680, atk: 990, def: 22 },
       ability: {
         type: 'Active',
         name: 'Forest Blessing',
@@ -183,3 +185,4 @@ window.EOL.registerFaction({
     },
   ],
 });
+

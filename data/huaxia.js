@@ -18,7 +18,7 @@
 window.EOL.registerFaction({
   id: 'huaxia',
   name: 'Huaxia',
-  icon: 'ra-broadsword',
+  icon: 'ra-two-dragons',
   tagline: 'Empires rise where the dragon sleeps.',
   colors: { primary: '#b03a2e', secondary: '#d9a521', glow: '#ff8b6a' },
   cards: [
@@ -279,3 +279,4 @@ window.EOL.registerFaction({
     },
   ],
 });
+

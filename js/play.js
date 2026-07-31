@@ -298,7 +298,48 @@
   }
   var lastTipId = null,
     tipSwapTimer = null;
-  function showPrepTip(e, side) {
+
+  /* Place the hover panel BESIDE the card that opened it instead of pinning
+     it to the far left/right of the view, where it used to sit on top of the
+     grid. Preference order:
+        1. immediately right of the card, top edges aligned
+        2. immediately left of the card, top edges aligned
+        3. whichever side has more room, clamped into the viewport
+     Vertically the panel starts at the card's top; if it would overflow the
+     bottom it is pulled up to bottom-align, and it never leaves the view. */
+  var TIP_GAP = 12,
+    TIP_EDGE = 10;
+  function placePrepTip(tip, anchor) {
+    if (!anchor) return;
+    // measure with the panel laid out but not yet transitioned
+    var host = tip.offsetParent || document.body;
+    var hostBox = host.getBoundingClientRect();
+    var card = anchor.getBoundingClientRect();
+    var tw = tip.offsetWidth || 268;
+    var th = tip.offsetHeight || 320;
+    var vw = document.documentElement.clientWidth;
+    var vh = document.documentElement.clientHeight;
+
+    var roomRight = vw - card.right - TIP_GAP - TIP_EDGE;
+    var roomLeft = card.left - TIP_GAP - TIP_EDGE;
+    var onRight = roomRight >= tw || roomRight >= roomLeft;
+
+    var vpLeft = onRight ? card.right + TIP_GAP : card.left - TIP_GAP - tw;
+    // keep it fully on screen even when neither side truly fits
+    vpLeft = Math.max(TIP_EDGE, Math.min(vpLeft, vw - tw - TIP_EDGE));
+
+    var vpTop = card.top; // default: match the card's top edge
+    if (vpTop + th > vh - TIP_EDGE) vpTop = card.bottom - th; // else bottom-align
+    vpTop = Math.max(TIP_EDGE, Math.min(vpTop, vh - th - TIP_EDGE));
+
+    // convert viewport coords into the offset parent's coordinate space
+    tip.style.left = vpLeft - hostBox.left + 'px';
+    tip.style.top = vpTop - hostBox.top + 'px';
+    tip.style.right = 'auto';
+    tip.classList.toggle('from-left', !onRight);
+  }
+
+  function showPrepTip(e, side, anchor) {
     var tip = $('prep-tip');
     if (!tip || !prep) return;
     var c = e.card,
@@ -359,7 +400,11 @@
       ) +
       tipAbRow(basic, 'role', 'Basic') +
       '</div>';
-    tip.classList.toggle('right', side === 'foe'); // your side left, theirs right
+    /* `anchored` switches off the old translate(-50%) centring so the
+       inline left/top below are authoritative. */
+    tip.classList.remove('right');
+    tip.classList.add('anchored');
+    placePrepTip(tip, anchor);
     tip.classList.add('show');
     tip.setAttribute('aria-hidden', 'false');
     if (fresh) {
@@ -390,21 +435,9 @@
     wrap.dataset.rarity = c.rarity;
     wrap.style.setProperty('--fc-primary', e.faction.colors.primary);
     if (prepAnim) wrap.style.animationDelay = i * 30 + 'ms';
+    /* No HP/ATK/DEF strip in preparation: the numbers live in the hover
+       panel, and stripping them here keeps the ban/pick grids readable. */
     wrap.innerHTML =
-      '<div class="bstats">' +
-      '<div class="bhp"><i class="ra ra-health bhp-ico"></i>' +
-      '<span class="bbar"><span class="bbar-fill" style="width:100%"></span></span>' +
-      '<span class="bhp-txt">' +
-      c.stats.hp.toLocaleString() +
-      '</span></div>' +
-      '<div class="bnums">' +
-      '<span class="bnum"><i class="ra ra-sword"></i>' +
-      c.stats.atk +
-      '</span>' +
-      '<span class="bnum"><i class="ra ra-shield"></i>' +
-      c.stats.def +
-      '%</span></div>' +
-      '</div>' +
       '<div class="bcard" data-rarity="' +
       c.rarity +
       '">' +
@@ -436,7 +469,7 @@
       '</div>' +
       '</div>';
     wrap.addEventListener('mouseenter', function () {
-      showPrepTip(e, side);
+      showPrepTip(e, side, wrap);
     });
     wrap.addEventListener('mouseleave', hidePrepTip);
     return wrap;
@@ -642,15 +675,15 @@
             esc(e.card.role) +
             '</span>' +
             '<span class="fs-x" title="Swap rows"><i class="ri-arrow-up-down-line"></i></span>';
-          (function (idCopy, row, entry) {
+          (function (idCopy, row, entry, cellRef) {
             cell.addEventListener('click', function () {
               swapRow(idCopy, row);
             });
             cell.addEventListener('mouseenter', function () {
-              showPrepTip(entry, 'you');
+              showPrepTip(entry, 'you', cellRef);
             });
             cell.addEventListener('mouseleave', hidePrepTip);
-          })(id, pair[3], e);
+          })(id, pair[3], e, cell);
         } else {
           cell.className = 'field-slot empty';
           cell.innerHTML = '<span class="fs-num">' + pair[2] + (s + 1) + '</span>';
@@ -1177,3 +1210,4 @@
     _packStarter: packStarter,
   };
 })();
+

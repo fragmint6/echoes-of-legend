@@ -684,7 +684,10 @@
   }
 
   function fitNames() {
-    var nodes = document.querySelectorAll('.bcard-name');
+    /* Battle-board names only. Preparation cards (.prep-c) deliberately
+       wrap onto multiple lines at a fixed size, so they must not be given
+       an inline single-line font size here. */
+    var nodes = document.querySelectorAll('.bcard-name:not(.prep-c .bcard-name)');
     if (!nodes.length) return;
     var ctx = measureCtx();
     // all board names share one font stack; read it once
@@ -2970,3 +2973,4 @@
       });
   });
 })();
+

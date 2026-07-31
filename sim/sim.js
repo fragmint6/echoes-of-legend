@@ -40,6 +40,8 @@ global.performance = { now: () => Date.now() };
   'data/grimmwood.js',
   'data/yamato.js',
   'data/huaxia.js',
+  'data/roma.js',
+  'data/takamagahara.js',
   'js/engine.js',
   'js/ai.js',
 ].forEach((f) => {
@@ -68,6 +70,43 @@ if (args.rumpel3) {
   const r = POOL.find((e) => e.card.id === 'grimmwood-rumpelstiltskin');
   r.card.ability.spec.effects[0].heads.effects[0].turns = 3;
   console.log('[A/B] Rumpelstiltskin heads Burn = 3 rounds');
+}
+/* Control-run switch: drop a faction from the draw pool so a baseline can
+   be measured without it (used to attribute outliers to the new faction). */
+if (args.exclude) {
+  const drop = String(args.exclude).split(',');
+  for (let i = POOL.length - 1; i >= 0; i--) if (drop.indexOf(POOL[i].faction) >= 0) POOL.splice(i, 1);
+  console.log('[control] excluded factions:', drop.join(','), '- pool now', POOL.length);
+}
+/* A/B harness for the Abe no Seimei emergency nerf. Each variant patches
+   Binding Seal in place before the pool is frozen. Note the coupling: the
+   Silence rider is gated on `drainedEnergyAbove: 20`, so any variant that
+   lowers the drain MUST lower that threshold too or the Silence silently
+   never fires. */
+if (args.abe) {
+  const abe = POOL.find((e) => e.card.id === 'yamato-abe-no-seimei');
+  if (abe) {
+    const ab = abe.card.ability;
+    const fx = ab.spec.effects;
+    const dmg = fx.filter((e) => e.k === 'dmg');
+    const tax = fx.find((e) => e.k === 'drainTax');
+    const sil = fx.find((e) => e.k === 'silence');
+    const V = String(args.abe);
+    if (V === 'A') {
+      ab.cost = 50;
+    } else if (V === 'B') {
+      tax.amt = 12; sil.if.drainedEnergyAbove = 12;
+    } else if (V === 'C') {
+      ab.cost = 48; tax.amt = 12; sil.if.drainedEnergyAbove = 12;
+    } else if (V === 'D') {
+      ab.cost = 45; dmg.forEach((d) => (d.power = 0.55));
+    } else if (V === 'E') {
+      ab.cost = 50; tax.amt = 12; sil.if.drainedEnergyAbove = 12; dmg.forEach((d) => (d.power = 0.6));
+    } else if (V !== 'base') {
+      throw new Error('unknown --abe variant ' + V);
+    }
+    console.log(`[A/B] Abe variant ${V}: cost=${ab.cost} drain=${tax.amt} silenceGate=${sil.if.drainedEnergyAbove} dmg=${dmg.map((d) => d.power).join('x')}`);
+  }
 }
 const HERO = {};
 POOL.forEach((e) => {
@@ -920,3 +959,4 @@ for (let i = 0; i < N_GAMES; i++) {
 console.log(`done: ${N_GAMES} games in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 fs.writeFileSync(OUT_JSON, JSON.stringify(A));
 console.log('wrote', OUT_JSON, (fs.statSync(OUT_JSON).size / 1e6).toFixed(1) + 'MB');
+

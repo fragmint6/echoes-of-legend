@@ -1,0 +1,40 @@
+[parallel] 700 games across 2 threads
+  shard 0: 350 games, seeds 20260729..20261078
+  shard 1: 350 games, seeds 20261079..20261428
+  [s0] [control] excluded factions: roma - pool now 39
+  [s1] [control] excluded factions: roma - pool now 39
+  [s0] 25/350  15s  (586 ms/game)
+  [s1] 25/350  15s  (618 ms/game)
+  [s0] 50/350  24s  (485 ms/game)
+  [s1] 50/350  25s  (499 ms/game)
+  [s0] 75/350  33s  (439 ms/game)
+  [s1] 75/350  34s  (455 ms/game)
+  [s0] 100/350  42s  (425 ms/game)
+  [s1] 100/350  43s  (426 ms/game)
+  [s1] 125/350  51s  (406 ms/game)
+  [s0] 125/350  51s  (407 ms/game)
+  [s0] 150/350  59s  (394 ms/game)
+  [s1] 150/350  60s  (398 ms/game)
+  [s0] 175/350  68s  (388 ms/game)
+  [s1] 175/350  68s  (390 ms/game)
+  [s0] 200/350  76s  (379 ms/game)
+  [s1] 200/350  77s  (385 ms/game)
+  [s0] 225/350  86s  (380 ms/game)
+  [s1] 225/350  87s  (385 ms/game)
+  [s0] 250/350  94s  (377 ms/game)
+  [s1] 250/350  96s  (386 ms/game)
+  [s0] 275/350  103s  (373 ms/game)
+  [s1] 275/350  105s  (383 ms/game)
+  [s0] 300/350  111s  (371 ms/game)
+  [s1] 300/350  115s  (382 ms/game)
+  [s0] 325/350  121s  (373 ms/game)
+  [s1] 325/350  124s  (381 ms/game)
+  [s0] 350/350  131s  (373 ms/game)
+  [s0] done: 350 games in 130.6s
+  [s0] wrote /home/user/eol/sim/.shard0.json 0.2MB
+  [s0] finished (1/2)
+  [s1] done: 350 games in 131.9s
+  [s1] wrote /home/user/eol/sim/.shard1.json 0.2MB
+  [s1] finished (2/2)
+[parallel] merging shards...
+[parallel] done: 700 games in 132s -> /home/user/eol/sim/control_noroma.json (0.2MB)

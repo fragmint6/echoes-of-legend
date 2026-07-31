@@ -528,3 +528,4 @@
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
   });
 })();
+

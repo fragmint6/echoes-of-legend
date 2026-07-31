@@ -292,6 +292,27 @@
       u.battle = B;
     });
 
+    /* Apply battle-start `static` passive effects. Declarative modifiers
+       (outgoingMult / damageMult / damageResist) are read directly by the
+       damage pipeline and must NOT be applied here; anything else on a
+       static passive is a standing setup (Susanoo's permanent counter) and
+       is armed once, now. Effects using `on:` routing are filtered to the
+       'static' trigger by applyEffects. */
+    B.units.forEach(function (u) {
+      var p = passiveOf(u);
+      if (!hasTrig(p, 'static')) return;
+      var setup = (p.effects || []).filter(function (e) {
+        return (
+          e.k !== 'outgoingMult' &&
+          e.k !== 'damageMult' &&
+          e.k !== 'damageResist' &&
+          (!e.on || [].concat(e.on).indexOf('static') >= 0)
+        );
+      });
+      if (!setup.length) return;
+      applyEffects(B, u, [u], setup, { trigger: 'static', immediate: true });
+    });
+
     return B;
   }
 
@@ -568,6 +589,11 @@
       preDamaged: ctx.preDamaged,
       turnIdAtStart: ctx.turnIdAtStart,
       killedSomething: ctx.killedSomething,
+      killCount: ctx.killCount,
+      /* Abe no Seimei: how much Energy THIS cast has drained so far. Must be
+         forwarded or `drainedEnergyAbove` always reads 0 and its gate can
+         never pass. */
+      drainedEnergy: ctx.drainedEnergy,
       scale: ctx.scale,
       signature: ctx.signature,
     };
@@ -612,6 +638,18 @@
     if (cond.targetShielded) {
       if (!tgt || tgt.shield <= 0) return false;
     }
+    /* Brutus: the target is carrying something POSITIVE — a Shield or any
+       positive stat buff. The mirror of targetHasDebuff, and the reason
+       Roma punishes a Camelot/Olympus/Yamato setup turn. */
+    if (cond.targetHasBuff != null) {
+      if (!tgt) return false;
+      var buffed =
+        tgt.shield > 0 ||
+        tgt.buffs.some(function (b) {
+          return b.amt > 0;
+        });
+      if (buffed !== !!cond.targetHasBuff) return false;
+    }
     if (cond.selfEnergyAbove != null) {
       if (!ctx.self || B.energy[ctx.self.side] <= cond.selfEnergyAbove) return false;
     }
@@ -620,6 +658,12 @@
     }
     if (cond.killedTarget) {
       if (!ctx.killedSomething) return false;
+    }
+    /* Caesar: how many units THIS cast has killed so far. killedSomething is
+       a single boolean, so it cannot tell one kill from a double kill —
+       killCount is incremented per lethal blow in the `dmg` case. */
+    if (cond.killedCountAtLeast != null) {
+      if ((ctx.killCount || 0) < cond.killedCountAtLeast) return false;
     }
     if (cond.drainedEnergyAbove != null) {
       if ((ctx.drainedEnergy || 0) < cond.drainedEnergyAbove) return false;
@@ -655,7 +699,7 @@
         trigger: 'allyWarded',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: warded });
+      applyEffects(B, u, [u], p.effects, { trigger: 'allyWarded', immediate: true, triggerTarget: warded });
       if (u.buffs.length > before) {
         logMsg(B, 'passive', u.name + ' stands taller — ' + u.card.ability.name + '!', {
           uid: u.uid,
@@ -678,7 +722,7 @@
         trigger: 'allyStruckDebuffed',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: target });
+      applyEffects(B, u, [u], p.effects, { trigger: 'allyStruckDebuffed', immediate: true, triggerTarget: target });
       if (u.buffs.length > before) {
         logMsg(B, 'passive', u.name + ' presses the advantage.', { uid: u.uid });
       }
@@ -697,7 +741,7 @@
         trigger: 'allyStruckExposed',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: target });
+      applyEffects(B, u, [u], p.effects, { trigger: 'allyStruckExposed', immediate: true, triggerTarget: target });
       logMsg(B, 'passive', u.name + ' exploits the opening — ' + u.card.ability.name + '.', {
         uid: u.uid,
       });
@@ -908,7 +952,7 @@
         trigger: 'selfAttacked',
         round: B.round,
       });
-      applyEffects(B, src, [src], sp.effects, { immediate: true });
+      applyEffects(B, src, [src], sp.effects, { trigger: 'selfAttacked', immediate: true });
     }
 
     /* On-hit riders fire for ANY passive that declares them — Red Riding
@@ -955,7 +999,7 @@
           trigger: 'sameTargetStreak',
           round: B.round,
         });
-        applyEffects(B, src, [src], wp.effects, { immediate: true });
+        applyEffects(B, src, [src], wp.effects, { trigger: 'sameTargetStreak', immediate: true });
       }
     }
 
@@ -971,7 +1015,7 @@
           trigger: 'wasAttacked',
           round: B.round,
         });
-        applyEffects(B, tgt, [src], dp.effects, { immediate: true, triggerTarget: src });
+        applyEffects(B, tgt, [src], dp.effects, { trigger: 'wasAttacked', immediate: true, triggerTarget: src });
         logMsg(B, 'passive', tgt.name + ' answers with ' + tgt.card.ability.name + '!', {
           uid: tgt.uid,
         });
@@ -990,7 +1034,7 @@
           trigger: 'allyDamaged',
           round: B.round,
         });
-        applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: tgt });
+        applyEffects(B, u, [u], p.effects, { trigger: 'allyDamaged', immediate: true, triggerTarget: tgt });
       }
     });
 
@@ -1016,7 +1060,7 @@
         trigger: 'allyBelowHp',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { immediate: true, triggerTarget: tgt });
+      applyEffects(B, u, [u], p.effects, { trigger: 'allyBelowHp', immediate: true, triggerTarget: tgt });
       logMsg(B, 'passive', u.name + ' answers the call — ' + u.card.ability.name + '!', {
         uid: u.uid,
       });
@@ -1086,7 +1130,7 @@
         round: B.round,
         amount: Math.round((u.maxHp * ((p.effects[0] || {}).pctMaxHp || 0)) / 100),
       });
-      applyEffects(B, u, [u], p.effects, { immediate: true });
+      applyEffects(B, u, [u], p.effects, { trigger: 'wouldDie', immediate: true });
       return;
     }
 
@@ -1116,7 +1160,7 @@
             trigger: 'selfKilled',
             round: B.round,
           });
-          applyEffects(B, w, [w], kse, { immediate: true, triggerTarget: u });
+          applyEffects(B, w, [w], kse, { trigger: 'selfKilled', immediate: true, triggerTarget: u });
           logMsg(B, 'passive', w.name + ' presses the rout — ' + w.card.ability.name + '!', {
             uid: w.uid,
           });
@@ -1135,7 +1179,7 @@
           trigger: 'allyDied',
           round: B.round,
         });
-        applyEffects(B, a, [a], ap.effects, { immediate: true });
+        applyEffects(B, a, [a], ap.effects, { trigger: 'allyDied', immediate: true });
         logMsg(B, 'passive', a.name + "'s resolve hardens.", { uid: a.uid });
       }
     });
@@ -1223,6 +1267,14 @@
   function applyEffects(B, src, targets, effects, ctx) {
     ctx = ctx || {};
     (effects || []).forEach(function (e) {
+      /* Per-trigger routing. A passive declaring `triggers: [...]` fires its
+         whole effects list on ANY of them; an effect may add `on: 'name'`
+         (or an array) to respond to only some. Effects without `on` are
+         unaffected, so every pre-existing card behaves exactly as before. */
+      if (e.on && ctx.trigger) {
+        var onList = Array.isArray(e.on) ? e.on : [e.on];
+        if (onList.indexOf(ctx.trigger) < 0) return;
+      }
       var when = ctx.immediate ? 'now' : timingOf(e, src, targets);
       if (when === 'now' || B.resolvingDeferred) {
         applyEffect(B, src, targets, e, ctx);
@@ -1289,7 +1341,12 @@
       var src = B.units.filter(function (u) {
         return u.uid === d.srcUid;
       })[0];
-      if (!src) return;
+      /* A dead caster's queued effects do not resolve. Without this a hero
+         killed before their delayed payoff landed still dealt full damage
+         from the grave, which removed the counterplay that makes telegraphed
+         effects fair. (No shipped card used `when:'next'`, so this had never
+         surfaced.) */
+      if (!src || !src.alive) return;
       var targets = d.targetUids
         .map(function (id) {
           return B.units.filter(function (u) {
@@ -1397,6 +1454,7 @@
       case 'dmg': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          var aliveBefore = t.alive;
           var element = e.element === 'inherit' ? src.element : e.element;
           var power = e.power * (ctx.scale || 1);
           var raw = atkOf(src) * power;
@@ -1419,7 +1477,12 @@
               round: B.round,
             });
           }
-          if (!t.alive) ctx.killedSomething = true;
+          /* `dealDamage` returns 0 against an already-dead unit, so a unit
+             can only be counted once: alive before the blow, dead after. */
+          if (!t.alive && aliveBefore) {
+            ctx.killedSomething = true;
+            ctx.killCount = (ctx.killCount || 0) + 1;
+          }
         });
         break;
       }
@@ -1479,6 +1542,11 @@
 
       case 'shield': {
         list.forEach(function (t) {
+          /* Shields used to ignore `if` entirely, so Momotaro's
+             energy-gated shield was silently unconditional. Conditions on a
+             shield now resolve like every other effect (Constantine's
+             kill-rider depends on it). */
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var amt = Math.round(t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1));
           t.shield += amt;
           t.shieldSrc = src.uid; // last granter is credited for absorbs
@@ -1503,6 +1571,7 @@
 
       case 'taunt':
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           // taunt always runs to the end of your next turn, minimum
           t.flags.taunt = Math.max(e.turns || 1, 1);
           // Hercules: queue a shield for when the taunt drops
@@ -1533,6 +1602,7 @@
 
       case 'untargetable':
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.flags.untargetable = e.turns;
           logMsg(B, 'buff', t.name + ' cannot be targeted.', {
             uid: t.uid,
@@ -1553,6 +1623,7 @@
 
       case 'silence':
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.flags.silence = e.turns;
           logMsg(B, 'debuff', t.name + ' is silenced.', {
             uid: t.uid,
@@ -1573,6 +1644,7 @@
 
       case 'healMod':
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.flags.healMod = e.pct;
           t.flags.healModTurns = e.turns;
           logMsg(B, 'debuff', t.name + ' healing reduced.', {
@@ -1747,6 +1819,16 @@
       }
 
       case 'costMod': {
+        /* team-wide costMod has no target, so a condition on it is read
+           against the ability's own targets (same rule as gainEnergy). */
+        if (e.if) {
+          var okCM = (targets || []).length
+            ? (targets || []).some(function (t) {
+                return condMet(B, e.if, condCtx(ctx, t));
+              })
+            : condMet(B, e.if, condCtx(ctx, null));
+          if (!okCM) break;
+        }
         if (e.side) {
           // team-wide modifier
           var s = e.side === 'ally' ? src.side : opposite(src.side);
@@ -1760,6 +1842,7 @@
           );
         } else {
           list.forEach(function (t) {
+            if (!condMet(B, e.if, condCtx(ctx, t))) return;
             t.costMods = t.costMods || [];
             t.costMods.push({ flat: e.flat || 0, pct: e.pct || 0, turns: e.turns });
           });
@@ -1794,6 +1877,16 @@
       }
 
       case 'stealEnergy': {
+        /* pool-level effect: a condition is read against the ability's
+           targets, matching the gainEnergy rule. */
+        if (e.if) {
+          var okENS = (targets || []).length
+            ? (targets || []).some(function (t) {
+                return condMet(B, e.if, condCtx(ctx, t));
+              })
+            : condMet(B, e.if, condCtx(ctx, null));
+          if (!okENS) break;
+        }
         var foe = opposite(src.side);
         var take = Math.min(B.energy[foe], e.amt);
         B.energy[foe] -= take;
@@ -1812,6 +1905,16 @@
 
       /* Zhuge Liang: remove enemy energy, gaining nothing in return. */
       case 'drainEnergy': {
+        /* pool-level effect: a condition is read against the ability's
+           targets, matching the gainEnergy rule. */
+        if (e.if) {
+          var okEND = (targets || []).length
+            ? (targets || []).some(function (t) {
+                return condMet(B, e.if, condCtx(ctx, t));
+              })
+            : condMet(B, e.if, condCtx(ctx, null));
+          if (!okEND) break;
+        }
         var foe3 = opposite(src.side);
         var rem = Math.min(B.energy[foe3], e.amt);
         B.energy[foe3] = Math.max(0, B.energy[foe3] - rem);
@@ -1837,6 +1940,16 @@
       }
 
       case 'loseEnergy': {
+        /* pool-level effect: a condition is read against the ability's
+           targets, matching the gainEnergy rule. */
+        if (e.if) {
+          var okENL = (targets || []).length
+            ? (targets || []).some(function (t) {
+                return condMet(B, e.if, condCtx(ctx, t));
+              })
+            : condMet(B, e.if, condCtx(ctx, null));
+          if (!okENL) break;
+        }
         var lost =
           e.setTo != null
             ? Math.max(0, B.energy[src.side] - e.setTo)
@@ -1853,6 +1966,16 @@
         break;
       }
       case 'drainTax': {
+        /* pool-level effect: a condition is read against the ability's
+           targets, matching the gainEnergy rule. */
+        if (e.if) {
+          var okENT = (targets || []).length
+            ? (targets || []).some(function (t) {
+                return condMet(B, e.if, condCtx(ctx, t));
+              })
+            : condMet(B, e.if, condCtx(ctx, null));
+          if (!okENT) break;
+        }
         var foe4 = opposite(src.side),
           drained = Math.min(B.energy[foe4], e.amt || 0);
         B.energy[foe4] -= drained;
@@ -1879,6 +2002,7 @@
          records who actually counter-strikes. */
       case 'counterStrike': {
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.flags.counterPow = e.power;
           t.flags.counterPowMarked = e.markedPower != null ? e.markedPower : e.power;
           t.flags.counterTurns = e.turns || 1;
@@ -1916,6 +2040,7 @@
 
       case 'revive': {
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.alive = true;
           t.hp = Math.round(t.maxHp * (e.pctMaxHp / 100));
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
@@ -1925,6 +2050,7 @@
 
       case 'delayed': {
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.pending.push({
             turns: e.turns,
             tag: e.tag,
@@ -1971,6 +2097,7 @@
            the engine as an unused escape hatch (no card uses it).
            Re-marking an already-marked target is a no-op. */
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           if (t.flags.marked) return;
           t.flags.marked = 1;
           if (e.turns) t.flags.markedTurns = e.turns;
@@ -1994,6 +2121,7 @@
 
       case 'consumeMark': {
         list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
           if (t.flags.marked) {
             emit(B, { t: 'markConsumed', tgt: t.uid, by: src.uid, damage: 0, round: B.round });
           }
@@ -2136,7 +2264,7 @@
           trigger: 'alliedCastSkill',
           round: B.round,
         });
-        applyEffects(B, w, [w], ap.effects, { immediate: true, triggerTarget: unit });
+        applyEffects(B, w, [w], ap.effects, { trigger: 'alliedCastSkill', immediate: true, triggerTarget: unit });
       });
     }
 
@@ -2465,7 +2593,11 @@
         var src = B.units.filter(function (x) {
           return x.uid === p.srcUid;
         })[0];
-        if (src && u.alive) {
+        /* Same rule as resolveDeferred: a dead caster's pending effects do
+           not resolve. Abe no Seimei's shikigami was striking from the
+           grave, which removed the counterplay of killing the diviner
+           before the prophecy lands. */
+        if (src && src.alive && u.alive) {
           applyEffects(B, src, [u], p.effects, { scale: p.scale, immediate: true });
         }
       });
@@ -2543,3 +2675,4 @@
     tickBurn: tickBurn,
   };
 })();
+

@@ -1,1 +1,2 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><filter id="g" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity=".75"/></filter></defs><g filter="url(#g)"><path d="M11 4 h10 M16 4 v24 M11 28 h10" stroke="#a9c4ff" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M11 4 h10 M16 4 v24 M11 28 h10" stroke="#0a0c14" stroke-width="0.8" stroke-linecap="round" fill="none" opacity=".5"/></g></svg>
+

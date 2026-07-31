@@ -32,7 +32,7 @@ window.EOL.registerFaction({
           ],
         },
       },
-      icon: 'ra-drum',
+      icon: 'ra-dervish-swords',
     },
     {
       id: 'yamato-tomoe-gozen',
@@ -78,7 +78,7 @@ window.EOL.registerFaction({
           effects: [{ k: 'damageResist', mult: 0.85, when: { selfEnergyAbove: 49 } }],
         },
       },
-      icon: 'ra-samurai-helmet',
+      icon: 'ra-helmet',
     },
     {
       id: 'yamato-abe-no-seimei',
@@ -86,30 +86,72 @@ window.EOL.registerFaction({
       rarity: 'epic',
       role: 'Controller',
       element: 'Magic',
-      stats: { hp: 5755, atk: 1290, def: 25 },
+      /* DEF 25 -> 20: the old stat line sat outside the Controller band
+         (16-20). Corrected during the 2026-07-31 rework. */
+      stats: { hp: 5755, atk: 1290, def: 20 },
       ability: {
         type: 'Active',
-        name: 'Binding Seal',
-        cost: 40,
-        text: 'Deal <b>70% Magic</b> twice and drain 20 Energy; add <b>+5 enemy cost per 10 drained</b>. Drain 20+ Energy: Silence the highest-ATK enemy.',
+        name: 'Shikigami Prophecy',
+        /* REWORK 2026-07-31. The old 'Binding Seal' was an Energy
+           drain/tax engine: mechanically it belonged to no faction in
+           particular, it read as generic denial rather than as Yamato, and
+           it was the roster's worst balance offender (75.7% WR, 6.49 casts
+           per appearance, 24pp clear of the next Controller) precisely
+           because draining the enemy pool while spending from your own is a
+           self-funding loop.
+
+           Abe no Seimei was an onmyoji - a court diviner who commanded
+           shikigami, paper charms folded into servant spirits, and who read
+           fate before it arrived. The rework builds the card around that:
+
+             1. He SEALS a fate on the target now (a delayed strike that
+                lands at the end of the round - the prophecy).
+             2. Yamato's Energy economy decides how severe the reading is:
+                at 50+ Energy the omen is dire and the seal also Silences.
+             3. The paper servant does the striking, so the payoff is
+                deliberately back-loaded and telegraphed - it can be played
+                around, unlike an instant nuke.
+
+           This is the only card in the roster that uses the engine's
+           `delayed` effect kind, which was fully implemented but unused. */
+        cost: 35,
+        text: 'Deal <b>60% ATK Magic Damage</b> and seal a shikigami on the target: at the end of the round it strikes for <b>110% ATK Magic Damage</b> and applies <b>Exposed</b> for 1 round. At <b>50+ Energy</b> the omen is dire — also <b>Silence</b> the target for 1 round and reduce their ATK by <b>20%</b> for 2 rounds.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
-            { k: 'dmg', power: 0.7, element: 'Magic' },
-            { k: 'dmg', power: 0.7, element: 'Magic' },
-            { k: 'drainTax', amt: 20, costPer10: 5, turns: 1 },
+            { k: 'dmg', power: 0.6, element: 'Magic' },
+            /* the prophecy: resolves at the end of the round via u.pending */
+            {
+              k: 'delayed',
+              turns: 1,
+              tag: 'shikigami',
+              effects: [
+                { k: 'dmg', power: 1.1, element: 'Magic' },
+                { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
+              ],
+            },
+            /* Yamato identity: the reading is only dire on a full pool */
             {
               k: 'silence',
               turns: 1,
-              to: 'enemies',
-              take: { n: 1, by: 'highestAtk' },
-              if: { drainedEnergyAbove: 20 },
+              to: 'targets',
+              if: { selfEnergyAbove: 49 },
+              when: 'now',
+            },
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: -20,
+              turns: 2,
+              to: 'targets',
+              if: { selfEnergyAbove: 49 },
+              when: 'now',
             },
           ],
         },
       },
-      icon: 'ra-crystal-ball',
+      icon: 'ra-rune-stone'
     },
     {
       id: 'yamato-momotaro',
@@ -162,3 +204,4 @@ window.EOL.registerFaction({
     },
   ],
 });
+
