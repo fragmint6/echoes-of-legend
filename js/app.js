@@ -47,7 +47,22 @@
   };
 
   /* bar scaling maxima */
-  var MAX = { hp: 8500, atk: 1150, def: 50 };
+  /* Scale bars against the real roster maxima (plus head-room) instead
+     of hard-coded ceilings — the old atk: 1150 meant almost every hero
+     showed a full ATK bar. */
+  var MAX = (function () {
+    var hp = 0, atk = 0, def = 0;
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (c.stats.hp > hp) hp = c.stats.hp;
+        if (c.stats.atk > atk) atk = c.stats.atk;
+        if (c.stats.def > def) def = c.stats.def;
+      });
+    });
+    return { hp: Math.round((hp || 7000) * 1.05),
+             atk: Math.round((atk || 2000) * 1.05),
+             def: Math.max(def || 30, 35) };
+  })();
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -119,8 +134,8 @@
         '<div class="ov-head">' +
           '<h3 class="ov-name">' + esc(card.name) + '</h3>' +
           '<div class="ov-meta">' + esc(card.rarity) +
-            '<span class="dot">◆</span>' + esc(card.role) +
-            '<span class="dot">◆</span><span class="el">' + esc(card.element) + '</span>' +
+            '<i class="ra ra-diamond dot"></i>' + esc(card.role) +
+            '<i class="ra ra-diamond dot"></i><span class="el">' + esc(card.element) + '</span>' +
           '</div>' +
         '</div>' +
         '<div class="stat-block">' +
@@ -163,37 +178,67 @@
     return el;
   }
 
-  /* ---------------- render one flat alphabetical grid ---------------- */
-  function render() {
-    var grid = document.getElementById('roster');
-    if (!grid) return;
-    grid.innerHTML = '';
-    ROSTER.forEach(function (entry, i) {
-      grid.appendChild(buildCard(entry.card, entry.faction, i));
+  /* Shared builders for the deck builder and the shop pack opening.
+     Set at script-load time (before DOMContentLoaded), so every module
+     can use them as soon as the DOM is ready. */
+  window.EOL.ui = {
+    buildCard: buildCard,
+    esc: esc,
+    rich: rich,
+    ROLE_ICON: ROLE_ICON,
+    ELEMENT_ICON: ELEMENT_ICON,
+    ELEMENT_COLOR: ELEMENT_COLOR,
+    buildDropdown: buildDropdown,
+    closeAllMenus: closeAllMenus,
+    show: function (view) { show(view); }
+  };
+
+  /* ---------------- lazy rendering ----------------
+     Cards are built in small batches; a sentinel at the bottom of the
+     grid pulls in the next batch as it approaches the viewport, so the
+     DOM only ever holds what the user has scrolled to. */
+  var state = { faction: 'all', rarity: 'all', role: 'all', q: '' };
+  var PAGE = 12;                  // cards per lazy batch
+  var filtered = ROSTER.slice();  // entries matching the current filters
+  var rendered = 0;               // how many of `filtered` are in the DOM
+
+  function matching() {
+    return ROSTER.filter(function (entry) {
+      var c = entry.card;
+      return (state.faction === 'all' || entry.faction.id === state.faction) &&
+             (state.rarity === 'all' || c.rarity === state.rarity) &&
+             (state.role === 'all' || c.role === state.role) &&
+             (state.q === '' || c.name.toLowerCase().indexOf(state.q) !== -1);
     });
-    var total = document.getElementById('total-count');
-    if (total) total.textContent = ROSTER.length;
+  }
+
+  function renderBatch() {
+    var grid = document.getElementById('roster');
+    if (!grid || rendered >= filtered.length) return;
+    var end = Math.min(rendered + PAGE, filtered.length);
+    for (var i = rendered; i < end; i++) {
+      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i));
+    }
+    rendered = end;
+    var sent = document.getElementById('roster-sentinel');
+    if (sent) sent.classList.toggle('done', rendered >= filtered.length);
   }
 
   /* ---------------- filtering ---------------- */
-  var state = { faction: 'all', rarity: 'all', role: 'all', q: '' };
-
   function applyFilters() {
-    var shown = 0;
-    document.querySelectorAll('.card').forEach(function (c) {
-      var ok =
-        (state.faction === 'all' || c.dataset.faction === state.faction) &&
-        (state.rarity === 'all' || c.dataset.rarity === state.rarity) &&
-        (state.role === 'all' || c.dataset.role === state.role) &&
-        (state.q === '' || c.dataset.name.indexOf(state.q) !== -1);
-      c.classList.toggle('is-hidden', !ok);
-      if (ok) shown++;
-    });
+    filtered = matching();
+    var grid = document.getElementById('roster');
+    if (grid) grid.innerHTML = '';
+    rendered = 0;
 
     var empty = document.getElementById('empty');
-    if (empty) empty.classList.toggle('show', shown === 0);
+    if (empty) empty.classList.toggle('show', filtered.length === 0);
     var vis = document.getElementById('visible-count');
-    if (vis) vis.textContent = shown;
+    if (vis) vis.textContent = filtered.length;
+
+    /* First batch now; if it doesn't fill the viewport the sentinel is
+       already on screen and the observer immediately pulls the next one. */
+    renderBatch();
   }
 
   /* ---------------- custom dropdowns ---------------- */
@@ -336,7 +381,29 @@
       console.error('[EOL] No faction data loaded.');
       return;
     }
-    render();
+
+    /* home-page counts come from the data itself — they can never drift
+       out of sync with the roster again */
+    var sh = document.getElementById('stat-heroes');
+    if (sh) sh.textContent = ROSTER.length;
+    var sf = document.getElementById('stat-factions');
+    if (sf) sf.textContent = FACTIONS.length;
+    var total = document.getElementById('total-count');
+    if (total) total.textContent = ROSTER.length;
+
+    /* lazy loading: watch the sentinel; fall back to eager rendering on
+       browsers without IntersectionObserver */
+    var sent = document.getElementById('roster-sentinel');
+    if (sent && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) renderBatch();
+        });
+      }, { root: null, rootMargin: '900px 0px' }).observe(sent);
+    } else {
+      PAGE = ROSTER.length;
+    }
+
     buildFilters();
     applyFilters();
 
@@ -346,12 +413,28 @@
     document.getElementById('btn-back').addEventListener('click', function () {
       show('home');
     });
+    /* Play now opens the mode menu (Classic / Draft / Campaign). Deck
+       building lives in the Collection's Decks tab. */
     document.getElementById('btn-play').addEventListener('click', function () {
-      show('battle');
-      window.EOL.battle.start();
+      show('play');
     });
-    document.getElementById('btn-leave').addEventListener('click', function () {
+    document.getElementById('btn-shop').addEventListener('click', function () {
+      show('shop');
+    });
+    document.getElementById('btn-deck-back').addEventListener('click', function () {
       show('home');
+    });
+    document.getElementById('btn-shop-back').addEventListener('click', function () {
+      show('home');
+    });
+    // No Leave buttons on these screens — Esc backs out one level.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var v = document.body.dataset.view;
+      if (v === 'battle' || v === 'play') show('home');
+      else if (v === 'prep' || v === 'draft') show('play');
+      else if (v === 'deck' && window.EOL.decks) window.EOL.decks.closeEditor();
+      // the shop and the deck picker modal handle Esc themselves
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
       document.getElementById('result').className = 'result';

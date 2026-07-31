@@ -1,0 +1,160 @@
+/* Faction: Sherwood — Outlaws (focus, guard and pursuit)
+   Balance history lives in BALANCE-CHANGELOG.md (passes 1–3). */
+window.EOL.registerFaction({
+  id: 'sherwood',
+  name: 'Sherwood',
+  icon: 'ra-archery-target',
+  tagline: 'Rob the rich, and outshoot the rest.',
+  colors: { primary: '#3f9b5c', secondary: '#c8a34a', glow: '#9ae6a8' },
+  cards: [
+    {
+      id: 'sherwood-guy-of-gisborne',
+      name: 'Guy of Gisborne',
+      rarity: 'legendary',
+      role: 'Bruiser',
+      element: 'Shadow',
+      stats: { hp: 6480, atk: 1730, def: 25 },
+      ability: {
+        type: 'Active',
+        name: 'Ruthless Pursuit',
+        cost: 45,
+        text: 'Deal <b>180% ATK Shadow Damage</b> to an enemy, immediately striking again for <b>100% ATK</b> if that enemy is below <b>35% HP</b>.',
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'single', row: 'front' },
+          effects: [
+            { k: 'dmg', power: 1.8, element: 'Shadow' },
+            { k: 'dmg', power: 1.0, element: 'Shadow', if: { targetHpBelow: 0.35 } }
+          ]
+        }
+      },
+      icon: 'ra-knight-helmet'
+    },
+    {
+      id: 'sherwood-robin-hood',
+      name: 'Robin Hood',
+      rarity: 'epic',
+      role: 'Sniper',
+      element: 'Nature',
+      stats: { hp: 4530, atk: 1955, def: 10 },
+      ability: {
+        type: 'Passive',
+        name: "Outlaw's Aim",
+        cost: null,
+        text: 'Always targets the enemy with the highest ATK and deals <b>12% increased damage</b> to debuffed enemies and <b>10% increased damage</b> to <b>Marked</b> enemies.',
+        note: null,
+        passive: {
+          trigger: 'static',
+          forceTarget: 'highestAtk',
+          effects: [
+            { k: 'outgoingMult', mult: 1.12, when: { targetHasDebuff: true } },
+            { k: 'outgoingMult', mult: 1.1, when: { targetMarked: true } }
+          ]
+        }
+      },
+      icon: 'ra-archer'
+    },
+    {
+      id: 'sherwood-will-scarlet',
+      name: 'Will Scarlet',
+      rarity: 'epic',
+      role: 'Bruiser',
+      element: 'Physical',
+      stats: { hp: 6180, atk: 1650, def: 20 },
+      ability: {
+        type: 'Passive',
+        name: 'Daring Duelist',
+        cost: null,
+        text: 'Whenever Will Scarlet attacks the same enemy again, immediately gain <b>7% ATK</b> for the rest of the battle; switching targets removes one stack.',
+        note: 'Max: 4 stacks.',
+        passive: {
+          trigger: 'sameTargetStreak',
+          stackTag: 'daring-duelist',
+          effects: [
+            { k: 'stat', stat: 'atk', amt: 7, turns: 99, to: 'self',
+              stackTag: 'daring-duelist', maxStacks: 4 }
+          ]
+        }
+      },
+      icon: 'ra-daggers'
+    },
+    {
+      id: 'sherwood-little-john',
+      name: 'Little John',
+      rarity: 'rare',
+      role: 'Tank',
+      element: 'Physical',
+      stats: { hp: 6860, atk: 980, def: 30 },
+      ability: {
+        type: 'Active',
+        name: 'Quarterstaff Guard',
+        cost: 25,
+        text: 'Immediately gain <b>20% DEF</b> and a <b>12% Max HP Shield</b>, and give a chosen ally <b>15% DEF for 2 rounds</b> and a <b>10% Max HP Shield</b>. For 2 rounds, Little John counter-strikes enemies who attack that ally while it is Shielded for <b>60% ATK Damage</b>.',
+        note: null,
+        spec: {
+          target: { side: 'ally', pick: 'single', row: 'any' },
+          effects: [
+            { k: 'stat', stat: 'def', amt: 20, turns: 2, to: 'self' },
+            { k: 'shield', pctMaxHp: 12, to: 'self' },
+            { k: 'stat', stat: 'def', amt: 15, turns: 2, to: 'targets' },
+            { k: 'shield', pctMaxHp: 10, to: 'targets' },
+            /* Pass 9 (option B): the guard plants the counter on the ALLY,
+               but Little John himself swings back (engine: counterSrc). */
+            { k: 'counterStrike', power: 0.6, turns: 2, to: 'targets', src: 'caster' }
+          ]
+        }
+      },
+      icon: 'ra-heavy-shield'
+    },
+    {
+      id: 'sherwood-maid-marian',
+      name: 'Maid Marian',
+      rarity: 'rare',
+      role: 'Medic',
+      element: 'Light',
+      stats: { hp: 4900, atk: 1080, def: 20 },
+      ability: {
+        type: 'Active',
+        name: 'Rallying Spirit',
+        cost: 25,
+        text: 'Immediately heal an ally for <b>25% Max HP</b> and grant them <b>18% Crit Chance</b> and <b>10% ATK for 2 rounds</b>, and all allies <b>10% DEF for 2 rounds</b>.',
+        note: null,
+        spec: {
+          target: { side: 'ally', pick: 'single', row: 'any' },
+          effects: [
+            { k: 'heal', pctMaxHp: 25 },
+            { k: 'stat', stat: 'crit', amt: 18, turns: 2, to: 'targets' },
+            { k: 'stat', stat: 'atk', amt: 10, turns: 2, to: 'targets' },
+            { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'allies' }
+          ]
+        }
+      },
+      icon: 'ra-two-hearts'
+    },
+    {
+      id: 'sherwood-friar-tuck',
+      name: 'Friar Tuck',
+      rarity: 'common',
+      role: 'Controller',
+      element: 'Light',
+      stats: { hp: 4835, atk: 1160, def: 20 },
+      ability: {
+        type: 'Active',
+        name: 'Words of Wisdom',
+        cost: 25,
+        text: "Deal <b>95% ATK Light Damage</b> and reduce that enemy's ATK by <b>25% for 2 rounds</b>, applying <b>Exposed</b> for 1 round if they were already debuffed.",
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'single', row: 'any' },
+          effects: [
+            { k: 'exposed', turns: 1, to: 'targets',
+              if: { targetHasDebuff: true }, when: 'now' },
+            { k: 'dmg', power: 0.95, element: 'Light' },
+            { k: 'stat', stat: 'atk', amt: -25, turns: 2, to: 'targets', when: 'now' }
+          ]
+        }
+      },
+      icon: 'ra-beer'
+    }
+  ]
+});

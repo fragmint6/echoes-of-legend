@@ -1,8 +1,7 @@
-/* Faction: Olympus */
+/* Faction: Olympus — Marks */
 window.EOL.registerFaction({
   id: 'olympus',
   name: 'Olympus',
-  glyph: '🏛',
   icon: 'ra-player-king',
   tagline: 'Thunder sits the throne of heaven.',
   colors: { primary: '#d8b64c', secondary: '#6fd3e8', glow: '#ffe08a' },
@@ -13,21 +12,26 @@ window.EOL.registerFaction({
       rarity: 'legendary',
       role: 'Caster',
       element: 'Lightning',
-      stats: { hp: 6400, atk: 1100, def: 25 },
+      stats: { hp: 4970, atk: 1900, def: 15 },
       ability: {
         type: 'Active',
         name: 'Divine Judgment',
-        cost: 80,
-        text: 'Mark all enemies. At the start of next round, deal <b>170% ATK Lightning Damage</b> and reduce DEF by <b>15% for 2 turns</b>.',
+        cost: 60,
+        text: 'If any enemies are <b>Marked</b>, consume the Marks to deal <b>130% ATK Lightning Damage</b> and reduce their DEF by <b>20% for 2 rounds</b>; otherwise <b>Mark</b> all enemies.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'all', row: 'any' },
           effects: [
             {
-              k: 'delayed', turns: 1, tag: 'divine-judgment',
-              effects: [
-                { k: 'dmg', power: 1.7, element: 'Lightning' },
-                { k: 'stat', stat: 'def', amt: -15, turns: 2, to: 'targets' }
+              k: 'branch',
+              cond: { anyTargetMarked: true },
+              then: [
+                { k: 'stat', stat: 'def', amt: -20, turns: 2, to: 'targets', onlyMarked: true, when: 'now' },
+                { k: 'dmg', power: 1.3, element: 'Lightning', onlyMarked: true },
+                { k: 'consumeMark' }
+              ],
+              other: [
+                { k: 'mark', to: 'targets', when: 'now' }
               ]
             }
           ]
@@ -41,18 +45,21 @@ window.EOL.registerFaction({
       rarity: 'epic',
       role: 'Controller',
       element: 'Light',
-      stats: { hp: 6500, atk: 700, def: 40 },
+      stats: { hp: 5355, atk: 1290, def: 20 },
       ability: {
         type: 'Passive',
         name: 'Divine Strategy',
         cost: null,
-        text: 'The first enemy Active Skill each round deals <b>40% less damage</b>.',
+        text: 'Apply <b>Mark</b> to any enemy that casts a Skill. The first enemy Skill each round deals <b>15% less damage</b>, and <b>Marked</b> enemies deal <b>10% less damage</b>.',
         note: null,
         passive: {
-          trigger: 'incomingAbilityDamage',
-          firstPerRound: true,
+          triggers: ['incomingAbilityDamage', 'enemyCastSkill'],
           teamWide: true,
-          effects: [{ k: 'damageMult', mult: 0.6 }]
+          effects: [
+            { k: 'damageMult', mult: 0.85, firstPerRound: true },
+            { k: 'damageMult', mult: 0.90, ifAttackerMarked: true },
+            { k: 'mark', to: 'targets' }
+          ]
         }
       },
       icon: 'ra-shield'
@@ -63,19 +70,19 @@ window.EOL.registerFaction({
       rarity: 'epic',
       role: 'Tank',
       element: 'Physical',
-      stats: { hp: 8200, atk: 750, def: 45 },
+      stats: { hp: 7210, atk: 1030, def: 30 },
       ability: {
         type: 'Active',
         name: 'Twelve Labors',
         cost: 50,
-        text: 'Gain <b>25% DEF</b>, <b>20% ATK</b>, and Taunt for 2 turns.',
+        text: 'Immediately gain <b>25% DEF</b>, <b>20% ATK</b> and Taunt for 2 rounds, then gain a <b>15% Max HP Shield</b> when the Taunt ends.',
         note: null,
         spec: {
           target: { side: 'self' },
           effects: [
             { k: 'stat', stat: 'def', amt: 25, turns: 2, to: 'self' },
             { k: 'stat', stat: 'atk', amt: 20, turns: 2, to: 'self' },
-            { k: 'taunt', turns: 2, to: 'self' }
+            { k: 'taunt', turns: 2, to: 'self', shieldOnEnd: 15 }
           ]
         }
       },
@@ -87,16 +94,20 @@ window.EOL.registerFaction({
       rarity: 'rare',
       role: 'Medic',
       element: 'Light',
-      stats: { hp: 6400, atk: 600, def: 35 },
+      stats: { hp: 4900, atk: 1080, def: 20 },
       ability: {
         type: 'Active',
         name: "Sun's Grace",
-        cost: 35,
-        text: 'Heal one ally for <b>50% Max HP</b>.',
+        cost: 20,
+        text: 'Immediately heal an ally for <b>35% Max HP</b> and grant them <b>15% Crit Chance</b> for 2 rounds, then apply <b>Mark</b> to the highest ATK enemy.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'single', row: 'any' },
-          effects: [{ k: 'heal', pctMaxHp: 50 }]
+          effects: [
+            { k: 'heal', pctMaxHp: 35 },
+            { k: 'stat', stat: 'crit', amt: 15, turns: 2, to: 'targets' },
+            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' }
+          ]
         }
       },
       icon: 'ra-sun-symbol'
@@ -107,18 +118,19 @@ window.EOL.registerFaction({
       rarity: 'rare',
       role: 'Sniper',
       element: 'Shadow',
-      stats: { hp: 5700, atk: 920, def: 25 },
+      stats: { hp: 4310, atk: 1860, def: 10 },
       ability: {
         type: 'Active',
         name: 'Petrifying Gaze',
-        cost: 35,
-        text: 'Deal <b>220% ATK Shadow Damage</b> and reduce target DEF by <b>20% for 2 turns</b>.',
+        cost: 45,
+        text: 'Deal <b>180% ATK Shadow Damage</b> and apply <b>Mark</b>; the target is also <b>Exposed</b> for 1 round.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
-            { k: 'dmg', power: 2.2, element: 'Shadow' },
-            { k: 'stat', stat: 'def', amt: -20, turns: 2, to: 'targets' }
+            { k: 'dmg', power: 1.8, element: 'Shadow' },
+            { k: 'mark', to: 'targets', when: 'now' },
+            { k: 'exposed', turns: 1, to: 'targets', when: 'now' }
           ]
         }
       },
@@ -130,17 +142,21 @@ window.EOL.registerFaction({
       rarity: 'common',
       role: 'Bruiser',
       element: 'Fire',
-      stats: { hp: 6200, atk: 820, def: 30 },
+      stats: { hp: 5580, atk: 1490, def: 20 },
       ability: {
         type: 'Passive',
         name: 'Bloodlust',
         cost: null,
-        text: 'Gain <b>5% ATK</b> whenever attacking.',
-        note: 'Max: 30%.',
+        text: 'Whenever Ares attacks he gains <b>8% ATK</b> for the rest of the battle, and hitting a <b>Marked</b> target consumes the Mark to deal <b>40% bonus damage</b> and apply <b>Burn</b> for 2 rounds.',
+        note: 'Max: 40% ATK.',
         passive: {
           trigger: 'selfAttacked',
           effects: [
-            { k: 'stat', stat: 'atk', amt: 5, turns: 99, to: 'self', stackTag: 'bloodlust', maxStacks: 6 }
+            { k: 'stat', stat: 'atk', amt: 8, turns: 99, to: 'self', stackTag: 'bloodlust', maxStacks: 5 }
+          ],
+          onHit: [
+            { k: 'dmg', power: 0.40, element: 'inherit', ifTargetMarked: true },
+            { k: 'burn', turns: 2, ifTargetMarked: true }
           ]
         }
       },

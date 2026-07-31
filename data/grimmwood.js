@@ -1,70 +1,72 @@
-/* Faction: Grimmwood */
+/* Faction: Grimmwood — Debuffs */
 window.EOL.registerFaction({
   id: 'grimmwood',
   name: 'Grimmwood',
-  glyph: '🌲',
   icon: 'ra-pine-tree',
   tagline: 'Every tale in these woods has teeth.',
   colors: { primary: '#4fa86a', secondary: '#8a5ad8', glow: '#8ff0ae' },
   cards: [
     {
-      id: 'grimmwood-robin-hood',
-      name: 'Robin Hood',
-      rarity: 'epic',
-      role: 'Sniper',
+      id: 'grimmwood-hansel-and-gretel',
+      name: 'Hansel & Gretel',
+      rarity: 'rare',
+      role: 'Tank',
       element: 'Nature',
-      stats: { hp: 5800, atk: 1000, def: 25 },
+      stats: { hp: 6860, atk: 980, def: 30 },
       ability: {
-        type: 'Passive',
-        name: "Outlaw's Aim",
-        cost: null,
-        text: 'Always targets the enemy with the highest ATK. Deals <b>25% increased damage</b> against enemies above 70% HP.',
+        type: 'Active',
+        name: 'Lost in the Woods',
+        cost: 45,
+        text: 'Immediately gain a <b>15% Max HP Shield</b> and share one with your lowest HP ally, plus Taunt for 1 round, healing <b>4% Max HP</b> each time they are attacked while Taunting.',
         note: null,
-        passive: {
-          trigger: 'static',
-          forceTarget: 'highestAtk',
+        spec: {
+          target: { side: 'self' },
           effects: [
-            { k: 'outgoingMult', mult: 1.25, when: { targetHpAbove: 0.7 } }
+            { k: 'shield', pctMaxHp: 15, to: 'self' },
+            { k: 'shield', pctMaxHp: 15, to: 'allies', take: { n: 1, by: 'lowestHp' } },
+            { k: 'taunt', turns: 1, to: 'self', healOnHit: 4 }
           ]
         }
       },
-      icon: 'ra-archer'
+      icon: 'ra-candle'
     },
     {
-      id: 'grimmwood-baba-yaga',
-      name: 'Baba Yaga',
+      id: 'grimmwood-rumpelstiltskin',
+      name: 'Rumpelstiltskin',
       rarity: 'legendary',
       role: 'Controller',
       element: 'Magic',
-      stats: { hp: 6200, atk: 760, def: 30 },
+      stats: { hp: 5615, atk: 1350, def: 20 },
       ability: {
         type: 'Active',
-        name: "Witch's Bargain",
-        cost: 60,
-        text: 'Choose one: steal <b>35 Energy</b>, increase enemy skill costs by <b>25 Energy</b>, or reduce healing received by <b>50%</b>.',
+        name: "Cruel Bargain",
+        cost: 40,
+        text: 'Strike a bargain. <b>Heads:</b> apply <b>Burn</b> to all enemies for 2 rounds and reduce their ATK by <b>15%</b>. <b>Tails:</b> reduce all enemy healing by <b>60% for 2 rounds</b> and apply <b>Exposed</b> for 1 round.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'all', row: 'any' },
-          choose: [
+          effects: [
             {
-              label: 'Steal 35 Energy',
-              icon: 'ra-lightning-bolt',
-              effects: [{ k: 'stealEnergy', amt: 35 }]
-            },
-            {
-              label: '+25 Energy skill costs',
-              icon: 'ra-uncertainty',
-              effects: [{ k: 'costMod', flat: 25, turns: 2, side: 'enemy' }]
-            },
-            {
-              label: '-50% healing received',
-              icon: 'ra-broken-heart',
-              effects: [{ k: 'healMod', pct: -50, turns: 2, to: 'targets' }]
+              k: 'coinFlip',
+              heads: {
+                label: 'Heads — all enemies Burn',
+                effects: [
+                  { k: 'burn', turns: 2, to: 'targets', when: 'now' },
+                  { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'targets', when: 'now' }
+                ]
+              },
+              tails: {
+                label: 'Tails — enemy healing reduced 60%',
+                effects: [
+                  { k: 'healMod', pct: -60, turns: 2, to: 'targets', when: 'now' },
+                  { k: 'exposed', turns: 1, to: 'targets', when: 'now' }
+                ]
+              }
             }
           ]
         }
       },
-      icon: 'ra-bubbling-potion'
+      icon: 'ra-gold-bar'
     },
     {
       id: 'grimmwood-big-bad-wolf',
@@ -72,18 +74,19 @@ window.EOL.registerFaction({
       rarity: 'epic',
       role: 'Bruiser',
       element: 'Nature',
-      stats: { hp: 7000, atk: 850, def: 35 },
+      stats: { hp: 6180, atk: 1650, def: 20 },
       ability: {
         type: 'Active',
         name: 'Savage Hunger',
         cost: 40,
-        text: 'Deal <b>210% ATK Nature Damage</b>. Heal for 25% of damage dealt if target is below 50% HP.',
+        text: 'Deal <b>200% ATK Nature Damage</b> and immediately heal for <b>25%</b> of the damage dealt, or <b>40%</b> if the target is debuffed.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'front' },
           effects: [
-            { k: 'dmg', power: 2.1, element: 'Nature' },
-            { k: 'lifesteal', pct: 25, if: { targetHpBelow: 0.5 } }
+            { k: 'dmg', power: 2.0, element: 'Nature' },
+            { k: 'lifesteal', pct: 25, if: { targetHasDebuff: false } },
+            { k: 'lifesteal', pct: 40, if: { targetHasDebuff: true } }
           ]
         }
       },
@@ -95,18 +98,19 @@ window.EOL.registerFaction({
       rarity: 'rare',
       role: 'Medic',
       element: 'Nature',
-      stats: { hp: 6500, atk: 540, def: 40 },
+      stats: { hp: 4680, atk: 990, def: 24 },
       ability: {
         type: 'Active',
         name: 'Forest Blessing',
-        cost: 35,
-        text: 'Heal all allies for <b>15% Max HP</b> and grant 10% DEF.',
+        cost: 32,
+        text: 'Immediately heal all allies for <b>22% Max HP</b>, remove one debuff from each, and grant <b>15% DEF for 2 rounds</b>.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'all' },
           effects: [
-            { k: 'heal', pctMaxHp: 15 },
-            { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'targets' }
+            { k: 'heal', pctMaxHp: 22 },
+            { k: 'cleanse', count: 1, to: 'targets' },
+            { k: 'stat', stat: 'def', amt: 15, turns: 2, to: 'targets' }
           ]
         }
       },
@@ -118,17 +122,22 @@ window.EOL.registerFaction({
       rarity: 'rare',
       role: 'Bruiser',
       element: 'Physical',
-      stats: { hp: 6800, atk: 850, def: 35 },
+      stats: { hp: 5880, atk: 1570, def: 20 },
       ability: {
         type: 'Passive',
-        name: "Hunter's Instinct",
+        name: "Hunter's Courage",
         cost: null,
-        text: 'Deal <b>30% increased damage</b> against Shadow enemies.',
-        note: null,
+        text: 'Whenever an ally attacks a debuffed enemy, immediately gain <b>8% Crit Chance</b>, <b>5% ATK for 2 rounds</b> and a <b>10% Max HP Shield</b>. Red Riding Hood heals for <b>25%</b> of the damage she deals to debuffed enemies.',
+        note: 'Max: 4 stacks.',
         passive: {
-          trigger: 'static',
+          trigger: 'allyStruckDebuffed',
           effects: [
-            { k: 'outgoingMult', mult: 1.3, when: { targetElement: 'Shadow' } }
+            { k: 'stat', stat: 'crit', amt: 8, turns: 2, to: 'self', stackTag: 'hunters-courage-crit', maxStacks: 4 },
+            { k: 'stat', stat: 'atk', amt: 5, turns: 2, to: 'self', stackTag: 'hunters-courage-atk', maxStacks: 4 },
+            { k: 'shield', pctMaxHp: 10, to: 'self' }
+          ],
+          onHit: [
+            { k: 'lifesteal', pct: 25, ifTargetDebuffed: true }
           ]
         }
       },
@@ -140,16 +149,20 @@ window.EOL.registerFaction({
       rarity: 'common',
       role: 'Controller',
       element: 'Magic',
-      stats: { hp: 5600, atk: 650, def: 30 },
+      stats: { hp: 4835, atk: 1160, def: 20 },
       ability: {
         type: 'Active',
         name: 'Enchanted Melody',
-        cost: 25,
-        text: "Reduce an enemy's ATK by <b>20% for 2 turns</b>.",
+        cost: 20,
+        text: "Deal <b>60% ATK Magic Damage</b> to <b>2 enemies</b> and reduce their ATK by <b>20% for 2 rounds</b>, also applying <b>Exposed</b> for 1 round to any already debuffed.",
         note: null,
         spec: {
-          target: { side: 'enemy', pick: 'single', row: 'any' },
-          effects: [{ k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'targets' }]
+          target: { side: 'enemy', pick: 'two', row: 'any' },
+          effects: [
+            { k: 'dmg', power: 0.6, element: 'Magic' },
+            { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
+            { k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'targets', when: 'now' }
+          ]
         }
       },
       icon: 'ra-horn-call'
