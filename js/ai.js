@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Enemy Bot
+   Echoes of Legend - Enemy Bot
    -------------------------------------------------------------
    A depth-4 search engine, in the spirit of a chess engine.
 
@@ -46,7 +46,7 @@
 
   /* Plies of lookahead. Gameplay runs at 4 (one full reply deeper than
      the original depth-3 design). Balance harnesses lower it via
-     setDepth() — a full sweep needs tens of thousands of games and
+     setDepth() - a full sweep needs tens of thousands of games and
      depth 2 is several times faster while ranking moves nearly
      identically. */
   var SEARCH_DEPTH = 4;
@@ -83,7 +83,7 @@
   /* -----------------------------------------------------------
      Deterministic RNG so a search is reproducible and so the
      variance between candidates comes from the game, not the seed.
-     xorshift32 — fast and good enough for rollouts.
+     xorshift32 - fast and good enough for rollouts.
      ----------------------------------------------------------- */
   function makeRng(seed) {
     var x = seed | 0;
@@ -149,7 +149,12 @@
     if (u.flags.silence > 0) v -= 520; // signature locked out
     if (u.flags.healMod) v -= 200;
     if (u.flags.untargetable > 0) v += 620;
-    if (u.flags.taunt > 0) v += 240;
+    /* Provoke is worth less than it used to be: since the 2026-08-01
+       protection pass it no longer walls Sniper signatures (they pierce
+       at 0.8x) and no longer collapses AoE to a single target. It still
+       redirects every other single-target attack, which is most of the
+       board, so it keeps most of its value - but not all of it. */
+    if (u.flags.taunt > 0) v += 190;
 
     // low-HP heroes are at risk of being finished off; value them
     // slightly under their raw numbers so the bot protects them
@@ -294,7 +299,20 @@
       switch (e.k) {
         case 'dmg': {
           ft.forEach(function (t) {
-            var raw = atk * e.power * (1 - E.defOf(t) / 100);
+            var bonus = 0;
+            /* per-stack scaling - the AI must see that hitting a heavily
+               debuffed target is worth far more, or it will never set up */
+            if (e.perDebuff && E.debuffCount) {
+              var dn = E.debuffCount(t);
+              if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
+              bonus += atk * e.perDebuff * dn;
+            }
+            if (e.perBuff && E.buffCount) {
+              var bn = E.buffCount(t);
+              if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
+              bonus += atk * e.perBuff * bn;
+            }
+            var raw = (atk * e.power + bonus) * (1 - E.defOf(t) / 100);
             if (raw >= t.hp)
               s += 900 + raw * 0.4; // finishing blow
             else s += raw;
@@ -318,6 +336,9 @@
         }
         case 'stat': {
           var per = 0;
+          /* Debuffs now feed per-stack payoffs across the roster, so a
+             debuff is worth more than its raw stat swing suggests. */
+          if (e.amt < 0) s += 90;
           targets.forEach(function (t) {
             var base =
               e.stat === 'atk'
@@ -345,7 +366,7 @@
         }
         case 'mark': {
           // A Mark is spent on use, so re-marking an already marked target
-          // is worthless — only fresh marks count (bounded by `take`).
+          // is worthless - only fresh marks count (bounded by `take`).
           var fresh = ft.filter(function (t) {
             return !(t.flags.marked > 0);
           }).length;
@@ -355,8 +376,22 @@
         }
         case 'consumeMark':
           break;
+        case 'consumeBuffs': {
+          /* worth the number of stacks it can cash */
+          ft.forEach(function (t) {
+            var n = E.buffCount ? E.buffCount(t) : 0;
+            s += n * 260;
+          });
+          break;
+        }
         case 'silence':
-          s += 330;
+          /* Silence now blocks EVERY action, Basics included, so it denies a
+             whole turn rather than downgrading one. Priced against what a
+             hero would have done with that turn. */
+          ft.forEach(function (t) {
+            s += 420 + E.atkOf(t) * 0.55;
+          });
+          if (!ft.length) s += 500;
           break;
         case 'stealEnergy':
           s += 300;
@@ -575,7 +610,7 @@
   }
 
   /* The greedy policy used *inside* rollouts for both sides. Cheap on
-     purpose — it is called thousands of times per decision. */
+     purpose - it is called thousands of times per decision. */
   function policyAction(B, side, rng) {
     var list = candidates(B, side);
     if (!list.length) return null;
@@ -598,7 +633,7 @@
      ============================================================= */
 
   /* ---------------------------------------------------------
-     ROLLOUT MACHINERY — alternating actions
+     ROLLOUT MACHINERY - alternating actions
      -------------------------------------------------------------
      A ply is now ONE ACTION, because that is the unit of play: a side
      uses one ability and control passes. So the depth-4 gameplay
@@ -616,7 +651,7 @@
   /* Take a single action for `side` using the greedy policy.
      Returns true if an ability was used, false if the side passed.
      NOTE: rollouts model a chosen pass as the sticky round-out
-     (passSide). Live play rules passing as turn-level (passTurn —
+     (passSide). Live play rules passing as turn-level (passTurn -
      the passer may act again later in the round). Rollouts keep the
      stickier model on purpose: a round-forfeit branch is a cheaper
      search, and the divergence only ever understates the value of
@@ -762,7 +797,7 @@
          equal average value: it removes an enemy action for good and
          cannot be undone by healing. The bonus is the victim's own worth
          (so killing a Medic outranks killing a spent Bruiser) plus a
-         floor per body. A flat bonus was not enough — rollout variance
+         floor per body. A flat bonus was not enough - rollout variance
          still lost an available finishing blow ~3 times in 20. */
       v += (rec.act.lethalVal || 0) * 0.6 + (rec.act.lethal || 0) * 600;
       return v;
@@ -863,7 +898,7 @@
     policyAction: policyAction,
     SEARCH_DEPTH: SEARCH_DEPTH,
     /* Harness hook: temporarily lower the depth for bulk simulation.
-       Use resetDepth() when done — gameplay must run at 4. */
+       Use resetDepth() when done - gameplay must run at 4. */
     setDepth: function (d) {
       SEARCH_DEPTH = Math.max(1, d | 0);
       window.EOL.ai.SEARCH_DEPTH = SEARCH_DEPTH;

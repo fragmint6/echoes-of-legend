@@ -1,6 +1,57 @@
 # Report Requirements
 
-Every simulation run (`sim/sim.js`) must report the following below and must also include a tier list and lineup analysis.
+Every simulation run must report the sections below and must also include a
+tier list and lineup analysis.
+
+---
+
+## 0. Power Assessment  (required for `sim/full.js` runs)
+
+**`sim/full.js` is the balance command.** A single random-draw run answers
+"is this card fair beside five strangers" and quietly implies it has
+answered "is this card fair when a human builds around it and bans what
+scares them". It has not. A full run must therefore report FOUR
+measurements per hero, of which **win rate is the weakest**:
+
+| Metric | Question | Source |
+| --- | --- | --- |
+| **Ban rate** | How frightening is it? | drafted vs banned, draft pass |
+| **Forced win rate** | How strong when *made* to play? | forced pass |
+| **Pick rate** | Does the draft AI want it? | draft pass |
+| **Free win rate** | The classic number | random pass |
+
+Required sub-sections:
+
+- **0a. Most-banned heroes** - ranked by ban rate. A 50% hero banned 90% of
+  the time is not balanced; its win rate is average *because* the threat is
+  high and opponents keep deleting it.
+- **0b. Where the passes disagree** - heroes whose forced and free win rates
+  are **statistically separated** (non-overlapping Wilson intervals). A gap
+  the sample cannot support must NOT be listed.
+- **0c. Cards the draft AI is misjudging** - strong when forced, rarely
+  picked. This is a bug report about `data/draft-ai.js`, not about the hero.
+- **0d. Confidence** - median sample per hero, the resulting margin, and an
+  explicit list of heroes too thin to trust.
+
+### Statistical honesty is mandatory
+
+Every win rate in a full report carries a **95% Wilson interval**. At 40
+appearances the margin is roughly ±15pp, so `47.3%` and `62.0%` are the same
+measurement. Printing a bare decimal implies a precision the data does not
+have, and half the "findings" in a thin run are noise.
+
+Two heroes may only be described as different if their intervals do not
+overlap.
+
+### Forced inclusion must reach the BOARD
+
+Pinning a hero into the twelve is not enough - fielding is also the draft
+AI's judgement, so a card it dislikes gets drafted and benched. Measured on
+a real run, **17 of 57 forced heroes never played a single game**, including
+Merlin, the card that prompted this work. A forced hero must be exempt from
+the opponent's bans and guaranteed a slot in the six, or the pass measures
+nothing. Ban rate is still measured honestly by the unforced passes.
+
 
 ## 1. Global Match Statistics
 
@@ -78,7 +129,7 @@ For every hero (`id`, `name`, `faction`, `rarity`, `role`, `element`):
 - Redirects (`redirects`)
 - Buff Uptime (`buffUpN / upSamples`)
 - Debuff Uptime (`debuffUpN / upSamples`)
-- Ally Damage Enabled (`exposedBonusEnabled` — only for heroes whose effects enable Exposed or Mark consumption)
+- Ally Damage Enabled (`exposedBonusEnabled` - only for heroes whose effects enable Exposed or Mark consumption)
 
 ### Economy
 
@@ -320,12 +371,33 @@ Requires unifying `heals`, `shields`, `prevented`, and `redirects` into a single
 
 ## Report Output Format
 
-The report file (`sim/results.md`) must be in a neat and orderly fashion with analysis and insights on each part of the data. The data and analysis presented should NOT include games that ended in a draw, aside from Global match statistics.
+The report file (`sim/results.md`, or `sim/full.md` for a full run) must be
+in a neat and orderly fashion with analysis and insights on each part of the
+data. The data and analysis presented should NOT include games that ended in
+a draw, aside from Global match statistics.
+
+A report must never crash on a thin sample. A composition, pair or hero with
+no data is a normal condition and must render as "insufficient data", not as
+an exception or - worse - as a confident-looking zero.
 
 ---
 
 ## Design References Confirmed in Workspace
 
-- Simulation depth 2 AI: `sim/sim.js` line 68 (`AI.setDepth(2)`)
-- Simulation 6-card draw with max 3 per role: `data/_schema.js` line 88 (`MAX_PER_ROLE = 3`) and `sim/sim.js` line 39 (`EOL.rules.splitCapped`)
-- Role-aware formation: `js/engine.js` lines 196-222 (`optimizeFormation`)
+- Simulation depth: `--depth` in `sim/sim.js`; `sim/full.js` defaults to 4
+- Team of six, max 3 per role: `EOL.rules.MAX_PER_ROLE`
+- Deck of twelve, max 4 per role: `EOL.deckRules.MAX_PER_ROLE`
+  (these are DIFFERENT caps - the fielded six carries no role cap of its own)
+- Role-aware formation: `optimizeFormation` in `js/engine.js`
+- Ranked pipeline (draft 12 -> ban 2 -> field 6): `rankedTeams` in `sim/sim.js`
+
+## What the simulation cannot measure
+
+State these limits rather than letting the numbers imply otherwise:
+
+- **Depth 4 is better than depth 2, not good.** A hero that climbs with
+  depth was being under-played, not under-powered.
+- **The draft AI is a proxy for a drafting human, not a replacement.**
+- **No bot adapts across games** the way two players do by their third match.
+- Red Riding Hood's 13,000 shield and Lancelot's +72% DEF were both found by
+  playing, not by simulating. Playtesting remains the final authority.

@@ -1,4 +1,4 @@
-/* Faction: Grimmwood — Debuffs */
+/* Faction: Grimmwood - Debuffs */
 window.EOL.registerFaction({
   id: 'grimmwood',
   name: 'Grimmwood',
@@ -9,7 +9,7 @@ window.EOL.registerFaction({
     {
       id: 'grimmwood-hansel-and-gretel',
       name: 'Hansel & Gretel',
-      rarity: 'rare',
+      rarity: 'epic',
       role: 'Tank',
       element: 'Nature',
       stats: { hp: 6860, atk: 980, def: 30 },
@@ -17,7 +17,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Lost in the Woods',
         cost: 45,
-        text: 'Immediately gain a <b>15% Max HP Shield</b> and share one with your lowest HP ally, plus Taunt for 1 round, healing <b>4% Max HP</b> each time they are attacked while Taunting.',
+        text: 'Immediately gain a <b>15% Max HP Shield</b> and share one with your lowest HP ally, plus Provoke for 1 round, healing <b>4% Max HP</b> each time they are attacked while Provoking.',
         note: null,
         spec: {
           target: { side: 'self' },
@@ -49,14 +49,14 @@ window.EOL.registerFaction({
             {
               k: 'coinFlip',
               heads: {
-                label: 'Heads — all enemies Burn',
+                label: 'Heads - all enemies Burn',
                 effects: [
                   { k: 'burn', turns: 2, to: 'targets', when: 'now' },
                   { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'targets', when: 'now' },
                 ],
               },
               tails: {
-                label: 'Tails — enemy healing reduced 60%',
+                label: 'Tails - enemy healing reduced 60%',
                 effects: [
                   { k: 'healMod', pct: -60, turns: 2, to: 'targets', when: 'now' },
                   { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
@@ -67,6 +67,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-gold-bar',
+      art: 'assets/heroes/grimmwood-rumpelstiltskin.png',
     },
     {
       id: 'grimmwood-big-bad-wolf',
@@ -91,11 +92,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-wolf-head',
+      art: 'assets/heroes/grimmwood-big-bad-wolf.png',
     },
     {
       id: 'grimmwood-snow-white',
       name: 'Snow White',
-      rarity: 'rare',
+      rarity: 'common',
       role: 'Medic',
       element: 'Nature',
       /* DEF 24 -> 22: was outside the Medic band (18-22). Corrected
@@ -152,17 +154,28 @@ window.EOL.registerFaction({
               stackTag: 'hunters-courage-atk',
               maxStacks: 4,
             },
-            { k: 'shield', pctMaxHp: 10, to: 'self' },
+            /* The shield shares the passive's stack budget. Without a
+               tag it was uncapped: the ATK and Crit riders stopped at
+               4, the shield did not, and it reached 13,000 in a live
+               game. "Max: 4 stacks" now means all three riders. */
+            {
+              k: 'shield',
+              pctMaxHp: 10,
+              to: 'self',
+              stackTag: 'hunters-courage-shield',
+              maxStacks: 4,
+            },
           ],
           onHit: [{ k: 'lifesteal', pct: 25, ifTargetDebuffed: true }],
         },
       },
       icon: 'ra-hood',
+      art: 'assets/heroes/grimmwood-red-riding-hood.png',
     },
     {
       id: 'grimmwood-pied-piper',
       name: 'Pied Piper',
-      rarity: 'common',
+      rarity: 'rare',
       role: 'Controller',
       element: 'Magic',
       stats: { hp: 4835, atk: 1160, def: 20 },
@@ -170,19 +183,20 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Enchanted Melody',
         cost: 20,
-        text: 'Deal <b>60% ATK Magic Damage</b> to <b>2 enemies</b> and reduce their ATK by <b>20% for 2 rounds</b>, also applying <b>Exposed</b> for 1 round to any already debuffed.',
+        text: 'Deal <b>60% ATK Magic Damage</b> <b>+13% per debuff</b> on each target to <b>2 enemies</b>, reduce their ATK by <b>20% for 2 rounds</b>, and apply <b>Exposed</b> for 1 round to any already debuffed.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'two', row: 'any' },
           effects: [
-            { k: 'dmg', power: 0.6, element: 'Magic' },
+            /* scales with pressure already on the target */
+            { k: 'dmg', power: 0.6, element: 'Magic', perDebuff: 0.13, perDebuffMax: 3 },
             { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
             { k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'targets', when: 'now' },
           ],
         },
       },
       icon: 'ra-horn-call',
+      art: 'assets/heroes/grimmwood-pied-piper.png',
     },
   ],
 });
-

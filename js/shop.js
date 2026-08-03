@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Shop & Pack Opening
+   Echoes of Legend - Shop & Pack Opening
    Preview only: the player already owns every card, so nothing
    revealed here is ever stored. rollPack() is pure (seedable rng)
    so the odds can be unit-tested; the opening sequence is a small
@@ -22,7 +22,7 @@
     ['legendary', 20],
   ];
 
-  /* Sequence timings (ms) — cinematic pacing; tests set FAST mode. */
+  /* Sequence timings (ms) - cinematic pacing; tests set FAST mode. */
   var DUR = {
     introDrop: 950, // pack falls in
     hintDelay: 650, // "click to open" fades up after the drop
@@ -131,7 +131,7 @@
     wrap.classList.remove('gone');
   }
 
-  /* 1 — pack drops in and invites the click */
+  /* 1 - pack drops in and invites the click */
   function begin() {
     results = rollPack();
     resetStage();
@@ -155,7 +155,7 @@
     }, dur('introDrop'));
   }
 
-  /* 2 — the click: shake builds, then the pack bursts */
+  /* 2 - the click: shake builds, then the pack bursts */
   function charge() {
     if (state !== 'await') return;
     state = 'charging';
@@ -184,7 +184,7 @@
     }, dur('burst'));
   }
 
-  /* 3 — cards fly out and flip over one by one */
+  /* 3 - cards fly out and flip over one by one */
   function revealNext() {
     state = 'reveal';
     if (revealed >= results.length) {
@@ -222,14 +222,14 @@
   function legendBanner(name) {
     var b = el('po-legend-banner');
     b.innerHTML =
-      '<i class="ra ra-crown"></i><span>Legendary &mdash; ' + window.EOL.ui.esc(name) + '</span>';
+      '<i class="ra ra-crown"></i><span>Legendary - ' + window.EOL.ui.esc(name) + '</span>';
     b.classList.add('show');
     later(function () {
       b.classList.remove('show');
     }, dur('legendHold'));
   }
 
-  /* 4 — fan settles, actions appear */
+  /* 4 - fan settles, actions appear */
   function summary() {
     state = 'summary';
     el('po-cards').classList.add('settled');
@@ -303,7 +303,7 @@
   }
 
   /* ---------------- boot ---------------- */
-  /* The pack art is pure CSS/DOM — one builder paints every pack face
+  /* The pack art is pure CSS/DOM - one builder paints every pack face
      (shop product, opening pack, and both burst halves) from the same
      markup so they always line up. */
   function buildPackFace(host) {

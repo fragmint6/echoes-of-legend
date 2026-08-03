@@ -1,15 +1,15 @@
-/* Faction: Huaxia — Marks & Counterplay
+/* Faction: Huaxia - Marks & Counterplay
    -------------------------------------------------------------
    Re-tuned to match the standard stat/power templates of the other
    factions (Tank HP ~7,200, Bruiser ATK ~1,710, Caster/Sniper damage
    multipliers ~180-200%). Introduces two engine mechanics:
 
-     take: {n, by}      an effect-level target limiter — of the resolved
+     take: {n, by}      an effect-level target limiter - of the resolved
                         targets only the top N by 'highestAtk'/'lowestHp'
                         receive the effect (Qin Shi Huang's 2 marks).
      Marks              have no duration (global rule). A marked enemy
-                        keeps the mark until ability damage — or an
-                        explicit consume — pops it (engine dealDamage /
+                        keeps the mark until Skill damage - or an
+                        explicit consume - pops it (engine dealDamage /
                         consumeMark). Huaxia's marks used to be timed.
      counterStrike      Guan Yu: while Shielded, attackers take a
                         counter hit (bigger if the attacker is Marked).
@@ -32,14 +32,56 @@ window.EOL.registerFaction({
       ability: {
         type: 'Active',
         name: 'Great Wall Mandate',
+        /* BUFF 2026-07-31. At 49.3% he was the weakest of the three
+           "real" Casters despite a legendary slot, and the telemetry named
+           the reason: 23% survival, the lowest of any Caster, on a 45 EN AoE
+           that he often did not live to cast twice. The Great Wall should
+           protect the man who built it, so the buff is defensive plus a
+           small damage bump rather than raw numbers:
+             - 50% -> 60% ATK AoE
+             - Marks 2 -> 3 highest-ATK enemies (more for Mark consumers)
+             - NEW: he and his allies gain 10% DEF for 2 rounds
+           The Marks are the faction's currency (81% of all Marks get
+           consumed), so widening them helps Huaxia's whole combo line, not
+           just him. */
         cost: 45,
-        text: 'Deal <b>50% ATK Magic Damage</b> to all enemies and apply <b>Mark</b> to the 2 enemies with the highest ATK.',
-        note: null,
+        /* NERF 2026-08-02. Measured at 67.5% win rate, the highest in
+           the game and outside the 35-65 healthy band. The problem was
+           that 60% + Mark to ALL SIX enemies never got worse: the card
+           paid the same whether he cast it on round 2 or round 12.
+
+           It is now a ROW choice, which fixes that structurally:
+             - caps at 3 targets instead of 6
+             - decays on its own, because rows empty as the fight goes
+               on (and the front row empties first)
+             - becomes a real decision - break the wall in front of you,
+               or reach past it for their casters
+           Damage goes 60% -> 70% per target to part-compensate the
+           halved target count, and the Mark now hits everyone in the
+           chosen row rather than the 3 highest ATK. */
+        text: 'Choose a row. Deal <b>70% ATK Magic Damage</b> to every enemy in that row and apply <b>Mark</b> to each of them, then raise the Great Wall - all allies gain <b>10% DEF</b> for 2 rounds.',
+        note: 'Hits only the chosen row, so it weakens as that row empties.',
         spec: {
           target: { side: 'enemy', pick: 'all', row: 'any' },
-          effects: [
-            { k: 'dmg', power: 0.5, element: 'Magic' },
-            { k: 'mark', to: 'targets', take: { n: 2, by: 'highestAtk' }, when: 'now' },
+          choose: [
+            {
+              label: 'Wall against the front',
+              icon: 'ra-shield',
+              effects: [
+                { k: 'dmg', power: 0.7, element: 'Magic', frontOnly: true },
+                { k: 'mark', to: 'targets', frontOnly: true, when: 'now' },
+                { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'allies' },
+              ],
+            },
+            {
+              label: 'Wall against the back',
+              icon: 'ra-crossed-swords',
+              effects: [
+                { k: 'dmg', power: 0.7, element: 'Magic', backOnly: true },
+                { k: 'mark', to: 'targets', backOnly: true, when: 'now' },
+                { k: 'stat', stat: 'def', amt: 10, turns: 2, to: 'allies' },
+              ],
+            },
           ],
         },
       },
@@ -48,7 +90,7 @@ window.EOL.registerFaction({
     {
       id: 'huaxia-lu-bu',
       name: 'Lu Bu',
-      rarity: 'legendary',
+      rarity: 'rare',
       role: 'Bruiser',
       element: 'Physical',
       stats: { hp: 6480, atk: 1710, def: 22 },
@@ -105,7 +147,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Crescent Blade Guard',
         cost: 40,
-        text: 'Gain Taunt and a <b>15% Max HP Shield</b> for 1 round. Whenever Guan Yu is attacked while Shielded, strike the attacker for <b>70% ATK Damage</b> (increased to <b>120% ATK</b> if the attacker is <b>Marked</b>).',
+        text: 'Gain Provoke and a <b>15% Max HP Shield</b> for 1 round. Whenever Guan Yu is attacked while Shielded, strike the attacker for <b>70% ATK Damage</b> (increased to <b>120% ATK</b> if the attacker is <b>Marked</b>).',
         note: null,
         spec: {
           target: { side: 'self' },
@@ -197,7 +239,7 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: '72 Transformations',
         cost: null,
-        text: 'The first time Sun Wukong would be defeated, immediately revive with <b>30% HP</b> and a <b>20% Max HP Shield</b>, become Untargetable and Taunt for 1 round, and gain <b>25% ATK</b> for the rest of the battle.',
+        text: 'The first time Sun Wukong would be defeated, immediately revive with <b>30% HP</b> and a <b>20% Max HP Shield</b>, become Untargetable and Provoke for 1 round, and gain <b>25% ATK</b> for the rest of the battle.',
         note: 'Once per battle.',
         passive: {
           trigger: 'wouldDie',
@@ -240,7 +282,7 @@ window.EOL.registerFaction({
     {
       id: 'huaxia-mulan',
       name: 'Mulan',
-      rarity: 'rare',
+      rarity: 'common',
       role: 'Sniper',
       element: 'Physical',
       stats: { hp: 4310, atk: 1860, def: 10 },

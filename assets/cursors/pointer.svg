@@ -1,2 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><filter id="g" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity=".75"/></filter></defs><g filter="url(#g)"><path d="M12 3.2 a2 2 0 0 1 4 0 V13 h1.1 V9.4 a1.9 1.9 0 0 1 3.8 0 V13 h1.1 v-2 a1.9 1.9 0 0 1 3.8 0 v2.4 h1 a1.8 1.8 0 0 1 1.8 1.8 v4.6 c0 4.6-3.3 8.2-8.2 8.2 h-2.6 c-3.1 0-5-1.4-6.4-3.7 L7 17.6 a2 2 0 0 1 3.3-2.2 l1.7 2.1 Z" fill="#ffd98a" stroke="#0a0c14" stroke-width="1.3" stroke-linejoin="round"/><path d="M13.6 5.4 v10.2 M17.4 10.4 v5.2 M21.2 11.6 v4" stroke="#0a0c14" stroke-width="1.1" opacity=".45" stroke-linecap="round"/></g></svg>
-
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+  <!-- A pointing hand has FIVE digits: the raised index finger, three
+       folded fingers behind it, and the thumb curled at the left.
+       The previous version drew only two folded fingers. -->
+  <path d="M9.8 3.4 a1.85 1.85 0 0 1 3.7 0 V12 h1 V9.4 a1.75 1.75 0 0 1 3.5 0 V12 h1 v-2 a1.75 1.75 0 0 1 3.5 0 v2 h1 v-1.2 a1.75 1.75 0 0 1 3.5 0 V19 c0 4.1-2.9 7.2-7.1 7.2 h-1.8 c-2.7 0-4.4-1.2-5.6-3.2 L5.4 17.6 a1.8 1.8 0 0 1 3-1.9 l1.4 1.7 Z"
+        fill="#0b0d14" stroke="#0b0d14" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M9.8 3.4 a1.85 1.85 0 0 1 3.7 0 V12 h1 V9.4 a1.75 1.75 0 0 1 3.5 0 V12 h1 v-2 a1.75 1.75 0 0 1 3.5 0 v2 h1 v-1.2 a1.75 1.75 0 0 1 3.5 0 V19 c0 4.1-2.9 7.2-7.1 7.2 h-1.8 c-2.7 0-4.4-1.2-5.6-3.2 L5.4 17.6 a1.8 1.8 0 0 1 3-1.9 l1.4 1.7 Z"
+        fill="#ffe9b8"/>
+</svg>

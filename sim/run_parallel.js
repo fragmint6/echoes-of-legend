@@ -15,7 +15,8 @@ const { fork } = require('child_process');
 
 const args = {};
 process.argv.slice(2).forEach((a, i, arr) => {
-  if (a.startsWith('--')) args[a.slice(2)] = arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : true;
+  if (a.startsWith('--'))
+    args[a.slice(2)] = arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : true;
 });
 const GAMES = parseInt(args.games || '2000', 10);
 const SEED = parseInt(args.seed || '20260729', 10);
@@ -34,7 +35,9 @@ for (let i = 0; i < THREADS; i++) {
 }
 
 console.log(`[parallel] ${GAMES} games across ${THREADS} threads`);
-shards.forEach((s) => console.log(`  shard ${s.idx}: ${s.games} games, seeds ${s.seed}..${s.seed + s.games - 1}`));
+shards.forEach((s) =>
+  console.log(`  shard ${s.idx}: ${s.games} games, seeds ${s.seed}..${s.seed + s.games - 1}`)
+);
 
 const t0 = Date.now();
 let doneCount = 0;
@@ -43,11 +46,29 @@ Promise.all(
   shards.map(
     (s) =>
       new Promise((res, rej) => {
-        const p = fork(path.join(__dirname, 'sim.js'),
+        const p = fork(
+          path.join(__dirname, 'sim.js'),
           ['--games', String(s.games), '--seed', String(s.seed), '--out', s.out]
             .concat(args.exclude ? ['--exclude', String(args.exclude)] : [])
-            .concat(args.abe ? ['--abe', String(args.abe)] : []),
-          { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+            .concat(args.abe ? ['--abe', String(args.abe)] : [])
+            .concat(args.field ? ['--field', String(args.field)] : [])
+            .concat(args.noCarry ? ['--noCarry', '1'] : [])
+            .concat(args.noComeback ? ['--noComeback', '1'] : [])
+            /* Forward the run-shape flags. These were silently
+               dropped, so `--depth 4` and `--teams draft` ran the
+               DEFAULT configuration in every shard and the resulting
+               comparison was meaningless - two runs that differed
+               only in their filename. */
+            .concat(args.depth ? ['--depth', String(args.depth)] : [])
+            .concat(args.teams ? ['--teams', String(args.teams)] : [])
+            /* Same trap as --depth and --teams before them: a flag that
+               is not forwarded produces a run that LOOKS configured and
+               is not. Anything added to sim.js must be added here too,
+               and its value checked in meta afterwards. */
+            .concat(args.bans ? ['--bans', '1'] : [])
+            .concat(args.force ? ['--force', String(args.force)] : []),
+          { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] }
+        );
         p.stdout.on('data', (d) => {
           const line = d.toString().trim().split('\n').pop();
           if (line) process.stdout.write(`  [s${s.idx}] ${line}\n`);
@@ -69,7 +90,14 @@ Promise.all(
     const merged = parts.reduce((acc, p) => (acc ? deepMerge(acc, p) : p), null);
     merged.meta.games = parts.reduce((n, p) => n + p.meta.games, 0);
     merged.meta.seed = SEED;
-    merged.meta.depth = 2; // summed by deepMerge; restore the real value
+    /* deepMerge SUMS numbers, so every scalar in meta has to be
+       restored from the shard rather than left as a total. Reading
+       it back from a shard (not a hardcoded 2) is what makes
+       --depth visible in the output at all. */
+    merged.meta.depth = parts[0].meta.depth;
+    merged.meta.teams = parts[0].meta.teams;
+    merged.meta.bans = parts[0].meta.bans;
+    merged.meta.force = parts[0].meta.force;
     merged.meta.threads = THREADS;
     merged.meta.shardSeeds = shards.map((s) => s.seed);
     merged.meta.date = new Date().toISOString();

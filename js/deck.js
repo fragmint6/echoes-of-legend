@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Deck Manager & Deck Editor
+   Echoes of Legend - Deck Manager & Deck Editor
    -------------------------------------------------------------
    Decks are saved squads of TWELVE heroes (max 4 per role). They
    live in the Collection's Decks tab; the editor is this screen's
@@ -56,11 +56,19 @@
   }
 
   /* ---------------- persistence ---------------- */
-  function save() {
+  function save(touched) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
     } catch (e) {
       /* private mode */
+    }
+    /* Local-first: the write above already succeeded, so the game is
+       consistent whether or not the network call does. Cloud sync is a
+       best-effort follow-up and its failure is never fatal. */
+    var A = window.EOL.auth;
+    if (A && A.isReady && A.isReady() && A.user()) {
+      var d = touched || editing;
+      if (d) A.pushDeck(d).catch(function () {});
     }
   }
 
@@ -203,6 +211,8 @@
     decks.splice(i, 1);
     if (editing && editing.id === id) editing = null;
     save();
+    var A = window.EOL.auth;
+    if (A && A.isReady && A.isReady() && A.user()) A.deleteDeck(id).catch(function () {});
   }
 
   /* ---------------- editor state ---------------- */
@@ -230,7 +240,7 @@
   function add(id) {
     if (!editing || !byId()[id] || has(id)) return false;
     if (count() >= DECK_SIZE) {
-      hintWarn('Deck is full — remove a hero first.');
+      hintWarn('Deck is full - remove a hero first.');
       return false;
     }
     var cand = byId()[id].card;
@@ -238,7 +248,7 @@
       hintWarn(
         'Max ' +
           MAX_PER_ROLE +
-          ' heroes per role — this deck already runs ' +
+          ' heroes per role - this deck already runs ' +
           MAX_PER_ROLE +
           ' ' +
           cand.role +
@@ -424,21 +434,70 @@
           (window.EOL.ui.ROLE_ICON[e.card.role] || 'ra-player') +
           '"></i>' +
           esc(e.card.role) +
-          '</span>' +
-          '<button class="ds-x" title="Remove ' +
-          esc(e.card.name) +
-          '" aria-label="Remove ' +
-          esc(e.card.name) +
-          '"><i class="ri-close-line"></i></button>';
-        cell.addEventListener('click', function () {
-          removeCard(id);
-        });
+          '</span>';
+        /* No X button: the whole slot is the control. Clicking a filled
+           slot removes that hero, which is what players tried first
+           anyway, and it leaves the tile clean. */
+        cell.title = 'Click to remove ' + e.card.name;
+        /* `id` is a `var` in a for-loop, so every handler would capture
+           the LAST slot's id. Bind it per iteration. */
+        (function (cardId) {
+          cell.addEventListener('click', function () {
+            removeCard(cardId);
+          });
+        })(id);
       } else {
         cell.className = 'deck-slot empty';
         cell.innerHTML = '<span class="ds-num">' + (slot + 1) + '</span>';
       }
       host.appendChild(cell);
     }
+    /* Shrink any single long word (Rumpelstiltskin) so it fits on one line
+       rather than being split mid-word; multi-word names still wrap at
+       spaces at full size. */
+    requestAnimationFrame(fitDeckSlotNames);
+  }
+
+  var _dctx = null;
+  function fitDeckSlotNames() {
+    var nodes = document.querySelectorAll('.deck-slot .ds-name');
+    if (!nodes.length) return;
+    if (!_dctx) _dctx = document.createElement('canvas').getContext('2d');
+    var ctx = _dctx;
+    nodes.forEach(function (el) {
+      var text = (el.textContent || '').trim();
+      var avail = el.clientWidth;
+      if (!text || !avail) return;
+      if (el.dataset.fitFor === text && el.dataset.fitW === String(avail)) return;
+      var cs = getComputedStyle(el);
+      var family = cs.fontFamily,
+        weight = cs.fontWeight;
+      var words = text.split(/\s+/);
+      var px = 11.5,
+        MIN = 7;
+      ctx.font = weight + ' ' + px + 'px ' + family;
+      var widest = 0;
+      words.forEach(function (w) {
+        widest = Math.max(widest, ctx.measureText(w).width);
+      });
+      if (widest > avail) {
+        px = Math.max(MIN, Math.floor(px * (avail / widest) * 20) / 20);
+        ctx.font = weight + ' ' + px + 'px ' + family;
+        var guard = 0;
+        while (px > MIN && guard++ < 60) {
+          var w2 = 0;
+          words.forEach(function (w) {
+            w2 = Math.max(w2, ctx.measureText(w).width);
+          });
+          if (w2 <= avail) break;
+          px -= 0.25;
+          ctx.font = weight + ' ' + px + 'px ' + family;
+        }
+      }
+      el.style.fontSize = px + 'px';
+      el.dataset.fitFor = text;
+      el.dataset.fitW = String(avail);
+    });
   }
 
   function renderGridState() {
@@ -451,11 +510,6 @@
       var picked = idx >= 0;
       el.classList.toggle('in-deck', picked);
       el.classList.toggle('deck-full', !!full && !picked);
-      var fab = el.querySelector('.deck-add');
-      if (fab) {
-        fab.innerHTML = '<i class="ri-' + (picked ? 'close' : 'add') + '-line"></i>';
-        fab.title = picked ? 'Remove from deck' : 'Add to deck';
-      }
       var badge = el.querySelector('.deck-badge');
       if (picked) {
         if (!badge) {
@@ -574,18 +628,10 @@
       });
     sorted.forEach(function (e, i) {
       var el = window.EOL.ui.buildCard(e.card, e.faction, i);
-      var fab = document.createElement('button');
-      fab.className = 'deck-add';
-      fab.type = 'button';
-      fab.innerHTML = '<i class="ri-add-line"></i>';
-      fab.setAttribute('aria-label', 'Add ' + e.card.name + ' to deck');
-      el.appendChild(fab);
-      fab.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        toggle(e.card.id);
-      });
-      el.addEventListener('click', function (ev) {
-        if (ev.target.closest && ev.target.closest('.deck-add')) return;
+      /* No +/x button. Clicking the card already adds or removes it, so
+         the badge was a second control for the same action sitting on
+         top of the art. */
+      el.addEventListener('click', function () {
         if (window.matchMedia('(hover: none)').matches) return; // tap = details
         toggle(e.card.id);
       });
@@ -633,6 +679,23 @@
   }
 
   document.addEventListener('DOMContentLoaded', mount);
+
+  /* Minimal surface for js/auth.js to merge cloud and local decks
+     without reaching into this module's internals. */
+  window.EOL.deckStore = {
+    all: function () {
+      return decks.slice();
+    },
+    replaceAll: function (next) {
+      decks = next || [];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+      } catch (e) {
+        /* private mode */
+      }
+      render();
+    },
+  };
 
   window.EOL.decks = {
     STORAGE_KEY: STORAGE_KEY,

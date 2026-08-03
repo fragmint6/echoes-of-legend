@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Play Flow (modes, preparation, draft)
+   Echoes of Legend - Play Flow (modes, preparation, draft)
    -------------------------------------------------------------
    Owns everything between "Play" and the battle board:
 
@@ -117,47 +117,106 @@
     return true;
   }
 
+  /* ---------------- preparation state ---------------- */
+  var prep = null; // active preparation state
+  var prepAnim = false; // entrance stagger runs on phase ENTRY only -
+  // a re-render mid-phase must not replay it
+
   /* ---------------- bot brains ---------------- */
-  /* draftValue(team, cand) shipped with the bot team builder — synergy
-     links (mark web), coverage rails and faction flavour. Bans flip it:
-     the bot crosses out what YOUR squad makes strongest. A raw-power
-     term keeps isolated stat monsters bannable too, and a small roll
-     stops identical rosters from always drawing identical bans. */
-  function powerOf(entry) {
-    var s = entry.card.stats;
-    return (s.atk + s.hp / 6 + s.def * 10) / 400;
+  /* All three roster decisions (draft pick, ban, field six) route through
+     window.EOL.draftAI - see data/draft-ai.js. It scores measured hero
+     power, a full keyword-synergy web, role structure from the comp data,
+     and (for bans) how much a card threatens the bot's own plan.
+     A small random roll keeps identical decks from drawing identical
+     lines every game. */
+  function DAI() {
+    return window.EOL.draftAI;
   }
 
-  function banScore(deckEntries, i) {
-    var cand = deckEntries[i];
-    var rest = deckEntries.filter(function (_, j) {
-      return j !== i;
+  /* The bot's two bans against a 12-hero deck.
+     It bans what is strongest IN CONTEXT: raw power, what the rest of
+     your deck would unlock with it, and what would punish its own six. */
+  function chooseBans(deckEntries, myPool) {
+    var ai = DAI();
+    var scored = deckEntries.map(function (e, i) {
+      return {
+        i: i,
+        v: ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 1.2,
+      };
     });
-    var v = window.EOL.battle._draftValue(rest, cand) + powerOf(cand) + Math.random() * 1.5;
-    return v;
+    scored.sort(function (a, b) {
+      return b.v - a.v;
+    });
+    return scored.slice(0, RULES().BANS).map(function (x) {
+      return deckEntries[x.i].card.id;
+    });
   }
 
-  /* The bot's two bans against a 12-hero deck. */
-  function chooseBans(deckEntries) {
-    return deckEntries
-      .map(function (_, i) {
-        return i;
-      })
-      .sort(function (a, b) {
-        return banScore(deckEntries, b) - banScore(deckEntries, a);
-      })
-      .slice(0, RULES().BANS)
-      .map(function (i) {
-        return deckEntries[i].card.id;
+  /* Greedy best battle six from the surviving pool, with hard rails so a
+     six is never fielded without a Tank or Medic when one was available.
+     The field carries NO role cap: the deck's max-4 is the only rule. */
+  function chooseSix(pool, enemyPool) {
+    var ai = DAI();
+    var team = [],
+      rest = pool.slice();
+    var FIELD = RULES().FIELD_SIZE;
+
+    while (team.length < FIELD && rest.length) {
+      var counts = {};
+      team.forEach(function (t) {
+        counts[t.card.role] = (counts[t.card.role] || 0) + 1;
       });
+      var slotsLeft = FIELD - team.length;
+
+      /* rails: with few slots left, force the missing keystone role */
+      var forced = null;
+      var poolHas = function (role) {
+        return rest.some(function (e) {
+          return e.card.role === role;
+        });
+      };
+      if (!counts.Tank && poolHas('Tank') && slotsLeft <= 2) forced = 'Tank';
+      else if (!counts.Medic && poolHas('Medic') && slotsLeft <= 1) forced = 'Medic';
+
+      var best = -1,
+        bestScore = -Infinity;
+      for (var pass = 0; pass < 2 && best < 0; pass++) {
+        for (var i = 0; i < rest.length; i++) {
+          if (forced && pass === 0 && rest[i].card.role !== forced) continue;
+          var v = ai.value(team, rest[i], { size: FIELD }) + Math.random() * 1.5;
+          /* answer what the opponent is actually bringing */
+          if (enemyPool && enemyPool.length) {
+            for (var k = 0; k < enemyPool.length; k++) {
+              v += ai.pairSynergy(rest[i], enemyPool[k]) * 0.0; // no self-synergy with foes
+              v += counterBonus(rest[i], enemyPool[k]);
+            }
+          }
+          if (v > bestScore) {
+            bestScore = v;
+            best = i;
+          }
+        }
+      }
+      if (best < 0) best = 0;
+      team.push(rest.splice(best, 1)[0]);
+    }
+    return team;
   }
 
-  /* Greedy best battle six from the surviving pool. Structure rails
-     (same philosophy as the draft builder): never leave a Tank in the
-     pool while the six go without one when a slot opens late — same for
-     a Medic. The field carries NO role cap: the 2026-07-30 ruling makes
-     the deck's max-4 the only rule. */
-  function chooseSix(pool) {
+  /* What six do we EXPECT the opponent to field from their surviving pool?
+     The bot never sees the six you actually locked - this forecast is its
+     only read on your plans, and it is symmetric with what you know about
+     the bot (its bans are revealed before you field).
+
+     Deliberately IMPERFECT. A deterministic forecast reproduced the
+     opponent's real six 96% of the time, which is indistinguishable from
+     peeking: the bot would always be correctly countered. `spread` keeps
+     a genuine margin of error, so a player who drafts unusually - going
+     tankless, stacking a role, building round an off-meta combo - gets
+     misread, which is what makes bluffing possible at all. */
+  function predictSix(pool, spread) {
+    var jitter = spread == null ? 3.0 : spread;
+    var ai = DAI();
     var team = [],
       rest = pool.slice();
     var FIELD = RULES().FIELD_SIZE;
@@ -168,43 +227,64 @@
       });
       var slotsLeft = FIELD - team.length;
       var forced = null;
-      var hasTank = rest.some(function (e) {
-        return e.card.role === 'Tank';
-      });
-      var hasMedic = rest.some(function (e) {
-        return e.card.role === 'Medic';
-      });
-      if (!counts.Tank && hasTank && slotsLeft <= 2) forced = 'Tank';
-      else if (!counts.Medic && hasMedic && slotsLeft <= 1) forced = 'Medic';
+      var poolHas = function (role) {
+        return rest.some(function (e) {
+          return e.card.role === role;
+        });
+      };
+      if (!counts.Tank && poolHas('Tank') && slotsLeft <= 2) forced = 'Tank';
+      else if (!counts.Medic && poolHas('Medic') && slotsLeft <= 1) forced = 'Medic';
 
       var best = -1,
         bestScore = -Infinity;
-      for (var passForced = 0; passForced < 2 && best < 0; passForced++) {
+      for (var pass = 0; pass < 2 && best < 0; pass++) {
         for (var i = 0; i < rest.length; i++) {
-          if (forced && !passForced && rest[i].card.role !== forced) continue;
-          var v = window.EOL.battle._draftValue(team, rest[i]) + Math.random() * 2.5;
+          if (forced && pass === 0 && rest[i].card.role !== forced) continue;
+          var v = ai.value(team, rest[i], { size: FIELD }) + Math.random() * jitter;
           if (v > bestScore) {
             bestScore = v;
             best = i;
           }
         }
       }
+      if (best < 0) best = 0;
       team.push(rest.splice(best, 1)[0]);
     }
     return team;
   }
 
-  /* Bot's draft pick from the on-table cards (respects the max-4 deck
-     rule against its own pile). */
-  function draftPick(team, offered) {
+  /* Small bonus for fielding a hero that punishes what the enemy fields. */
+  function counterBonus(mine, theirs) {
+    var ai = DAI();
+    var M = ai.tags(mine),
+      T = ai.tags(theirs);
+    var s = 0;
+    if (M.wants.enemyBuff && (T.gives.shield || T.gives.buff)) s += 0.55;
+    if (M.gives.cleanse && T.gives.debuff) s += 0.35;
+    if (M.gives.denial && (theirs.card.ability.cost || 0) >= 45) s += 0.4;
+    if (M.wants.debuff && T.gives.debuff) s += 0.15;
+    return s;
+  }
+
+  /* Bot's draft pick from the on-table cards. Balances building its own
+     squad against denying the strongest card to the opponent - a hate-pick
+     is taken only when the card is far better for them than for us. */
+  function draftPick(team, offered, foeTeam) {
+    var ai = DAI();
     var legal = offered.filter(function (e) {
       return !RULES().capBlocked(team, e.card);
     });
     if (!legal.length) legal = offered.slice(); // pool cornered the pile
+
     var best = legal[0],
       bestScore = -Infinity;
     legal.forEach(function (e) {
-      var v = window.EOL.battle._draftValue(team, e) + Math.random() * 2.5;
+      var mine = ai.value(team, e, { size: RULES().DECK_SIZE });
+      /* how much would the OPPONENT gain from this card? */
+      var theirs = foeTeam ? ai.value(foeTeam, e, { size: RULES().DECK_SIZE }) : 0;
+      /* take it for us, but weigh denial when it is a bomb for them */
+      var v = mine + Math.max(0, theirs - mine) * 0.35 + ai.powerOf(e.card) * 0.8;
+      v += Math.random() * 1.5;
       if (v > bestScore) {
         bestScore = v;
         best = e;
@@ -213,18 +293,6 @@
     return best;
   }
 
-  /* =====================================================
-     PREPARATION PHASE
-     Two real card decks face off — yours left, theirs right — at
-     collection aspect ratio, with full hover detail on every card.
-     Bans stamp onto their deck; your picks slot from yours into the
-     formation tray while their side folds away.
-     ===================================================== */
-  var prep = null; // active preparation state
-  var prepAnim = false; // entrance stagger runs on phase ENTRY only —
-  // re-renders from ban/pick clicks stay snappy
-
-  /* ---------------- battle-style hover tooltip ---------------- */
   /* The prep board speaks the battle board's language: cards look like
      the ones on the battlefield, and hovering one opens the same
      floating hero panel the fight uses (signature + role basic). */
@@ -263,7 +331,10 @@
       '<span class="dk-stat-k">' +
       key +
       '</span>' +
-      '<span class="dk-stat-bar"><span style="width:' +
+      /* the target width rides on a custom property and the bar fills
+         to it once the panel is shown - same growing-bar read as the
+         collection cards, rather than snapping to full width */
+      '<span class="dk-stat-bar"><span style="--to:' +
       Math.max(2, pct) +
       '%"></span></span>' +
       '<span class="dk-stat-v">' +
@@ -309,9 +380,55 @@
      bottom it is pulled up to bottom-align, and it never leaves the view. */
   var TIP_GAP = 12,
     TIP_EDGE = 10;
+  /* Anchor the hero panel beside the hovered card.
+     -------------------------------------------------------------
+     THE BAN-STAMP RULE: the panel must never cover another card's BAN
+     stamp. The stamp is a ::after inside a card, so it is trapped in
+     that card's stacking context and z-index can never lift it above
+     the panel. Placement is the only lever.
+
+     Measured at 1600: your grid spans 137-733, the enemy grid 867-1463,
+     leaving a 134px centre gap for a 268px panel. There is no position
+     in the middle that clears both grids, so the panel is placed in the
+     OUTER margin instead, on the far side of the hovered card's own
+     grid:
+
+        [ panel ][ your deck ]   gap   [ enemy deck ][ panel ]
+
+     The outer margin is narrower than the panel at small viewports, so
+     the panel is allowed to run off toward the screen edge (clamped to
+     stay on-screen) rather than inward across the cards. That keeps
+     every card in BOTH grids visible at all times. */
+  /* EXPAND OUT OF THE CARD.
+     -------------------------------------------------------------
+     This used to open into the page margin beside the grid. That was
+     the least-bad option at the time, but it only works when there
+     IS a margin: it depends on viewport width, and the whole
+     ban-stamp saga came from the panel and the cards competing for
+     the same space.
+
+     The panel now grows from the hovered card and layers over its
+     neighbours, matching the battle board and the battlefield pill.
+     The anchor is the card's own rectangle, so it is correct at
+     every screen size instead of being tuned for one.
+
+     Clamped to the viewport so it can never open off-screen. */
+  /* BESIDE THE CARD, TOPS ALIGNED.
+     -------------------------------------------------------------
+     Default: immediately to the RIGHT of the hovered card, with the
+     panel's top edge level with the card's top edge, so the two read
+     as a pair rather than as a floating box.
+
+     If the panel would run off the right edge, it flips to the LEFT
+     of the same card. Only if neither side fits does it clamp - on a
+     viewport that narrow there is no good answer, and staying
+     on-screen beats being correctly placed but cut off.
+
+     Vertically it is nudged back inside the viewport if the card sits
+     near the bottom, which keeps the whole panel readable without
+     abandoning the top alignment in the common case. */
   function placePrepTip(tip, anchor) {
     if (!anchor) return;
-    // measure with the panel laid out but not yet transitioned
     var host = tip.offsetParent || document.body;
     var hostBox = host.getBoundingClientRect();
     var card = anchor.getBoundingClientRect();
@@ -320,23 +437,23 @@
     var vw = document.documentElement.clientWidth;
     var vh = document.documentElement.clientHeight;
 
-    var roomRight = vw - card.right - TIP_GAP - TIP_EDGE;
-    var roomLeft = card.left - TIP_GAP - TIP_EDGE;
-    var onRight = roomRight >= tw || roomRight >= roomLeft;
+    var rightX = card.right + TIP_GAP;
+    var leftX = card.left - TIP_GAP - tw;
 
-    var vpLeft = onRight ? card.right + TIP_GAP : card.left - TIP_GAP - tw;
-    // keep it fully on screen even when neither side truly fits
+    var placeLeft = rightX + tw > vw - TIP_EDGE && leftX >= TIP_EDGE;
+    var vpLeft = placeLeft ? leftX : rightX;
     vpLeft = Math.max(TIP_EDGE, Math.min(vpLeft, vw - tw - TIP_EDGE));
 
-    var vpTop = card.top; // default: match the card's top edge
-    if (vpTop + th > vh - TIP_EDGE) vpTop = card.bottom - th; // else bottom-align
-    vpTop = Math.max(TIP_EDGE, Math.min(vpTop, vh - th - TIP_EDGE));
+    /* tops aligned, then pulled up if it would overflow the bottom */
+    var vpTop = card.top;
+    if (vpTop + th > vh - TIP_EDGE) vpTop = vh - th - TIP_EDGE;
+    vpTop = Math.max(TIP_EDGE, vpTop);
 
-    // convert viewport coords into the offset parent's coordinate space
     tip.style.left = vpLeft - hostBox.left + 'px';
     tip.style.top = vpTop - hostBox.top + 'px';
     tip.style.right = 'auto';
-    tip.classList.toggle('from-left', !onRight);
+    /* grow from the edge nearest the card */
+    tip.classList.toggle('from-right', placeLeft);
   }
 
   function showPrepTip(e, side, anchor) {
@@ -400,12 +517,22 @@
       ) +
       tipAbRow(basic, 'role', 'Basic') +
       '</div>';
-    /* `anchored` switches off the old translate(-50%) centring so the
-       inline left/top below are authoritative. */
-    tip.classList.remove('right');
     tip.classList.add('anchored');
-    placePrepTip(tip, anchor);
+    /* Show FIRST so the panel has real dimensions, then place it -
+       measuring a hidden element returns 0 and anchors it wrong on
+       the first hover of any card. */
     tip.classList.add('show');
+    placePrepTip(tip, anchor);
+    /* Keep each Skill name and its Energy cost on one line.
+       Deferred a frame: the panel is mid grow-transform when this runs,
+       and getBoundingClientRect reports the SCALED width, so measuring
+       now under-sizes the available space and clips long names
+       ("Divine Judgment" lost its final letter). One rAF is enough for
+       the layout to settle at full size. */
+    requestAnimationFrame(function () {
+      if (window.EOL.battle && window.EOL.battle.fitAbilityNames)
+        window.EOL.battle.fitAbilityNames(tip);
+    });
     tip.setAttribute('aria-hidden', 'false');
     if (fresh) {
       tip.classList.remove('swap');
@@ -433,7 +560,14 @@
     var wrap = document.createElement('div');
     wrap.className = 'pcard prep-c';
     wrap.dataset.rarity = c.rarity;
+    /* The card id on the tile. Ban and formation state are tracked by
+       id, so having it in the DOM keeps the markup self-describing and
+       lets a test assert on identity instead of on displayed names. */
+    wrap.dataset.cid = c.id;
     wrap.style.setProperty('--fc-primary', e.faction.colors.primary);
+    /* The element orb reads var(--el); the battle board sets it per cell
+       (battle.js) but prep never did, so every orb rendered white. */
+    wrap.style.setProperty('--el', elCol(c.element));
     if (prepAnim) wrap.style.animationDelay = i * 30 + 'ms';
     /* No HP/ATK/DEF strip in preparation: the numbers live in the hover
        panel, and stripping them here keeps the ban/pick grids readable. */
@@ -442,9 +576,15 @@
       c.rarity +
       '">' +
       '<div class="bcard-inner">' +
-      '<div class="bcard-art"><span class="bart-ring"></span><i class="ra ' +
-      c.icon +
-      '"></i></div>' +
+      '<div class="bcard-art' +
+      (c.art ? ' has-art' : '') +
+      '"><span class="bart-ring"></span>' +
+      (c.art
+        ? '<div class="bart-portrait"><img src="' +
+          esc(c.art) +
+          '" alt="" draggable="false" /></div>'
+        : '<i class="ra ' + c.icon + '"></i>') +
+      '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
@@ -475,6 +615,155 @@
     return wrap;
   }
 
+  /* ---------------------------------------------------------
+     Name fitting for prep / field / deck-slot tiles
+     -------------------------------------------------------------
+     Names wrap at spaces ("Constantine the Great" -> two lines), but a
+     single long word must never be split mid-word - "Rumpelstiltskin"
+     was rendering as "Rumpelstiltski" + "n". CSS alone cannot express
+     "wrap at spaces, shrink otherwise", so each name is measured and any
+     line that is still too wide gets an inline font-size that makes its
+     LONGEST WORD fit. Multi-word names keep the full size and simply use
+     more lines.
+     --------------------------------------------------------- */
+  var _mctx = null;
+  function mctx() {
+    if (!_mctx) _mctx = document.createElement('canvas').getContext('2d');
+    return _mctx;
+  }
+  function fitNameNode(el, maxPx, minPx) {
+    var text = (el.textContent || '').trim();
+    if (!text) return;
+    var avail = el.clientWidth;
+    if (!avail) return;
+    if (el.dataset.fitFor === text && el.dataset.fitW === String(avail)) return;
+
+    var cs = getComputedStyle(el);
+    var ctx = mctx();
+    var family = cs.fontFamily;
+    var weight = cs.fontWeight;
+    // the widest single word decides whether we must shrink at all
+    var words = text.split(/\s+/);
+    var px = maxPx;
+    ctx.font = weight + ' ' + px + 'px ' + family;
+    var widest = 0;
+    words.forEach(function (w) {
+      widest = Math.max(widest, ctx.measureText(w).width);
+    });
+    if (widest > avail) {
+      px = Math.max(minPx, Math.floor(px * (avail / widest) * 20) / 20);
+      ctx.font = weight + ' ' + px + 'px ' + family;
+      var guard = 0;
+      while (px > minPx && guard++ < 60) {
+        var w2 = 0;
+        words.forEach(function (w) {
+          w2 = Math.max(w2, ctx.measureText(w).width);
+        });
+        if (w2 <= avail) break;
+        px -= 0.25;
+        ctx.font = weight + ' ' + px + 'px ' + family;
+      }
+    }
+    el.style.fontSize = px + 'px';
+    el.dataset.fitFor = text;
+    el.dataset.fitW = String(avail);
+  }
+  function fitPrepNames() {
+    document.querySelectorAll('.prep-c .bcard-name').forEach(function (el) {
+      fitNameNode(el, 10.5, 6.5);
+    });
+  }
+  function fitSlotNames() {
+    document.querySelectorAll('.field-slot .fs-name').forEach(function (el) {
+      fitNameNode(el, 11, 7);
+    });
+  }
+
+  /* ---------------------------------------------------------
+     Battlefield reveal
+     -------------------------------------------------------------
+     Rolled at prep start, shown once the bans are locked. The art is a
+     pure-CSS animated scene keyed off `data-field`, so there are no image
+     assets to ship and it scales to any resolution.
+     --------------------------------------------------------- */
+  function revealBattlefield(field, onDone) {
+    if (!field) return false;
+    var host = $('bf-reveal');
+    if (!host) return false;
+    $('bf-art').className = 'bf-art';
+    $('bf-art').dataset.field = field.id;
+    $('bf-art').innerHTML = fieldArt(field.id);
+    $('bf-name').textContent = field.name;
+    $('bf-tag').textContent = field.tagline;
+    $('bf-rules').innerHTML = (field.rules || [])
+      .map(function (r) {
+        return '<li>' + rich(esc(r)) + '</li>';
+      })
+      .join('');
+    $('bf-draft').textContent = field.draft || '';
+    var card = $('bf-card');
+    card.style.setProperty('--bf-1', field.colors.primary);
+    card.style.setProperty('--bf-2', field.colors.secondary);
+    card.style.setProperty('--bf-3', field.colors.glow);
+    host.classList.add('show');
+    host.setAttribute('aria-hidden', 'false');
+    var go = $('bf-go');
+    go.onclick = function () {
+      host.classList.remove('show');
+      host.setAttribute('aria-hidden', 'true');
+      if (onDone) setTimeout(onDone, 260); // let the card fade before the tip
+    };
+    return true;
+  }
+
+  /* Layered scene markup per battlefield - every layer is animated in CSS. */
+  function fieldArt(id) {
+    /* Each particle carries its OWN index as --i and a count as --n.
+       Phasing used to be written as :nth-child rules, which count
+       across every sibling in the layer - so adding one ring silently
+       re-phased all the motes after it. Driving the delay from the
+       element's own index makes each swarm independent, and lets the
+       count be raised without touching a single selector. */
+    var L = function (cls, n) {
+      var out = '';
+      var count = n || 1;
+      for (var i = 0; i < count; i++) {
+        out += '<span class="' + cls + '" style="--i:' + i + ';--n:' + count + '"></span>';
+      }
+      return out;
+    };
+    var common = '<span class="bf-sky"></span><span class="bf-glow"></span>';
+    switch (id) {
+      case 'narrow-pass':
+        return (
+          common +
+          '<span class="bf-peak l"></span><span class="bf-peak r"></span>' +
+          '<span class="bf-pass"></span>' +
+          L('bf-dust', 7)
+        );
+      case 'open-plains':
+        return common + '<span class="bf-sun"></span>' + L('bf-hill', 3) + L('bf-blade', 9);
+      case 'mana-spring':
+        return common + '<span class="bf-pool"></span>' + L('bf-bubble', 9) + L('bf-rune', 3);
+      case 'energy-void':
+        return common + '<span class="bf-void"></span>' + L('bf-ring', 3) + L('bf-mote', 8);
+      case 'colosseum':
+        return common + '<span class="bf-arena"></span>' + L('bf-arch', 5) + L('bf-ember', 6);
+      case 'mirror-realm':
+        return common + '<span class="bf-shard"></span>' + L('bf-pane', 5) + L('bf-echo', 3);
+      case 'spirit-world':
+        return common + '<span class="bf-gate"></span>' + L('bf-wisp', 9);
+      case 'ancient-ruins':
+        return common + L('bf-pillar', 4) + '<span class="bf-relic"></span>' + L('bf-leaf', 7);
+      case 'heros-trial':
+        return common + '<span class="bf-dais"></span>' + L('bf-beam', 4) + L('bf-spark', 8);
+      case 'blood-battlefield':
+        return common + '<span class="bf-field"></span>' + L('bf-banner', 3) + L('bf-drip', 8);
+      default:
+        return common;
+    }
+  }
+
   /* front/back slot of a fielded id -> {row, idx} | null */
   function slotOf(id) {
     var fi = prep.front.indexOf(id);
@@ -485,20 +774,36 @@
   }
 
   function startPrep(cfg) {
-    // cfg: { mode, deckId|null, player12:[entries], enemy12:[entries] }
-    var botBans = chooseBans(cfg.player12); // locked in NOW, revealed later
+    // cfg: { mode, deckId|null, player12:[entries], enemy12:[entries], mp }
+    /* MULTIPLAYER. Against a person there are no bot bans - their two
+       arrive over the wire, and neither side sees the other's until
+       both have committed. `foeBans` therefore starts empty and is
+       filled by the handshake in prepConfirm().
+
+       The battlefield must also be the SAME on both machines, so the
+       host rolls it from the shared match rng and it is derived, not
+       re-rolled, on the guest. */
+    var isMp = !!cfg.mp;
+    var foeBans = isMp ? null : chooseBans(cfg.player12, cfg.enemy12);
     prep = {
       mode: cfg.mode,
+      mp: isMp,
+      seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
+      /* The battlefield is rolled NOW but not revealed until bans are
+         locked, so neither side can ban around the terrain. */
+      field: cfg.field || window.EOL.rollBattlefield(),
       player12: cfg.player12,
       enemy12: cfg.enemy12,
-      botBans: botBans,
+      botBans: foeBans,
       youBans: [],
       revealed: false,
+      waiting: false,
       phase: 'ban',
       front: [],
       back: [],
     };
+    if (isMp) window.EOL.netplay.startBans(onFoeBans);
     prepAnim = true;
     renderPrep();
     window.EOL.ui.show('prep');
@@ -507,7 +812,7 @@
       'ra-interdiction',
       'Phase 1: Ban Two Heroes',
       "Tap 2 of the enemy's 12 heroes to ban them from the fight. The enemy bans 2 of " +
-        'yours at the same time — their picks stay hidden until you lock yours in.'
+        'yours at the same time - their picks stay hidden until you lock yours in.'
     );
   }
 
@@ -521,8 +826,8 @@
 
     $('prep-sub').textContent =
       p.phase === 'ban'
-        ? "Phase 1 — ban 2 of the enemy's heroes"
-        : 'Phase 2 — field 6 of your surviving heroes';
+        ? "Phase 1 - ban 2 of the enemy's heroes"
+        : 'Phase 2 - field 6 of your surviving heroes';
     $('pstep-ban').classList.toggle('sel', p.phase === 'ban');
     $('pstep-pick').classList.toggle('sel', p.phase === 'pick');
     $('pstep-ban').classList.toggle('done', p.phase !== 'ban');
@@ -541,9 +846,12 @@
 
     /* ---- your deck (left) ---- */
     youGrid.innerHTML = '';
+    /* In a match the opponent's bans do not exist yet, so treat "not
+       arrived" as "nothing banned" rather than reading a null. */
+    var foeBanList = p.botBans || [];
     p.player12.forEach(function (e, i) {
       var el = boardCard(e, i, 'you');
-      var foeBanned = p.botBans.indexOf(e.card.id) >= 0;
+      var foeBanned = foeBanList.indexOf(e.card.id) >= 0;
       if (p.revealed && foeBanned) el.classList.add('banned');
       if (p.phase === 'pick' && !foeBanned) {
         var slot = slotOf(e.card.id);
@@ -560,14 +868,16 @@
       }
       youGrid.appendChild(el);
     });
-    $('prep-player-note').textContent = !p.revealed
-      ? 'their 2 bans land here — hidden until you commit yours'
-      : 'the enemy banned: ' +
-        p.botBans
-          .map(function (id) {
-            return dict[id].card.name;
-          })
-          .join(', ');
+    $('prep-player-note').textContent = p.waiting
+      ? 'bans locked - waiting for your opponent to commit theirs...'
+      : !p.revealed
+        ? 'their 2 bans land here - hidden until you commit yours'
+        : 'the enemy banned: ' +
+          foeBanList
+            .map(function (id) {
+              return dict[id].card.name;
+            })
+            .join(', ');
 
     /* ---- enemy deck (right, ban phase only) ---- */
     if (p.phase === 'ban') {
@@ -591,7 +901,7 @@
         foeGrid.appendChild(el);
       });
       $('prep-enemy-note').textContent = p.revealed
-        ? 'struck out — the enemy fields 6 of its remaining 10'
+        ? 'struck out - the enemy fields 6 of its remaining 10'
         : 'tap 2 to ban (' + p.youBans.length + '/' + RULES().BANS + ')';
     }
 
@@ -599,13 +909,19 @@
 
     /* ---- confirms: dock under the board (ban) / inside the tray (pick) ---- */
     var cm = $('prep-confirm-main');
-    cm.disabled = p.youBans.length !== RULES().BANS;
+    cm.disabled = p.waiting || p.youBans.length !== RULES().BANS;
     cm.classList.toggle('ready', !cm.disabled);
-    $('prep-confirm-main-txt').textContent = 'Confirm bans';
+    $('prep-confirm-main-txt').textContent = p.waiting ? 'Waiting for opponent...' : 'Confirm bans';
     var c = $('prep-confirm');
-    c.disabled = p.front.length + p.back.length !== RULES().FIELD_SIZE;
+    c.disabled = p.waiting || p.front.length + p.back.length !== RULES().FIELD_SIZE;
     c.classList.toggle('ready', !c.disabled);
-    $('prep-confirm-txt').textContent = 'To battle';
+    $('prep-confirm-txt').textContent = p.waiting ? 'Waiting...' : 'To battle';
+
+    /* size long single-word names once the tiles have real widths */
+    requestAnimationFrame(function () {
+      fitPrepNames();
+      fitSlotNames();
+    });
   }
 
   function flashNode(id) {
@@ -706,51 +1022,424 @@
     renderPrep();
   }
 
+  /* The opponent's two bans arrived. In a match this is what unblocks
+     the reveal - it fires whether we committed first or they did. */
+  function onFoeBans(ids) {
+    if (!prep || !prep.mp) return;
+    prep.botBans = (ids || []).slice();
+    prep.waiting = false;
+    revealBansAndAdvance();
+  }
+
   /* Confirm: bans -> reveal + advance; six -> battle. */
   async function prepConfirm() {
     if (!prep) return;
     if (prep.phase === 'ban') {
       if (prep.youBans.length !== RULES().BANS) return;
+      /* MULTIPLAYER. Commit ours and stop. The reveal happens only once
+         BOTH sets have landed, so committing first can never leak your
+         choices or let you react to theirs. onFoeBans() resumes. */
+      if (prep.mp) {
+        if (prep.waiting) return; // already committed
+        prep.waiting = true;
+        renderPrep();
+        $('prep-sub').textContent = 'Bans locked - waiting for your opponent...';
+        /* Same re-entrancy rule as commitSix: submitBans() can
+           complete the handshake synchronously and advance the phase,
+           so `prep` may be gone the instant it returns. Snapshot
+           first, submit last. */
+        var myBans = prep.youBans.slice();
+        window.EOL.mp.saveState({ phase: 'ban', bans: myBans });
+        window.EOL.netplay.submitBans(myBans);
+        return;
+      }
+      revealBansAndAdvance();
+      return;
+    }
+    commitSix();
+  }
+
+  /* Both sides' bans are known: stamp them, then move to fielding. */
+  async function revealBansAndAdvance() {
+    if (!prep || prep.phase !== 'ban') return;
+    {
       prep.revealed = true;
       renderPrep();
-      $('prep-sub').textContent = 'Bans locked — both sides revealed';
-      toast('Bans locked — both sides revealed', 'ri-eye-line');
+      $('prep-sub').textContent = 'Bans locked - both sides revealed';
+      toast('Bans locked - both sides revealed', 'ri-eye-line');
       // stamped, seen, then their side folds away for the fielding
       await sleep(1150);
       if (!prep) return;
       prep.phase = 'pick';
       prepAnim = true;
       renderPrep();
-      coachShow(
-        'prep-pick',
-        'ra-diamond',
-        'Phase 2: Field Your Six',
-        'Pick 6 of your surviving heroes and mind the formation: the front row soaks the ' +
-          'hits while the back row supports. Tap a slotted hero to swap its row.'
-      );
+      /* The battlefield reveal owns the screen first; the Phase-2 coach tip
+         only appears once the player dismisses it, or immediately if the
+         reveal is unavailable. Otherwise the two modals stack. */
+      var afterReveal = function () {
+        coachShow(
+          'prep-pick',
+          'ra-diamond',
+          'Phase 2: Field Your Six',
+          'Pick 6 of your surviving heroes and mind the formation: the front row soaks the ' +
+            'hits while the back row supports. Tap a slotted hero to swap its row.'
+        );
+      };
+      if (!revealBattlefield(prep.field, afterReveal)) afterReveal();
+    }
+  }
+
+  /* Phase 2 confirm. Singleplayer goes straight to the board; a match
+     sends the six and waits for the opponent's, exactly like the bans. */
+  function commitSix() {
+    var dict = byId();
+    var sixIds = prep.front.concat(prep.back);
+    if (sixIds.length !== RULES().FIELD_SIZE) return;
+
+    if (prep.mp) {
+      if (prep.waiting) return; // already committed
+      prep.waiting = true;
+      $('prep-sub').textContent = 'Formation locked - waiting for your opponent...';
+      var c = $('prep-confirm');
+      if (c) {
+        c.disabled = true;
+        c.classList.remove('ready');
+      }
+      $('prep-confirm-txt').textContent = 'Waiting...';
+
+      /* READ EVERYTHING OFF `prep` BEFORE SUBMITTING.
+         submitSix() can complete the handshake SYNCHRONOUSLY when the
+         opponent's six already arrived - onFoeSix() then starts the
+         battle and sets `prep = null` before submitSix even returns.
+         Any use of `prep` after this point is a null dereference, and
+         it crashed the second player to confirm in every match. */
+      var fieldId = prep.field && prep.field.id;
+      window.EOL.netplay.startSix(onFoeSix);
+      window.EOL.mp.saveState({
+        phase: 'field',
+        six: sixIds.slice(),
+        field: fieldId,
+      });
+      window.EOL.netplay.submitSix(sixIds.slice());
       return;
     }
-    var dict = byId();
-    var playerSix = prep.front.concat(prep.back).map(function (id) {
+
+    var playerSix = sixIds.map(function (id) {
       return dict[id];
     });
-    if (playerSix.length !== RULES().FIELD_SIZE) return;
     var survive = prep.enemy12.filter(function (e) {
       return prep.youBans.indexOf(e.card.id) < 0;
     });
-    var enemySix = chooseSix(survive);
+    /* FAIR INFORMATION: the bot must NOT see the six you actually locked -
+       that is a peek, not a read. Instead it PREDICTS the six it expects
+       from your surviving 12 (the same information you have about it) and
+       fields against that forecast. If its prediction is wrong, it is
+       wrong, exactly like a human guessing at your build. */
+    var yourSurvivors = prep.player12.filter(function (e) {
+      return (prep.botBans || []).indexOf(e.card.id) < 0;
+    });
+    var predictedSix = predictSix(yourSurvivors);
+    var enemySix = chooseSix(survive, predictedSix);
     var cfg = prep;
     prep = null;
     window.EOL.ui.show('battle');
-    BATTLE().start({ teams: { player: playerSix, enemy: enemySix } });
+    BATTLE().start({ teams: { player: playerSix, enemy: enemySix }, field: cfg.field });
     lastConfig =
       cfg.mode === 'classic'
         ? { mode: 'classic', deckId: cfg.deckId, random: !cfg.deckId }
         : { mode: 'draft' };
   }
 
+  /* Their six arrived. Both formations are known, so the battle starts.
+     -------------------------------------------------------------
+     Their array is FRONT-then-BACK in their own order, which is
+     precisely the formation, so it is passed through untouched -
+     `enemyFormed` stops the auto-formation from rearranging a human's
+     deliberate placement. Both clients also seed the engine rng from
+     the match seed and agree on who opens the odd rounds, so the two
+     simulations roll identical dice in identical order. */
+  function onFoeSix(ids) {
+    if (!prep || !prep.mp) return;
+    var dict = byId();
+    var NP = window.EOL.netplay;
+    var playerSix = prep.front.concat(prep.back).map(function (id) {
+      return dict[id];
+    });
+    var enemySix = (ids || []).map(function (id) {
+      return dict[id];
+    });
+    if (
+      enemySix.length !== RULES().FIELD_SIZE ||
+      enemySix.some(function (e) {
+        return !e;
+      })
+    ) {
+      toast('The opponent sent an unreadable formation', 'ri-error-warning-line');
+      leaveMatch();
+      return;
+    }
+    var cfg = prep;
+    prep = null;
+    /* Mark the battle as started. A reconnect during the fight cannot
+       be rebuilt (the action log is not stored), so the rejoin path
+       needs to know to concede rather than restore a stale board. */
+    window.EOL.mp.saveState({ phase: 'battle', field: cfg.field && cfg.field.id });
+    window.EOL.ui.show('battle');
+    BATTLE().start({
+      teams: { player: playerSix, enemy: enemySix },
+      enemyFormed: true,
+      field: cfg.field,
+      /* One shared luck stream. Offset from the draft seed so the
+         battle does not replay the pack shuffle's numbers. */
+      rng: NP.rngFrom((cfg.seed | 0) + 0x5f37),
+      /* Each client calls itself 'player', so without this both would
+         open round 1 and the boards would disagree instantly. */
+      oddFirst: NP.isHost() ? 'player' : 'enemy',
+      net: NP.controller(onMatchBroken),
+    });
+    lastConfig = null; // no rematch button into a match that has ended
+  }
+
+  /* A desync or a disconnect. Say what happened plainly and get out -
+     never let two different boards keep playing. */
+  /* =============================================================
+     LEAVING A RANKED MATCH
+     -------------------------------------------------------------
+     A real opponent is sitting there waiting, so walking away has to
+     cost something and has to be acknowledged. Two exits exist and
+     they need different treatment:
+
+       CLOSING THE TAB - the browser owns this dialog. We can only
+         request it (beforeunload) and, if they go anyway, fire a
+         best-effort forfeit on the way out. A normal Realtime send
+         will not survive teardown, so the forfeit rides
+         sendBeacon(), which browsers are required to finish after
+         the page is gone.
+
+       IN-APP EXIT - our own modal, which can say plainly what it
+         costs instead of the browser's generic wording.
+
+     Both funnel through forfeitNow() so there is exactly one
+     definition of what leaving does.
+     ============================================================= */
+  function inRankedMatch() {
+    return !!(window.EOL.netplay && window.EOL.netplay.active());
+  }
+  /* Exposed for tests. A synthetic beforeunload cannot be observed
+     (its returnValue is not the settable BeforeUnloadEvent property)
+     and a real one destroys the page, so the guard's DECISION is
+     what gets asserted. */
+  window.EOL.__wouldForfeitOnExit = inRankedMatch;
+
+  function forfeitNow() {
+    if (!inRankedMatch()) return;
+    var NP = window.EOL.netplay;
+    try {
+      NP.forfeitOut(); // tells the opponent, closes the row
+    } catch (e) {
+      /* leaving must never throw */
+    }
+    NP.end();
+    if (window.EOL.mp && window.EOL.mp.leave) window.EOL.mp.leave();
+    draft = null;
+    prep = null;
+    mpState = null;
+    clearDraftMarks();
+  }
+
+  /* The in-app confirmation. `onLeave` runs only if they confirm. */
+  function confirmQuit(onLeave) {
+    var m = $('quit-modal');
+    if (!m || !inRankedMatch()) {
+      onLeave();
+      return;
+    }
+    var stay = $('quit-stay'),
+      go = $('quit-go'),
+      scrim = $('quit-scrim');
+    var close = function () {
+      m.hidden = true;
+      stay.onclick = null;
+      go.onclick = null;
+      scrim.onclick = null;
+      document.removeEventListener('keydown', onKey);
+    };
+    var onKey = function (ev) {
+      if (ev.key === 'Escape') close();
+    };
+    m.hidden = false;
+    stay.onclick = close;
+    scrim.onclick = close;
+    go.onclick = function () {
+      close();
+      forfeitNow();
+      onLeave();
+    };
+    document.addEventListener('keydown', onKey);
+    go.focus();
+  }
+
+  /* Ask the browser to confirm a tab close, and forfeit if it goes
+     ahead anyway. `pagehide` is the reliable teardown hook - unlike
+     `unload` it also fires on mobile and on bfcache eviction. */
+  function initQuitGuard() {
+    window.addEventListener('beforeunload', function (ev) {
+      if (!inRankedMatch()) return undefined;
+      /* Modern browsers ignore custom text and show their own
+         wording; returnValue is still required to trigger it. */
+      ev.preventDefault();
+      ev.returnValue = 'Leaving forfeits your ranked match.';
+      return ev.returnValue;
+    });
+    window.addEventListener('pagehide', function () {
+      if (!inRankedMatch()) return;
+      try {
+        window.EOL.netplay.forfeitOut(true); // beacon path
+      } catch (e) {
+        /* nothing useful to do while the page is being destroyed */
+      }
+    });
+  }
+
+  /* =============================================================
+     REJOIN AN IN-PROGRESS MATCH
+     -------------------------------------------------------------
+     Rebuilds the board from the state persisted by migration 03.
+     Returns true if it could; false means the caller should concede.
+
+     WHAT RESTORES AND WHAT DOES NOT
+       draft  - both pick lists are stored, so the squads rebuild and
+                the draft resumes at the right pack
+       ban    - your squad is known; bans reopen (or reveal, if both
+                sides had already committed)
+       field  - bans are known, fielding reopens
+       battle - NOT restorable. The per-action log is deliberately not
+                stored: that is a much bigger write volume and only
+                worth doing when it also powers server-side result
+                verification. Rejoining mid-battle still forfeits, and
+                saying so plainly beats a board that silently
+                disagrees with the opponent's.
+     ============================================================= */
+  function resumeMatch(m) {
+    var st = m.state || {};
+    var dict = byId();
+    var mine = (st.picks || {})[st.mySlot] || [];
+    var theirs = (st.picks || {})[st.foeSlot] || [];
+    var toEntries = function (ids) {
+      return (ids || [])
+        .map(function (id) {
+          return dict[id];
+        })
+        .filter(Boolean);
+    };
+
+    /* A battle already under way cannot be reconstructed. */
+    if (st.phase === 'battle' || st.phase === 'done') return false;
+
+    /* Classic: the twelves were exchanged up front. */
+    if (m.mode === 'classic') {
+      var myDeck = toEntries((st.decks || {})[st.mySlot]);
+      var foeDeck = toEntries((st.decks || {})[st.foeSlot]);
+      if (myDeck.length !== 12 || foeDeck.length !== 12) return false;
+      window.EOL.netplay.begin(m);
+      startPrep({
+        mode: 'classic',
+        mp: true,
+        seed: m.seed,
+        player12: myDeck,
+        enemy12: foeDeck,
+        field: st.field ? window.EOL.battlefieldById(st.field) : null,
+      });
+      restorePrep(st);
+      toast('Rejoined your match', 'ri-links-line');
+      return true;
+    }
+
+    /* Draft mid-flight: not worth reconstructing pack-by-pack, and a
+       half-drafted board is the one state where the two clients are
+       most likely to disagree. Only a COMPLETE draft resumes. */
+    if (mine.length !== RULES().DECK_SIZE || theirs.length !== RULES().DECK_SIZE) return false;
+
+    window.EOL.netplay.begin(m);
+    startPrep({
+      mode: 'draft',
+      mp: true,
+      seed: m.seed,
+      player12: toEntries(mine),
+      enemy12: toEntries(theirs),
+      field: st.field ? window.EOL.battlefieldById(st.field) : null,
+    });
+    restorePrep(st);
+    toast('Rejoined your match', 'ri-links-line');
+    return true;
+  }
+
+  /* Re-apply whichever preparation decisions were already committed,
+     so a reconnecting player is not asked to ban twice. */
+  function restorePrep(st) {
+    if (!prep) return;
+    var myBans = (st.bans || {})[st.mySlot];
+    var foeBans = (st.bans || {})[st.foeSlot];
+    if (myBans && myBans.length) {
+      prep.youBans = myBans.slice();
+      prep.waiting = true; // ours are in; wait on theirs
+    }
+    if (foeBans && foeBans.length) {
+      prep.botBans = foeBans.slice();
+    }
+    /* Both sides banned before the drop: go straight to fielding. */
+    if (prep.youBans.length && prep.botBans && prep.botBans.length) {
+      prep.waiting = false;
+      revealBansAndAdvance();
+      return;
+    }
+    renderPrep();
+  }
+
+  /* Rejoining a battle we cannot rebuild. Concede it honestly rather
+     than resume onto a board the opponent does not share. */
+  function concedeAbandoned(m) {
+    if (window.EOL.netplay) {
+      window.EOL.netplay.begin(m);
+      var c = window.EOL.netplay.controller(function () {});
+      if (c && c.forfeit) c.forfeit();
+      window.EOL.netplay.end();
+    }
+    if (window.EOL.mp.endMatch) window.EOL.mp.endMatch();
+    window.EOL.mp.leave();
+    toast('You left a match in progress - it has been conceded', 'ri-error-warning-line');
+    window.EOL.ui.show('play');
+  }
+
+  /* The battle finished. Close the row so neither player is later
+     rejoined into a game that has already been decided. */
+  function finishMatch() {
+    if (window.EOL.mp && window.EOL.mp.endMatch) window.EOL.mp.endMatch();
+    window.EOL.netplay.end();
+  }
+
+  function onMatchBroken(text) {
+    toast(text, 'ri-error-warning-line');
+    window.EOL.netplay.end('remote');
+    prep = null;
+    draft = null;
+    mpState = null;
+    clearDraftMarks();
+    window.EOL.ui.show('play');
+  }
+
+  function leaveMatch() {
+    window.EOL.netplay.end();
+    if (window.EOL.mp) window.EOL.mp.leave();
+    prep = null;
+    draft = null;
+    mpState = null;
+    clearDraftMarks();
+    window.EOL.ui.show('play');
+  }
+
   /* =====================================================
-     CLASSIC — deck picker modal
+     CLASSIC - deck picker modal
      ===================================================== */
   function modalShow(on) {
     var m = $('deck-modal');
@@ -774,11 +1463,18 @@
     });
   }
 
-  function openClassicModal() {
+  function openClassicModal(onPick) {
+    /* `onPick` diverts the chosen deck somewhere other than a
+       singleplayer board - Ranked Classic uses it to carry the deck
+       into matchmaking. Omitted, it behaves exactly as before. */
+    /* Guard against being wired straight to addEventListener, which would
+       hand us a click Event here - truthy, but not callable, so every row
+       threw "choose is not a function" on click. */
+    var choose = typeof onPick === 'function' ? onPick : startClassicDeck;
     var host = $('dm-list');
     host.innerHTML = '';
 
-    /* Shuffle row first — instant classic for a new player, and a
+    /* Shuffle row first - instant classic for a new player, and a
        "get me in" shortcut even for deck owners. */
     var r = document.createElement('button');
     r.className = 'dm-row random';
@@ -786,10 +1482,10 @@
     r.innerHTML =
       '<span class="dm-ico"><i class="ri-shuffle-line"></i></span>' +
       '<span class="dm-body"><span class="dm-name">Surprise me</span>' +
-      '<span class="dm-meta">A random legal squad of 12 — just this game</span></span>' +
+      '<span class="dm-meta">A random legal squad of 12 - just this game</span></span>' +
       '<i class="dm-go ri-arrow-right-line"></i>';
     r.addEventListener('click', function () {
-      startClassicDeck(null);
+      choose(null);
     });
     host.appendChild(r);
 
@@ -797,7 +1493,7 @@
     if (!decks.length) {
       var none = document.createElement('p');
       none.className = 'dm-empty';
-      none.innerHTML = 'No saved decks yet &mdash; forge one from <b>New deck</b> below.';
+      none.innerHTML = 'No saved decks yet - forge one from <b>New deck</b> below.';
       host.appendChild(none);
     }
     decks
@@ -819,12 +1515,12 @@
           '<span class="dm-meta">' +
           d.ids.length +
           '/12 heroes' +
-          (ok ? '' : ' — needs 12 to battle (edit it)') +
+          (ok ? '' : ' - needs 12 to battle (edit it)') +
           '</span></span>' +
           (ok ? '<i class="dm-go ri-arrow-right-line"></i>' : '');
         if (ok)
           row.addEventListener('click', function () {
-            startClassicDeck(d.id);
+            choose(d.id);
           });
         host.appendChild(row);
       });
@@ -832,7 +1528,7 @@
   }
 
   /* =====================================================
-     DRAFT — snake draft, packs of 3
+     DRAFT - snake draft, packs of 3
      -------------------------------------------------------------
      The pack is dealt ONCE and stays on the table: picks mark the
      card in place (greyed + a colored claim stamp), piles update
@@ -844,15 +1540,58 @@
   var BOT_ANSWER_MS = 1050; // the bot weighs its answer to yours
   var SETTLE_MS = 850; // beat to read the picks before the next pack
 
+  /* wipe per-draft bookkeeping off the shared entry objects */
+  function clearDraftMarks() {
+    flatten().forEach(function (e) {
+      if (e._wrap) e._wrap = null;
+      if (e._taken) e._taken = null; // also covers the 'burn' marker
+    });
+  }
+
   function packStarter(i) {
+    /* Singleplayer: you always open the even packs.
+       Multiplayer: the HOST opens the even packs, so the two clients
+       assign opposite roles for the same pack index and the snake
+       alternates correctly on both screens. */
+    if (mpState) {
+      var hostOpens = i % 2 === 0;
+      return hostOpens === mpState.host ? 'you' : 'foe';
+    }
     return i % 2 === 0 ? 'you' : 'foe';
   }
 
-  function startDraft() {
-    var pool = RULES().draftPool(flatten(), Math.random);
+  /* ---------------------------------------------------------
+     MULTIPLAYER DRAFT
+     -------------------------------------------------------------
+     The same snake draft, with two changes:
+       - the pack order comes from the match SEED, so both clients
+         build an identical sequence without transmitting the pool
+       - the "foe" pick arrives over the wire instead of from the bot
+     `mpState` is null in singleplayer and everything behaves as before.
+     --------------------------------------------------------- */
+  var mpState = null;
+  /* What we are queueing for, and (Classic only) with which deck. */
+  var mpQueueMode = 'draft';
+  var mpDeckId = null;
+
+  function startDraft(opts) {
+    /* flatten() hands back ONE shared entry object per hero, cached for the
+       life of the page, and the draft stamps per-game state (_taken and
+       _wrap) straight onto those objects. Without this scrub a second
+       draft inherits the first one's stamps: cards render pre-greyed as
+       "already taken" and the piles look pre-filled. Clear every marker
+       before building a new draft. */
+    opts = opts || {};
+    clearDraftMarks();
+    /* A multiplayer draft is driven by the match seed so both clients
+       shuffle to the identical pack order. Singleplayer keeps using
+       Math.random. */
+    var rnd = opts.seed != null ? window.EOL.mp.rngFrom(opts.seed) : Math.random;
+    mpState = opts.seed != null ? { host: !!opts.host, seed: opts.seed, waiting: false } : null;
+    var pool = RULES().draftPool(flatten(), rnd);
     var shuffled = pool.slice();
     for (var i = shuffled.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
+      var j = Math.floor(rnd() * (i + 1));
       var t = shuffled[i];
       shuffled[i] = shuffled[j];
       shuffled[j] = t;
@@ -866,19 +1605,28 @@
       picks: { you: [], foe: [] },
       busy: false,
     };
+    /* Pack 0 has an opener too. Singleplayer always let YOU open it, but
+       in multiplayer only the host does, so the guest must start locked
+       and waiting or both players would pick from the same pack. */
+    draft.busy = packStarter(0) === 'foe';
     renderPack();
     renderDraftHead();
+    /* Repaint both squad strips from the NEW (empty) picks. Without this the
+       previous draft's 12 pips and its "12/12" counters stay on screen -
+       the draft state was already reset, but the DOM was never cleared. */
+    paintPiles(null);
     window.EOL.ui.show('draft');
+    if (draft.busy) foeOpens();
     coachShow(
       'draft',
       'ra-clovers-card',
       'The Snake Draft',
       'Packs of three, 12 packs. You open the odd packs, the enemy opens the even ones. ' +
-        'One pick each per pack, the third card burns — both squads build to 12, then preparation begins.'
+        'One pick each per pack, the third card burns - both squads build to 12, then preparation begins.'
     );
   }
 
-  /* header text + order chips — cheap enough to refresh on every beat */
+  /* header text + order chips - cheap enough to refresh on every beat */
   function renderDraftHead() {
     var d = draft;
     if (!d) return;
@@ -891,10 +1639,10 @@
       ' of ' +
       total +
       (d.busy
-        ? ' — the enemy weighs its pick...'
+        ? ' - the enemy weighs its pick...'
         : starter === 'you'
-          ? ' — your pick'
-          : ' — your pick (the enemy opened this pack)');
+          ? ' - your pick'
+          : ' - your pick (the enemy opened this pack)');
     $('draft-order').innerHTML =
       '<span class="dorder-chip' +
       (starter === 'you' ? ' on' : '') +
@@ -937,7 +1685,7 @@
       if (e._taken || !e._wrap) return;
       var blocked = RULES().capBlocked(d.picks.you, e.card);
       e._wrap.classList.toggle('capped', blocked);
-      e._wrap.title = blocked ? 'Role capped — your squad already runs 4 ' + e.card.role + 's' : '';
+      e._wrap.title = blocked ? 'Role capped - your squad already runs 4 ' + e.card.role + 's' : '';
     });
   }
 
@@ -963,7 +1711,7 @@
     }
   }
 
-  /* Both squads fill in live — freshSide's newest pip is the only one
+  /* Both squads fill in live - freshSide's newest pip is the only one
      that pops, so a repaint never replays the whole strip. */
   function paintPiles(freshSide) {
     var d = draft;
@@ -1010,29 +1758,51 @@
         flashNode('draft-sub');
         return;
       }
-      /* cornered: the pack holds only capped roles — the cap waives */
-      toast('Role cap waived — no legal pick remained', 'ri-error-warning-line');
+      /* cornered: the pack holds only capped roles - the cap waives */
+      toast('Role cap waived - no legal pick remained', 'ri-error-warning-line');
     }
+    var idx = d.offered.indexOf(e);
     markTaken(e, 'you');
     d.picks.you.push(e);
     paintPiles('you');
+    /* Tell the opponent WHICH SLOT of the current pack we took. Both
+       clients built the same pack from the seed, so an index is all the
+       information the other side needs. */
+    if (mpState) {
+      window.EOL.mp.send('pick', { pack: d.packNo, idx: idx });
+      /* Persist the running pick list so a reconnect can rebuild the
+         squad. Cheap - it is one small array per pick. */
+      window.EOL.mp.saveState({
+        phase: 'draft',
+        picks: d.picks.you.map(function (x) {
+          return x.card.id;
+        }),
+      });
+    }
+
     var remaining = d.offered.filter(function (x) {
       return !x._taken;
     });
     if (remaining.length === 1) {
-      // you answered a foe-opened pack: the last card burns
+      // you answered an opponent-opened pack: the last card burns
       burnCard(remaining[0]);
       renderDraftHead();
       setTimeout(advancePack, SETTLE_MS);
       return;
     }
-    // you opened: the bot answers from the two you left
+    // you opened: the other side answers from the two you left
     d.busy = true;
     updateCaps();
     renderDraftHead();
+    if (mpState) {
+      // a real opponent answers; applyRemotePick() resumes the flow
+      mpState.waiting = true;
+      setDraftWait(true);
+      return;
+    }
     setTimeout(function () {
       if (!draft) return;
-      var foePick = draftPick(draft.picks.foe, remaining);
+      var foePick = draftPick(draft.picks.foe, remaining, draft.picks.you);
       markTaken(foePick, 'foe');
       draft.picks.foe.push(foePick);
       paintPiles('foe');
@@ -1045,11 +1815,53 @@
     }, BOT_ANSWER_MS);
   }
 
-  /* Foe-opened packs: the bot takes one of three, you answer from two. */
+  /* The opponent's pick arrived. Mirror it locally. */
+  function applyRemotePick(payload) {
+    var d = draft;
+    if (!d || !mpState) return;
+    if (payload.pack !== d.packNo) return; // stale message, ignore
+    var e = d.offered[payload.idx];
+    if (!e || e._taken) return;
+    mpState.waiting = false;
+    setDraftWait(false);
+    markTaken(e, 'foe');
+    d.picks.foe.push(e);
+    paintPiles('foe');
+    var left = d.offered.filter(function (x) {
+      return !x._taken;
+    });
+    if (left.length === 1) {
+      // they answered OUR pack: burn the last and move on
+      burnCard(left[0]);
+      renderDraftHead();
+      setTimeout(advancePack, SETTLE_MS);
+    } else {
+      // they opened: our turn to answer from what is left
+      d.busy = false;
+      updateCaps();
+      renderDraftHead();
+    }
+  }
+
+  /* a small "their turn" state so the board never looks frozen */
+  function setDraftWait(on) {
+    var host = $('draft-pack');
+    if (host) host.classList.toggle('mp-waiting', !!on);
+    var sub = $('draft-sub');
+    if (sub && on) sub.textContent = 'Waiting for your opponent...';
+  }
+
+  /* Foe-opened packs: the bot takes one of three, you answer from two.
+     In multiplayer we simply wait for their broadcast instead. */
   function foeOpens() {
+    if (mpState) {
+      mpState.waiting = true;
+      setDraftWait(true);
+      return;
+    }
     setTimeout(function () {
       if (!draft) return;
-      var foePick = draftPick(draft.picks.foe, draft.offered);
+      var foePick = draftPick(draft.picks.foe, draft.offered, draft.picks.you);
       markTaken(foePick, 'foe');
       draft.picks.foe.push(foePick);
       paintPiles('foe');
@@ -1064,12 +1876,26 @@
     if (!d) return;
     d.packNo += 1;
     if (d.packNo >= d.packs.length) {
-      // two legal twelves — settle the piles, then Preparation takes over
+      // two legal twelves - settle the piles, then Preparation takes over
       var you12 = d.picks.you.slice();
       var foe12 = d.picks.foe.slice();
       paintPiles(null);
       draft = null;
-      startPrep({ mode: 'draft', player12: you12, enemy12: foe12 });
+      var wasMp = !!mpState;
+      var seed = mpState ? mpState.seed : null;
+      mpState = null;
+      startPrep({
+        mode: 'draft',
+        player12: you12,
+        enemy12: foe12,
+        mp: wasMp,
+        seed: seed,
+        /* Both machines must fight on the SAME terrain, so it is
+           derived from the shared seed rather than rolled twice. */
+        field: wasMp
+          ? window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((seed | 0) + 0x1b7))
+          : null,
+      });
       return;
     }
     d.offered = d.packs[d.packNo].slice();
@@ -1109,12 +1935,264 @@
   /* =====================================================
      wiring
      ===================================================== */
+  /* =====================================================
+     multiplayer wiring
+     ===================================================== */
+  function mmShow(on) {
+    var m = $('mm-modal');
+    if (m) m.hidden = !on;
+  }
+  function mmSay(title, sub) {
+    var t = $('mm-title'),
+      s2 = $('mm-sub');
+    if (t && title) t.textContent = title;
+    if (s2 && sub != null) s2.textContent = sub;
+  }
+
+  /* Park the sliding highlight exactly over the selected tab.
+     The two tabs are different widths (Multiplayer carries the
+     "account" badge, which vanishes on sign-in), so the thumb is
+     measured rather than assumed to be half the bar. */
+  function moveTabThumb() {
+    var bar = $('play-tabs');
+    if (!bar) return;
+    var sel = bar.querySelector('.play-tab.sel');
+    if (!sel) return;
+    var b = bar.getBoundingClientRect();
+    var t = sel.getBoundingClientRect();
+    if (!t.width) return; // laid out but hidden - nothing to measure yet
+    bar.style.setProperty('--thumb-x', Math.round(t.left - b.left) + 'px');
+    bar.style.setProperty('--thumb-w', Math.round(t.width) + 'px');
+  }
+
+  function initMultiplayer() {
+    var MP = window.EOL.mp;
+    if (!MP) return;
+
+    /* tab switching */
+    var tabs = document.querySelectorAll('.play-tab');
+    function setArena(which) {
+      document.querySelectorAll('.play-tab').forEach(function (t) {
+        var on = t.dataset.arena === which;
+        t.classList.toggle('sel', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      var tabsEl = $('play-tabs');
+      if (tabsEl) tabsEl.dataset.arena = which;
+      moveTabThumb();
+      var solo = $('mode-grid-solo'),
+        mp = $('mode-grid-mp');
+      if (solo) solo.hidden = which !== 'solo';
+      if (mp) mp.hidden = which !== 'mp';
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        setArena(t.dataset.arena);
+      });
+    });
+    setArena('solo');
+
+    /* The lock badge disappears once signed in, which CHANGES THE TAB
+       WIDTH - so the highlight has to be re-measured or it is left
+       overhanging the tab it belongs to. */
+    function refreshLock() {
+      var lock = $('mp-lock');
+      if (lock) lock.hidden = MP.available();
+      moveTabThumb();
+    }
+    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(refreshLock);
+    refreshLock();
+    window.addEventListener('resize', moveTabThumb);
+    /* The play view is hidden at boot, so the tabs have no width to
+       measure yet. Re-measure the first time it is actually shown. */
+    document.addEventListener('eol:view', function (ev) {
+      if (ev.detail === 'play') moveTabThumb();
+    });
+
+    /* Which ranked mode we are queueing for. Draft builds its squad
+       in-game; Classic brings a saved deck, so it has to pick one
+       first and carry it into the match. */
+    function queueFor(mode, deckId) {
+      if (!MP.available()) {
+        mmShow(true);
+        mmSay('Account required', 'Sign in from the main menu to play multiplayer.');
+        return;
+      }
+      mpQueueMode = mode;
+      mpDeckId = deckId || null;
+      mmShow(true);
+      mmSay('Finding an opponent', 'Searching the queue...');
+      var vs = $('mm-vs');
+      if (vs) vs.hidden = true;
+      MP.findMatch(mode).catch(function () {
+        /* status handler already reported it */
+      });
+    }
+
+    var btn = $('mode-mp-draft');
+    if (btn)
+      btn.addEventListener('click', function () {
+        queueFor('draft');
+      });
+
+    var btnC = $('mode-mp-classic');
+    if (btnC)
+      btnC.addEventListener('click', function () {
+        if (!MP.available()) {
+          mmShow(true);
+          mmSay('Account required', 'Sign in from the main menu to play multiplayer.');
+          return;
+        }
+        /* Reuse the singleplayer deck picker. `onPick` diverts the
+           chosen deck into matchmaking instead of straight to a
+           board, so there is one deck-selection UI rather than two
+           that can drift apart. */
+        openClassicModal(function (deckId) {
+          modalShow(false);
+          queueFor('classic', deckId);
+        });
+      });
+
+    var cancel = $('mm-cancel');
+    if (cancel)
+      cancel.addEventListener('click', function () {
+        MP.cancel();
+        mmShow(false);
+      });
+    var scrim = $('mm-scrim');
+    if (scrim)
+      scrim.addEventListener('click', function () {
+        MP.cancel();
+        mmShow(false);
+      });
+
+    MP.on('status', function (st) {
+      if (st.state === 'error' || st.state === 'timeout') mmSay('Matchmaking', st.text);
+      else mmSay(null, st.text);
+    });
+
+    MP.on('matched', function (m) {
+      /* REJOINING AN IN-PROGRESS MATCH.
+         Draft picks, bans and formations are now persisted, so a
+         reconnect can rebuild the board rather than concede it.
+         resumeMatch() returns false only for a battle already in
+         progress - the per-action log is deliberately NOT stored, so
+         that one case still forfeits. */
+      if (m.resumed) {
+        mmShow(false);
+        if (resumeMatch(m)) return;
+        concedeAbandoned(m);
+        return;
+      }
+      var vs = $('mm-vs');
+      var youEl = $('mm-you'),
+        oppEl = $('mm-opp');
+      var u = window.EOL.auth.user();
+      if (youEl) youEl.textContent = (u && u.name) || 'You';
+      if (oppEl) oppEl.textContent = m.oppName;
+      if (vs) vs.hidden = false;
+      var isClassic = (m.mode || mpQueueMode) === 'classic';
+      mmSay('Opponent found', isClassic ? 'Exchanging decks...' : 'Starting the draft...');
+      /* Open the ordered/checksummed session for everything after the
+         pairing - decks, bans, formations and every battle action
+         ride it. */
+      window.EOL.netplay.begin(m);
+
+      if (isClassic) {
+        /* Both players send their twelve, then preparation begins the
+           moment BOTH have landed - the same latch used for bans, so
+           whoever is slower does not strand the other. */
+        var deck = mpDeckId ? window.EOL.decks.get(mpDeckId) : null;
+        var mine =
+          deck && window.EOL.decks.isComplete(deck)
+            ? window.EOL.decks.entriesOf(deck)
+            : RULES().randomDeck(flatten(), Math.random);
+        var myIds = mine.map(function (e) {
+          return e.card.id;
+        });
+        window.EOL.netplay.startDecks(function (foeIds) {
+          var dict = byId();
+          var foe12 = (foeIds || [])
+            .map(function (id) {
+              return dict[id];
+            })
+            .filter(Boolean);
+          if (foe12.length !== RULES().DECK_SIZE) {
+            toast('The opponent sent an unreadable deck', 'ri-error-warning-line');
+            leaveMatch();
+            return;
+          }
+          mmShow(false);
+          startPrep({
+            mode: 'classic',
+            mp: true,
+            seed: m.seed,
+            deckId: mpDeckId,
+            player12: mine,
+            enemy12: foe12,
+            field: window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((m.seed | 0) + 0x1b7)),
+          });
+        });
+        /* submitDeck() can start preparation synchronously if their
+           deck already arrived, so persist before handing over. */
+        window.EOL.mp.saveState({ phase: 'ban', deck: myIds });
+        window.EOL.netplay.submitDeck(myIds);
+        return;
+      }
+
+      setTimeout(function () {
+        mmShow(false);
+        startDraft({ seed: m.seed, host: m.host });
+      }, 1200);
+    });
+
+    /* AUTO-REJOIN.
+       If a live match is still waiting for us - we crashed, closed
+       the tab, lost wifi - drop straight back into it. Runs whenever
+       auth settles, because at first paint we usually do not know yet
+       whether anyone is signed in. */
+    var resumed = false;
+    function tryResume() {
+      if (resumed || !MP.available() || !MP.resume) return;
+      resumed = true;
+      MP.resume().catch(function () {
+        resumed = false; // a failed attempt may retry on the next change
+      });
+    }
+    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(tryResume);
+    tryResume();
+
+    MP.on('pick', applyRemotePick);
+    MP.on('net', function (msg) {
+      window.EOL.netplay.receive(msg);
+    });
+
+    MP.on('opponentLeft', function () {
+      if (!draft && !prep && !window.EOL.netplay.active()) return;
+      toast('Your opponent left the match', 'ri-error-warning-line');
+      window.EOL.netplay.end('remote');
+      draft = null;
+      prep = null;
+      mpState = null;
+      clearDraftMarks();
+      window.EOL.ui.show('play');
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    initQuitGuard();
+    initMultiplayer();
     var mc = $('mode-classic'),
       md = $('mode-draft'),
       mcmp = $('mode-campaign');
-    if (mc) mc.addEventListener('click', openClassicModal);
-    if (md) md.addEventListener('click', startDraft);
+    if (mc)
+      mc.addEventListener('click', function () {
+        openClassicModal();
+      });
+    if (md)
+      md.addEventListener('click', function () {
+        startDraft();
+      });
     // mode-campaign is disabled-markup only: a visible placeholder that
     // does nothing until the campaign arrives
     if (mcmp)
@@ -1131,14 +2209,19 @@
     var bprep = $('btn-prep-back');
     if (bprep)
       bprep.addEventListener('click', function () {
-        prep = null;
-        window.EOL.ui.show('play');
+        confirmQuit(function () {
+          prep = null;
+          window.EOL.ui.show('play');
+        });
       });
     var bd = $('btn-draft-back');
     if (bd)
       bd.addEventListener('click', function () {
-        draft = null;
-        window.EOL.ui.show('play');
+        confirmQuit(function () {
+          draft = null;
+          clearDraftMarks();
+          window.EOL.ui.show('play');
+        });
       });
 
     var dc = $('dm-cancel');
@@ -1189,10 +2272,25 @@
     );
   });
 
+  /* card widths are viewport-driven, so names must be re-fitted on resize */
+  var _fitRaf = null;
+  window.addEventListener('resize', function () {
+    if (_fitRaf) cancelAnimationFrame(_fitRaf);
+    _fitRaf = requestAnimationFrame(function () {
+      document.querySelectorAll('.prep-c .bcard-name, .field-slot .fs-name').forEach(function (el) {
+        delete el.dataset.fitFor; // force a re-measure at the new width
+      });
+      fitPrepNames();
+      fitSlotNames();
+    });
+  });
+
   window.EOL.play = {
     rematch: rematch,
     openClassicModal: openClassicModal,
     startDraft: startDraft,
+    /* test hook: re-bind multiplayer handlers (harness only) */
+    _initMp: initMultiplayer,
     startPrep: startPrep,
     /* test hooks */
     _chooseBans: chooseBans,
@@ -1201,6 +2299,7 @@
     _prepState: function () {
       return prep;
     },
+    _flat: flatten /* test hook: the shared entry pool */,
     _draftState: function () {
       return draft;
     },
@@ -1210,4 +2309,3 @@
     _packStarter: packStarter,
   };
 })();
-

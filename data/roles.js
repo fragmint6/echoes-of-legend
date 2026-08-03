@@ -2,7 +2,7 @@
  * Role Default Abilities
  * -------------------------------------------------------------
  * Every hero gets one of these for free (0 Energy) in addition to
- * their signature ability, chosen by their role.
+ * their Signature Skill, chosen by their role.
  *
  * Also defines each role's default TARGETING RULE:
  *   row: 'front' -> must hit the enemy front row while any of it lives
@@ -18,13 +18,13 @@ window.EOL.roleAbilities = {
     name: 'Guard',
     cost: 15,
     basic: true,
-    text: 'Deal <b>85% ATK Physical Damage</b> and immediately gain <b>10% DEF</b> for 1 round, and Taunt for 1 round.',
+    text: 'Deal <b>85% ATK Physical Damage</b> and immediately gain <b>10% DEF</b> for 1 round, and Provoke for 1 round.',
     spec: {
       target: { side: 'enemy', pick: 'single', row: 'front' },
       effects: [
         { k: 'dmg', power: 0.85, element: 'Physical' },
         { k: 'stat', stat: 'def', amt: 10, turns: 1, to: 'self' },
-        /* Pass 8: Guard becomes interception — Taunt overrides even row
+        /* Pass 8: Guard becomes interception - Provoke overrides even row
            restrictions, so a guarding tank soaks single-target shots aimed
            at the back line. */
         { k: 'taunt', turns: 1, to: 'self' },
@@ -71,7 +71,7 @@ window.EOL.roleAbilities = {
     name: 'Disrupt',
     cost: 15,
     basic: true,
-    text: 'Deal <b>70% ATK Magic Damage</b> and immediately apply a random debuff for 2 rounds: <b>15% reduced ATK</b>, <b>15% increased ability cost</b>, or <b>15% reduced DEF</b>.',
+    text: 'Deal <b>70% ATK Magic Damage</b> and immediately apply a random debuff for 2 rounds: <b>15% reduced ATK</b>, <b>15% increased Skill cost</b>, or <b>15% reduced DEF</b>.',
     spec: {
       target: { side: 'enemy', pick: 'single', row: 'any' },
       effects: [
@@ -81,7 +81,7 @@ window.EOL.roleAbilities = {
           when: 'now',
           options: [
             { k: 'stat', stat: 'atk', amt: -15, turns: 2, label: '-15% ATK' },
-            { k: 'costMod', unit: true, pct: 15, turns: 2, label: '+15% ability cost' },
+            { k: 'costMod', unit: true, pct: 15, turns: 2, label: '+15% Skill cost' },
             { k: 'stat', stat: 'def', amt: -15, turns: 2, label: '-15% DEF' },
           ],
         },
@@ -101,7 +101,7 @@ window.EOL.roleAbilities = {
         { k: 'heal', power: 0.6, overflow: 'shield' },
         { k: 'heal', power: 0.15, overflow: 'shield', if: { targetHpBelow: 0.3 } },
         { k: 'stat', stat: 'def', amt: 10, turns: 1, to: 'targets' },
-        /* Pass 8: battlefield triage — the rest of the team gets a light
+        /* Pass 8: battlefield triage - the rest of the team gets a light
            splash, same overflow rule, so Restore contributes to the whole
            squad rather than one health bar. */
         { k: 'heal', power: 0.15, overflow: 'shield', to: 'otherAllies' },

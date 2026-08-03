@@ -1,5 +1,5 @@
-/* Faction: Sherwood — Outlaws (focus, guard and pursuit)
-   Balance history lives in BALANCE-CHANGELOG.md (passes 1–3). */
+/* Faction: Sherwood - Outlaws (focus, guard and pursuit)
+   Balance history lives in BALANCE-CHANGELOG.md (passes 1 - 3). */
 window.EOL.registerFaction({
   id: 'sherwood',
   name: 'Sherwood',
@@ -10,7 +10,7 @@ window.EOL.registerFaction({
     {
       id: 'sherwood-guy-of-gisborne',
       name: 'Guy of Gisborne',
-      rarity: 'legendary',
+      rarity: 'epic',
       role: 'Bruiser',
       element: 'Shadow',
       stats: { hp: 6480, atk: 1730, def: 25 },
@@ -29,11 +29,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-knight-helmet',
+      art: 'assets/heroes/sherwood-guy-of-gisborne.png',
     },
     {
       id: 'sherwood-robin-hood',
       name: 'Robin Hood',
-      rarity: 'epic',
+      rarity: 'legendary',
       role: 'Sniper',
       element: 'Nature',
       stats: { hp: 4530, atk: 1955, def: 10 },
@@ -53,11 +54,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-archer',
+      art: 'assets/heroes/sherwood-robin-hood.png',
     },
     {
       id: 'sherwood-will-scarlet',
       name: 'Will Scarlet',
-      rarity: 'epic',
+      rarity: 'rare',
       role: 'Bruiser',
       element: 'Physical',
       stats: { hp: 6180, atk: 1650, def: 20 },
@@ -84,11 +86,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-daggers',
+      art: 'assets/heroes/sherwood-will-scarlet.png',
     },
     {
       id: 'sherwood-little-john',
       name: 'Little John',
-      rarity: 'rare',
+      rarity: 'epic',
       role: 'Tank',
       element: 'Physical',
       stats: { hp: 6860, atk: 980, def: 30 },
@@ -112,11 +115,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-heavy-shield',
+      art: 'assets/heroes/sherwood-little-john.png',
     },
     {
       id: 'sherwood-maid-marian',
       name: 'Maid Marian',
-      rarity: 'rare',
+      rarity: 'common',
       role: 'Medic',
       element: 'Light',
       stats: { hp: 4900, atk: 1080, def: 20 },
@@ -132,11 +136,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-two-hearts',
+      art: 'assets/heroes/sherwood-maid-marian.png',
     },
     {
       id: 'sherwood-friar-tuck',
       name: 'Friar Tuck',
-      rarity: 'common',
+      rarity: 'rare',
       role: 'Controller',
       element: 'Light',
       stats: { hp: 4835, atk: 1160, def: 20 },
@@ -144,19 +149,19 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Words of Wisdom',
         cost: 25,
-        text: "Deal <b>95% ATK Light Damage</b> and reduce that enemy's ATK by <b>25% for 2 rounds</b>, applying <b>Exposed</b> for 1 round if they were already debuffed.",
+        text: "Deal <b>95% ATK Light Damage</b> <b>+14% for each debuff</b> on the target and reduce that enemy's ATK by <b>25% for 2 rounds</b>, applying <b>Exposed</b> for 1 round if they were already debuffed.",
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
             { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
-            { k: 'dmg', power: 0.95, element: 'Light' },
+            { k: 'dmg', power: 0.95, element: 'Light', perDebuff: 0.14, perDebuffMax: 3 },
             { k: 'stat', stat: 'atk', amt: -25, turns: 2, to: 'targets', when: 'now' },
           ],
         },
       },
       icon: 'ra-beer',
+      art: 'assets/heroes/sherwood-friar-tuck.png',
     },
   ],
 });
-

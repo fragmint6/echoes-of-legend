@@ -1,5 +1,5 @@
 /* =============================================================
- * Echoes of Legend — Card Data Registry & Schema
+ * Echoes of Legend - Card Data Registry & Schema
  * =============================================================
  * Faction files register themselves into window.EOL.factions.
  * Loaded via plain <script> tags so the game runs from file://
@@ -29,13 +29,18 @@
  *   ability: {
  *     type:    "Passive" | "Active"
  *     name:    string
- *     cost:    number|null   energy cost — Actives only
+ *     cost:    number|null   energy cost - Actives only
  *     text:    string        full description, written as prose. Keep it to
  *                            one sentence where possible; may contain <b>.
  *     note:    string|null   trailing footnote, used for stacking caps and
  *                            limits, e.g. "Max: 5 stacks." / "Once per battle."
  *   }
- *   icon:      string        RPG Awesome class — this IS the card art
+ *   icon:      string        RPG Awesome class - fallback art, and the
+ *                            glyph still used in lists and tooltips
+ *   art:       string|null   optional path to a 96x96 pixel-art portrait,
+ *                            relative to the project root. When present the
+ *                            card renders it instead of the icon glyph.
+ *                            See docs/ART-SPEC.md.
  * }
  *
  * ---- STATUS EFFECTS -----------------------------------------
@@ -81,7 +86,7 @@ window.EOL.registerFaction = function (faction) {
    the same role in one team of six. `roleCount` counts members,
    `withinRoleCap` validates an id list, `splitCapped` draws two
    legal teams of six from a shuffled entry pool (greedy walk with
-   reshuffle retry — the pool is 36 heroes across 6 roles, so it
+   reshuffle retry - the pool is 36 heroes across 6 roles, so it
    converges immediately).
    ============================================================= */
 window.EOL.rules = (function () {
@@ -151,7 +156,7 @@ window.EOL.rules = (function () {
 })();
 
 /* =============================================================
-   GAME DECK RULES (post pass-12 model — Classic & Draft modes)
+   GAME DECK RULES (post pass-12 model - Classic & Draft modes)
    -------------------------------------------------------------
    A game deck is 12 distinct heroes, at most 4 of any one role.
    Every battle opens with the PREPARATION phase: each side bans
@@ -222,7 +227,7 @@ window.EOL.deckRules = (function () {
 
   /* Draft pool: the full 36-hero roster. Once every role has at
      least 6 heroes in the game, the pool becomes 6-per-role snapshotted
-     from the roster — the draft law the pool is designed around. */
+     from the roster - the draft law the pool is designed around. */
   function draftPool(pool, rng) {
     var byRole = {};
     pool.forEach(function (e) {
@@ -259,4 +264,3 @@ window.EOL.deckRules = (function () {
     draftPool: draftPool,
   };
 })();
-

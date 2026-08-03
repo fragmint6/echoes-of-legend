@@ -1,4 +1,4 @@
-/* Faction: Yamato — Energy economy */
+/* Faction: Yamato - Energy economy */
 window.EOL.registerFaction({
   id: 'yamato',
   name: 'Yamato',
@@ -9,7 +9,7 @@ window.EOL.registerFaction({
     {
       id: 'yamato-yoshitsune',
       name: 'Minamoto no Yoshitsune',
-      rarity: 'legendary',
+      rarity: 'rare',
       role: 'Bruiser',
       element: 'Physical',
       stats: { hp: 6100, atk: 1740, def: 22 },
@@ -61,7 +61,7 @@ window.EOL.registerFaction({
     {
       id: 'yamato-benkei',
       name: 'Benkei',
-      rarity: 'epic',
+      rarity: 'common',
       role: 'Tank',
       element: 'Physical',
       stats: { hp: 6900, atk: 1000, def: 30 },
@@ -83,7 +83,7 @@ window.EOL.registerFaction({
     {
       id: 'yamato-abe-no-seimei',
       name: 'Abe no Seimei',
-      rarity: 'epic',
+      rarity: 'legendary',
       role: 'Controller',
       element: 'Magic',
       /* DEF 25 -> 20: the old stat line sat outside the Controller band
@@ -115,20 +115,24 @@ window.EOL.registerFaction({
            This is the only card in the roster that uses the engine's
            `delayed` effect kind, which was fully implemented but unused. */
         cost: 35,
-        text: 'Deal <b>60% ATK Magic Damage</b> and seal a shikigami on the target: at the end of the round it strikes for <b>110% ATK Magic Damage</b> and applies <b>Exposed</b> for 1 round. At <b>50+ Energy</b> the omen is dire — also <b>Silence</b> the target for 1 round and reduce their ATK by <b>20%</b> for 2 rounds.',
+        text: 'Deal <b>50% ATK Magic Damage</b> and seal a shikigami on the target: at the end of the round it strikes for <b>70% ATK Magic Damage</b> and applies <b>Exposed</b> for 2 rounds. At <b>50+ Energy</b> the omen is dire - also <b>Silence</b> the target for 1 round and reduce their ATK by <b>25%</b> for 2 rounds.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
-            { k: 'dmg', power: 0.6, element: 'Magic' },
+            /* ROLE PASS 2026-07-31: 0.6 + 1.1 = 1.7 total power put a
+               Controller at Caster damage tier, which the role definitions
+               forbid. Cut to 0.5 + 0.7 = 1.2 and the lost damage is paid
+               back as control: Exposed 1 -> 2 rounds, ATK -20% -> -25%. */
+            { k: 'dmg', power: 0.5, element: 'Magic' },
             /* the prophecy: resolves at the end of the round via u.pending */
             {
               k: 'delayed',
               turns: 1,
               tag: 'shikigami',
               effects: [
-                { k: 'dmg', power: 1.1, element: 'Magic' },
-                { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
+                { k: 'dmg', power: 0.7, element: 'Magic' },
+                { k: 'exposed', turns: 2, to: 'targets', when: 'now' },
               ],
             },
             /* Yamato identity: the reading is only dire on a full pool */
@@ -142,7 +146,7 @@ window.EOL.registerFaction({
             {
               k: 'stat',
               stat: 'atk',
-              amt: -20,
+              amt: -25,
               turns: 2,
               to: 'targets',
               if: { selfEnergyAbove: 49 },
@@ -156,7 +160,7 @@ window.EOL.registerFaction({
     {
       id: 'yamato-momotaro',
       name: 'Momotaro',
-      rarity: 'rare',
+      rarity: 'epic',
       role: 'Tank',
       element: 'Physical',
       stats: { hp: 6860, atk: 980, def: 30 },

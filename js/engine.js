@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Combat Engine
+   Echoes of Legend - Combat Engine
    -------------------------------------------------------------
    Data-driven. Abilities are declared as { target, effects[] } in
    the card data; this file interprets them. Adding a new ability
@@ -15,8 +15,29 @@
 (function () {
   'use strict';
 
-  /* Energy pool granted at the start of each round. Does NOT carry over. */
+  /* Energy GRANTED at the start of each round. Unspent energy now CARRIES
+     OVER (2026-07-31): the round grant is added to whatever is left, and the
+     total is clamped to ENERGY_CAP. The grant itself still tops out at 100 -
+     it does not scale to the cap - so from round 6 the income is flat and the
+     only way to hold more is to have banked it. */
   var ENERGY_BY_ROUND = [50, 60, 70, 80, 90, 100];
+
+  /* Ceiling on banked energy. Battlefields may raise it (Mana Spring). */
+  var ENERGY_CAP = 150;
+
+  /* Comeback: extra energy per round, per hero of deficit, paid to whichever
+     side is behind on living heroes. Recalculated each round - it fades as
+     the deficit closes and disappears entirely on a tie.
+
+     Tuned empirically (1,200-game runs per value) against a no-grant control:
+        0/hero  68.8% first-kill conversion
+       10/hero  65.3%
+       15/hero  63.2%   <- chosen
+       20/hero  62.7%   (diminishing, and P1 drifts to 51.3%)
+     15 captures nearly all the available correction; past that the curve
+     flattens and the extra energy starts distorting the seat balance
+     instead of closing the gap. */
+  var COMEBACK_PER_HERO = 15;
 
   /* Energy is maxed from round 5, so from round 6 the pressure to close
      the game switches over to a compounding ATK bonus instead. */
@@ -29,7 +50,7 @@
   /* Burn: a damage-over-time debuff. Ticks for a flat share of the
      victim's Max HP at the START OF THEIR OWN TURN, so a 2-turn Burn
      always gets exactly 2 ticks no matter who applied it or when.
-     Burn does not stack — re-applying refreshes the duration. */
+     Burn does not stack - re-applying refreshes the duration. */
   var BURN_PCT_MAX_HP = 5;
 
   function rampMult(round) {
@@ -49,6 +70,17 @@
     return ENERGY_BY_ROUND[Math.min(r - 1, ENERGY_BY_ROUND.length - 1)];
   }
 
+  /* The live ceiling for a battle: base cap plus any battlefield modifier. */
+  function energyCap(B) {
+    return ENERGY_CAP + ((B && B.field && B.field.energyCap) || 0);
+  }
+  /* Clamp helper used everywhere energy is added, so no path can exceed the
+     cap. Previously three call sites hardcoded Math.min(100, ...). */
+  function addEnergy(B, side, amt) {
+    B.energy[side] = Math.max(0, Math.min(energyCap(B), B.energy[side] + amt));
+    return B.energy[side];
+  }
+
   function clamp(v, lo, hi) {
     return Math.max(lo, Math.min(hi, v));
   }
@@ -65,6 +97,14 @@
       faction: faction,
       side: side, // 'player' | 'enemy'
       slot: slot, // 0..5  (0-2 front row, 3-5 back row)
+      /* CROSS-CLIENT IDENTITY. `uid` counts up from a page-global
+         counter, so the same hero has different uids in two browsers
+         and can never be named over a wire. `idx` is the hero's
+         position in the team array AT CREATION and never changes -
+         swapTargets moves `slot`, not this. A network message names a
+         hero as (side, idx), which the receiving client mirrors by
+         flipping the side. See js/netbattle.js. */
+      idx: slot,
       name: card.name,
       role: card.role,
       element: card.element,
@@ -79,6 +119,13 @@
       flags: {}, // taunt / untargetable / silence -> turns
       usedOnce: {}, // once-per-battle passive tracking
       roundFlags: {}, // once-per-round passive tracking
+      /* LIFETIME stack counts, keyed by stackTag. `maxStacks` used to
+         count only the buffs currently held, so a 2-round buff freed
+         its slot the moment it expired and the "Max: 4 stacks" note on
+         the card was never a real ceiling - Red Riding Hood reached a
+         13,000 shield in a live game. This counts every stack ever
+         granted, which is what the card text actually promises. */
+      stackTotals: {},
       pending: [], // delayed effects landing on this unit
       streakUid: null, // Will Scarlet: uid of the current victim
       lastDamagedRound: -1, // round in which this unit last took damage
@@ -91,7 +138,7 @@
   }
 
   /* ---------------------------------------------------------
-     Derived stats — base + additive percent buffs
+     Derived stats - base + additive percent buffs
      --------------------------------------------------------- */
   function sumBuffs(u, stat) {
     var t = 0;
@@ -102,12 +149,27 @@
   }
   function atkOf(u) {
     var ramp = u.battle ? rampMult(u.battle.round) : 1;
-    return Math.max(1, Math.round(u.baseAtk * (1 + sumBuffs(u, 'atk') / 100) * ramp));
+    var pct = sumBuffs(u, 'atk');
+    var f = u.battle && u.battle.field;
+    if (f) {
+      // Open Plains: the back line has room to work
+      if (f.backRowAtk && !isFront(u)) pct += f.backRowAtk;
+      // Blood Battlefield: the wounded fight harder
+      if (f.woundedAtk && u.maxHp > 0 && u.hp / u.maxHp < (f.woundedBelow || 0.5)) {
+        pct += f.woundedAtk;
+      }
+      // The Hero's Trial: the champion is empowered
+      if (f.championAtk && u.isChampion) pct += f.championAtk;
+    }
+    return Math.max(1, Math.round(u.baseAtk * (1 + pct / 100) * ramp));
   }
   function defOf(u) {
-    // Exposed strips defence entirely — base, buffs and all
+    // Exposed strips defence entirely - base, buffs and all
     if (u.flags && u.flags.exposed > 0) return 0;
     var d = u.baseDef + sumBuffs(u, 'def');
+    // Open Plains: no cover for the front line
+    var fd = u.battle && u.battle.field;
+    if (fd && fd.frontRowDef && isFront(u)) d += fd.frontRowDef;
     // if this unit's whole front row is gone, the back line is exposed
     if (u.battle && !isFront(u) && frontRowWiped(u.battle, u.side)) {
       d -= BACKLINE_DEF_PENALTY;
@@ -130,6 +192,45 @@
     return clamp(sumBuffs(u, 'crit'), 0, 100);
   }
 
+  /* How many DISTINCT debuffs are on a unit. Each negative stat buff counts
+     once, and each status flag counts once - so a target under -20% ATK,
+     Burn and Exposed reads as 3. Used by debuffCountAtLeast and by the
+     per-stack damage multiplier (`perDebuff`). */
+  function debuffCount(u) {
+    if (!u) return 0;
+    var n = 0;
+    u.buffs.forEach(function (b) {
+      if (b.amt < 0) n++;
+    });
+    if (u.flags.silence > 0) n++;
+    if (u.flags.healMod) n++;
+    if (u.flags.burn > 0) n++;
+    if (u.flags.exposed > 0) n++;
+    if (u.flags.marked > 0) n++;
+    if (
+      u.costMods &&
+      u.costMods.some(function (m) {
+        return (m.flat || 0) > 0 || (m.pct || 0) > 0;
+      })
+    )
+      n++;
+    return n;
+  }
+
+  /* Mirror of the above for positive buffs - the currency `consumeBuffs`
+     spends and `buffCountAtLeast` reads. A Shield counts as one buff. */
+  function buffCount(u) {
+    if (!u) return 0;
+    var n = 0;
+    u.buffs.forEach(function (b) {
+      if (b.amt > 0) n++;
+    });
+    if (u.shield > 0) n++;
+    if (u.flags.taunt > 0) n++;
+    if (u.flags.untargetable > 0) n++;
+    return n;
+  }
+
   function hasDebuff(u) {
     return (
       u.buffs.some(function (b) {
@@ -147,7 +248,7 @@
      Battle state
      --------------------------------------------------------- */
   /* ---------------------------------------------------------
-     TURN MODEL — alternating ACTIONS
+     TURN MODEL - alternating ACTIONS
      -------------------------------------------------------------
      A round is no longer "player does everything, then enemy does
      everything". A round is a sequence of single ACTIONS that alternate
@@ -161,7 +262,7 @@
 
      A CHOSEN pass means "I pass this TURN", never "I end the round":
      passing skips only that side's current action, and the next action
-     by either side answers it — the passer may act again later in the
+     by either side answers it - the passer may act again later in the
      round. The round ends when both sides pass BACK-TO-BACK (each
      passes while the other's pass is still unanswered), or when
      neither side can act. (2026-07-30 ruling; previously a chosen
@@ -181,23 +282,33 @@
      was winning ~63% off it (measured: the side that scored the last
      kill won 22/30, and the player scored it 22 times).
 
-     Opening the round is a real advantage — the side that acts first is
+     Opening the round is a real advantage - the side that acts first is
      far more likely to land the killing blow. It is paid for directly:
      the side that OPENS the round may only use role Basics, never a
      signature Skill. The responder, acting second, keeps full access.
 
      Since pass 4 the opener ALTERNATES: P1 opens round 1, P2 opens
      round 2, and so on, so opening tempo is shared fairly. */
-  function firstMover(round) {
-    return round % 2 === 1 ? 'player' : 'enemy';
+  function firstMover(round, oddFirst) {
+    /* `oddFirst` names the side that opens the ODD rounds. It defaults
+       to 'player' so singleplayer is unchanged.
+
+       It exists for multiplayer. Each client calls itself 'player', so
+       without this both machines would decide they open round 1 and the
+       two boards would immediately disagree about whose action it is.
+       The match host passes 'player' and the guest passes 'enemy', and
+       the alternation then lines up on both screens. */
+    var odd = oddFirst === 'enemy' ? 'enemy' : 'player';
+    var even = odd === 'player' ? 'enemy' : 'player';
+    return round % 2 === 1 ? odd : even;
   }
 
   /* How many opening rounds the first mover is limited to Basics for.
-     Both sides are now restricted for round 1 only — symmetric by rule. */
+     Both sides are now restricted for round 1 only - symmetric by rule. */
   var FIRST_MOVER_BASIC_ROUNDS = 1;
 
   /* Is this ability locked out because `unit` opens an early round?
-     Only ACTIVE signature Skills are locked — role Basics are always
+     Only ACTIVE signature Skills are locked - role Basics are always
      allowed, and Passives are never locked at all. */
   function signatureBlocked(B, unit, ability) {
     if (B.noOpeningLimit) return false; // unit-test escape hatch
@@ -229,18 +340,21 @@
       (FRONT_ROLES[e.card.role] ? frontline : backline).push(e);
     });
 
+    /* Ties on effective HP are common (shared statlines), and an
+       unbroken tie would place the same squad differently on two
+       machines. Fall back to the card id, which both clients agree on
+       regardless of how the array was built. */
+    var byDurability = function (a, b) {
+      return ehp(b) - ehp(a) || (a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0);
+    };
     // too many natural frontliners: keep the most durable 3 up front
     if (frontline.length > 3) {
-      frontline.sort(function (a, b) {
-        return ehp(b) - ehp(a);
-      });
+      frontline.sort(byDurability);
       while (frontline.length > 3) backline.unshift(frontline.pop());
     }
     // too few: pull the most durable backliners forward
     if (frontline.length < 3) {
-      backline.sort(function (a, b) {
-        return ehp(b) - ehp(a);
-      });
+      backline.sort(byDurability);
       while (frontline.length < 3 && backline.length) frontline.push(backline.shift());
     }
 
@@ -250,19 +364,25 @@
   function createBattle(playerCards, enemyCards, opts) {
     opts = opts || {};
     // Smart role-based formation (Tanks/Bruisers front, rest back) when
-    // the caller asks for it. Teams themselves stay exactly as drawn —
+    // the caller asks for it. Teams themselves stay exactly as drawn -
     // this only decides where each hero stands.
     if (opts.roleAware) {
       playerCards = optimizeFormation(playerCards);
       enemyCards = optimizeFormation(enemyCards);
     }
+    /* Which side opens the odd rounds. Singleplayer and every sim leave
+       this alone ('player'). A multiplayer guest passes 'enemy' so that
+       both machines agree on the turn order even though each of them
+       calls itself 'player'. */
+    var oddFirst = opts.oddFirst === 'enemy' ? 'enemy' : 'player';
     var B = {
       round: 1,
-      turn: 'player',
-      first: 'player',
+      oddFirst: oddFirst,
+      turn: firstMover(1, oddFirst),
+      first: firstMover(1, oddFirst),
       /* Alternating-action bookkeeping. `passed` records sides locked
          out for the rest of the round (auto-pass: nothing legal to do).
-         `turnPassed` records a CHOSEN pass of the current action only —
+         `turnPassed` records a CHOSEN pass of the current action only -
          cleared the moment either side takes an action (a pass only
          counts toward ending the round while it is unanswered). */
       passed: { player: false, enemy: false },
@@ -271,7 +391,19 @@
       actionNo: 0, // actions taken this round, both sides combined
       turnId: 0, // increments on every action (see setTurn/takeAction)
       units: [],
-      energy: { player: energyForRound(1), enemy: energyForRound(1) },
+      /* ROUND 1 GETS THE FIELD'S ENERGY MODIFIER TOO.
+         nextRound() applies `energyPerRound`, but round 1 never goes
+         through nextRound - the battle simply starts there. So the
+         Mana Spring's +20 and the Energy Void's -10 silently skipped
+         the opening round: the board said "+20 Energy every round"
+         and then handed out 50. Clamped at 0 so a negative field
+         cannot start a side underwater. */
+      energy: (function () {
+        var e0 = Math.max(0, energyForRound(1) + ((opts.field && opts.field.energyPerRound) || 0));
+        return { player: e0, enemy: e0 };
+      })(),
+      field: opts.field || null, // active battlefield (see data/battlefields.js)
+      comeback: { player: 0, enemy: 0 }, // energy granted for a hero deficit
       costMods: { player: [], enemy: [] }, // {flat,pct,turns}
       log: [],
       simulation: !!opts.simulation,
@@ -292,13 +424,40 @@
       u.battle = B;
     });
 
+    /* The Hero's Trial: each side's most expensive signature is the champion
+       and gets a stat bump. Resolved once, at battle start, so it cannot
+       shift mid-fight when costs are modified. HP is applied here because
+       maxHp is a stored value, not a derived one. */
+    if (B.field && (B.field.championAtk || B.field.championHp)) {
+      ['player', 'enemy'].forEach(function (side) {
+        var team = B.units.filter(function (u) {
+          return u.side === side;
+        });
+        var best = null;
+        team.forEach(function (u) {
+          var c = u.card.ability.type === 'Active' ? u.card.ability.cost || 0 : 0;
+          if (!best || c > best.c) best = { u: u, c: c };
+        });
+        if (best && best.c > 0) {
+          best.u.isChampion = true;
+          if (B.field.championHp) {
+            var mult = 1 + B.field.championHp / 100;
+            best.u.maxHp = Math.round(best.u.maxHp * mult);
+            best.u.hp = best.u.maxHp;
+          }
+        }
+      });
+    }
+
     /* Apply battle-start `static` passive effects. Declarative modifiers
        (outgoingMult / damageMult / damageResist) are read directly by the
        damage pipeline and must NOT be applied here; anything else on a
        static passive is a standing setup (Susanoo's permanent counter) and
        is armed once, now. Effects using `on:` routing are filtered to the
        'static' trigger by applyEffects. */
-    B.units.forEach(function (u) {
+    /* Battle-start setups can reference each other, so arm them in the
+       canonical board order rather than array order. */
+    boardOrder(B).forEach(function (u) {
       var p = passiveOf(u);
       if (!hasTrig(p, 'static')) return;
       var setup = (p.effects || []).filter(function (e) {
@@ -317,7 +476,7 @@
   }
 
   /* ---------------------------------------------------------
-     CLONING — for AI search
+     CLONING - for AI search
      -------------------------------------------------------------
      The search AI plays out hypothetical lines, so it needs a
      throwaway copy of the whole battle. `card` and `faction` are
@@ -333,6 +492,7 @@
       faction: u.faction, // shared, never mutated
       side: u.side,
       slot: u.slot,
+      idx: u.idx,
       name: u.name,
       role: u.role,
       element: u.element,
@@ -343,12 +503,24 @@
       shield: u.shield,
       shieldSrc: u.shieldSrc,
       alive: u.alive,
+      /* carried so the AI's lookahead can still see WHO fell and in what
+         order - `to:'fallenAllies'` (revive) reads it. */
+      diedAt: u.diedAt,
+      /* Spirit World reprieve is once per hero, so the AI's lookahead
+         must know it has already been spent. */
+      spiritSpared: u.spiritSpared,
+      spiritShieldUntil: u.spiritShieldUntil,
+      deathCheated: u.deathCheated,
       streakUid: u.streakUid,
       lastDamagedRound: u.lastDamagedRound,
       buffs: new Array(u.buffs.length),
       flags: {},
       usedOnce: {},
       roundFlags: {},
+      /* Lifetime stack counts must survive cloning, or the AI's
+         lookahead thinks a capped passive can still stack and
+         over-values it. */
+      stackTotals: {},
       pending: new Array(u.pending.length),
     };
     for (var i = 0; i < u.buffs.length; i++) {
@@ -358,6 +530,7 @@
     for (var k in u.flags) c.flags[k] = u.flags[k];
     for (var k2 in u.usedOnce) c.usedOnce[k2] = u.usedOnce[k2];
     for (var k3 in u.roundFlags) c.roundFlags[k3] = u.roundFlags[k3];
+    if (u.stackTotals) for (var k5 in u.stackTotals) c.stackTotals[k5] = u.stackTotals[k5];
     for (var j = 0; j < u.pending.length; j++) {
       var pn = u.pending[j];
       c.pending[j] = {
@@ -383,6 +556,7 @@
   function cloneBattle(B, rng) {
     var B2 = {
       round: B.round,
+      oddFirst: B.oddFirst,
       turn: B.turn,
       first: B.first,
       noOpeningLimit: B.noOpeningLimit,
@@ -394,6 +568,10 @@
       units: new Array(B.units.length),
       uidMap: {},
       energy: { player: B.energy.player, enemy: B.energy.enemy },
+      field: B.field, // battlefields are immutable config - share the reference
+      comeback: { player: B.comeback.player, enemy: B.comeback.enemy },
+      deathSeq: B.deathSeq,
+      roundEchoUsed: B.roundEchoUsed,
       costMods: {
         player: B.costMods.player.map(function (m) {
           return { flat: m.flat, pct: m.pct, turns: m.turns };
@@ -433,6 +611,63 @@
   function unitsOf(B, side) {
     return B.units.filter(function (u) {
       return u.side === side && u.alive;
+    });
+  }
+
+  /* ---------------------------------------------------------
+     DETERMINISTIC TARGET ORDERING
+     -------------------------------------------------------------
+     Every "lowest HP" / "highest ATK" selector has to break ties the
+     same way every time, on every machine. Array.prototype.sort is
+     stable, but stability only preserves the INPUT order - and in a
+     multiplayer match the two clients build their unit arrays from
+     opposite perspectives, so "the input order" is not something both
+     sides agree on.
+
+     Two heroes on 4,900 HP is not a rare edge case: shared statlines
+     and full-HP openings make ties routine, and an unbroken tie means
+     the two clients quietly heal or execute DIFFERENT heroes and the
+     match desyncs several rounds later, far from the cause.
+
+     So every ordering ends in a stable tie-break on (slot, idx),
+     which is a property of the board itself and therefore identical
+     on both screens. `sortUnits` is the ONLY way units should ever be
+     ordered for target selection.
+     --------------------------------------------------------- */
+  function sortUnits(list, cmp) {
+    return list.slice().sort(function (a, b) {
+      var d = cmp(a, b);
+      if (d) return d;
+      if (a.slot !== b.slot) return a.slot - b.slot;
+      return (a.idx || 0) - (b.idx || 0);
+    });
+  }
+
+  /* A CANONICAL ORDER FOR SWEEPING THE WHOLE BOARD.
+     -------------------------------------------------------------
+     `B.units` is built player-team-first, which means its order is a
+     property of WHOSE SCREEN YOU ARE ON, not of the game. That is
+     harmless for a sweep whose steps are independent, and a real bug
+     for one whose steps interact - two delayed strikes landing on the
+     same round resolved in one order for the host and the opposite
+     order for the guest, and the second one killed a hero on only one
+     of the two machines.
+
+     Sorting by 'player' first would NOT fix it, because each client
+     calls its own team 'player' - the two sweeps would still run in
+     opposite orders. What is needed is an absolute frame, and
+     `oddFirst` already provides one: it names, in local terms, the
+     side that opens the odd rounds, and both clients agree on who
+     that is. So "the odd-round opener's team, then the other" is a
+     single global ordering that both machines compute identically.
+
+     In singleplayer oddFirst is 'player', so this is exactly the old
+     player-then-enemy order and nothing changes. */
+  function boardOrder(B) {
+    var firstSide = B.oddFirst === 'enemy' ? 'enemy' : 'player';
+    return B.units.slice().sort(function (a, b) {
+      if (a.side !== b.side) return a.side === firstSide ? -1 : 1;
+      return a.slot - b.slot || (a.idx || 0) - (b.idx || 0);
     });
   }
   function opposite(side) {
@@ -485,10 +720,148 @@
     if (!unit.alive || ability.type !== 'Active') return false;
     if (B.acted[unit.side][unit.uid]) return false;
     // Silence prevents the hero's signature Active only; Basics still work.
-    if (unit.flags.silence > 0 && !ability.basic) return false;
+    /* Silence blocks EVERY action, Basics included (2026-07-31). It used
+       to gate signatures only, so the AI simply answered with a Basic and a
+       40 EN Silence bought almost nothing - measured at 2.86 applications
+       per game for near-zero effect. A silenced hero now loses the turn,
+       which is what makes control a real currency. */
+    if (unit.flags.silence > 0) return false;
     // the side that opens the round is limited to Basics
     if (signatureBlocked(B, unit, ability)) return false;
+    /* The Narrow Pass: the choke point means only the front line can throw a
+       basic attack; the back row has to spend a real skill to contribute. */
+    if (B.field && B.field.basicsFrontRowOnly && ability.basic && !isFront(unit)) return false;
+    /* `oncePerBattle: true` on an Active locks it after a single cast.
+       Generic gate - any card whose effect is too swingy to repeat (a
+       resurrection, a full-team cleanse) declares it on the ability and
+       the engine enforces it. Tracked on the unit, so it survives in
+       cloneBattle and the AI's lookahead cannot "discover" a second use. */
+    if (ability.oncePerBattle && unit.usedOnce['ab:' + ability.name]) return false;
     return B.energy[unit.side] >= costOf(B, unit, ability);
+  }
+
+  /* ---------------------------------------------------------
+     PROTECTION MODEL  (revised 2026-08-02)
+     -------------------------------------------------------------
+     Two protection keywords with deliberately different strength:
+
+       Provoke       a REDIRECT + a TAX. Forces single-target
+                     attackers onto the provoker, and taxes anyone
+                     who gets around it. Counterable by design.
+       Untargetable  a NEGATION. Absolute. Nothing in the game may
+                     pierce it, ever. Rare and expensive, and it is
+                     the clean upper bound that lets Provoke stay
+                     breakable.
+
+     WHY THE RENAME. This used to be called Provoke, which in most
+     games means "you cannot hit anything else." That is not what
+     this keyword does: area damage splashes past it, Sniper
+     signatures shoot through it, and pure utility ignores it. The
+     word promised an absolute and delivered a tax, which is exactly
+     the thing players then mis-predict. "taunt" says: I have
+     drawn your attention and made hitting anyone else expensive.
+
+     THE ONE RULE
+       A Provoke redirects single-target ATTACKS onto the provoker.
+       Anything that gets around it (a pierce, or an area effect
+       splashing wide) deals PROVOKE_TAX damage to every target that
+       is NOT the provoker. The provoker itself always takes full
+       damage, so hitting the wall is never the worse option.
+
+     WHY AoE IS NOW TAXED (the correction)
+       The previous pass exempted area damage entirely and it
+       overcorrected hard: measured over 5,000 games, Caster went
+       50.0% -> 57.2% and Tank 55.1% -> 46.3%, with Caster x2 at
+       63.0% and Tank x2 at 41.7% (best and worst comps in the
+       game). The AoE exemption was worth far more than the Sniper
+       pierce, because it simultaneously restored the Caster's full
+       output AND removed the Tank's main way of blunting them.
+       Taxing the splash keeps the fix that mattered - one Provoke
+       no longer deletes 5/6 of a 55 EN spell - without making
+       Provoke meaningless against the role it exists to stop.
+
+     Both rules are role-generic infrastructure. Any future faction's
+     Sniper inherits the pierce; any future AoE inherits the splash
+     tax.
+     --------------------------------------------------------- */
+  /* Damage multiplier for anything that gets around a live Provoke.
+     0.8 -> 0.7 in the same pass that started taxing AoE: Snipers only
+     gained 3.3pp from the pierce, so they can carry the steeper rate. */
+  var PROVOKE_TAX = 0.7;
+  /* legacy alias kept so older call sites and tests keep resolving */
+  var TAUNT_PIERCE_MULT = PROVOKE_TAX;
+
+  /* Does this specific ability ignore the Provoke REDIRECT?
+     Role default: Sniper signatures. A card may opt in explicitly with
+     `target.piercesTaunt` (or opt out with `piercesTaunt: false`). */
+  function piercesTaunt(unit, ability) {
+    var t = (ability.spec || {}).target || {};
+    if (t.piercesTaunt != null) return !!t.piercesTaunt;
+    return unit.role === 'Sniper' && !ability.basic;
+  }
+
+  /* Multi-target abilities keep their whole target set through a
+     Provoke - they just pay the tax on everyone who is not the
+     provoker. */
+  function isMultiTarget(ability) {
+    var t = (ability.spec || {}).target || {};
+    return t.pick === 'all' || t.pick === 'two';
+  }
+
+  /* A Provoke can only intercept something aimed AT a body. So it
+     redirects single-target ATTACKS and nothing else. An ability that
+     deals no damage - a pure debuff, a Mark, a Silence, an Energy
+     drain - is not intercepted, because there is no blow to step in
+     front of.
+
+     `isAttack` walks the effect list (including branch/randomOf
+     sub-effects) for anything that actually deals damage. A card may
+     force the classification with `target.attack: true|false`. */
+  function isAttack(ability) {
+    var spec = ability.spec || {};
+    var t = spec.target || {};
+    if (t.attack != null) return !!t.attack;
+    var found = false;
+    (function walk(list) {
+      (list || []).forEach(function (e) {
+        if (!e || found) return;
+        if (e.k === 'dmg' || e.k === 'lifesteal') {
+          found = true;
+          return;
+        }
+        if (e.k === 'branch') {
+          walk(e.then);
+          walk(e.other);
+          walk(e.else);
+        }
+        if (e.k === 'randomOf') walk(e.options);
+        if (e.effects) walk(e.effects);
+      });
+    })(spec.effects);
+    if (!found && spec.choose) {
+      spec.choose.forEach(function (c) {
+        if (!found) {
+          (c.effects || []).forEach(function (e) {
+            if (e && (e.k === 'dmg' || e.k === 'lifesteal')) found = true;
+          });
+        }
+      });
+    }
+    return found;
+  }
+
+  /* Does a Provoke intercept this ability at all? */
+  function tauntApplies(unit, ability) {
+    if (piercesTaunt(unit, ability)) return false; // Sniper signature
+    if (isMultiTarget(ability)) return false; // area effects splash over
+    return isAttack(ability); // pure utility is never body-blocked
+  }
+
+  /* Is there a live Provoke on the defending side right now? */
+  function provokeLive(B, side) {
+    return unitsOf(B, side).some(function (u) {
+      return u.flags.taunt > 0 && !(u.flags.untargetable > 0);
+    });
   }
 
   /* ---------------------------------------------------------
@@ -504,16 +877,21 @@
     var pool = unitsOf(B, side);
 
     if (side !== unit.side) {
-      // untargetable enemies are skipped entirely
+      /* Untargetable is absolute and is filtered FIRST, so nothing below
+         - including a Provoke pierce or an AoE - can reach through it. */
       pool = pool.filter(function (u) {
         return !(u.flags.untargetable > 0);
       });
 
-      // Taunt overrides everything else
-      var taunts = pool.filter(function (u) {
-        return u.flags.taunt > 0;
-      });
-      if (taunts.length) return taunts;
+      /* Provoke redirects single-target ATTACKS onto the taunter. Area
+         effects, Sniper signatures and pure-utility abilities are all
+         exempt - see tauntApplies(). */
+      if (tauntApplies(unit, ability)) {
+        var taunts = pool.filter(function (u) {
+          return u.flags.taunt > 0;
+        });
+        if (taunts.length) return taunts;
+      }
 
       // row restriction: role default, overridden by the ability spec
       var row = t.row;
@@ -547,17 +925,219 @@
     if (t.pick === 'auto') {
       var sorted = pool.slice();
       if (t.auto === 'lowestHp') {
-        sorted.sort(function (a, b) {
+        sorted = sortUnits(pool, function (a, b) {
           return a.hp - b.hp;
         });
       } else if (t.auto === 'highestAtk') {
-        sorted.sort(function (a, b) {
+        sorted = sortUnits(pool, function (a, b) {
           return atkOf(b) - atkOf(a);
         });
       }
       return sorted.slice(0, 1);
     }
     return (chosen || []).slice(0, pickCount(ability));
+  }
+
+  /* =============================================================
+     WHO WOULD THIS ACTUALLY HIT?
+     -------------------------------------------------------------
+     `resolveTargets` answers "who is legally selected". That is not
+     the same question as "who ends up being affected", because the
+     effect tree can narrow the set further:
+
+       - `onlyMarked` drops every unmarked target (Zeus)
+       - a `branch` picks `then` or `other`, and each side can carry
+         its own filters
+       - `take: {n, by}` keeps only the top N
+       - `frontOnly` / `backOnly` trim by row
+       - per-effect `if` conditions can exclude individual targets
+
+     The target preview used to show the LEGAL pool, so Zeus lit up
+     all six enemies even when only one was Marked and only that one
+     would be struck. That is a lie told by the UI about what the
+     button does.
+
+     This walks the same effect list the resolver walks and returns
+     the units that would take a hit or a status. It is generic: any
+     card, present or future, that uses these filters previews
+     correctly without a special case, because it reads the card's
+     own data rather than naming heroes.
+
+     Read-only. It never mutates the battle.
+     ============================================================= */
+  /* Effect kinds that DELIVER something to a hero, and therefore say
+     "this hero is being hit". Everything absent from this list is
+     either bookkeeping (`consumeMark`, `consumeBuffs`), a caster-side
+     modifier (`outgoingMult`, `costMod`), or control flow. Listing the
+     deliverers explicitly means a new bookkeeping effect cannot
+     silently widen every preview in the game. */
+  var DELIVERS = {
+    dmg: 1,
+    lifesteal: 1,
+    heal: 1,
+    shield: 1,
+    stat: 1,
+    mark: 1,
+    burn: 1,
+    silence: 1,
+    exposed: 1,
+    taunt: 1,
+    untargetable: 1,
+    cleanse: 1,
+    healMod: 1,
+    revive: 1,
+    counterStrike: 1,
+    damageResist: 1,
+    damageMult: 1,
+    drainEnergy: 1,
+    stealEnergy: 1,
+    delayed: 1,
+    swapTargets: 1,
+  };
+
+  function affectedTargets(B, unit, ability, chosen, chooseIndex) {
+    var spec = ability.spec || {};
+    var base = resolveTargets(B, unit, ability, chosen);
+
+    /* MANUAL-PICK SKILLS WITH NOTHING PICKED YET.
+       resolveTargets answers "who is being hit", so for a single-target
+       Skill with no selection it correctly returns nothing. But the
+       hover PREVIEW is asking a different question - "who could I
+       hit?" - and the honest answer there is the legal pool.
+
+       Without this, hovering any Basic (Guard, Restore, Aim...) lit up
+       nobody at all, because those are all manual-pick. The narrowing
+       below still applies, so a Skill that only strikes the Marked
+       still previews only the Marked. */
+    if (!base.length && !(chosen && chosen.length) && pickCount(ability) > 0) {
+      base = legalTargets(B, unit, ability);
+    }
+    if (!base.length) return base;
+
+    var effects = spec.effects;
+    if (spec.choose && spec.choose[chooseIndex || 0]) {
+      effects = spec.choose[chooseIndex || 0].effects;
+    }
+    if (!effects || !effects.length) return base;
+
+    var hit = [];
+    var seen = {};
+    var ctx = { self: unit, preDamaged: {}, turnIdAtStart: B.turnId };
+
+    /* Only effects that LAND ON THE TARGETS tell us who is struck.
+       A `to:'self'` heal or a `to:'allies'` buff says nothing about
+       which enemy is hit, so those are skipped. */
+    function scan(list) {
+      list.forEach(function (e) {
+        if (!e) return;
+        if (e.k === 'branch') {
+          /* Evaluate the branch exactly as the resolver would, then
+             follow only the arm that would actually run. */
+          var arm = branchPasses(B, unit, base, e.cond || {}) ? e.then : e.other;
+          if (arm && arm.length) scan(arm);
+          return;
+        }
+        /* a redirect means these effects do not describe the targets */
+        if (e.to && e.to !== 'targets') return;
+
+        /* BOOKKEEPING EFFECTS DO NOT DEFINE THE HIGHLIGHT.
+           `consumeMark` and friends sweep the whole target list as an
+           accounting step - Zeus consumes every Mark after striking.
+           Counting them would put all six enemies back into the
+           preview and undo the narrowing the real effects performed.
+           Only effects that DELIVER something to a hero (damage, a
+           heal, a status, a stat change) say who is being hit. */
+        if (DELIVERS[e.k] !== 1) return;
+
+        var set = base.slice();
+        if (e.onlyMarked) {
+          set = set.filter(function (t) {
+            return t.flags.marked > 0;
+          });
+        }
+        if (e.frontOnly) set = set.filter(isFront);
+        if (e.backOnly) {
+          set = set.filter(function (t) {
+            return !isFront(t);
+          });
+        }
+        if (e.if) {
+          set = set.filter(function (t) {
+            return condMet(B, e.if, condCtx(ctx, t));
+          });
+        }
+        if (e.take && set.length > e.take.n) {
+          if (e.take.by === 'highestAtk') {
+            set = sortUnits(set, function (a, b) {
+              return atkOf(b) - atkOf(a);
+            });
+          } else if (e.take.by === 'lowestHp') {
+            set = sortUnits(set, function (a, b) {
+              return a.hp - b.hp;
+            });
+          } else if (e.take.by === 'highestHp') {
+            set = sortUnits(set, function (a, b) {
+              return b.hp - a.hp;
+            });
+          }
+          set = set.slice(0, e.take.n);
+        }
+        set.forEach(function (t) {
+          if (seen[t.uid]) return;
+          seen[t.uid] = 1;
+          hit.push(t);
+        });
+      });
+    }
+    try {
+      scan(effects);
+    } catch (err) {
+      return base; // never let a preview break the board
+    }
+    /* An ability whose every effect is a redirect (pure self-buff with
+       an enemy target line) still legitimately "targets" its pool. */
+    return hit.length ? hit : base;
+  }
+
+  /* Shared by the resolver and the preview so a branch can never be
+     evaluated one way for the game and another way for the UI. */
+  function branchPasses(B, src, list, cond) {
+    var pass = true;
+    if (cond.anyTargetMarked) {
+      pass = list.some(function (t) {
+        return t.flags.marked > 0;
+      });
+    }
+    if (cond.anyTargetDebuffed) {
+      pass = list.some(function (t) {
+        return hasDebuff(t);
+      });
+    }
+    if (cond.anyEnemyMarked) {
+      pass = unitsOf(B, opposite(src.side)).some(function (t) {
+        return t.flags.marked > 0;
+      });
+    }
+    if (cond.targetHasDebuff != null) {
+      pass = list.length > 0 && hasDebuff(list[0]) === !!cond.targetHasDebuff;
+    }
+    if (cond.selfShielded) pass = src.shield > 0;
+    if (cond.targetShielded != null) {
+      pass = list.length > 0 && list[0].shield > 0 === !!cond.targetShielded;
+    }
+    if (cond.debuffCountAtLeast != null) {
+      pass = list.length > 0 && debuffCount(list[0]) >= cond.debuffCountAtLeast;
+    }
+    if (cond.buffCountAtLeast != null) {
+      pass = list.length > 0 && buffCount(list[0]) >= cond.buffCountAtLeast;
+    }
+    if (cond.targetHpBelow != null) {
+      pass = pass && list.length > 0 && list[0].hp / list[0].maxHp < cond.targetHpBelow;
+    }
+    if (cond.targetHpAbove != null) {
+      pass = pass && list.length > 0 && list[0].hp / list[0].maxHp > cond.targetHpAbove;
+    }
+    return pass;
   }
 
   /* Robin Hood's passive forces his target selection */
@@ -569,7 +1149,7 @@
     if (!pool.length) return null;
     var s = pool.slice();
     if (p.forceTarget === 'highestAtk') {
-      s.sort(function (a, b) {
+      s = sortUnits(pool, function (a, b) {
         return atkOf(b) - atkOf(a);
       });
     }
@@ -632,15 +1212,29 @@
     if (cond.targetBurning) {
       if (!tgt || !(tgt.flags.burn > 0)) return false;
     }
+    /* is the victim the one currently body-blocking for its team? Lets a
+       card reward punching through a wall specifically. */
+    if (cond.targetTaunting != null) {
+      if (!tgt || tgt.flags.taunt > 0 !== !!cond.targetTaunting) return false;
+    }
     if (cond.selfShielded) {
       if (!ctx.self || ctx.self.shield <= 0) return false;
     }
     if (cond.targetShielded) {
       if (!tgt || tgt.shield <= 0) return false;
     }
-    /* Brutus: the target is carrying something POSITIVE — a Shield or any
+    /* Brutus: the target is carrying something POSITIVE - a Shield or any
        positive stat buff. The mirror of targetHasDebuff, and the reason
        Roma punishes a Camelot/Olympus/Yamato setup turn. */
+    /* Stacking payoffs. `targetHasDebuff` is binary, so the SECOND debuff on
+       a target was worth nothing and stacking control had no damage
+       conversion. These count them, so a card can scale off pressure. */
+    if (cond.debuffCountAtLeast != null) {
+      if (!tgt || debuffCount(tgt) < cond.debuffCountAtLeast) return false;
+    }
+    if (cond.buffCountAtLeast != null) {
+      if (!tgt || buffCount(tgt) < cond.buffCountAtLeast) return false;
+    }
     if (cond.targetHasBuff != null) {
       if (!tgt) return false;
       var buffed =
@@ -660,7 +1254,7 @@
       if (!ctx.killedSomething) return false;
     }
     /* Caesar: how many units THIS cast has killed so far. killedSomething is
-       a single boolean, so it cannot tell one kill from a double kill —
+       a single boolean, so it cannot tell one kill from a double kill -
        killCount is incremented per lethal blow in the `dmg` case. */
     if (cond.killedCountAtLeast != null) {
       if ((ctx.killCount || 0) < cond.killedCountAtLeast) return false;
@@ -686,7 +1280,7 @@
     return p.triggers ? p.triggers.indexOf(name) >= 0 : p.trigger === name;
   }
 
-  /* Lancelot: an ally just gained a Shield or Taunt. */
+  /* Lancelot: an ally just gained a Shield or Provoke. */
   function fireAllyWarded(B, warded) {
     unitsOf(B, warded.side).forEach(function (u) {
       var p = passiveOf(u);
@@ -699,9 +1293,13 @@
         trigger: 'allyWarded',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { trigger: 'allyWarded', immediate: true, triggerTarget: warded });
+      applyEffects(B, u, [u], p.effects, {
+        trigger: 'allyWarded',
+        immediate: true,
+        triggerTarget: warded,
+      });
       if (u.buffs.length > before) {
-        logMsg(B, 'passive', u.name + ' stands taller — ' + u.card.ability.name + '!', {
+        logMsg(B, 'passive', u.name + ' stands taller - ' + u.card.ability.name + '!', {
           uid: u.uid,
         });
       }
@@ -722,7 +1320,11 @@
         trigger: 'allyStruckDebuffed',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { trigger: 'allyStruckDebuffed', immediate: true, triggerTarget: target });
+      applyEffects(B, u, [u], p.effects, {
+        trigger: 'allyStruckDebuffed',
+        immediate: true,
+        triggerTarget: target,
+      });
       if (u.buffs.length > before) {
         logMsg(B, 'passive', u.name + ' presses the advantage.', { uid: u.uid });
       }
@@ -741,8 +1343,12 @@
         trigger: 'allyStruckExposed',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { trigger: 'allyStruckExposed', immediate: true, triggerTarget: target });
-      logMsg(B, 'passive', u.name + ' exploits the opening — ' + u.card.ability.name + '.', {
+      applyEffects(B, u, [u], p.effects, {
+        trigger: 'allyStruckExposed',
+        immediate: true,
+        triggerTarget: target,
+      });
+      logMsg(B, 'passive', u.name + ' exploits the opening - ' + u.card.ability.name + '.', {
         uid: u.uid,
       });
     });
@@ -816,7 +1422,12 @@
     var outM = outgoingMult(B, src, tgt);
     B._multTrail = null; // incomingMult fills this with who blunted the blow
     var inM = incomingMult(B, src, tgt, isAbility);
-    var mult = outM * inM;
+    /* CASTABLE damage reduction (2026-08-01). `damageResist` used to be a
+       passive-only declarative modifier read out of a static passive. As a
+       timed flag it becomes a real support tool - a Medic can pre-emptively
+       harden an ally instead of only repairing damage after it lands. */
+    var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
+    var mult = outM * inM * resistM;
     var afterDef = raw * mult * (1 - defOf(tgt) / 100);
 
     // crit
@@ -849,10 +1460,36 @@
       tgt.hp = Math.max(0, tgt.hp - dmg);
       tgt.lastDamagedRound = B.round;
     }
+    /* Spirit World: a hero spared THIS action cannot be finished by a
+       later hit of the same action. See spiritShieldUntil below. */
+    if (B.field && B.field.spiritReprieve && tgt.spiritShieldUntil === B.turnId && tgt.hp <= 0) {
+      tgt.hp = 1;
+    }
 
-    /* A Mark is spent the moment an ability damages the target. Captured
+    /* A Mark is spent the moment an Skill damages the target. Captured
        before it is cleared so riders that key off "was Marked" (Ares'
        Burn, Athena's damage cut) still see it for this same blow. */
+    /* THE SPIRIT WORLD: nothing dies to damage here. A blow that would
+       be lethal instead leaves the hero on 1 HP. It is a once-per-hero
+       reprieve (`spiritSpared`) rather than a standing immunity, so the
+       follow-up still kills - it buys a turn, not invincibility.
+       Checked BEFORE Benkei's death-cheat so the two never both fire on
+       the same blow. */
+    if (B.field && B.field.spiritReprieve && tgt.hp <= 0 && !tgt.spiritSpared) {
+      tgt.spiritSpared = true;
+      tgt.hp = 1;
+      /* The reprieve buys a TURN, not a cast. A multi-hit ability
+         (Guy of Gisborne's execute rider, Nezha's follow-up) would
+         otherwise spend the reprieve on hit 1 and kill on hit 2 in the
+         same swing, which reads as the field doing nothing. Immunity
+         is held until the caster's action finishes resolving. */
+      tgt.spiritShieldUntil = B.turnId;
+      emit(B, { t: 'spirit-spared', uid: tgt.uid, round: B.round });
+      logMsg(B, 'passive', tgt.name + ' is held at the threshold by the spirits.', {
+        uid: tgt.uid,
+      });
+    }
+
     // Benkei's one-time death-cheat is a passive condition, not a status.
     var deathPassive = passiveOf(tgt);
     if (tgt.hp <= 0 && deathPassive && deathPassive.deathCheat && !tgt.deathCheated) {
@@ -866,7 +1503,7 @@
         trigger: 'deathCheat',
         round: B.round,
       });
-      logMsg(B, 'passive', tgt.name + ' refuses to fall — Standing Death!', { uid: tgt.uid });
+      logMsg(B, 'passive', tgt.name + ' refuses to fall - Standing Death!', { uid: tgt.uid });
     }
 
     var wasMarked = tgt.flags.marked > 0;
@@ -955,7 +1592,7 @@
       applyEffects(B, src, [src], sp.effects, { trigger: 'selfAttacked', immediate: true });
     }
 
-    /* On-hit riders fire for ANY passive that declares them — Red Riding
+    /* On-hit riders fire for ANY passive that declares them - Red Riding
        Hood's lifesteal vs debuffed prey must not require a selfAttacked
        stacking trigger. They read pre-hit flags: `wasMarked` (the Mark is
        already consumed by this very blow) and `wasDebuffed`. `lastDamage`
@@ -974,7 +1611,7 @@
     // Lancelot: an ally striking an Exposed enemy sharpens him further
     if (tgt.flags.exposed > 0) fireAllyStruckExposed(B, src, tgt);
 
-    /* Hansel & Gretel: being struck while Taunting heals them. Resolved
+    /* Hansel & Gretel: being struck while Provoking heals them. Resolved
        after the damage so the heal is applied to the reduced HP. */
     if (tgt.alive && tgt.flags.taunt > 0 && tgt.flags.tauntHeal) {
       healUnit(B, tgt, tgt, tgt.maxHp * (tgt.flags.tauntHeal / 100));
@@ -1015,7 +1652,11 @@
           trigger: 'wasAttacked',
           round: B.round,
         });
-        applyEffects(B, tgt, [src], dp.effects, { trigger: 'wasAttacked', immediate: true, triggerTarget: src });
+        applyEffects(B, tgt, [src], dp.effects, {
+          trigger: 'wasAttacked',
+          immediate: true,
+          triggerTarget: src,
+        });
         logMsg(B, 'passive', tgt.name + ' answers with ' + tgt.card.ability.name + '!', {
           uid: tgt.uid,
         });
@@ -1034,7 +1675,11 @@
           trigger: 'allyDamaged',
           round: B.round,
         });
-        applyEffects(B, u, [u], p.effects, { trigger: 'allyDamaged', immediate: true, triggerTarget: tgt });
+        applyEffects(B, u, [u], p.effects, {
+          trigger: 'allyDamaged',
+          immediate: true,
+          triggerTarget: tgt,
+        });
       }
     });
 
@@ -1060,8 +1705,12 @@
         trigger: 'allyBelowHp',
         round: B.round,
       });
-      applyEffects(B, u, [u], p.effects, { trigger: 'allyBelowHp', immediate: true, triggerTarget: tgt });
-      logMsg(B, 'passive', u.name + ' answers the call — ' + u.card.ability.name + '!', {
+      applyEffects(B, u, [u], p.effects, {
+        trigger: 'allyBelowHp',
+        immediate: true,
+        triggerTarget: tgt,
+      });
+      logMsg(B, 'passive', u.name + ' answers the call - ' + u.card.ability.name + '!', {
         uid: u.uid,
       });
     });
@@ -1072,7 +1721,7 @@
       var cPow = (src.flags.marked > 0 ? tgt.flags.counterPowMarked : tgt.flags.counterPow) || 0;
       if (cPow > 0) {
         /* Little John (pass 9): the counter is armed on an ally but struck
-           by the caster — resolve whoever counterSrc says should swing. */
+           by the caster - resolve whoever counterSrc says should swing. */
         var striker = tgt;
         if (tgt.flags.counterSrc) {
           var su = B.units.find(function (u) {
@@ -1112,7 +1761,7 @@
     if (p && hasTrig(p, 'wouldDie') && !u.usedOnce.wouldDie) {
       u.usedOnce.wouldDie = true;
       // logged first so the UI can play the revive before the buffs it grants
-      logMsg(B, 'revive', u.name + ' refuses to fall — ' + u.card.ability.name + '!', {
+      logMsg(B, 'revive', u.name + ' refuses to fall - ' + u.card.ability.name + '!', {
         uid: u.uid,
         ability: u.card.ability.name,
       });
@@ -1136,8 +1785,30 @@
 
     u.alive = false;
     u.hp = 0;
+    /* death order, so `to:'fallenAllies'` can raise the most recent
+       casualty first. Monotonic counter rather than round number,
+       which would tie for two deaths in the same round. */
+    B.deathSeq = (B.deathSeq || 0) + 1;
+    u.diedAt = B.deathSeq;
     logMsg(B, 'death', u.name + ' is defeated.', { uid: u.uid });
     emit(B, { t: 'death', uid: u.uid, round: B.round });
+
+    /* The Spirit World: a fallen hero's spirit powers their own side. */
+    if (B.field && B.field.deathEnergy) {
+      addEnergy(B, u.side, B.field.deathEnergy);
+      logMsg(B, 'energy', u.name + "'s spirit empowers their allies.", {
+        uid: u.uid,
+        amount: B.field.deathEnergy,
+      });
+      emit(B, {
+        t: 'energy',
+        side: u.side,
+        uid: u.uid,
+        amount: B.field.deathEnergy,
+        kind: 'field',
+        round: B.round,
+      });
+    }
 
     /* Lu Bu: the killer's own passives care that THEY landed the kill.
        killerUid is supplied by the damage path (ability or Burn). */
@@ -1160,8 +1831,12 @@
             trigger: 'selfKilled',
             round: B.round,
           });
-          applyEffects(B, w, [w], kse, { trigger: 'selfKilled', immediate: true, triggerTarget: u });
-          logMsg(B, 'passive', w.name + ' presses the rout — ' + w.card.ability.name + '!', {
+          applyEffects(B, w, [w], kse, {
+            trigger: 'selfKilled',
+            immediate: true,
+            triggerTarget: u,
+          });
+          logMsg(B, 'passive', w.name + ' presses the rout - ' + w.card.ability.name + '!', {
             uid: w.uid,
           });
         });
@@ -1203,7 +1878,7 @@
       emit(B, { t: 'heal', src: src.uid, tgt: tgt.uid, amount: real, round: B.round });
     }
     /* Overheal rider (Restore): whatever the heal cannot restore becomes a
-       Shield instead — burst insurance rather than wasted healing. */
+       Shield instead - burst insurance rather than wasted healing. */
     var overflow = amt - real;
     if (opts && opts.overflowShield && overflow > 0) {
       overflow = Math.round(overflow);
@@ -1246,7 +1921,7 @@
      or an ally is immediate; anything landing on an enemy waits for the
      end of that side's turn. Damage/healing always resolve instantly.
 
-     Durations in `turns` are counted in ROUNDS — the golden rule is that
+     Durations in `turns` are counted in ROUNDS - the golden rule is that
      an effect lasts 1 round unless it says otherwise.
      --------------------------------------------------------- */
   var TIMED_KINDS = {
@@ -1362,12 +2037,42 @@
     return mine.length;
   }
 
-  function addBuff(B, u, stat, amt, turns, tag, maxStacks) {
+  /* `maxStacks` is a LIFETIME cap, not a concurrent one.
+     -------------------------------------------------------------
+     It used to count the buffs a hero currently held. With a 2-round
+     buff that is barely a cap at all: each stack expires and frees
+     its slot, so a passive that triggers often just keeps re-earning
+     them. Red Riding Hood's "Max: 4 stacks" produced a 13,000 shield
+     in a real game, because the trigger fires on every ally attack
+     against a debuffed enemy and nothing ever actually stopped.
+
+     `stackTotals` counts every stack ever granted for that tag, so
+     the note on the card is the truth for the whole battle. */
+  function stacksUsed(u, tag) {
+    return (u.stackTotals && u.stackTotals[tag]) || 0;
+  }
+  function addBuff(B, u, stat, amt, turns, tag, maxStacks, refresh) {
+    /* REFRESH replaces rather than adds.
+       Some riders are worded "gain X for N rounds" - one buff, kept
+       topped up while a condition holds. Without this they were just
+       re-applied on every trigger and silently stacked: Lancelot's
+       "10% DEF for 2 rounds" reached +72% DEF. A refreshing buff
+       resets its own timer and never multiplies. */
+    if (tag && refresh) {
+      for (var i = 0; i < u.buffs.length; i++) {
+        if (u.buffs[i].tag === tag) {
+          u.buffs[i].amt = amt;
+          u.buffs[i].turns = turns;
+          return true;
+        }
+      }
+    }
     if (tag && maxStacks) {
-      var n = u.buffs.filter(function (b) {
-        return b.tag === tag;
-      }).length;
-      if (n >= maxStacks) return false;
+      if (stacksUsed(u, tag) >= maxStacks) return false;
+    }
+    if (tag) {
+      u.stackTotals = u.stackTotals || {};
+      u.stackTotals[tag] = stacksUsed(u, tag) + 1;
     }
     u.buffs.push({ stat: stat, amt: amt, turns: turns, tag: tag || null });
     return true;
@@ -1416,11 +2121,9 @@
     else if (e.to === 'allies') list = unitsOf(B, src.side);
     else if (e.to === 'frontAllies') list = unitsOf(B, src.side).filter(isFront);
     else if (e.to === 'lowestHpAlly') {
-      list = unitsOf(B, src.side)
-        .sort(function (a, b) {
-          return a.hp / a.maxHp - b.hp / b.maxHp;
-        })
-        .slice(0, 1);
+      list = sortUnits(unitsOf(B, src.side), function (a, b) {
+        return a.hp / a.maxHp - b.hp / b.maxHp;
+      }).slice(0, 1);
     }
     /* every living ally EXCEPT the ability's own targets (Restore triage) */
     else if (e.to === 'otherAllies')
@@ -1428,23 +2131,69 @@
         return targets.indexOf(u) < 0;
       });
     else if (e.to === 'enemies') list = unitsOf(B, opposite(src.side));
-    else if (e.to === 'triggerTarget') list = ctx.triggerTarget ? [ctx.triggerTarget] : [];
+    /* Fallen allies - the only redirect that deliberately looks at DEAD
+       units, so a revive has something to target. `unitsOf` filters
+       corpses out everywhere else, which is why resurrection needs its
+       own selector. Most recently fallen first, so "raise the last hero
+       you lost" is the natural reading. Generic: any future card that
+       wants to interact with the dead uses this. */
+    else if (e.to === 'fallenAllies' || e.to === 'lastFallenAlly') {
+      list = sortUnits(
+        B.units.filter(function (u) {
+          return u.side === src.side && !u.alive;
+        }),
+        function (a, b) {
+          return (b.diedAt || 0) - (a.diedAt || 0);
+        }
+      );
+      // 'lastFallenAlly' is the single most recent casualty
+      if (e.to === 'lastFallenAlly') list = list.slice(0, 1);
+    } else if (e.to === 'triggerTarget') list = ctx.triggerTarget ? [ctx.triggerTarget] : [];
     /* 'targets' (or no redirect): KEEP the incoming list as filtered
-       above — re-assigning `targets` here used to stomp onlyMarked
+       above - re-assigning `targets` here used to stomp onlyMarked
        (Zeus's Divine Judgment then-hit literally everyone). */
     else list = list;
+
+    /* UNTARGETABLE IS ABSOLUTE (2026-08-01).
+       `legalTargets` filters untargetable enemies out of an ability's own
+       target picker, but a `to:` REDIRECT bypassed that picker entirely -
+       so Apollo's "Mark the highest ATK enemy" rider happily marked a hero
+       who could not legally be targeted, and any future to:'enemies' rider
+       had the same hole. Enforce the rule once, here, for every redirect
+       that lands on the opposing side. Provoke is deliberately NOT checked:
+       a Provoke only redirects single-target ATTACKS, and these riders are
+       neither single-target picks nor attacks. */
+    if (list && list.length) {
+      var oppSide = opposite(src.side);
+      list = list.filter(function (u) {
+        return !(u.side === oppSide && u.flags.untargetable > 0);
+      });
+    }
+
+    /* Row filters - used by the Ancient Ruins relic pool so a single buff
+       can hit only the front or only the back line. */
+    if (e.frontOnly) list = list.filter(isFront);
+    if (e.backOnly) {
+      list = list.filter(function (u) {
+        return !isFront(u);
+      });
+    }
 
     /* Optional `take` limit: of the resolved targets, only the top N by a
        given ordering actually receive the effect (Qin Shi Huang, Apollo). */
     if (e.take && list && list.length > e.take.n) {
       var tk = list.slice();
       if (e.take.by === 'highestAtk') {
-        tk.sort(function (a, b) {
+        tk = sortUnits(list, function (a, b) {
           return atkOf(b) - atkOf(a);
         });
       } else if (e.take.by === 'lowestHp') {
-        tk.sort(function (a, b) {
+        tk = sortUnits(list, function (a, b) {
           return a.hp - b.hp;
+        });
+      } else if (e.take.by === 'highestHp') {
+        tk = sortUnits(list, function (a, b) {
+          return b.hp - a.hp;
         });
       }
       list = tk.slice(0, e.take.n);
@@ -1453,21 +2202,44 @@
     switch (e.k) {
       case 'dmg': {
         list.forEach(function (t) {
+          /* A caster killed MID-CAST stops dealing damage. A counter-strike
+             (Guan Yu, Susanoo) resolves inside dealDamage, so an AoE could
+             kill its own caster on hit 1 and still land hits 2..n from a
+             corpse. Pre-existing; surfaced by the energy-carryover pass,
+             which lets big AoEs be cast far more often. */
+          if (!src.alive) return;
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var aliveBefore = t.alive;
           var element = e.element === 'inherit' ? src.element : e.element;
-          var power = e.power * (ctx.scale || 1);
+          /* Provoke tax: everyone EXCEPT the provoker takes reduced
+             damage from a blow that got around them. Applied per target
+             rather than per cast so an AoE prices the provoker (full)
+             and the rest of the board (taxed) in the same swing. */
+          var provokeM = ctx.provokeTax && !(t.flags.taunt > 0) ? ctx.provokeTax : 1;
+          var power = e.power * (ctx.scale || 1) * provokeM;
           var raw = atkOf(src) * power;
           if (e.ifMult) {
             e.ifMult.forEach(function (m) {
               if (condMet(B, m.when, condCtx(ctx, t))) raw *= m.mult;
             });
           }
+          /* Per-stack scaling: the damage conversion that makes stacking
+             control worth doing. `perDebuff: 0.4` adds +40% ATK of the base
+             power for EVERY debuff on the target (optionally capped). */
+          if (e.perDebuff) {
+            var dn = debuffCount(t);
+            if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
+            raw += atkOf(src) * e.perDebuff * dn * (ctx.scale || 1) * provokeM;
+          }
+          if (e.perBuff) {
+            var bn = buffCount(t);
+            if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
+            raw += atkOf(src) * e.perBuff * bn * (ctx.scale || 1) * provokeM;
+          }
           var dealt = dealDamage(B, src, t, raw, element, true);
           ctx.lastDamage = (ctx.lastDamage || 0) + dealt;
           if (e.energyBonus && dealt > 0) {
-            var eb = Math.min(100, B.energy[src.side] + e.energyBonus);
-            B.energy[src.side] = eb;
+            addEnergy(B, src.side, e.energyBonus);
             emit(B, {
               t: 'energy',
               side: src.side,
@@ -1511,7 +2283,16 @@
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var amt = e.amt * (ctx.scale || 1);
-          var ok = addBuff(B, t, e.stat, Math.round(amt), e.turns, e.stackTag, e.maxStacks);
+          var ok = addBuff(
+            B,
+            t,
+            e.stat,
+            Math.round(amt),
+            e.turns,
+            e.stackTag,
+            e.maxStacks,
+            e.refresh
+          );
           if (ok) {
             logMsg(
               B,
@@ -1547,6 +2328,17 @@
              shield now resolve like every other effect (Constantine's
              kill-rider depends on it). */
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          /* A shield inside a CAPPED passive obeys the same cap.
+             Red Riding Hood's shield carried no stackTag at all, so
+             while her ATK and Crit stopped at 4 stacks the shield kept
+             growing every single trigger - the 13,000-shield bug. A
+             shield that shares its passive's tag now stops when that
+             tag is spent. */
+          if (e.stackTag && e.maxStacks) {
+            if (stacksUsed(t, e.stackTag) >= e.maxStacks) return;
+            t.stackTotals = t.stackTotals || {};
+            t.stackTotals[e.stackTag] = stacksUsed(t, e.stackTag) + 1;
+          }
           var amt = Math.round(t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1));
           t.shield += amt;
           t.shieldSrc = src.uid; // last granter is credited for absorbs
@@ -1578,7 +2370,7 @@
           if (e.shieldOnEnd) {
             t.flags.tauntShield = e.shieldOnEnd;
           }
-          // Hansel & Gretel: heal each time they're struck while taunting
+          // Hansel & Gretel: heal each time they're struck while provoking
           if (e.healOnHit) {
             t.flags.tauntHeal = e.healOnHit;
           }
@@ -1612,6 +2404,36 @@
           emit(B, {
             t: 'statusApply',
             status: 'untargetable',
+            src: src.uid,
+            tgt: t.uid,
+            turns: e.turns,
+            signature: !!ctx.signature,
+            round: B.round,
+          });
+        });
+        break;
+
+      /* Timed damage reduction as a castable buff. Generic: any future
+         protective card uses this rather than a bespoke passive. Read by
+         dealDamage via `flags.resistPct`; capped at 90% so nothing can be
+         made outright immune. */
+      case 'damageResist':
+        list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          /* a passive-style declarative entry (mult/firstPerRound) is read
+             straight out of the passive by incomingMult - only the timed
+             `pct` form is a castable flag. */
+          if (e.pct == null) return;
+          t.flags.resistPct = Math.max(t.flags.resistPct || 0, e.pct);
+          t.flags.resistPctTurns = e.turns;
+          logMsg(B, 'buff', t.name + ' is warded against harm.', {
+            uid: t.uid,
+            status: 'resist',
+            signature: !!ctx.signature,
+          });
+          emit(B, {
+            t: 'statusApply',
+            status: 'resist',
             src: src.uid,
             tgt: t.uid,
             turns: e.turns,
@@ -1732,7 +2554,7 @@
             }
           });
           // Mark is deliberately absent: it has no duration to extend,
-          // it persists until an ability damages the target.
+          // it persists until an Skill damages the target.
           ['silence', 'burn', 'exposed'].forEach(function (f) {
             if (t.flags[f] > 0) {
               t.flags[f] += addT;
@@ -1837,7 +2659,7 @@
           logMsg(
             B,
             up ? 'debuff' : 'buff',
-            'Ability costs shifted for ' + (s === 'player' ? 'your team' : 'the enemy') + '.',
+            'Skill costs shifted for ' + (s === 'player' ? 'your team' : 'the enemy') + '.',
             { side: s, status: up ? 'costup' : 'costdown', signature: !!ctx.signature }
           );
         } else {
@@ -1859,7 +2681,7 @@
           });
         }
         if (okE) {
-          B.energy[src.side] = Math.min(100, B.energy[src.side] + e.amt);
+          addEnergy(B, src.side, e.amt);
           logMsg(B, 'energy', src.name + ' gains ' + e.amt + ' Energy.', {
             uid: src.uid,
             amount: e.amt,
@@ -1890,7 +2712,7 @@
         var foe = opposite(src.side);
         var take = Math.min(B.energy[foe], e.amt);
         B.energy[foe] -= take;
-        B.energy[src.side] = Math.min(100, B.energy[src.side] + take);
+        addEnergy(B, src.side, take);
         logMsg(B, 'energy', 'Stole ' + take + ' Energy.', {});
         emit(B, {
           t: 'energy',
@@ -1998,7 +2820,7 @@
 
       /* Counter-strike setup (fired from dealDamage whenever the flagged
          unit is attacked while Shielded). Guan Yu arms himself; Little John
-         (pass 9) arms an ALLY but swings back personally — src:'caster'
+         (pass 9) arms an ALLY but swings back personally - src:'caster'
          records who actually counter-strikes. */
       case 'counterStrike': {
         list.forEach(function (t) {
@@ -2043,6 +2865,30 @@
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.alive = true;
           t.hp = Math.round(t.maxHp * (e.pctMaxHp / 100));
+          /* A revive necessarily un-kills its target, so any FOLLOWING
+             effect aimed at `fallenAllies` finds nobody - the hero it
+             wanted is alive again. A shield on the returning hero
+             therefore has to be part of the revive itself rather than a
+             separate effect. Generic `shieldPctMaxHp` rider. */
+          if (e.shieldPctMaxHp) {
+            var sh = Math.round(t.maxHp * (e.shieldPctMaxHp / 100) * (ctx.scale || 1));
+            t.shield += sh;
+            t.shieldSrc = src.uid;
+            logMsg(B, 'shield', t.name + ' returns behind a ' + sh + ' shield.', {
+              uid: t.uid,
+              status: 'shield',
+              amount: sh,
+              signature: !!ctx.signature,
+            });
+            emit(B, {
+              t: 'shield',
+              src: src.uid,
+              tgt: t.uid,
+              amount: sh,
+              signature: !!ctx.signature,
+              round: B.round,
+            });
+          }
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
         });
         break;
@@ -2064,36 +2910,26 @@
       }
 
       case 'branch': {
+        /* Evaluated by the SHARED branchPasses() so the UI preview and
+           the real resolution can never disagree about which arm runs.
+           `anyAllyFallen` stays here: it reads the battle rather than
+           the target list, and only the resolver needs it. */
         var cond = e.cond || {};
-        var pass = true;
-        if (cond.anyTargetMarked) {
-          pass = list.some(function (t) {
-            return t.flags.marked > 0;
-          });
+        var pass = branchPasses(B, src, list, cond);
+        if (cond.anyAllyFallen != null) {
+          pass =
+            B.units.some(function (u) {
+              return u.side === src.side && !u.alive;
+            }) === !!cond.anyAllyFallen;
         }
-        if (cond.anyTargetDebuffed) {
-          pass = list.some(function (t) {
-            return hasDebuff(t);
-          });
-        }
-        if (cond.anyEnemyMarked) {
-          pass = unitsOf(B, opposite(src.side)).some(function (t) {
-            return t.flags.marked > 0;
-          });
-        }
-        /* branch-level "is the (single) target debuffed" (Hua Tuo, pass 9) */
-        if (cond.targetHasDebuff != null) {
-          pass = list.length > 0 && hasDebuff(list[0]) === !!cond.targetHasDebuff;
-        }
-        if (cond.selfShielded) pass = src.shield > 0;
-        applyEffects(B, src, list, pass ? e.then : e.other, ctx);
+        applyEffects(B, src, list, pass ? e.then : e.other || e.else, ctx);
         break;
       }
 
       case 'mark': {
-        /* A Mark normally sits on the target until an ability damages them
+        /* A Mark normally sits on the target until an Skill damages them
            (see dealDamage) or something explicitly consumes it. Marks have
-           no duration — the global rule; the e.turns expiry path stays in
+           no duration - the global rule; the e.turns expiry path stays in
            the engine as an unused escape hatch (no card uses it).
            Re-marking an already-marked target is a no-op. */
         list.forEach(function (t) {
@@ -2114,6 +2950,34 @@
             turns: e.turns || null,
             signature: true,
             round: B.round,
+          });
+        });
+        break;
+      }
+
+      /* The buff exit valve. Marks work because something CASHES them; buffs
+         just ticked away, which is why 23 of 30 in the roster were dead
+         riders. `consumeBuffs` spends every positive buff on a unit and pays
+         out per stack - the same shape as consumeMark. */
+      case 'consumeBuffs': {
+        list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          var n = buffCount(t);
+          if (!n) return;
+          /* strip the positive stat buffs (statuses are left alone: taunt
+             and untargetable are positional, not stockpiled value) */
+          t.buffs = t.buffs.filter(function (b) {
+            return b.amt <= 0;
+          });
+          if (e.alsoShield && t.shield > 0) t.shield = 0;
+          var payload = e.payload || [];
+          emit(B, { t: 'buffsConsumed', tgt: t.uid, count: n, by: src.uid, round: B.round });
+          logMsg(B, 'buff', t.name + "'s blessings are spent (" + n + ').', { uid: t.uid });
+          /* the payout scales with how many stacks were cashed */
+          applyEffects(B, src, [t], payload, {
+            immediate: true,
+            scale: (ctx.scale || 1) * n,
+            signature: !!ctx.signature,
           });
         });
         break;
@@ -2199,16 +3063,14 @@
     var pool = legalTargets(B, unit, ability);
     if (!pool.length) return [];
     var t = ability.spec.target || {};
-    var sorted = pool.slice();
-    if (t.side === 'ally') {
-      sorted.sort(function (a, b) {
-        return a.hp / a.maxHp - b.hp / b.maxHp;
-      });
-    } else {
-      sorted.sort(function (a, b) {
-        return a.hp - b.hp;
-      });
-    }
+    var sorted =
+      t.side === 'ally'
+        ? sortUnits(pool, function (a, b) {
+            return a.hp / a.maxHp - b.hp / b.maxHp;
+          })
+        : sortUnits(pool, function (a, b) {
+            return a.hp - b.hp;
+          });
     return sorted.slice(0, n);
   }
 
@@ -2229,6 +3091,7 @@
 
     B.energy[unit.side] -= cost;
     B.acted[unit.side][unit.uid] = true;
+    if (ability.oncePerBattle) unit.usedOnce['ab:' + ability.name] = true;
 
     logMsg(
       B,
@@ -2241,6 +3104,42 @@
     targets.forEach(function (t) {
       ctx0.preDamaged[t.uid] = t.lastDamagedRound === B.round;
     });
+
+    /* PROVOKE TAX. Anything that gets around a live Provoke deals
+       reduced damage to every target that is NOT the provoker:
+         - a Sniper signature piercing the redirect
+         - an area effect splashing past it
+       The provoker always takes full damage, so hitting the wall is
+       never the worse option. Flagged here, applied per-target in the
+       `dmg` case, because an AoE hits the provoker and everyone else
+       in the same cast and they must be priced differently.
+
+       `target.noPierceTax` waives it. That is a CARD-level perk
+       (Horus), never a faction rule. */
+    if (
+      isAttack(ability) &&
+      provokeLive(B, opposite(unit.side)) &&
+      !((ability.spec || {}).target || {}).noPierceTax &&
+      (piercesTaunt(unit, ability) || isMultiTarget(ability))
+    ) {
+      var evades = targets.some(function (t) {
+        return !(t.flags.taunt > 0);
+      });
+      if (evades) {
+        ctx0.provokeTax = PROVOKE_TAX;
+        logMsg(B, 'info', unit.name + ' strikes around the Provoke (reduced power).', {
+          uid: unit.uid,
+        });
+        emit(B, {
+          t: 'provoke-tax',
+          uid: unit.uid,
+          side: unit.side,
+          ability: ability.name,
+          mult: PROVOKE_TAX,
+          round: B.round,
+        });
+      }
+    }
 
     var effects = spec.effects;
     if (spec.choose) {
@@ -2264,7 +3163,11 @@
           trigger: 'alliedCastSkill',
           round: B.round,
         });
-        applyEffects(B, w, [w], ap.effects, { trigger: 'alliedCastSkill', immediate: true, triggerTarget: unit });
+        applyEffects(B, w, [w], ap.effects, {
+          trigger: 'alliedCastSkill',
+          immediate: true,
+          triggerTarget: unit,
+        });
       });
     }
 
@@ -2287,10 +3190,47 @@
           round: B.round,
         });
         applyEffects(B, w, [unit], cse, { immediate: true, triggerTarget: unit });
-        logMsg(B, 'passive', w.name + ' marks the aggressor — ' + w.card.ability.name + '.', {
+        logMsg(B, 'passive', w.name + ' marks the aggressor - ' + w.card.ability.name + '.', {
           uid: w.uid,
         });
       });
+    }
+
+    /* The Mirror Realm: the FIRST ability cast each round echoes at 50%
+       effectiveness, costs nothing, and cannot echo itself (the guard flag
+       stops an infinite reflection). Resolved after the original so the
+       board state the copy reads is the post-cast one. */
+    if (
+      B.field &&
+      B.field.echoFirstAbility &&
+      !B.roundEchoUsed &&
+      !B._echoing &&
+      !B.over &&
+      unit.alive
+    ) {
+      B.roundEchoUsed = true;
+      B._echoing = true;
+      logMsg(B, 'info', 'The Mirror Realm echoes ' + ability.name + '!', { uid: unit.uid });
+      emit(B, {
+        t: 'proc',
+        owner: unit.uid,
+        ability: ability.name,
+        trigger: 'mirrorEcho',
+        round: B.round,
+      });
+      var echoTargets = resolveTargets(B, unit, ability, chosen).filter(function (t) {
+        return t.alive;
+      });
+      var echoEffects = spec.choose
+        ? spec.choose[chooseIndex != null ? chooseIndex : 0].effects
+        : spec.effects;
+      applyEffects(B, unit, echoTargets, echoEffects, {
+        scale: B.field.echoScale || 0.5,
+        signature: !ability.basic,
+        preDamaged: ctx0.preDamaged,
+      });
+      B._echoing = false;
+      checkEnd(B);
     }
 
     /* One ability = one action. Control passes to the opponent as soon
@@ -2332,8 +3272,8 @@
 
   /* Changing the active side starts a new "turn" for effects that care
      (e.g. Nezha's follow-up on an already-damaged target). */
-  /* Burn damage-over-time. Ticks on every TURN a burning hero takes —
-     i.e. each time that unit's side is about to act — for a flat share of
+  /* Burn damage-over-time. Ticks on every TURN a burning hero takes -
+     i.e. each time that unit's side is about to act - for a flat share of
      its Max HP, ignoring DEF and shields.
 
      The duration counts DOWN IN ROUNDS like every other status, so a
@@ -2394,7 +3334,7 @@
     return unitsCanAct(B, side).length > 0;
   }
 
-  /* Record that a side cannot act — it is locked out for the rest of
+  /* Record that a side cannot act - it is locked out for the rest of
      the round (auto-pass, sticky). */
   function passSide(B, side) {
     if (B.passed[side]) return false;
@@ -2497,7 +3437,7 @@
           u.shield += amt;
           u.shieldSrc = u.uid;
           u.flags.tauntShield = null;
-          logMsg(B, 'shield', u.name + "'s labors end — a " + amt + ' shield forms.', {
+          logMsg(B, 'shield', u.name + "'s labors end - a " + amt + ' shield forms.', {
             uid: u.uid,
             status: 'shield',
             amount: amt,
@@ -2515,7 +3455,7 @@
         }
       }
       // Duration-less Marks deliberately do NOT tick: they persist until
-      // an ability damages the target. Marks applied with a duration
+      // an Skill damages the target. Marks applied with a duration
       // (markedTurns) expire here like every other status.
       if (u.flags.markedTurns > 0) {
         u.flags.markedTurns -= 1;
@@ -2535,6 +3475,10 @@
       if (u.flags.healModTurns > 0) {
         u.flags.healModTurns -= 1;
         if (u.flags.healModTurns <= 0) u.flags.healMod = 0;
+      }
+      if (u.flags.resistPctTurns > 0) {
+        u.flags.resistPctTurns -= 1;
+        if (u.flags.resistPctTurns <= 0) u.flags.resistPct = 0;
       }
     });
     ['player', 'enemy'].forEach(function (side) {
@@ -2559,20 +3503,62 @@
   /* advance to the next round: refresh energy, expire buffs, fire delayed effects */
   function nextRound(B) {
     B.round += 1;
-    var e = energyForRound(B.round);
-    B.energy.player = e; // energy does NOT carry over
-    B.energy.enemy = e;
+    /* Energy CARRIES OVER: add the round grant to what is banked, clamped to
+       the cap. Battlefield income modifiers (Mana Spring +20, Energy Void
+       -10) apply to the grant, never below zero. */
+    var e = energyForRound(B.round) + ((B.field && B.field.energyPerRound) || 0);
+
+    /* COMEBACK GRANT (2026-07-31). First blood decided 68.9% of games
+       because losing a hero costs ACTIONS, not just damage: turns strictly
+       alternate, so 4 living heroes get 4 actions against their 6. The
+       trailing side is paid COMEBACK_PER_HERO energy per hero of deficit,
+       which lets fewer heroes cast bigger - it buys back value per action
+       rather than handing out extra actions.
+
+       Recomputed from scratch every round, so it shrinks the moment the
+       deficit closes and vanishes on a tie. It is never banked as a
+       permanent edge. */
+    var alive = {
+      player: unitsOf(B, 'player').length,
+      enemy: unitsOf(B, 'enemy').length,
+    };
+    ['player', 'enemy'].forEach(function (side) {
+      var deficit = Math.max(0, alive[opposite(side)] - alive[side]);
+      var bonus = B.noComeback ? 0 : deficit * COMEBACK_PER_HERO;
+      B.comeback[side] = bonus;
+      addEnergy(B, side, Math.max(0, e) + bonus);
+      if (bonus > 0) {
+        logMsg(
+          B,
+          'energy',
+          (side === 'player' ? 'Your' : 'The enemy') +
+            ' outnumbered ranks rally - +' +
+            bonus +
+            ' Energy.',
+          { side: side, amount: bonus }
+        );
+        emit(B, {
+          t: 'energy',
+          side: side,
+          amount: bonus,
+          kind: 'comeback',
+          deficit: deficit,
+          round: B.round,
+        });
+      }
+    });
     B.acted = { player: {}, enemy: {} };
     B.passed = { player: false, enemy: false };
     B.turnPassed = { player: false, enemy: false };
     B.lastActor = null;
     B.actionNo = 0;
-    B.first = firstMover(B.round);
+    B.first = firstMover(B.round, B.oddFirst);
     B.turn = B.first;
 
     B.units.forEach(function (u) {
       u.roundFlags = {};
     });
+    B.roundEchoUsed = false; // Mirror Realm: one echo per round
     tickTimers(B);
 
     // end-of-round effects land AFTER this round's durations tick, so they
@@ -2580,8 +3566,11 @@
     var landed = resolveDeferred(B, null, 'round');
     if (landed) logMsg(B, 'buff', 'End-of-round effects resolve.', {});
 
-    // resolve delayed effects (Zeus)
-    B.units.forEach(function (u) {
+    /* Resolve delayed effects (Zeus, Abe no Seimei's shikigami).
+       ORDER MATTERS: two prophecies landing on the same rollover can
+       interact - the first can kill a hero and cancel the second - so
+       this sweep must run in the same sequence on both clients. */
+    boardOrder(B).forEach(function (u) {
       if (!u.pending.length) return;
       var still = [];
       u.pending.forEach(function (p) {
@@ -2604,9 +3593,22 @@
       u.pending = still;
     });
 
-    logMsg(B, 'round', 'Round ' + B.round + ' — Energy restored to ' + e + '.', {});
+    /* The Ancient Ruins: a relic wakes each round. Symmetric - it fires for
+       both sides, so it adds texture without handing either player an edge. */
+    if (B.field && B.field.roundBuffs && B.field.roundBuffs.length) {
+      var pool = B.field.roundBuffs;
+      var pick = pool[Math.floor(B.rng() * pool.length)];
+      logMsg(B, 'round', 'The ruins stir - ' + pick.label + '.', { status: 'field' });
+      emit(B, { t: 'fieldBuff', id: pick.id, label: pick.label, round: B.round });
+      boardOrder(B).forEach(function (u) {
+        if (!u.alive) return;
+        applyEffects(B, u, [u], pick.effects, { immediate: true, fieldBuff: true });
+      });
+    }
+
+    logMsg(B, 'round', 'Round ' + B.round + ' - Energy restored to ' + e + '.', {});
     if (B.round === RAMP_FROM) {
-      logMsg(B, 'round', 'The tide turns — all heroes grow stronger each round.', {});
+      logMsg(B, 'round', 'The tide turns - all heroes grow stronger each round.', {});
     }
     checkEnd(B);
     return B.round;
@@ -2647,11 +3649,14 @@
     defOf: defOf,
     critOf: critOf,
     hasDebuff: hasDebuff,
+    debuffCount: debuffCount,
+    buffCount: buffCount,
     costOf: costOf,
     canUse: canUse,
     legalTargets: legalTargets,
     pickCount: pickCount,
     resolveTargets: resolveTargets,
+    affectedTargets: affectedTargets,
     forcedTarget: forcedTarget,
     autoPick: autoPick,
     useAbility: useAbility,
@@ -2672,7 +3677,11 @@
     advanceAction: advanceAction,
     cloneBattle: cloneBattle,
     BURN_PCT_MAX_HP: BURN_PCT_MAX_HP,
+    COMEBACK_PER_HERO: COMEBACK_PER_HERO,
+    ENERGY_CAP: ENERGY_CAP,
+    energyCap: energyCap,
+    addEnergy: addEnergy,
+    energyForRound: energyForRound,
     tickBurn: tickBurn,
   };
 })();
-

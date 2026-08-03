@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Frontend Renderer
+   Echoes of Legend - Frontend Renderer
    Display only. No battle/card logic yet.
    ============================================================= */
 (function () {
@@ -48,7 +48,7 @@
 
   /* bar scaling maxima */
   /* Scale bars against the real roster maxima (plus head-room) instead
-     of hard-coded ceilings — the old atk: 1150 meant almost every hero
+     of hard-coded ceilings - the old atk: 1150 meant almost every hero
      showed a full ATK bar. */
   var MAX = (function () {
     var hp = 0,
@@ -123,12 +123,21 @@
           '</span>'
         : '';
 
+    /* Portrait art, when the card has it, renders inside the element sigil
+       ring and replaces the glyph. Cards without art keep the glyph, so the
+       roster can be illustrated a faction at a time. */
+    var artLayer = card.art
+      ? '<div class="art-portrait"><img src="' +
+        esc(card.art) +
+        '" alt="" draggable="false" /></div>'
+      : '<i class="art-glyph ra ' + card.icon + '"></i>';
+
     el.innerHTML =
-      '<div class="card-art">' +
+      '<div class="card-art' +
+      (card.art ? ' has-art' : '') +
+      '">' +
       '<div class="art-ring"></div>' +
-      '<i class="art-glyph ra ' +
-      card.icon +
-      '"></i>' +
+      artLayer +
       '</div>' +
       '<div class="card-vignette"></div>' +
       '<div class="card-sheen"></div>' +
@@ -453,16 +462,263 @@
       v.classList.toggle('active', v.dataset.view === view);
     });
     document.body.dataset.view = view;
+    /* The wait cursor belongs to an animating battle board and nothing
+       else. Leaving the battle for any reason - result screen, forfeit,
+       an opponent disconnecting mid-animation - must release it, or the
+       pointer stays stuck on the hourglass across the whole menu. This
+       is the single place every view change passes through, so clearing
+       it here closes the whole class of bug rather than one path. */
+    if (view !== 'battle') {
+      document.body.dataset.busy = '0';
+      document.body.dataset.netwait = '0';
+    }
     window.scrollTo(0, 0);
+    /* Anything that has to MEASURE itself cannot do so while its view
+       is hidden (zero width). Announce the change so those modules can
+       re-measure at the first moment they are able to. */
+    document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
+  }
+
+  /* ---------------------------------------------------------
+     GRAPHICS QUALITY
+     -------------------------------------------------------------
+     Writes body[data-gfx] and persists the choice. Applied at
+     script-load time, before first paint, so a low-graphics user
+     never sees a frame of the animations they turned off.
+     --------------------------------------------------------- */
+  var GFX_KEY = 'eol.gfx';
+  function applyGfx(mode) {
+    document.body.dataset.gfx = mode;
+    try {
+      localStorage.setItem(GFX_KEY, mode);
+    } catch (e) {
+      /* private mode: the toggle still works for this session */
+    }
+    document.querySelectorAll('.gfx-opt').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.gfx === mode));
+    });
+  }
+  function initGfx() {
+    var saved = 'high';
+    try {
+      saved = localStorage.getItem(GFX_KEY) || 'high';
+    } catch (e) {
+      saved = 'high';
+    }
+    /* respect the OS setting as the default if the user has never
+       chosen - someone on reduce-motion should not have to opt out */
+    try {
+      if (
+        !localStorage.getItem(GFX_KEY) &&
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        saved = 'low';
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    applyGfx(saved === 'low' ? 'low' : 'high');
+    document.querySelectorAll('.gfx-opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        applyGfx(b.dataset.gfx);
+      });
+    });
+  }
+  window.EOL.gfx = {
+    get: function () {
+      return document.body.dataset.gfx || 'high';
+    },
+    isLow: function () {
+      return document.body.dataset.gfx === 'low';
+    },
+    set: applyGfx,
+  };
+
+  /* ---------------------------------------------------------
+     AUTH UI
+     -------------------------------------------------------------
+     Drives the modal and delegates to window.EOL.auth (js/auth.js).
+     When Supabase is not configured the module reports itself as not
+     ready and every control explains that rather than failing
+     silently - the game itself is unaffected either way.
+     --------------------------------------------------------- */
+  function initAuth() {
+    var modal = document.getElementById('auth-modal');
+    var openBtn = document.getElementById('acct-btn');
+    if (!modal || !openBtn) return;
+
+    var A = window.EOL.auth;
+    var busy = false;
+
+    function open() {
+      modal.hidden = false;
+      document.body.dataset.modal = '1';
+      var first = modal.querySelector('.auth-google');
+      if (first) first.focus();
+    }
+    function close() {
+      modal.hidden = true;
+      delete document.body.dataset.modal;
+      openBtn.focus();
+    }
+    function setMode(mode) {
+      modal.dataset.mode = mode;
+      var up = mode === 'up';
+      modal.querySelectorAll('.auth-tab').forEach(function (t) {
+        var on = t.dataset.mode === mode;
+        t.classList.toggle('sel', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      document.getElementById('auth-title').textContent = up ? 'Join the ladder' : 'Welcome back';
+      document.getElementById('auth-sub').textContent = up
+        ? 'Create an account to play ranked matches against other players.'
+        : 'Sign in to play ranked matches against other players.';
+      document.getElementById('auth-submit-txt').textContent = up ? 'Create account' : 'Sign in';
+      document.getElementById('auth-name-field').hidden = !up;
+      say('');
+    }
+
+    /* one place for every message the modal shows */
+    function say(msg, kind) {
+      var foot = document.getElementById('auth-foot');
+      if (!foot) return;
+      var offline = !(A && A.isReady && A.isReady());
+      foot.className = 'auth-foot' + (kind ? ' ' + kind : '');
+      if (msg) {
+        foot.innerHTML = '<i class="ri-information-line"></i>' + esc(msg);
+      } else if (offline) {
+        foot.innerHTML =
+          '<i class="ri-information-line"></i>Accounts are not connected yet. ' +
+          'Singleplayer works as normal and your decks are saved on this device.';
+      } else {
+        foot.innerHTML =
+          '<i class="ri-information-line"></i>An account unlocks multiplayer. ' +
+          'Your decks stay on this device.';
+      }
+      if (kind) {
+        foot.classList.remove('flash');
+        void foot.offsetWidth;
+        foot.classList.add('flash');
+      }
+    }
+
+    function guard() {
+      if (!(A && A.isReady && A.isReady())) {
+        say(
+          A && A.configured && A.configured()
+            ? 'Could not reach the account service. Playing offline.'
+            : 'Accounts are not configured yet. Add your Supabase URL and publishable key in js/supabase-config.js.',
+          'warn'
+        );
+        return false;
+      }
+      if (busy) return false;
+      return true;
+    }
+
+    function run(promise, working) {
+      busy = true;
+      say(working);
+      promise
+        .then(function () {
+          busy = false;
+        })
+        .catch(function (err) {
+          busy = false;
+          say((err && err.message) || 'Something went wrong. Try again.', 'warn');
+        });
+    }
+
+    openBtn.addEventListener('click', function () {
+      var u = A && A.user && A.user();
+      if (u) {
+        /* signed in: the button becomes sign-out */
+        A.signOut();
+        return;
+      }
+      open();
+    });
+    document.getElementById('auth-close').addEventListener('click', close);
+    document.getElementById('auth-scrim').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) close();
+    });
+    modal.querySelectorAll('.auth-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        setMode(t.dataset.mode);
+      });
+    });
+
+    document.getElementById('auth-google').addEventListener('click', function () {
+      if (!guard()) return;
+      run(A.signInWithGoogle(), 'Redirecting to Google...');
+    });
+
+    document.getElementById('auth-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!guard()) return;
+      var f = e.target;
+      var email = (f.email.value || '').trim();
+      var pass = f.password.value || '';
+      var handle = f.name ? (f.name.value || '').trim() : '';
+      if (!email || !pass) {
+        say('Enter an email and password.', 'warn');
+        return;
+      }
+      if (modal.dataset.mode === 'up') {
+        run(
+          A.signUp(email, pass, handle).then(function () {
+            say('Check your inbox to confirm your email.');
+          }),
+          'Creating your account...'
+        );
+      } else {
+        run(
+          A.signIn(email, pass).then(function () {
+            close();
+          }),
+          'Signing in...'
+        );
+      }
+    });
+
+    /* reflect auth state on the corner button */
+    if (A && A.onChange) {
+      A.onChange(function (user) {
+        var label = openBtn.querySelector('.acct-label');
+        var av = openBtn.querySelector('.acct-avatar');
+        if (user) {
+          if (label) label.textContent = user.name;
+          openBtn.title = 'Signed in as ' + (user.email || user.name) + ' - click to sign out';
+          if (av) {
+            av.innerHTML = user.avatar
+              ? '<img src="' + esc(user.avatar) + '" alt="" />'
+              : '<i class="ra ra-player"></i>';
+          }
+          if (!modal.hidden) close();
+        } else {
+          if (label) label.textContent = 'Sign in';
+          openBtn.title = 'Sign in';
+          if (av) av.innerHTML = '<i class="ra ra-player"></i>';
+        }
+      });
+    }
+
+    setMode('in');
+    say('');
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    initGfx();
+    if (window.EOL.auth) window.EOL.auth.init();
+    initAuth();
     if (!ROSTER.length) {
       console.error('[EOL] No faction data loaded.');
       return;
     }
 
-    /* home-page counts come from the data itself — they can never drift
+    /* home-page counts come from the data itself - they can never drift
        out of sync with the roster again */
     var sh = document.getElementById('stat-heroes');
     if (sh) sh.textContent = ROSTER.length;
@@ -510,7 +766,7 @@
     document.getElementById('btn-shop-back').addEventListener('click', function () {
       show('home');
     });
-    // No Leave buttons on these screens — Esc backs out one level.
+    // No Leave buttons on these screens - Esc backs out one level.
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
       var v = document.body.dataset.view;
@@ -528,4 +784,3 @@
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
   });
 })();
-

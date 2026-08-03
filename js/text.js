@@ -25,9 +25,9 @@
     ['Marks', 'marked'],
     ['Shielded', 'shield'],
     ['Shield', 'shield'],
-    ['Taunts', 'taunt'],
-    ['Taunting', 'taunt'],
-    ['Taunt', 'taunt'],
+    ['Provokes', 'taunt'],
+    ['Provoking', 'taunt'],
+    ['taunt', 'taunt'],
     ['Silenced', 'silence'],
     ['Silence', 'silence'],
   ];
@@ -113,34 +113,107 @@
   window.EOL.ELEMENTS = ELEMENTS;
 
   /* -----------------------------------------------------------
-     Status registry — every buff / debuff the engine can apply
+     Status registry - every buff / debuff the engine can apply
      gets its own icon, colour and label.
      ----------------------------------------------------------- */
+  /* Every status carries a short `desc`: the RULE, in as few words as
+     it takes. No filler, no restating the label, no explaining what DEF
+     is. Only the parts a player cannot infer - that Provoke is a tax
+     rather than a wall, that Burn ignores DEF and Shields, that Exposed
+     zeroes DEF rather than trimming it. */
   window.EOL.STATUS = {
     // --- stat buffs ---
-    'atk+': { icon: 'ra-muscle-up', kind: 'buff', label: 'ATK Up', color: '#ffb347' },
-    'def+': { icon: 'ra-heavy-shield', kind: 'buff', label: 'DEF Up', color: '#8fd0ff' },
-    'crit+': { icon: 'ra-target-arrows', kind: 'buff', label: 'Crit Up', color: '#ffd050' },
+    'atk+': { icon: 'ra-muscle-up', kind: 'buff', label: 'ATK Up', color: '#ffb347', desc: '' },
+    'def+': { icon: 'ra-heavy-shield', kind: 'buff', label: 'DEF Up', color: '#8fd0ff', desc: '' },
+    'crit+': {
+      icon: 'ra-target-arrows',
+      kind: 'buff',
+      label: 'Crit Up',
+      color: '#ffd050',
+      desc: 'Crits deal 1.5x.',
+    },
     // --- stat debuffs ---
-    'atk-': { icon: 'ra-broken-bone', kind: 'debuff', label: 'ATK Down', color: '#ff9d9d' },
-    'def-': { icon: 'ra-cracked-shield', kind: 'debuff', label: 'DEF Down', color: '#ff9d9d' },
-    'crit-': { icon: 'ra-target-arrows', kind: 'debuff', label: 'Crit Down', color: '#ff9d9d' },
+    'atk-': { icon: 'ra-broken-bone', kind: 'debuff', label: 'ATK Down', color: '#ff9d9d', desc: '' },
+    'def-': { icon: 'ra-cracked-shield', kind: 'debuff', label: 'DEF Down', color: '#ff9d9d', desc: '' },
+    'crit-': { icon: 'ra-target-arrows', kind: 'debuff', label: 'Crit Down', color: '#ff9d9d', desc: '' },
     // --- flags / special states ---
-    taunt: { icon: 'ra-shield', kind: 'buff', label: 'Taunting', color: '#ffd98a' },
-    untargetable: { icon: 'ra-aura', kind: 'buff', label: 'Untargetable', color: '#a9e9ff' },
-    shield: { icon: 'ra-round-shield', kind: 'buff', label: 'Shielded', color: '#9fd8ff' },
-    silence: { icon: 'ra-uncertainty', kind: 'debuff', label: 'Silenced', color: '#e0a3ff' },
-    marked: { icon: 'ra-lightning-storm', kind: 'debuff', label: 'Marked', color: '#ffe066' },
-    burn: { icon: 'ra-burning-embers', kind: 'debuff', label: 'Burning', color: '#ff7a3c' },
-    exposed: { icon: 'ra-broken-shield', kind: 'debuff', label: 'Exposed', color: '#ff5f7e' },
+    taunt: {
+      icon: 'ra-shield',
+      kind: 'buff',
+      label: 'Provoking',
+      color: '#ffd98a',
+      desc: 'Enemy single-target attacks must hit this hero. Anything that gets around it (area damage, Sniper Skills) deals <b>30% less</b>.',
+    },
+    untargetable: {
+      icon: 'ra-aura',
+      kind: 'buff',
+      label: 'Untargetable',
+      color: '#a9e9ff',
+      desc: 'Enemies cannot target this hero at all. No exceptions.',
+    },
+    shield: {
+      icon: 'ra-round-shield',
+      kind: 'buff',
+      label: 'Shielded',
+      color: '#9fd8ff',
+      desc: 'Absorbs damage before HP. Burn ignores it.',
+    },
+    silence: {
+      icon: 'ra-uncertainty',
+      kind: 'debuff',
+      label: 'Silenced',
+      color: '#e0a3ff',
+      desc: 'Cannot act at all. Skills and Basics both.',
+    },
+    marked: {
+      icon: 'ra-lightning-storm',
+      kind: 'debuff',
+      label: 'Marked',
+      color: '#ffe066',
+      desc: 'The next Skill to damage this hero consumes it for bonus damage. No timer.',
+    },
+    burn: {
+      icon: 'ra-burning-embers',
+      kind: 'debuff',
+      label: 'Burning',
+      color: '#ff7a3c',
+      desc: '5% Max HP every turn this side takes. Ignores DEF and Shields.',
+    },
+    exposed: {
+      icon: 'ra-broken-shield',
+      kind: 'debuff',
+      label: 'Exposed',
+      color: '#ff5f7e',
+      desc: 'DEF counts as 0.',
+    },
+    resist: {
+      icon: 'ra-aura',
+      kind: 'buff',
+      label: 'Warded',
+      color: '#b6f5ff',
+      desc: 'Flat damage reduction. Works even while Exposed.',
+    },
     healdown: {
       icon: 'ra-broken-heart',
       kind: 'debuff',
       label: 'Healing Reduced',
       color: '#ff9d9d',
+      desc: 'Shields are unaffected.',
     },
-    costup: { icon: 'ra-hourglass', kind: 'debuff', label: 'Ability Cost Up', color: '#ff9d9d' },
-    costdown: { icon: 'ra-hourglass', kind: 'buff', label: 'Ability Cost Down', color: '#8fe3b0' },
+    costup: {
+      icon: 'ra-hourglass',
+      kind: 'debuff',
+      label: 'Skill Cost Up',
+      color: '#ff9d9d',
+      desc: 'Whole team, not just this hero.',
+    },
+    costdown: {
+      icon: 'ra-hourglass',
+      kind: 'buff',
+      label: 'Skill Cost Down',
+      color: '#8fe3b0',
+      desc: 'Whole team, not just this hero.',
+    },
   };
 
   /* Collapse a unit's live state into a de-duplicated icon list.

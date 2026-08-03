@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Battle UI
+   Echoes of Legend - Battle UI
    Renders the board, handles selection/targeting, drives the bot.
    ============================================================= */
 (function () {
@@ -10,6 +10,26 @@
     B = null;
   var sel = null; // { unit, ability, needed, chosen[] }
   var busy = false; // blocks input while the bot acts
+
+  /* ---------------------------------------------------------
+     WHO IS THE OPPONENT
+     -------------------------------------------------------------
+     The 'enemy' side is normally driven by the local bot. In a
+     multiplayer match it is driven by a real person on another
+     machine instead. `netCtl` is that person's adaptor (see
+     js/netplay.js); when it is null everything below behaves exactly
+     as it always has.
+
+       decide()   -> Promise of an action, or null for a pass. Resolves
+                     when the remote player's move arrives.
+       onLocal(a) -> called after every action WE resolve, so the
+                     adaptor can put it on the wire.
+       label      -> what to call them in the banners.
+
+     Keeping this to one object means the turn loop is shared: a
+     multiplayer battle is the same battle, with a different source of
+     enemy decisions. No second engine, no second loop. */
+  var netCtl = null;
   var playerDone = false; // has the player taken their turn this round?
   var enemyDone = false; // has the bot taken its turn this round?
   var ROLE_ICON = {
@@ -60,7 +80,7 @@
      With a player deck (6 card ids from the deck builder): the player
      fields exactly those heroes, and the enemy draws 6 distinct random
      heroes from the remaining pool. Without a deck, both sides are
-     random — 12 distinct heroes split 6v6, as before. */
+     random - 12 distinct heroes split 6v6, as before. */
   var playerDeck = null; // card ids of the last deck used (for rematch)
 
   function flatten() {
@@ -113,7 +133,7 @@
       .sort(function () {
         return Math.random() - 0.5;
       });
-    /* The bot drafts, too — its team is half luck, half judgement:
+    /* The bot drafts, too - its team is half luck, half judgement:
        three capped randoms from the leftover pool, then three picks
        drafted around them. */
     var enemyRnd = [];
@@ -138,7 +158,7 @@
   }
 
   /* ---------------------------------------------------------
-     Bot drafting — three picks built around the random three
+     Bot drafting - three picks built around the random three
      -------------------------------------------------------------
      Synergy is scored straight from the card specs: mark sources feed
      mark consumers (discovered by walking each kit, so cards added
@@ -212,7 +232,7 @@
      guard the tail: synergy compounds quadratically (every web member
      makes the next web member look better), so a draft that still
      lacks a Tank or a Medic when the slots run short must close them
-     out — the web holds the free slots, never the skeleton. */
+     out - the web holds the free slots, never the skeleton. */
   function draftBotTeam(randoms, pool) {
     var team = randoms.slice();
     var rest = pool.slice();
@@ -288,25 +308,48 @@
 
     if (deadView) sts = [];
 
+    /* Each chip carries a full rules panel, not a one-word title. The
+       status descriptions in js/text.js are the game's only in-app rules
+       reference, so they explain the parts players get wrong - that
+       Provoke only redirects single-target attacks, that Burn ignores DEF
+       and Shields, that Exposed zeroes DEF rather than reducing it. */
     var chips = sts
       .map(function (st) {
-        var tip =
-          st.label + (st.turns ? ' (' + st.turns + ' round' + (st.turns > 1 ? 's' : '') + ')' : '');
         var sdef = window.EOL.STATUS[st.key] || {};
         var big = st.key === 'burn' || st.key === 'exposed' ? ' big-status' : '';
+        var dur = st.turns
+          ? '<span class="stp-dur">' +
+            st.turns +
+            ' round' +
+            (st.turns > 1 ? 's' : '') +
+            ' left</span>'
+          : '';
+        var pop =
+          '<span class="st-pop">' +
+          '<span class="stp-head">' +
+          '<i class="ra ' +
+          st.icon +
+          '"></i>' +
+          '<b>' +
+          esc(st.label) +
+          '</b>' +
+          (st.count > 1 ? '<span class="stp-n">x' + st.count + '</span>' : '') +
+          dur +
+          '</span>' +
+          (statusDesc(u, st) ? '<span class="stp-body">' + statusDesc(u, st) + '</span>' : '') +
+          '</span>';
         return (
           '<span class="st-chip ' +
           st.kind +
           big +
           '"' +
           (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
-          ' title="' +
-          esc(tip) +
-          '">' +
+          ' tabindex="0">' +
           '<i class="ra ' +
           st.icon +
           '"></i>' +
           (st.count > 1 ? '<b class="st-n">' + st.count + '</b>' : '') +
+          pop +
           '</span>'
         );
       })
@@ -352,11 +395,15 @@
          filigree, rune ring, element orb, rarity pip and role plate */
       '<div class="bcard">' +
       '<div class="bcard-inner">' +
-      '<div class="bcard-art">' +
+      '<div class="bcard-art' +
+      (u.card.art ? ' has-art' : '') +
+      '">' +
       '<span class="bart-ring"></span>' +
-      '<i class="ra ' +
-      u.card.icon +
-      '"></i>' +
+      (u.card.art
+        ? '<div class="bart-portrait"><img src="' +
+          esc(u.card.art) +
+          '" alt="" draggable="false" /></div>'
+        : '<i class="ra ' + u.card.icon + '"></i>') +
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
@@ -404,7 +451,7 @@
         '<span class="tip-tag ' +
         (a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role') +
         '">' +
-        (a.type === 'Passive' ? 'Passive' : isSig ? 'Skill' : 'Basic') +
+        (a.type === 'Passive' ? 'Passive' : isSig ? 'Signature' : 'Basic Skill') +
         '</span>' +
         '<span class="tip-ab-name">' +
         esc(a.name) +
@@ -547,8 +594,11 @@
     // energy + round
     ['player', 'enemy'].forEach(function (s) {
       var en = B.energy[s];
-      var cap = E.energyForRound(B.round);
-      $('en-fill-' + s).style.width = Math.min(100, (en / 100) * 100) + '%';
+      /* Energy now CARRIES OVER, so the bar must be measured against the
+         storage cap (150, or 170 on the Mana Spring) rather than the round
+         grant - otherwise it pegs at full the moment a side banks 100. */
+      var cap = E.energyCap(B);
+      $('en-fill-' + s).style.width = Math.min(100, (en / cap) * 100) + '%';
       $('en-val-' + s).textContent = en;
       $('en-cap-' + s).textContent = '/' + cap;
       var alive = E.unitsOf(B, s).length;
@@ -557,7 +607,7 @@
     $('round-num').textContent = B.round;
 
     /* The phase is announced by the ROUND overlay (subs: basics only /
-       skills unlocked) and by the lock badges on the ability rows — the
+       skills unlocked) and by the lock badges on the ability rows - the
        old HUD pill was removed as HUD clutter. */
     var ramp = Math.round((E.rampMult(B.round) - 1) * 100);
     var rt = $('ramp-tag');
@@ -584,7 +634,7 @@
     if (it) {
       var msg,
         cls = false;
-      /* SHORT texts only — the pill is centre-clipped to ~150 px so it
+      /* SHORT texts only - the pill is centre-clipped to ~150 px so it
          can never creep back over the energy readouts or the Pass
          button (full text lives in the pill's tooltip). */
       if (B.over) {
@@ -607,7 +657,7 @@
       $('init-val').textContent = msg;
       it.title =
         'Sides trade one action at a time. Passing skips only ' +
-        'that action — the round ends when both sides pass back-to-back.';
+        'that action - the round ends when both sides pass back-to-back.';
     }
     document.body.dataset.turn = B.turn;
 
@@ -667,7 +717,7 @@
   /* Widest font size (in px) at which `text` fits `avail` px. */
   function fitFontSize(ctx, text, avail, weight, family) {
     // width scales linearly with font size, so one measurement at a
-    // reference size gives the answer directly — no binary search
+    // reference size gives the answer directly - no binary search
     ctx.font = weight + ' ' + MAX_NAME_PX + 'px ' + family;
     var w = ctx.measureText(text).width;
     if (w <= avail) return MAX_NAME_PX;
@@ -709,11 +759,68 @@
     });
   }
 
+  /* Ability headers are a single row: [tag] [name] .......... [cost].
+     The row cannot wrap (see .dk-ab-top), so a long skill name would be
+     clipped instead of pushing the cost to the next line. This shrinks
+     the NAME - and only the name - until it fits the space left over
+     beside a full-size cost chip. Same idea as fitNames(), applied to a
+     flex row rather than a card foot. */
+  var MIN_AB_PX = 8.5;
+  var MAX_AB_PX = 12;
+  /* FIT EACH SKILL NAME BESIDE ITS COST CHIP.
+     -------------------------------------------------------------
+     This used to PREDICT the space the name would get:
+       avail = row.clientWidth - (siblings) - (gaps)
+     and size the font to that prediction. The prediction was ~6px
+     optimistic - flex distributes differently than the arithmetic
+     assumed once `min-width: 0` and `margin-left: auto` are in play -
+     so long names ("Divine Judgment", "Shikigami Prophecy",
+     "Treasonous Strike") were set one notch too large and the final
+     letters were clipped by `overflow: hidden`.
+
+     Predicting a flex layout is the wrong approach. Now it MEASURES
+     the rendered result: set a size, ask the element whether its own
+     text overflows (scrollWidth > clientWidth), and step down until
+     it does not. A couple of extra reads per row, and it cannot be
+     wrong about the layout because it is reading the layout.
+     ============================================================= */
+  function fitAbilityNames(root) {
+    var nodes = (root || document).querySelectorAll('.dk-ab-name');
+    if (!nodes.length) return;
+    nodes.forEach(function (el) {
+      var text = el.textContent;
+      if (!text) return;
+
+      /* Start from the full size every time. Without this the element
+         keeps a smaller size left over from a previous, longer hero
+         and short names render needlessly shrunken. */
+      el.style.fontSize = MAX_AB_PX + 'px';
+      if (el.scrollWidth <= el.clientWidth) return; // already fits
+
+      /* First guess from the overflow ratio, so the loop below almost
+         always confirms in one step instead of crawling down. */
+      var px = MAX_AB_PX;
+      var ratio = el.clientWidth / el.scrollWidth;
+      if (ratio > 0 && ratio < 1) {
+        px = Math.max(MIN_AB_PX, Math.floor(MAX_AB_PX * ratio * 20) / 20);
+        el.style.fontSize = px + 'px';
+      }
+      /* Then step down against the REAL rendered width. Bounded so a
+         pathological string can never spin here. */
+      var guard = 0;
+      while (px > MIN_AB_PX && el.scrollWidth > el.clientWidth && guard++ < 40) {
+        px = Math.max(MIN_AB_PX, px - 0.25);
+        el.style.fontSize = px + 'px';
+      }
+    });
+  }
+
   /* highlight selected unit + legal targets */
   function paintSelection() {
     document.querySelectorAll('.bcard').forEach(function (c) {
       c.classList.remove('selected', 'targetable', 'chosen');
     });
+    clearPreview();
     if (!sel) return;
 
     var selEl = document.querySelector('.bcard[data-uid="' + sel.unit.uid + '"]');
@@ -734,6 +841,44 @@
     }
   }
 
+  /* Hovering a Skill row previews who it can hit, using the same
+     green highlight a click produces. Lets the player scan their
+     options without committing to a selection first. `preview` is
+     kept separate from `targetable` so leaving the row restores the
+     real selection exactly. */
+  function paintPreview(u, ability, choose) {
+    clearPreview();
+    if (!u || !ability || B.over) return;
+    if (E.pickCount(ability) === 0 && (ability.spec || {}).target) {
+      var t = ability.spec.target;
+      if (t.side === 'self' || t.side === 'none') return;
+    }
+    /* WHO WOULD ACTUALLY BE HIT, not merely who is legal.
+       E.affectedTargets walks the card's own effect tree, so a Skill
+       that narrows its victims (Zeus striking only the Marked, a
+       row-choice, a `take: top N`) highlights exactly the heroes it
+       will strike. Reading the card data rather than naming heroes
+       means every card behaves consistently, including future ones. */
+    var pool;
+    try {
+      pool = E.affectedTargets(B, u, ability, [], choose || 0);
+    } catch (err) {
+      return;
+    }
+    var forced = E.forcedTarget(B, u, ability);
+    if (forced) pool = [forced];
+
+    pool.forEach(function (t) {
+      var el = document.querySelector('.bcard[data-uid="' + t.uid + '"]');
+      if (el) el.classList.add('preview-target');
+    });
+  }
+  function clearPreview() {
+    document.querySelectorAll('.bcard.preview-target').forEach(function (el) {
+      el.classList.remove('preview-target');
+    });
+  }
+
   /* ---------------------------------------------------------
      Floating hero panel
      Appears in the empty space beside the board: allies on the
@@ -749,9 +894,12 @@
     var usable = isActive && E.canUse(B, u, a);
     var hasTargets = !isActive || E.pickCount(a) === 0 || E.legalTargets(B, u, a).length > 0;
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
-       simply aren't selectable — greying them read as "broken". */
+       simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
     var tag = a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role';
+    /* Short tags. The row is only ~219px wide and "SIGNATURE SKILL" ate
+       87px of it, squeezing long Skill names. The colour already says
+       which kind it is, so the word "Skill" was pure repetition. */
     var tagTxt = a.type === 'Passive' ? 'Passive' : isSig ? 'Skill' : 'Basic';
     /* roleAbility() builds a fresh object every render, so for Basics the
        identity check fails right after re-paint and the selection's blue
@@ -769,7 +917,7 @@
       lockTooltip = 'Locked during Battle Phase 1 (Round 1). Unlocks in Round 2.';
     }
 
-    // Only surface reasons the player can't infer from the UI itself —
+    // Only surface reasons the player can't infer from the UI itself -
     // an unaffordable cost is already obvious from the greyed-out button.
     var reason = '';
     if (lockedPhase) {
@@ -823,7 +971,9 @@
     );
   }
 
-  /* Human-readable description for each active status. */
+  /* Live value for THIS hero, then the rule from window.EOL.STATUS if
+     there is one worth printing. Most stat buffs need no rule at all -
+     "+15% Attack" says everything, and nobody needs DEF explained. */
   function statusDesc(u, st) {
     var amt = 0;
     (u.buffs || []).forEach(function (b) {
@@ -831,45 +981,55 @@
       var k = b.stat + (b.amt >= 0 ? '+' : '-');
       if (k === st.key) amt += b.amt;
     });
+    var live = '';
     switch (st.key) {
       case 'atk+':
       case 'atk-':
-        return (amt > 0 ? '+' : '') + amt + '% Attack';
+        live = (amt > 0 ? '+' : '') + amt + '% ATK';
+        break;
       case 'def+':
       case 'def-':
-        return (amt > 0 ? '+' : '') + amt + '% Defence';
+        live = (amt > 0 ? '+' : '') + amt + '% DEF';
+        break;
       case 'crit+':
       case 'crit-':
-        return (amt > 0 ? '+' : '') + amt + '% Crit Chance';
+        live = (amt > 0 ? '+' : '') + amt + '% Crit';
+        break;
       case 'shield':
-        return 'Absorbs ' + u.shield.toLocaleString() + ' damage';
-      case 'taunt':
-        return 'Forces enemies to attack this hero';
-      case 'untargetable':
-        return 'Cannot be targeted by enemies';
-      case 'silence':
-        return 'Skill blocked — Basic still usable';
-      case 'marked':
-        return 'This unit is marked for special interactions with certain abilities';
+        live = u.shield.toLocaleString() + ' absorbed';
+        break;
       case 'burn':
-        return (
-          'Takes ' +
-          Math.round(u.maxHp * 0.05).toLocaleString() +
-          " damage on every turn this hero's side takes"
-        );
-      case 'exposed':
-        return 'Defence reduced to 0%';
+        live = Math.round(u.maxHp * 0.05).toLocaleString() + ' per turn';
+        break;
       case 'healdown':
-        return 'Healing received reduced by ' + Math.abs(u.flags.healMod) + '%';
-      case 'costup':
-        return 'Ability costs increased';
-      case 'costdown':
-        return 'Ability costs reduced';
+        live = '-' + Math.abs(u.flags.healMod) + '% healing';
+        break;
+      case 'resist':
+        live = '-' + (u.flags.resistPct || 0) + '% damage taken';
+        break;
       default:
-        return '';
+        live = '';
     }
+    var rule = (window.EOL.STATUS[st.key] || {}).desc || '';
+    if (live && rule) return '<b>' + live + '.</b> ' + rule;
+    if (live) return '<b>' + live + '</b>';
+    return rule;
   }
 
+  /* THE STATUS ROW.
+     -------------------------------------------------------------
+     Statuses used to be a stacked list of full rule paragraphs. On a
+     hero carrying four of them that was taller than everything else
+     in the panel combined, which is what forced the panel to be so
+     large it had nowhere to sit.
+
+     Now it is one row of icons - the same glyphs and colours the
+     battle card uses, so a status is recognisable in both places -
+     and the rules text appears on hover. Dense by default, complete
+     on demand.
+
+     Every status is colour-coded from window.EOL.STATUS, so nothing
+     renders as bare text. */
   function statusListHTML(u) {
     var sts = window.EOL.statusesOf(u, E);
     (B.costMods[u.side] || []).forEach(function (m) {
@@ -891,37 +1051,62 @@
         });
       }
     });
-    if (!sts.length) return '';
+
+    /* An explicit empty state. A blank gap left players unsure
+       whether the hero had no statuses or the panel was broken. */
+    if (!sts.length) {
+      return (
+        '<div class="dk-strip empty">' +
+        '<span class="dk-strip-label">Status</span>' +
+        '<span class="dk-strip-none">None</span>' +
+        '</div>'
+      );
+    }
 
     return (
-      '<div class="dk-sts">' +
+      '<div class="dk-strip">' +
+      '<span class="dk-strip-label">Status</span>' +
+      '<div class="dk-strip-row">' +
       sts
         .map(function (st) {
+          var sdef = window.EOL.STATUS[st.key] || {};
+          var dur = st.turns
+            ? '<span class="dsp-dur">' +
+              st.turns +
+              ' round' +
+              (st.turns > 1 ? 's' : '') +
+              ' left</span>'
+            : '';
           return (
-            '<div class="dk-st ' +
+            '<span class="dk-sicon ' +
             st.kind +
-            '">' +
+            '"' +
+            (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
+            ' tabindex="0">' +
             '<i class="ra ' +
             st.icon +
             '"></i>' +
-            '<div class="dk-st-body">' +
-            '<div class="dk-st-top">' +
-            '<span class="dk-st-name">' +
+            (st.count > 1 ? '<b class="dk-sn">' + st.count + '</b>' : '') +
+            '<span class="dk-spop">' +
+            '<span class="dsp-head"><i class="ra ' +
+            st.icon +
+            '"></i><b>' +
             esc(st.label) +
+            '</b>' +
+            (st.count > 1 ? '<span class="dsp-n">x' + st.count + '</span>' : '') +
+            dur +
             '</span>' +
-            (st.count > 1 ? '<span class="dk-st-x">x' + st.count + '</span>' : '') +
-            (st.turns
-              ? '<span class="dk-st-t">' + st.turns + '<i class="ra ra-hourglass"></i></span>'
-              : '') +
-            '</div>' +
-            '<div class="dk-st-desc">' +
-            esc(statusDesc(u, st)) +
-            '</div>' +
-            '</div>' +
-            '</div>'
+            /* statusDesc returns trusted authored markup (<b> around the
+               live value); the only interpolated values are numbers. */
+            '<span class="dsp-body">' +
+            statusDesc(u, st) +
+            '</span>' +
+            '</span>' +
+            '</span>'
           );
         })
         .join('') +
+      '</div>' +
       '</div>'
     );
   }
@@ -962,7 +1147,10 @@
       '<span class="dk-stat-k">' +
       key +
       '</span>' +
-      '<span class="dk-stat-bar"><span style="width:' +
+      /* the target width rides on a custom property and the bar fills
+         to it once the panel is shown - same growing-bar read as the
+         collection cards, rather than snapping to full width */
+      '<span class="dk-stat-bar"><span style="--to:' +
       Math.max(2, pct) +
       '%"></span></span>' +
       '<span class="dk-stat-v">' +
@@ -1095,7 +1283,8 @@
       choices +
       (hint ? '<div class="dk-hint">' + hint + '</div>' : '');
 
-    // allies open to the left of the board, enemies to the right
+    /* allies dock left, enemies dock right - the panel sits on the
+       same side as the team it describes */
     fly.classList.toggle('right', u.side === 'enemy');
     fly.classList.toggle('locked', locked);
     fly.dataset.rarity = u.card.rarity;
@@ -1112,7 +1301,16 @@
       }, 280);
     }
     fly.classList.add('show');
-    positionDock();
+    /* Measure AFTER the content is in and 'show' has removed
+       visibility:hidden, or offsetHeight reads 0 and the panel
+       anchors to the wrong place on the first hover of a card. */
+    positionDock(u.uid);
+    /* Deferred a frame: the panel is mid grow-transform, and
+       getBoundingClientRect reports the SCALED width, so measuring
+       right now under-sizes the row and clips long Skill names. */
+    requestAnimationFrame(function () {
+      fitAbilityNames(fly);
+    });
 
     fly.querySelectorAll('.dk-ab.act[data-ab]').forEach(function (btn) {
       btn.addEventListener('click', function (ev) {
@@ -1120,6 +1318,22 @@
         var which = parseInt(btn.dataset.ab, 10);
         chooseAbility(u, which === 0 ? sig : role);
       });
+    });
+    /* hovering ANY Skill row previews its targets, including rows that
+       are not currently clickable - seeing who a locked Skill would hit
+       is exactly the planning information the player wants */
+    fly.querySelectorAll('.dk-ab').forEach(function (row, i) {
+      var ab = i === 0 ? sig : role;
+      if (!ab || ab.type !== 'Active') return;
+      /* A Skill that cannot be used does not preview. Highlighting
+         targets for a Skill the player cannot cast implies it is
+         available and invites a click that does nothing. */
+      if (row.classList.contains('dis')) return;
+      row.addEventListener('mouseenter', function () {
+        if (sel && sel.ability) return; // a live selection wins
+        paintPreview(u, ab, sel ? sel.choose : 0);
+      });
+      row.addEventListener('mouseleave', clearPreview);
     });
     fly.querySelectorAll('.dk-choice').forEach(function (btn) {
       btn.addEventListener('click', function (ev) {
@@ -1130,11 +1344,51 @@
     });
   }
 
-  /* The panel is pinned near the top of the board rather than tracking
-     the hovered card, so it never jumps around as the pointer moves. */
-  function positionDock() {
+  /* EXPAND OUT OF THE CARD, NOT OFF TO ONE SIDE.
+     -------------------------------------------------------------
+     The panel used to dock in the margin beside the board. There is
+     no margin width that works everywhere: wide screens left it
+     stranded far from the card, narrow ones had nowhere to put it,
+     and on the prep grids it covered the very cards being compared.
+
+     So it now grows out of the hovered card itself, the way the
+     battlefield pill grows, and layers over its neighbours. The card
+     is always where the player is already looking, and the anchor is
+     the card's own rectangle, so it is correct at every screen size
+     by construction rather than by tuning.
+
+     Clamped to the board so it can never open off-screen. */
+  /* DOCK TO THE SIDE OF THE BOARD.
+     -------------------------------------------------------------
+     Expanding out of the card was tried and rejected: on a dense
+     6v6 board the panel swallowed the neighbours you were comparing
+     against, which is the opposite of useful.
+
+     So it returns to the margins - your team's panel on the left,
+     the enemy's on the right - which is where there is genuinely
+     free space on this layout, and which keeps every card visible
+     while you read one. Vertically it tracks the hovered card so
+     the eye does not have to travel, clamped inside the board. */
+  function positionDock(anchorUid) {
     var fly = $('flyout');
-    if (fly) fly.style.top = '';
+    if (!fly) return;
+    var board = $('board');
+    var card = anchorUid ? document.querySelector('.bcard[data-uid="' + anchorUid + '"]') : null;
+    if (!board) return;
+
+    fly.style.left = '';
+    fly.style.top = '';
+    if (!card) return;
+
+    var b = board.getBoundingClientRect();
+    var c = card.getBoundingClientRect();
+    var h = fly.offsetHeight || 300;
+    var PAD = 10;
+
+    /* Centre on the hovered card's row, then keep it on the board. */
+    var top = c.top - b.top + c.height / 2 - h / 2;
+    top = Math.max(PAD, Math.min(top, b.height - h - PAD));
+    fly.style.top = top + 'px';
   }
 
   function chooseAbility(u, ability) {
@@ -1150,7 +1404,7 @@
     paintSelection();
 
     if (sel.needed === 0) {
-      // no target needed — fire immediately
+      // no target needed - fire immediately
       commit();
     } else if (sel.chosen.length === sel.needed) {
       commit();
@@ -1158,9 +1412,13 @@
   }
 
   function onCardClick(u) {
-    if (busy || B.over || B.turn !== 'player') return;
+    /* Inspection stays available even when it is not your action and
+       even after the battle ends - reading a hero's statuses is not a
+       move. Only TARGETING is gated below. */
+    if (busy) return;
 
-    var targeting = !!(sel && sel.ability && sel.needed > 0);
+    var myTurn = !B.over && B.turn === 'player';
+    var targeting = myTurn && !!(sel && sel.ability && sel.needed > 0);
 
     // picking a target for a pending ability
     if (targeting) {
@@ -1190,21 +1448,15 @@
       }
     }
 
-    // Enemy cards are not selectable outside of target picking — clicking
-    // one just clears any pending selection.
-    if (u.side !== 'player') {
-      clearSel();
-      return;
-    }
-
-    // your own heroes that can't act are view-only
-    if (B.acted.player[u.uid]) {
-      sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: true };
-      paintDock();
-      paintSelection();
-      return;
-    }
-    sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0 };
+    /* ANY card can be opened, including the enemy's.
+       Statuses now live in the panel, so being unable to open an
+       opposing hero meant there was no way to read what is on them -
+       exactly the information you need to decide a play. Opening an
+       enemy is view-only: their Skills never become clickable,
+       because `interactive` in paintDock still demands the hero be
+       yours, unacted and on your turn. */
+    var viewOnly = u.side !== 'player' || !myTurn || !!B.acted.player[u.uid];
+    sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
     paintDock();
     paintSelection();
   }
@@ -1212,12 +1464,24 @@
   function commit() {
     var s = sel;
     if (!s || !s.ability) return;
+    stopClock();
     var mark = B.log.length;
     var res = E.useAbility(B, s.unit, s.ability, s.chosen, s.choose);
     if (!res.ok) {
       toast('Cannot use that: ' + res.reason);
       return;
     }
+    /* Put the move on the wire BEFORE the animations play. The other
+       client needs the whole action-time to render it, and the engine
+       has already resolved it here, so sending now costs nothing and
+       buys the opponent a head start. */
+    if (netCtl)
+      netCtl.onLocal({
+        unit: s.unit,
+        ability: s.ability,
+        chosen: s.chosen,
+        choose: s.choose,
+      });
     clearSel();
     render();
 
@@ -1243,20 +1507,20 @@
       return;
     }
 
+    /* Wait for the board to finish animating before control moves on.
+       flashRecent() now returns the FULL length of everything it just
+       scheduled (strikes, floating numbers, deaths, revives), not just
+       resurrections - so a killing blow plays out completely before
+       endBattle() can draw Victory over the top of it. */
     var hold = flashRecent();
-    if (hold) {
-      // a resurrection plays out before control passes
-      busy = true;
-      document.body.dataset.busy = '1';
-      setTimeout(function () {
-        busy = false;
-        document.body.dataset.busy = '0';
-        render();
-        afterPlayerAction();
-      }, hold);
-      return;
-    }
-    afterPlayerAction();
+    busy = true;
+    document.body.dataset.busy = '1';
+    setTimeout(function () {
+      busy = false;
+      document.body.dataset.busy = '0';
+      render();
+      afterPlayerAction();
+    }, hold);
   }
 
   function clearSel() {
@@ -1268,7 +1532,7 @@
   /* ---------------------------------------------------------
      Auto end-turn countdown
      When the player has no legal moves left we don't end the turn
-     outright — the End Turn button fills over 5s and the player can
+     outright - the End Turn button fills over 5s and the player can
      click it to go immediately.
      --------------------------------------------------------- */
   var AUTO_MS = 5000;
@@ -1322,16 +1586,139 @@
     if (B.over || B.turn !== 'player') return;
     announceTurn('player');
     ponderKick();
+    startClock('player');
     if (!E.canAct(B, 'player')) startAuto();
   }
 
+  /* =============================================================
+     TURN CLOCK  (multiplayer only)
+     -------------------------------------------------------------
+     A human opponent can simply stop responding. The bot never
+     could, so nothing in the loop ever needed a deadline; against a
+     person, one player could hold a match hostage forever.
+
+     30 seconds per action. When YOUR clock expires you pass, which
+     is always a legal move and never loses the game outright. When
+     THEIR clock expires we do not act on it - only the player whose
+     turn it is may pass themselves, or the two clients would
+     disagree about the action stream and desync. Their clock is
+     shown purely so you know they are on one too.
+
+     Singleplayer never shows it.
+     ============================================================= */
+  var TURN_MS = 30000;
+  var clockRaf = null;
+  var clockEnd = 0;
+  var clockSide = null;
+
+  function clockEl() {
+    return $('turn-clock');
+  }
+
+  function stopClock() {
+    if (clockRaf) {
+      cancelAnimationFrame(clockRaf);
+      clockRaf = null;
+    }
+    clockSide = null;
+    var el = clockEl();
+    if (el) {
+      el.hidden = true;
+      el.classList.remove('warn', 'crit', 'theirs');
+    }
+  }
+
+  function startClock(side) {
+    if (!netCtl) return; // singleplayer has nobody to stall
+    var el = clockEl();
+    if (!el || !B || B.over) return;
+    clockSide = side;
+    clockEnd = performance.now() + TURN_MS;
+    el.hidden = false;
+    el.classList.toggle('theirs', side !== 'player');
+
+    var fill = $('tc-fill');
+    var num = $('tc-num');
+    var CIRC = 106.8;
+
+    function frame(now) {
+      if (!B || B.over || clockSide !== side) {
+        stopClock();
+        return;
+      }
+      var left = Math.max(0, clockEnd - now);
+      var secs = Math.ceil(left / 1000);
+      if (num) num.textContent = secs;
+      if (fill) fill.style.strokeDashoffset = CIRC * (1 - left / TURN_MS);
+      el.classList.toggle('warn', secs <= 10 && secs > 5);
+      el.classList.toggle('crit', secs <= 5);
+      if (left <= 0) {
+        stopClock();
+        /* Only ever force OUR OWN pass. Acting on the opponent's
+           expiry would inject an action they never sent and the two
+           boards would diverge. */
+        if (side === 'player' && !busy && !B.over && B.turn === 'player') {
+          toast('Out of time - passing', 'ri-timer-line');
+          endTurn();
+        }
+        return;
+      }
+      clockRaf = requestAnimationFrame(frame);
+    }
+    clockRaf = requestAnimationFrame(frame);
+  }
+
+  /* =============================================================
+     FORFEIT
+     -------------------------------------------------------------
+     Two-step: the first click arms the button, the second confirms.
+     A single mis-click must never end a ranked match. It disarms
+     itself after a few seconds and on any click elsewhere.
+     ============================================================= */
+  var forfeitArmed = false;
+  var forfeitTimer = null;
+
+  function disarmForfeit() {
+    forfeitArmed = false;
+    clearTimeout(forfeitTimer);
+    var b = $('btn-forfeit');
+    if (b) {
+      b.classList.remove('arm');
+      var lbl = b.querySelector('span');
+      if (lbl) lbl.textContent = 'Forfeit';
+    }
+  }
+
+  function onForfeit() {
+    var b = $('btn-forfeit');
+    if (!b || !B || B.over) return;
+    if (!forfeitArmed) {
+      forfeitArmed = true;
+      b.classList.add('arm');
+      var lbl = b.querySelector('span');
+      if (lbl) lbl.textContent = 'Confirm?';
+      clearTimeout(forfeitTimer);
+      forfeitTimer = setTimeout(disarmForfeit, 4000);
+      return;
+    }
+    disarmForfeit();
+    stopClock();
+    /* Tell the opponent first - if we tear down the channel before
+       sending, they sit waiting for a move that will never come. */
+    if (netCtl && netCtl.forfeit) netCtl.forfeit();
+    B.over = true;
+    B.winner = 'enemy';
+    render();
+    endBattle();
+  }
+
   /* ---------------------------------------------------------
-     PONDERING — the bot keeps thinking during the player's window
+     PONDERING - the bot keeps thinking during the player's window
      -------------------------------------------------------------
      Stockfish-style pondering. A live decision is always made at
      depth 4 minimum, but while the player is deciding, the bot
      predicts the likeliest player actions (its own top heuristic
-     picks, plus a pass — the only move when the player can't act, so
+     picks, plus a pass - the only move when the player can't act, so
      that branch always lands), applies each one on a throwaway clone,
      and re-searches the resulting positions at growing depth, from
      PONDER_MIN_DEPTH up to PONDER_MAX_DEPTH. Breadth-first: every
@@ -1341,7 +1728,7 @@
      A pondered move only counts when the position that actually
      arrives matches the position that was searched. rng-driven
      variance on the player's real action (crits, coin flips, burn
-     ticks at a round rollover) can leave the states diverged — the
+     ticks at a round rollover) can leave the states diverged - the
      state key comparison catches that, and the bot simply thinks
      live at depth 4 exactly as it always has. */
   var PONDER_MIN_DEPTH = 4;
@@ -1429,7 +1816,7 @@
   }
 
   /* Map an action described against one battle onto its twin in a
-     clone (units matched by uid) — mirrors the AI's own rebind. */
+     clone (units matched by uid) - mirrors the AI's own rebind. */
   function ponderRebind(C, act) {
     var byUid = {};
     C.units.forEach(function (u) {
@@ -1471,10 +1858,14 @@
   function ponderKick() {
     ponderCancel();
     if (!B || B.over || B.turn !== 'player') return;
+    /* Nothing to ponder in a match: the opponent is a person, and
+       burning two cores guessing their move would only make the local
+       board stutter while they type. */
+    if (netCtl) return;
 
     var preds = [];
     if (!E.canAct(B, 'player')) {
-      preds.push({ pass: true }); // the only move — a free hit
+      preds.push({ pass: true }); // the only move - a free hit
     } else {
       var cand = AI.candidates(B, 'player').sort(function (a, b) {
         return b.score - a.score;
@@ -1555,7 +1946,7 @@
     br.depth = d;
     if (act === true) {
       /* deeper search decided passing is best: honour that, but keep a
-         move stored by an earlier pass — it stays the fallback plan
+         move stored by an earlier pass - it stays the fallback plan
          for this very position (it was legal there by construction). */
       br.passed = true;
     } else {
@@ -1579,7 +1970,7 @@
       ni = i;
     if (ni >= session.branches.length) {
       nd = d + 1;
-      ni = 0; // everyone has depth d — climb
+      ni = 0; // everyone has depth d - climb
       if (nd > PONDER_MAX_DEPTH) return;
     }
     ponderTimer = setTimeout(function () {
@@ -1589,7 +1980,7 @@
 
   /* Pull a pondered move if the arriving position matches a searched
      one. Any irregularity and the caller falls back to the live
-     depth-4 search — pondering can only ever upgrade a decision. */
+     depth-4 search - pondering can only ever upgrade a decision. */
   function ponderAction() {
     if (!ponder) return null;
     var key = stateKey(B);
@@ -1602,7 +1993,7 @@
       }
     }
     if (!br) return null;
-    /* the search itself ruled passing best on this exact position —
+    /* the search itself ruled passing best on this exact position -
        no need to burn the live search just to agree */
     if (!br.move) {
       if (br.passed) {
@@ -1658,6 +2049,41 @@
     };
   }
 
+  /* A live opponent thinks at human speed, so the board says so
+     explicitly rather than just sitting still with input disabled. */
+  function setNetWait(on) {
+    document.body.dataset.netwait = on ? '1' : '0';
+    var tl = $('turn-label');
+    if (tl && on) tl.textContent = 'Opponent is thinking...';
+  }
+
+  /* THE BATTLEFIELD PILL GROWS TO FIT ITS TEXT.
+     -------------------------------------------------------------
+     The expanded height was measured against a 320px box, but the
+     body sits inside 15px of padding on each side, so it really
+     wraps at 290px. Measuring 30px too wide under-counts the lines
+     and the last rule of a wordy field (the Blood Battlefield, the
+     Ancient Ruins) was clipped off the bottom.
+
+     Measure at the REAL content width, and read the panel's own
+     offsetTop instead of assuming the 34px header, so a future
+     header change cannot silently reintroduce the clipping. */
+  function sizeFieldChip() {
+    var chip = $('bf-chip');
+    var pop = $('bf-chip-pop');
+    if (!chip || !pop || chip.hidden) return;
+    var cs = getComputedStyle(pop);
+    var padL = parseFloat(cs.paddingLeft) || 0;
+    var padR = parseFloat(cs.paddingRight) || 0;
+    var inner = 320 - 15 - 15 - padL - padR; // panel width minus its insets
+    var prev = pop.style.width;
+    pop.style.width = inner + 'px';
+    var h = pop.scrollHeight;
+    pop.style.width = prev;
+    var top = pop.offsetTop || 34;
+    chip.style.setProperty('--bfh', Math.ceil(top + h + 8) + 'px');
+  }
+
   /* ---------------------------------------------------------
      turn flow
      --------------------------------------------------------- */
@@ -1671,15 +2097,56 @@
      --------------------------------------------------------- */
 
   /* Called after the player resolves a single action. */
+  /* ADVANCE, AND SAY WHAT HAPPENED.
+     -------------------------------------------------------------
+     `advanceAction` silently auto-passes any side with nothing legal
+     left - most often because it cannot afford anything. That was
+     invisible: the turn would jump back to you with no banner, or
+     the enemy would appear to take two turns in a row, and the whole
+     exchange read as broken rather than as a rule.
+
+     This wraps the call so a forced pass is ANNOUNCED. It returns the
+     side to act, exactly as advanceAction does. */
+  function advanceAndReport() {
+    var wasOut = { player: B.passed.player, enemy: B.passed.enemy };
+    var nxt = E.advanceAction(B);
+    ['player', 'enemy'].forEach(function (sd) {
+      if (B.passed[sd] && !wasOut[sd]) {
+        /* Newly locked out for the round. Name the reason, because
+           "no Energy" and "nothing left to do" feel very different to
+           a player deciding whether they misplayed. */
+        var broke = E.energyCap
+          ? B.units.some(function (u) {
+              return u.side === sd && u.alive && !B.acted[sd][u.uid];
+            })
+          : false;
+        cine(
+          sd === 'player' ? 'NO ACTIONS LEFT' : 'ENEMY HAS NO ACTIONS',
+          broke ? 'Not enough Energy' : 'Every hero has acted',
+          sd,
+          1100,
+          true
+        );
+      }
+    });
+    return nxt;
+  }
+
   function afterPlayerAction() {
     if (B.over) return endBattle();
-    var nxt = E.advanceAction(B);
+    var nxt = advanceAndReport();
     if (!nxt) {
       startNextRound();
       return;
     }
     if (nxt === 'enemy') {
       render();
+      /* Announce the handover NOW, not when the opponent finally
+         moves. Against a person that wait can be many seconds, and
+         the board previously sat silent the whole time looking
+         frozen. */
+      announceTurn('enemy');
+      startClock('enemy');
       runEnemyAction();
       return;
     }
@@ -1693,9 +2160,11 @@
      The round only ends when both sides pass back-to-back. */
   function endTurn() {
     if (busy || B.over) return;
+    stopClock();
     cancelAuto();
     clearSel();
     E.passTurn(B, 'player');
+    if (netCtl) netCtl.onLocal(null); // a pass is a move too - it must be sent
     cine('YOU PASS', '', 'player', 1000, true);
     afterPlayerAction();
   }
@@ -1703,51 +2172,97 @@
   /* Roll the round over and hand control to whoever opens it. */
   function startNextRound() {
     E.nextRound(B);
+    render();
+    /* The rollover itself can deal damage and kill heroes (Burn ticks,
+       delayed strikes, battlefield relics). Let those animations play
+       before the round banner or the result screen lands on top. */
+    var rollHold = flashRecent();
+    if (rollHold) {
+      busy = true;
+      document.body.dataset.busy = '1';
+      setTimeout(function () {
+        busy = false;
+        document.body.dataset.busy = '0';
+        render();
+        continueRound();
+      }, rollHold);
+      return;
+    }
+    continueRound();
+  }
+
+  function continueRound() {
     if (B.over) {
       render();
       return endBattle();
     }
-    render();
     announceRound();
-    var nxt = E.advanceAction(B);
+    var nxt = advanceAndReport();
     if (!nxt) {
       startNextRound();
       return;
     }
     if (nxt === 'enemy') {
+      announceTurn('enemy'); // banner up front, not when they finally move
       runEnemyAction();
       return;
     }
     maybeAutoEndTurn();
   }
 
-  /* The bot takes exactly ONE action, then control returns. */
+  /* The opponent takes exactly ONE action, then control returns.
+     Against the bot that decision is computed locally; in a match it is
+     awaited from the other player's client. */
   async function runEnemyAction() {
     busy = true;
     document.body.dataset.busy = '1';
-    /* Settle the decision while the position still exactly matches what
-       pondering saw. A pondered move is depth 4-8; the live fallback is
-       the usual depth 4. A pondered PASS is trusted outright. */
-    ponderStats.decisions++;
-    var decision = ponderAction(); // act | { pass: true } | null
-    ponderCancel();
     var act = null;
-    if (decision && decision.pass) {
-      act = null; // pondering's verdict: pass
-    } else if (decision) {
-      act = decision; // pondered move (depth 4-8)
+    if (netCtl) {
+      /* A live opponent. Never think for them and never guess - block
+         until their move actually lands. The board shows a waiting
+         state so the wait reads as "their turn", not as a freeze. */
+      ponderCancel();
+      setNetWait(true);
+      try {
+        act = await netCtl.decide(B);
+      } catch (e) {
+        setNetWait(false);
+        busy = false;
+        document.body.dataset.busy = '0';
+        return; // the adaptor has already handled the disconnect
+      }
+      setNetWait(false);
+      stopClock(); // their move arrived - their clock is done
+      if (!B || B.over) {
+        busy = false;
+        document.body.dataset.busy = '0';
+        if (B && B.over) endBattle();
+        return;
+      }
     } else {
-      act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+      /* Settle the decision while the position still exactly matches what
+         pondering saw. A pondered move is depth 4-8; the live fallback is
+         the usual depth 4. A pondered PASS is trusted outright. */
+      ponderStats.decisions++;
+      var decision = ponderAction(); // act | { pass: true } | null
+      ponderCancel();
+      if (decision && decision.pass) {
+        act = null; // pondering's verdict: pass
+      } else if (decision) {
+        act = decision; // pondered move (depth 4-8)
+      } else {
+        act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+      }
     }
     render();
-    // hold until the announcements have played out — the player's
+    // hold until the announcements have played out - the player's
     // thinking time (pondering itself already ran during THEIR window)
     await cineGate();
 
     if (!act) {
       E.passTurn(B, 'enemy');
       cine('ENEMY PASSES', '', 'enemy', 1100, true);
-      await sleep(700);
+      await sleep(cineMs(700));
     } else {
       announceTurn('enemy');
       // brief highlight so the player can follow what the bot is doing
@@ -1759,7 +2274,7 @@
       });
       // hold a beat so the acting/target highlights can be read before
       // the cast takes over
-      await sleep(800);
+      await sleep(cineMs(800));
 
       var mark = B.log.length;
       E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
@@ -1771,20 +2286,30 @@
       if (coin) await sleep(playCoinFlip(coin.meta.coin));
 
       await sleep(flashRecent() || 0);
-      await sleep(850);
+      await sleep(cineMs(350));
+    }
+
+    /* The remote move is applied. This is the one instant both boards
+       are meant to be identical, so it is the only honest moment to
+       compare them. A mismatch stops the match rather than letting two
+       different games play on. */
+    if (netCtl && netCtl.verify && !netCtl.verify(B)) {
+      busy = false;
+      document.body.dataset.busy = '0';
+      return;
     }
 
     busy = false;
     document.body.dataset.busy = '0';
     if (B.over) return endBattle();
 
-    var nxt = E.advanceAction(B);
+    var nxt = advanceAndReport();
     if (!nxt) {
       startNextRound();
       return;
     }
     if (nxt === 'enemy') {
-      runEnemyAction();
+      runEnemyAction(); // already their streak - announceTurn dedupes
       return;
     } // player passed
     render();
@@ -1797,27 +2322,38 @@
      Replaces the old bottom toast ticker. Two tiers share one
      fixed, pointer-transparent overlay:
 
-       tier 1  ROUND N (+ phase / ramp notes) — full cinematic with
+       tier 1  ROUND N (+ phase / ramp notes) - full cinematic with
                dim and a slow cycle
-       tier 2  YOUR TURN / ENEMY TURN / passes — slim banner, no
+       tier 2  YOUR TURN / ENEMY TURN / passes - slim banner, no
                dim, quick cycle; deduped per unbroken streak so a
                side taking several actions in a row doesn't re-announce
 
      Announcements push into a small queue so a round reveal and its
      opening turn banner play one after another instead of stomping
-     each other. Not used for skills — those read from the cast fx.
+     each other. Not used for skills - those read from the cast fx.
      --------------------------------------------------------- */
   var cineQ = [];
   var cineLive = false;
   var cineTimer = null;
   var turnBannerSide = null;
 
+  /* Low-graphics mode shortens every cinematic to ~55%. These holds are
+     JS timers rather than CSS, so the stylesheet cannot reach them -
+     without this the banners would still eat the same wall-clock time
+     on a machine the player has explicitly asked to go light. */
+  function gfxLow() {
+    return document.body.dataset.gfx === 'low';
+  }
+  function cineMs(ms) {
+    return gfxLow() ? Math.round(ms * 0.55) : ms;
+  }
+
   function cine(title, sub, tone, ms, slim) {
     cineQ.push({
       title: title,
       sub: sub || '',
       tone: tone || 'round',
-      ms: ms || 1350,
+      ms: cineMs(ms || 1350),
       slim: !!slim,
     });
     if (cineQ.length > 4) cineQ.shift(); // announcements never pile up
@@ -1858,17 +2394,17 @@
     turnBannerSide = null; // a fresh round re-announces its opener
     var sub =
       B.round === 1
-        ? 'Phase 1 — basics only'
+        ? 'Phase 1 - Basic Skills only'
         : B.round === 2
-          ? 'Phase 2 — skills unlocked'
+          ? 'Phase 2 - Signature Skills unlocked'
           : B.round === E.RAMP_FROM
-            ? 'ATK ramp begins — +' + Math.round(E.RAMP_STEP * 100) + '% each round'
+            ? 'ATK ramp begins - +' + Math.round(E.RAMP_STEP * 100) + '% each round'
             : '';
     cine('ROUND ' + B.round, sub, 'round', 2100);
   }
 
   function announceTurn(side) {
-    if (turnBannerSide === side) return; // same streak — stay quiet
+    if (turnBannerSide === side) return; // same streak - stay quiet
     turnBannerSide = side;
     var sub =
       side === 'enemy' && B.passed.player
@@ -1886,8 +2422,8 @@
   async function cineGate() {
     var guard = 0;
     while ((cineLive || cineQ.length) && guard++ < 80) await sleep(60);
-    if (guard >= 80) return sleep(700); // wedged queue — floor beat
-    return sleep(1100); // quiet beat after the last fade
+    if (guard >= 80) return sleep(cineMs(700)); // wedged queue - floor beat
+    return sleep(cineMs(1100)); // quiet beat after the last fade
   }
 
   /* ---------------------------------------------------------
@@ -1986,7 +2522,7 @@
   }
 
   /* --------------------------------------------------------
-     Cast tell — fires at the caster as an ability begins.
+     Cast tell - fires at the caster as an ability begins.
      A rotating rune ring plus an element sigil, so you can see
      *what* is being cast before the projectile even lands.
      -------------------------------------------------------- */
@@ -2169,11 +2705,44 @@
   function playAoe(srcUid, targetUids, element) {
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Magic;
     var el = element || 'Magic';
+    /* MORE DETAIL, NOT MORE SIZE.
+       The cast used to be two plain rings and a glow. It now layers a
+       thin leading edge, a slower trailing ring, a rotating rune band,
+       and a ring of embers thrown outward along real angles - so the
+       blast reads as a structured detonation rather than an expanding
+       circle. All of it is inside the SAME radius as before; nothing
+       got bigger, it just has more going on inside it. */
     var a = centreOf(srcUid);
     if (a) {
+      spawn('fx-charge big', a.x, a.y, fx.color, 420);
       spawn('fx-wave', a.x, a.y, fx.color, 900);
       spawn('fx-wave d2', a.x, a.y, fx.trail, 900);
-      spawn('fx-charge big', a.x, a.y, fx.color, 420);
+      /* a crisp leading edge just ahead of the main wave */
+      var edge = spawn('fx-wave-edge', a.x, a.y, fx.color, 720);
+      if (edge) edge.style.animationDelay = '40ms';
+      /* a slow counter-rotating band of glyph ticks */
+      var band = spawn('fx-wave-band', a.x, a.y, fx.trail, 980);
+      if (band) {
+        var ticks = '';
+        for (var g = 0; g < 12; g++) {
+          ticks += '<i style="--a:' + g * 30 + 'deg"></i>';
+        }
+        band.innerHTML = ticks;
+      }
+      /* embers flung out along evenly spaced angles, each with its own
+         jitter so the ring never looks mechanical */
+      if (!gfxLow()) {
+        for (var s = 0; s < 10; s++) {
+          var ang = (s / 10) * Math.PI * 2 + (Math.random() * 0.5 - 0.25);
+          var dist = 46 + Math.random() * 42;
+          var sp = spawn('fx-shard', a.x, a.y, s % 3 === 0 ? fx.trail : fx.color, 760);
+          if (!sp) continue;
+          sp.style.setProperty('--sx', Math.cos(ang) * dist + 'px');
+          sp.style.setProperty('--sy', Math.sin(ang) * dist + 'px');
+          sp.style.setProperty('--rot', Math.floor(Math.random() * 360) + 'deg');
+          sp.style.animationDelay = s * 18 + 'ms';
+        }
+      }
     }
     var bd = $('board');
     bd.classList.add('flash-' + el.toLowerCase());
@@ -2196,7 +2765,7 @@
     });
   }
 
-  /* The strike that lands on each AoE victim — every element has its
+  /* The strike that lands on each AoE victim - every element has its
      own signature: storms fork jagged lightning down the board, fire
      calls a meteor volley, nature blooms leaves, light wheels god-rays
      behind its beam, magic stamps a rune, shadow tears rifts and
@@ -2204,7 +2773,7 @@
   function playAoeStrike(t, fx, element) {
     switch (element) {
       case 'Lightning': {
-        // twin forks crashing down — the flicker is what sells it
+        // twin forks crashing down - the flicker is what sells it
         var z = spawn('fx-zigzag', t.x, 0, fx.color, 500);
         z.style.top = '0px';
         z.style.setProperty('--h', t.y + 44 + 'px');
@@ -2303,6 +2872,21 @@
      `deadView` in unitCardHTML is on for the first two phases, so his HP,
      ATK/DEF and status chips stay dead until the light actually restores
      him rather than snapping live the instant the engine revives. */
+  /* How long a floating combat number stays on screen after it is
+     scheduled, and how long a card takes to fall when it dies. Both are
+     read by flashRecent() so the caller can WAIT for the board to settle
+     before it announces a round or the result. */
+  var POP_MS = 1100;
+  var DEATH_MS = 900;
+  /* Combat feedback is "necessary" motion and is never removed, but in
+     low-graphics mode it is tightened so the game plays faster without
+     losing the information. */
+  function popMs() {
+    return gfxLow() ? 700 : POP_MS;
+  }
+  function deathMs() {
+    return gfxLow() ? 560 : DEATH_MS;
+  }
   var REVIVE_FALL_MS = 340;
   var REVIVE_DOWN_MS = 500;
   var REVIVE_RESTORE_MS = 700;
@@ -2412,7 +2996,7 @@
       }
 
       // 5. the card pulses gold as it comes back. render() has rebuilt the
-      //    DOM by now, so c.el is stale — re-query it.
+      //    DOM by now, so c.el is stale - re-query it.
       var live = document.querySelector('.bcard[data-uid="' + uid + '"]');
       if (live) {
         live.classList.add('reborn');
@@ -2437,7 +3021,7 @@
   }
 
   /* --------------------------------------------------------
-     Coin flip — a spinning coin that lands on a face
+     Coin flip - a spinning coin that lands on a face
      -------------------------------------------------------- */
   function playCoinFlip(face, label) {
     var layer = fxLayer();
@@ -2660,6 +3244,8 @@
       hits.forEach(function (h, i) {
         h.__aoe = true;
         popNumber(h, 260 + i * 70);
+        // the number floats for ~1.1s after it is scheduled
+        hold = Math.max(hold, 260 + i * 70 + popMs());
       });
     });
 
@@ -2687,6 +3273,7 @@
         if (already) {
           // the shield already played this blow's projectile
           popNumber(l, already.offset + 400);
+          hold = Math.max(hold, already.offset + 400 + popMs());
           absorbed[l.meta.uid] = null;
           return;
         }
@@ -2697,6 +3284,7 @@
           playStrike(l.meta.src, l.meta.uid, l.meta.element, l.meta.crit);
         }, offset);
         popNumber(l, offset + 320);
+        hold = Math.max(hold, offset + 320 + popMs());
         return;
       }
       if (l.type === 'revive') {
@@ -2715,11 +3303,13 @@
         // damage-over-time tick: flames lick up the card, then the number
         playBurnTick(l.meta.uid);
         popNumber(l, 160);
+        hold = Math.max(hold, 160 + popMs());
         return;
       }
       if (l.type === 'heal') {
         playAura(l.meta.uid, 'heal');
         popNumber(l, 0);
+        hold = Math.max(hold, popMs());
         return;
       }
       if (l.type === 'energy' && l.meta.uid) {
@@ -2731,7 +3321,7 @@
         return;
       }
       if (l.type === 'absorb') {
-        // shield soaked the blow — show it in shield colour
+        // shield soaked the blow - show it in shield colour
         var aseat = seq[l.meta.uid] || 0;
         seq[l.meta.uid] = aseat + 1;
         var aoff = aseat * 720;
@@ -2742,12 +3332,14 @@
           }, aoff);
         }
         popNumber(l, aoff + 320);
+        hold = Math.max(hold, aoff + 320 + popMs());
         return;
       }
       if (l.type === 'shield' && l.meta.amount != null) {
         playShieldForm(l.meta.uid);
         playStatus(l.meta.uid, 'shield', true, l.meta.signature);
         popNumber(l, 0);
+        hold = Math.max(hold, popMs());
         return;
       }
       if (l.type === 'buff' || l.type === 'debuff' || l.type === 'shield' || l.type === 'mark') {
@@ -2769,8 +3361,20 @@
         else playStatus(l.meta.uid, key, positive, l.meta.signature);
         return;
       }
-      if (l.type === 'damage' && !l.meta.src && !l.__aoe) popNumber(l, 0);
+      if (l.type === 'damage' && !l.meta.src && !l.__aoe) {
+        popNumber(l, 0);
+        hold = Math.max(hold, popMs());
+      }
     });
+    /* A DEATH has to finish falling before anything reads the result.
+       This is what made Victory/Defeat pop the instant you landed the
+       killing blow: flashRecent only ever reported a hold for revives,
+       so every other animation was still mid-flight when endBattle()
+       ran. */
+    var deaths = fresh.filter(function (l) {
+      return l.type === 'death';
+    });
+    if (deaths.length) hold = Math.max(hold, hold + deathMs());
     return hold;
   }
 
@@ -2834,10 +3438,40 @@
 
   function endBattle() {
     hideTip();
+    stopClock();
+    disarmForfeit();
+    /* Tell the server the match is over, so an abandoned-looking row
+       is not left `active` and neither player gets rejoined into a
+       finished game. */
+    if (netCtl && netCtl.finish) netCtl.finish();
+    var fb = $('btn-forfeit');
+    if (fb) fb.hidden = true;
     cancelAuto();
     ponderCancel();
-    cineReset();
     clearSel();
+    /* Let the final blow finish reading before the verdict lands. The
+       board is already settled by the time we get here (flashRecent's
+       hold is awaited by every caller), but a short beat keeps the kill
+       and the result from sharing a frame. */
+    busy = true;
+    document.body.dataset.busy = '1';
+    setTimeout(function () {
+      cineReset();
+      showResult();
+      /* RELEASE THE BUSY CURSOR.
+         `busy` blocks input while the board animates, and body[data-busy]
+         paints the wait cursor. endBattle used to set it and never clear
+         it, so after the last game of a session the pointer stayed stuck
+         on the hourglass over the result screen and every menu behind it.
+         The battle is over; there is nothing left to wait for. */
+      busy = false;
+      document.body.dataset.busy = '0';
+      setNetWait(false);
+    }, cineMs(RESULT_DELAY_MS));
+  }
+  var RESULT_DELAY_MS = 620;
+
+  function showResult() {
     var win = B.winner === 'player';
     var ov = $('result');
     ov.className = 'result show ' + (win ? 'win' : 'lose');
@@ -2855,37 +3489,147 @@
     document.querySelectorAll('.tip-wrap').forEach(function (t) {
       t.remove();
     });
+    hideStatusPop();
+  }
+
+  /* ---------------------------------------------------------
+     FLOATING STATUS PANEL
+     -------------------------------------------------------------
+     A status chip's rules panel cannot live inside the card: three
+     ancestors clip it (.bcard-inner overflow:hidden for the art mask,
+     .board overflow:clip, .view overflow:hidden). Re-parenting the
+     panel to <body> and positioning it manually is the only way it can
+     escape all three, so both the battle chips and the hover card's
+     status icons delegate to this one layer.
+     --------------------------------------------------------- */
+  var stpEl = null;
+
+  function statusPopLayer() {
+    if (!stpEl) {
+      stpEl = document.createElement('div');
+      stpEl.className = 'st-float';
+      stpEl.setAttribute('role', 'tooltip');
+      document.body.appendChild(stpEl);
+    }
+    return stpEl;
+  }
+
+  function hideStatusPop() {
+    if (stpEl) stpEl.classList.remove('show');
+  }
+
+  /* Anchor above the chip, flipping below when there is no room, and
+     clamped horizontally so it never leaves the viewport. */
+  function showStatusPop(anchor, html, colour) {
+    var el = statusPopLayer();
+    el.innerHTML = html;
+    el.style.setProperty('--sc', colour || '#fff');
+    el.classList.add('show');
+
+    var a = anchor.getBoundingClientRect();
+    var w = el.offsetWidth;
+    var h = el.offsetHeight;
+    var pad = 8;
+    var gap = 9;
+
+    var left = a.left + a.width / 2 - w / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+
+    var top = a.top - h - gap;
+    var below = false;
+    if (top < pad) {
+      top = a.bottom + gap;
+      below = true;
+    }
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+
+    el.classList.toggle('below', below);
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  }
+
+  /* One delegated pair of listeners covers every chip that exists now or
+     is rendered later, which matters because the board re-renders on
+     every action. `.st-pop` / `.dk-spop` stay in the markup as the data
+     source and are hidden by CSS. */
+  function initStatusPops() {
+    function panelFor(node) {
+      var chip = node.closest && node.closest('.st-chip, .dk-sicon');
+      if (!chip) return null;
+      var src = chip.querySelector('.st-pop, .dk-spop');
+      if (!src) return null;
+      return { chip: chip, html: src.innerHTML, colour: chip.style.getPropertyValue('--sc') };
+    }
+    function onOver(e) {
+      var p = panelFor(e.target);
+      if (!p) return;
+      showStatusPop(p.chip, p.html, p.colour);
+    }
+    function onOut(e) {
+      if (!e.target.closest || !e.target.closest('.st-chip, .dk-sicon')) return;
+      var to = e.relatedTarget;
+      if (to && to.closest && to.closest('.st-chip, .dk-sicon')) return;
+      hideStatusPop();
+    }
+    document.addEventListener('mouseover', onOver, true);
+    document.addEventListener('mouseout', onOut, true);
+    document.addEventListener('focusin', onOver, true);
+    document.addEventListener('focusout', onOut, true);
+    window.addEventListener('scroll', hideStatusPop, true);
+    window.addEventListener('resize', hideStatusPop);
   }
 
   /* ---------------------------------------------------------
      boot
      -------------------------------------------------------------
      start({ deck: [cardId x6] }) fields that deck on the player side;
-     start() with no args fields random teams — or reuses the last deck,
+     start() with no args fields random teams - or reuses the last deck,
      so Rematch keeps your squad and shuffles a fresh enemy. */
   /* boot
      -------------------------------------------------------------
      start({ teams: { player: [entry x6], enemy: [entry x6] } }) fields
-     exactly those sixes from the preparation phase — the player array's
+     exactly those sixes from the preparation phase - the player array's
      order IS their formation; the enemy gets role-aware auto-formation.
      Bare start() keeps the legacy random-team path (tests, fallbacks). */
   function start(opts) {
     E = window.EOL.engine;
     AI = window.EOL.ai;
     opts = opts || {};
+    /* A multiplayer battle hands us an adaptor for the other player and
+       a shared rng seed. Both clients run the identical engine over the
+       identical action stream, so they only have to agree on luck. */
+    netCtl = opts.net || null;
+    setNetWait(false);
+    stopClock();
+    disarmForfeit();
+    /* Forfeit and the turn clock are multiplayer-only. Against the bot
+       there is nobody to stall and nobody to concede to - you can just
+       leave. */
+    var fbtn = $('btn-forfeit');
+    if (fbtn) fbtn.hidden = !netCtl;
     if (opts.teams && opts.teams.player && opts.teams.enemy) {
       playerDeck = null; // mode flows own their rematch config
-      B = E.createBattle(opts.teams.player, E.optimizeFormation(opts.teams.enemy), {
-        roleAware: false,
-      });
+      B = E.createBattle(
+        opts.teams.player,
+        opts.enemyFormed ? opts.teams.enemy : E.optimizeFormation(opts.teams.enemy),
+        {
+          roleAware: false,
+          field: opts.field || null,
+          rng: opts.rng || null,
+          oddFirst: opts.oddFirst || null,
+        }
+      );
     } else {
       if (opts.deck) playerDeck = opts.deck.slice();
       var teams = buildTeams(playerDeck);
-      /* Decked formation is explicit — the player's array order is their
+      /* Decked formation is explicit - the player's array order is their
          placement; only the enemy gets the role-aware auto-formation. */
       B = teams.explicit
-        ? E.createBattle(teams.player, E.optimizeFormation(teams.enemy), { roleAware: false })
-        : E.createBattle(teams.player, teams.enemy, { roleAware: true });
+        ? E.createBattle(teams.player, E.optimizeFormation(teams.enemy), {
+            roleAware: false,
+            field: opts.field || null,
+          })
+        : E.createBattle(teams.player, teams.enemy, { roleAware: true, field: opts.field || null });
     }
     sel = null;
     busy = false;
@@ -2902,16 +3646,94 @@
     turnBannerSide = null;
     $('result').className = 'result';
 
+    /* Theme the whole arena to the active battlefield. The board carries
+       data-field for the per-field particle character and accent colour,
+       and css/style.css draws that board's pattern, palette and motion
+       from the data-field selector. */
+    var boardEl = $('board');
+    if (boardEl) {
+      if (B.field) {
+        boardEl.dataset.field = B.field.id;
+        boardEl.style.setProperty('--bf-1', B.field.colors.primary);
+        boardEl.style.setProperty('--bf-2', B.field.colors.secondary);
+        boardEl.style.setProperty('--bf-3', B.field.colors.glow);
+      } else {
+        delete boardEl.dataset.field;
+      }
+    }
+
+    /* Battlefield chip - pinned to the board's top-left corner. It names
+       the terrain at a glance; hovering or focusing it opens a panel with
+       the tagline, every rule in force, and the drafting implication. */
+    var bfb = $('bf-chip');
+    if (bfb) {
+      var fld = B.field;
+      bfb.hidden = !fld;
+      if (fld) {
+        var ico = $('bf-chip-ico');
+        if (ico) ico.className = 'ra ' + fld.icon;
+        var nm = $('bf-chip-name');
+        if (nm) nm.textContent = fld.name;
+        var pico = $('bfp-ico');
+        if (pico) pico.className = 'ra ' + fld.icon;
+        var pnm = $('bfp-name');
+        if (pnm) pnm.textContent = fld.name;
+        var pd = $('bfp-desc');
+        if (pd) pd.textContent = fld.tagline || '';
+        var ul = $('bfp-rules');
+        if (ul) {
+          ul.innerHTML = '';
+          (fld.rules || []).forEach(function (r) {
+            var li = document.createElement('li');
+            li.textContent = r;
+            ul.appendChild(li);
+          });
+          /* The Colosseum's only "rule" is that it has none - say so
+             plainly rather than showing an empty list. */
+          if (!(fld.rules || []).length) {
+            var li0 = document.createElement('li');
+            li0.className = 'bfp-none';
+            li0.textContent = 'No special conditions - pure drafting and play.';
+            ul.appendChild(li0);
+          }
+          if (fld.draft) {
+            var li2 = document.createElement('li');
+            li2.className = 'bfp-draft';
+            li2.textContent = fld.draft;
+            ul.appendChild(li2);
+          }
+        }
+        bfb.style.setProperty('--bf-1', fld.colors.primary);
+        bfb.style.setProperty('--bf-3', fld.colors.glow);
+        /* The chip grows into its own panel, so it needs to know how
+           tall the expanded box should be. Measure the body once now
+           (it is laid out but clipped) and hand the height to CSS. */
+        sizeFieldChip();
+      }
+    }
+
     // profile icons come from each team's first hero's faction
     $('pf-player').innerHTML = '<i class="ra ra-player"></i>';
     $('pf-enemy').innerHTML = '<i class="ra ra-skull"></i>';
 
     render();
 
-    // round 1 always opens on the player (odd rounds are P1's)
+    /* Round 1 opens on whoever the engine says it does. Singleplayer is
+       always the player; in a match the guest opens the even rounds, so
+       they may well be watching first. */
     announceRound();
+    if (B.turn === 'enemy') {
+      announceTurn('enemy');
+      startClock('enemy');
+      runEnemyAction();
+      return;
+    }
     announceTurn('player');
     ponderKick();
+    /* The opening turn needs a clock too. This path used to inline
+       announce+ponder and skip maybeAutoEndTurn, so round 1 was the
+       one turn a stalling opponent could sit on forever. */
+    startClock('player');
   }
 
   window.EOL.battle = {
@@ -2930,6 +3752,7 @@
       };
     },
     clearSel: clearSel,
+    fitAbilityNames: fitAbilityNames,
     hideTip: hideTip,
     playStrike: playStrike,
     playAura: playAura,
@@ -2953,12 +3776,16 @@
   window.addEventListener('resize', function () {
     if (B) {
       sizeBoard();
+      sizeFieldChip(); // wrap count changes with the box, so re-measure
     }
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    initStatusPops();
     var et = $('btn-endturn');
     if (et) et.addEventListener('click', endTurn);
+    var ff = $('btn-forfeit');
+    if (ff) ff.addEventListener('click', onForfeit);
     var rm = $('btn-rematch');
     if (rm)
       rm.addEventListener('click', function () {
@@ -2968,9 +3795,14 @@
     // clicking empty space cancels a pending selection
     var board = $('board');
     if (board)
-      board.addEventListener('click', function () {
+      board.addEventListener('click', function (ev) {
+        /* The forfeit button is a child of the board, so this handler
+           fires on its clicks too - and disarmed the button on the
+           very click that armed it, making it impossible to confirm.
+           Clicks that originate on the button are its own business. */
+        if (ev.target.closest && ev.target.closest('#btn-forfeit')) return;
+        if (forfeitArmed) disarmForfeit();
         if (!busy) clearSel();
       });
   });
 })();
-

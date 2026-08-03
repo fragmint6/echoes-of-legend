@@ -1,16 +1,16 @@
 /* =============================================================
-   Echoes of Legend — Full-Roster Behaviour Audit
+   Echoes of Legend - Full-Roster Behaviour Audit
    -------------------------------------------------------------
    node sim/verify_all.js
 
    Three layers:
-     A. STATIC   — schema, stat bands, icons, uniqueness, keyword
+     A. STATIC   - schema, stat bands, icons, uniqueness, keyword
                    legality, condition/effect/trigger validity. Runs
                    over every card in the roster automatically.
-     B. DYNAMIC  — per-card behavioural assertions: cast the ability
+     B. DYNAMIC  - per-card behavioural assertions: cast the ability
                    in a controlled board state and check the actual
                    engine outcome against the card's printed text.
-     C. SOAK     — AI-vs-AI games with an event tap, asserting global
+     C. SOAK     - AI-vs-AI games with an event tap, asserting global
                    invariants (no negative HP, no double actions, no
                    effects from dead units, durations respected).
    ============================================================= */
@@ -23,7 +23,7 @@ global.performance = { now: () => Date.now() };
 const FILES = [
   'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
   'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
-  'data/roma.js', 'data/takamagahara.js', 'js/engine.js', 'js/ai.js',
+  'data/roma.js', 'data/takamagahara.js', 'data/duat.js', 'js/engine.js', 'js/ai.js',
 ];
 FILES.forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 const EOL = window.EOL, E = EOL.engine, AI = EOL.ai;
@@ -45,7 +45,7 @@ function section(t) { console.log('\n\x1b[1m' + t + '\x1b[0m'); }
 const FILL = ['camelot-guinevere', 'sherwood-little-john', 'grimmwood-snow-white',
   'olympus-apollo', 'yamato-momotaro'];
 /* opponents with NO incoming-damage modifiers, so damage models are exact.
-   (Athena has damageMult 0.85, Benkei damageResist — they'd skew every number.) */
+   (Athena has damageMult 0.85, Benkei damageResist - they'd skew every number.) */
 const CLEAN_FOES = ['olympus-hercules', 'camelot-mordred', 'huaxia-mulan',
   'olympus-medusa', 'grimmwood-pied-piper', 'sherwood-will-scarlet'];
 const ent = (id) => ({ card: CARD[id], faction: CARD[id].faction });
@@ -77,7 +77,7 @@ function cast(B, id, targets) {
 }
 
 /* =============================================================
-   A. STATIC AUDIT — every card, automatically
+   A. STATIC AUDIT - every card, automatically
    ============================================================= */
 section('A. STATIC AUDIT (whole roster)');
 
@@ -97,7 +97,7 @@ const ELEMENTS = ['Physical', 'Magic', 'Shadow', 'Light', 'Lightning', 'Fire', '
 const ENG = fs.readFileSync(path.join(ROOT, 'js/engine.js'), 'utf8');
 const KINDS = new Set((ENG.match(/^      case '(\w+)':/gm) || [])
   .map((m) => m.match(/'(\w+)'/)[1]));
-/* Declarative damage modifiers never pass through applyEffect's switch —
+/* Declarative damage modifiers never pass through applyEffect's switch -
    outgoingMult/incomingMult read them straight off the passive. They are
    implemented, just not as dispatched effect kinds. */
 ['outgoingMult', 'damageMult', 'damageResist'].forEach((k) => KINDS.add(k));
@@ -105,8 +105,15 @@ const CONDS = new Set((ENG.match(/cond\.(\w+)/g) || []).map((m) => m.slice(5)));
 const TRIGS = new Set((ENG.match(/hasTrig\([a-z]+, '(\w+)'\)/g) || [])
   .map((m) => m.match(/'(\w+)'/)[1]).concat(['static']));
 
-const ICONS = fs.existsSync('/tmp/icons.txt')
-  ? new Set(fs.readFileSync('/tmp/icons.txt', 'utf8').trim().split('\n')) : null;
+/* The RPG Awesome class list is vendored so icon validation always runs.
+   (It previously read /tmp, which meant the 59 icon-existence assertions
+   silently skipped whenever /tmp was cleared - a quiet loss of coverage.) */
+var ICON_FILE = path.join(__dirname, 'fixtures', 'rpg-awesome-icons.txt');
+if (!fs.existsSync(ICON_FILE) && fs.existsSync('/tmp/icons.txt')) ICON_FILE = '/tmp/icons.txt';
+const ICONS = fs.existsSync(ICON_FILE)
+  ? new Set(fs.readFileSync(ICON_FILE, 'utf8').trim().split('\n'))
+  : null;
+if (!ICONS) console.log('  WARNING: icon list missing - icon assertions skipped');
 
 /* walk every effect in a card, including nested arms */
 function walkEffects(card, cb) {
@@ -168,7 +175,7 @@ ALL.forEach((c) => {
       e.when && typeof e.when === 'object' ? Object.keys(e.when) : []
     );
     conds.forEach((k) => ok(CONDS.has(k), `${L}: condition "${k}" implemented (${where})`));
-    if (e.take) ok(typeof e.take.n === 'number' && ['highestAtk', 'lowestHp'].indexOf(e.take.by) >= 0,
+    if (e.take) ok(typeof e.take.n === 'number' && ['highestAtk', 'lowestHp', 'highestHp'].indexOf(e.take.by) >= 0,
       `${L}: take {n,by} valid (${where})`);
     if (e.stackTag) ok(typeof e.maxStacks === 'number', `${L}: stackTag "${e.stackTag}" has maxStacks`);
   });
@@ -179,6 +186,56 @@ EOL.factions.forEach((f) => {
 });
 Object.keys(iconUse).forEach((i) =>
   ok(iconUse[i].length === 1, `icon ${i} used once (${iconUse[i].join(' | ')})`));
+
+/* ---- ROLE INTEGRITY (docs/CharacterGuidelines.md) ----
+   The stat band is only half the definition; these check the JOB. */
+{
+  const dmgOf = (c) => {
+    let total = 0, aoe = false;
+    const walk = (l) => (l || []).forEach((e) => {
+      if (!e || !e.k) return;
+      if (e.k === 'dmg') total += e.power || 0;
+      walk(e.then); walk(e.other); walk(e.effects); walk(e.options);
+      if (e.heads) walk(e.heads.effects);
+      if (e.tails) walk(e.tails.effects);
+    });
+    if (c.ability.spec) {
+      walk(c.ability.spec.effects);
+      const t = c.ability.spec.target || {};
+      aoe = t.pick === 'all' || t.pick === 'two';
+    }
+    return { total, aoe };
+  };
+  ALL.forEach((c) => {
+    const L = `${c.name} (${c.role})`;
+    const d = dmgOf(c);
+    /* Rule 1: Controllers and Medics are never damage dealers. Their signature
+       multiplier must stay below the Sniper floor (1.45x). */
+    if (c.role === 'Medic') {
+      ok(d.total === 0, `${L}: Medic deals no direct signature damage (${d.total})`);
+    }
+    if (c.role === 'Controller') {
+      ok(d.total <= 1.2, `${L}: Controller signature power stays support-tier (${d.total} <= 1.2)`);
+    }
+    /* Rule: a Controller may scale off debuffs, but the scaling must be capped */
+    const scal = [];
+    (function w(l) {
+      (l || []).forEach((e) => {
+        if (!e || !e.k) return;
+        if (e.perDebuff || e.perBuff) scal.push(e);
+        w(e.then); w(e.other); w(e.effects);
+      });
+    })(c.ability.spec && c.ability.spec.effects);
+    scal.forEach((e) => {
+      if (e.perDebuff) ok(e.perDebuffMax != null, `${L}: perDebuff scaling is capped`);
+      if (e.perBuff) ok(e.perBuffMax != null, `${L}: perBuff scaling is capped`);
+    });
+    /* Rule 4: Tanks trade damage for presence */
+    if (c.role === 'Tank') {
+      ok(d.total <= 0.9, `${L}: Tank signature is not a damage spell (${d.total})`);
+    }
+  });
+}
 
 /* ability-spec uniqueness across the roster */
 const sigOf = (c) => JSON.stringify([c.ability.name, c.ability.cost,
@@ -193,9 +250,9 @@ ROLES.forEach((r) => ok(byRole[r] >= 3, `role ${r} has >=3 heroes (${byRole[r]})
 console.log('  roster: ' + ALL.length + ' heroes | ' + JSON.stringify(byRole));
 
 /* =============================================================
-   B. DYNAMIC — Takamagahara, card by card
+   B. DYNAMIC - Takamagahara, card by card
    ============================================================= */
-section('B1. Amaterasu — Heaven-Shining Radiance');
+section('B1. Amaterasu - Heaven-Shining Radiance');
 {
   const B = board(['takamagahara-amaterasu', ...FILL]);
   const ama = U(B, 'takamagahara-amaterasu');
@@ -204,7 +261,10 @@ section('B1. Amaterasu — Heaven-Shining Radiance');
   const { delta } = cast(B, 'takamagahara-amaterasu', []);
   ok(foes.every((f) => delta[f.uid] > 0), 'hits ALL enemies (AoE)');
   ok(near(delta[foes[0].uid], exp), `base damage is 50% ATK (${Math.round(delta[foes[0].uid])} vs ${Math.round(exp)})`);
-  ok(foes.every((f) => f.flags.burn > 0), 'applies Burn to all enemies');
+  ok(foes.filter((f) => f.flags.burn > 0).length === 3,
+    `Burn now hits only the 3 lowest-HP enemies (${foes.filter((f) => f.flags.burn > 0).length})`);
+  ok(foes.filter((f) => f.flags.burn > 0).every((f) => f.flags.burn === 1),
+    'Burn duration cut to 1 round');
   ok(!(ama.flags.untargetable > 0), 'grants NO self-Untargetable (exploit removed)');
   ok(!(ama.flags.silence > 0), 'grants NO self-Silence (non-drawback removed)');
 }
@@ -246,26 +306,29 @@ section('B1. Amaterasu — Heaven-Shining Radiance');
     'as LAST SURVIVOR she is still targetable (no untargetable lock)');
 }
 
-section('B2. Tsukuyomi — Moonlit Reproach');
+section('B2. Tsukuyomi - Moonlit Reproach');
 {
   const B = board(['takamagahara-tsukuyomi', ...FILL]);
   const tsu = U(B, 'takamagahara-tsukuyomi');
   const foes = foesOf(B);
   const clean = foes[0], dirty = foes[1];
   dirty.buffs.push({ stat: 'atk', amt: -20, turns: 2, tag: null });   // pre-debuffed
-  const expClean = model(tsu, clean, 0.9);
-  const expDirty = model(tsu, dirty, 1.5);
+  /* NERFED 2026-08-02: 90/60 -> 80/40, cost tax 2 rounds -> 1. */
+  const expClean = model(tsu, clean, 0.8);
+  const expDirty = model(tsu, dirty, 1.2);
   const { delta } = cast(B, 'takamagahara-tsukuyomi', [clean, dirty]);
-  ok(near(delta[clean.uid], expClean), `clean target takes 90% (${Math.round(delta[clean.uid])} vs ${Math.round(expClean)})`);
-  ok(near(delta[dirty.uid], expDirty), `debuffed target takes 150% (${Math.round(delta[dirty.uid])} vs ${Math.round(expDirty)})`);
+  ok(near(delta[clean.uid], expClean), `clean target takes 80% (${Math.round(delta[clean.uid])} vs ${Math.round(expClean)})`);
+  ok(near(delta[dirty.uid], expDirty), `debuffed target takes 120% (${Math.round(delta[dirty.uid])} vs ${Math.round(expDirty)})`);
   ok(clean.flags.silence > 0 && dirty.flags.silence > 0, 'Silences both targets');
   const cm = (dirty.costMods || []).reduce((s, m) => s + (m.flat || 0), 0);
   ok(cm === 10, `debuffed target gets +10 EN cost (got ${cm})`);
+  const cmTurns = (dirty.costMods || []).map((m) => m.turns);
+  ok(cmTurns.every((t) => t === 1), `cost tax lasts 1 round (got ${cmTurns.join(',')})`);
   ok(((clean.costMods || []).reduce((s, m) => s + (m.flat || 0), 0)) === 0,
     'clean target gets NO cost tax (his own Silence must not satisfy the condition)');
 }
 
-section('B3. Izanami — A Thousand a Day');
+section('B3. Izanami - A Thousand a Day');
 {
   const B = board(['takamagahara-izanami', ...FILL]);
   const iza = U(B, 'takamagahara-izanami');
@@ -297,7 +360,7 @@ section('B3. Izanami — A Thousand a Day');
   ok(iza.buffs.filter((b) => b.tag === 'thousand-a-day').length <= 4, 'ATK stacks capped at 4');
 }
 
-section('B4. Inari — Kitsune\'s Bounty');
+section('B4. Inari - Kitsune\'s Bounty');
 {
   const B = board(['takamagahara-inari', ...FILL]);
   const ina = U(B, 'takamagahara-inari');
@@ -323,7 +386,7 @@ section('B4. Inari — Kitsune\'s Bounty');
   ok(B.energy.player === before - cost + 18, `refunds 18 EN into a pre-Exposed target (${before}->${B.energy.player})`);
 }
 
-section('B5. Izanagi — Misogi at the River Mouth');
+section('B5. Izanagi - Misogi at the River Mouth');
 {
   const B = board(['takamagahara-izanagi', ...FILL]);
   const tgt = alliesOf(B).find((u) => u.card.id !== 'takamagahara-izanagi');
@@ -351,11 +414,11 @@ section('B5. Izanagi — Misogi at the River Mouth');
   ok(!tgt.buffs.some((b) => b.stat === 'atk' && b.amt === 20), 'clean target: NO ATK rider');
 }
 
-section('B6. Susanoo — Slayer of Yamata no Orochi (per-trigger routing)');
+section('B6. Susanoo - Slayer of Yamata no Orochi (per-trigger routing)');
 { /* standing counter is armed at battle start, and fires on the FIRST hit */
   const B = board(['takamagahara-susanoo', ...FILL]);
   const sus = U(B, 'takamagahara-susanoo');
-  ok(sus.flags.counterPow === 0.6, 'static: counter armed at battle start (60%)');
+  ok(sus.flags.counterPow === 0.45, 'static: counter armed at battle start (45%)');
   ok(sus.shield === Math.round(sus.maxHp * 0.10), `static: opening Shield is 10% Max HP (${sus.shield})`);
   const foe = foesOf(B)[0];
   const foeHp0 = foe.hp;
@@ -363,9 +426,9 @@ section('B6. Susanoo — Slayer of Yamata no Orochi (per-trigger routing)');
   B.energy.enemy = 100;
   E.useAbility(B, foe, E.roleAbility(foe), [sus]);
   const back = foeHp0 - foe.hp;
-  const exp = E.atkOf(sus) * 0.6 * (1 - E.defOf(foe) / 100);
+  const exp = E.atkOf(sus) * 0.45 * (1 - E.defOf(foe) / 100);
   ok(back > 0, 'counter fires on the FIRST attack (no off-by-one)');
-  ok(near(back, exp, 0.2), `counter deals ~60% ATK (${Math.round(back)} vs ${Math.round(exp)} pre-crit)`);
+  ok(near(back, exp, 0.2), `counter deals ~45% ATK (${Math.round(back)} vs ${Math.round(exp)} pre-crit)`);
   ok(!(sus.flags.taunt > 0), 'being attacked does NOT taunt (on: routing works)');
   ok(sus.shield <= shield0, 'being attacked grants NO new shield (on: routing works)');
 }
@@ -384,9 +447,9 @@ section('B6. Susanoo — Slayer of Yamata no Orochi (per-trigger routing)');
 }
 
 /* =============================================================
-   B7. REGRESSION — a behavioural probe for every OTHER active
+   B7. REGRESSION - a behavioural probe for every OTHER active
    ============================================================= */
-section('B7. Regression probes — existing roster actives');
+section('B7. Regression probes - existing roster actives');
 const PROBES = {
   'camelot-merlin': (B, u) => {
     const before = E.costOf(B, alliesOf(B)[1], alliesOf(B)[1].card.ability);
@@ -500,7 +563,7 @@ const PROBES = {
     ok(delta[f.uid] > 0, 'Abe: immediate hit lands');
     ok(f.pending.length === 1, 'Abe: shikigami sealed (delayed effect queued)');
     ok(f.flags.silence > 0, 'Abe: 50+ EN -> Silence');
-    ok(f.buffs.some((b) => b.stat === 'atk' && b.amt === -20), 'Abe: 50+ EN -> -20% ATK');
+    ok(f.buffs.some((b) => b.stat === 'atk' && b.amt === -25), 'Abe: 50+ EN -> -25% ATK');
     const hp1 = f.hp;
     E.nextRound(B);
     ok(f.hp < hp1, 'Abe: prophecy strikes at end of round');
@@ -515,7 +578,9 @@ const PROBES = {
   'huaxia-qin-shi-huang': (B, u) => {
     const foes = foesOf(B);
     cast(B, u.card.id, []);
-    ok(foes.filter((f) => f.flags.marked > 0).length === 2, 'Qin Shi Huang: marks exactly 2');
+    ok(foes.filter((f) => f.flags.marked > 0).length === 3, 'Qin Shi Huang: marks exactly 3 (buffed)');
+    ok(alliesOf(B).every((a) => a.buffs.some((x) => x.stat === 'def' && x.amt === 10)),
+      'Qin Shi Huang: grants all allies +10% DEF (buffed)');
   },
   'huaxia-zhuge-liang': (B, u) => {
     const f = foesOf(B).slice(0, 2);
@@ -580,7 +645,7 @@ Object.keys(PROBES).forEach((id) => {
     if (!u) { ok(false, `${id}: not placed on board`); return; }
     PROBES[id](B, u);
   } catch (err) {
-    ok(false, `${id}: probe threw — ${err.message}`);
+    ok(false, `${id}: probe threw - ${err.message}`);
   }
 });
 
@@ -639,19 +704,214 @@ section('B8. Bug regression guards');
     'Amaterasu kill rider KEPT (heal on kill)');
   const sus = CARD['takamagahara-susanoo'];
   ok(sus.ability.passive.threshold === 0.3, `Susanoo threshold is 30% (${sus.ability.passive.threshold})`);
-  ok(sus.ability.passive.effects.filter((e) => e.k === 'shield').every((e) => e.pctMaxHp === 10),
-    'Susanoo both shields are 10% Max HP');
+  {
+    const sh = sus.ability.passive.effects.filter((e) => e.k === 'shield');
+    const stat = sh.find((e) => e.on === 'static');
+    const reflex = sh.find((e) => e.on === 'allyBelowHp');
+    ok(stat && stat.pctMaxHp === 10, 'Susanoo opening Shield is 10% Max HP');
+    ok(reflex && reflex.pctMaxHp === 8, 'Susanoo reflex Shield nerfed to 8% Max HP');
+    ok(sus.ability.passive.oncePerRound === true, 'Susanoo reflex is capped once per round');
+    const cs = sus.ability.passive.effects.find((e) => e.k === 'counterStrike');
+    ok(cs && cs.power === 0.45, `Susanoo counter nerfed to 45% (${cs && cs.power})`);
+  }
   /* printed text must match the data */
   ok(/50% ATK Light/.test(ama.ability.text) && /75%/.test(ama.ability.text),
     'Amaterasu text matches the nerfed numbers');
-  ok(/10% Max HP Shield/.test(sus.ability.text) && /30% HP/.test(sus.ability.text),
+  ok(/45% ATK/.test(sus.ability.text) && /8% Max HP Shield/.test(sus.ability.text),
     'Susanoo text matches the nerfed numbers');
 }
 
 /* =============================================================
-   C. SOAK — invariants across real AI games
+   B9. PROTECTION MODEL - Taunt is counterable, Untargetable is not
+   -------------------------------------------------------------
+   Locks the 2026-08-01 protection pass:
+     - Sniper SIGNATURES pierce the Taunt redirect, at 0.8x damage.
+     - Sniper BASICS (Aim) do not pierce.
+     - Multi-target abilities never collapse to the taunter.
+     - Untargetable is absolute: no pierce, no AoE, nothing.
+     - Every other single-target attacker is still walled.
    ============================================================= */
-section('C. SOAK — invariants over AI-vs-AI games');
+section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
+{
+  const SNIPER_SIGS = ALL.filter(
+    (c) => c.role === 'Sniper' && c.ability.type === 'Active' && c.ability.spec
+  );
+  const MULTI = ALL.filter((c) => {
+    const t = c.ability.spec && c.ability.spec.target;
+    return t && t.side === 'enemy' && (t.pick === 'all' || t.pick === 'two');
+  });
+
+  const foes = ['camelot-king-arthur', 'olympus-hercules', 'huaxia-guan-yu',
+    'camelot-merlin', 'yamato-kaguya', 'olympus-apollo'];
+  const mates = ['grimmwood-snow-white', 'sherwood-maid-marian', 'huaxia-hua-tuo',
+    'roma-augustus', 'takamagahara-izanagi'];
+
+  function setup(heroId, { taunt, untarg } = {}) {
+    const B = board([heroId].concat(mates), foes);
+    B.noOpeningLimit = true;
+    B.energy.player = 150;
+    if (taunt) U(B, taunt).flags.taunt = 2;
+    if (untarg) U(B, untarg).flags.untargetable = 2;
+    return B;
+  }
+
+  /* --- Sniper signatures pierce the redirect --- */
+  SNIPER_SIGS.forEach((c) => {
+    const B = setup(c.id, { taunt: 'camelot-king-arthur' });
+    const pool = E.legalTargets(B, U(B, c.id), c.ability);
+    ok(pool.length > 1,
+      'Sniper sig pierces Taunt: ' + c.name + ' keeps ' + pool.length + ' legal targets');
+  });
+
+  /* --- but the Sniper BASIC does not --- */
+  {
+    const aim = EOL.roleAbilities.Sniper;
+    const B = setup('camelot-mordred', { taunt: 'camelot-king-arthur' });
+    const pool = E.legalTargets(B, U(B, 'camelot-mordred'), aim);
+    ok(pool.length === 1 && pool[0].card.id === 'camelot-king-arthur',
+      'Sniper BASIC (Aim) is still walled by Taunt');
+  }
+
+  /* --- the Provoke tax: 0.7x to anyone who is NOT the provoker --- */
+  {
+    const shoot = (heroId, victimId, taunt) => {
+      const B = setup(heroId, taunt ? { taunt } : {});
+      const v = U(B, victimId);
+      const hp0 = v.hp;
+      E.useAbility(B, U(B, heroId), CARD[heroId].ability, [v]);
+      return hp0 - v.hp;
+    };
+    ['yamato-tomoe-gozen', 'huaxia-nezha'].forEach((id) => {
+      const clean = shoot(id, 'yamato-kaguya', null);
+      const taxed = shoot(id, 'yamato-kaguya', 'camelot-king-arthur');
+      ok(near(taxed / clean, 0.7, 0.02),
+        CARD[id].name + ' pays the 0.7x Provoke tax (' + clean + ' -> ' + taxed + ')');
+      const onTaunter = shoot(id, 'camelot-king-arthur', 'camelot-king-arthur');
+      const onTaunterClean = shoot(id, 'camelot-king-arthur', null);
+      ok(onTaunter === onTaunterClean,
+        CARD[id].name + ' pays NO tax when it hits the provoker itself');
+    });
+  }
+
+  /* --- AoE now pays the same tax on everyone except the provoker --- */
+  {
+    const spread = (heroId, taunt) => {
+      const B = setup(heroId, taunt ? { taunt } : {});
+      const hp = {};
+      B.units.filter((u) => u.side === 'enemy').forEach((u) => (hp[u.card.id] = u.hp));
+      E.useAbility(B, U(B, heroId), CARD[heroId].ability, []);
+      const out = {};
+      B.units.filter((u) => u.side === 'enemy').forEach((u) => (out[u.card.id] = hp[u.card.id] - u.hp));
+      return out;
+    };
+    ['takamagahara-amaterasu', 'huaxia-qin-shi-huang', 'duat-maat'].forEach((id) => {
+      const clean = spread(id, null);
+      const taxed = spread(id, 'camelot-king-arthur');
+      const others = Object.keys(clean).filter(
+        (k) => k !== 'camelot-king-arthur' && clean[k] > 0
+      );
+      const ratios = others.map((k) => taxed[k] / clean[k]);
+      const avg = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+      ok(near(avg, 0.7, 0.03),
+        CARD[id].name + ' AoE pays the Provoke tax off-target (' + (avg * 100).toFixed(1) + '%)');
+      ok(taxed['camelot-king-arthur'] === clean['camelot-king-arthur'],
+        CARD[id].name + ' AoE still hits the provoker at FULL damage');
+      ok(Object.keys(taxed).length === Object.keys(clean).length,
+        CARD[id].name + ' AoE still reaches every target (no collapse)');
+    });
+  }
+
+  /* --- multi-target abilities never collapse --- */
+  MULTI.forEach((c) => {
+    const clean = setup(c.id);
+    const nClean = E.resolveTargets(clean, U(clean, c.id), c.ability,
+      E.legalTargets(clean, U(clean, c.id), c.ability).slice(0, 2)).length;
+    const B = setup(c.id, { taunt: 'camelot-king-arthur' });
+    const n = E.resolveTargets(B, U(B, c.id), c.ability,
+      E.legalTargets(B, U(B, c.id), c.ability).slice(0, 2)).length;
+    ok(n === nClean && n > 1,
+      'AoE never collapses: ' + c.name + ' hits ' + n + '/' + nClean + ' through a Taunt');
+  });
+
+  /* --- Untargetable is absolute --- */
+  SNIPER_SIGS.concat(MULTI).forEach((c) => {
+    const B = setup(c.id, { untarg: 'camelot-merlin' });
+    const pool = E.legalTargets(B, U(B, c.id), c.ability);
+    ok(!pool.some((u) => u.card.id === 'camelot-merlin'),
+      'Untargetable is absolute vs ' + c.name);
+  });
+  {
+    /* taunting AND untargetable: still unreachable, and it must not
+       wall the sniper onto an illegal target either */
+    const B = setup('camelot-mordred', { taunt: 'camelot-merlin', untarg: 'camelot-merlin' });
+    const pool = E.legalTargets(B, U(B, 'camelot-mordred'), CARD['camelot-mordred'].ability);
+    ok(pool.length > 0 && !pool.some((u) => u.card.id === 'camelot-merlin'),
+      'Untargetable + Taunt on one hero stays unreachable');
+  }
+
+  /* --- THE GOLDEN RULE: Taunt only intercepts single-target ATTACKS ---
+     A synthetic pure-utility ability (no dmg) must never be redirected,
+     because there is no blow for the taunter to body-block. */
+  {
+    const utility = {
+      type: 'Active', name: '__probe_utility', cost: 10,
+      spec: {
+        target: { side: 'enemy', pick: 'single', row: 'any' },
+        effects: [{ k: 'silence', turns: 1 }, { k: 'mark' }],
+      },
+    };
+    const attack = {
+      type: 'Active', name: '__probe_attack', cost: 10,
+      spec: {
+        target: { side: 'enemy', pick: 'single', row: 'any' },
+        effects: [{ k: 'dmg', power: 1, element: 'Magic' }],
+      },
+    };
+    const B = setup('camelot-morgan-le-fay', { taunt: 'camelot-king-arthur' });
+    const caster = U(B, 'camelot-morgan-le-fay');
+    ok(E.legalTargets(B, caster, utility).length > 1,
+      'Golden rule: a pure-utility single-target ability is NOT blocked by Taunt');
+    const ap = E.legalTargets(B, caster, attack);
+    ok(ap.length === 1 && ap[0].card.id === 'camelot-king-arthur',
+      'Golden rule: a single-target ATTACK from the same hero IS blocked');
+    /* explicit override still works both ways */
+    const forced = JSON.parse(JSON.stringify(attack));
+    forced.spec.target.attack = false;
+    ok(E.legalTargets(B, caster, forced).length > 1,
+      'target.attack:false opts an ability out of the Taunt redirect');
+  }
+
+  /* --- to:'enemies' riders must respect Untargetable ---
+     Apollo's "Mark the highest ATK enemy" bypassed the target picker
+     entirely and marked a hero who could not legally be targeted. */
+  {
+    const B = setup('olympus-apollo', { untarg: 'yamato-kaguya' });
+    E.useAbility(B, U(B, 'olympus-apollo'), CARD['olympus-apollo'].ability,
+      [U(B, 'grimmwood-snow-white')]);
+    const marked = B.units.filter((u) => u.side === 'enemy' && u.flags.marked);
+    ok(!marked.some((u) => u.card.id === 'yamato-kaguya'),
+      'Apollo\u2019s Mark rider skips an Untargetable enemy');
+    ok(marked.length === 1, 'Apollo\u2019s Mark rider still marks someone (' +
+      (marked[0] ? marked[0].name : 'nobody') + ')');
+  }
+
+  /* --- everyone else is still walled --- */
+  ALL.filter((c) => {
+    const t = c.ability.spec && c.ability.spec.target;
+    return t && t.side === 'enemy' && c.role !== 'Sniper' &&
+      (t.pick === 'single' || t.pick === 'auto');
+  }).forEach((c) => {
+    const B = setup(c.id, { taunt: 'camelot-king-arthur' });
+    const pool = E.legalTargets(B, U(B, c.id), c.ability);
+    ok(pool.length === 1 && pool[0].card.id === 'camelot-king-arthur',
+      'Taunt still walls ' + c.role + ' ' + c.name);
+  });
+}
+
+/* =============================================================
+   C. SOAK - invariants across real AI games
+   ============================================================= */
+section('C. SOAK - invariants over AI-vs-AI games');
 {
   const POOL = [];
   EOL.factions.forEach((f) => f.cards.forEach((c) => POOL.push({ card: c, faction: f.id })));
@@ -685,7 +945,7 @@ section('C. SOAK — invariants over AI-vs-AI games');
           const src = BB.units.find((x) => x.uid === ev.src);
           /* A hero killed mid-cast (e.g. by a counter-strike) still walks the
              rest of its own effect list, but every remaining hit resolves for
-             0 — dealDamage returns early on a dead source's target. Only
+             0 - dealDamage returns early on a dead source's target. Only
              NON-ZERO damage from a corpse is a real violation. */
           if (src && !src.alive && ev.t === 'dmg' && ev.amount > 0) viol.deadEffect++;
         }
@@ -707,7 +967,7 @@ section('C. SOAK — invariants over AI-vs-AI games');
           if (u.hp > u.maxHp) viol.overHp++;
           if (u.shield < 0) viol.negShield++;
           /* A corpse may keep its flag values (the engine does not scrub
-             them, which is fine and cheap) — what must never happen is a
+             them, which is fine and cheap) - what must never happen is a
              dead unit being returned as a legal target. */
           if (!u.alive) {
             const pool = E.legalTargets(B, u.side === 'player' ? B.units.find((x) => x.side === 'enemy' && x.alive) || u : B.units.find((x) => x.side === 'player' && x.alive) || u, E.roleAbility(u));
@@ -738,6 +998,64 @@ section('C. SOAK — invariants over AI-vs-AI games');
   const tk = ALL.filter((c) => c.faction === 'takamagahara');
   console.log('  Takamagahara appearances: ' +
     tk.map((c) => c.name + '=' + (seen[c.id] || 0)).join(', '));
+}
+
+/* =============================================================
+   DEATH-TRIGGERED PASSIVES
+   -------------------------------------------------------------
+   These fire when an ALLY dies, so the PROBES table above cannot
+   reach them - it only casts a hero's own signature. They need a
+   real kill driven through the damage path, because handleDeath is
+   deliberately not exported.
+
+   Ported here from the retired sim/verify_roma.js, which tested a
+   frozen 7-faction snapshot and had drifted out of date. Written
+   against the live roster instead, so they keep working as the game
+   grows.
+   ============================================================= */
+section('D. DEATH-TRIGGERED PASSIVES');
+{
+  /* Spartacus: when an ally falls, every survivor gains an ATK stack
+     and Spartacus shields himself. */
+  const B = board(['roma-spartacus', 'roma-augustus', ...FILL.slice(0, 4)]);
+  const sp = U(B, 'roma-spartacus');
+  const victim = alliesOf(B).filter(
+    (u) => u.card.id !== 'roma-spartacus' && u.card.id !== 'roma-augustus'
+  )[0];
+  const shieldBefore = sp.shield;
+  victim.hp = 1;
+  const foe = foesOf(B)[0];
+  E.useAbility(B, foe, E.roleAbility(foe), [victim]);
+
+  ok(!victim.alive, 'Spartacus setup: the ally actually died');
+  ok(
+    alliesOf(B).every((u) => u.buffs.some((b) => b.tag === 'i-am-spartacus')),
+    'Spartacus: ally death -> every survivor gains the ATK stack'
+  );
+  ok(sp.shield > shieldBefore, 'Spartacus: ally death -> he shields himself');
+}
+{
+  /* Augustus (Pax Romana): when the team scores a kill, heal the two
+     most wounded allies - exactly two, not the whole team. */
+  const B = board(['roma-augustus', 'camelot-mordred', ...FILL.slice(0, 4)]);
+  const mord = U(B, 'camelot-mordred');
+  const mine = alliesOf(B);
+  mine.forEach((u) => {
+    u.hp = Math.round(u.maxHp * 0.5);
+  });
+  const foe = foesOf(B)[0];
+  foesOf(B)
+    .filter((u) => u !== foe)
+    .forEach((u) => {
+      u.alive = false;
+    });
+  foe.hp = 1;
+  const before = mine.map((u) => u.hp);
+  E.useAbility(B, mord, mord.card.ability, [foe]);
+  const healed = mine.filter((u, i) => u.hp > before[i]).length;
+
+  ok(!foe.alive, 'Augustus setup: the enemy was defeated');
+  ok(healed === 2, `Augustus: Pax Romana heals exactly 2 allies (got ${healed})`);
 }
 
 /* ---------------- summary ---------------- */

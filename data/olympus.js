@@ -1,4 +1,4 @@
-/* Faction: Olympus — Marks */
+/* Faction: Olympus - Marks */
 window.EOL.registerFaction({
   id: 'olympus',
   name: 'Olympus',
@@ -44,11 +44,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-lightning-bolt',
+      art: 'assets/heroes/olympus-zeus.png',
     },
     {
       id: 'olympus-athena',
       name: 'Athena',
-      rarity: 'epic',
+      rarity: 'rare',
       role: 'Controller',
       element: 'Light',
       stats: { hp: 5355, atk: 1290, def: 20 },
@@ -69,6 +70,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-shield',
+      art: 'assets/heroes/olympus-athena.png',
     },
     {
       id: 'olympus-hercules',
@@ -81,7 +83,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Twelve Labors',
         cost: 50,
-        text: 'Immediately gain <b>25% DEF</b>, <b>20% ATK</b> and Taunt for 2 rounds, then gain a <b>15% Max HP Shield</b> when the Taunt ends.',
+        text: 'Immediately gain <b>25% DEF</b>, <b>20% ATK</b> and Provoke for 2 rounds, then gain a <b>15% Max HP Shield</b> when the Provoke ends.',
         note: null,
         spec: {
           target: { side: 'self' },
@@ -93,6 +95,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-muscle-fat',
+      art: 'assets/heroes/olympus-hercules.png',
     },
     {
       id: 'olympus-apollo',
@@ -105,26 +108,34 @@ window.EOL.registerFaction({
         type: 'Active',
         name: "Sun's Grace",
         cost: 20,
-        text: 'Immediately heal an ally for <b>35% Max HP</b> and grant them <b>15% Crit Chance</b> for 2 rounds, then apply <b>Mark</b> to the highest ATK enemy.',
+        text: 'Immediately heal an ally for <b>35% Max HP</b> and grant <b>all allies 12% Crit Chance</b> for 2 rounds, then apply <b>Mark</b> to the highest ATK enemy.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'single', row: 'any' },
           effects: [
             { k: 'heal', pctMaxHp: 35 },
-            { k: 'stat', stat: 'crit', amt: 15, turns: 2, to: 'targets' },
+            /* team-wide: a single-target crit buff never paid for the action */
+            { k: 'stat', stat: 'crit', amt: 12, turns: 2, to: 'allies' },
             { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' },
           ],
         },
       },
       icon: 'ra-sun-symbol',
+      art: 'assets/heroes/olympus-apollo.png',
     },
     {
       id: 'olympus-medusa',
       name: 'Medusa',
-      rarity: 'rare',
-      role: 'Sniper',
+      rarity: 'epic',
+      /* RECLASS 2026-07-31: Sniper -> Controller. A Sniper is defined by
+         single-target elimination; Medusa has no damage Skill whatsoever.
+         Her entire kit is applying Exposed to whoever strikes her - a debuff
+         engine wearing a Sniper's glass-cannon statline, which is why she
+         measured 5,616 dmg/app against a 9,350 Sniper average. Restatted into
+         the Controller band. */
+      role: 'Controller',
       element: 'Shadow',
-      stats: { hp: 4310, atk: 1860, def: 10 },
+      stats: { hp: 5355, atk: 1290, def: 20 },
       ability: {
         type: 'Passive',
         name: 'Petrifying Gaze',
@@ -138,6 +149,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-snake',
+      art: 'assets/heroes/olympus-medusa.png',
     },
     {
       id: 'olympus-ares',
@@ -172,7 +184,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-bleeding-hearts',
+      art: 'assets/heroes/olympus-ares.png',
     },
   ],
 });
-

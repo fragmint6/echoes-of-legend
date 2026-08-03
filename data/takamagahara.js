@@ -1,4 +1,4 @@
-/* Faction: Takamagahara — the Divine Cycle (death, purification, return)
+/* Faction: Takamagahara - the Divine Cycle (death, purification, return)
    -------------------------------------------------------------
    The Plain of High Heaven. Where Roma is paid when the ENEMY dies and
    Grimmwood stacks debuffs onto them, Takamagahara is the faction built
@@ -13,16 +13,16 @@
    Identity notes
    --------------
    - No bespoke faction-only mechanic. Everything is built from the
-     existing keyword vocabulary (Burn, Exposed, Silence, Shield, Taunt,
+     existing keyword vocabulary (Burn, Exposed, Silence, Shield, Provoke,
      cleanse, counter-strike, Energy, cost-up, stat buffs/debuffs).
-   - The one engine addition used here — `on:` per-trigger effect routing
-     (Susanoo) — is generic infrastructure, not a faction mechanic: any
+   - The one engine addition used here - `on:` per-trigger effect routing
+     (Susanoo) - is generic infrastructure, not a faction mechanic: any
      multi-trigger passive in any future faction can use it.
 
    Role allocation is deliberate. Per the last balance report Caster (5
    heroes, 46.9% WR) and Controller (8, 47.8%) were the thinnest and
    weakest roles while Bruiser sat at 10. This faction adds 2 Casters,
-   2 Controllers, 1 Medic and 1 Tank — and no Bruiser or Sniper.
+   2 Controllers, 1 Medic and 1 Tank - and no Bruiser or Sniper.
    ============================================================= */
 window.EOL.registerFaction({
   id: 'takamagahara',
@@ -52,15 +52,33 @@ window.EOL.registerFaction({
 
            The lesson: in a one-action-per-round game a SELF-directed
            restriction is not a real cost. This version pays its cost in
-           fragility instead — she stands in the open at 4,970 HP — and its
+           fragility instead - she stands in the open at 4,970 HP - and its
            power scales off the board rather than off self-protection. */
         /* NERF 2026-07-31 (post-baseline). She shipped at 81.1% WR with
-           24,606 damage per game — 2.8x the next-best Caster — because a
+           24,606 damage per game - 2.8x the next-best Caster - because a
            six-target AoE at 70%/105% is simply too much throughput. Cut to
            50%/75% and repriced 50 -> 55 EN. The kill rider is kept: it was
            not the problem, and it is the card's identity beat. */
+        /* HARD NERF 2026-07-31 (5,000-game read). She sat at 77.4% and was
+           single-handedly carrying the Caster role. The decisive finding was
+           that her nuke was NOT the engine: only 43% of her 21,385 damage per
+           appearance came from the ability, while **51% came from Burn** -
+           5% Max HP per tick, on all six enemies, for 2 rounds, ignoring both
+           DEF and Shields. Cutting the AoE again would have missed the real
+           source, so the Burn is what gets cut:
+             - Burn 2 rounds -> 1 round (halves the unmitigable damage)
+             - Burn now hits only the 3 LOWEST-HP enemies, not all six
+           The 50%/75% AoE and the kill rider are untouched: they were the
+           fair part of the card.
+
+           COST REVERTED 2026-07-31: 60 -> 55 EN. The full nerf measured
+           52.3% over 2,000 games - below the 65% target and mid-pack for a
+           legendary - so the cost half of it was more than the card needed.
+           The Burn cuts are what did the work (her damage per appearance
+           fell 21,385 -> 12,190) and they stay; the cost goes back to 55 so
+           she can still function as a repeatable AoE threat. */
         cost: 55,
-        text: 'Deal <b>50% ATK Light Damage</b> to all enemies, increased to <b>75%</b> against <b>Burning</b> enemies, then apply <b>Burn</b> for 2 rounds to all of them. If this defeats an enemy, all allies cleanse <b>1</b> debuff and heal <b>8% Max HP</b>.',
+        text: 'Deal <b>50% ATK Light Damage</b> to all enemies, increased to <b>75%</b> against <b>Burning</b> enemies, then apply <b>Burn</b> for 1 round to the <b>3</b> lowest HP enemies. If this defeats an enemy, all allies cleanse <b>1</b> debuff and heal <b>8% Max HP</b>.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'all', row: 'any' },
@@ -73,7 +91,7 @@ window.EOL.registerFaction({
               element: 'Light',
               ifMult: [{ when: { targetBurning: true }, mult: 1.5 }],
             },
-            { k: 'burn', turns: 2, to: 'targets', when: 'now' },
+            { k: 'burn', turns: 1, to: 'targets', take: { n: 3, by: 'lowestHp' }, when: 'now' },
             { k: 'cleanse', count: 1, to: 'allies', if: { killedTarget: true } },
             { k: 'heal', pctMaxHp: 8, to: 'allies', if: { killedTarget: true } },
           ],
@@ -84,7 +102,7 @@ window.EOL.registerFaction({
     {
       id: 'takamagahara-tsukuyomi',
       name: 'Tsukuyomi',
-      rarity: 'epic',
+      rarity: 'rare',
       role: 'Caster',
       element: 'Shadow',
       stats: { hp: 4740, atk: 1905, def: 15 },
@@ -92,20 +110,24 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Moonlit Reproach',
         cost: 45,
-        text: 'Deal <b>90% ATK Shadow Damage</b> to <b>2 enemies</b> and <b>Silence</b> them for 1 round. Any target that was already debuffed takes an extra <b>60% ATK</b> and has their ability cost raised by <b>10 Energy</b> for 2 rounds.',
+        /* NERF 2026-08-02: 65.9% win rate, outside the healthy band.
+           90/60 on two targets plus a Silence at 45 EN was simply
+           underpriced. Now 80/40, and the cost tax lasts 1 round
+           instead of 2 so it is a tempo hit rather than a lasting one. */
+        text: 'Deal <b>80% ATK Shadow Damage</b> to <b>2 enemies</b> and <b>Silence</b> them for 1 round. Any target that was already debuffed takes an extra <b>40% ATK</b> and has their Skill cost raised by <b>10 Energy</b> for 1 round.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'two', row: 'any' },
           effects: [
             /* judgement on the already-guilty: the debuff riders are tested
                before this cast's own Silence lands */
-            { k: 'dmg', power: 0.9, element: 'Shadow' },
-            { k: 'dmg', power: 0.6, element: 'Shadow', if: { targetHasDebuff: true } },
+            { k: 'dmg', power: 0.8, element: 'Shadow' },
+            { k: 'dmg', power: 0.4, element: 'Shadow', if: { targetHasDebuff: true } },
             {
               k: 'costMod',
               unit: true,
               flat: 10,
-              turns: 2,
+              turns: 1,
               to: 'targets',
               if: { targetHasDebuff: true },
               when: 'now',
@@ -119,7 +141,7 @@ window.EOL.registerFaction({
     {
       id: 'takamagahara-izanami',
       name: 'Izanami',
-      rarity: 'legendary',
+      rarity: 'common',
       role: 'Controller',
       element: 'Shadow',
       stats: { hp: 5615, atk: 1350, def: 20 },
@@ -151,7 +173,7 @@ window.EOL.registerFaction({
     {
       id: 'takamagahara-inari',
       name: 'Inari',
-      rarity: 'rare',
+      rarity: 'epic',
       role: 'Controller',
       element: 'Nature',
       stats: { hp: 4835, atk: 1160, def: 20 },
@@ -163,7 +185,14 @@ window.EOL.registerFaction({
            of 5, which is close enough to free to distort the whole economy.
            Tune upward from evidence, not downward from a crisis. */
         cost: 25,
-        text: "Deal <b>75% ATK Nature Damage</b> and apply <b>Exposed</b> for 1 round, refunding <b>12 Energy</b> to your team's pool — or <b>18 Energy</b> if that enemy was already <b>Exposed</b>.",
+        /* BUFF EXIT VALVE 2026-07-31. Inari sat at 40.8% and the roster had
+           a structural hole: 23 of 30 positive buffs were single-target
+           riders that simply ticked away, because nothing CASHED a buff the
+           way consumeMark cashes a Mark. Her fox spirits now collect on the
+           enemy's blessings - the first card in the game that punishes an
+           opponent for stacking buffs, and the reason `consumeBuffs` exists.
+           Steals the tempo instead of just damaging. */
+        text: "Deal <b>75% ATK Nature Damage</b> <b>+30% for each buff</b> on the target, strip every buff from them, and apply <b>Exposed</b> for 1 round - refunding <b>12 Energy</b> to your team's pool, or <b>18 Energy</b> if that enemy was already <b>Exposed</b>.",
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
@@ -172,7 +201,9 @@ window.EOL.registerFaction({
                refund rewards a PARTNER's setup, never her own */
             { k: 'gainEnergy', amt: 12 },
             { k: 'gainEnergy', amt: 6, if: { targetExposed: true } },
-            { k: 'dmg', power: 0.75, element: 'Nature' },
+            { k: 'dmg', power: 0.75, element: 'Nature', perBuff: 0.3, perBuffMax: 4 },
+            /* the strip happens AFTER the damage reads the count */
+            { k: 'consumeBuffs', to: 'targets', alsoShield: true },
             { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
           ],
         },
@@ -223,7 +254,7 @@ window.EOL.registerFaction({
     {
       id: 'takamagahara-susanoo',
       name: 'Susanoo',
-      rarity: 'epic',
+      rarity: 'rare',
       role: 'Tank',
       element: 'Lightning',
       stats: { hp: 7210, atk: 1030, def: 30 },
@@ -231,22 +262,22 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: 'Slayer of Yamata no Orochi',
         cost: null,
-        text: 'Susanoo begins the battle with a <b>10% Max HP Shield</b>, and while <b>Shielded</b> he counter-strikes anyone who attacks him for <b>60% ATK Lightning Damage</b>. When an ally falls below <b>30% HP</b>, Susanoo immediately Taunts for 1 round and gains a <b>10% Max HP Shield</b>.',
+        text: 'Susanoo begins the battle with a <b>10% Max HP Shield</b>, and while <b>Shielded</b> he counter-strikes anyone who attacks him for <b>45% ATK Lightning Damage</b>. The first time each round an ally falls below <b>30% HP</b>, Susanoo Provokes for 1 round and gains an <b>8% Max HP Shield</b>.',
         note: null,
         /* Uses the engine's `on:` routing so each trigger fires only its own
-           effects — without it both triggers would run the whole list.
+           effects - without it both triggers would run the whole list.
 
            The counter is armed on `static` (at battle start, like Robin
            Hood's aim) rather than on `wasAttacked`. `counterStrike` ARMS a
            retaliation for FUTURE hits; it does not answer the blow that is
            currently resolving. Arming it on wasAttacked therefore left the
-           first attack of every round uncountered — an off-by-one against
+           first attack of every round uncountered - an off-by-one against
            the printed text. A standing counter is also the better card:
            it makes attacking him a real decision from round 1.
 
            The engine only resolves a counter when the defender was Shielded
            at the moment of the hit (dealDamage's `hadShield` gate, shared
-           with Guan Yu), so the opening Shield is not decoration — it is
+           with Guan Yu), so the opening Shield is not decoration - it is
            what switches the counter on. Losing the Shield switches it off
            until an ally drops low and he re-shields, which is the intended
            rhythm of the card. */
@@ -262,13 +293,22 @@ window.EOL.registerFaction({
              SECOND NERF: counter 80% -> 60%. The shield cut alone did not
              move him (survival and deaths per game were unchanged at 50% /
              0.50), which showed the shields were never what carried the
-             card — the standing counter was. */
+             card - the standing counter was.
+
+             THIRD NERF: counter 60% -> 45%, reflex Shield 10% -> 8%, and the
+             reflex is now `oncePerRound`. At 67.8% he was the best Tank AND
+             led Tanks in damage; telemetry showed the engine was neither -
+             7.75 Provoke turns and 7.14 redirects per appearance made him a
+             near-permanent redirect wall. Each reflex Provoke re-shielded him,
+             and the Shield is what switches the counter on, so the loop fed
+             itself once per ally rather than once per round. */
+          oncePerRound: true,
           threshold: 0.3,
           effects: [
             { k: 'shield', pctMaxHp: 10, to: 'self', on: 'static' },
-            { k: 'counterStrike', power: 0.6, turns: 99, to: 'self', on: 'static' },
+            { k: 'counterStrike', power: 0.45, turns: 99, to: 'self', on: 'static' },
             { k: 'taunt', turns: 1, to: 'self', on: 'allyBelowHp' },
-            { k: 'shield', pctMaxHp: 10, to: 'self', on: 'allyBelowHp' },
+            { k: 'shield', pctMaxHp: 8, to: 'self', on: 'allyBelowHp' },
           ],
         },
       },

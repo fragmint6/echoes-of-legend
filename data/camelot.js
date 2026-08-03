@@ -1,4 +1,4 @@
-/* Faction: Camelot — Shields & Exposed */
+/* Faction: Camelot - Shields & Exposed */
 window.EOL.registerFaction({
   id: 'camelot',
   name: 'Camelot',
@@ -17,7 +17,7 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: 'King of Knights',
         cost: null,
-        text: 'When an ally falls below <b>35% HP</b>, immediately grant a <b>15% Max HP Shield</b> to both Arthur and that ally, and Taunt for 1 round; if already Shielded, all allies gain <b>12% ATK</b> for 2 rounds instead.',
+        text: 'When an ally falls below <b>35% HP</b>, immediately grant a <b>15% Max HP Shield</b> to both Arthur and that ally, and Provoke for 1 round; if already Shielded, all allies gain <b>12% ATK</b> for 2 rounds instead.',
         note: 'Triggers at most once per ally.',
         passive: {
           trigger: 'allyBelowHp',
@@ -38,14 +38,21 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crown',
+      art: 'assets/heroes/camelot-king-arthur.png',
     },
     {
       id: 'camelot-merlin',
       name: 'Merlin',
-      rarity: 'legendary',
-      role: 'Caster',
+      rarity: 'epic',
+      /* RECLASS 2026-07-31: Caster -> Controller. Merlin deals literally no
+         damage (measured 0 from his signature; his 3,775 dmg/app is all
+         role-Basic). A Caster is defined as a top-end AoE damage dealer, and
+         he is the opposite: cost manipulation plus a team Shield. That is
+         textbook Controller work, so the role and the statline now match the
+         job. Restatted from 4970/2000/15 into the Controller band. */
+      role: 'Controller',
       element: 'Magic',
-      stats: { hp: 4970, atk: 2000, def: 15 },
+      stats: { hp: 5615, atk: 1350, def: 20 },
       ability: {
         type: 'Active',
         name: 'Prophecy',
@@ -62,11 +69,12 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crystal-wand',
+      art: 'assets/heroes/camelot-merlin.png',
     },
     {
       id: 'camelot-lancelot',
       name: 'Lancelot',
-      rarity: 'epic',
+      rarity: 'common',
       role: 'Bruiser',
       element: 'Physical',
       stats: { hp: 6180, atk: 1650, def: 20 },
@@ -74,7 +82,7 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: 'Finest Knight',
         cost: null,
-        text: 'Whenever an ally gains a Shield or Taunts, or attacks an <b>Exposed</b> enemy, immediately gain <b>10% ATK</b> and <b>6% Crit Chance</b> for the rest of the battle; at 3+ stacks, also gain <b>10% DEF</b> for 2 rounds.',
+        text: 'Whenever an ally gains a Shield or Provokes, or attacks an <b>Exposed</b> enemy, immediately gain <b>10% ATK</b> and <b>6% Crit Chance</b> for the rest of the battle; at 3+ stacks, also gain <b>10% DEF</b> for 2 rounds.',
         note: 'Max: 5 stacks.',
         passive: {
           triggers: ['allyWarded', 'allyStruckExposed'],
@@ -97,18 +105,32 @@ window.EOL.registerFaction({
               stackTag: 'finest-knight-crit',
               maxStacks: 5,
             },
+            /* REFRESHES, it does not stack. The card promises "10% DEF
+               for 2 rounds" - one buff, kept topped up while he is at
+               3+ stacks. Untagged it re-applied on every trigger and
+               reached +72% DEF (75% total) in testing, which is a
+               different card from the one printed. `refresh` replaces
+               the existing buff instead of adding another. */
             {
               k: 'stat',
               stat: 'def',
               amt: 10,
               turns: 2,
               to: 'self',
+              stackTag: 'finest-knight-def',
+              /* refresh => there is only ever ONE of these, so the cap
+                 is 1. Stated explicitly because the schema check
+                 rightly refuses a tag with no ceiling - that missing
+                 ceiling is the whole bug class this pass closed. */
+              refresh: true,
+              maxStacks: 1,
               ifStacks: { tag: 'finest-knight-atk', min: 3 },
             },
           ],
         },
       },
       icon: 'ra-sword',
+      art: 'assets/heroes/camelot-lancelot.png',
     },
     {
       id: 'camelot-morgan-le-fay',
@@ -134,6 +156,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-raven',
+      art: 'assets/heroes/camelot-morgan-le-fay.png',
     },
     {
       id: 'camelot-guinevere',
@@ -146,18 +169,33 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Royal Blessing',
         cost: 30,
-        text: 'Heal an ally for <b>22% Max HP</b> and grant a <b>12% Max HP Shield</b>. If they were already <b>Shielded</b>, they gain <b>10% ATK</b> for 2 rounds.',
+        /* BUFF PASS 2026-07-31. She was the roster's weakest card (38.7%)
+           and her rider was the textbook trap: +10% ATK on ONE ally for 2
+           rounds is worth 0.28x a basic attack, i.e. never worth the action.
+           Rewritten as a TEAM buff so the numbers can actually pay for the
+           turn. */
+        text: 'Heal an ally for <b>22% Max HP</b> and grant a <b>12% Max HP Shield</b>. If they were already <b>Shielded</b>, all allies gain <b>10% ATK</b> for 2 rounds instead.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'single', row: 'any' },
           effects: [
             { k: 'heal', pctMaxHp: 22 },
-            { k: 'stat', stat: 'atk', amt: 10, turns: 2, if: { targetShielded: true } },
+            /* `if` on a to:'allies' effect is tested PER ALLY, so gating the
+               team buff that way only ever buffed the shielded one. A branch
+               reads the condition once, off the chosen target, then applies
+               the arm to everyone. */
+            {
+              k: 'branch',
+              cond: { targetShielded: true },
+              then: [{ k: 'stat', stat: 'atk', amt: 10, turns: 2, to: 'allies' }],
+              other: [],
+            },
             { k: 'shield', pctMaxHp: 12 },
           ],
         },
       },
       icon: 'ra-heart-tower',
+      art: 'assets/heroes/camelot-guinevere.png',
     },
     {
       id: 'camelot-mordred',
@@ -188,7 +226,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-dripping-blade',
+      art: 'assets/heroes/camelot-mordred.png',
     },
   ],
 });
-

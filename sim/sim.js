@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — AI v AI Balance Simulation Harness
+   Echoes of Legend - AI v AI Balance Simulation Harness
    -------------------------------------------------------------
    node sim/sim.js --games 1500 [--seed 42]
 
@@ -9,7 +9,7 @@
      {roleAware: true} (Tanks/Bruisers front, the rest back).
    - Both sides driven by js/ai.js bestAction() at depth 2.
    - All statistics come from the engine's structured event hook
-     (window.EOL.onBattleEvent) — observation only.
+     (window.EOL.onBattleEvent) - observation only.
    - Writes sim/results.json by default (--out picks another path).
    ============================================================= */
 'use strict';
@@ -42,6 +42,11 @@ global.performance = { now: () => Date.now() };
   'data/huaxia.js',
   'data/roma.js',
   'data/takamagahara.js',
+  'data/duat.js',
+  'data/battlefields.js',
+  /* the draft heuristic, so --teams draft/pairs can use the SAME
+     scoring the in-game draft bot uses rather than a second one */
+  'data/draft-ai.js',
   'js/engine.js',
   'js/ai.js',
 ].forEach((f) => {
@@ -51,7 +56,26 @@ global.performance = { now: () => Date.now() };
 const EOL = window.EOL,
   E = EOL.engine,
   AI = EOL.ai;
-AI.setDepth(2); // per spec: AI v AI at depth 2
+/* SEARCH DEPTH.
+   Depth 2 is a SPEED choice for a 5,000-game run, not a statement
+   that depth 2 plays well. It cannot see a move whose payoff is two
+   turns away, which systematically undervalues every enabler in the
+   game - Merlin's discount, a setup Mark, a shield that pays off
+   next round. If a hero climbs when depth rises, the earlier number
+   was measuring the AI's blind spot rather than the card.
+   Compare runs: --depth 2 against --depth 4. */
+const SIM_DEPTH = parseInt(args.depth || '2', 10);
+AI.setDepth(SIM_DEPTH);
+/* random | draft | pairs | forced - see pickTeams() */
+const TEAM_MODE = args.teams || 'random';
+/* --bans 1 runs the real ban phase: each side drafts TWELVE, bans two
+   of the opponent's, then fields six of its own ten. Without it the
+   sim plays a game the ranked ladder does not have, and ban rate -
+   arguably the best power signal there is - stays unmeasurable. */
+const WITH_BANS = !!args.bans;
+/* --force <heroId> pins a hero into P1's twelve every game. Equal
+   sample per hero, and inclusion is not the draft AI's decision. */
+const FORCE_ID = typeof args.force === 'string' ? args.force : null;
 // Fast simulation budget: still depth 2, with fewer sampled rollouts.
 AI.setSimulationBudget({
   beamWidth: parseInt(args.beam || '5', 10),
@@ -75,7 +99,8 @@ if (args.rumpel3) {
    be measured without it (used to attribute outliers to the new faction). */
 if (args.exclude) {
   const drop = String(args.exclude).split(',');
-  for (let i = POOL.length - 1; i >= 0; i--) if (drop.indexOf(POOL[i].faction) >= 0) POOL.splice(i, 1);
+  for (let i = POOL.length - 1; i >= 0; i--)
+    if (drop.indexOf(POOL[i].faction) >= 0) POOL.splice(i, 1);
   console.log('[control] excluded factions:', drop.join(','), '- pool now', POOL.length);
 }
 /* A/B harness for the Abe no Seimei emergency nerf. Each variant patches
@@ -95,17 +120,26 @@ if (args.abe) {
     if (V === 'A') {
       ab.cost = 50;
     } else if (V === 'B') {
-      tax.amt = 12; sil.if.drainedEnergyAbove = 12;
+      tax.amt = 12;
+      sil.if.drainedEnergyAbove = 12;
     } else if (V === 'C') {
-      ab.cost = 48; tax.amt = 12; sil.if.drainedEnergyAbove = 12;
+      ab.cost = 48;
+      tax.amt = 12;
+      sil.if.drainedEnergyAbove = 12;
     } else if (V === 'D') {
-      ab.cost = 45; dmg.forEach((d) => (d.power = 0.55));
+      ab.cost = 45;
+      dmg.forEach((d) => (d.power = 0.55));
     } else if (V === 'E') {
-      ab.cost = 50; tax.amt = 12; sil.if.drainedEnergyAbove = 12; dmg.forEach((d) => (d.power = 0.6));
+      ab.cost = 50;
+      tax.amt = 12;
+      sil.if.drainedEnergyAbove = 12;
+      dmg.forEach((d) => (d.power = 0.6));
     } else if (V !== 'base') {
       throw new Error('unknown --abe variant ' + V);
     }
-    console.log(`[A/B] Abe variant ${V}: cost=${ab.cost} drain=${tax.amt} silenceGate=${sil.if.drainedEnergyAbove} dmg=${dmg.map((d) => d.power).join('x')}`);
+    console.log(
+      `[A/B] Abe variant ${V}: cost=${ab.cost} drain=${tax.amt} silenceGate=${sil.if.drainedEnergyAbove} dmg=${dmg.map((d) => d.power).join('x')}`
+    );
   }
 }
 const HERO = {};
@@ -113,6 +147,11 @@ POOL.forEach((e) => {
   HERO[e.card.id] = e.card;
 });
 const ROLES = ['Tank', 'Bruiser', 'Controller', 'Caster', 'Medic', 'Sniper'];
+
+/* Battlefield for the run - Colosseum (neutral) unless --field says otherwise. */
+const SIM_FIELD = EOL.battlefieldById(args.field || 'colosseum');
+if (!SIM_FIELD) throw new Error('unknown --field ' + args.field);
+console.log('[field] ' + SIM_FIELD.name + ' - ' + SIM_FIELD.rules.join(' '));
 
 function rng32(seed) {
   let a = seed | 0;
@@ -199,7 +238,18 @@ function mkStatusStats() {
 }
 
 let A = {
-  meta: { games: 0, seed: SEED, depth: 2, date: new Date().toISOString() },
+  /* The run's configuration travels WITH its results. Comparing a
+     draft run against a random one, or depth 4 against depth 2, is
+     only meaningful if you can tell them apart afterwards. */
+  meta: {
+    games: 0,
+    seed: SEED,
+    depth: SIM_DEPTH,
+    teams: TEAM_MODE,
+    bans: WITH_BANS,
+    force: FORCE_ID,
+    date: new Date().toISOString(),
+  },
   p1Wins: 0,
   p2Wins: 0,
   draws: 0,
@@ -224,6 +274,13 @@ let A = {
   burn: { ticks: 0, tickDmg: 0, kills: 0 },
   exposed: { dmgWhile: 0, killsWhile: 0 },
   mark: { triggers: 0, triggerDmg: 0 },
+  /* Draft-phase telemetry. Only populated with --bans.
+       drafted - taken into a twelve
+       banned  - deleted by the opponent
+       fielded - actually played from the surviving ten
+     A hero with a high ban rate and a middling win rate is not
+     balanced; it is being removed precisely because it is strong. */
+  draftStats: {},
   pairs: {},
   rolePairs: {},
   matchups: {},
@@ -258,14 +315,342 @@ ROLES.forEach((r) => {
 const heroAgg = (id) => (A.heroes[id] = A.heroes[id] || mkHeroStats());
 const abilAgg = (k) => (A.abilities[k] = A.abilities[k] || mkAbilityStats());
 
+/* =============================================================
+   TEAM SELECTION MODES
+   -------------------------------------------------------------
+   See the note in runGame. `random` is the unbiased baseline;
+   `draft` and `pairs` deliberately seek the ceiling.
+   ============================================================= */
+const DAI = EOL.draftAI;
+
+/* Role cap for a TEAM OF SIX is 3 (EOL.rules.MAX_PER_ROLE). Note this
+   is NOT deckRules.MAX_PER_ROLE, which is 4 and governs a deck of
+   twelve - using the wrong one would quietly let these modes build
+   teams the game would reject. */
+function capBlocked6(team, card) {
+  return EOL.rules.roleCount(team, card.role) >= EOL.rules.MAX_PER_ROLE;
+}
+
+/* --teams draft -----------------------------------------------
+   Two bots snake-draft from packs of three using the SAME scoring
+   the in-game draft bot uses, then fight. This is the closest the
+   simulation gets to how a real ranked match is actually built, and
+   it is the only mode where "I out-drafted him" can show up in the
+   numbers at all. */
+function draftTeams(rng) {
+  const pool = POOL.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const t = pool[i];
+    pool[i] = pool[j];
+    pool[j] = t;
+  }
+  const teams = [[], []];
+  let packNo = 0;
+  let p = 0;
+  while (teams[0].length < 6 && teams[1].length < 6 && p + 3 <= pool.length) {
+    const pack = pool.slice(p, p + 3);
+    p += 3;
+    /* snake: the opener alternates, exactly as the game does */
+    const opener = packNo % 2;
+    const order = [opener, 1 - opener];
+    for (const side of order) {
+      if (teams[side].length >= 6) continue;
+      const legal = pack.filter((e) => e && !capBlocked6(teams[side], e.card));
+      const from = legal.length ? legal : pack.filter(Boolean);
+      if (!from.length) break;
+      /* the real draft heuristic, plus a small roll so identical
+         pools do not always produce identical boards */
+      let best = from[0];
+      let bestV = -Infinity;
+      for (const cand of from) {
+        const v = DAI.value(teams[side], cand, { size: 6 }) + rng() * 2.5;
+        if (v > bestV) {
+          bestV = v;
+          best = cand;
+        }
+      }
+      teams[side].push(best);
+      pack[pack.indexOf(best)] = null;
+    }
+    packNo++;
+  }
+  /* top up if the pool ran dry before both squads filled */
+  for (const side of [0, 1]) {
+    while (teams[side].length < 6 && p < pool.length) {
+      const e = pool[p++];
+      if (e && !capBlocked6(teams[side], e.card)) teams[side].push(e);
+    }
+  }
+  return teams[0].length === 6 && teams[1].length === 6 ? teams : EOL.rules.splitCapped(POOL, rng);
+}
+
+/* --teams pairs ------------------------------------------------
+   Force a high-synergy duo onto each side and fill the rest at
+   random. Random draw samples a given pair in roughly 1 game in 90,
+   which is far too sparse to say anything about combos; this makes
+   the combo the controlled variable while everything else stays
+   noisy. */
+let PAIR_LIST = null;
+function topPairs() {
+  if (PAIR_LIST) return PAIR_LIST;
+  const out = [];
+  for (let i = 0; i < POOL.length; i++) {
+    for (let j = i + 1; j < POOL.length; j++) {
+      const a = POOL[i];
+      const b = POOL[j];
+      const v = DAI.pairSynergy(a, b);
+      if (v > 0) out.push({ a, b, v });
+    }
+  }
+  out.sort((x, y) => y.v - x.v);
+  PAIR_LIST = out.slice(0, 60);
+  return PAIR_LIST;
+}
+
+function pairTeams(rng) {
+  const pairs = topPairs();
+  if (!pairs.length) return EOL.rules.splitCapped(POOL, rng);
+  const teams = [[], []];
+  const used = new Set();
+  for (const side of [0, 1]) {
+    let pick = null;
+    for (let tries = 0; tries < 40 && !pick; tries++) {
+      const c = pairs[Math.floor(rng() * pairs.length)];
+      if (!used.has(c.a.card.id) && !used.has(c.b.card.id)) pick = c;
+    }
+    if (!pick) return EOL.rules.splitCapped(POOL, rng);
+    teams[side].push(pick.a, pick.b);
+    used.add(pick.a.card.id);
+    used.add(pick.b.card.id);
+  }
+  const rest = POOL.filter((e) => !used.has(e.card.id));
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const t = rest[i];
+    rest[i] = rest[j];
+    rest[j] = t;
+  }
+  let k = 0;
+  for (const side of [0, 1]) {
+    while (teams[side].length < 6 && k < rest.length) {
+      const e = rest[k++];
+      if (!capBlocked6(teams[side], e.card)) teams[side].push(e);
+    }
+  }
+  return teams[0].length === 6 && teams[1].length === 6 ? teams : EOL.rules.splitCapped(POOL, rng);
+}
+
+/* =============================================================
+   THE REAL RANKED PIPELINE: draft 12 -> ban 2 -> field 6
+   -------------------------------------------------------------
+   Everything above builds a team of six directly, which is a game
+   the ranked ladder does not actually play. A real match drafts
+   twelve, each side deletes two of the opponent's, and six of the
+   surviving ten are fielded.
+
+   That middle step is not cosmetic. A card can hold a 50% win rate
+   purely because opponents keep removing it - the win rate is low
+   BECAUSE the threat is high. Without a ban phase that relationship
+   is invisible, and it is exactly what happened in the live match
+   that prompted this work.
+
+   Returns per-side detail so the caller can record pick / ban /
+   field rates separately, not just who won.
+   ============================================================= */
+function draftTwelve(rng, forceId) {
+  const pool = POOL.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const t = pool[i];
+    pool[i] = pool[j];
+    pool[j] = t;
+  }
+  const decks = [[], []];
+  /* FORCED INCLUSION. Pin the hero into P1 before drafting starts.
+     This is what breaks the circularity in --teams draft: if the
+     heuristic undervalues a card it never gets drafted, so it never
+     gets data, so nobody learns it is broken - and the heuristic's
+     weights came from earlier sim results in the first place. */
+  if (forceId) {
+    const idx = pool.findIndex((e) => e.card.id === forceId);
+    if (idx >= 0) decks[0].push(pool.splice(idx, 1)[0]);
+  }
+  let packNo = 0;
+  let p = 0;
+  const DECK = EOL.deckRules.DECK_SIZE;
+  const capDeck = (team, card) =>
+    team.filter((e) => e.card.role === card.role).length >= EOL.deckRules.MAX_PER_ROLE;
+
+  while ((decks[0].length < DECK || decks[1].length < DECK) && p + 3 <= pool.length) {
+    const pack = pool.slice(p, p + 3);
+    p += 3;
+    const opener = packNo % 2;
+    for (const side of [opener, 1 - opener]) {
+      if (decks[side].length >= DECK) continue;
+      const legal = pack.filter((e) => e && !capDeck(decks[side], e.card));
+      const from = legal.length ? legal : pack.filter(Boolean);
+      if (!from.length) break;
+      let best = from[0];
+      let bestV = -Infinity;
+      for (const cand of from) {
+        const v = DAI.value(decks[side], cand, { size: DECK }) + rng() * 2.5;
+        if (v > bestV) {
+          bestV = v;
+          best = cand;
+        }
+      }
+      decks[side].push(best);
+      pack[pack.indexOf(best)] = null;
+    }
+    packNo++;
+  }
+  /* top up from whatever is left if the pool ran short */
+  for (const side of [0, 1]) {
+    while (decks[side].length < DECK && p < pool.length) {
+      const e = pool[p++];
+      if (e && !capDeck(decks[side], e.card)) decks[side].push(e);
+    }
+  }
+  return decks;
+}
+
+/* Which two of THEIR twelve do we delete? Uses the same denyValue
+   heuristic the in-game bot uses, so ban rate reflects the bot's
+   actual threat assessment rather than a second opinion invented
+   here. */
+function chooseBans(theirDeck, myDeck, rng) {
+  const scored = theirDeck.map((e, i) => ({
+    i,
+    v: DAI.denyValue(theirDeck, e, myDeck || []) + rng() * 1.2,
+  }));
+  scored.sort((a, b) => b.v - a.v);
+  return scored.slice(0, EOL.deckRules.BANS).map((x) => theirDeck[x.i]);
+}
+
+/* Six of the surviving ten. Greedy on the same value function, with
+   the same rails the game uses: never field without a Tank or Medic
+   if one survived. The FIELD has no role cap - only the deck does.
+
+   `pin` forces a hero onto the board. Forcing it into the DECK is not
+   enough: the fielding step is the draft AI's judgement too, so a
+   card it dislikes gets drafted and then benched. Measured on a test
+   run, 17 of 57 forced heroes never actually played - including
+   Merlin, the card that started this whole investigation. A forced
+   pass that never fields the hero measures nothing. */
+function chooseSix(pool, rng, pin) {
+  const team = [];
+  const rest = pool.slice();
+  if (pin) {
+    const i = rest.findIndex((e) => e.card.id === pin);
+    if (i >= 0) team.push(rest.splice(i, 1)[0]);
+  }
+  while (team.length < 6 && rest.length) {
+    const counts = {};
+    team.forEach((t) => (counts[t.card.role] = (counts[t.card.role] || 0) + 1));
+    const left = 6 - team.length;
+    const has = (role) => rest.some((e) => e.card.role === role);
+    let forced = null;
+    if (!counts.Tank && has('Tank') && left <= 2) forced = 'Tank';
+    else if (!counts.Medic && has('Medic') && left <= 1) forced = 'Medic';
+
+    let best = -1;
+    let bestV = -Infinity;
+    for (let pass = 0; pass < 2 && best < 0; pass++) {
+      for (let i = 0; i < rest.length; i++) {
+        if (forced && pass === 0 && rest[i].card.role !== forced) continue;
+        const v = DAI.value(team, rest[i], { size: 6 }) + rng() * 1.5;
+        if (v > bestV) {
+          bestV = v;
+          best = i;
+        }
+      }
+    }
+    if (best < 0) best = 0;
+    team.push(rest.splice(best, 1)[0]);
+  }
+  return team;
+}
+
+/* The whole ranked pipeline for one game. */
+function rankedTeams(rng, forceId) {
+  const decks = draftTwelve(rng, forceId);
+  if (decks[0].length !== EOL.deckRules.DECK_SIZE || decks[1].length !== EOL.deckRules.DECK_SIZE) {
+    return { teams: EOL.rules.splitCapped(POOL, rng), decks: null, bans: null };
+  }
+  /* Bans are simultaneous and blind: each side chooses without
+     seeing the other's choice, so neither is computed from the
+     other's result. */
+  let bansOn1 = chooseBans(decks[0], decks[1], rng); // P2 deletes from P1
+  const bansOn0 = chooseBans(decks[1], decks[0], rng); // P1 deletes from P2
+  /* A forced hero is exempt from being banned. Otherwise the most
+     threatening cards - exactly the ones worth measuring - get
+     deleted in most of their own forced games and produce the
+     thinnest data of all. Ban RATE is measured by the unforced
+     passes, where nothing is exempt, so nothing is lost. */
+  if (forceId) bansOn1 = bansOn1.filter((e) => e.card.id !== forceId);
+  const banned = [new Set(bansOn1.map((e) => e.card.id)), new Set(bansOn0.map((e) => e.card.id))];
+  const survivors = [
+    decks[0].filter((e) => !banned[0].has(e.card.id)),
+    decks[1].filter((e) => !banned[1].has(e.card.id)),
+  ];
+  const teams = [chooseSix(survivors[0], rng, forceId), chooseSix(survivors[1], rng)];
+  return { teams, decks, bans: [bansOn1, bansOn0] };
+}
+
+function pickTeams(rng) {
+  if (TEAM_MODE === 'draft') return draftTeams(rng);
+  if (TEAM_MODE === 'pairs') return pairTeams(rng);
+  /* Deck legality: at most 3 heroes per role per team (EOL.rules) -
+     same rule as the deck builder and battle team generation. */
+  return EOL.rules.splitCapped(POOL, rng);
+}
+
 /* ================= one game ================= */
 function runGame(seed) {
   const rng = rng32(seed);
 
-  /* Deck legality: at most 3 heroes per role per team (EOL.rules) —
-     same rule as the deck builder and battle team generation. */
-  const picked = EOL.rules.splitCapped(POOL, rng);
-  const B = E.createBattle(picked[0], picked[1], { rng, roleAware: true, simulation: true });
+  /* HOW THE TWO TEAMS ARE CHOSEN.
+     -------------------------------------------------------------
+     Random draw answers "is this card fair in a vacuum". It does NOT
+     answer "is this card fair when someone builds around it", and a
+     human opponent always asks the second question. A live match
+     exposed the gap: Merlin's discount is mediocre beside five
+     random heroes and enormous beside expensive ones, but random
+     draw samples that pairing almost never, so the sim measured his
+     floor while the player used his ceiling.
+
+       --teams random  (default) unbiased coverage, every hero plays
+       --teams draft             both sides snake-draft with the real
+                                 draft AI, which is what a human does
+       --teams pairs             force a known synergy pair onto each
+                                 side, random filler around it
+
+     Draft and pairs are deliberately BIASED. That is the point: they
+     measure the ceiling. Run them alongside random, never instead of
+     it, and treat a large gap between the two as the finding. */
+  /* With --bans we run the real ladder pipeline (draft 12, ban 2,
+     field 6) and record what each phase decided. Without it, the
+     legacy direct-to-six selection. */
+  let picked,
+    ranked = null;
+  if (WITH_BANS) {
+    ranked = rankedTeams(rng, FORCE_ID);
+    picked = ranked.teams;
+  } else {
+    picked = pickTeams(rng);
+  }
+  /* Every simulated game is fought in the COLOSSEUM (no modifiers) so hero
+     win rates stay comparable across balance passes and are never skewed by
+     terrain. Override with --field <id> to measure a specific battlefield. */
+  const B = E.createBattle(picked[0], picked[1], {
+    rng,
+    roleAware: true,
+    simulation: true,
+    field: SIM_FIELD,
+  });
+  if (args.noCarry) B.noCarry = true; // A/B control: old reset-every-round economy
+  if (args.noComeback) B.noComeback = true; // A/B control: disable the deficit grant
 
   const U = {}; // uid -> {id, name, role, side, slot, passiveKey}
   const G = {}; // heroId -> per-game accumulators
@@ -740,7 +1125,18 @@ function runGame(seed) {
   });
 
   EOL.onBattleEvent = null;
-  return { B, U, G, gp, firstDeathRound, secondDeathRound, firstSigRound, firstKillerId, fkWon };
+  return {
+    B,
+    U,
+    G,
+    gp,
+    ranked,
+    firstDeathRound,
+    secondDeathRound,
+    firstSigRound,
+    firstKillerId,
+    fkWon,
+  };
 }
 
 function foldCast(rr, bucket) {
@@ -843,6 +1239,14 @@ function mergeHero(id, g) {
 function foldGame(gd) {
   const { B, G, gp } = gd;
   A.meta.games++;
+  /* pick / ban / field counters, when the ranked pipeline ran */
+  if (gd.ranked && gd.ranked.decks) {
+    const ds = (id) =>
+      (A.draftStats[id] = A.draftStats[id] || { drafted: 0, banned: 0, fielded: 0 });
+    gd.ranked.decks.forEach((deck) => deck.forEach((e) => ds(e.card.id).drafted++));
+    (gd.ranked.bans || []).forEach((list) => list.forEach((e) => ds(e.card.id).banned++));
+    gd.ranked.teams.forEach((team) => team.forEach((e) => ds(e.card.id).fielded++));
+  }
   if (gp.winner === 'P1') A.p1Wins++;
   else if (gp.winner === 'P2') A.p2Wins++;
   else A.draws++;
@@ -959,4 +1363,3 @@ for (let i = 0; i < N_GAMES; i++) {
 console.log(`done: ${N_GAMES} games in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 fs.writeFileSync(OUT_JSON, JSON.stringify(A));
 console.log('wrote', OUT_JSON, (fs.statSync(OUT_JSON).size / 1e6).toFixed(1) + 'MB');
-

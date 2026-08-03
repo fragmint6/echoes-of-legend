@@ -1,8 +1,8 @@
-/* Faction: Roma — Triumph (the kill-engine)
+/* Faction: Roma - Triumph (the kill-engine)
    -------------------------------------------------------------
    Roma's keyword is the TRIUMPH: the faction is paid for kills
    rather than for setup. Where Olympus/Huaxia bank Marks and
-   Grimmwood banks debuffs, Roma banks CORPSES — nearly every card
+   Grimmwood banks debuffs, Roma banks CORPSES - nearly every card
    reads the death of a unit (either side's) and converts it into a
    permanent or multi-round advantage.
 
@@ -15,11 +15,11 @@
 
    Engine mechanics this file introduces:
 
-     targetHasBuff        a condition — true when the target is carrying
+     targetHasBuff        a condition - true when the target is carrying
                           a Shield or any positive stat buff. Brutus
                           punishes the enemy's setup turn, which makes
                           him the natural answer to Camelot/Olympus.
-     killedCountAtLeast   a condition — how many units THIS cast has
+     killedCountAtLeast   a condition - how many units THIS cast has
                           killed so far. Lets Caesar tell a single kill
                           from a genuine double-kill.
 
@@ -43,7 +43,7 @@ window.EOL.registerFaction({
     {
       id: 'roma-julius-caesar',
       name: 'Julius Caesar',
-      rarity: 'legendary',
+      rarity: 'epic',
       role: 'Bruiser',
       element: 'Physical',
       stats: { hp: 6480, atk: 1730, def: 25 },
@@ -52,7 +52,7 @@ window.EOL.registerFaction({
         name: 'Veni, Vidi, Vici',
         /* Balance pass 2026-07-31: 55 -> 45 EN. At 55 EN Caesar fired only
            2.91 times/appearance against Guy of Gisborne's 4.37 at 45 EN,
-           for less damage per cast — he finished 11.1pp below the Bruiser
+           for less damage per cast - he finished 11.1pp below the Bruiser
            average. The strict double-kill gate already caps his upside, so
            the cost was paying for a snowball that rarely happens. */
         cost: 45,
@@ -91,7 +91,7 @@ window.EOL.registerFaction({
     {
       id: 'roma-spartacus',
       name: 'Spartacus',
-      rarity: 'epic',
+      rarity: 'common',
       role: 'Tank',
       element: 'Physical',
       stats: { hp: 7210, atk: 1030, def: 30 },
@@ -113,7 +113,16 @@ window.EOL.registerFaction({
               stackTag: 'i-am-spartacus',
               maxStacks: 4,
             },
-            { k: 'shield', pctMaxHp: 12, to: 'self' },
+            /* Naturally bounded (an ally can only die five times) but
+               tagged for the same reason as Red Riding Hood: the note
+               says "Max: 4 stacks" and every rider should honour it. */
+            {
+              k: 'shield',
+              pctMaxHp: 12,
+              to: 'self',
+              stackTag: 'i-am-spartacus-shield',
+              maxStacks: 4,
+            },
           ],
         },
       },
@@ -122,7 +131,7 @@ window.EOL.registerFaction({
     {
       id: 'roma-augustus',
       name: 'Augustus',
-      rarity: 'epic',
+      rarity: 'rare',
       role: 'Medic',
       element: 'Light',
       stats: { hp: 4900, atk: 1080, def: 20 },
@@ -157,7 +166,7 @@ window.EOL.registerFaction({
     {
       id: 'roma-cicero',
       name: 'Cicero',
-      rarity: 'rare',
+      rarity: 'epic',
       role: 'Controller',
       element: 'Magic',
       stats: { hp: 4835, atk: 1160, def: 20 },
@@ -167,21 +176,25 @@ window.EOL.registerFaction({
         /* Balance pass 2026-07-31: 40 -> 25 EN and 80% -> 110% ATK.
            At 40 EN Philippics returned 1,299 value/cast against 2,790
            (Zhuge Liang) and 3,676 (Morgan le Fay) at the same price, and
-           Cicero finished at 27.8% — the roster's worst hero. Silence only
+           Cicero finished at 27.8% - the roster's worst hero. Silence only
            blocks signature Actives, so the AI answers it with a Basic and
            the headline effect underdelivers; the card is re-priced as the
            cheap tempo tool it actually is. */
         cost: 25,
-        text: 'Deal <b>110% ATK Magic Damage</b>, <b>Silence</b> that enemy for 1 round and raise their ability cost by <b>12 Energy</b> for 1 round, applying <b>Exposed</b> for 1 round if they were already debuffed.',
+        text: 'Deal <b>110% ATK Magic Damage</b> <b>+15% for each debuff</b> already on the target, <b>Silence</b> them for 1 round and raise their Skill cost by <b>12 Energy</b> for 1 round, applying <b>Exposed</b> for 1 round if they were already debuffed.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
             /* Exposed is tested FIRST, against the debuffs the target
-               already had — otherwise this cast's own Silence would
+               already had - otherwise this cast's own Silence would
                always satisfy its own condition (same rule as Friar Tuck). */
             { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
-            { k: 'dmg', power: 1.1, element: 'Magic' },
+            /* STACKING PAYOFF 2026-07-31: the damage conversion that makes
+               piling debuffs worth doing. Silence now denies a whole turn,
+               so Cicero is the faction's control piece - this lets the rest
+               of the team's debuffs pay him back. Capped at 4 stacks. */
+            { k: 'dmg', power: 1.1, element: 'Magic', perDebuff: 0.15, perDebuffMax: 3 },
             { k: 'silence', turns: 1, to: 'targets', when: 'now' },
             { k: 'costMod', unit: true, flat: 12, turns: 1, to: 'targets', when: 'now' },
           ],
@@ -231,7 +244,7 @@ window.EOL.registerFaction({
            (14.4%) at the faction's highest price; the kill-gated payoff was
            conditional on the thing he was least able to do. */
         cost: 55,
-        text: 'Deal <b>70% ATK Light Damage</b> to the enemy front row, then grant all allies <b>10% ATK</b> for 2 rounds — raised to <b>20% ATK</b> and a <b>10% Max HP Shield</b> if the strike defeated an enemy.',
+        text: 'Deal <b>70% ATK Light Damage</b> to the enemy front row, then grant all allies <b>10% ATK</b> for 2 rounds - raised to <b>20% ATK</b> and a <b>10% Max HP Shield</b> if the strike defeated an enemy.',
         note: null,
         spec: {
           /* row 'front' + pick 'all' = the whole front row while it lives,
