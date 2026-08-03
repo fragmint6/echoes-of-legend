@@ -1058,6 +1058,55 @@ section('D. DEATH-TRIGGERED PASSIVES');
   ok(healed === 2, `Augustus: Pax Romana heals exactly 2 allies (got ${healed})`);
 }
 
+{
+  /* Sun Wukong (72 Transformations): the rebirth must CLEAR everything he
+     was carrying when he died - otherwise he returns still Burning and
+     Exposed, i.e. straight back into the death that just happened - while
+     keeping what the rebirth itself grants. */
+  const B = board(['huaxia-sun-wukong', ...FILL.slice(0, 5)]);
+  const wu = U(B, 'huaxia-sun-wukong');
+
+  wu.flags.burn = 3;
+  wu.flags.exposed = 2;
+  wu.flags.marked = 1;
+  wu.flags.healMod = -50;
+  wu.buffs.push({ stat: 'atk', amt: -40, turns: 9, tag: 'test-debuff' });
+
+  /* Drive him to the wouldDie trigger with real enemy actions. Skip any
+     foe whose basic would heal or cannot reach him. */
+  let fired = false;
+  for (let i = 0; i < 80 && !fired; i++) {
+    wu.hp = 1;
+    wu.shield = 0;
+    wu.flags.untargetable = 0;
+    const foe = foesOf(B).filter((u) => u.alive)[i % 6];
+    if (!foe) break;
+    foe.flags.silence = 0;
+    const ab = E.roleAbility(foe);
+    if (!E.legalTargets(B, foe, ab).some((t) => t.uid === wu.uid)) continue;
+    E.useAbility(B, foe, ab, [wu]);
+    if (wu.usedOnce && wu.usedOnce.wouldDie) fired = true;
+  }
+
+  ok(fired, 'Sun Wukong setup: the wouldDie passive actually fired');
+  ok(wu.alive, 'Sun Wukong: survives his first death');
+  ok(
+    !wu.flags.burn && !wu.flags.exposed && !wu.flags.marked && !wu.flags.healMod,
+    'Sun Wukong: rebirth clears every debuff FLAG he died with'
+  );
+  ok(
+    !wu.buffs.some((b) => b.amt < 0),
+    'Sun Wukong: rebirth clears every negative stat buff he died with'
+  );
+  ok(wu.shield > 0, 'Sun Wukong: the rebirth Shield survives its own wipe');
+  ok(wu.flags.taunt > 0, 'Sun Wukong: the rebirth Provoke survives its own wipe');
+  ok(wu.flags.untargetable > 0, 'Sun Wukong: rebirth Untargetable survives its own wipe');
+  ok(
+    wu.buffs.some((b) => b.stat === 'atk' && b.amt > 0),
+    'Sun Wukong: the rebirth ATK buff survives its own wipe'
+  );
+}
+
 /* ---------------- summary ---------------- */
 console.log('\n' + '='.repeat(64));
 if (fail) {

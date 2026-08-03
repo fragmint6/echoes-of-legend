@@ -27,7 +27,13 @@
     ['Shield', 'shield'],
     ['Provokes', 'taunt'],
     ['Provoking', 'taunt'],
+    /* The bare verb was missing, so "and Provoke for 1 round" rendered
+       uncoloured on 7 cards (King Arthur, Hercules x2, Hansel & Gretel,
+       Guan Yu, Sun Wukong, Horus) while "Provokes" beside it was gold.
+       Longest-first sorting keeps Provokes/Provoking winning over it. */
+    ['Provoke', 'taunt'],
     ['taunt', 'taunt'],
+    ['Untargetable', 'untargetable'],
     ['Silenced', 'silence'],
     ['Silence', 'silence'],
   ];
@@ -133,9 +139,27 @@
       desc: 'Crits deal 1.5x.',
     },
     // --- stat debuffs ---
-    'atk-': { icon: 'ra-broken-bone', kind: 'debuff', label: 'ATK Down', color: '#ff9d9d', desc: '' },
-    'def-': { icon: 'ra-cracked-shield', kind: 'debuff', label: 'DEF Down', color: '#ff9d9d', desc: '' },
-    'crit-': { icon: 'ra-target-arrows', kind: 'debuff', label: 'Crit Down', color: '#ff9d9d', desc: '' },
+    'atk-': {
+      icon: 'ra-broken-bone',
+      kind: 'debuff',
+      label: 'ATK Down',
+      color: '#ff9d9d',
+      desc: '',
+    },
+    'def-': {
+      icon: 'ra-cracked-shield',
+      kind: 'debuff',
+      label: 'DEF Down',
+      color: '#ff9d9d',
+      desc: '',
+    },
+    'crit-': {
+      icon: 'ra-target-arrows',
+      kind: 'debuff',
+      label: 'Crit Down',
+      color: '#ff9d9d',
+      desc: '',
+    },
     // --- flags / special states ---
     taunt: {
       icon: 'ra-shield',
@@ -263,4 +287,3 @@
     return out;
   };
 })();
-

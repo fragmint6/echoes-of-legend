@@ -41,6 +41,14 @@ def main():
             j = s.index("icon: '", i)
             k = s.index("\n", j)
             indent = " " * (j - s.rindex("\n", 0, j) - 1)
+            # The icon line is not guaranteed to end in a comma (one card in
+            # yamato.js did not), and inserting after a comma-less line
+            # produces `icon: 'x'  art: '...'` - a syntax error that only
+            # surfaces at runtime. Add the separator when it is missing.
+            line = s[j:k].rstrip()
+            if not line.endswith(","):
+                s = s[:j] + line + "," + s[k:]
+                k = j + len(line) + 1
             s = s[:k] + "\n" + indent + "art: 'assets/heroes/%s.png'," % hid + s[k:]
             added += 1
         if added:
@@ -50,6 +58,27 @@ def main():
         print("%-14s %2d wired (+%d)" % (fac, wired, added))
 
     print("\n%d of 57 heroes have art" % total)
+
+    # Never leave a data file that will not parse. node is always present
+    # here (the sim suite runs on it), so use it as the authority.
+    import subprocess
+
+    bad = []
+    for fac in FACTIONS:
+        path = os.path.join(DATA, fac + ".js")
+        r = subprocess.run(
+            ["node", "-e",
+             "global.window=global;window.EOL={registerFaction:function(){}};"
+             "require(process.argv[1]);", path],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            bad.append((fac, r.stderr.strip().splitlines()[-1] if r.stderr else "?"))
+    if bad:
+        for fac, err in bad:
+            print("SYNTAX ERROR in data/%s.js: %s" % (fac, err))
+        return 1
+    print("all faction files parse")
     if missing:
         print("portrait with no matching card id:", missing)
         return 1

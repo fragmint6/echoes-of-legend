@@ -10,7 +10,7 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART = os.path.join(ROOT, "assets", "heroes")
-SIZE = 96
+SIZE = 128
 MAX_COLORS = 32
 SAFE = 0.78
 
@@ -42,7 +42,7 @@ def check(hid, path):
     # the only pixels actually lost are those BELOW the cut AND OUTSIDE
     # the ring - the bottom corners. Anything above the cut is meant to
     # break out of the ring; that is the effect, not a failure.
-    K = 1.2315
+    K = 1.4118
     CUT = 0.33
     r_px = SIZE / (2 * K)  # ring radius in canvas pixels
     cx = cy = SIZE / 2.0

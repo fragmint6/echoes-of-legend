@@ -2865,6 +2865,29 @@
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.alive = true;
           t.hp = Math.round(t.maxHp * (e.pctMaxHp / 100));
+          /* Generic `wipe` rider: a hero who comes back should come back
+             CLEAN. Without it a revive inherited whatever killed it -
+             Burn kept ticking, Exposed kept DEF at zero, and a stacked
+             ATK debuff persisted through death, so "revive with 30% HP"
+             could mean reviving straight back into a death sentence.
+             Runs BEFORE the rest of the revive's own effects, so shields
+             and buffs granted by the same passive survive. */
+          if (e.wipe) {
+            t.buffs.length = 0;
+            t.flags.burn = 0;
+            t.flags.exposed = 0;
+            t.flags.silence = 0;
+            t.flags.marked = 0;
+            t.flags.healMod = 0;
+            t.flags.taunt = 0;
+            t.flags.untargetable = 0;
+            t.shield = 0;
+            t.shieldSrc = null;
+            logMsg(B, 'cleanse', t.name + ' returns cleansed of all effects.', {
+              uid: t.uid,
+            });
+            emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid, what: ['all'], round: B.round });
+          }
           /* A revive necessarily un-kills its target, so any FOLLOWING
              effect aimed at `fallenAllies` finds nobody - the hero it
              wanted is alive again. A shield on the returning hero

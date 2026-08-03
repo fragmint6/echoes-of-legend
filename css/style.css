@@ -8920,11 +8920,26 @@ body[data-turn='player'] .turn-label {
   box-shadow:
     0 0 20px rgba(255, 70, 60, 0.45),
     inset 0 0 16px rgba(255, 60, 50, 0.16);
-  animation: ban-mark 0.32s var(--ease);
+  animation: ban-mark 0.34s var(--ease);
 }
+/* Confirming a ban flashes the red frame rather than scaling the card.
+   The old keyframe animated `transform: scale(0.94)`, which fought the
+   -3px hover lift on the same element: clicking made the card visibly
+   shrink then spring back, and because the pointer is still over it the
+   hover transform re-applied mid-animation. A glow-only cue carries the
+   same "registered" feedback with no geometry change. */
 @keyframes ban-mark {
-  from {
-    transform: scale(0.94);
+  0% {
+    border-color: rgba(255, 98, 87, 0.4);
+    box-shadow:
+      0 0 0 rgba(255, 70, 60, 0),
+      inset 0 0 0 rgba(255, 60, 50, 0);
+  }
+  45% {
+    border-color: #ff8a80;
+    box-shadow:
+      0 0 34px rgba(255, 90, 80, 0.75),
+      inset 0 0 26px rgba(255, 70, 60, 0.32);
   }
 }
 
@@ -14671,19 +14686,24 @@ body[data-gfx='low'] .turn-clock.crit {
    Above the cut the art is free, below it the ring's arc clips. So the
    top of the head breaks out while the body is held inside the sigil.
 
-     K   = 1.2315  art box size, in ring diameters
+     K   = 1.4118  art box size, in ring diameters
      CUT = 0.33    fraction of the circle KEPT above the cut, i.e. only the
                    top third is unmasked
 
-   K is solved, not eyeballed. `process_art.py` normalises every portrait
-   so its opaque pixels end at 90.6% down the canvas, so the art bottom
-   sits (0.906 - 0.5) x K ring-diameters below the ring centre. Setting
-   that equal to the ring's own radius of 0.5 gives
+   K is solved, not eyeballed. `process_art.py` fits art to whichever
+   dimension hits the canvas limit first, so a broad-shouldered hero is
+   width-limited and its art ends higher than a narrow one: measured
+   across the set the bottom edge lands between 85.4% and 90.6% down the
+   canvas. K is therefore solved for the SHORTEST case, so that even
+   Friar Tuck reaches the arc:
 
-     K = 0.5 / (0.906 - 0.5) = 1.2315
+     K = 0.5 / (0.854 - 0.5) = 1.4118
 
-   At K = 1.15 the art stopped 0.033 D short, which is the sliver of empty
-   space that was visible under every bust.
+   Solving for the median (1.2315) left the five width-limited heroes -
+   Friar Tuck, Little John, Hercules, Lancelot, Guy of Gisborne - still
+   floating above the bottom of the circle. Overshooting is free here:
+   anything past the arc is masked away, and the top third is meant to
+   overflow.
 
    This only works because every portrait now has a UNIFORM silhouette.
    Weapons and floating effects used to inflate the bounding box per hero
@@ -14693,25 +14713,25 @@ body[data-gfx='low'] .turn-clock.crit {
    is now body-only - see docs/ART-SPEC.md - so one fixed cut fits all 57.
 
    Derived values - change K or CUT and recompute ALL of them:
-     width      = 62 x K                       ->  76.35%
-     --art-r    = 50 / K                       ->  40.60% of the box
-     --art-cut  = 50 - 50/K + CUT/K x 100      ->  36.20% down the box
-     translateY = -(0.04 + 0.5 x K) / K x 100  -> -53.2481%
+     width      = 62 x K                       ->  87.53%
+     --art-r    = 50 / K                       ->  35.42% of the box
+     --art-cut  = 50 - 50/K + CUT/K x 100      ->  37.96% down the box
+     translateY = -(0.04 + 0.5 x K) / K x 100  -> -52.8333%
 
    The translate term must account for the ring's own -54% offset, not
    just centring: getting it "close" once put the mask 5.2px above the
    drawn ring, visible as art spilling past the bottom arc. The formula
    is card-size independent, so it holds at every breakpoint. */
 .art-portrait {
-  --art-k: 1.2315; /* box size, in ring diameters */
-  --art-r: 40.6%; /* ring radius, as % of box width */
-  --art-cut: 36.2%; /* mask cut line, down the box */
+  --art-k: 1.4118; /* box size, in ring diameters */
+  --art-r: 35.42%; /* ring radius, as % of box width */
+  --art-cut: 37.96%; /* mask cut line, down the box */
 
   top: 50%;
   left: 50%;
   width: calc(62% * var(--art-k));
   aspect-ratio: 1;
-  transform: translate(-50%, -53.2481%);
+  transform: translate(-50%, -52.8333%);
   z-index: 1;
   /* NOTE: `circle <percentage>` is invalid CSS and silently voids the
      whole declaration - the two-value `ellipse` form is required. The box
@@ -14733,7 +14753,7 @@ body[data-gfx='low'] .turn-clock.crit {
    the mask is sized in percentages of this element, so scaling it scales
    the mask circle off the drawn ring (measured 4.2px adrift at 1.05). */
 .card:hover .art-portrait {
-  transform: translate(-50%, calc(-53.2481% - 1.8%));
+  transform: translate(-50%, calc(-52.8333% - 1.8%));
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.7));
 }
 
@@ -14792,7 +14812,11 @@ body[data-gfx='low'] .turn-clock.crit {
   pointer-events: none;
 }
 .bart-portrait {
-  inset: 17% 5% 13%;
+  /* Raised: the foot scrim and name plate cover the bottom of the tile, so
+     sitting the art low buried the costume. Pulling it up trades empty
+     space at the top for visible art, and the status chips still clear the
+     face because they occupy the top-left corner only. */
+  inset: 8% 5% 22%;
   z-index: 0;
   filter: drop-shadow(0 2px 7px rgba(0, 0, 0, 0.6));
   transition: transform 0.3s var(--ease);
@@ -14948,4 +14972,1606 @@ body[data-gfx='low'] .bart-portrait {
 }
 body[data-gfx='low'] .st-float {
   transition: none;
+}
+
+/* =============================================================
+   PAINTED BATTLEFIELD BACKDROPS
+   -------------------------------------------------------------
+   One 512x284 pixel-art image per field, sitting UNDER every
+   effect layer so particles, haze and the per-field animations
+   keep running on top. See docs/BATTLEFIELD-ART-SPEC.md.
+
+   Fields without art simply have no background-image here and
+   fall through to the CSS pattern already on .sc-fx1, so the
+   roster of boards can be illustrated a few at a time.
+
+   The art is authored at 512 wide and displayed at ~1688, an
+   x3.3 upscale. `pixelated` keeps that crisp; without it the
+   browser smooths it into a blurry photo and the pixel-art
+   character portraits stop matching their own background.
+   ============================================================= */
+.scene .sc-art {
+  display: block;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+.board[data-field] .sc-art {
+  opacity: 1;
+}
+/* Where painted art exists the procedural pattern layers would show through
+   it as a competing second texture - the Narrow Pass rendered its CSS
+   chevron stripes straight over the painted canyon walls. They are hidden
+   rather than deleted, because fields WITHOUT art still rely on them. */
+.board.has-art .sc-fx1,
+.board.has-art .sc-grade,
+.board.has-art .sc-fx2 {
+  display: none;
+}
+/* .sc-haze is shared: most fields use it as the centre glow and vignette,
+   but a few (Narrow Pass) also hang a second wall pattern on it. Reset the
+   image and keep only the glow, so the vignette survives. */
+.board.has-art .sc-haze {
+  background:
+    radial-gradient(
+      ellipse 70% 62% at 50% 46%,
+      color-mix(in srgb, var(--bf-3) 12%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(ellipse 86% 80% at 50% 50%, transparent 52%, rgba(2, 4, 9, 0.62) 100%);
+  animation: none;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+/* The cards need to stay the brightest thing on the board, and a painted
+   backdrop is busier than a flat gradient. This darkens the art alone,
+   leaving the effect layers above it at full strength. */
+.board.has-art .sc-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 74% 68% at 50% 50%, rgba(4, 6, 12, 0.5) 0%, rgba(4, 6, 12, 0.72) 100%),
+    linear-gradient(180deg, rgba(4, 6, 12, 0.42) 0%, transparent 26%, rgba(4, 6, 12, 0.5) 100%);
+}
+/* Low graphics keeps the painted backdrop: it is a single static image
+   with no per-frame cost, and it is the main thing making the board feel
+   like a place. Only its transition is dropped. */
+body[data-gfx='low'] .scene .sc-art {
+  transition: none;
+}
+
+/* The image itself is set inline from the battlefield's `art` field, so a
+   new board needs no CSS at all - only the data entry and the PNG. */
+.board.has-art .sc-art {
+  background-image: var(--bf-art);
+}
+
+/* Commander avatar in the battle HUD. The signed-in player's Google
+   picture renders here; everyone else falls back to a glyph. */
+.pf-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* =============================================================
+   TIME-LOW WARNING
+   -------------------------------------------------------------
+   A red vignette that pulses over the whole viewport during the
+   last 10 seconds of YOUR turn. The 34px clock dial beside the
+   round counter is easy to miss while reading the board, and
+   running out of time silently passes your turn.
+
+   Fixed-position and pointer-events:none so it sits above the
+   board but never intercepts a click. It deliberately does NOT
+   cover the centre - the pulse lives in the frame edges where
+   peripheral vision picks it up without hiding the cards.
+   ============================================================= */
+.time-warn {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 74% 68% at 50% 50%,
+    transparent 46%,
+    rgba(255, 40, 45, 0.16) 74%,
+    rgba(255, 30, 36, 0.42) 100%
+  );
+  box-shadow: inset 0 0 120px rgba(255, 40, 45, 0.34);
+}
+body.time-low .time-warn {
+  animation: time-heartbeat 1s ease-in-out infinite;
+}
+/* Two beats per cycle, like a pulse: a strong systole and a lighter
+   second beat, so it reads as urgency rather than a plain fade. */
+@keyframes time-heartbeat {
+  0% {
+    opacity: 0.15;
+  }
+  12% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.28;
+  }
+  42% {
+    opacity: 0.72;
+  }
+  62% {
+    opacity: 0.16;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+/* Low graphics keeps this: it is a warning, not decoration. It only
+   slows to a calmer pulse. */
+body[data-gfx='low'].time-low .time-warn {
+  animation: time-heartbeat 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.time-low .time-warn {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+/* =============================================================
+   MAIN MENU PARALLAX BACKDROP
+   -------------------------------------------------------------
+   Four 640x360 pixel-art tiles, each repeating in x and scrolling
+   at its own speed. Depth comes from the speed ratio, not from
+   blur: the sky barely moves, the foreground rocks slide fastest.
+
+   Only shown on the home view. The battle board draws its own
+   scene, and leaving this running underneath would waste frames
+   on something nobody can see.
+
+   Sizing: `background-size: auto 100%` scales each tile to the
+   viewport height and lets the width repeat as often as it needs,
+   so the art never stretches and never shows a vertical gap. The
+   tiles are authored seamless in x - see tools/process_menu.py.
+   ============================================================= */
+.menu-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.7s var(--ease);
+}
+body[data-view='home'] .menu-bg {
+  opacity: 1;
+}
+.menu-bg > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+/* Each layer is twice the viewport wide and translates by exactly half
+   its own width, so the loop is a whole number of tiles and cannot drift.
+   Speeds are deliberately slow - this is ambience, not a runner. */
+.menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog) {
+  width: 200%;
+  /* Longhand, NOT the `animation:` shorthand. The shorthand resets every
+     sub-property it omits, so it set animation-duration back to 0s and
+     silently killed the scroll on all four layers - they loaded and
+     rendered but never moved. */
+  animation-name: mb-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes mb-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+.mb-sky {
+  background-image: url('../assets/menu/sky.png');
+  animation-duration: 420s;
+}
+.mb-far {
+  background-image: url('../assets/menu/far.png');
+  animation-duration: 260s;
+}
+.mb-mid {
+  background-image: url('../assets/menu/mid.png');
+  animation-duration: 150s;
+}
+.mb-near {
+  background-image: url('../assets/menu/near.png');
+  animation-duration: 90s;
+}
+
+/* Ground fog: a soft band that breathes across the ruins, sitting between
+   the mid and near layers in depth even though it is drawn above them.
+   Pure CSS, so it costs nothing to store. */
+.mb-fog {
+  background:
+    radial-gradient(ellipse 60% 30% at 20% 82%, rgba(150, 170, 220, 0.1), transparent 70%),
+    radial-gradient(ellipse 70% 26% at 72% 86%, rgba(170, 150, 220, 0.09), transparent 70%);
+  animation: mb-fog-breathe 26s ease-in-out infinite;
+}
+@keyframes mb-fog-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(2.5%, -1.2%, 0);
+  }
+}
+
+/* Embers drifting up from the torchlit ruins. Twenty spans, each given a
+   different lane, size and duration by nth-child so no two share a path. */
+.mb-embers {
+  inset: 0;
+}
+.mb-embers i {
+  position: absolute;
+  bottom: -6px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #ffb45c;
+  box-shadow: 0 0 5px rgba(255, 170, 80, 0.85);
+  opacity: 0;
+  animation: mb-ember linear infinite;
+}
+@keyframes mb-ember {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+  12% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 18px), -78vh, 0) scale(1);
+  }
+}
+.mb-embers i:nth-child(1) {
+  left: 4%;
+  --dx: 22px;
+  animation-duration: 15s;
+  animation-delay: 0s;
+}
+.mb-embers i:nth-child(2) {
+  left: 11%;
+  --dx: -14px;
+  animation-duration: 19s;
+  animation-delay: 3s;
+}
+.mb-embers i:nth-child(3) {
+  left: 17%;
+  --dx: 30px;
+  animation-duration: 13s;
+  animation-delay: 7s;
+}
+.mb-embers i:nth-child(4) {
+  left: 23%;
+  --dx: -22px;
+  animation-duration: 21s;
+  animation-delay: 1s;
+}
+.mb-embers i:nth-child(5) {
+  left: 29%;
+  --dx: 16px;
+  animation-duration: 17s;
+  animation-delay: 9s;
+}
+.mb-embers i:nth-child(6) {
+  left: 35%;
+  --dx: -28px;
+  animation-duration: 23s;
+  animation-delay: 4s;
+}
+.mb-embers i:nth-child(7) {
+  left: 41%;
+  --dx: 24px;
+  animation-duration: 14s;
+  animation-delay: 11s;
+}
+.mb-embers i:nth-child(8) {
+  left: 47%;
+  --dx: -18px;
+  animation-duration: 20s;
+  animation-delay: 2s;
+}
+.mb-embers i:nth-child(9) {
+  left: 53%;
+  --dx: 26px;
+  animation-duration: 16s;
+  animation-delay: 8s;
+}
+.mb-embers i:nth-child(10) {
+  left: 59%;
+  --dx: -24px;
+  animation-duration: 22s;
+  animation-delay: 5s;
+}
+.mb-embers i:nth-child(11) {
+  left: 64%;
+  --dx: 20px;
+  animation-duration: 18s;
+  animation-delay: 13s;
+}
+.mb-embers i:nth-child(12) {
+  left: 69%;
+  --dx: -16px;
+  animation-duration: 15s;
+  animation-delay: 6s;
+}
+.mb-embers i:nth-child(13) {
+  left: 74%;
+  --dx: 28px;
+  animation-duration: 24s;
+  animation-delay: 10s;
+}
+.mb-embers i:nth-child(14) {
+  left: 79%;
+  --dx: -20px;
+  animation-duration: 17s;
+  animation-delay: 0s;
+}
+.mb-embers i:nth-child(15) {
+  left: 84%;
+  --dx: 14px;
+  animation-duration: 19s;
+  animation-delay: 12s;
+}
+.mb-embers i:nth-child(16) {
+  left: 88%;
+  --dx: -26px;
+  animation-duration: 13s;
+  animation-delay: 3s;
+}
+.mb-embers i:nth-child(17) {
+  left: 92%;
+  --dx: 18px;
+  animation-duration: 21s;
+  animation-delay: 8s;
+}
+.mb-embers i:nth-child(18) {
+  left: 96%;
+  --dx: -12px;
+  animation-duration: 16s;
+  animation-delay: 14s;
+}
+.mb-embers i:nth-child(19) {
+  left: 8%;
+  --dx: -30px;
+  animation-duration: 25s;
+  animation-delay: 6s;
+}
+.mb-embers i:nth-child(20) {
+  left: 45%;
+  --dx: 12px;
+  animation-duration: 12s;
+  animation-delay: 16s;
+}
+
+/* Final grade: darkens the edges and the centre so the title and buttons
+   always sit on a quiet field, whatever the parallax has drifted into
+   place behind them. Without it the ruins compete with the wordmark. */
+.mb-grade {
+  background:
+    /* the pool the title and buttons sit in - measured against the real
+       content box, which occupies the middle 36% x 56% of the viewport */
+    radial-gradient(
+      ellipse 42% 46% at 50% 46%,
+      rgba(4, 6, 12, 0.93) 0%,
+      rgba(4, 6, 12, 0.86) 40%,
+      rgba(4, 6, 12, 0.5) 72%,
+      transparent 92%
+    ),
+    linear-gradient(180deg, rgba(4, 6, 12, 0.7) 0%, transparent 20%, rgba(4, 6, 12, 0.86) 100%),
+    radial-gradient(ellipse 88% 82% at 50% 50%, transparent 44%, rgba(3, 4, 9, 0.8) 100%);
+}
+
+/* The old flat grid would sit on top of the art as a second texture. */
+body[data-view='home'] .bg-grid {
+  opacity: 0.25;
+}
+
+/* Low graphics: keep the SCENE, drop the motion. A static painted backdrop
+   costs one composite; four scrolling layers plus twenty embers do not. */
+body[data-gfx='low'] .menu-bg > span {
+  animation: none !important;
+}
+body[data-gfx='low'] .mb-embers {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-bg > span {
+    animation: none !important;
+  }
+  .mb-embers {
+    display: none;
+  }
+}
+
+/* -------------------------------------------------------------
+   ATMOSPHERIC MOTES
+   -------------------------------------------------------------
+   Fine drifting particles across the whole menu scene. Three depth
+   bands: `far` is many tiny slow specks, `near` is a few larger
+   faster ones. That size/speed pairing is what makes the air read
+   as having volume instead of one flat sheet of dots.
+
+   Each mote falls the full viewport height and sways sideways, so
+   the loop never lines up into a visible grid. Positions and
+   timings are generated, not hand-written, so no two share a path.
+   ------------------------------------------------------------- */
+.mb-motes {
+  inset: 0;
+}
+.mb-motes i {
+  position: absolute;
+  top: -8px;
+  border-radius: 50%;
+  background: #dce8ff;
+  opacity: 0;
+  animation-name: mb-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.mb-motes.far i {
+  width: 1px;
+  height: 1px;
+  box-shadow: 0 0 2px rgba(200, 220, 255, 0.5);
+}
+.mb-motes.mid i {
+  width: 2px;
+  height: 2px;
+  box-shadow: 0 0 3px rgba(200, 220, 255, 0.6);
+}
+.mb-motes.near i {
+  width: 3px;
+  height: 3px;
+  background: #eef4ff;
+  box-shadow: 0 0 5px rgba(220, 235, 255, 0.75);
+}
+/* Sway is applied as a second, faster animation on the same element so
+   the fall stays perfectly linear and the drift reads as air movement. */
+@keyframes mb-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  8% {
+    opacity: var(--peak, 0.5);
+  }
+  88% {
+    opacity: var(--peak, 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 40px), 108vh, 0);
+  }
+}
+
+.mb-motes.far i:nth-child(1) {
+  left: 86.2%;
+  --dx: -45px;
+  --peak: 0.29;
+  animation-duration: 39.8s;
+  animation-delay: -25.1s;
+}
+.mb-motes.far i:nth-child(2) {
+  left: 37.2%;
+  --dx: 37px;
+  --peak: 0.22;
+  animation-duration: 41.9s;
+  animation-delay: -38s;
+}
+.mb-motes.far i:nth-child(3) {
+  left: 20.1%;
+  --dx: -61px;
+  --peak: 0.32;
+  animation-duration: 48.1s;
+  animation-delay: -17.9s;
+}
+.mb-motes.far i:nth-child(4) {
+  left: 68.4%;
+  --dx: -29px;
+  --peak: 0.3;
+  animation-duration: 36.6s;
+  animation-delay: -15.5s;
+}
+.mb-motes.far i:nth-child(5) {
+  left: 62.4%;
+  --dx: -53px;
+  --peak: 0.25;
+  animation-duration: 35.8s;
+  animation-delay: -33.9s;
+}
+.mb-motes.far i:nth-child(6) {
+  left: 67.6%;
+  --dx: -62px;
+  --peak: 0.3;
+  animation-duration: 45.8s;
+  animation-delay: -24.1s;
+}
+.mb-motes.far i:nth-child(7) {
+  left: 19.7%;
+  --dx: -34px;
+  --peak: 0.29;
+  animation-duration: 35.7s;
+  animation-delay: -30.9s;
+}
+.mb-motes.far i:nth-child(8) {
+  left: 7.8%;
+  --dx: 61px;
+  --peak: 0.29;
+  animation-duration: 52.6s;
+  animation-delay: -31s;
+}
+.mb-motes.far i:nth-child(9) {
+  left: 51.8%;
+  --dx: -58px;
+  --peak: 0.24;
+  animation-duration: 46.5s;
+  animation-delay: -34.7s;
+}
+.mb-motes.far i:nth-child(10) {
+  left: 41.4%;
+  --dx: 39px;
+  --peak: 0.29;
+  animation-duration: 34.3s;
+  animation-delay: -2.4s;
+}
+.mb-motes.far i:nth-child(11) {
+  left: 53.2%;
+  --dx: 56px;
+  --peak: 0.25;
+  animation-duration: 35.3s;
+  animation-delay: -2.7s;
+}
+.mb-motes.far i:nth-child(12) {
+  left: 89%;
+  --dx: -33px;
+  --peak: 0.22;
+  animation-duration: 50.7s;
+  animation-delay: -45.8s;
+}
+.mb-motes.far i:nth-child(13) {
+  left: 79.7%;
+  --dx: -67px;
+  --peak: 0.23;
+  animation-duration: 47s;
+  animation-delay: -30.9s;
+}
+.mb-motes.far i:nth-child(14) {
+  left: 19.8%;
+  --dx: 47px;
+  --peak: 0.27;
+  animation-duration: 46.7s;
+  animation-delay: -21.2s;
+}
+.mb-motes.far i:nth-child(15) {
+  left: 50.9%;
+  --dx: -38px;
+  --peak: 0.24;
+  animation-duration: 42.6s;
+  animation-delay: -37s;
+}
+.mb-motes.far i:nth-child(16) {
+  left: 75.9%;
+  --dx: 61px;
+  --peak: 0.21;
+  animation-duration: 51.3s;
+  animation-delay: -12.7s;
+}
+.mb-motes.far i:nth-child(17) {
+  left: 59.1%;
+  --dx: 41px;
+  --peak: 0.22;
+  animation-duration: 56.7s;
+  animation-delay: -52.1s;
+}
+.mb-motes.far i:nth-child(18) {
+  left: 4.3%;
+  --dx: 34px;
+  --peak: 0.29;
+  animation-duration: 57.9s;
+  animation-delay: -29.1s;
+}
+.mb-motes.far i:nth-child(19) {
+  left: 86.7%;
+  --dx: -33px;
+  --peak: 0.28;
+  animation-duration: 58s;
+  animation-delay: -10.4s;
+}
+.mb-motes.far i:nth-child(20) {
+  left: 48.3%;
+  --dx: -39px;
+  --peak: 0.29;
+  animation-duration: 48.1s;
+  animation-delay: -12.4s;
+}
+.mb-motes.far i:nth-child(21) {
+  left: 85.3%;
+  --dx: 48px;
+  --peak: 0.22;
+  animation-duration: 37.5s;
+  animation-delay: -4.6s;
+}
+.mb-motes.far i:nth-child(22) {
+  left: 52.2%;
+  --dx: -36px;
+  --peak: 0.25;
+  animation-duration: 39.4s;
+  animation-delay: -11.8s;
+}
+.mb-motes.far i:nth-child(23) {
+  left: 3.5%;
+  --dx: 44px;
+  --peak: 0.27;
+  animation-duration: 52.5s;
+  animation-delay: -37.8s;
+}
+.mb-motes.far i:nth-child(24) {
+  left: 6.8%;
+  --dx: 58px;
+  --peak: 0.32;
+  animation-duration: 36.5s;
+  animation-delay: -11.5s;
+}
+.mb-motes.far i:nth-child(25) {
+  left: 9.7%;
+  --dx: 66px;
+  --peak: 0.29;
+  animation-duration: 50.3s;
+  animation-delay: -4.7s;
+}
+.mb-motes.far i:nth-child(26) {
+  left: 64.2%;
+  --dx: 40px;
+  --peak: 0.22;
+  animation-duration: 35.9s;
+  animation-delay: -10.7s;
+}
+.mb-motes.far i:nth-child(27) {
+  left: 81.5%;
+  --dx: 32px;
+  --peak: 0.26;
+  animation-duration: 34.6s;
+  animation-delay: -20s;
+}
+.mb-motes.far i:nth-child(28) {
+  left: 22.6%;
+  --dx: -52px;
+  --peak: 0.32;
+  animation-duration: 48.2s;
+  animation-delay: -45.3s;
+}
+.mb-motes.far i:nth-child(29) {
+  left: 27.3%;
+  --dx: -30px;
+  --peak: 0.28;
+  animation-duration: 34s;
+  animation-delay: -29.7s;
+}
+.mb-motes.far i:nth-child(30) {
+  left: 45.8%;
+  --dx: -70px;
+  --peak: 0.29;
+  animation-duration: 44.1s;
+  animation-delay: -37.9s;
+}
+.mb-motes.mid i:nth-child(1) {
+  left: 33.6%;
+  --dx: 73px;
+  --peak: 0.44;
+  animation-duration: 36.5s;
+  animation-delay: -19.9s;
+}
+.mb-motes.mid i:nth-child(2) {
+  left: 25%;
+  --dx: 73px;
+  --peak: 0.37;
+  animation-duration: 37.6s;
+  animation-delay: -26.4s;
+}
+.mb-motes.mid i:nth-child(3) {
+  left: 82.1%;
+  --dx: -38px;
+  --peak: 0.51;
+  animation-duration: 28.1s;
+  animation-delay: -1.3s;
+}
+.mb-motes.mid i:nth-child(4) {
+  left: 23%;
+  --dx: 58px;
+  --peak: 0.38;
+  animation-duration: 23.2s;
+  animation-delay: -2.1s;
+}
+.mb-motes.mid i:nth-child(5) {
+  left: 52.5%;
+  --dx: -81px;
+  --peak: 0.38;
+  animation-duration: 29.5s;
+  animation-delay: -24.6s;
+}
+.mb-motes.mid i:nth-child(6) {
+  left: 39.8%;
+  --dx: 45px;
+  --peak: 0.39;
+  animation-duration: 35.7s;
+  animation-delay: -25s;
+}
+.mb-motes.mid i:nth-child(7) {
+  left: 62.2%;
+  --dx: -65px;
+  --peak: 0.37;
+  animation-duration: 30.1s;
+  animation-delay: -19.2s;
+}
+.mb-motes.mid i:nth-child(8) {
+  left: 12%;
+  --dx: -61px;
+  --peak: 0.48;
+  animation-duration: 24s;
+  animation-delay: -6.8s;
+}
+.mb-motes.mid i:nth-child(9) {
+  left: 6.6%;
+  --dx: 66px;
+  --peak: 0.46;
+  animation-duration: 27.5s;
+  animation-delay: -13.1s;
+}
+.mb-motes.mid i:nth-child(10) {
+  left: 96.7%;
+  --dx: 65px;
+  --peak: 0.45;
+  animation-duration: 30.8s;
+  animation-delay: -21.5s;
+}
+.mb-motes.mid i:nth-child(11) {
+  left: 74.5%;
+  --dx: -46px;
+  --peak: 0.4;
+  animation-duration: 22.4s;
+  animation-delay: -5.3s;
+}
+.mb-motes.mid i:nth-child(12) {
+  left: 99.2%;
+  --dx: -83px;
+  --peak: 0.46;
+  animation-duration: 29.2s;
+  animation-delay: -26.4s;
+}
+.mb-motes.mid i:nth-child(13) {
+  left: 0.1%;
+  --dx: 65px;
+  --peak: 0.5;
+  animation-duration: 28.7s;
+  animation-delay: -4.5s;
+}
+.mb-motes.mid i:nth-child(14) {
+  left: 4%;
+  --dx: 88px;
+  --peak: 0.41;
+  animation-duration: 26s;
+  animation-delay: -17.7s;
+}
+.mb-motes.mid i:nth-child(15) {
+  left: 80.3%;
+  --dx: -77px;
+  --peak: 0.46;
+  animation-duration: 22.8s;
+  animation-delay: -6.1s;
+}
+.mb-motes.mid i:nth-child(16) {
+  left: 87.6%;
+  --dx: -37px;
+  --peak: 0.48;
+  animation-duration: 35.1s;
+  animation-delay: -30.8s;
+}
+.mb-motes.mid i:nth-child(17) {
+  left: 80.8%;
+  --dx: 83px;
+  --peak: 0.52;
+  animation-duration: 35.6s;
+  animation-delay: -14.2s;
+}
+.mb-motes.mid i:nth-child(18) {
+  left: 31.8%;
+  --dx: 56px;
+  --peak: 0.52;
+  animation-duration: 29.1s;
+  animation-delay: -2.1s;
+}
+.mb-motes.mid i:nth-child(19) {
+  left: 30.8%;
+  --dx: -49px;
+  --peak: 0.49;
+  animation-duration: 31.1s;
+  animation-delay: -20.8s;
+}
+.mb-motes.mid i:nth-child(20) {
+  left: 85%;
+  --dx: -52px;
+  --peak: 0.4;
+  animation-duration: 22.7s;
+  animation-delay: -22.2s;
+}
+.mb-motes.near i:nth-child(1) {
+  left: 37.1%;
+  --dx: 52px;
+  --peak: 0.47;
+  animation-duration: 21s;
+  animation-delay: -0.4s;
+}
+.mb-motes.near i:nth-child(2) {
+  left: 64%;
+  --dx: 75px;
+  --peak: 0.67;
+  animation-duration: 17.7s;
+  animation-delay: -7.9s;
+}
+.mb-motes.near i:nth-child(3) {
+  left: 17.9%;
+  --dx: 119px;
+  --peak: 0.64;
+  animation-duration: 18s;
+  animation-delay: -11.5s;
+}
+.mb-motes.near i:nth-child(4) {
+  left: 86.2%;
+  --dx: -90px;
+  --peak: 0.61;
+  animation-duration: 18.7s;
+  animation-delay: -7.6s;
+}
+.mb-motes.near i:nth-child(5) {
+  left: 26.8%;
+  --dx: -96px;
+  --peak: 0.5;
+  animation-duration: 16s;
+  animation-delay: -5.9s;
+}
+.mb-motes.near i:nth-child(6) {
+  left: 74.6%;
+  --dx: -102px;
+  --peak: 0.64;
+  animation-duration: 14.8s;
+  animation-delay: -9s;
+}
+.mb-motes.near i:nth-child(7) {
+  left: 18.1%;
+  --dx: -107px;
+  --peak: 0.69;
+  animation-duration: 21.8s;
+  animation-delay: -17.1s;
+}
+.mb-motes.near i:nth-child(8) {
+  left: 24.1%;
+  --dx: 67px;
+  --peak: 0.69;
+  animation-duration: 21.8s;
+  animation-delay: -8.3s;
+}
+.mb-motes.near i:nth-child(9) {
+  left: 79%;
+  --dx: -78px;
+  --peak: 0.48;
+  animation-duration: 20.5s;
+  animation-delay: -15.5s;
+}
+.mb-motes.near i:nth-child(10) {
+  left: 73%;
+  --dx: -127px;
+  --peak: 0.47;
+  animation-duration: 23s;
+  animation-delay: -11.4s;
+}
+
+body[data-gfx='low'] .mb-motes {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mb-motes {
+    display: none;
+  }
+}
+
+/* Hero portrait in the hover panel. Same art as the card, scaled to the
+   small 58x82 plate - the panel is the one place a player reads a hero's
+   details, so showing the icon glyph there while the card showed art was
+   an inconsistency. */
+.dk-portrait.has-art {
+  overflow: hidden;
+}
+.dk-portrait.has-art img {
+  width: 132%;
+  height: auto;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  /* the art is a square bust; the plate is portrait, so anchor the head
+     near the top and let the chest run off the bottom edge */
+  margin-top: 12%;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
+  user-select: none;
+}
+
+/* =============================================================
+   BATTLEFIELD ATMOSPHERE
+   -------------------------------------------------------------
+   Two extra layers on top of the existing 40 `sc-particles`:
+
+     .sc-drift    30 fine ambient motes, same on every board
+     .sc-weather  24 per-field particles - snow, ash, spores,
+                  bubbles - styled from the data-field selector
+
+   Painted backdrops made the boards look good but static; this is
+   what makes them feel alive. Both layers sit above the art and
+   below the cards, and neither takes pointer events.
+   ============================================================= */
+.sc-drift,
+.sc-weather {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  overflow: hidden;
+}
+.sc-drift i,
+.sc-weather i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform;
+}
+/* ---- ambient drift: slow rising specks in the field's glow colour ---- */
+.sc-drift i {
+  width: 2px;
+  height: 2px;
+  background: var(--bf-3, #fff);
+  box-shadow: 0 0 4px var(--bf-3, #fff);
+  animation-name: sc-drift-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes sc-drift-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  16% {
+    opacity: var(--op, 0.42);
+  }
+  80% {
+    opacity: calc(var(--op, 0.42) * 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 14px), var(--dy, -180px), 0) scale(1.1);
+  }
+}
+/* ---- weather: default is a gentle fall, overridden per field ---- */
+.sc-weather i {
+  width: 3px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.85);
+  animation-name: sc-weather-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes sc-weather-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -8%, 0);
+  }
+  10% {
+    opacity: var(--op, 0.5);
+  }
+  85% {
+    opacity: var(--op, 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 30px), 104%, 0);
+  }
+}
+
+.sc-drift i:nth-child(1) {
+  left: 24%;
+  top: 72.8%;
+  --dx: 6px;
+  --dy: -215px;
+  --op: 0.54;
+  animation-duration: 9.2s;
+  animation-delay: -0.9s;
+}
+.sc-drift i:nth-child(2) {
+  left: 14.5%;
+  top: 27.6%;
+  --dx: 11px;
+  --dy: -138px;
+  --op: 0.36;
+  animation-duration: 15.2s;
+  animation-delay: -8.7s;
+}
+.sc-drift i:nth-child(3) {
+  left: 91.2%;
+  top: 22.8%;
+  --dx: -5px;
+  --dy: -243px;
+  --op: 0.42;
+  animation-duration: 9.1s;
+  animation-delay: -3.6s;
+}
+.sc-drift i:nth-child(4) {
+  left: 47.3%;
+  top: 33.9%;
+  --dx: 8px;
+  --dy: -281px;
+  --op: 0.34;
+  animation-duration: 10.8s;
+  animation-delay: -6.9s;
+}
+.sc-drift i:nth-child(5) {
+  left: 27.8%;
+  top: 34.4%;
+  --dx: 19px;
+  --dy: -166px;
+  --op: 0.48;
+  animation-duration: 9.1s;
+  animation-delay: -8s;
+}
+.sc-drift i:nth-child(6) {
+  left: 5.9%;
+  top: 90.3%;
+  --dx: 2px;
+  --dy: -229px;
+  --op: 0.29;
+  animation-duration: 10.3s;
+  animation-delay: -5.1s;
+}
+.sc-drift i:nth-child(7) {
+  left: 59.1%;
+  top: 75.7%;
+  --dx: 27px;
+  --dy: -192px;
+  --op: 0.45;
+  animation-duration: 16.9s;
+  animation-delay: -0.9s;
+}
+.sc-drift i:nth-child(8) {
+  left: 35.1%;
+  top: 34.6%;
+  --dx: 4px;
+  --dy: -183px;
+  --op: 0.43;
+  animation-duration: 16.9s;
+  animation-delay: -8.6s;
+}
+.sc-drift i:nth-child(9) {
+  left: 92.8%;
+  top: 31.4%;
+  --dx: -20px;
+  --dy: -201px;
+  --op: 0.55;
+  animation-duration: 16.5s;
+  animation-delay: -3.3s;
+}
+.sc-drift i:nth-child(10) {
+  left: 83.5%;
+  top: 45.1%;
+  --dx: -3px;
+  --dy: -249px;
+  --op: 0.29;
+  animation-duration: 15.7s;
+  animation-delay: -6s;
+}
+.sc-drift i:nth-child(11) {
+  left: 74.1%;
+  top: 77.3%;
+  --dx: 1px;
+  --dy: -253px;
+  --op: 0.26;
+  animation-duration: 13.8s;
+  animation-delay: -11.6s;
+}
+.sc-drift i:nth-child(12) {
+  left: 58.2%;
+  top: 48.6%;
+  --dx: 9px;
+  --dy: -274px;
+  --op: 0.49;
+  animation-duration: 12.6s;
+  animation-delay: -3.3s;
+}
+.sc-drift i:nth-child(13) {
+  left: 48.3%;
+  top: 38.8%;
+  --dx: -19px;
+  --dy: -212px;
+  --op: 0.33;
+  animation-duration: 16.7s;
+  animation-delay: -14.1s;
+}
+.sc-drift i:nth-child(14) {
+  left: 55.5%;
+  top: 20.1%;
+  --dx: 12px;
+  --dy: -292px;
+  --op: 0.39;
+  animation-duration: 16.4s;
+  animation-delay: -13.4s;
+}
+.sc-drift i:nth-child(15) {
+  left: 34.9%;
+  top: 93.2%;
+  --dx: -25px;
+  --dy: -204px;
+  --op: 0.29;
+  animation-duration: 9.8s;
+  animation-delay: -6.7s;
+}
+.sc-drift i:nth-child(16) {
+  left: 72.8%;
+  top: 61.3%;
+  --dx: 22px;
+  --dy: -267px;
+  --op: 0.28;
+  animation-duration: 15.7s;
+  animation-delay: -0.2s;
+}
+.sc-drift i:nth-child(17) {
+  left: 90.3%;
+  top: 56.1%;
+  --dx: -13px;
+  --dy: -195px;
+  --op: 0.45;
+  animation-duration: 12.3s;
+  animation-delay: -11.5s;
+}
+.sc-drift i:nth-child(18) {
+  left: 47%;
+  top: 93.3%;
+  --dx: 10px;
+  --dy: -278px;
+  --op: 0.29;
+  animation-duration: 19.2s;
+  animation-delay: -12s;
+}
+.sc-drift i:nth-child(19) {
+  left: 55.7%;
+  top: 34.9%;
+  --dx: -12px;
+  --dy: -220px;
+  --op: 0.47;
+  animation-duration: 17.7s;
+  animation-delay: -4.4s;
+}
+.sc-drift i:nth-child(20) {
+  left: 7.7%;
+  top: 58.8%;
+  --dx: 23px;
+  --dy: -173px;
+  --op: 0.37;
+  animation-duration: 18.2s;
+  animation-delay: -5.2s;
+}
+.sc-drift i:nth-child(21) {
+  left: 34.9%;
+  top: 33.4%;
+  --dx: -16px;
+  --dy: -158px;
+  --op: 0.54;
+  animation-duration: 18s;
+  animation-delay: -13.2s;
+}
+.sc-drift i:nth-child(22) {
+  left: 1.2%;
+  top: 37.5%;
+  --dx: -29px;
+  --dy: -147px;
+  --op: 0.36;
+  animation-duration: 13.8s;
+  animation-delay: -0.3s;
+}
+.sc-drift i:nth-child(23) {
+  left: 86.6%;
+  top: 40.2%;
+  --dx: 17px;
+  --dy: -123px;
+  --op: 0.48;
+  animation-duration: 18.8s;
+  animation-delay: -10s;
+}
+.sc-drift i:nth-child(24) {
+  left: 9.4%;
+  top: 81.8%;
+  --dx: 8px;
+  --dy: -223px;
+  --op: 0.42;
+  animation-duration: 12.6s;
+  animation-delay: -9.3s;
+}
+.sc-drift i:nth-child(25) {
+  left: 27.2%;
+  top: 98.4%;
+  --dx: 0px;
+  --dy: -296px;
+  --op: 0.55;
+  animation-duration: 19s;
+  animation-delay: -13.7s;
+}
+.sc-drift i:nth-child(26) {
+  left: 32.3%;
+  top: 54.8%;
+  --dx: 9px;
+  --dy: -289px;
+  --op: 0.43;
+  animation-duration: 15.9s;
+  animation-delay: -8.9s;
+}
+.sc-drift i:nth-child(27) {
+  left: 51.7%;
+  top: 74.6%;
+  --dx: 17px;
+  --dy: -256px;
+  --op: 0.48;
+  animation-duration: 19s;
+  animation-delay: -8.4s;
+}
+.sc-drift i:nth-child(28) {
+  left: 64.9%;
+  top: 49.2%;
+  --dx: -26px;
+  --dy: -290px;
+  --op: 0.3;
+  animation-duration: 19.7s;
+  animation-delay: -18.6s;
+}
+.sc-drift i:nth-child(29) {
+  left: 5.5%;
+  top: 65%;
+  --dx: 29px;
+  --dy: -215px;
+  --op: 0.41;
+  animation-duration: 10.5s;
+  animation-delay: -6.5s;
+}
+.sc-drift i:nth-child(30) {
+  left: 52.7%;
+  top: 64.8%;
+  --dx: 16px;
+  --dy: -254px;
+  --op: 0.35;
+  animation-duration: 18.6s;
+  animation-delay: -9.3s;
+}
+.sc-weather i:nth-child(1) {
+  left: 72.4%;
+  --dx: 50px;
+  --op: 0.33;
+  animation-duration: 15.4s;
+  animation-delay: -1s;
+}
+.sc-weather i:nth-child(2) {
+  left: 10.8%;
+  --dx: -9px;
+  --op: 0.34;
+  animation-duration: 14.1s;
+  animation-delay: -2.5s;
+}
+.sc-weather i:nth-child(3) {
+  left: 45.1%;
+  --dx: -66px;
+  --op: 0.52;
+  animation-duration: 9.8s;
+  animation-delay: -8.3s;
+}
+.sc-weather i:nth-child(4) {
+  left: 47.6%;
+  --dx: 5px;
+  --op: 0.51;
+  animation-duration: 12.9s;
+  animation-delay: -3s;
+}
+.sc-weather i:nth-child(5) {
+  left: 16.3%;
+  --dx: -15px;
+  --op: 0.51;
+  animation-duration: 9.5s;
+  animation-delay: -1.5s;
+}
+.sc-weather i:nth-child(6) {
+  left: 1.7%;
+  --dx: 17px;
+  --op: 0.47;
+  animation-duration: 7.3s;
+  animation-delay: -0.5s;
+}
+.sc-weather i:nth-child(7) {
+  left: 37.2%;
+  --dx: 32px;
+  --op: 0.42;
+  animation-duration: 13.1s;
+  animation-delay: -5.9s;
+}
+.sc-weather i:nth-child(8) {
+  left: 91.1%;
+  --dx: -48px;
+  --op: 0.52;
+  animation-duration: 14.1s;
+  animation-delay: -8.2s;
+}
+.sc-weather i:nth-child(9) {
+  left: 49.8%;
+  --dx: -53px;
+  --op: 0.49;
+  animation-duration: 8.4s;
+  animation-delay: -3s;
+}
+.sc-weather i:nth-child(10) {
+  left: 10.5%;
+  --dx: 22px;
+  --op: 0.59;
+  animation-duration: 10.5s;
+  animation-delay: -5.7s;
+}
+.sc-weather i:nth-child(11) {
+  left: 33.1%;
+  --dx: -70px;
+  --op: 0.52;
+  animation-duration: 12.1s;
+  animation-delay: -2.4s;
+}
+.sc-weather i:nth-child(12) {
+  left: 79.8%;
+  --dx: 57px;
+  --op: 0.58;
+  animation-duration: 8.9s;
+  animation-delay: -6.6s;
+}
+.sc-weather i:nth-child(13) {
+  left: 36.6%;
+  --dx: -44px;
+  --op: 0.31;
+  animation-duration: 7s;
+  animation-delay: -3.1s;
+}
+.sc-weather i:nth-child(14) {
+  left: 7.4%;
+  --dx: 43px;
+  --op: 0.3;
+  animation-duration: 13.7s;
+  animation-delay: -5.7s;
+}
+.sc-weather i:nth-child(15) {
+  left: 93.4%;
+  --dx: -57px;
+  --op: 0.46;
+  animation-duration: 14.2s;
+  animation-delay: -3.1s;
+}
+.sc-weather i:nth-child(16) {
+  left: 59.2%;
+  --dx: 65px;
+  --op: 0.43;
+  animation-duration: 10.2s;
+  animation-delay: -8s;
+}
+.sc-weather i:nth-child(17) {
+  left: 39.1%;
+  --dx: -17px;
+  --op: 0.44;
+  animation-duration: 13.2s;
+  animation-delay: -12.2s;
+}
+.sc-weather i:nth-child(18) {
+  left: 33.4%;
+  --dx: -5px;
+  --op: 0.54;
+  animation-duration: 13.1s;
+  animation-delay: -3.1s;
+}
+.sc-weather i:nth-child(19) {
+  left: 92.4%;
+  --dx: -24px;
+  --op: 0.37;
+  animation-duration: 13s;
+  animation-delay: -1.8s;
+}
+.sc-weather i:nth-child(20) {
+  left: 60.6%;
+  --dx: -44px;
+  --op: 0.61;
+  animation-duration: 13.7s;
+  animation-delay: -11s;
+}
+.sc-weather i:nth-child(21) {
+  left: 26.5%;
+  --dx: -54px;
+  --op: 0.57;
+  animation-duration: 11.4s;
+  animation-delay: -6.6s;
+}
+.sc-weather i:nth-child(22) {
+  left: 29.8%;
+  --dx: -1px;
+  --op: 0.66;
+  animation-duration: 14.1s;
+  animation-delay: -6.4s;
+}
+.sc-weather i:nth-child(23) {
+  left: 5.1%;
+  --dx: -7px;
+  --op: 0.38;
+  animation-duration: 14.5s;
+  animation-delay: -9.8s;
+}
+.sc-weather i:nth-child(24) {
+  left: 2.2%;
+  --dx: 39px;
+  --op: 0.39;
+  animation-duration: 10.2s;
+  animation-delay: -2.6s;
+}
+
+/* ---------- per-field weather ---------- */
+/* Narrow Pass: dust sifting down the canyon walls */
+.board[data-field='narrow-pass'] .sc-weather i {
+  width: 2px;
+  height: 2px;
+  background: rgba(214, 196, 168, 0.7);
+}
+/* Open Plains: seed fluff drifting sideways on the wind */
+.board[data-field='open-plains'] .sc-weather i {
+  width: 3px;
+  height: 3px;
+  background: rgba(230, 245, 200, 0.75);
+  animation-name: sc-weather-blow;
+}
+@keyframes sc-weather-blow {
+  0% {
+    opacity: 0;
+    transform: translate3d(-6%, 0, 0);
+  }
+  12% {
+    opacity: var(--op, 0.5);
+  }
+  88% {
+    opacity: var(--op, 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(112vw, var(--dx, 30px), 0);
+  }
+}
+/* Mana Spring: bubbles rising from the pool */
+.board[data-field='mana-spring'] .sc-weather i {
+  width: 4px;
+  height: 4px;
+  top: auto;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.9),
+    rgba(139, 224, 255, 0.35)
+  );
+  box-shadow: 0 0 6px rgba(139, 224, 255, 0.6);
+  animation-name: sc-weather-bubble;
+}
+@keyframes sc-weather-bubble {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  14% {
+    opacity: var(--op, 0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 30px), -96%, 0) scale(1.2);
+  }
+}
+/* Energy Void: shards falling UPWARD into the collapse */
+.board[data-field='energy-void'] .sc-weather i {
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  top: auto;
+  bottom: 0;
+  background: rgba(155, 139, 208, 0.8);
+  box-shadow: 0 0 6px rgba(155, 139, 208, 0.7);
+  animation-name: sc-weather-bubble;
+}
+/* Colosseum: sand and sparks kicked up off the arena floor */
+.board[data-field='colosseum'] .sc-weather i {
+  width: 2px;
+  height: 2px;
+  top: auto;
+  bottom: 0;
+  background: rgba(255, 216, 138, 0.8);
+  box-shadow: 0 0 5px rgba(224, 169, 59, 0.7);
+  animation-name: sc-weather-bubble;
+}
+/* Mirror Realm: slow glinting shards */
+.board[data-field='mirror-realm'] .sc-weather i {
+  width: 3px;
+  height: 3px;
+  background: rgba(226, 201, 255, 0.85);
+  box-shadow: 0 0 7px rgba(177, 140, 217, 0.7);
+}
+/* Spirit World: wisps rising through the drowned forest */
+.board[data-field='spirit-world'] .sc-weather i {
+  width: 3px;
+  height: 3px;
+  top: auto;
+  bottom: 0;
+  background: rgba(182, 245, 255, 0.75);
+  box-shadow: 0 0 8px rgba(111, 211, 232, 0.65);
+  animation-name: sc-weather-bubble;
+}
+/* Ancient Ruins: pollen and dust in the light shafts */
+.board[data-field='ancient-ruins'] .sc-weather i {
+  width: 2px;
+  height: 2px;
+  background: rgba(240, 220, 176, 0.7);
+}
+/* Hero's Trial: embers climbing from the cracks */
+.board[data-field='heros-trial'] .sc-weather i {
+  width: 3px;
+  height: 3px;
+  top: auto;
+  bottom: 0;
+  background: rgba(255, 170, 80, 0.9);
+  box-shadow: 0 0 7px rgba(255, 140, 50, 0.8);
+  animation-name: sc-weather-bubble;
+}
+/* Blood Battlefield: ash falling through the smoke */
+.board[data-field='blood-battlefield'] .sc-weather i {
+  width: 2px;
+  height: 2px;
+  background: rgba(90, 84, 84, 0.85);
+  box-shadow: 0 0 4px rgba(255, 138, 138, 0.35);
+}
+
+/* Low graphics drops the extra atmosphere but keeps the base 40 motes,
+   which already carry the board's identity. */
+body[data-gfx='low'] .sc-drift,
+body[data-gfx='low'] .sc-weather {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc-drift,
+  .sc-weather {
+    display: none;
+  }
 }

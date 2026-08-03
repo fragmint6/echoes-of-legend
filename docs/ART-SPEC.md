@@ -4,18 +4,18 @@ The authoritative brief for every hero portrait in Echoes of Legend. One
 entry per hero, written so any artist or generator produces a piece that
 sits in the same world as the other 56.
 
-Status: **22 of 57 implemented** (Camelot 6, Olympus 6, Sherwood 6,
-Grimmwood 4), all body-only. Every hero is specified; the rest await
-generation. Add art a batch at a time and run `python3 tools/wire_art.py` -
-cards without a portrait keep their icon glyph, so a partly-illustrated
-roster is a supported state.
+Status: **52 of 57 implemented**, bust framing, 128 x 128.
+
+- **remaining: 5** - Sekhmet, Isis, Nephthys, Snow White, Hansel & Gretel
 
 **Known outstanding:**
-- `grimmwood-snow-white` - the image generator's safety filter rejects this
-  one at the output stage, twice, across two rewordings. It is not a prompt
-  content problem we can see; try again later or author it by hand.
-- `olympus-athena` still carries ~6.4k pixels of detached sparkle from the
-  first pass and should be regenerated.
+- `grimmwood-snow-white` - the generator's safety filter rejected this one
+  at the OUTPUT stage twice, across two rewordings including a
+  deliberately plain one. Not a visible prompt-content problem; retry
+  later or author by hand.
+
+Add art a batch at a time, then run, in order:
+`shrink_sources.py` -> `process_art.py` -> `wire_art.py` -> `verify_art.py`.
 
 ---
 
@@ -25,7 +25,7 @@ These are not stylistic preferences. Break one and the art fails in the UI.
 
 | Constraint | Value | Why |
 | --- | --- | --- |
-| Canvas | **96 x 96**, square | Renders at 154px in collection (2x DPR = 308 device px) and ~90px in battle. 96 upscales cleanly with `pixelated`; 64 was too coarse for the collection circle. |
+| Canvas | **128 x 128**, square | Renders at 154px in the collection (x1.20) and ~127px in battle (x0.99, effectively 1:1). 96 was the original target and cost real detail - at that size the eyes, brow and beard tones collapse into each other. The whole shipped set is still well under 1 MB. |
 | Format | PNG-32, transparent background | The card supplies its own backdrop. A baked background breaks the circular mask. |
 | Palette | **32 colours max** per portrait | Keeps the pixel-art read honest. Anti-aliased gradients turn to mush at 96px. |
 | Anti-aliasing | **None.** Hard pixel edges only | The renderer uses `image-rendering: pixelated`. Soft edges fight it and look blurry. |
@@ -50,6 +50,48 @@ These are not stylistic preferences. Break one and the art fails in the UI.
 - Frames, borders, vignettes, drop shadows onto a background
 - Ground planes, horizons, scenery, interior sets
 - Anything in the corners: they are masked away
+
+#### Framing: bust, and why a tighter crop was rejected
+
+A tight head-and-shoulders crop was built, tested on ten heroes, and
+reverted.
+
+It did measurably sharpen the eyes. At bust scale one of Sun Wukong's eyes
+renders **8 x 4.5 px**, so eye white, iris and pupil average into mud - the
+"uncanny blended eyes" problem. Every resampler was tested first (LANCZOS,
+BOX, NEAREST, unsharp-then-resize, two-stage) and **all five produced the
+same mud**, so it is a feature-size problem that no processing change can
+fix. Cropping tighter took the eye to **7.1 px**.
+
+But the whole-figure read got worse. The costume is most of what identifies
+a hero at card size, and cropping it away made the roster look same-y.
+Judged on the rendered card rather than on a 6x blow-up, the bust wins.
+
+The prompt now asks explicitly for a distinct pupil, visible iris and clean
+whites, which recovers some of the eye clarity without losing the costume.
+
+#### Enclosed background pockets
+
+`cut_out()` reconstructs alpha by flood-filling inward **from the border**,
+because a global colour threshold would delete pale costume. That leaves a
+hole in the logic: background the figure fully *surrounds* is never reached.
+The gap between Tomoe Gozen's hair strand and her neck stayed opaque and
+kept the flattened checkerboard colour, rendering as a cream blob that is
+not in the source. Measured: **27 of 42 portraits** carried some, worst
+8.2% of canvas.
+
+`build_mask()` now sweeps for enclosed pockets after the border fill, but
+only removes ones that are **small AND narrow** - real gaps are thin
+slivers (Tomoe's are 20-133 px across), whereas a broad pale mass is
+costume.
+
+Colour alone cannot make this call. Kaguya's white junihitoe has the same
+tone *and* the same tonal spread (~44) as the checkerboard, so every
+per-pocket colour test that removed the cream also ate her robe. There is
+therefore a whole-image safety valve: if the pockets exceed 6% of the
+figure the art is presumed to have a genuinely near-white costume and only
+the border fill is used. Every hero loses at most 2.9% under the fix;
+Kaguya was 11.6%, so she is correctly skipped.
 
 #### Why weapons and effects are banned
 

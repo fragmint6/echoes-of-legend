@@ -67,6 +67,7 @@ window.EOL.registerFaction({
             {
               label: 'Wall against the front',
               icon: 'ra-shield',
+              art: 'assets/heroes/huaxia-qin-shi-huang.png',
               effects: [
                 { k: 'dmg', power: 0.7, element: 'Magic', frontOnly: true },
                 { k: 'mark', to: 'targets', frontOnly: true, when: 'now' },
@@ -110,6 +111,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-halberd',
+      art: 'assets/heroes/huaxia-lu-bu.png',
     },
     {
       id: 'huaxia-zhuge-liang',
@@ -135,6 +137,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crystal-ball',
+      art: 'assets/heroes/huaxia-zhuge-liang.png',
     },
     {
       id: 'huaxia-guan-yu',
@@ -159,6 +162,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-broadsword',
+      art: 'assets/heroes/huaxia-guan-yu.png',
     },
     {
       id: 'huaxia-hua-tuo',
@@ -195,6 +199,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-pawprint',
+      art: 'assets/heroes/huaxia-hua-tuo.png',
     },
     {
       id: 'huaxia-huang-zhong',
@@ -227,6 +232,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-arrow-cluster',
+      art: 'assets/heroes/huaxia-huang-zhong.png',
     },
     {
       id: 'huaxia-sun-wukong',
@@ -239,13 +245,16 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: '72 Transformations',
         cost: null,
-        text: 'The first time Sun Wukong would be defeated, immediately revive with <b>30% HP</b> and a <b>20% Max HP Shield</b>, become Untargetable and Provoke for 1 round, and gain <b>25% ATK</b> for the rest of the battle.',
+        text: 'The first time Sun Wukong would be defeated, immediately revive with <b>30% HP</b>, cleansed of every effect, and a <b>20% Max HP Shield</b>, become Untargetable and Provoke for 1 round, and gain <b>25% ATK</b> for the rest of the battle.',
         note: 'Once per battle.',
         passive: {
           trigger: 'wouldDie',
           oncePerBattle: true,
           effects: [
-            { k: 'revive', pctMaxHp: 30 },
+            /* `wipe` clears everything he was carrying when he died, so he
+               does not return still Burning or Exposed. The shield, ATK,
+               Provoke and Untargetable below are applied after it. */
+            { k: 'revive', pctMaxHp: 30, wipe: true },
             { k: 'shield', pctMaxHp: 20, to: 'self' },
             { k: 'untargetable', turns: 1, to: 'self' },
             { k: 'taunt', turns: 1, to: 'self' },
@@ -254,6 +263,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-aura',
+      art: 'assets/heroes/huaxia-sun-wukong.png',
     },
     {
       id: 'huaxia-nezha',
@@ -278,6 +288,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fire-symbol',
+      art: 'assets/heroes/huaxia-nezha.png',
     },
     {
       id: 'huaxia-mulan',
@@ -318,7 +329,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crossbow',
+      art: 'assets/heroes/huaxia-mulan.png',
     },
   ],
 });
-

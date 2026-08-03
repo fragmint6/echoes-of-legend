@@ -77,6 +77,7 @@ window.EOL.registerFaction({
       element: 'Shadow',
       stats: { hp: 4530, atk: 1955, def: 10 },
       icon: 'ra-bird-mask',
+      art: 'assets/heroes/duat-anubis.png',
       ability: {
         type: 'Active',
         name: 'Weighing of the Heart',
@@ -127,6 +128,7 @@ window.EOL.registerFaction({
       element: 'Light',
       stats: { hp: 4420, atk: 1900, def: 12 },
       icon: 'ra-bird-claw',
+      art: 'assets/heroes/duat-horus.png',
       ability: {
         type: 'Active',
         name: 'Eye That Does Not Close',
@@ -158,6 +160,7 @@ window.EOL.registerFaction({
       element: 'Light',
       stats: { hp: 4740, atk: 1880, def: 15 },
       icon: 'ra-radial-balance',
+      art: 'assets/heroes/duat-maat.png',
       ability: {
         type: 'Active',
         name: 'Feather Against the Heart',

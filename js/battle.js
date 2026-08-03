@@ -1217,12 +1217,14 @@
 
     fly.innerHTML =
       '<div class="dk-head">' +
-      '<div class="dk-portrait" style="--fc-primary:' +
+      '<div class="dk-portrait' +
+      (u.card.art ? ' has-art' : '') +
+      '" style="--fc-primary:' +
       u.faction.colors.primary +
       '">' +
-      '<i class="ra ' +
-      u.card.icon +
-      '"></i>' +
+      (u.card.art
+        ? '<img src="' + esc(u.card.art) + '" alt="" draggable="false" />'
+        : '<i class="ra ' + u.card.icon + '"></i>') +
       '</div>' +
       '<div class="dk-id">' +
       '<div class="dk-name">' +
@@ -1381,12 +1383,14 @@
     if (!card) return;
 
     var b = board.getBoundingClientRect();
-    var c = card.getBoundingClientRect();
     var h = fly.offsetHeight || 300;
     var PAD = 10;
 
-    /* Centre on the hovered card's row, then keep it on the board. */
-    var top = c.top - b.top + c.height / 2 - h / 2;
+    /* Always vertically centred on the BOARD, never on the hovered card.
+       Tracking the card's row made the panel jump to a different height
+       for every row, which reads as the panel moving around rather than
+       as a stable place to look. */
+    var top = (b.height - h) / 2;
     top = Math.max(PAD, Math.min(top, b.height - h - PAD));
     fly.style.top = top + 'px';
   }
@@ -1621,6 +1625,7 @@
       clockRaf = null;
     }
     clockSide = null;
+    document.body.classList.remove('time-low');
     var el = clockEl();
     if (el) {
       el.hidden = true;
@@ -1652,6 +1657,12 @@
       if (fill) fill.style.strokeDashoffset = CIRC * (1 - left / TURN_MS);
       el.classList.toggle('warn', secs <= 10 && secs > 5);
       el.classList.toggle('crit', secs <= 5);
+      /* Full-screen red heartbeat for the last 10 seconds of YOUR OWN
+         turn. The 34px clock dial is easy to miss while reading the
+         board, and running out of time silently passes the turn. Never
+         fires on the opponent's clock - their timer is information, not
+         a call to act. */
+      document.body.classList.toggle('time-low', side === 'player' && secs <= 10 && left > 0);
       if (left <= 0) {
         stopClock();
         /* Only ever force OUR OWN pass. Acting on the opponent's
@@ -3591,6 +3602,47 @@
      exactly those sixes from the preparation phase - the player array's
      order IS their formation; the enemy gets role-aware auto-formation.
      Bare start() keeps the legacy random-team path (tests, fallbacks). */
+  /* ---------------------------------------------------------
+     HUD COMMANDERS
+     -------------------------------------------------------------
+     Both name plates were hardcoded in index.html, so a ranked match
+     still read "You" vs "Enemy Bot" no matter who was playing. The
+     signed-in player's handle and avatar come from auth; the opponent's
+     name rides on the netplay controller as `label`.
+     --------------------------------------------------------- */
+  function avatarHtml(url, fallbackIcon) {
+    if (url) {
+      return '<img src="' + esc(url) + '" alt="" referrerpolicy="no-referrer" />';
+    }
+    return '<i class="ra ' + fallbackIcon + '"></i>';
+  }
+
+  function paintCommanders() {
+    var me = null;
+    try {
+      me = window.EOL.auth && window.EOL.auth.user ? window.EOL.auth.user() : null;
+    } catch (e) {
+      me = null;
+    }
+
+    var youName = (me && me.name) || 'You';
+    var pn = $('pf-name-player');
+    if (pn) pn.textContent = youName;
+    var pi = $('pf-player');
+    if (pi) pi.innerHTML = avatarHtml(me && me.avatar, 'ra-player');
+
+    /* Against the bot there is no opponent identity to show, so the
+       skull and "Enemy Bot" stay - they are correct, not a placeholder.
+       The `matches` table carries p1_name/p2_name but no avatar column,
+       so a real opponent gets their handle and the generic player glyph
+       rather than a broken image. */
+    var foeName = netCtl && netCtl.label ? netCtl.label : 'Enemy Bot';
+    var en = $('pf-name-enemy');
+    if (en) en.textContent = foeName;
+    var ei = $('pf-enemy');
+    if (ei) ei.innerHTML = avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
+  }
+
   function start(opts) {
     E = window.EOL.engine;
     AI = window.EOL.ai;
@@ -3657,8 +3709,27 @@
         boardEl.style.setProperty('--bf-1', B.field.colors.primary);
         boardEl.style.setProperty('--bf-2', B.field.colors.secondary);
         boardEl.style.setProperty('--bf-3', B.field.colors.glow);
+        /* Painted backdrop, when this field has one. Driven from the data
+           so a new board needs only its PNG and an `art` key - no CSS.
+           Fields without art keep their procedural pattern. */
+        if (B.field.art) {
+          boardEl.classList.add('has-art');
+          /* Resolve against the DOCUMENT, not the stylesheet. A bare
+             relative url() inside a custom property is resolved relative
+             to css/style.css, which turned this into /css/assets/... and
+             404'd on every field. */
+          boardEl.style.setProperty(
+            '--bf-art',
+            'url("' + new URL(B.field.art, document.baseURI).href + '")'
+          );
+        } else {
+          boardEl.classList.remove('has-art');
+          boardEl.style.removeProperty('--bf-art');
+        }
       } else {
         delete boardEl.dataset.field;
+        boardEl.classList.remove('has-art');
+        boardEl.style.removeProperty('--bf-art');
       }
     }
 
@@ -3712,9 +3783,7 @@
       }
     }
 
-    // profile icons come from each team's first hero's faction
-    $('pf-player').innerHTML = '<i class="ra ra-player"></i>';
-    $('pf-enemy').innerHTML = '<i class="ra ra-skull"></i>';
+    paintCommanders();
 
     render();
 

@@ -41,6 +41,41 @@
     <div class="bg-layer"></div>
     <div class="bg-grid"></div>
 
+    <!-- ==================== MENU PARALLAX ====================
+         Animated pixel-art backdrop for the main menu. Four layers,
+         each a 640x360 tile that repeats horizontally and scrolls at
+         its own speed, so the scene has real depth rather than one
+         flat image. Only rendered while body[data-view='home'].
+         Every layer is aria-hidden and pointer-events:none.
+         ======================================================== -->
+    <div class="menu-bg" id="menu-bg" aria-hidden="true">
+      <span class="mb-sky"></span>
+      <span class="mb-far"></span>
+      <span class="mb-mid"></span>
+      <span class="mb-near"></span>
+      <span class="mb-fog"></span>
+      <span class="mb-embers">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i
+        ><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <!-- Atmospheric drift: fine motes falling across the whole scene.
+           Three depth bands, each a different size and speed, so the air
+           reads as having volume rather than one flat sheet of dots. -->
+      <span class="mb-motes far">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i
+        ><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i><i></i><i></i
+        ><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="mb-motes mid">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i
+        ><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="mb-motes near">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="mb-grade"></span>
+    </div>
+
     <!-- ==================== HOME / DASHBOARD ==================== -->
     <section class="view home" data-view="home">
       <!-- graphics quality toggle: top-left of the main menu. Low mode
@@ -719,6 +754,11 @@
     </div>
     <div class="toasts" id="toasts" aria-live="polite"></div>
 
+    <!-- Red heartbeat vignette for the last 10 seconds of your turn.
+         Lives at body level so it can sit above the board without being
+         clipped by it. -->
+    <div class="time-warn" aria-hidden="true"></div>
+
     <!-- ==================== BATTLE ==================== -->
     <section class="view battle" data-view="battle">
       <!-- TOP: both commanders + energy -->
@@ -727,7 +767,7 @@
           <div class="pf-icon" id="pf-player"><i class="ra ra-player"></i></div>
           <div class="pf-body">
             <div class="pf-name">
-              You
+              <span id="pf-name-player">You</span>
               <span class="pf-alive"
                 ><i class="ra ra-health"></i><span id="alive-player">6</span></span
               >
@@ -778,7 +818,7 @@
               <span class="pf-alive"
                 ><i class="ra ra-health"></i><span id="alive-enemy">6</span></span
               >
-              Enemy Bot
+              <span id="pf-name-enemy">Enemy Bot</span>
             </div>
             <div class="en-bar"><span class="en-fill" id="en-fill-enemy"></span></div>
           </div>
@@ -817,6 +857,11 @@
              ocean share no visual DNA.
              ==================================================== -->
         <div class="scene" id="scene" aria-hidden="true">
+          <!-- painted pixel-art backdrop, one per battlefield. Sits under
+               every effect layer so particles, haze and the per-field
+               animations continue to run on top of it. Fields without art
+               fall back to the CSS pattern in .sc-fx1. -->
+          <span class="sc-art"></span>
           <span class="sc-sky"></span>
           <span class="sc-celestial"></span>
           <span class="sc-far"></span>
@@ -836,6 +881,19 @@
             ><i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
             <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i
             ><i></i><i></i><i></i><i></i>
+          </span>
+          <!-- Second, denser particle field plus per-field atmospherics.
+               `sc-drift` is fine ambient motes that every board gets;
+               `sc-weather` is styled per battlefield (snow, ash, spores,
+               bubbles) from the data-field selector. -->
+          <span class="sc-drift">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i
+            ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i
+            ><i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <span class="sc-weather">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i
+            ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i>
           </span>
           <span class="sc-haze"></span>
         </div>

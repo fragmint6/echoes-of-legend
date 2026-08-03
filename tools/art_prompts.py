@@ -100,11 +100,21 @@ NEGATIVE = (
     "no drop shadow."
 )
 
+# Bust: head, shoulders and upper chest.
+#
+# A tighter head-and-shoulders crop was tried and reverted. It did measurably
+# sharpen the eyes (one eye went from 4.5 px to 7.1 px tall, because at bust
+# scale the white, iris and pupil average into mud), but the whole-figure
+# read was worse: the costume is most of what identifies a hero at card size,
+# and cropping it away made the roster look same-y. Judged on the rendered
+# card rather than on a 6x blow-up, the bust wins.
 FRAMING = (
     "Bust framing showing head, shoulders and upper chest only, centred in "
     "frame, facing three-quarter toward the viewer's left, eyeline about 36 "
     "percent from the top, subject kept within the central 78 percent of the "
-    "canvas. Light source upper left."
+    "canvas. Light source upper left. "
+    "The eyes are clearly readable, with a distinct dark pupil, a visible "
+    "iris colour and clean whites - the eyes must not blur together."
 )
 
 HEROES = {

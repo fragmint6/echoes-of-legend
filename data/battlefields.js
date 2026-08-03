@@ -20,6 +20,14 @@
      championHp          %      Max HP for that same hero (applied at start)
      roundBuffs          []     random relic pool, one fires per round
 
+   Presentation-only keys:
+
+     art                 path   optional 512x284 pixel-art backdrop. When
+                                present the board renders it beneath every
+                                effect layer; when absent the field falls
+                                back to its CSS pattern. See
+                                docs/BATTLEFIELD-ART-SPEC.md.
+
    Balance note: every effect is SYMMETRIC. Both sides play under the same
    rules, so a field changes what drafts well without handing either player
    an advantage. The sim runs exclusively in the Colosseum (no effects) so
@@ -30,6 +38,7 @@ window.EOL = window.EOL || {};
 window.EOL.battlefields = [
   {
     id: 'narrow-pass',
+    art: 'assets/boards/narrow-pass.png',
     name: 'The Narrow Pass',
     icon: 'ra-mountains',
     tagline: 'A mountain choke point where armies collide head-on.',
@@ -43,6 +52,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'open-plains',
+    art: 'assets/boards/open-plains.png',
     name: 'The Open Plains',
     icon: 'ra-grass',
     tagline: 'A vast field where armies have room to manoeuvre.',
@@ -54,6 +64,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'mana-spring',
+    art: 'assets/boards/mana-spring.png',
     name: 'The Mana Spring',
     icon: 'ra-droplets',
     tagline: 'An ancient battlefield overflowing with magical energy.',
@@ -65,6 +76,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'energy-void',
+    art: 'assets/boards/energy-void.png',
     name: 'The Energy Void',
     icon: 'ra-battery-black',
     tagline: 'A cursed land that drains the power of heroes.',
@@ -75,6 +87,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'colosseum',
+    art: 'assets/boards/colosseum.png',
     name: 'The Colosseum',
     icon: 'ra-arena',
     tagline: 'A proving ground where only skill decides.',
@@ -86,6 +99,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'mirror-realm',
+    art: 'assets/boards/mirror-realm.png',
     name: 'The Mirror Realm',
     icon: 'ra-crystals',
     tagline: 'A mystic realm where actions echo across reality.',
@@ -100,6 +114,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'spirit-world',
+    art: 'assets/boards/spirit-world.png',
     name: 'The Spirit World',
     icon: 'ra-death-skull',
     tagline: 'An arena where the dying are held at the threshold.',
@@ -113,6 +128,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'ancient-ruins',
+    art: 'assets/boards/ancient-ruins.png',
     name: 'The Ancient Ruins',
     icon: 'ra-dead-tree',
     tagline: 'A forgotten battlefield littered with lost relics.',
@@ -164,6 +180,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'heros-trial',
+    art: 'assets/boards/heros-trial.png',
     name: "The Hero's Trial",
     icon: 'ra-trophy',
     tagline: 'A battlefield that measures the mightiest warrior.',
@@ -175,6 +192,7 @@ window.EOL.battlefields = [
   },
   {
     id: 'blood-battlefield',
+    art: 'assets/boards/blood-battlefield.png',
     name: 'The Blood Battlefield',
     icon: 'ra-broken-heart',
     tagline: 'Cursed ground where wounded heroes grow stronger.',
