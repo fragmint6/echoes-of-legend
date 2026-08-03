@@ -87,7 +87,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crossed-swords',
-      art: 'assets/heroes/roma-julius-caesar.png',
     },
     {
       id: 'roma-spartacus',
@@ -128,7 +127,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-circular-shield',
-      art: 'assets/heroes/roma-spartacus.png',
     },
     {
       id: 'roma-augustus',
@@ -164,7 +162,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crowned-heart',
-      art: 'assets/heroes/roma-augustus.png',
     },
     {
       id: 'roma-cicero',
@@ -204,7 +201,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-book',
-      art: 'assets/heroes/roma-cicero.png',
     },
     {
       id: 'roma-brutus',
@@ -233,7 +229,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-cloak-and-dagger',
-      art: 'assets/heroes/roma-brutus.png',
     },
     {
       id: 'roma-constantine-the-great',
@@ -266,7 +261,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-hospital-cross',
-      art: 'assets/heroes/roma-constantine-the-great.png',
     },
   ],
 });

@@ -729,4 +729,3 @@
     renderManager: renderManager,
   };
 })();
-

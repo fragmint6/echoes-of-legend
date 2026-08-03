@@ -1,21 +1,45 @@
 # Character Art Specification
 
-The authoritative brief for every hero portrait in Echoes of Legend. One
-entry per hero, written so any artist or generator produces a piece that
-sits in the same world as the other 56.
+The authoritative brief for every hero card illustration in Echoes of
+Legend. One entry per hero, written so any artist or generator produces a
+piece that sits in the same world as the other 56.
 
-Status: **52 of 57 implemented**, bust framing, 128 x 128.
+Status: **v2.1 - full-ART environmental card illustrations**, dynamic
+role-driven action compositions, 640 x 880 JPEG (2026-08-03, rev 2).
 
-- **remaining: 5** - Sekhmet, Isis, Nephthys, Snow White, Hansel & Gretel
+> **2026-08-03, rev 2 (v2.1).** Static bust shots made every card read
+> alike. Cards are now **full art**: each hero is caught mid-motion doing
+> what their role does - tanks braced, bruisers mid-swing, casters
+> unleashing, controllers weaving, medics blessing, snipers aiming.
+> Weapons and element-coloured energy are **allowed on the figure** (they
+> may never cross the face). The v2 rules below are updated accordingly:
+> where they still say "bust / no weapons / no effects", v2.1 wins.
+>
+> **2026-08-03, v2.** Two retired approaches taught us what breaks:
+>
+> 1. *The old pipeline* (`art-src/` + nine `tools/*.py` scripts) resized
+>    and quantised every portrait to 96-128px / 32 colours and visibly
+>    corrupted the art. Removed.
+> 2. *The chroma-key cut-out* that replaced it destroyed the fringe:
+>    keying a generated flat field to transparency always leaves a ring
+>    of key-coloured blend pixels at the contour, glaringly visible on
+>    the card. Removed.
+>
+> **v2 ends both.** Card art is now a complete, fully opaque illustration:
+> the hero painted with their faction's environment baked in behind them.
+> There is nothing to cut out, mask or convert - the generated scene is
+> centre-cropped to the card's portrait aspect and shipped as a JPEG at
+> `assets/heroes/<id>.jpg`. The sigil-ring mask in CSS is deleted; the
+> image simply covers the card and the HUD scrims keep the text legible.
+
+- **never illustrated yet: 5** - Sekhmet, Isis, Nephthys, Snow White,
+  Hansel & Gretel
 
 **Known outstanding:**
 - `grimmwood-snow-white` - the generator's safety filter rejected this one
   at the OUTPUT stage twice, across two rewordings including a
   deliberately plain one. Not a visible prompt-content problem; retry
   later or author by hand.
-
-Add art a batch at a time, then run, in order:
-`shrink_sources.py` -> `process_art.py` -> `wire_art.py` -> `verify_art.py`.
 
 ---
 
@@ -25,93 +49,29 @@ These are not stylistic preferences. Break one and the art fails in the UI.
 
 | Constraint | Value | Why |
 | --- | --- | --- |
-| Canvas | **128 x 128**, square | Renders at 154px in the collection (x1.20) and ~127px in battle (x0.99, effectively 1:1). 96 was the original target and cost real detail - at that size the eyes, brow and beard tones collapse into each other. The whole shipped set is still well under 1 MB. |
-| Format | PNG-32, transparent background | The card supplies its own backdrop. A baked background breaks the circular mask. |
-| Palette | **32 colours max** per portrait | Keeps the pixel-art read honest. Anti-aliased gradients turn to mush at 96px. |
-| Anti-aliasing | **None.** Hard pixel edges only | The renderer uses `image-rendering: pixelated`. Soft edges fight it and look blurry. |
-| Safe area | Subject inside the **central 78%** | The collection card masks art to a circle. Anything in the corners is clipped. |
-| Head position | Eyeline at **34-40%** from top | Portraits must agree with each other, or the grid looks drunk. |
-| Framing | **Bust: head, shoulders, upper chest.** No full bodies, no legs | At 90px a full body is an unreadable smudge. |
-| Silhouette | Must be identifiable **as a black shape** | The primary readability test. See section 4. |
+| Canvas | **640 x 880**, portrait (aspect 0.727) | The collection card renders at 250/385 (0.649) with `object-fit: cover`, the battle tile at 5/6 (0.833): a 0.727 source centre-crops cleanly to both. |
+| Format | **JPEG q85, opaque** | v2 art is a baked scene - there is no alpha to preserve, and JPEG keeps a 57-card roster under ~8 MB where portrait PNGs cost ~1 MB each. PNG is reserved for what genuinely needs transparency (menu layers). |
+| File size | **< 180 KB each** budget | The art downloads once per card viewed; keep the whole roster cheap. |
+| Composition (v2.1) | Dynamic three-quarter-length action figure, dominating the **central 55-70%** of the source canvas width, may reach the lower edge | Static busts read uniform across 57 cards; the role's action is what makes each card distinct. |
+| Head position (v2.1) | Face clearly readable in the **upper third** (~25% from top) | The card's name plate and ability overlay own the bottom; faces live where nothing covers them. |
+| Environment | Full-scene backdrop, **darker, slightly desaturated, broader pixel clusters** than the character | The figure must read sharply in front; a backdrop that out-detail the hero fights the HUD. |
+| Backdrop geometry | Horizon **no higher than mid-canvas**; no bright shapes directly behind the head; calm upper sky | Bright clutter behind the head destroys the face at thumbnail size. |
+| Light source | Upper left, cool key / warm rim | Consistent lighting across the roster and the card substrates. |
+| Silhouette | Character identifiable against their backdrop **as a black shape** | Still the primary readability test. See section 2. |
 | Facing | 3/4 view toward the viewer's left, or straight on | Consistent lighting direction across the roster. |
-| Light source | Upper left, cool key / warm rim | Matches the card's `radial-gradient at 50% 30%`. |
 
-### Do not include
+### Do not include (v2.1)
 
-**The body, hair and clothing only. Nothing else may appear.**
-
-- **No weapons.** No sword, bow, arrow, staff, spear, dagger, axe, shield
-  or polearm. Nothing held in the hands, and no hands raised into frame.
-- **No effects.** No particles, sparkles, motes, embers, smoke, haze, aura,
-  halo, glow orbs, runes, lightning arcs or energy of any kind.
-- **No props or companions.** No lyres, tankards, scrolls, mirrors, fans,
-  banners, apples, candles, ravens or foxes.
+- **Nothing across the face.** Weapons, hands, hair and energy arcs are
+  all allowed now, but none of them may cross or cover the face, and
+  nothing may hide the eyes.
+- **No crowds or copies.** No second copy of the character, no
+  reflection, twin, triptych, collage, and no crowd of similar figures.
+- **No companion creatures or sidekicks.** Only the character appears.
+- **No blood, gore or corpses** - even on the Blood Battlefield.
 - Text, letters, numerals, signatures, watermarks
-- Frames, borders, vignettes, drop shadows onto a background
-- Ground planes, horizons, scenery, interior sets
-- Anything in the corners: they are masked away
-
-#### Framing: bust, and why a tighter crop was rejected
-
-A tight head-and-shoulders crop was built, tested on ten heroes, and
-reverted.
-
-It did measurably sharpen the eyes. At bust scale one of Sun Wukong's eyes
-renders **8 x 4.5 px**, so eye white, iris and pupil average into mud - the
-"uncanny blended eyes" problem. Every resampler was tested first (LANCZOS,
-BOX, NEAREST, unsharp-then-resize, two-stage) and **all five produced the
-same mud**, so it is a feature-size problem that no processing change can
-fix. Cropping tighter took the eye to **7.1 px**.
-
-But the whole-figure read got worse. The costume is most of what identifies
-a hero at card size, and cropping it away made the roster look same-y.
-Judged on the rendered card rather than on a 6x blow-up, the bust wins.
-
-The prompt now asks explicitly for a distinct pupil, visible iris and clean
-whites, which recovers some of the eye clarity without losing the costume.
-
-#### Enclosed background pockets
-
-`cut_out()` reconstructs alpha by flood-filling inward **from the border**,
-because a global colour threshold would delete pale costume. That leaves a
-hole in the logic: background the figure fully *surrounds* is never reached.
-The gap between Tomoe Gozen's hair strand and her neck stayed opaque and
-kept the flattened checkerboard colour, rendering as a cream blob that is
-not in the source. Measured: **27 of 42 portraits** carried some, worst
-8.2% of canvas.
-
-`build_mask()` now sweeps for enclosed pockets after the border fill, but
-only removes ones that are **small AND narrow** - real gaps are thin
-slivers (Tomoe's are 20-133 px across), whereas a broad pale mass is
-costume.
-
-Colour alone cannot make this call. Kaguya's white junihitoe has the same
-tone *and* the same tonal spread (~44) as the checkerboard, so every
-per-pocket colour test that removed the cream also ate her robe. There is
-therefore a whole-image safety valve: if the pockets exceed 6% of the
-figure the art is presumed to have a genuinely near-white costume and only
-the border fill is used. Every hero loses at most 2.9% under the fix;
-Kaguya was 11.6%, so she is correctly skipped.
-
-#### Why weapons and effects are banned
-
-This is not a style preference, it is a layout constraint. The card masks
-every portrait with **one fixed circle**, and `process_art.py` auto-fits
-each piece to its bounding box. A held weapon or a floating effect enlarges
-that box, so the fitter shrinks the actual character to make room for it.
-
-Measured on the first pass: Zeus's bolt, Robin Hood's bow, Lancelot's sword
-and Apollo's halo each pushed the bounding box out, and those heroes came
-out visibly smaller than heroes with a plain bust. Merlin carried **24,102
-pixels** of detached sparkle. The result was that no single cut line fit
-the roster, which is exactly the symptom that prompted this rule.
-
-With body-only art the silhouettes are uniform and one fixed mask works
-for all 57. `verify_art.py` fails any portrait whose detached blobs exceed
-4% of the body.
-
----
-
+- Frames, borders, vignettes, drop shadows - the card chrome supplies all
+  of these
 ## 2. Shared visual language
 
 Every portrait in the game obeys these so the roster reads as one set.
@@ -187,107 +147,122 @@ faction still reads as both.
 
 ---
 
-## 3. Prompt template
+
+### Faction environments (v2)
+
+One shared backdrop per faction keeps each set reading as a team. The
+environment is **scene, not spotlight**: darker, slightly desaturated and
+rendered with broader pixel clusters than the hero in front of it.
+
+| Faction | Environment |
+| --- | --- |
+| Camelot | Torchlit stone castle ramparts, hanging blue and gold banners, brooding overcast evening sky |
+| Olympus | Sunlit marble temple colonnade, laurel groves, distant hazy aegean sea |
+| Sherwood | Deep greenwood forest, ancient oaks, shafts of pale light through leaves |
+| Grimmwood | Gnarled storybook forest in violet gloom, hanging moss, pale mushrooms, drifting mist |
+| Yamato | War camp on a misty battlefield, tattered crimson banners, distant mountains |
+| Huaxia | Palace battlements above drifting clouds, red and gold war banners, distant jade peaks |
+| Roma | Roman forum at golden hour, marble columns, cypress trees, raised eagle standard |
+| Takamagahara | Sea of clouds high above the world, great vermilion torii gate, drifting shrine streamers, sunrise |
+| Duat | Desert night, temple pylons and obelisks under a band of cold stars, drifting sand |
+
+---
+
+## 3. Prompt template (v2)
 
 For generated art, every hero uses this skeleton. Fill the bracketed slots
-from that hero's entry in section 5.
+from that hero's entry in section 5 and the faction table above.
 
 ```
-64x64 pixel art character portrait, [NAME], [ONE-LINE IDENTITY].
-Bust framing: head, shoulders and upper chest only, centred, facing
-three-quarter left, eyeline 36% from the top.
+Pixel art full-art hero card of [NAME], [ONE-LINE IDENTITY].
+A dramatic full-art composition caught mid-motion: the character
+[ROLE ACTION - tank braced / bruiser mid-swing / caster unleashing /
+controller weaving / medic blessing / sniper aiming]. Three-quarter-length
+figure dominating the portrait frame, occupying the central 55-70 percent
+of the canvas width, the face clearly readable in the upper third, about
+25 percent from the top. Strong diagonal action lines, cinematic energy.
+Light source upper left. Eyes clearly readable: distinct dark pupil,
+visible iris colour, clean whites.
 [COSTUME AND MATERIALS.]
-[DEFINING FEATURE - a worn or physical detail: headgear, hair, facial
-feature, collar or armour. Never a held object.]
-Palette drawn from [FACTION PRIMARY] and [FACTION SECONDARY], with a
-1-2px [ELEMENT COLOUR] rim light along the upper-left contour.
-Clean 16-bit pixel art, flat colour fills, hard blocky shading, 2-4 tones
-per material, selective dark outline, no anti-aliasing, limited palette of
-32 colours.
-Fully transparent background. No text, no frame, no ground, no scenery.
+[DEFINING FEATURE - a worn or physical detail. Never a held object.]
+Costume palette drawn from [FACTION MATERIALS], built on [PRIMARY] and
+[SECONDARY], with a crisp 1-2 pixel [ELEMENT COLOUR] rim light along the
+upper-left contour of the body itself.
+Behind the character is a full painted environment: [FACTION ENVIRONMENT].
+The backdrop is rendered darker, slightly desaturated and with broader,
+softer pixel clusters than the character. Horizon no higher than the
+middle of the canvas, no bright shapes directly behind the head, calm
+upper sky. One single portrait of this one character alone in the scene.
+Beautifully detailed 16-bit pixel art card illustration at high
+resolution: flat colour fills, hard blocky shading with 3-5 tones per
+material, deliberate dithering, selective dark outline, crisp hard pixel
+edges, no anti-aliasing, tiny 1px specular highlights. Fully OPAQUE,
+filling the entire canvas edge to edge. Weapons and element-coloured
+energy on the figure are allowed; nothing may cross the face. No
+companion creatures, no blood or gore, no text, no frame, no watermark.
 [RARITY DIRECTION.]
 ```
 
-Generate at 64x64 or 96x96. If the generator only produces larger, downsample
-with **nearest neighbour** to 96x96 - never bilinear, which destroys the hard
-edges.
+Generate at the generator's native landscape size; the centre crop to
+640 x 880 happens afterwards and is the only geometric adjustment.
 
 ---
 
-## 4. Acceptance checklist
+## 4. Acceptance checklist (v2)
 
-Run every portrait through this before it ships:
-
-1. **Silhouette test.** Fill the art 100% black. Is the hero still
-   identifiable? If two heroes' silhouettes are confusable, one needs a
-   distinguishing shape.
-2. **Circle test.** Mask to a centred circle at 78% width. Is anything
-   important clipped?
-3. **Thumbnail test.** View at 48px. Does the face still read?
-4. **Alignment test.** Place beside three other portraits from the same
-   faction. Are the eyelines within a few pixels?
-5. **Colour count.** `magick identify -format "%k"` must return <= 32.
-6. **Edge test.** Zoom to 800%. Any semi-transparent or anti-aliased pixels
-   at the contour mean it was resized wrong.
-7. **Legibility over the card.** Check the name plate, element orb and status
-   chips are all still readable on top of it.
-
-`tools/verify_art.py` automates 2, 5, 6 and the canvas size.
-
----
-
-## 4b. Pipeline
-
-| Step | Command | Notes |
-| --- | --- | --- |
-| Write the prompt | edit `tools/art_prompts.py` | one entry per hero; house style lives in the shared blocks so a change propagates to all |
-| Generate | any generator, at 64 or larger | output lands in `art-src/`, which is **not** shipped |
-| Process | `python3 tools/process_art.py` | cut out, trim, scale, centre, quantise, harden alpha; writes `assets/heroes/<id>.png` |
-| Verify | `python3 tools/verify_art.py` | exits non-zero on any failure |
-| Wire up | add `art: 'assets/heroes/<id>.png'` to the card | cards without `art` keep their icon glyph, so factions can land one at a time |
-
-**The generator flattens transparency into a light checkerboard** rather
-than returning real alpha. `process_art.py` reconstructs it with a flood
-fill inward from the border, not a global colour threshold - a threshold
-would delete white cloth *inside* the figure, such as Zeus's himation.
+1. **Silhouette test.** Fill the character 100% black against the baked
+   backdrop. Still identifiable? Two heroes envying each other's outline
+   means one needs a distinguishing shape.
+2. **Backdrop-behaviour test.** Squint: the backdrop must fall back
+   (darker, softer, broader) and the hero must snap forward.
+3. **Cover-crop test.** View the centre 65% vertical strip (the
+   collection card) and the centre 83% (the battle tile): face, crown and
+   shoulders intact in both, nothing essential clipped at the sides.
+4. **HUD test.** Place the real card chrome over it: name plate, element
+   orb, status chips and the ability overlay all still readable.
+5. **Alignment test.** Place beside three other portraits from the same
+   faction: same environment, eyelines within a few pixels, no hero
+   visibly larger or smaller.
+6. **File budget.** JPEG q85 at 640 x 880, under ~180 KB.
+7. **Scene hygiene.** No weapons, no held objects, no duplicate figure,
+   no text.
 
 ---
 
-## 4c. How the art is framed on the card
+## 4b. Flow (v2)
 
-**Collection card.** The portrait is drawn at 1.15x the sigil ring's
-diameter and masked by the *union* of two shapes: a half-plane covering
-everything above the ring's centre line, and the ring's circle, with the cut line at
-**33% down the circle**: only the top third is unmasked, so the crown of
-the head breaks out above the arc while the body stays held inside the
-sigil.
+| Step | Notes |
+| --- | --- |
+| Write the prompt | one entry per hero, section 5; house style lives in the shared blocks (sections 2-3) so a change propagates to all |
+| Generate | any generator at native resolution, the full scene in one image |
+| Crop and save | centre-crop to the card aspect, resize to exactly 640 x 880, save JPEG q85 to `assets/heroes/<id>.jpg`. No keying, no masking, no palette work |
+| Wire up | `art: 'assets/heroes/<id>.jpg'` on the card; cards without `art` keep their icon glyph, so factions can land one at a time |
 
-A single fixed cut only works because every silhouette is now uniform.
-The previous attempt used a per-hero-variable cut precisely because
-weapons and effects made every bounding box a different shape - removing
-them removed the need for the variable.
-
-Two CSS traps this hit, both worth knowing:
-
-- **`radial-gradient(circle <percentage> ...)` is invalid** and silently
-  voids the whole `mask-image` declaration. The computed value comes back
-  as `none` and nothing is masked. The explicit two-value `ellipse 27% 27%`
-  form is required. The box is square, so it is still a circle.
-- **The translate must account for the ring's own `-54%` offset**, not just
-  the downward push. The correct expression is `-(0.04 + cy x K) / K`,
-  which is card-size independent. Getting it "close" put the mask 5.2px
-  above the drawn ring - visible as art spilling past the bottom arc.
-
-Hover therefore uses a **pure translate, never a scale**: the mask is sized
-in percentages of the element, so scaling the element scales the mask
-circle off the drawn ring. The ring is also frozen in place on art cards,
-since it is the cut line.
-
-**Battle card.** No circle there, so the portrait simply fills the tile,
-inset 17% from the top so the status chip row never lands on the face.
+The menu parallax layers in `assets/menu/` are the one place keying
+survives: they still stack as transparent silhouettes (border flood fill
+plus a magenta-hue sweep and a 2px matte erosion), because an opaque
+layer would hide the ones beneath it. See `docs/BATTLEFIELD-ART-SPEC.md`
+section 7.
 
 ---
 
+## 4c. How the art is framed on the card (v2)
+
+**Collection card.** The card is 250/385 (0.649) and draws the 640 x 880
+illustration with `object-fit: cover` centred, so it samples the middle
+~89% of the image's width - the environment keeps a visible margin left
+and right of the bust. Hover applies a gentle `scale(1.045)`; there is no
+mask to disturb. The sigil ring is suppressed on art cards and the
+substrate gradient sits hidden behind the opaque image.
+
+**Battle card.** The 5/6 tile `cover`-crops roughly the middle 83% of the
+same file; status chips float top-left over the backdrop, the foot scrim
+and name plate own the bottom, and the face sits clear in the upper
+third. Hover scales 1.05.
+
+**Why the masked sigil-ring composition was deleted:** it existed to hide
+the edges of a cut-out. Once the illustration bakes its own backdrop, a
+mask only cuts holes in the scenery.
 ## 5. Per-hero briefs
 
 Format: **Name** `rarity / role / element` - identity, costume, defining

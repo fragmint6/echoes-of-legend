@@ -33,7 +33,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-dervish-swords',
-      art: 'assets/heroes/yamato-yoshitsune.png',
     },
     {
       id: 'yamato-tomoe-gozen',
@@ -58,7 +57,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-arrow-flights',
-      art: 'assets/heroes/yamato-tomoe-gozen.png',
     },
     {
       id: 'yamato-benkei',
@@ -81,7 +79,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-helmet',
-      art: 'assets/heroes/yamato-benkei.png',
     },
     {
       id: 'yamato-abe-no-seimei',
@@ -159,7 +156,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-rune-stone',
-      art: 'assets/heroes/yamato-abe-no-seimei.png',
     },
     {
       id: 'yamato-momotaro',
@@ -192,7 +188,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-round-shield',
-      art: 'assets/heroes/yamato-momotaro.png',
     },
     {
       id: 'yamato-kaguya',
@@ -210,7 +205,6 @@ window.EOL.registerFaction({
         spec: { target: { side: 'auto' }, effects: [{ k: 'copyAllyActive', scale: 0.7 }] },
       },
       icon: 'ra-moon-sun',
-      art: 'assets/heroes/yamato-kaguya.png',
     },
   ],
 });

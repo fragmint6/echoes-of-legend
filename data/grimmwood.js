@@ -67,7 +67,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-gold-bar',
-      art: 'assets/heroes/grimmwood-rumpelstiltskin.png',
     },
     {
       id: 'grimmwood-big-bad-wolf',
@@ -92,7 +91,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-wolf-head',
-      art: 'assets/heroes/grimmwood-big-bad-wolf.png',
     },
     {
       id: 'grimmwood-snow-white',
@@ -170,7 +168,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-hood',
-      art: 'assets/heroes/grimmwood-red-riding-hood.png',
     },
     {
       id: 'grimmwood-pied-piper',
@@ -196,7 +193,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-horn-call',
-      art: 'assets/heroes/grimmwood-pied-piper.png',
     },
   ],
 });

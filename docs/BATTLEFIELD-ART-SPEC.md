@@ -4,14 +4,19 @@ Pixel-art backdrops for the ten battlefields. Companion to
 `docs/ART-SPEC.md`, which governs character portraits; the two must read as
 one game, so the shared rules there apply here unless overridden below.
 
-Status: **all 10 shipped and wired.**
+Status: **all 10 regenerated at native resolution** (2026-08-03 refresh).
 
-Pipeline, same shape as the character art:
-
-```
-art-src/boards/  ->  process_boards.py  ->  assets/boards/  ->  verify_boards.py
-                                                             ->  wire_boards.py
-```
+> **2026-08-03 refresh.** The board pipeline (`art-src/boards/` ->
+> `process_boards.py` -> `verify_boards.py` -> `wire_boards.py`) was
+> removed along with the rest of the art tooling because its
+> resize-plus-quantise step visibly corrupted the scenes. Boards are now
+> generated at native resolution straight from the briefs in section 4-5
+> and written to `assets/boards/<id>.png` as opaque PNGs. The board layer
+> uses `background-size: cover`, so any landscape aspect close to 1.80
+> fits; the composition rules below (quiet centre, dark value ceiling,
+> margin detail, no figures) are what actually gate shipping now. The
+> retired mechanical caps (512 x 284, 24 colours, 72 KB) are kept for
+> context but no longer enforced.
 
 ---
 
@@ -21,7 +26,7 @@ art-src/boards/  ->  process_boards.py  ->  assets/boards/  ->  verify_boards.py
 | --- | --- | --- |
 | Canvas | **512 x 284** | The board measures 1688 x 934 CSS px on a 1080p desktop. 512 wide upscales x3.30 with `pixelated`. |
 | Pixel scale | ~2.1x the character pixel | Portraits are 96px art in a 154px slot (x1.60). A coarser background pixel makes the backdrop *recede* behind the cards instead of competing with them. Measured, not guessed. |
-| Format | PNG-8 or PNG-32, opaque | No transparency: this is the bottom layer. |
+| Format | JPEG q85, opaque (v2) | No transparency: this is the bottom layer, so no PNG is worth paying for. |
 | Palette | **24 colours max** | Tighter than the 32 allowed for characters. A background must never out-detail a hero. |
 | Anti-aliasing | **None** | `image-rendering: pixelated` is set on the layer; soft edges fight it. |
 | File size | **< 72 KB each** | Measured, not assumed. At 512x284 the cost is *detail*, not palette: dropping the colosseum from 24 to 14 colours only moved it 61 KB -> 47 KB, which is not worth the quality. Ten fields stay under ~700 KB total. |
@@ -211,14 +216,14 @@ no border, no vignette, no watermark.
 6. **No figures.** Visual check.
 7. **File size** < 72 KB.
 
-`tools/verify_boards.py` automates 1, 2, 3, 4 and 7.
+Checks 1-4 and 7 were previously automated; since the 2026-08 refresh they
+are run by eye against the rendered board, at native resolution.
 
 ---
 
 ## 7. The main menu backdrop
 
-Same house style, different job. Lives in `assets/menu/` and is built by
-`tools/process_menu.py`.
+Same house style, different job. Lives in `assets/menu/`.
 
 Four layers, each a **640x360** tile repeating in x and scrolling at its
 own speed. Depth comes from the speed ratio, not from blur:

@@ -14653,12 +14653,18 @@ body[data-gfx='low'] .turn-clock.crit {
    render it in place of the RPG Awesome glyph; cards without keep
    the glyph, so the roster can be illustrated faction by faction.
 
-   Two placements:
-     .art-portrait   collection card, inside the element sigil ring
-     .bart-portrait  battle card, filling the tile behind the HUD
+   2026-08-03 v2: the art is now a full-bleed card ILLUSTRATION - the
+   hero painted with their environment baked in, shipped as an opaque
+   JPEG. There is no cut-out, no alpha and no masking anywhere; the
+   image simply covers the card box and the HUD scrims keep text
+   legible on top of it.
 
-   Both use image-rendering: pixelated - the art is authored with
-   hard edges and binary alpha, so any smoothing reads as blur.
+   Two placements:
+     .art-portrait   collection card, full bleed
+     .bart-portrait  battle card, full bleed
+
+   image-rendering: pixelated stays - the art is authored with hard
+   edges, so any smoothing at card scale reads as blur.
    ============================================================= */
 .art-portrait,
 .bart-portrait {
@@ -14670,159 +14676,59 @@ body[data-gfx='low'] .turn-clock.crit {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
   user-select: none;
 }
 
-/* ---- collection card: the hero rises out of the sigil ring ----
+/* ---- collection card: full-bleed illustration ----
 
-   The portrait is drawn larger than the ring and masked by the UNION of:
-
-     - a half-plane covering everything above a CUT LINE
-     - the ring's circle
-
-   Above the cut the art is free, below it the ring's arc clips. So the
-   top of the head breaks out while the body is held inside the sigil.
-
-     K   = 1.4118  art box size, in ring diameters
-     CUT = 0.33    fraction of the circle KEPT above the cut, i.e. only the
-                   top third is unmasked
-
-   K is solved, not eyeballed. `process_art.py` fits art to whichever
-   dimension hits the canvas limit first, so a broad-shouldered hero is
-   width-limited and its art ends higher than a narrow one: measured
-   across the set the bottom edge lands between 85.4% and 90.6% down the
-   canvas. K is therefore solved for the SHORTEST case, so that even
-   Friar Tuck reaches the arc:
-
-     K = 0.5 / (0.854 - 0.5) = 1.4118
-
-   Solving for the median (1.2315) left the five width-limited heroes -
-   Friar Tuck, Little John, Hercules, Lancelot, Guy of Gisborne - still
-   floating above the bottom of the circle. Overshooting is free here:
-   anything past the arc is masked away, and the top third is meant to
-   overflow.
-
-   This only works because every portrait now has a UNIFORM silhouette.
-   Weapons and floating effects used to inflate the bounding box per hero
-   (Zeus's bolt, Robin's bow, Apollo's halo), and since the processor
-   auto-fits art to the canvas, a hero holding a sword got scaled down to
-   make room for it. Same mask, different apparent size, every time. Art
-   is now body-only - see docs/ART-SPEC.md - so one fixed cut fits all 57.
-
-   Derived values - change K or CUT and recompute ALL of them:
-     width      = 62 x K                       ->  87.53%
-     --art-r    = 50 / K                       ->  35.42% of the box
-     --art-cut  = 50 - 50/K + CUT/K x 100      ->  37.96% down the box
-     translateY = -(0.04 + 0.5 x K) / K x 100  -> -52.8333%
-
-   The translate term must account for the ring's own -54% offset, not
-   just centring: getting it "close" once put the mask 5.2px above the
-   drawn ring, visible as art spilling past the bottom arc. The formula
-   is card-size independent, so it holds at every breakpoint. */
+   v2 (2026-08-03): the masked sigil-ring cut-out is RETIRED. Chroma-keyed
+   portraits always carried a fringe of the key colour at the contour,
+   and every fix for it was another layer of processing. Card art is now
+   a complete illustration - hero plus painted environment, baked opaque
+   - so there is nothing to mask: the image covers the whole card and
+   the corner radius of .card itself rounds it off. */
 .art-portrait {
-  --art-k: 1.4118; /* box size, in ring diameters */
-  --art-r: 35.42%; /* ring radius, as % of box width */
-  --art-cut: 37.96%; /* mask cut line, down the box */
-
-  top: 50%;
-  left: 50%;
-  width: calc(62% * var(--art-k));
-  aspect-ratio: 1;
-  transform: translate(-50%, -52.8333%);
+  inset: 0;
   z-index: 1;
-  /* NOTE: `circle <percentage>` is invalid CSS and silently voids the
-     whole declaration - the two-value `ellipse` form is required. The box
-     is square, so an equal-radius ellipse IS a circle. */
-  -webkit-mask-image:
-    linear-gradient(to bottom, #000 var(--art-cut), transparent var(--art-cut)),
-    radial-gradient(ellipse var(--art-r) var(--art-r) at 50% 50%, #000 99%, transparent 100%);
-  mask-image:
-    linear-gradient(to bottom, #000 var(--art-cut), transparent var(--art-cut)),
-    radial-gradient(ellipse var(--art-r) var(--art-r) at 50% 50%, #000 99%, transparent 100%);
-  -webkit-mask-composite: source-over;
-  mask-composite: add;
-  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.55));
-  transition:
-    transform 0.6s var(--ease),
-    filter 0.45s var(--ease);
+  transition: transform 0.6s var(--ease);
 }
-/* Hover lifts the hero further out of the ring. Deliberately NO scale():
-   the mask is sized in percentages of this element, so scaling it scales
-   the mask circle off the drawn ring (measured 4.2px adrift at 1.05). */
+/* A gentle push instead of the old lift-out-of-the-ring: with no mask
+   there is nothing to break, so a scale is safe now. */
 .card:hover .art-portrait {
-  transform: translate(-50%, calc(-52.8333% - 1.8%));
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.7));
+  transform: scale(1.045);
 }
 
-/* On a card WITHOUT art the sigil dims and drifts up on hover. With art
-   the ring is the cut line, so it must hold still - otherwise the drawn
-   ring slides away from the mask and the illusion breaks. Keep it in
-   place and merely soften it. */
+/* The sigil ring existed to give the masked cut-out its rim. Over a
+   baked illustration it is clutter - off with it, and the substrate
+   gradient is hidden by the opaque art anyway. */
 .card-art.has-art .art-ring {
-  transition: opacity 0.5s var(--ease);
+  display: none;
 }
-.card:hover .card-art.has-art .art-ring {
-  opacity: 0.55;
-  transform: translate(-50%, -54%);
-}
-
-/* A soft inner shadow around the lower arc seats the cut edge, so the
-   chest looks like it passes behind the ring instead of being sliced. */
-.card-art.has-art .art-ring::before {
-  box-shadow:
-    inset 0 0 34px color-mix(in srgb, var(--el, #fff) 20%, transparent),
-    inset 0 -14px 22px -10px rgba(0, 0, 0, 0.75),
-    0 0 22px color-mix(in srgb, var(--el, #fff) 16%, transparent);
-}
-/* art already carries its own light, so the substrate's floor pool
-   under the glyph is redundant and muddies the bust */
 .card-art.has-art {
-  background:
-    radial-gradient(
-      ellipse 90% 60% at 50% -6%,
-      color-mix(in srgb, var(--rar-1) 26%, transparent),
-      transparent 62%
-    ),
-    linear-gradient(
-      168deg,
-      color-mix(in srgb, var(--fc-primary) 26%, #0e111c) 0%,
-      #0a0c15 62%,
-      #06070d 100%
-    );
+  background: #06070d;
 }
 
-/* ---- battle card: portrait fills the tile ---- */
+/* ---- battle card: illustration fills the tile ---- */
 /* The battle tile is 5:6 and carries a name plate, element orb, role
-   glyph and status chips. All of that HUD must stay readable, so:
-
-   1. The art layer is pinned to z-index 0. Without it .bcard-art has
-      `auto` and, being later in DOM order, paints OVER .bcard-top
-      (z-index 3) - the element orb became unclickable and visually
-      buried behind the portrait.
-   2. The portrait is inset from the top-left so the status chip grid
-      (3 columns starting at 4px) never lands on the face. Chips can
-      reach ~64px across, hence the 22% top inset. */
-/* The art layer spans the whole tile, so it must never swallow pointer
-   events aimed at the element orb or the status chips sitting above it. */
+   glyph and status chips. The art layer is pinned to z-index 0: without
+   it, .bcard-art has `auto` and, being later in DOM order, paints OVER
+   .bcard-top (z-index 3) - the element orb became unclickable. The art
+   layer spans the whole tile, so it must never swallow pointer events
+   aimed at the element orb or the status chips sitting above it. */
 .bcard-art.has-art {
   z-index: 0;
   pointer-events: none;
 }
 .bart-portrait {
-  /* Raised: the foot scrim and name plate cover the bottom of the tile, so
-     sitting the art low buried the costume. Pulling it up trades empty
-     space at the top for visible art, and the status chips still clear the
-     face because they occupy the top-left corner only. */
-  inset: 8% 5% 22%;
+  inset: 0;
   z-index: 0;
-  filter: drop-shadow(0 2px 7px rgba(0, 0, 0, 0.6));
   transition: transform 0.3s var(--ease);
 }
 .bart-portrait img {
-  object-position: center top;
+  object-position: center 30%;
 }
 .bcard:hover .bart-portrait {
   transform: scale(1.05);
@@ -15139,7 +15045,9 @@ body[data-gfx='low'].time-low .time-warn {
    Sizing: `background-size: auto 100%` scales each tile to the
    viewport height and lets the width repeat as often as it needs,
    so the art never stretches and never shows a vertical gap. The
-   tiles are authored seamless in x - see tools/process_menu.py.
+   tiles are authored seamless in x: the right edge is cross-faded
+   over the left (premultiplied alpha) and the overlap cropped, so
+   the wrap cannot show a vertical seam.
    ============================================================= */
 .menu-bg {
   position: fixed;
@@ -15165,7 +15073,7 @@ body[data-view='home'] .menu-bg {
 /* Each layer is twice the viewport wide and translates by exactly half
    its own width, so the loop is a whole number of tiles and cannot drift.
    Speeds are deliberately slow - this is ambience, not a runner. */
-.menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog) {
+.menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps) {
   width: 200%;
   /* Longhand, NOT the `animation:` shorthand. The shorthand resets every
      sub-property it omits, so it set animation-duration back to 0s and
@@ -15402,14 +15310,18 @@ body[data-view='home'] .bg-grid {
 body[data-gfx='low'] .menu-bg > span {
   animation: none !important;
 }
-body[data-gfx='low'] .mb-embers {
+body[data-gfx='low'] .mb-embers,
+body[data-gfx='low'] .mb-wisps,
+body[data-gfx='low'] .mb-shoot {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .menu-bg > span {
     animation: none !important;
   }
-  .mb-embers {
+  .mb-embers,
+  .mb-wisps,
+  .mb-shoot {
     display: none;
   }
 }
@@ -16574,4 +16486,315 @@ body[data-gfx='low'] .sc-weather {
   .sc-weather {
     display: none;
   }
+}
+
+/* =============================================================
+   2026-08 ATMOSPHERE PASS - menu fireflies, shooting stars, hot
+   ember tier + painted-board weather
+   -------------------------------------------------------------
+   The user asked for MORE particles, "really atmospheric and scenic
+   and beautiful". Everything here is pure CSS on tiny spans, so it
+   costs no memory and stays off under data-gfx='low' / reduced
+   motion (rules above already hide these layers there).
+   ============================================================= */
+
+/* ------------------------- MENU: shooting stars -------------- */
+.mb-shoot {
+  inset: 0;
+}
+.mb-shoot i {
+  position: absolute;
+  width: 54px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(200, 220, 255, 0.35) 55%, #eef4ff 88%, #ffffff 100%);
+  box-shadow: 0 0 6px rgba(210, 228, 255, 0.7);
+  opacity: 0;
+  animation: mb-shoot linear infinite;
+  will-change: transform, opacity;
+}
+@keyframes mb-shoot {
+  0%, 82% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(16deg);
+  }
+  84% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.9;
+    transform: translate3d(-42vw, 12vh, 0) rotate(16deg);
+  }
+  94%, 100% {
+    opacity: 0;
+    transform: translate3d(-44vw, 12.5vh, 0) rotate(16deg);
+  }
+}
+.mb-shoot i:nth-child(1) {
+  left: 74%;
+  top: 9%;
+  animation-duration: 17s;
+  animation-delay: 2s;
+}
+.mb-shoot i:nth-child(2) {
+  left: 88%;
+  top: 17%;
+  animation-duration: 26s;
+  animation-delay: 9s;
+}
+.mb-shoot i:nth-child(3) {
+  left: 57%;
+  top: 6%;
+  animation-duration: 34s;
+  animation-delay: 21s;
+}
+
+/* ------------------------- MENU: firefly wisps --------------- */
+.mb-wisps {
+  inset: 0;
+}
+.mb-wisps i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #c4ffd9;
+  box-shadow: 0 0 7px 1px rgba(122, 255, 190, 0.75);
+  opacity: 0;
+  animation: mb-wander ease-in-out infinite;
+  will-change: transform, opacity;
+}
+/* Closed loop: the fly returns to its start, so paths vanish nowhere
+   and two never share a route (own lane, own duration, own delay). */
+@keyframes mb-wander {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  12% {
+    opacity: var(--peak, 0.8);
+  }
+  30% {
+    transform: translate3d(var(--x1, 26px), var(--y1, -22px), 0);
+  }
+  52% {
+    opacity: calc(var(--peak, 0.8) * 0.45);
+    transform: translate3d(var(--x2, 8px), var(--y2, -34px), 0);
+  }
+  74% {
+    opacity: var(--peak, 0.8);
+    transform: translate3d(var(--x3, -20px), var(--y3, -12px), 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.mb-wisps i:nth-child(1)  { left: 6%;  top: 74%; --x1: 28px;  --y1: -20px; --x2: 40px;  --y2: -6px;  --x3: 16px; --y3: -30px; --peak: .75; animation-duration: 17s; animation-delay: 0s;   }
+.mb-wisps i:nth-child(2)  { left: 14%; top: 86%; --x1: -22px; --y1: -26px; --x2: -34px; --y2: -10px; --x3: -14px; --y3: -32px; --peak: .6; animation-duration: 23s; animation-delay: 4s;   }
+.mb-wisps i:nth-child(3)  { left: 22%; top: 68%; --x1: 30px;  --y1: -14px; --x2: 12px;  --y2: -28px; --x3: -18px; --y3: -18px; --peak: .7; animation-duration: 19s; animation-delay: 8s;   }
+.mb-wisps i:nth-child(4)  { left: 31%; top: 90%; --x1: 24px;  --y1: -30px; --x2: -12px; --y2: -18px; --x3: 20px; --y3: -8px;  --peak: .55; animation-duration: 26s; animation-delay: 2s;   }
+.mb-wisps i:nth-child(5)  { left: 40%; top: 72%; --x1: -28px; --y1: -16px; --x2: -8px;  --y2: -30px; --x3: 22px; --y3: -24px; --peak: .8; animation-duration: 15s; animation-delay: 10s;  }
+.mb-wisps i:nth-child(6)  { left: 49%; top: 83%; --x1: 18px;  --y1: -24px; --x2: 34px;  --y2: -8px;  --x3: 8px;  --y3: -28px; --peak: .65; animation-duration: 21s; animation-delay: 6s;  }
+.mb-wisps i:nth-child(7)  { left: 58%; top: 70%; --x1: -24px; --y1: -20px; --x2: -36px; --y2: -32px; --x3: -10px; --y3: -12px; --peak: .75; animation-duration: 18s; animation-delay: 12s;  }
+.mb-wisps i:nth-child(8)  { left: 67%; top: 88%; --x1: 26px;  --y1: -18px; --x2: 6px;   --y2: -26px; --x3: -22px; --y3: -14px; --peak: .55; animation-duration: 25s; animation-delay: 1s;   }
+.mb-wisps i:nth-child(9)  { left: 76%; top: 76%; --x1: -20px; --y1: -28px; --x2: -32px; --y2: -12px; --x3: -6px;  --y3: -34px; --peak: .7; animation-duration: 16s; animation-delay: 7s;   }
+.mb-wisps i:nth-child(10) { left: 84%; top: 66%; --x1: 22px;  --y1: -22px; --x2: 38px;  --y2: -10px; --x3: 14px;  --y3: -26px; --peak: .8; animation-duration: 22s; animation-delay: 11s;  }
+.mb-wisps i:nth-child(11) { left: 92%; top: 82%; --x1: -26px; --y1: -16px; --x2: -10px; --y2: -30px; --x3: -30px; --y3: -20px; --peak: .6; animation-duration: 20s; animation-delay: 3s;   }
+.mb-wisps i:nth-child(12) { left: 11%; top: 63%; --x1: 32px;  --y1: -26px; --x2: 14px;  --y2: -14px; --x3: -16px; --y3: -22px; --peak: .7; animation-duration: 24s; animation-delay: 9s;   }
+
+/* ------------------------- MENU: hot ember tier -------------- */
+/* Brighter, faster embers rising out of the two foreground campfire
+   zones in the near layer. Same rise as .mb-embers i but bigger and
+   warmer, so the eye reads a near-ground fire source. */
+.mb-embers.hot i {
+  width: 3px;
+  height: 3px;
+  background: #ffd98a;
+  box-shadow: 0 0 7px rgba(255, 190, 90, 0.95);
+  animation-name: mb-ember;
+}
+.mb-embers.hot i:nth-child(1)  { left: 27%; --dx: 14px;  animation-duration: 7s;  animation-delay: 0.5s; }
+.mb-embers.hot i:nth-child(2)  { left: 30%; --dx: -16px; animation-duration: 9s;  animation-delay: 3s;   }
+.mb-embers.hot i:nth-child(3)  { left: 33%; --dx: 20px;  animation-duration: 8s;  animation-delay: 5.5s; }
+.mb-embers.hot i:nth-child(4)  { left: 29%; --dx: -10px; animation-duration: 6.5s; animation-delay: 2s;   }
+.mb-embers.hot i:nth-child(5)  { left: 85%; --dx: 16px;  animation-duration: 8.5s; animation-delay: 1s;   }
+.mb-embers.hot i:nth-child(6)  { left: 88%; --dx: -18px; animation-duration: 7.5s; animation-delay: 4s;   }
+.mb-embers.hot i:nth-child(7)  { left: 90%; --dx: 12px;  animation-duration: 9.5s; animation-delay: 6.5s; }
+.mb-embers.hot i:nth-child(8)  { left: 86%; --dx: -14px; animation-duration: 6s;  animation-delay: 2.8s; }
+.mb-embers.hot i:nth-child(9)  { left: 31%; --dx: 18px;  animation-duration: 10s; animation-delay: 7.5s; }
+.mb-embers.hot i:nth-child(10) { left: 92%; --dx: -12px; animation-duration: 8s;  animation-delay: 5s;   }
+
+/* =============================================================
+   BATTLE: painted-board weather (has-art only)
+   -------------------------------------------------------------
+   sc-weather / sc-drift already exist per field. When a painted
+   backdrop is present the boards are darker and flatter than the
+   procedural ones, so weather gets a keener treatment per field:
+   shared motion keyframes below, per-field assignment after. The
+   board's own per-field positions/delays (set without .has-art) stay
+   in force; these rules only win the properties they set, because
+   the .board.has-art prefix out-specifies the field blocks.
+   ============================================================= */
+.board.has-art .sc-weather i,
+.board.has-art .sc-drift i {
+  border-radius: 50%;
+  background: var(--bf-2);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--bf-3) 75%, transparent);
+}
+/* Sizes: a 2/3/4 px mix so the layer reads as depth, not a grid. */
+.board.has-art .sc-weather i:nth-child(3n) {
+  width: 3px;
+  height: 3px;
+}
+.board.has-art .sc-weather i:nth-child(7n) {
+  width: 4px;
+  height: 4px;
+}
+.board.has-art .sc-drift i {
+  width: 2px;
+  height: 2px;
+}
+
+@keyframes bfx-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  12% {
+    opacity: var(--peak, 0.85);
+  }
+  70% {
+    opacity: calc(var(--peak, 0.85) * 0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 16px), -46vh, 0) scale(0.7);
+  }
+}
+@keyframes bfx-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  10% {
+    opacity: var(--peak, 0.6);
+  }
+  85% {
+    opacity: calc(var(--peak, 0.6) * 0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 24px), 44vh, 0);
+  }
+}
+@keyframes bfx-bwander {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.8);
+  }
+  15% {
+    opacity: var(--peak, 0.8);
+    transform: translate3d(calc(var(--dx, 26px) * 0.4), calc(var(--dy, -18px) * 0.4), 0) scale(1);
+  }
+  45% {
+    opacity: calc(var(--peak, 0.8) * 0.55);
+    transform: translate3d(var(--dx, 26px), var(--dy, -18px), 0) scale(1);
+  }
+  72% {
+    opacity: var(--peak, 0.8);
+    transform: translate3d(calc(var(--dx, 26px) * -0.4), calc(var(--dy, -18px) * 0.5), 0) scale(0.9);
+  }
+}
+
+/* Dust sifting down through the narrow canyon light. */
+.board.has-art[data-field='narrow-pass'] .sc-weather i {
+  --peak: 0.45;
+  animation-name: bfx-fall;
+}
+/* Fireflies over the open grass. */
+.board.has-art[data-field='open-plains'] .sc-weather i {
+  --peak: 0.8;
+  --dy: -14px;
+  animation-name: bfx-bwander;
+  background: #d8ff9a;
+  box-shadow: 0 0 6px rgba(200, 240, 143, 0.8);
+}
+/* Bubbles and motes welling up from the spring. */
+.board.has-art[data-field='mana-spring'] .sc-weather i {
+  --peak: 0.9;
+  animation-name: bfx-rise;
+  background: var(--bf-3);
+  box-shadow: 0 0 6px rgba(168, 236, 255, 0.9);
+}
+/* Slow violet wisps drifting in the void. */
+.board.has-art[data-field='energy-void'] .sc-weather i {
+  --peak: 0.85;
+  --dy: -26px;
+  animation-name: bfx-bwander;
+  background: var(--bf-3);
+}
+@keyframes bfx-void-drift {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  20% {
+    opacity: var(--peak, 0.8);
+  }
+  60% {
+    opacity: calc(var(--peak, 0.8) * 0.55);
+    transform: translate3d(calc((50vw - 100%) * 0.18), calc((42vh - 100%) * 0.18), 0) scale(0.7);
+  }
+}
+.board.has-art[data-field='energy-void'] .sc-weather i:nth-child(5n) {
+  animation-name: bfx-void-drift;
+}
+/* Golden dust in the arena light shafts. */
+.board.has-art[data-field='colosseum'] .sc-weather i {
+  --peak: 0.55;
+  animation-name: bfx-fall;
+  background: var(--bf-3);
+}
+/* Glitter drifting down the mirrored hall. */
+.board.has-art[data-field='mirror-realm'] .sc-weather i {
+  --peak: 0.85;
+  animation-name: bfx-fall;
+  background: var(--bf-3);
+  box-shadow: 0 0 7px rgba(226, 201, 255, 0.85);
+}
+/* Pale wisps rising between the drowned trees. */
+.board.has-art[data-field='spirit-world'] .sc-weather i {
+  --peak: 0.8;
+  animation-name: bfx-rise;
+  background: var(--bf-3);
+}
+/* Pollen and spores drifting through the broken roof shafts. */
+.board.has-art[data-field='ancient-ruins'] .sc-weather i {
+  --peak: 0.6;
+  --dy: -10px;
+  animation-name: bfx-bwander;
+  background: #f0dcb0;
+}
+/* Fast hot embers off the braziers and lava cracks. */
+.board.has-art[data-field='heros-trial'] .sc-weather i {
+  --peak: 0.95;
+  animation-name: bfx-rise;
+  background: var(--bf-3);
+  box-shadow: 0 0 7px rgba(255, 216, 138, 0.95);
+}
+.board.has-art[data-field='heros-trial'] .sc-weather i:nth-child(2n) {
+  animation-duration: 3.5s;
+}
+/* Ash sifting down over the wreckage, with the odd ember rising. */
+.board.has-art[data-field='blood-battlefield'] .sc-weather i {
+  --peak: 0.55;
+  animation-name: bfx-fall;
+  background: #9a8f8a;
+  box-shadow: 0 0 4px rgba(154, 143, 138, 0.6);
+}
+.board.has-art[data-field='blood-battlefield'] .sc-weather i:nth-child(4n) {
+  animation-name: bfx-rise;
+  background: var(--bf-3);
+  box-shadow: 0 0 6px rgba(255, 138, 138, 0.85);
 }

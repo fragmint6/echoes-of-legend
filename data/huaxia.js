@@ -67,7 +67,6 @@ window.EOL.registerFaction({
             {
               label: 'Wall against the front',
               icon: 'ra-shield',
-              art: 'assets/heroes/huaxia-qin-shi-huang.png',
               effects: [
                 { k: 'dmg', power: 0.7, element: 'Magic', frontOnly: true },
                 { k: 'mark', to: 'targets', frontOnly: true, when: 'now' },
@@ -111,7 +110,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-halberd',
-      art: 'assets/heroes/huaxia-lu-bu.png',
     },
     {
       id: 'huaxia-zhuge-liang',
@@ -137,7 +135,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crystal-ball',
-      art: 'assets/heroes/huaxia-zhuge-liang.png',
     },
     {
       id: 'huaxia-guan-yu',
@@ -162,7 +159,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-broadsword',
-      art: 'assets/heroes/huaxia-guan-yu.png',
     },
     {
       id: 'huaxia-hua-tuo',
@@ -199,7 +195,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-pawprint',
-      art: 'assets/heroes/huaxia-hua-tuo.png',
     },
     {
       id: 'huaxia-huang-zhong',
@@ -232,7 +227,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-arrow-cluster',
-      art: 'assets/heroes/huaxia-huang-zhong.png',
     },
     {
       id: 'huaxia-sun-wukong',
@@ -263,7 +257,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-aura',
-      art: 'assets/heroes/huaxia-sun-wukong.png',
     },
     {
       id: 'huaxia-nezha',
@@ -288,7 +281,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fire-symbol',
-      art: 'assets/heroes/huaxia-nezha.png',
     },
     {
       id: 'huaxia-mulan',
@@ -329,7 +321,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crossbow',
-      art: 'assets/heroes/huaxia-mulan.png',
     },
   ],
 });

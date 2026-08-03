@@ -124,4 +124,3 @@ window.EOL.roleAbilities = {
     },
   },
 };
-

@@ -98,7 +98,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sun',
-      art: 'assets/heroes/takamagahara-amaterasu.png',
     },
     {
       id: 'takamagahara-tsukuyomi',
@@ -138,7 +137,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-mirror',
-      art: 'assets/heroes/takamagahara-tsukuyomi.png',
     },
     {
       id: 'takamagahara-izanami',
@@ -171,7 +169,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-tombstone',
-      art: 'assets/heroes/takamagahara-izanami.png',
     },
     {
       id: 'takamagahara-inari',
@@ -212,7 +209,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fox',
-      art: 'assets/heroes/takamagahara-inari.png',
     },
     {
       id: 'takamagahara-izanagi',
@@ -254,7 +250,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-water-drop',
-      art: 'assets/heroes/takamagahara-izanagi.png',
     },
     {
       id: 'takamagahara-susanoo',
@@ -318,7 +313,6 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-trident',
-      art: 'assets/heroes/takamagahara-susanoo.png',
     },
   ],
 });
