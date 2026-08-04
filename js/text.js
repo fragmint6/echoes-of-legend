@@ -194,7 +194,7 @@
       kind: 'debuff',
       label: 'Marked',
       color: '#ffe066',
-      desc: 'The next Skill to damage this hero consumes it for bonus damage. No timer.',
+      desc: 'The next Skill to damage this hero consumes the Mark - EVERY Skill consumes it, whether or not that Skill gains anything from it. Basics do not. No timer.',
     },
     burn: {
       icon: 'ra-burning-embers',

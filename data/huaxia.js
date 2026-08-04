@@ -105,9 +105,15 @@ window.EOL.registerFaction({
         passive: {
           triggers: ['static', 'selfKilled'],
           effects: [
-            { k: 'outgoingMult', mult: 1.15, when: { targetMarked: true } },
-            { k: 'gainEnergy', amt: 15 },
-            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now' },
+            /* static-only mult (the damage reader consults it directly;
+               the explicit `on:` keeps this array's routing all-or-nothing) */
+            { k: 'outgoingMult', mult: 1.15, when: { targetMarked: true }, on: ['static'] },
+            /* selfKilled-only. The explicit routing matters: these two
+               share this array with the static mult above, and without
+               `on:` the battle-start setup pass used to fire them too
+               (+15 Energy and a pre-marked enemy every single game). */
+            { k: 'gainEnergy', amt: 15, on: ['selfKilled'] },
+            { k: 'mark', to: 'enemies', take: { n: 1, by: 'highestAtk' }, when: 'now', on: ['selfKilled'] },
           ],
         },
       },
@@ -213,7 +219,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Precision Volley',
         cost: 45,
-        text: 'Deal <b>180% ATK Damage</b> to the lowest HP enemy. If that target is <b>Marked</b>, consume the Mark to deal <b>60% ATK bonus damage</b> and apply <b>Exposed</b> for 1 round.',
+        text: 'Deal <b>180% ATK Damage</b> to the lowest HP enemy. If that target is <b>Marked</b>, deal <b>60% ATK bonus damage</b> and apply <b>Exposed</b> for 1 round.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'auto', auto: 'lowestHp', row: 'any' },

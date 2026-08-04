@@ -40,6 +40,26 @@
   var listeners = [];
 
   /* ---------------------------------------------------------
+     USERNAME LAW
+     ---------------------------------------------------------
+     A username (callsign) is what opponents see in matchmaking, so
+     the character set is locked: letters, numbers, and . _ - only,
+     3-24 characters. `handle_chosen` in user_metadata records that
+     the name came from the player (the form / the Google prompt)
+     rather than being auto-derived from their email - that flag is
+     the difference between "has a name" and "was asked". */
+  var USERNAME_RE = /^[A-Za-z0-9._-]{3,24}$/;
+
+  /* Returns null when valid, otherwise the message to show. */
+  function validateHandle(h) {
+    if (!h) return 'Pick a username.';
+    if (h.length < 3) return 'Too short - 3 characters minimum.';
+    if (h.length > 24) return 'Too long - 24 characters maximum.';
+    if (!USERNAME_RE.test(h)) return 'Only letters, numbers, and . _ - are allowed.';
+    return null;
+  }
+
+  /* ---------------------------------------------------------
      boot
      --------------------------------------------------------- */
   function configured() {
@@ -188,6 +208,61 @@
   }
 
   /* ---------------------------------------------------------
+     PROFILE EDITS
+     ---------------------------------------------------------
+     Username and password changes come from the settings modal and
+     the post-Google callsign prompt. Both go through the auth user
+     first (metadata is the durable record), then the profiles row
+     that matchmaking reads. A username that loses the uniqueness
+     race is reported, not silently mangled.
+     --------------------------------------------------------- */
+  function setHandle(handle) {
+    if (!client || !session) return Promise.reject(new Error('Sign in first.'));
+    var bad = validateHandle(handle);
+    if (bad) return Promise.reject(new Error(bad));
+    return client.auth
+      .updateUser({ data: { full_name: handle, handle_chosen: true } })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        return client
+          .from('profiles')
+          .upsert({ id: session.user.id, handle: handle }, { onConflict: 'id' })
+          .select()
+          .single();
+      })
+      .then(function (res) {
+        /* Postgres 23505 = unique violation: someone else owns this
+           callsign. Surface it as a pick-another message. */
+        if (res.error) {
+          if (res.error.code === '23505') throw new Error('That username is taken.');
+          throw res.error;
+        }
+        profile = res.data;
+        notify();
+        return profile;
+      });
+  }
+
+  function updatePassword(newPassword) {
+    if (!client || !session) return Promise.reject(new Error('Sign in first.'));
+    if (!newPassword || newPassword.length < 6)
+      return Promise.reject(new Error('Password needs at least 6 characters.'));
+    return client.auth.updateUser({ password: newPassword }).then(function (res) {
+      if (res.error) throw res.error;
+      return res;
+    });
+  }
+
+  /* True while a signed-in user is still wearing a name we derived
+     from their email/Google instead of one they chose. The prompt
+     (see app.js) stays on them until this is false. */
+  function needsHandle() {
+    if (!session || !session.user) return false;
+    var meta = session.user.user_metadata || {};
+    return !meta.handle_chosen;
+  }
+
+  /* ---------------------------------------------------------
      NO DECK SYNC
      -------------------------------------------------------------
      Decks stay on the device, deliberately. Accounts exist here for
@@ -252,7 +327,9 @@
         .signUp({
           email: email,
           password: password,
-          options: { data: { full_name: handle || '' } },
+          /* the form asked for a name, so this one counts as chosen -
+             Google users are the only ones the callsign prompt stalks */
+          options: { data: { full_name: handle || '', handle_chosen: !!handle } },
         })
         .then(function (res) {
           if (res.error) throw res.error;
@@ -264,6 +341,12 @@
       if (!client) return Promise.resolve();
       return client.auth.signOut();
     },
+
+    /* settings modal + callsign prompt */
+    validateHandle: validateHandle,
+    setHandle: setHandle,
+    updatePassword: updatePassword,
+    needsHandle: needsHandle,
 
     /* Retained as no-ops: decks are local-only for now. */
     pushDeck: pushDeck,

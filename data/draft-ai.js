@@ -167,7 +167,7 @@ window.EOL.draftAI = (function () {
         var trigs = a.passive ? a.passive.triggers || [a.passive.trigger] : [];
         trigs.forEach(function (t) {
           if (t === 'allyDied') wants.deaths = 1;
-          if (t === 'selfKilled') wants.kills = 1;
+          if (t === 'selfKilled' || t === 'teamKilled') wants.kills = 1;
           if (t === 'allyWarded') wants.shield = 1;
           if (t === 'allyStruckDebuffed') wants.debuff = 1;
           if (t === 'allyStruckExposed') wants.exposed = 1;

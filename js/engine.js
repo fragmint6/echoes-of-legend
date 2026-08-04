@@ -457,22 +457,26 @@
 
     /* Apply battle-start `static` passive effects. Declarative modifiers
        (outgoingMult / damageMult / damageResist) are read directly by the
-       damage pipeline and must NOT be applied here; anything else on a
-       static passive is a standing setup (Susanoo's permanent counter) and
-       is armed once, now. Effects using `on:` routing are filtered to the
-       'static' trigger by applyEffects. */
+       damage pipeline and must NOT be applied here; and of what remains,
+       ONLY true standing-setup kinds may arm at start (Susanoo's shield +
+       permanent counter). Everything else on a static passive is a
+       trigger effect that happens to share the effects array - Lu Bu's
+       `gainEnergy`/`mark` entries belong to his selfKilled trigger, and
+       until this allowlist existed they ALSO fired here, which is why
+       Lu Bu's team started every battle at +15 Energy with a random
+       enemy pre-marked. Kind-routed effects (`on:`) are filtered to the
+       'static' trigger as before; unrouted effects must be a setup kind. */
+    var STATIC_SETUP_KINDS = ['stat', 'shield', 'taunt', 'counterStrike', 'untargetable'];
     /* Battle-start setups can reference each other, so arm them in the
        canonical board order rather than array order. */
     boardOrder(B).forEach(function (u) {
       var p = passiveOf(u);
       if (!hasTrig(p, 'static')) return;
       var setup = (p.effects || []).filter(function (e) {
-        return (
-          e.k !== 'outgoingMult' &&
-          e.k !== 'damageMult' &&
-          e.k !== 'damageResist' &&
-          (!e.on || [].concat(e.on).indexOf('static') >= 0)
-        );
+        if (e.k === 'outgoingMult' || e.k === 'damageMult' || e.k === 'damageResist')
+          return false;
+        if (e.on) return [].concat(e.on).indexOf('static') >= 0;
+        return STATIC_SETUP_KINDS.indexOf(e.k) >= 0;
       });
       if (!setup.length) return;
       applyEffects(B, u, [u], setup, { trigger: 'static', immediate: true });
@@ -1419,7 +1423,7 @@
   /* ---------------------------------------------------------
      Core damage / heal
      --------------------------------------------------------- */
-  function dealDamage(B, src, tgt, raw, element, isAbility, noCounter) {
+  function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders) {
     if (!tgt.alive) return 0;
     /* Guan Yu: whether the target was Shielded at the moment the attack
        landed (before the shield could absorb it). */
@@ -1603,11 +1607,16 @@
        stacking trigger. They read pre-hit flags: `wasMarked` (the Mark is
        already consumed by this very blow) and `wasDebuffed`. `lastDamage`
        is the full blow (HP + shield soak) so lifesteal can feed on it. */
-    if (sp && sp.onHit && tgt.alive) {
+    /* `noRiders` marks this hit as itself the product of a rider: a rider's
+       damage must NOT fire further riders. Since basics stopped consuming
+       Marks, Ares's Bloodlust bonus hit landed on a still-Marked target,
+       re-qualified for its own rider, and looped into an unbounded damage
+       chain (stack overflow). One rider per hit, always. */
+    if (sp && sp.onHit && tgt.alive && !noRiders) {
       sp.onHit.forEach(function (e) {
         if (e.ifTargetMarked && !wasMarked) return;
         if (e.ifTargetDebuffed && !wasDebuffed) return;
-        applyEffect(B, src, [tgt], e, { lastDamage: dmg + absorbed });
+        applyEffect(B, src, [tgt], e, { lastDamage: dmg + absorbed, rider: true });
       });
     }
 
@@ -1753,7 +1762,9 @@
           trigger: 'counterStrike',
           round: B.round,
         });
-        dealDamage(B, striker, src, atkOf(striker) * cPow, striker.element, true, true);
+        /* Counters are reactions, not signature casts: they damage but
+           must not spend the target's Mark on the caster's behalf. */
+        dealDamage(B, striker, src, atkOf(striker) * cPow, striker.element, false, true);
       }
     }
 
@@ -1816,34 +1827,60 @@
       });
     }
 
-    /* Lu Bu: the killer's own passives care that THEY landed the kill.
-       killerUid is supplied by the damage path (ability or Burn). */
+    /* Lu Bu: the killer's OWN passive cares that THEY landed the kill.
+       killerUid is supplied by the damage path (ability or Burn). The
+       effect must fire for the killer unit itself, never a teammate -
+       the card says "when Lu Bu defeats an enemy", and the team-wide
+       loop used to proc his refund on a support's kill too. */
     if (killerUid) {
       var killer = B.units.filter(function (x) {
         return x.uid === killerUid;
       })[0];
       if (killer && killer.side !== u.side) {
-        unitsOf(B, killer.side).forEach(function (w) {
-          var kp = passiveOf(w);
-          if (!hasTrig(kp, 'selfKilled')) return;
+        var kp = passiveOf(killer);
+        if (hasTrig(kp, 'selfKilled')) {
           var kse = (kp.effects || []).filter(function (x) {
             return x.k !== 'outgoingMult';
           });
-          if (!kse.length) return;
+          if (kse.length) {
+            emit(B, {
+              t: 'proc',
+              owner: killer.uid,
+              ability: killer.card.ability.name,
+              trigger: 'selfKilled',
+              round: B.round,
+            });
+            applyEffects(B, killer, [killer], kse, {
+              trigger: 'selfKilled',
+              immediate: true,
+              triggerTarget: u,
+            });
+            logMsg(B, 'passive', killer.name + ' presses the rout - ' + killer.card.ability.name + '!', {
+              uid: killer.uid,
+            });
+          }
+        }
+        /* Augustus (teamKilled): the card says "every time your TEAM defeats
+           an enemy", so ANY kill credited to this side fires it - for every
+           teamKilled holder on that side, not just the killer. (selfKilled
+           above is the opposite semantics: the killer's own scalp only.) */
+        unitsOf(B, killer.side).forEach(function (tm) {
+          var tp = passiveOf(tm);
+          if (!hasTrig(tp, 'teamKilled')) return;
           emit(B, {
             t: 'proc',
-            owner: w.uid,
-            ability: w.card.ability.name,
-            trigger: 'selfKilled',
+            owner: tm.uid,
+            ability: tm.card.ability.name,
+            trigger: 'teamKilled',
             round: B.round,
           });
-          applyEffects(B, w, [w], kse, {
-            trigger: 'selfKilled',
+          applyEffects(B, tm, [tm], tp.effects, {
+            trigger: 'teamKilled',
             immediate: true,
             triggerTarget: u,
           });
-          logMsg(B, 'passive', w.name + ' presses the rout - ' + w.card.ability.name + '!', {
-            uid: w.uid,
+          logMsg(B, 'passive', tm.name + ' spreads the peace - ' + tm.card.ability.name + '!', {
+            uid: tm.uid,
           });
         });
       }
@@ -2242,7 +2279,12 @@
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
             raw += atkOf(src) * e.perBuff * bn * (ctx.scale || 1) * provokeM;
           }
-          var dealt = dealDamage(B, src, t, raw, element, true);
+          /* Only a SIGNATURE spends a Mark - ctx.signature rides in from
+             useAbility (`!ability.basic`). This used to pass a flat true,
+             so Basic attacks consumed Marks too: a Zeus mark you were
+             meant to detonate with a Skill evaporated on contact with a
+             free attack, and the whole mark-combo loop leaked. */
+          var dealt = dealDamage(B, src, t, raw, element, ctx.signature === true, false, ctx.rider === true);
           ctx.lastDamage = (ctx.lastDamage || 0) + dealt;
           if (e.energyBonus && dealt > 0) {
             addEnergy(B, src.side, e.energyBonus);

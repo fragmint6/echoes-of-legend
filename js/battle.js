@@ -2765,49 +2765,94 @@
   function playAoe(srcUid, targetUids, element) {
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Magic;
     var el = element || 'Magic';
-    /* MORE DETAIL, NOT MORE SIZE.
-       The cast used to be two plain rings and a glow. It now layers a
-       thin leading edge, a slower trailing ring, a rotating rune band,
-       and a ring of embers thrown outward along real angles - so the
-       blast reads as a structured detonation rather than an expanding
-       circle. All of it is inside the SAME radius as before; nothing
-       got bigger, it just has more going on inside it. */
+    /* AoE DETONATION SUITE v2 (2026-08).
+       The old center was two plain rings and a glow at the CASTER -
+       playtesters read it as "lanky" because a thin expanding circle
+       was the whole show, and it happened in the wrong place. The
+       detonation now lands on the STRIKE ZONE (the victims' centroid)
+       and is choreographed: ground flash, inscribed rune ring, twin
+       shock rings, a white-hot core with an after-flash stutter,
+       debris arcs with gravity sag, crackle sparks, lingering smoke,
+       and a 240ms board shake for weight. The caster keeps only the
+       wind-up flare. Same blast radius as before - more detail
+       inside, nothing bigger. */
     var a = centreOf(srcUid);
     if (a) {
       spawn('fx-charge big', a.x, a.y, fx.color, 420);
-      spawn('fx-wave', a.x, a.y, fx.color, 900);
-      spawn('fx-wave d2', a.x, a.y, fx.trail, 900);
-      /* a crisp leading edge just ahead of the main wave */
-      var edge = spawn('fx-wave-edge', a.x, a.y, fx.color, 720);
-      if (edge) edge.style.animationDelay = '40ms';
-      /* a slow counter-rotating band of glyph ticks */
-      var band = spawn('fx-wave-band', a.x, a.y, fx.trail, 980);
-      if (band) {
-        var ticks = '';
-        for (var g = 0; g < 12; g++) {
-          ticks += '<i style="--a:' + g * 30 + 'deg"></i>';
-        }
-        band.innerHTML = ticks;
+    }
+
+    /* strike-zone centroid across the victims */
+    var pts = [];
+    targetUids.forEach(function (uid) {
+      var t = centreOf(uid);
+      if (t) pts.push(t);
+    });
+    var cx = a ? a.x : 0,
+      cy = a ? a.y : 0;
+    if (pts.length) {
+      var sx = 0,
+        sy = 0;
+      pts.forEach(function (p) {
+        sx += p.x;
+        sy += p.y;
+      });
+      cx = sx / pts.length;
+      cy = sy / pts.length;
+    }
+
+    spawn('fx-blast-glow', cx, cy, fx.color, 820);
+    spawn('fx-blast-ring', cx, cy, fx.color, 640);
+    if (!gfxLow()) {
+      spawn('fx-blast-rune', cx, cy, fx.trail, 580);
+      spawn('fx-blast-ring d2', cx, cy, fx.trail, 720);
+    }
+    spawn('fx-blast-core', cx, cy, fx.color, 440);
+    if (!gfxLow()) {
+      /* debris: even fan of angles, jittered, each chunk with its own
+         tumble and sag */
+      for (var s = 0; s < 12; s++) {
+        var ang = (s / 12) * Math.PI * 2 + (Math.random() * 0.5 - 0.25);
+        var dist = 52 + Math.random() * 78;
+        var sp = spawn('fx-blast-shard', cx, cy, s % 3 === 0 ? fx.trail : fx.color, 780);
+        if (!sp) continue;
+        sp.style.setProperty('--sx', Math.cos(ang) * dist + 'px');
+        sp.style.setProperty('--sy', Math.sin(ang) * dist * 0.72 + 'px'); /* slight ellipse */
+        sp.style.setProperty('--rot', Math.floor(Math.random() * 360) + 'deg');
+        sp.style.animationDelay = s * 16 + 'ms';
       }
-      /* embers flung out along evenly spaced angles, each with its own
-         jitter so the ring never looks mechanical */
-      if (!gfxLow()) {
-        for (var s = 0; s < 10; s++) {
-          var ang = (s / 10) * Math.PI * 2 + (Math.random() * 0.5 - 0.25);
-          var dist = 46 + Math.random() * 42;
-          var sp = spawn('fx-shard', a.x, a.y, s % 3 === 0 ? fx.trail : fx.color, 760);
-          if (!sp) continue;
-          sp.style.setProperty('--sx', Math.cos(ang) * dist + 'px');
-          sp.style.setProperty('--sy', Math.sin(ang) * dist + 'px');
-          sp.style.setProperty('--rot', Math.floor(Math.random() * 360) + 'deg');
-          sp.style.animationDelay = s * 18 + 'ms';
-        }
+      /* crackle: thin streaks thrown further than the debris */
+      for (var k = 0; k < 10; k++) {
+        var sa = (k / 10) * Math.PI * 2 + (Math.random() * 0.4 - 0.2);
+        var sk = spawn('fx-blast-spark', cx, cy, fx.color, 460);
+        if (!sk) continue;
+        sk.style.setProperty('--a', ((sa * 180) / Math.PI + 90).toFixed(1) + 'deg');
+        sk.style.setProperty('--sd', Math.floor(96 + Math.random() * 70) + 'px');
+        sk.style.animationDelay = k * 18 + 'ms';
+      }
+      /* the smoke arrives as the light dies - it is what makes the
+         blast feel like it consumed something */
+      for (var m = 0; m < 4; m++) {
+        var sm = spawn('fx-blast-smoke', cx + (m - 1.5) * 16, cy, fx.trail, 980);
+        if (!sm) continue;
+        sm.style.setProperty('--sx', (m % 2 ? 18 : -14) + 'px');
+        sm.style.animationDelay = 160 + m * 90 + 'ms';
+      }
+      /* board punch */
+      var bd = $('board');
+      if (bd) {
+        bd.classList.remove('shake');
+        void bd.offsetWidth; /* restart the CSS animation if back-to-back */
+        bd.classList.add('shake');
+        setTimeout(function () {
+          bd.classList.remove('shake');
+        }, 260);
       }
     }
-    var bd = $('board');
-    bd.classList.add('flash-' + el.toLowerCase());
+
+    var bd2 = $('board');
+    bd2.classList.add('flash-' + el.toLowerCase());
     setTimeout(function () {
-      bd.classList.remove('flash-' + el.toLowerCase());
+      bd2.classList.remove('flash-' + el.toLowerCase());
     }, 460);
 
     targetUids.forEach(function (uid, i) {
@@ -2816,6 +2861,9 @@
           var t = centreOf(uid);
           if (!t) return;
           playAoeStrike(t, fx, el);
+          /* capstone pop so each VICTIM reads as an explosion node,
+             not as the endpoint of a beam */
+          spawn('fx-blast-mini', t.x, t.y, fx.color, 440);
           setTimeout(function () {
             playImpact(t.x, t.y, fx, false, element);
           }, 170);
@@ -3541,6 +3589,19 @@
       : 'Your team has fallen.';
     ov.querySelector('.result-rounds').textContent =
       B.round === 1 ? 'Won in a single round' : 'Lasted ' + B.round + ' rounds';
+    /* THE SET: play.js reframes the outcome as set progress (score
+       line instead of epitaph, "Sideboard"/"New set" instead of
+       "Rematch") and returns null when no set is live - a non-set
+       match is untouched. */
+    var sr =
+      window.EOL.play && window.EOL.play.setGameResult
+        ? window.EOL.play.setGameResult(win)
+        : null;
+    if (sr) {
+      ov.querySelector('.result-sub').textContent = sr.sub;
+      var rm = $('btn-rematch');
+      if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
+    }
   }
 
   /* Flyouts are CSS-driven and live inside each card, so nothing to

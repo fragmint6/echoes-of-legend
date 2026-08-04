@@ -797,6 +797,14 @@
        host rolls it from the shared match rng and it is derived, not
        re-rolled, on the guest. */
     var isMp = !!cfg.mp;
+    /* THE SET: a fresh solo prep under warLength 'set' begins a new war
+       (fight card drawn here, game 1's board pre-designated). ANY
+       non-continuing prep - a classic single, a draft, an MP match -
+       kills a stale set, so quitting mid-set can never leak state. */
+    if (!isMp && !cfg.setContinues) {
+      setKill();
+      if (warLength() === 'set') cfg.field = cfg.field || setBegin(cfg);
+    }
     var foeBans = isMp ? null : chooseBans(cfg.player12, cfg.enemy12);
     prep = {
       mode: cfg.mode,
@@ -875,7 +883,10 @@
     $('prep-sub').textContent =
       p.phase === 'ban'
         ? "Phase 1 - ban 2 of the enemy's heroes"
-        : 'Phase 2 - field 6 of your surviving heroes';
+        : setState && p.setContinues
+          ? setScoreLine() +
+            ' - swap in 1-2 fresh heroes (required); subbed-out heroes sit out the rest of the set'
+          : 'Phase 2 - field 6 of your surviving heroes';
     $('pstep-ban').classList.toggle('sel', p.phase === 'ban');
     $('pstep-pick').classList.toggle('sel', p.phase === 'pick');
     $('pstep-ban').classList.toggle('done', p.phase !== 'ban');
@@ -900,8 +911,11 @@
     p.player12.forEach(function (e, i) {
       var el = boardCard(e, i, 'you');
       var foeBanned = foeBanList.indexOf(e.card.id) >= 0;
-      if (p.revealed && foeBanned) el.classList.add('banned');
-      if (p.phase === 'pick' && !foeBanned) {
+      /* THE SET: a hero subbed out of the six sits out the rest of the
+         set - rendered exactly like a ban, and unslottable */
+      var locked = p.lockouts && p.lockouts.indexOf(e.card.id) >= 0;
+      if (p.revealed && (foeBanned || locked)) el.classList.add('banned');
+      if (p.phase === 'pick' && !foeBanned && !locked) {
         var slot = slotOf(e.card.id);
         if (slot) {
           el.classList.add('picked');
@@ -1022,6 +1036,9 @@
   }
 
   function toggleSix(id) {
+    /* THE SET: locked-out heroes (subbed out earlier in the set) can
+       never re-enter the six */
+    if (prep.lockouts && prep.lockouts.indexOf(id) >= 0) return;
     var all = prep.front.concat(prep.back);
     var idx = all.indexOf(id);
     if (idx >= 0) {
@@ -1187,7 +1204,14 @@
             'hits while the back row supports. Tap a slotted hero to swap its row.'
         );
       };
-      if (!revealBattlefield(prep.field, afterReveal)) afterReveal();
+      /* THE SET: the FIGHT CARD replaces the single-board reveal here
+         (post-bans, pre-fielding - user law 2026-08-04): all three
+         boards go public the moment both sides' bans are locked, so
+         fielding happens with full knowledge of the whole card. Single
+         games keep the classic one-board reveal. */
+      if (setState) {
+        showFightCard(afterReveal);
+      } else if (!revealBattlefield(prep.field, afterReveal)) afterReveal();
     }
   }
 
@@ -1197,6 +1221,20 @@
     var dict = byId();
     var sixIds = prep.front.concat(prep.back);
     if (sixIds.length !== RULES().FIELD_SIZE) return;
+    /* THE SET substitution law: games 2+ must field 1-2 heroes that
+       were not in last game's public six. Broken combos rotate. */
+    if (setState && setState.lastSix) {
+      var swaps = setSwapCount();
+      if (swaps < 1 || swaps > 2) {
+        toast(
+          swaps < 1
+            ? 'The Set demands rotation: swap in at least 1 fresh hero'
+            : 'Too many changes - swap at most 2 heroes of your six',
+          'ri-repeat-line'
+        );
+        return;
+      }
+    }
 
     if (prep.mp) {
       if (prep.waiting) return; // already committed
@@ -1230,7 +1268,10 @@
       return dict[id];
     });
     var survive = prep.enemy12.filter(function (e) {
-      return prep.youBans.indexOf(e.card.id) < 0;
+      if (prep.youBans.indexOf(e.card.id) >= 0) return false;
+      /* THE SET: heroes the bot subbed out sit out the rest of the set */
+      if (setState && setState.botLockedOut.indexOf(e.card.id) >= 0) return false;
+      return true;
     });
     /* FAIR INFORMATION: the bot must NOT see the six you actually locked -
        that is a peek, not a read. Instead it PREDICTS the six it expects
@@ -1241,10 +1282,43 @@
       return (prep.botBans || []).indexOf(e.card.id) < 0;
     });
     var predictedSix = predictSix(yourSurvivors);
-    var enemySix = chooseSix(survive, predictedSix);
+    /* THE SET: the bot sideboards against your PUBLIC six (last game is
+       fair information for both sides) and obeys the same swap law */
+    var enemySix =
+      setState && setState.lastBotIds.length
+        ? setBotSix(survive, predictedSix)
+        : chooseSix(survive, predictedSix);
+    if (setState) {
+      /* heroes leaving the six become locked out for the rest of the
+         set (BEFORE lastSix is overwritten with the new six) */
+      if (setState.lastSix) {
+        setState.lastSix.front
+          .concat(setState.lastSix.back)
+          .forEach(function (id) {
+            if (sixIds.indexOf(id) < 0 && setState.lockedOut.indexOf(id) < 0)
+              setState.lockedOut.push(id);
+          });
+        setState.lastBotIds.forEach(function (id) {
+          if (
+            !enemySix.some(function (e) {
+              return e.card.id === id;
+            }) &&
+            setState.botLockedOut.indexOf(id) < 0
+          )
+            setState.botLockedOut.push(id);
+        });
+      }
+      setState.youBans = prep.youBans.slice();
+      setState.botBans = (prep.botBans || []).slice();
+      setState.lastSix = { front: prep.front.slice(), back: prep.back.slice() };
+      setState.lastBotIds = enemySix.map(function (e) {
+        return e.card.id;
+      });
+    }
     var cfg = prep;
     prep = null;
     window.EOL.ui.show('battle');
+    if (setState) paintSetChip();
     BATTLE().start({ teams: { player: playerSix, enemy: enemySix }, field: cfg.field });
     lastConfig =
       cfg.mode === 'classic'
@@ -2008,6 +2082,286 @@
   }
 
   /* =====================================================
+     THE SET (best-of-3) - 2026-08-04, roadmap Phase 1
+     -------------------------------------------------------------
+     Laws (docs/ROADMAP.md Phase 1):
+       - Open info always: decks shown, you ban 2 of THEIR cards,
+         only the six is hidden until each battle starts.
+       - Fight card: 3 battlefields revealed at prep start; game 1's
+         board pre-designated; loser of each game picks the next
+         board from the remaining slots; the unpicked leftover is
+         the decider's board.
+       - Substitutions MANDATORY between games: exactly 1-2 swaps
+         per window, formation re-picks are free. The identical six
+         may never be fielded twice in a row (combo rotation).
+       - SOLO ONLY for now (MP wiring = Phase 1b). All set state is
+         seeded-board compatible; nothing here is solo-engine-tied.
+     ===================================================== */
+  var WAR_KEY = 'eol.war.length';
+  function warLength() {
+    try {
+      return localStorage.getItem(WAR_KEY) === 'set' ? 'set' : 'single';
+    } catch (e) {
+      return 'single';
+    }
+  }
+  function setWarLength(v) {
+    try {
+      localStorage.setItem(WAR_KEY, v === 'set' ? 'set' : 'single');
+    } catch (e) {
+      /* private mode */
+    }
+    paintWarLength();
+  }
+  function paintWarLength() {
+    var w = $('war-length');
+    if (!w) return;
+    var on = warLength();
+    w.querySelectorAll('.wl-opt').forEach(function (b) {
+      var sel = b.dataset.len === on;
+      b.classList.toggle('sel', sel);
+      b.setAttribute('aria-pressed', String(sel));
+    });
+  }
+
+  var setState = null; /* see setBegin */
+  function setBegin(cfg) {
+    var card = [];
+    var guard = 0;
+    while (card.length < 3 && guard++ < 50) {
+      var f = window.EOL.rollBattlefield();
+      if (
+        !card.some(function (x) {
+          return x.id === f.id;
+        })
+      )
+        card.push(f);
+    }
+    setState = {
+      game: 1,
+      wins: { you: 0, foe: 0 },
+      card: card,
+      usedSlots: [0],
+      lastSix: null, // {front:[ids], back:[ids]} - the player's public six
+      lastBotIds: [], // the bot's public six
+      /* ROTATION law, extended: a hero subbed OUT of a six sits out the
+         rest of the set (rendered like a banned card; cannot re-enter).
+         Tracked for both sides so the bot plays the same game. */
+      lockedOut: [],
+      botLockedOut: [],
+      youBans: [], // bans the player issued (persist set-wide)
+      botBans: [], // bans issued AGAINST the player
+      player12: cfg.player12,
+      enemy12: cfg.enemy12,
+      pending: null, // 'sideboard' | 'over' after a game ends
+      lastWinner: null, // 'you' | 'foe'
+    };
+    return card[0];
+  }
+  function setKill() {
+    setState = null;
+    var chip = $('set-chip');
+    if (chip) chip.remove();
+  }
+
+  /* --- fight card + board pick modals --- */
+  function setmArt(field) {
+    return field && field.art
+      ? ' style="background-image:url(\'' + new URL(field.art, document.baseURI).href + '\')"'
+      : '';
+  }
+  function showFightCard(cb) {
+    var m = $('set-fightcard');
+    if (!m || !setState) return cb && cb();
+    var plates = setState.card
+      .map(function (f, i) {
+        return (
+          '<div class="setm-plate' +
+          (i === 0 ? ' first' : '') +
+          '">' +
+          '<div class="setm-art"' +
+          setmArt(f) +
+          '></div>' +
+          '<span class="setm-slot">' +
+          (i === 0 ? 'Game 1' : 'Open slot') +
+          '</span>' +
+          '<span class="setm-name">' +
+          esc(f.name) +
+          '</span>' +
+          '<span class="setm-tag">' +
+          esc(f.tagline || '') +
+          '</span>' +
+          '</div>'
+        );
+      })
+      .join('');
+    $('set-fightcard-plates').innerHTML = plates;
+    $('set-fightcard-sub').textContent =
+      'Game 1 is fought on ' +
+      setState.card[0].name +
+      '. The loser of each game picks the next battlefield from the open slots - you can see their choices from the start.';
+    var btn = $('set-fightcard-go');
+    var done = function () {
+      btn.removeEventListener('click', done);
+      m.hidden = true;
+      cb && cb();
+    };
+    btn.addEventListener('click', done);
+    m.hidden = false;
+  }
+  /* Loser-of-game picks the next battlefield. Called with the losing
+     side ('you' | 'foe'). The bot picks at random for v1 (roadmap: a
+     real board-read heuristic is Phase-1b polish). */
+  function setPickBoard(loser, cb) {
+    var remaining = setState.card
+      .map(function (f, i) {
+        return i;
+      })
+      .filter(function (i) {
+        return setState.usedSlots.indexOf(i) < 0;
+      });
+    if (remaining.length === 1) return cb(remaining[0]);
+    if (loser === 'foe' || !remaining.length)
+      return cb(remaining[Math.floor(Math.random() * remaining.length)]);
+    var m = $('set-boardpick');
+    if (!m) return cb(remaining[0]);
+    $('set-boardpick-plates').innerHTML = remaining
+      .map(function (i) {
+        var f = setState.card[i];
+        return (
+          '<button type="button" class="setm-plate pick" data-slot="' +
+          i +
+          '">' +
+          '<div class="setm-art"' +
+          setmArt(f) +
+          '></div>' +
+          '<span class="setm-slot">Your call</span>' +
+          '<span class="setm-name">' +
+          esc(f.name) +
+          '</span>' +
+          '<span class="setm-tag">' +
+          esc(f.tagline || '') +
+          '</span>' +
+          '</button>'
+        );
+      })
+      .join('');
+    $('set-boardpick-sub').textContent =
+      'You lost game ' +
+      (setState.game - 1) +
+      ' - so the call is yours. The slot you leave becomes the decider board if the set goes the distance.';
+    m.querySelectorAll('.setm-plate.pick').forEach(function (b) {
+      b.addEventListener('click', function () {
+        m.hidden = true;
+        setState.usedSlots.push(+b.dataset.slot);
+        cb(+b.dataset.slot);
+      });
+    });
+    m.hidden = false;
+  }
+  /* bot lost and "picks" - still record the slot so the decider is known */
+  function setBotPickBoard(cb) {
+    setPickBoard('foe', function (slot) {
+      setState.usedSlots.push(slot);
+      cb(slot);
+    });
+  }
+
+  /* Score line, everywhere it is needed */
+  function setScoreLine() {
+    var w = setState.wins;
+    return (
+      'The Set · Game ' +
+      setState.game +
+      ' of 3 · You ' +
+      w.you +
+      ' - ' +
+      w.foe +
+      (w.you > w.foe ? ' · you lead' : w.you < w.foe ? ' · you trail' : ' · level')
+    );
+  }
+  function paintSetChip() {
+    if (!setState) return;
+    var chip = $('set-chip');
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.id = 'set-chip';
+      chip.className = 'set-chip';
+      document.body.appendChild(chip);
+    }
+    chip.innerHTML =
+      '<i class="ra ra-circuitry" aria-hidden="true"></i>' +
+      '<span>THE SET · Game ' +
+      setState.game +
+      '/3 · <b>' +
+      setState.wins.you +
+      ' - ' +
+      setState.wins.foe +
+      '</b></span>';
+  }
+
+  /* How many of the CURRENT fielded six differ from last game's public
+     six? The substitution law counts composition only; row moves are
+     free. */
+  function setSwapCount() {
+    if (!setState || !setState.lastSix) return 0;
+    var before = setState.lastSix.front.concat(setState.lastSix.back);
+    var now = prep ? prep.front.concat(prep.back) : [];
+    return now.filter(function (id) {
+      return before.indexOf(id) < 0;
+    }).length;
+  }
+
+  /* The bot's sideboard: it re-runs chooseSix against your PUBLIC six
+     (last game is fair information), then enforces the same 1-2 swap
+     law it holds you to. */
+  function setBotSix(survive, forecast) {
+    var chosen = chooseSix(survive, forecast);
+    var old = setState.lastBotIds || [];
+    if (!old.length) return chosen;
+    var fresh = chosen.filter(function (e) {
+      return old.indexOf(e.card.id) < 0;
+    }).length;
+    var ai = DAI();
+    if (fresh >= 1 && fresh <= 2) return chosen;
+    var oldKeep = chosen.filter(function (e) {
+      return old.indexOf(e.card.id) >= 0;
+    });
+    var bench = survive.filter(function (e) {
+      return (
+        old.indexOf(e.card.id) < 0 &&
+        !chosen.some(function (c) {
+          return c.card.id === e.card.id;
+        })
+      );
+    });
+    /* score bench heroes, best first */
+    bench.sort(function (a, b) {
+      return ai.value(chosen, b, { size: 6 }) - ai.value(chosen, a, { size: 6 });
+    });
+    var need = fresh < 1 ? 1 : 2 - fresh;
+    /* rebuild the six from the old public six + exactly `need` swaps,
+       then let chooseSix's shape pass keep rows sane via auto-form */
+    var base = survive.filter(function (e) {
+      return old.indexOf(e.card.id) >= 0;
+    });
+    /* drop the weakest old-timers until `need` bench heroes fit with
+       role caps respected: chooseSix over the reduced pool keeps the
+       rails (Tank/Medic forces) identical to side one */
+    var half = base
+      .slice()
+      .sort(function (a, b) {
+        return ai.value(base, a, { size: 6 }) - ai.value(base, b, { size: 6 });
+      })
+      .slice(need);
+    var pool = half.concat(bench.slice(0, need * 2));
+    oldKeep = chooseSix(pool, forecast);
+    return oldKeep;
+  }
+
+  window.EOL.play = window.EOL.play || {};
+
+  /* =====================================================
      rematch routing
      ===================================================== */
   var lastConfig = null;
@@ -2015,6 +2369,16 @@
   function rematch() {
     var ov = $('result');
     if (ov) ov.className = 'result';
+    /* THE SET: rematch means "advance the war" while the set is live
+       and "a fresh war, same configuration" once it is over. */
+    if (setState) {
+      if (setState.pending === 'sideboard') {
+        setState.pending = null;
+        setAdvance();
+        return;
+      }
+      if (setState.pending === 'over') setKill(); // fall through: fresh war
+    }
     if (!lastConfig) {
       window.EOL.ui.show('battle');
       BATTLE().start();
@@ -2033,6 +2397,89 @@
     }
     startDraft();
   }
+
+  /* =====================================================
+     THE SET - flow between games
+     ===================================================== */
+  /* battle.js's showResult asks us for set framing every game; null
+     from a non-set match means "behave exactly as before". */
+  function setGameResult(playerWon) {
+    if (!setState) return null;
+    setState.lastWinner = playerWon ? 'you' : 'foe';
+    if (playerWon) setState.wins.you++;
+    else setState.wins.foe++;
+    var w = setState.wins;
+    var over = w.you === 2 || w.foe === 2;
+    setState.pending = over ? 'over' : 'sideboard';
+    return {
+      over: over,
+      sub: over
+        ? playerWon
+          ? 'THE SET IS YOURS, ' + w.you + ' - ' + w.foe + '.'
+          : 'The set slips away, ' + w.you + ' - ' + w.foe + '.'
+        : 'Game ' +
+          setState.game +
+          (playerWon ? ' to you' : ' to the enemy') +
+          '  ·  ' +
+          w.you +
+          ' - ' +
+          w.foe +
+          '  ·  next stop: the sideboard',
+      rematchLabel: over ? 'New set' : 'Sideboard',
+    };
+  }
+
+  /* A game is done, the set is not: the LOSER calls the next board
+     from the open fight-card slots, then both sides sideboard. */
+  function setAdvance() {
+    setState.game += 1;
+    var loser = setState.lastWinner === 'you' ? 'foe' : 'you';
+    var go = function (slot) {
+      if (setState.usedSlots.indexOf(slot) < 0) setState.usedSlots.push(slot);
+      beginSetGame(setState.card[slot]);
+    };
+    if (loser === 'you') setPickBoard('you', go);
+    else setBotPickBoard(go);
+    paintSetChip();
+  }
+
+  /* The sideboard IS the pick phase with last game's six pre-slot. Bans
+     persist set-wide, composition swaps 1-2 are mandatory (enforced in
+     commitSix), row moves are free. */
+  function beginSetGame(field) {
+    prep = {
+      mode: lastConfig ? lastConfig.mode : 'classic',
+      mp: false,
+      seed: null,
+      deckId: lastConfig && lastConfig.deckId ? lastConfig.deckId : null,
+      field: field,
+      player12: setState.player12,
+      enemy12: setState.enemy12,
+      botBans: setState.botBans.slice(),
+      youBans: setState.youBans.slice(),
+      revealed: true,
+      waiting: false,
+      phase: 'pick',
+      front: setState.lastSix.front.slice(),
+      back: setState.lastSix.back.slice(),
+      lockouts: setState.lockedOut.slice(),
+      setContinues: true,
+    };
+    prepAnim = true;
+    window.EOL.ui.show('prep');
+    renderPrep();
+    paintSetChip();
+    revealBattlefield(field, null);
+  }
+
+  /* The chip and the war die the moment the player leaves the set's
+     two views (home-press, mid-set quit) - the next startPrep would
+     also guard, but the chip must not linger over the menu. */
+  document.addEventListener('eol:view', function (e) {
+    if (!setState) return;
+    var v = e.detail && e.detail.view;
+    if (v && v !== 'prep' && v !== 'battle' && v !== 'draft') setKill();
+  });
 
   /* =====================================================
      wiring
@@ -2284,6 +2731,15 @@
   document.addEventListener('DOMContentLoaded', function () {
     initQuitGuard();
     initMultiplayer();
+    /* THE SET: the war-length toggle's listeners. Bound HERE with the
+       other main wiring (not in the set module, whose own DCL listener
+       registered too late in the script order to fire). */
+    paintWarLength();
+    document.querySelectorAll('#war-length .wl-opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        setWarLength(b.dataset.len);
+      });
+    });
     var mc = $('mode-classic'),
       md = $('mode-draft'),
       mcmp = $('mode-campaign');
@@ -2391,6 +2847,13 @@
     rematch: rematch,
     openClassicModal: openClassicModal,
     startDraft: startDraft,
+    /* THE SET */
+    warLength: warLength,
+    setWarLength: setWarLength,
+    setGameResult: setGameResult, // battle.js calls this from showResult
+    _setState: function () {
+      return setState;
+    },
     /* test hook: re-bind multiplayer handlers (harness only) */
     _initMp: initMultiplayer,
     startPrep: startPrep,

@@ -12327,10 +12327,13 @@ body[data-turn='player'] .turn-label {
 }
 
 /* =============================================================
-   GRAPHICS QUALITY TOGGLE  +  LOW-GRAPHICS MODE
+   GRAPHICS QUALITY  +  LOW-GRAPHICS MODE
    -------------------------------------------------------------
-   The switch lives in the main menu's top-left corner and writes
-   `data-gfx` on <body>, persisted to localStorage.
+   The switch lives in the settings modal (home screen, top-right
+   gear) and writes `data-gfx` on <body>, persisted to localStorage.
+   The old top-left menu toggle was retired 2026-08; .gfx-switch /
+   .gfx-opt / .gfx-thumb below are its surviving innards, reused
+   verbatim by the modal.
 
    LOW mode keeps everything that COMMUNICATES and cuts everything
    that only decorates:
@@ -12341,43 +12344,6 @@ body[data-turn='player'] .turn-label {
              emblem spin, title shimmer, ambient glows/pulses,
              parallax, background sheens, decorative keyframes
    ============================================================= */
-.gfx-toggle {
-  position: absolute;
-  top: 20px;
-  left: 22px;
-  z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 10px 7px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  background: linear-gradient(180deg, rgba(14, 17, 28, 0.9), rgba(8, 10, 18, 0.82));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
-  transition:
-    border-color 0.22s var(--ease),
-    transform 0.22s var(--ease),
-    box-shadow 0.22s var(--ease);
-}
-.gfx-toggle:hover {
-  border-color: color-mix(in srgb, var(--r-legendary-1) 46%, transparent);
-  transform: translateY(-1px);
-  box-shadow: 0 7px 22px rgba(0, 0, 0, 0.55);
-}
-.gfx-ico {
-  font-size: 14px;
-  color: var(--r-legendary-1);
-  filter: drop-shadow(0 0 6px rgba(255, 200, 90, 0.4));
-}
-.gfx-label {
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--txt-faint);
-}
 .gfx-switch {
   position: relative;
   display: inline-flex;
@@ -13852,8 +13818,8 @@ body[data-auth='in'] .acct-avatar {
   right: 22px;
   z-index: 30;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: center;
   gap: 10px;
 }
 
@@ -15182,11 +15148,18 @@ body[data-view='home'] .menu-bg {
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
 }
-/* Each layer is twice the viewport wide and translates by exactly half
-   its own width, so the loop is a whole number of tiles and cannot drift.
-   Speeds are deliberately slow - this is ambience, not a runner. */
+/* THE SEAM-FREE LOOP. Each tile is authored 640x360 (exactly 16:9) and
+   rendered by `background-size: auto 100%`, so its on-screen width is
+   always 100vh * 16/9, at ANY viewport aspect. The layer therefore
+   translates by precisely one rendered tile - after one period the
+   repeat-x continuum is pixel-identical, so the wrap is invisible.
+   The old version translated a full VIEWPORT (half the 200%-wide span),
+   which only equals a whole number of tiles at exactly 16:9; at every
+   other window shape the seam jumped by the fractional remainder. */
 .menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps) {
-  width: 200%;
+  /* viewport + more than one max tile period of slack, so no gap can
+     open on the right during the travel */
+  width: calc(100vw + 200vh);
   /* Longhand, NOT the `animation:` shorthand. The shorthand resets every
      sub-property it omits, so it set animation-duration back to 0s and
      silently killed the scroll on all four layers - they loaded and
@@ -15200,7 +15173,8 @@ body[data-view='home'] .menu-bg {
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(-50%, 0, 0);
+    /* exactly one rendered tile width (640:360 = 16:9 at full height) */
+    transform: translate3d(calc(-100vh * 16 / 9), 0, 0);
   }
 }
 .mb-sky {
@@ -16611,27 +16585,40 @@ body[data-gfx='low'] .sc-weather {
   width: 54px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(200, 220, 255, 0.35) 55%, #eef4ff 88%, #ffffff 100%);
-  box-shadow: 0 0 6px rgba(210, 228, 255, 0.7);
+  /* Head at the LEFT end (0%), trail dissolving to the right: these fall
+     down-LEFT, so the bright end must lead. It used to sit right, which
+     made every star fly tail-first. The extra glow hangs off the leading
+     tip via the local -x offset (transforms rotate box and shadow
+     together, so it stays on the head at any angle). */
+  background: linear-gradient(90deg, #ffffff 0%, #eef4ff 12%, rgba(200, 220, 255, 0.35) 45%, transparent 100%);
+  box-shadow:
+    -2px 0 8px 1px rgba(255, 255, 255, 0.85),
+    0 0 6px rgba(210, 228, 255, 0.7);
   opacity: 0;
   animation: mb-shoot linear infinite;
   will-change: transform, opacity;
 }
+/* The flight vector uses vw on BOTH axes (-46, 10), so the descent angle
+   is atan(10/46) = 12.3 degrees at every viewport shape; the streak is
+   rotated by the same -12.3 degrees, which points its head exactly along
+   the velocity. Mixing vw with vh here (the old -42vw / 12vh) made the
+   true angle aspect-dependent, and the fixed 16deg roll never matched the
+   travel direction at all - the trail lagged off-axis the whole way. */
 @keyframes mb-shoot {
   0%, 82% {
     opacity: 0;
-    transform: translate3d(0, 0, 0) rotate(16deg);
+    transform: translate3d(0, 0, 0) rotate(-12.3deg);
   }
   84% {
     opacity: 1;
   }
   92% {
     opacity: 0.9;
-    transform: translate3d(-42vw, 12vh, 0) rotate(16deg);
+    transform: translate3d(-46vw, 10vw, 0) rotate(-12.3deg);
   }
   94%, 100% {
     opacity: 0;
-    transform: translate3d(-44vw, 12.5vh, 0) rotate(16deg);
+    transform: translate3d(-48vw, 10.4vw, 0) rotate(-12.3deg);
   }
 }
 .mb-shoot i:nth-child(1) {
@@ -17039,4 +17026,815 @@ body[data-gfx='low'] .veil-ward {
 }
 body[data-gfx='low'] .veil-ward > i {
   animation-timing-function: linear;
+}
+
+/* =============================================================
+   2026-08 HOME CORNERS + ACCOUNT MENU + SETTINGS MODAL
+   -------------------------------------------------------------
+   New chrome: Discord chip moved to the bottom-left of the main
+   menu, the art credit sits bottom-right, the settings chip rides
+   in the account corner row, clicking the profile button while
+   signed in opens a MENU (with Log out) instead of signing out
+   outright, and the settings modal edits username / password /
+   graphics quality.
+   ============================================================= */
+
+/* Discord chip, bottom-left of the home view */
+.home-discord {
+  position: absolute;
+  left: 22px;
+  bottom: 20px;
+  z-index: 30;
+}
+/* on the LEFT edge the label rides out to the right instead */
+.home-discord .discord-tip {
+  right: auto;
+  left: calc(100% + 9px);
+  transform: translateY(-50%) translateX(-4px);
+}
+.home-discord:hover .discord-tip,
+.home-discord:focus-visible .discord-tip {
+  transform: translateY(-50%) translateX(0);
+}
+
+/* art credit, bottom-right */
+.art-credit {
+  position: absolute;
+  right: 22px;
+  bottom: 21px;
+  z-index: 30;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  opacity: 0.78;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* signed-in account dropdown */
+.acct-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 44;
+  min-width: 172px;
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(14, 17, 28, 0.98), rgba(8, 10, 18, 0.97));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.62);
+  animation: acct-menu-in 0.16s var(--ease);
+}
+@keyframes acct-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.acct-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: var(--cur-pointer);
+  text-align: left;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.acct-menu-item i {
+  font-size: 14px;
+}
+.acct-menu-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.acct-menu-item.danger {
+  color: #ffa3a3;
+}
+.acct-menu-item.danger:hover {
+  background: rgba(255, 92, 92, 0.12);
+  color: #ffc1c1;
+}
+
+/* =============================================================
+   SETTINGS MODAL
+   -------------------------------------------------------------
+   v2 (2026-08): the first pass rendered sections back-to-back at
+   auth-form density and read as one cramped wall. The modal is now
+   wider than the auth card, breathes more, and each preference
+   group is its own softly-raised panel with an icon-chip header
+   (label + one-line description) so sections are scannable at a
+   glance. Field hints sit permanently under their inputs instead
+   of being guessed from placeholders.
+   ============================================================= */
+.set-card {
+  width: min(468px, 100%);
+  padding: 36px 36px 26px;
+  display: grid;
+  gap: 32px;
+  /* the modal lives inside .home, which centers its text; body
+     content here is form-like and must read left-aligned */
+  text-align: left;
+}
+.set-head {
+  text-align: center;
+  margin-bottom: -4px;
+}
+.set-head .auth-sub {
+  margin-top: 2px;
+}
+.set-block {
+  margin: 0;
+  padding: 24px 24px 22px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
+    rgba(255, 255, 255, 0.025);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 26px rgba(0, 0, 0, 0.28);
+}
+.set-h {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt);
+}
+.set-h-ico {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  font-size: 17px;
+  font-family: initial;
+  letter-spacing: 0;
+  color: var(--r-legendary-1);
+  background: radial-gradient(circle at 35% 28%, rgba(255, 220, 140, 0.16), rgba(10, 12, 22, 0.55));
+  border: 1px solid rgba(255, 205, 110, 0.34);
+  box-shadow: 0 0 16px rgba(255, 190, 80, 0.16);
+}
+.set-h-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.set-h-sub {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--txt-faint);
+}
+.set-form {
+  gap: 18px;
+}
+.set-form .auth-lbl {
+  font-size: 10.5px;
+}
+.set-form .auth-field input {
+  padding: 13px 15px;
+  border-radius: 11px;
+  font-size: 13.5px;
+}
+.set-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--txt-faint);
+}
+.set-form .auth-submit {
+  margin-top: 8px;
+  padding: 14px 20px;
+  font-size: 14.5px;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+/* the modal's own quality switch: full-width, roomier than the
+   bare .gfx-switch it reuses, so High and Low read as real
+   choices instead of header crumbs */
+.set-gfx {
+  display: flex;
+  width: 100%;
+  padding: 4px;
+  gap: 4px;
+}
+.set-gfx .gfx-opt {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.set-gfx .gfx-opt i {
+  font-size: 14px;
+}
+.set-gfx-note,
+.set-out-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--txt-faint);
+  margin: 14px 0 0;
+}
+.set-gfx-note i {
+  margin-top: 2px;
+  color: var(--r-legendary-1);
+  flex: 0 0 auto;
+}
+.set-out-note i {
+  color: #ffd98a;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+.set-card .auth-foot:last-child:empty {
+  display: none;
+}
+.set-card .auth-foot:not(:empty) {
+  margin: -8px 0 0;
+  padding-top: 18px;
+}
+@media (max-width: 560px) {
+  .set-card {
+    padding: 28px 18px 20px;
+    gap: 22px;
+  }
+  .set-block {
+    padding: 18px 16px 16px;
+  }
+}
+.uname-skip {
+  width: 100%;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+/* =============================================================
+   AOE DETONATION SUITE v2 (2026-08)
+   -------------------------------------------------------------
+   Rebuild of the area-of-effect presentation. The old blast was a
+   border ring and a faint echo - one expanding circle with no
+   structure (what playtesters read as "lanky"). The detonation is
+   now CHOREOGRAPHED, all at the strike zone's centroid:
+
+     fx-blast-glow    ground flash that lights the zone first
+     fx-blast-rune    inscribed tick ring that stamps, spins and
+                      breaks apart behind everything
+     fx-blast-ring    crisp leading shock ring
+     fx-blast-ring.d2 blurred trailing ring, ~120ms behind
+     fx-blast-core    white-hot core with an after-flash stutter
+     fx-blast-shard   debris chunks arcing out with gravity sag
+     fx-blast-spark   fast thin crackle streaks, further than shards
+     fx-blast-smoke   four slow puffs lingering after the light dies
+     fx-blast-mini    per-victim capstone pop beside the element
+                      strike (zigzag / meteor / bloom / rays / ...)
+
+   All layers share the SAME blast radius the old wave had - more
+   detail inside, nothing bigger. Low graphics cuts debris, sparks,
+   smoke and the shake, and tightens what remains.
+   ============================================================= */
+.fx-blast-core {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    color-mix(in srgb, var(--fx) 70%, #fff) 32%,
+    var(--fx) 60%,
+    transparent 74%
+  );
+  mix-blend-mode: screen;
+  animation: fx-blast-core 0.42s cubic-bezier(0.12, 0.72, 0.3, 1) forwards;
+  z-index: 6;
+}
+@keyframes fx-blast-core {
+  0% {
+    transform: scale(0.15);
+    opacity: 0;
+  }
+  18% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  42% {
+    transform: scale(2.1);
+    opacity: 0.95;
+  }
+  56% {
+    opacity: 0.5;
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.9);
+    opacity: 0;
+  }
+}
+.fx-blast-ring {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  margin: -40px 0 0 -40px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--fx) 88%, #fff);
+  box-shadow:
+    0 0 26px var(--fx),
+    inset 0 0 18px color-mix(in srgb, var(--fx) 60%, transparent);
+  animation: fx-blast-ring 0.62s cubic-bezier(0.1, 0.65, 0.25, 1) forwards;
+  z-index: 5;
+}
+.fx-blast-ring.d2 {
+  border-width: 8px;
+  border-color: color-mix(in srgb, var(--fx) 52%, transparent);
+  filter: blur(3px);
+  animation-delay: 0.12s;
+}
+@keyframes fx-blast-ring {
+  0% {
+    transform: scale(0.12);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(4.6);
+    opacity: 0;
+  }
+}
+/* the inscribed ring: exists for a half second, spins a quarter turn
+   while it blooms, and unwrites itself as the debris passes through */
+.fx-blast-rune {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--fx) 80%, #fff) 0 2.2deg,
+    transparent 2.2deg 18deg
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent 56%, #000 58% 76%, transparent 78%);
+  mask-image: radial-gradient(circle, transparent 56%, #000 58% 76%, transparent 78%);
+  animation: fx-blast-rune 0.56s var(--ease) forwards;
+  z-index: 4;
+}
+@keyframes fx-blast-rune {
+  0% {
+    transform: scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  22% {
+    transform: scale(0.86) rotate(26deg);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.5) rotate(96deg);
+    opacity: 0;
+  }
+}
+.fx-blast-shard {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 1.5px;
+  background: color-mix(in srgb, var(--fx) 82%, #fff);
+  box-shadow: 0 0 7px var(--fx);
+  animation: fx-blast-shard 0.62s cubic-bezier(0.16, 0.68, 0.36, 1) forwards;
+  z-index: 6;
+}
+@keyframes fx-blast-shard {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.6);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  66% {
+    transform: translate(var(--sx, 60px), var(--sy, -40px)) rotate(var(--rot, 180deg)) scale(1);
+    opacity: 1;
+  }
+  /* the last third of the arc sags - debris falls, it does not float */
+  100% {
+    transform: translate(var(--sx, 60px), calc(var(--sy, -40px) + 18px))
+      rotate(calc(var(--rot, 180deg) + 90deg)) scale(0.7);
+    opacity: 0;
+  }
+}
+.fx-blast-spark {
+  position: absolute;
+  width: 3px;
+  height: 30px;
+  margin: -15px 0 0 -1.5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff, var(--fx) 55%, transparent);
+  box-shadow: 0 0 8px var(--fx);
+  transform: rotate(var(--a, 0deg));
+  animation: fx-blast-spark 0.38s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+  z-index: 6;
+}
+@keyframes fx-blast-spark {
+  0% {
+    transform: rotate(var(--a, 0deg)) translateY(8px) scaleY(0.4);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a, 0deg)) translateY(calc(var(--sd, 110px) * -1)) scaleY(1.3);
+    opacity: 0;
+  }
+}
+.fx-blast-smoke {
+  position: absolute;
+  width: 66px;
+  height: 66px;
+  margin: -33px 0 0 -33px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(158, 166, 186, 0.34),
+    rgba(90, 96, 114, 0.16) 58%,
+    transparent 72%
+  );
+  animation: fx-blast-smoke 0.95s ease-out forwards;
+  z-index: 3;
+}
+@keyframes fx-blast-smoke {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  26% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(var(--sx, 14px), -22px) scale(1.9);
+    opacity: 0;
+  }
+}
+.fx-blast-glow {
+  position: absolute;
+  width: 300px;
+  height: 210px;
+  margin: -105px 0 0 -150px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    color-mix(in srgb, var(--fx) 34%, transparent),
+    transparent 70%
+  );
+  animation: fx-blast-glow 0.8s var(--ease) forwards;
+  z-index: 2;
+}
+@keyframes fx-blast-glow {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  24% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+.fx-blast-mini {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx) 46%, transparent 72%);
+  box-shadow: 0 0 18px var(--fx);
+  mix-blend-mode: screen;
+  animation: fx-blast-mini 0.4s var(--ease) forwards;
+  z-index: 6;
+}
+@keyframes fx-blast-mini {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+/* board punch: 240ms of micro-shake so the detonation has weight */
+.board.shake {
+  animation: board-shake 0.24s linear;
+}
+@keyframes board-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(2.5px, -1.5px);
+  }
+  40% {
+    transform: translate(-2px, 1.5px);
+  }
+  60% {
+    transform: translate(1.5px, 1px);
+  }
+  80% {
+    transform: translate(-1px, -1px);
+  }
+}
+body[data-gfx='low'] .board.shake {
+  animation: none !important;
+}
+body[data-gfx='low'] .fx-blast-core,
+body[data-gfx='low'] .fx-blast-ring,
+body[data-gfx='low'] .fx-blast-rune,
+body[data-gfx='low'] .fx-blast-glow,
+body[data-gfx='low'] .fx-blast-mini {
+  animation-duration: 0.3s !important;
+}
+
+/* =============================================================
+   THE SET (Bo3)  (2026-08) — roadmap Phase 1
+   -------------------------------------------------------------
+   war-length segmented toggle (inside the solo mode-grid, spans its
+   full width), the fight card + board-call modals, and the in-battle
+   score chip. Low-gfx mode strips their decorative motion only.
+   ============================================================= */
+.war-length {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  max-width: 560px;
+  margin: 0 auto 18px;
+}
+.wl-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(17, 21, 34, 0.85), rgba(9, 11, 19, 0.85));
+  color: var(--txt-faint);
+  font-family: inherit;
+  text-align: left;
+  cursor: var(--cur-pointer);
+  transition:
+    border-color 0.22s var(--ease),
+    color 0.22s var(--ease),
+    transform 0.22s var(--ease),
+    box-shadow 0.22s var(--ease);
+}
+.wl-opt > i {
+  font-size: 22px;
+  flex: 0 0 auto;
+}
+.wl-opt:hover {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 40%, transparent);
+  transform: translateY(-1px);
+}
+.wl-opt.sel {
+  color: var(--txt);
+  border-color: color-mix(in srgb, var(--r-legendary-1) 62%, transparent);
+  box-shadow:
+    0 6px 22px rgba(0, 0, 0, 0.4),
+    0 0 0 1px color-mix(in srgb, var(--r-legendary-1) 30%, transparent),
+    inset 0 0 24px rgba(255, 190, 80, 0.07);
+}
+.wl-opt.sel > i {
+  color: var(--r-legendary-1);
+  filter: drop-shadow(0 0 8px rgba(255, 200, 90, 0.45));
+}
+.wl-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.wl-name {
+  font-family: 'Cinzel', serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.wl-sub {
+  font-size: 10.5px;
+  color: var(--txt-faint);
+}
+
+/* fight card / board call modal */
+.setm {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.setm[hidden] {
+  display: none;
+}
+.setm-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 4, 9, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-in 0.22s var(--ease);
+}
+.setm-card {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 30px 30px 26px;
+  border-radius: 20px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(17, 21, 34, 0.99), rgba(9, 11, 19, 0.99));
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: auth-in 0.28s var(--ease);
+  text-align: center;
+}
+.setm-title {
+  margin: 0 0 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+.setm-title i {
+  color: var(--r-legendary-1);
+  margin-right: 8px;
+}
+.setm-sub {
+  margin: 0 auto 20px;
+  max-width: 560px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--txt-faint);
+}
+.setm-plates {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.setm-plate {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 0 0 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  background: rgba(0, 0, 0, 0.35);
+  font-family: inherit;
+  color: inherit;
+  transition:
+    border-color 0.22s var(--ease),
+    transform 0.22s var(--ease),
+    box-shadow 0.22s var(--ease);
+}
+.setm-plate.pick {
+  cursor: var(--cur-pointer);
+}
+.setm-plate.pick:hover {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 65%, transparent);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.setm-plate.first {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--r-legendary-1) 26%, transparent);
+}
+.setm-art {
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid var(--line-2);
+}
+.setm-slot {
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--r-legendary-1);
+}
+.setm-plate:not(.first) .setm-slot {
+  color: var(--txt-faint);
+}
+.setm-name {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--txt);
+  padding: 0 10px;
+}
+.setm-tag {
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--txt-faint);
+  padding: 0 12px;
+}
+.setm-go {
+  min-width: 220px;
+  justify-content: center;
+}
+@media (max-width: 640px) {
+  .setm-plates {
+    grid-template-columns: 1fr;
+  }
+  .war-length {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* in-battle score chip */
+.set-chip {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 42%, transparent);
+  background: linear-gradient(180deg, rgba(14, 17, 28, 0.92), rgba(8, 10, 18, 0.85));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.set-chip i {
+  color: var(--r-legendary-1);
+  font-size: 13px;
+}
+.set-chip b {
+  color: var(--txt);
+  letter-spacing: 0.1em;
+}
+body[data-gfx='low'] .setm-scrim,
+body[data-gfx='low'] .setm-card {
+  animation: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }

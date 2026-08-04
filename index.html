@@ -94,18 +94,10 @@
 
     <!-- ==================== HOME / DASHBOARD ==================== -->
     <section class="view home" data-view="home">
-      <!-- graphics quality toggle: top-left of the main menu. Low mode
-           strips decorative animation across the whole app and keeps
-           only motion that communicates state. -->
-      <div class="gfx-toggle" id="gfx-toggle" role="group" aria-label="Graphics quality">
-        <i class="ra ra-lightning-bolt gfx-ico"></i>
-        <span class="gfx-label">Graphics</span>
-        <div class="gfx-switch">
-          <button type="button" class="gfx-opt" data-gfx="high" aria-pressed="true">High</button>
-          <button type="button" class="gfx-opt" data-gfx="low" aria-pressed="false">Low</button>
-          <span class="gfx-thumb" aria-hidden="true"></span>
-        </div>
-      </div>
+      <!-- Graphics quality now lives exclusively in the settings modal
+           (top-right gear). Low mode still strips decorative animation
+           across the whole app and keeps only motion that communicates
+           state; body[data-gfx] + .gfx-opt are what make that work. -->
       <!-- Account button: top-right of the main menu. The UI is complete
            but deliberately non-functional - no network, no persistence.
            It exists so the cloud work later is a matter of wiring the
@@ -118,19 +110,44 @@
                having credentials and the session coming back -->
           <span class="acct-spin" aria-hidden="true"><i></i><i></i><i></i></span>
         </button>
-        <!-- Community link. Sits under the account button, right-aligned
-             with it so the two read as one corner stack. -->
-        <a
-          class="discord-btn"
-          href="https://discord.gg/HFFk6wc7Ha"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Join the Echoes of Legend Discord"
+        <!-- Settings: same round chip as the Discord button, sitting to
+             the RIGHT of sign-in on the same row. -->
+        <button
+          type="button"
+          class="discord-btn acct-settings"
+          id="settings-btn"
+          aria-haspopup="dialog"
+          aria-label="Settings"
         >
-          <i class="ri-discord-fill" aria-hidden="true"></i>
-          <span class="discord-tip" aria-hidden="true">Discord</span>
-        </a>
+          <i class="ri-settings-4-line" aria-hidden="true"></i>
+          <span class="discord-tip" aria-hidden="true">Settings</span>
+        </button>
+        <!-- Signed-in account menu: clicking the profile button no longer
+             dumps you straight out - it offers the choice. -->
+        <div class="acct-menu" id="acct-menu" hidden role="menu">
+          <button type="button" class="acct-menu-item" id="acct-settings" role="menuitem">
+            <i class="ri-settings-4-line"></i><span>Settings</span>
+          </button>
+          <button type="button" class="acct-menu-item danger" id="acct-logout" role="menuitem">
+            <i class="ri-logout-box-r-line"></i><span>Log out</span>
+          </button>
+        </div>
       </div>
+
+      <!-- Community link. Bottom-LEFT corner of the main menu (the
+           tooltip flips to ride out to the right so it never leaves
+           the viewport). -->
+      <a
+        class="discord-btn home-discord"
+        href="https://discord.gg/HFFk6wc7Ha"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Join the Echoes of Legend Discord"
+      >
+        <i class="ri-discord-fill" aria-hidden="true"></i>
+        <span class="discord-tip" aria-hidden="true">Discord</span>
+      </a>
+      <span class="art-credit">art by mobpsychofan</span>
 
       <div
         class="auth-modal"
@@ -197,7 +214,7 @@
           <form class="auth-form" id="auth-form" autocomplete="off">
             <label class="auth-field" id="auth-name-field" hidden>
               <span class="auth-lbl">Display name</span>
-              <input type="text" name="name" placeholder="Ser Lancelot" autocomplete="off" />
+              <input type="text" name="name" placeholder="Ser_Lancelot" autocomplete="off" />
             </label>
             <label class="auth-field">
               <span class="auth-lbl">Email</span>
@@ -219,6 +236,139 @@
         </div>
       </div>
 
+      <!-- ==================== SETTINGS MODAL ====================
+           Account edits (username / password, signed-in only) plus the
+           graphics-quality switch. The graphics buttons reuse the exact
+           .gfx-switch structure, so body[data-gfx] styles the thumb and
+           initGfx's delegated listener already drives them. -->
+      <div
+        class="auth-modal"
+        id="settings-modal"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+      >
+        <div class="auth-scrim" id="settings-scrim"></div>
+        <div class="auth-card set-card" role="document">
+          <button type="button" class="auth-close" id="settings-close" aria-label="Close">
+            <i class="ri-close-line"></i>
+          </button>
+
+          <div class="auth-head set-head">
+            <div class="auth-emblem set-emblem"><i class="ri-settings-4-line"></i></div>
+            <h2 class="auth-title" id="settings-title">Settings</h2>
+            <p class="auth-sub">Account and display preferences.</p>
+          </div>
+
+          <section class="set-block" id="set-account" aria-labelledby="set-account-h">
+            <h3 class="set-h" id="set-account-h">
+              <i class="ri-user-3-line set-h-ico" aria-hidden="true"></i>
+              <span class="set-h-body">
+                Account
+                <small class="set-h-sub">How other players see you online.</small>
+              </span>
+            </h3>
+            <form class="auth-form set-form" id="settings-form" autocomplete="off">
+              <label class="auth-field">
+                <span class="auth-lbl">Username</span>
+                <input
+                  type="text"
+                  name="username"
+                  id="set-username"
+                  placeholder="letters, numbers, . _ -"
+                  autocomplete="off"
+                />
+                <span class="set-hint">3–24 characters. Letters, numbers, . _ - only.</span>
+              </label>
+              <label class="auth-field">
+                <span class="auth-lbl">New password <em>(optional)</em></span>
+                <input
+                  type="password"
+                  name="newpass"
+                  id="set-newpass"
+                  placeholder="leave blank to keep current"
+                  autocomplete="off"
+                />
+                <span class="set-hint">At least 6 characters.</span>
+              </label>
+              <button type="submit" class="btn btn-primary auth-submit" id="settings-save">
+                <i class="ri-save-3-line"></i><span>Save changes</span>
+              </button>
+            </form>
+            <p class="set-out-note" id="set-out-note" hidden>
+              <i class="ri-information-line"></i> Sign in to edit your username or password.
+            </p>
+          </section>
+
+          <section class="set-block" aria-labelledby="set-display-h">
+            <h3 class="set-h" id="set-display-h">
+              <i class="ri-image-line set-h-ico" aria-hidden="true"></i>
+              <span class="set-h-body">
+                Display
+                <small class="set-h-sub">Visual fidelity and motion.</small>
+              </span>
+            </h3>
+            <div class="set-row">
+              <div class="gfx-switch set-gfx" role="group" aria-label="Graphics quality">
+                <button type="button" class="gfx-opt" data-gfx="high" aria-pressed="true">
+                  <i class="ri-sparkling-2-line" aria-hidden="true"></i>High
+                </button>
+                <button type="button" class="gfx-opt" data-gfx="low" aria-pressed="false">
+                  <i class="ri-leaf-line" aria-hidden="true"></i>Low
+                </button>
+                <span class="gfx-thumb" aria-hidden="true"></span>
+              </div>
+            </div>
+            <p class="set-gfx-note">
+              <i class="ri-information-line"></i>
+              Low strips backdrop blur, blends, particles and ambient motion — recommended on older
+              devices or with reduced-motion preferences.
+            </p>
+          </section>
+
+          <p class="auth-foot" id="settings-foot"></p>
+        </div>
+      </div>
+
+      <!-- ==================== USERNAME PROMPT ====================
+           Shown once after a Google account is provisioned: Google gives
+           us a name but not a callsign, and matchmaking needs one. The
+           rules (letters / numbers / . _ -) are enforced on submit. -->
+      <div
+        class="auth-modal"
+        id="uname-modal"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="uname-title"
+      >
+        <div class="auth-scrim" id="uname-scrim"></div>
+        <div class="auth-card" role="document">
+          <div class="auth-head">
+            <div class="auth-emblem"><i class="ra ra-laurel-crown"></i></div>
+            <h2 class="auth-title" id="uname-title">Choose your callsign</h2>
+            <p class="auth-sub">
+              This is the name other players see in matchmaking. Letters, numbers, and
+              <b>. _ -</b> only.
+            </p>
+          </div>
+          <form class="auth-form" id="uname-form" autocomplete="off">
+            <label class="auth-field">
+              <span class="auth-lbl">Username</span>
+              <input type="text" id="uname-input" placeholder="e.g. Scribe_77" autocomplete="off" />
+            </label>
+            <button type="submit" class="btn btn-primary auth-submit">
+              <i class="ra ra-quill-ink"></i><span>Claim this name</span>
+            </button>
+          </form>
+          <p class="auth-foot" id="uname-foot"></p>
+          <button type="button" class="btn btn-ghost uname-skip" id="uname-skip">
+            <i class="ri-time-line"></i><span>Pick one later</span>
+          </button>
+        </div>
+      </div>
+
       <div class="home-inner">
         <div class="home-emblem">
           <i class="ra ra-crossed-swords"></i>
@@ -232,7 +382,7 @@
 
         <div class="home-rule"><span></span><i class="ra ra-diamond"></i><span></span></div>
 
-        <p class="home-sub">A 6v6 Folklore Card Battler</p>
+        <p class="home-sub">History Meets Destiny</p>
 
         <div class="home-actions">
           <button class="btn btn-primary" id="btn-play">
@@ -510,6 +660,25 @@
       </div>
 
       <div class="mode-grid" id="mode-grid-solo">
+        <!-- THE SET (roadmap Phase 1): match length is a mode-level
+             choice, not a mode. The Set wraps Classic or Draft in a
+             Bo3 war; classic single battles stay the default. -->
+        <div class="war-length" id="war-length" role="group" aria-label="Match length">
+          <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
+            <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
+            <span class="wl-body">
+              <span class="wl-name">Single Battle</span>
+              <span class="wl-sub">One game, quick war</span>
+            </span>
+          </button>
+          <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
+            <i class="ra ra-laurel-crown" aria-hidden="true"></i>
+            <span class="wl-body">
+              <span class="wl-name">The Set · Bo3</span>
+              <span class="wl-sub">3-board fight card, swaps between games</span>
+            </span>
+          </button>
+        </div>
         <button class="mode-card" id="mode-classic">
           <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
           <i class="mode-glyph ra ra-crossed-swords"></i>
@@ -965,6 +1134,54 @@
         </div>
       </div>
     </section>
+
+      <!-- ==================== THE SET: FIGHT CARD ====================
+           Revealed once per set, at prep start, BEFORE bans. All three
+           boards are public knowledge from the first click of the set;
+           only which board each game lands on is settled game-by-game
+           (game 1 pre-designated, later games called by the loser). -->
+      <div
+        class="setm"
+        id="set-fightcard"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="set-fightcard-title"
+      >
+        <div class="setm-scrim"></div>
+        <div class="setm-card fightcard">
+          <h2 class="setm-title" id="set-fightcard-title">
+            <i class="ra ra-laurel-crown" aria-hidden="true"></i> THE SET — FIGHT CARD
+          </h2>
+          <p class="setm-sub" id="set-fightcard-sub"></p>
+          <div class="setm-plates" id="set-fightcard-plates"></div>
+          <button type="button" class="btn btn-primary setm-go" id="set-fightcard-go">
+            <i class="ra ra-crossed-swords"></i><span>To the bans</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== THE SET: BOARD CALL ====================
+           Loser of the last game picks the next battlefield from the
+           fight card's open slots; the slot they leave becomes the
+           decider board. The bot calls for its own side. -->
+      <div
+        class="setm"
+        id="set-boardpick"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="set-boardpick-title"
+      >
+        <div class="setm-scrim"></div>
+        <div class="setm-card">
+          <h2 class="setm-title" id="set-boardpick-title">
+            <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD
+          </h2>
+          <p class="setm-sub" id="set-boardpick-sub"></p>
+          <div class="setm-plates" id="set-boardpick-plates"></div>
+        </div>
+      </div>
 
     <!-- ==================== TRANSITION VEIL ====================
          Full-page loading screen. It boots ON in the markup so the very

@@ -17,7 +17,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Divine Judgment',
         cost: 60,
-        text: 'If any enemies are <b>Marked</b>, consume the Marks to deal <b>130% ATK Lightning Damage</b> and reduce their DEF by <b>20% for 2 rounds</b>; otherwise <b>Mark</b> all enemies.',
+        text: 'If any enemies are <b>Marked</b>, deal <b>130% ATK Lightning Damage</b> to them and reduce their DEF by <b>20% for 2 rounds</b>; otherwise <b>Mark</b> all enemies.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'all', row: 'any' },
@@ -162,7 +162,7 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: 'Bloodlust',
         cost: null,
-        text: 'Whenever Ares attacks he gains <b>8% ATK</b> for the rest of the battle, and hitting a <b>Marked</b> target consumes the Mark to deal <b>40% bonus damage</b> and apply <b>Burn</b> for 2 rounds.',
+        text: 'Whenever Ares attacks he gains <b>8% ATK</b> for the rest of the battle, and hitting a <b>Marked</b> target deals <b>40% bonus damage</b> and applies <b>Burn</b> for 2 rounds.',
         note: 'Max: 40% ATK.',
         passive: {
           trigger: 'selfAttacked',

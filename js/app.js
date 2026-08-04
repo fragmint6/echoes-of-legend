@@ -746,11 +746,14 @@
         });
     }
 
-    openBtn.addEventListener('click', function () {
+    openBtn.addEventListener('click', function (e) {
       var u = A && A.user && A.user();
       if (u) {
-        /* signed in: the button becomes sign-out */
-        A.signOut();
+        /* Signed in: open a small menu (Settings / Log out) instead of
+           dumping the session - one mercy click between the profile
+           button and being signed out. */
+        e.stopPropagation();
+        toggleAcctMenu();
         return;
       }
       open();
@@ -777,8 +780,16 @@
       var f = e.target;
       var email = (f.email.value || '').trim();
       var pass = f.password.value || '';
-      var handle = f.name ? (f.name.value || '').trim() : '';
-      if (!email || !pass) {
+          var handle = f.name ? (f.name.value || '').trim() : '';
+          if (modal.dataset.mode === 'up' && handle && A.validateHandle) {
+            /* usernames are matchmaking callsigns: letters, numbers, ._- */
+            var badName = A.validateHandle(handle);
+            if (badName) {
+              say(badName, 'warn');
+              return;
+            }
+          }
+          if (!email || !pass) {
         say('Enter an email and password.', 'warn');
         return;
       }
@@ -806,7 +817,7 @@
         var av = openBtn.querySelector('.acct-avatar');
         if (user) {
           if (label) label.textContent = user.name;
-          openBtn.title = 'Signed in as ' + (user.email || user.name) + ' - click to sign out';
+          openBtn.title = 'Signed in as ' + (user.email || user.name) + ' - account menu';
           if (av) {
             av.innerHTML = user.avatar
               ? '<img src="' + esc(user.avatar) + '" alt="" />'
@@ -823,6 +834,230 @@
 
     setMode('in');
     say('');
+
+    /* ---------------------------------------------------------
+       ACCOUNT MENU (signed-in)
+       ---------------------------------------------------------
+       The profile button opens this instead of signing out cold. */
+    var acctMenu = document.getElementById('acct-menu');
+    function toggleAcctMenu(force) {
+      if (!acctMenu) return;
+      var show = force != null ? force : acctMenu.hidden;
+      acctMenu.hidden = !show;
+    }
+    if (acctMenu) {
+      document.getElementById('acct-logout').addEventListener('click', function () {
+        toggleAcctMenu(false);
+        A.signOut();
+      });
+      document.getElementById('acct-settings').addEventListener('click', function () {
+        toggleAcctMenu(false);
+        openSettings();
+      });
+      document.addEventListener('click', function (e) {
+        if (acctMenu.hidden) return;
+        if (acctMenu.contains(e.target) || openBtn.contains(e.target)) return;
+        toggleAcctMenu(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') toggleAcctMenu(false);
+      });
+    }
+
+    /* ---------------------------------------------------------
+       SETTINGS MODAL
+       ---------------------------------------------------------
+       Username + password edits (signed-in only) and the graphics
+       quality switch. The graphics buttons are plain .gfx-opt
+       elements: initGfx() already bound their clicks and keeps
+       aria-pressed in sync, so there is nothing to wire here. */
+    var setModal = document.getElementById('settings-modal');
+    var setFoot = document.getElementById('settings-foot');
+    function setSay(msg, kind) {
+      if (!setFoot) return;
+      setFoot.className = 'auth-foot' + (kind ? ' ' + kind : '');
+      setFoot.innerHTML = msg ? '<i class="ri-information-line"></i>' + esc(msg) : '';
+    }
+    function openSettings() {
+      if (!setModal) return;
+      var u = A && A.user && A.user();
+      var form = document.getElementById('settings-form');
+      var note = document.getElementById('set-out-note');
+      if (form) {
+        form.style.display = u ? '' : 'none';
+        var un = document.getElementById('set-username');
+        if (un && u) un.value = u.name || '';
+        var np = document.getElementById('set-newpass');
+        if (np) np.value = '';
+      }
+      if (note) note.hidden = !!u;
+      setSay('');
+      setModal.hidden = false;
+      document.body.dataset.modal = '1';
+    }
+    function closeSettings() {
+      if (!setModal || setModal.hidden) return;
+      setModal.hidden = true;
+      delete document.body.dataset.modal;
+    }
+    var setBtn = document.getElementById('settings-btn');
+    if (setBtn) setBtn.addEventListener('click', openSettings);
+    if (setModal) {
+      document.getElementById('settings-close').addEventListener('click', closeSettings);
+      document.getElementById('settings-scrim').addEventListener('click', closeSettings);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSettings();
+      });
+      document.getElementById('settings-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (busy) return;
+        var u = A && A.user && A.user();
+        if (!u) return;
+        var un = document.getElementById('set-username');
+        var np = document.getElementById('set-newpass');
+        var handle = (un.value || '').trim();
+        var pass = np.value || '';
+        var jobs = [];
+        if (handle && handle !== u.name) {
+          var bad = A.validateHandle(handle);
+          if (bad) {
+            setSay(bad, 'warn');
+            return;
+          }
+          jobs.push(A.setHandle(handle));
+        }
+        if (pass) {
+          if (pass.length < 6) {
+            setSay('Password needs at least 6 characters.', 'warn');
+            return;
+          }
+          jobs.push(A.updatePassword(pass));
+        }
+        if (!jobs.length) {
+          setSay('Nothing to save.');
+          return;
+        }
+        busy = true;
+        setSay('Saving...');
+        Promise.all(jobs)
+          .then(function () {
+            busy = false;
+            np.value = '';
+            setSay('Saved.');
+          })
+          .catch(function (err) {
+            busy = false;
+            setSay((err && err.message) || 'Could not save. Try again.', 'warn');
+          });
+      });
+    }
+
+    /* ---------------------------------------------------------
+       CALLSIGN PROMPT (post-Google provisioning)
+       ---------------------------------------------------------
+       Google creates the auth identity but gives no callsign; while
+       needsHandle() is true, this modal asks for one. "Pick one
+       later" is honoured for the rest of the browser session, and
+       the ask never interrupts a match (home view only). */
+    var unModal = document.getElementById('uname-modal');
+    var unFoot = document.getElementById('uname-foot');
+    var unInput = document.getElementById('uname-input');
+    var unForm = document.getElementById('uname-form');
+    var unSkip = document.getElementById('uname-skip');
+    var UN_SKIP_KEY = 'eol.uname.skip';
+    function unSay(msg, kind) {
+      if (!unFoot) return;
+      unFoot.className = 'auth-foot' + (kind ? ' ' + kind : '');
+      unFoot.innerHTML = msg ? '<i class="ri-information-line"></i>' + esc(msg) : '';
+    }
+    function closeUname() {
+      if (!unModal || unModal.hidden) return;
+      unModal.hidden = true;
+      delete document.body.dataset.modal;
+    }
+    function maybePromptUsername() {
+      if (!unModal || !(A && A.isReady && A.isReady())) return;
+      var u = A.user && A.user();
+      if (!u || !(A.needsHandle && A.needsHandle())) return;
+      if (document.body.dataset.view !== 'home') return; // never ambush mid-match
+      try {
+        if (sessionStorage.getItem(UN_SKIP_KEY) === '1') return;
+      } catch (e) {}
+      if (!unModal.hidden || document.body.dataset.modal) return;
+      setTimeout(function () {
+        if (!unModal.hidden || document.body.dataset.modal) return;
+        unSay('');
+        if (unInput) unInput.value = '';
+        unModal.hidden = false;
+        document.body.dataset.modal = '1';
+        if (unInput) unInput.focus();
+      }, 400);
+    }
+    document.addEventListener('eol:view', maybePromptUsername);
+    if (A && A.onChange) A.onChange(maybePromptUsername);
+    if (unForm) {
+      unForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (busy) return;
+        var h = (unInput.value || '').trim();
+        var bad = A.validateHandle(h);
+        if (bad) {
+          unSay(bad, 'warn');
+          return;
+        }
+        busy = true;
+        unSay('Claiming...');
+        A.setHandle(h)
+          .then(function () {
+            busy = false;
+            unSay('Welcome to the ladder, ' + h + '.');
+            setTimeout(closeUname, 900);
+          })
+          .catch(function (err) {
+            busy = false;
+            unSay((err && err.message) || 'Could not set that name.', 'warn');
+          });
+      });
+    }
+    if (unSkip) {
+      unSkip.addEventListener('click', function () {
+        try {
+          sessionStorage.setItem(UN_SKIP_KEY, '1');
+        } catch (e) {}
+        closeUname();
+      });
+    }
+
+    /* ---------------------------------------------------------
+       OAUTH ERROR SURFACE
+       ---------------------------------------------------------
+       Coming back from Google with an error in the URL (Supabase
+       reports provider failures as query params on the redirect) is
+       otherwise a silent dead end. Surface it in the auth modal and
+       clean the address bar. access_denied = the user closed the
+       consent screen, which needs no message. */
+    (function () {
+      try {
+        var src = window.location.search + window.location.hash;
+        if (src.indexOf('error') === -1) return;
+        var codeM = src.match(/[?&#]error_code?=([^&]+)/i);
+        if (codeM && /access_denied/i.test(codeM[1])) return;
+        var m = src.match(/error_description=([^&]+)/);
+        if (!m) return;
+        var msg = decodeURIComponent(m[1].replace(/\+/g, ' '));
+        try {
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch (e2) {}
+        if (/signups? (are|is)? ?not allowed|disabled/i.test(msg)) {
+          msg =
+            'That Google account has no Echoes of Legend account on this server yet, and ' +
+            'Google sign-ups are currently turned off there - create an account with ' +
+            'email below instead, it takes twenty seconds.';
+        }
+        open();
+        say(msg, 'warn');
+      } catch (e) {}
+    })();
   }
 
   document.addEventListener('DOMContentLoaded', function () {

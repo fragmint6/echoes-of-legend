@@ -144,7 +144,10 @@ window.EOL.registerFaction({
         text: 'Every time your team defeats an enemy, immediately heal the <b>2</b> lowest HP allies for <b>12% Max HP</b> and grant them <b>10% DEF</b> for 1 round.',
         note: null,
         passive: {
-          trigger: 'selfKilled',
+          /* teamKilled (not selfKilled): the card says "every time your TEAM
+             defeats an enemy" - any ally's kill heals the two most wounded,
+             not just kills Augustus lands himself. */
+          trigger: 'teamKilled',
           effects: [
             /* DEF is applied BEFORE the heal on purpose: `take` re-sorts by
                current HP for every effect, and healing first would push the
