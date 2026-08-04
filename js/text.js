@@ -217,6 +217,13 @@
       color: '#b6f5ff',
       desc: 'Flat damage reduction. Works even while Exposed.',
     },
+    counterstrike: {
+      icon: 'ra-crossed-swords',
+      kind: 'buff',
+      label: 'Counter Ready',
+      color: '#ffd977',
+      desc: 'Strikes back when hit while Shielded.',
+    },
     healdown: {
       icon: 'ra-broken-heart',
       kind: 'debuff',
@@ -275,7 +282,13 @@
       if (u.flags.silence > 0) push('silence', u.flags.silence, 1);
       if (u.flags.burn > 0) push('burn', u.flags.burn, 1);
       if (u.flags.exposed > 0) push('exposed', u.flags.exposed, 1);
-      if (u.flags.healMod) push('healdown', u.flags.healModTurns, 1);
+      /* the Warded chip was defined but never emitted - a timed damage
+         resist used to be completely invisible to the player */
+      if (u.flags.resistPct > 0) push('resist', u.flags.resistPctTurns, 1);
+      /* an armed counter-strike (Guan Yu / Little John) shows as ready */
+      if (u.flags.counterTurns > 0) push('counterstrike', u.flags.counterTurns, 1);
+      /* only a heal REDUCTION wears the debuff chip */
+      if (u.flags.healMod < 0) push('healdown', u.flags.healModTurns, 1);
     }
     // Mark has no duration (it lasts until damaged), so no turn count
     if (u.flags && u.flags.marked > 0) push('marked', null, 1);

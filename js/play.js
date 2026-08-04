@@ -867,9 +867,24 @@
     cm.classList.toggle('ready', !cm.disabled);
     $('prep-confirm-main-txt').textContent = p.waiting ? 'Waiting for opponent...' : 'Confirm bans';
     var c = $('prep-confirm');
-    c.disabled = p.waiting || p.front.length + p.back.length !== RULES().FIELD_SIZE;
+    var sixOk = p.front.length + p.back.length === RULES().FIELD_SIZE;
+    /* THE SET rotation law, surfaced on the button itself: games 2+
+       demand 1-2 fresh heroes, and a button that only fails AFTER the
+       click reads as broken - it greys out and says why up front. */
+    var needSubs = !!(setState && setState.lastSix && p.phase === 'pick');
+    var swaps = needSubs ? setSwapCount() : 0;
+    var lawOk = !needSubs || (swaps >= 1 && swaps <= 2);
+    c.disabled = p.waiting || !sixOk || !lawOk;
     c.classList.toggle('ready', !c.disabled);
-    $('prep-confirm-txt').textContent = p.waiting ? 'Waiting...' : 'To battle';
+    $('prep-confirm-txt').textContent = p.waiting
+      ? 'Waiting...'
+      : !sixOk
+        ? 'To battle'
+        : needSubs && swaps < 1
+          ? 'Swap in 1-2 fresh heroes'
+          : needSubs && swaps > 2
+            ? 'Too many swaps (max 2)'
+            : 'To battle';
   }
 
   function renderPrep() {
@@ -1318,7 +1333,6 @@
     var cfg = prep;
     prep = null;
     window.EOL.ui.show('battle');
-    if (setState) paintSetChip();
     BATTLE().start({ teams: { player: playerSix, enemy: enemySix }, field: cfg.field });
     lastConfig =
       cfg.mode === 'classic'
@@ -1379,7 +1393,7 @@
   /* A desync or a disconnect. Say what happened plainly and get out -
      never let two different boards keep playing. */
   /* =============================================================
-     LEAVING A RANKED MATCH
+     LEAVING AN ONLINE MATCH
      -------------------------------------------------------------
      A real opponent is sitting there waiting, so walking away has to
      cost something and has to be acknowledged. Two exits exist and
@@ -1464,7 +1478,7 @@
       /* Modern browsers ignore custom text and show their own
          wording; returnValue is still required to trigger it. */
       ev.preventDefault();
-      ev.returnValue = 'Leaving forfeits your ranked match.';
+      ev.returnValue = 'Leaving forfeits your online match.';
       return ev.returnValue;
     });
     window.addEventListener('pagehide', function () {
@@ -1641,7 +1655,7 @@
 
   function openClassicModal(onPick) {
     /* `onPick` diverts the chosen deck somewhere other than a
-       singleplayer board - Ranked Classic uses it to carry the deck
+       singleplayer board - Online Classic uses it to carry the deck
        into matchmaking. Omitted, it behaves exactly as before. */
     /* Guard against being wired straight to addEventListener, which would
        hand us a click Event here - truthy, but not callable, so every row
@@ -2137,11 +2151,17 @@
       )
         card.push(f);
     }
+    /* WHICH arena hosts game 1 is itself the first roulette of the
+       war: rolled here (so prep can be built around the board) but
+       only revealed by the fight-card spin after bans - the marker
+       settling on slot 0 every time made the spin a lie. */
+    var g1 = Math.floor(Math.random() * card.length);
     setState = {
       game: 1,
       wins: { you: 0, foe: 0 },
       card: card,
-      usedSlots: [0],
+      game1Slot: g1,
+      usedSlots: [g1],
       lastSix: null, // {front:[ids], back:[ids]} - the player's public six
       lastBotIds: [], // the bot's public six
       /* ROTATION law, extended: a hero subbed OUT of a six sits out the
@@ -2156,12 +2176,15 @@
       pending: null, // 'sideboard' | 'over' after a game ends
       lastWinner: null, // 'you' | 'foe'
     };
-    return card[0];
+    return card[g1];
   }
   function setKill() {
     setState = null;
-    var chip = $('set-chip');
-    if (chip) chip.remove();
+    var pill = $('set-pill');
+    if (pill) {
+      pill.hidden = true;
+      delete pill.dataset.k;
+    }
   }
 
   /* --- fight card + board pick modals --- */
@@ -2170,39 +2193,157 @@
       ? ' style="background-image:url(\'' + new URL(field.art, document.baseURI).href + '\')"'
       : '';
   }
+  /* One plate = one battlefield WITH the rules it plays by. Name +
+     tagline alone made the fight card a pretty but empty promise:
+     players shape their six around the terrain, so the terrain's law
+     belongs on the card. `--i` phases the entrance stagger. */
+  function setmPlateInner(f, slotLabel) {
+    return (
+      '<div class="setm-art"' +
+      setmArt(f) +
+      '>' +
+      '<span class="setm-slot">' +
+      esc(slotLabel) +
+      '</span>' +
+      '<span class="setm-stamp" aria-hidden="true"><i class="ra ra-crossed-swords"></i>CALLED</span>' +
+      '</div>' +
+      '<div class="setm-body">' +
+      '<span class="setm-name">' +
+      esc(f.name) +
+      '</span>' +
+      '<span class="setm-tag">' +
+      esc(f.tagline || '') +
+      '</span>' +
+      '<ul class="setm-rules">' +
+      (f.rules || [])
+        .map(function (r) {
+          return '<li>' + rich(esc(r)) + '</li>';
+        })
+        .join('') +
+      '</ul>' +
+      '</div>'
+    );
+  }
+  function setmPlateHTML(f, slotLabel, i) {
+    return (
+      '<div class="setm-plate" style="--i:' + i + '">' + setmPlateInner(f, slotLabel) + '</div>'
+    );
+  }
+  function fightTitle(icon, text, tip) {
+    var t = $('set-fightcard-title');
+    if (t)
+      t.innerHTML =
+        '<i class="ra ' +
+        icon +
+        '" aria-hidden="true"></i> ' +
+        text +
+        (tip
+          ? ' <button type="button" class="tipdot" data-tip="' +
+            esc(tip) +
+            '" aria-label="Tip"><i class="ri-question-line"></i></button>'
+          : '');
+  }
+  function openSlots() {
+    return setState.card
+      .map(function (f, i) {
+        return i;
+      })
+      .filter(function (i) {
+        return setState.usedSlots.indexOf(i) < 0;
+      });
+  }
+
+  /* ---------------------------------------------------------
+     THE CALL ROULETTE
+     A choice between arenas should feel won, not dealt: the marker
+     races the plates, tires, and settles on the chosen board with a
+     stamp. Pure theatre - the outcome was picked before the first hop;
+     the spin only reveals it. Any click past it skips it, and reduced
+     motion (gfx low) jumps straight to the landing.
+     --------------------------------------------------------- */
+  var ROUL_DELAYS = [70, 70, 75, 80, 90, 100, 115, 130, 155, 185, 225, 280];
+  function motionOk() {
+    return document.body.dataset.gfx !== 'low';
+  }
+  /* Decelerating marker across `host`'s .setm-plate children, landing
+     on finalIdx. Returns skip(): jump to the landing immediately. */
+  function spinPlates(host, finalIdx, onLand) {
+    var plates = host
+      ? Array.prototype.slice.call(host.querySelectorAll('.setm-plate'))
+      : [];
+    var n = plates.length;
+    var landed = false;
+    var timer = null;
+    function land() {
+      if (landed) return;
+      landed = true;
+      clearTimeout(timer);
+      plates.forEach(function (pl, j) {
+        pl.classList.remove('hot');
+        pl.classList.toggle('called', j === finalIdx);
+        pl.classList.toggle('dim', j !== finalIdx);
+      });
+      if (host) host.classList.remove('spinning');
+      if (onLand) onLand();
+    }
+    if (!n || n === 1 || !motionOk()) {
+      land();
+      return land;
+    }
+    host.classList.add('spinning');
+    /* start index chosen so hop (hops-1) sits exactly on finalIdx */
+    var hops = ROUL_DELAYS.length;
+    var start = (((finalIdx - (hops - 1)) % n) + n) % n;
+    var k = 0;
+    var tick = function () {
+      if (landed) return;
+      var cur = (start + k) % n;
+      plates.forEach(function (pl, j) {
+        pl.classList.toggle('hot', j === cur);
+      });
+      var d = ROUL_DELAYS[k];
+      k++;
+      timer = setTimeout(k >= hops ? land : tick, d);
+    };
+    tick();
+    return land;
+  }
+
   function showFightCard(cb) {
     var m = $('set-fightcard');
     if (!m || !setState) return cb && cb();
-    var plates = setState.card
+    fightTitle(
+      'ra-laurel-crown',
+      'THE SET — FIGHT CARD',
+      'The whole fight card is public from the first click. The spin decides which arena hosts game 1 - the loser of every later game calls the next board from the open slots.'
+    );
+    /* every plate starts an open slot - WHICH one hosts game 1 is the
+       spin's whole point (rolled at setBegin, revealed here) */
+    $('set-fightcard-plates').innerHTML = setState.card
       .map(function (f, i) {
-        return (
-          '<div class="setm-plate' +
-          (i === 0 ? ' first' : '') +
-          '">' +
-          '<div class="setm-art"' +
-          setmArt(f) +
-          '></div>' +
-          '<span class="setm-slot">' +
-          (i === 0 ? 'Game 1' : 'Open slot') +
-          '</span>' +
-          '<span class="setm-name">' +
-          esc(f.name) +
-          '</span>' +
-          '<span class="setm-tag">' +
-          esc(f.tagline || '') +
-          '</span>' +
-          '</div>'
-        );
+        return setmPlateHTML(f, 'Open slot', i);
       })
       .join('');
-    $('set-fightcard-plates').innerHTML = plates;
     $('set-fightcard-sub').textContent =
-      'Game 1 is fought on ' +
-      setState.card[0].name +
-      '. The loser of each game picks the next battlefield from the open slots - you can see their choices from the start.';
+      'All three boards are public from the first click of the set. The loser of each game calls the next one from the open slots.';
     var btn = $('set-fightcard-go');
+    btn.querySelector('span').textContent = 'Field your six';
+    var skip = spinPlates($('set-fightcard-plates'), setState.game1Slot, function () {
+      if (!setState) return;
+      var plates = $('set-fightcard-plates').querySelectorAll('.setm-plate');
+      var landed = plates[setState.game1Slot];
+      if (landed) {
+        var s = landed.querySelector('.setm-slot');
+        if (s) s.textContent = 'Game 1';
+      }
+      $('set-fightcard-sub').textContent =
+        'Game 1 is fought on ' +
+        setState.card[setState.game1Slot].name +
+        '. The loser of each game calls the next board from the open slots.';
+    });
     var done = function () {
       btn.removeEventListener('click', done);
+      skip();
       m.hidden = true;
       cb && cb();
     };
@@ -2213,35 +2354,21 @@
      side ('you' | 'foe'). The bot picks at random for v1 (roadmap: a
      real board-read heuristic is Phase-1b polish). */
   function setPickBoard(loser, cb) {
-    var remaining = setState.card
-      .map(function (f, i) {
-        return i;
-      })
-      .filter(function (i) {
-        return setState.usedSlots.indexOf(i) < 0;
-      });
+    var remaining = openSlots();
     if (remaining.length === 1) return cb(remaining[0]);
     if (loser === 'foe' || !remaining.length)
       return cb(remaining[Math.floor(Math.random() * remaining.length)]);
     var m = $('set-boardpick');
     if (!m) return cb(remaining[0]);
     $('set-boardpick-plates').innerHTML = remaining
-      .map(function (i) {
-        var f = setState.card[i];
+      .map(function (i, k) {
         return (
-          '<button type="button" class="setm-plate pick" data-slot="' +
+          '<button type="button" class="setm-plate pick" style="--i:' +
+          k +
+          '" data-slot="' +
           i +
           '">' +
-          '<div class="setm-art"' +
-          setmArt(f) +
-          '></div>' +
-          '<span class="setm-slot">Your call</span>' +
-          '<span class="setm-name">' +
-          esc(f.name) +
-          '</span>' +
-          '<span class="setm-tag">' +
-          esc(f.tagline || '') +
-          '</span>' +
+          setmPlateInner(setState.card[i], 'Your call') +
           '</button>'
         );
       })
@@ -2252,19 +2379,66 @@
       ' - so the call is yours. The slot you leave becomes the decider board if the set goes the distance.';
     m.querySelectorAll('.setm-plate.pick').forEach(function (b) {
       b.addEventListener('click', function () {
-        m.hidden = true;
-        setState.usedSlots.push(+b.dataset.slot);
-        cb(+b.dataset.slot);
+        /* let the stamp land before the modal folds away */
+        m.querySelectorAll('.setm-plate.pick').forEach(function (x) {
+          x.classList.toggle('called', x === b);
+          x.classList.toggle('dim', x !== b);
+          x.disabled = true;
+        });
+        setTimeout(
+          function () {
+            m.hidden = true;
+            setState.usedSlots.push(+b.dataset.slot);
+            cb(+b.dataset.slot);
+          },
+          motionOk() ? 430 : 0
+        );
       });
     });
     m.hidden = false;
   }
-  /* bot lost and "picks" - still record the slot so the decider is known */
-  function setBotPickBoard(cb) {
-    setPickBoard('foe', function (slot) {
-      setState.usedSlots.push(slot);
-      cb(slot);
+  /* bot lost and calls - the call is THEATRE, not instant info: the
+     open slots spin and land on its pick, then the war advances by
+     itself (the button only skips the pause). cb(slot, spun): `spun`
+     tells the caller the roulette already revealed the board. */
+  function setBotCall(cb) {
+    var remaining = openSlots();
+    if (!remaining.length) return cb(0, false);
+    if (remaining.length === 1) return cb(remaining[0], false);
+    var pick = remaining[Math.floor(Math.random() * remaining.length)];
+    var m = $('set-fightcard');
+    if (!m) return cb(pick, false);
+    fightTitle(
+      'ra-crowned-heart',
+      'THE ENEMY CALLS THE NEXT BATTLEFIELD',
+      'The loser of the last game calls the next battlefield. The slot they leave open becomes the decider board if the set goes the distance.'
+    );
+    $('set-fightcard-plates').innerHTML = remaining
+      .map(function (slot, i) {
+        return setmPlateHTML(setState.card[slot], 'Open slot', i);
+      })
+      .join('');
+    $('set-fightcard-sub').textContent =
+      'You won game ' +
+      (setState.game - 1) +
+      ', so the call is theirs. The slot they leave becomes the decider if the set goes the distance.';
+    var btn = $('set-fightcard-go');
+    btn.querySelector('span').textContent = 'To the sideboard';
+    var auto = null;
+    var done = function () {
+      btn.removeEventListener('click', done);
+      skip();
+      clearTimeout(auto);
+      m.hidden = true;
+      cb(pick, true);
+    };
+    var skip = spinPlates($('set-fightcard-plates'), remaining.indexOf(pick), function () {
+      if (!setState) return;
+      $('set-fightcard-sub').textContent = 'The enemy calls ' + setState.card[pick].name + '.';
+      auto = setTimeout(done, 1700);
     });
+    btn.addEventListener('click', done);
+    m.hidden = false;
   }
 
   /* Score line, everywhere it is needed */
@@ -2280,24 +2454,15 @@
       (w.you > w.foe ? ' · you lead' : w.you < w.foe ? ' · you trail' : ' · level')
     );
   }
-  function paintSetChip() {
-    if (!setState) return;
-    var chip = $('set-chip');
-    if (!chip) {
-      chip = document.createElement('div');
-      chip.id = 'set-chip';
-      chip.className = 'set-chip';
-      document.body.appendChild(chip);
-    }
-    chip.innerHTML =
-      '<i class="ra ra-circuitry" aria-hidden="true"></i>' +
-      '<span>THE SET · Game ' +
-      setState.game +
-      '/3 · <b>' +
-      setState.wins.you +
-      ' - ' +
-      setState.wins.foe +
-      '</b></span>';
+  /* The in-battle war score. battle.js's render() asks for this on
+     every paint and swaps its (redundant) action pill for the set pill
+     while a set is live - user law 2026-08-04: the old fixed
+     top-centre chip floated over the round counter and read as HUD
+     clutter. Outside the battle the sideboard's own header line
+     (setScoreLine above) carries the score. */
+  function setPillInfo() {
+    if (!setState) return null;
+    return { game: setState.game, you: setState.wins.you, foe: setState.wins.foe };
   }
 
   /* How many of the CURRENT fielded six differ from last game's public
@@ -2434,19 +2599,23 @@
   function setAdvance() {
     setState.game += 1;
     var loser = setState.lastWinner === 'you' ? 'foe' : 'you';
-    var go = function (slot) {
+    var go = function (slot, opts) {
       if (setState.usedSlots.indexOf(slot) < 0) setState.usedSlots.push(slot);
-      beginSetGame(setState.card[slot]);
+      beginSetGame(setState.card[slot], opts);
     };
     if (loser === 'you') setPickBoard('you', go);
-    else setBotPickBoard(go);
-    paintSetChip();
+    else
+      setBotCall(function (slot, spun) {
+        /* the roulette already revealed the board - the single-board
+           popup right after would show the same arena twice */
+        go(slot, { skipReveal: !!spun });
+      });
   }
 
   /* The sideboard IS the pick phase with last game's six pre-slot. Bans
      persist set-wide, composition swaps 1-2 are mandatory (enforced in
      commitSix), row moves are free. */
-  function beginSetGame(field) {
+  function beginSetGame(field, opts) {
     prep = {
       mode: lastConfig ? lastConfig.mode : 'classic',
       mp: false,
@@ -2468,8 +2637,7 @@
     prepAnim = true;
     window.EOL.ui.show('prep');
     renderPrep();
-    paintSetChip();
-    revealBattlefield(field, null);
+    if (!(opts && opts.skipReveal)) revealBattlefield(field, null);
   }
 
   /* The chip and the war die the moment the player leaves the set's
@@ -2558,7 +2726,7 @@
       if (ev.detail === 'play') moveTabThumb();
     });
 
-    /* Which ranked mode we are queueing for. Draft builds its squad
+    /* Which online mode we are queueing for. Draft builds its squad
        in-game; Classic brings a saved deck, so it has to pick one
        first and carry it into the match. */
     function queueFor(mode, deckId) {
@@ -2851,6 +3019,7 @@
     warLength: warLength,
     setWarLength: setWarLength,
     setGameResult: setGameResult, // battle.js calls this from showResult
+    setPillInfo: setPillInfo, // battle.js paints the war score pill from this
     _setState: function () {
       return setState;
     },

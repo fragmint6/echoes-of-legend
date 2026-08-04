@@ -53,10 +53,14 @@
   /* Losing your whole front row exposes the back line. */
   var BACKLINE_DEF_PENALTY = 5; // percent
 
-  /* Burn: a damage-over-time debuff. Ticks for a flat share of the
-     victim's Max HP at the START OF THEIR OWN TURN, so a 2-turn Burn
-     always gets exactly 2 ticks no matter who applied it or when.
-     Burn does not stack - re-applying refreshes the duration. */
+  /* Burn: a damage-over-time debuff. In the alternating-action model it
+     ticks EVERY TIME THE BURNING HERO'S SIDE IS HANDED AN ACTION
+     (tickBurn in setTurn), for a flat share of the victim's Max HP,
+     while the duration itself only counts down on the round boundary -
+     so a 2-round Burn on a busy board ticks many more than 2 times.
+     Burn does not stack - re-applying refreshes the duration (longer
+     wins). If that tempo ever needs taming, the knob is moving the
+     tickBurn call to the round boundary, not this constant. */
   var BURN_PCT_MAX_HP = 5;
 
   function rampMult(round) {
@@ -209,7 +213,9 @@
       if (b.amt < 0) n++;
     });
     if (u.flags.silence > 0) n++;
-    if (u.flags.healMod) n++;
+    /* only a heal REDUCTION is a debuff - a positive healMod (heal-up
+       buff) must not feed perDebuff attackers or Red Riding Hood */
+    if (u.flags.healMod < 0) n++;
     if (u.flags.burn > 0) n++;
     if (u.flags.exposed > 0) n++;
     if (u.flags.marked > 0) n++;
@@ -243,7 +249,8 @@
         return b.amt < 0;
       }) ||
       u.flags.silence > 0 ||
-      !!u.flags.healMod ||
+      /* negative healMod only - a heal-up buff is not being "debuffed" */
+      u.flags.healMod < 0 ||
       u.flags.burn > 0 ||
       u.flags.exposed > 0 ||
       u.flags.marked > 0
@@ -1386,6 +1393,12 @@
       if (!p || (!hasTrig(p, 'incomingAbilityDamage') && !hasTrig(p, 'static'))) return;
       (p.effects || []).forEach(function (e) {
         if (e.k !== 'damageMult' && e.k !== 'damageResist') return;
+        /* honour a `when` gate on the modifier itself. Benkei's Standing
+           Death resist (selfEnergyAbove 49) was the only card carrying
+           one and it was silently ignored - he took 15% less damage at
+           every energy level, not just at 50+. */
+        if (e.when && !condMet(B, e.when, { self: u, attacker: attacker, defender: defender }))
+          return;
         var applied = false;
         if (e.firstPerRound) {
           // only signature Skills, and only the first one each round
@@ -1946,6 +1959,17 @@
     return real;
   }
 
+  /* When a cleanse zeroes a debuff value, its paired bookkeeping must go
+     too - otherwise extendDebuffs "extends" a dead timer (healModTurns
+     ticking into a 0% healMod, a ghost affliction that logs "afflictions
+     linger" on a clean hero). Burn's source credit and Mark's timed
+     variants follow the value they belong to. */
+  function scrubDeadTimer(t, key) {
+    if (key === 'burn') t.flags.burnSrc = null;
+    if (key === 'healMod') t.flags.healModTurns = 0;
+    if (key === 'marked') t.flags.markedTurns = 0;
+  }
+
   /* ---------------------------------------------------------
      EFFECT INTERPRETER
      --------------------------------------------------------- */
@@ -2443,7 +2467,9 @@
       case 'untargetable':
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          t.flags.untargetable = e.turns;
+          /* refresh rule, same as Burn/Exposed: the LONGER remaining
+             duration wins, a fresh 1-turn must not shorten a 2-turn */
+          t.flags.untargetable = Math.max(t.flags.untargetable || 0, e.turns);
           logMsg(B, 'buff', t.name + ' cannot be targeted.', {
             uid: t.uid,
             status: 'untargetable',
@@ -2494,7 +2520,8 @@
       case 'silence':
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          t.flags.silence = e.turns;
+          /* refresh rule, same as Burn/Exposed: longer remaining wins */
+          t.flags.silence = Math.max(t.flags.silence || 0, e.turns);
           logMsg(B, 'debuff', t.name + ' is silenced.', {
             uid: t.uid,
             status: 'silence',
@@ -2641,6 +2668,7 @@
           if (e.only) {
             if (t.flags[e.only] > 0) {
               t.flags[e.only] = 0;
+              scrubDeadTimer(t, e.only);
               logMsg(B, 'cleanse', t.name + ' is cleansed of ' + e.only + '.', { uid: t.uid });
               emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid, what: [e.only], round: B.round });
             }
@@ -2661,6 +2689,7 @@
               removed++;
             } else if (t.flags.burn > 0) {
               t.flags.burn = 0;
+              scrubDeadTimer(t, 'burn');
               removed++;
               removedWhat.push('burn');
             } else if (t.flags.exposed > 0) {
@@ -2673,10 +2702,12 @@
               removedWhat.push('silence');
             } else if (t.flags.healMod) {
               t.flags.healMod = 0;
+              scrubDeadTimer(t, 'healMod');
               removed++;
               removedWhat.push('healMod');
             } else if (t.flags.marked > 0) {
               t.flags.marked = 0;
+              scrubDeadTimer(t, 'marked');
               removed++;
               removedWhat.push('marked');
             }
@@ -3378,8 +3409,10 @@
   }
 
   /* Hand control to `side`. In the alternating-action model this is
-     called between individual actions, so it must stay cheap: no burn
-     ticks, no round bookkeeping. Those happen on the round boundary. */
+     called between individual actions - and that is exactly when Burn
+     ticks (see BURN_PCT_MAX_HP): every action hand-off costs the burning
+     side a slice of Max HP. Round bookkeeping (durations, energy, ramp)
+     still happens only on the round boundary. */
   function setTurn(B, side) {
     if (B.turn !== side) {
       var n = resolveDeferred(B, B.turn, 'turn');

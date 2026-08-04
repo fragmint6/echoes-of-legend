@@ -139,7 +139,10 @@ window.EOL.registerFaction({
             { k: 'dmg', power: 0.7, element: 'Magic' },
             { k: 'mark', to: 'targets', when: 'now' },
             { k: 'stat', stat: 'def', amt: -20, turns: 2, to: 'targets', when: 'now' },
-            { k: 'drainEnergy', amt: 15 },
+            /* take 1: the card drains 15 ONCE, not 15 per target - both
+               victims damage-share from the single enemy pool, so the
+               drain need only resolve on one of them (it stole 30) */
+            { k: 'drainEnergy', amt: 15, take: { n: 1, by: 'lowestHp' } },
           ],
         },
       },

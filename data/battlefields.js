@@ -133,48 +133,27 @@ window.EOL.battlefields = [
     icon: 'ra-dead-tree',
     tagline: 'A forgotten battlefield littered with lost relics.',
     colors: { primary: '#c2a878', secondary: '#6b8f71', glow: '#f0dcb0' },
-    rules: ['Each round a random relic awakens for both sides.'],
-    draft: 'Flexible teams are rewarded; one-dimensional plans get punished.',
+    rules: ['Each round both sides receive one boon: +5% ATK, +5% DEF or a 5% Max HP heal. The stat boons are permanent.'],
+    draft: 'Every comp scales with time here; stall plans gain the most, so bring an answer for them.',
     roundBuffs: [
+      /* user law 2026-08-04: exactly three relics - +5% ATK for the rest
+         of the battle, +5% DEF for the rest of the battle, or a 5% Max
+         HP heal. One pick applies to both sides (the hook's standing
+         symmetric rule), so the ramp mirrors on both teams. */
+      {
+        id: 'sharp',
+        label: 'the relics whet every blade',
+        effects: [{ k: 'stat', stat: 'atk', amt: 5, turns: 99, to: 'self' }],
+      },
+      {
+        id: 'guard',
+        label: 'the stones lend their endurance',
+        effects: [{ k: 'stat', stat: 'def', amt: 5, turns: 99, to: 'self' }],
+      },
       {
         id: 'mend',
         label: 'the stones mend all wounds',
-        effects: [{ k: 'heal', pctMaxHp: 15, to: 'self' }],
-      },
-      {
-        id: 'wellspring',
-        label: 'a wellspring floods the field',
-        effects: [{ k: 'gainEnergy', amt: 15 }],
-      },
-      {
-        id: 'bulwark',
-        label: 'the front stones harden',
-        effects: [{ k: 'stat', stat: 'def', amt: 10, turns: 1, to: 'self', frontOnly: true }],
-      },
-      {
-        id: 'focus',
-        label: 'the back line sharpens',
-        effects: [{ k: 'stat', stat: 'atk', amt: 10, turns: 1, to: 'self', backOnly: true }],
-      },
-      {
-        id: 'cleanse',
-        label: 'a clean wind scours the ruins',
-        effects: [{ k: 'cleanse', count: 1, to: 'self' }],
-      },
-      {
-        id: 'ward',
-        label: 'a warding sigil flares',
-        effects: [{ k: 'shield', pctMaxHp: 8, to: 'self' }],
-      },
-      {
-        id: 'fervour',
-        label: 'old war drums quicken the blood',
-        effects: [{ k: 'stat', stat: 'atk', amt: 8, turns: 1, to: 'self' }],
-      },
-      {
-        id: 'edge',
-        label: 'the relics whet every blade',
-        effects: [{ k: 'stat', stat: 'crit', amt: 10, turns: 1, to: 'self' }],
+        effects: [{ k: 'heal', pctMaxHp: 5, to: 'self' }],
       },
     ],
   },

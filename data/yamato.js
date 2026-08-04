@@ -172,7 +172,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Legendary Companions',
         cost: 35,
-        text: 'At 30+ Energy, allies gain <b>12% DEF</b> for 2 rounds and front allies a <b>12% Shield</b>; otherwise heal all allies 20% and cleanse Burn.',
+        text: 'If your team has <b>30+ Energy</b>: all allies gain <b>+12% DEF</b> for 2 rounds and front-row allies gain a <b>Shield equal to 12% Max HP</b>. Otherwise: heal all allies for <b>20% Max HP</b> and cleanse <b>Burn</b> from them.',
         note: null,
         spec: {
           target: { side: 'ally', pick: 'all' },

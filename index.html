@@ -167,7 +167,7 @@
             <div class="auth-emblem"><i class="ra ra-crossed-swords"></i></div>
             <h2 class="auth-title" id="auth-title">Welcome back</h2>
             <p class="auth-sub" id="auth-sub">
-              Sign in to play ranked matches against other players.
+              Sign in to play online matches against other players.
             </p>
           </div>
 
@@ -324,6 +324,22 @@
               <i class="ri-information-line"></i>
               Low strips backdrop blur, blends, particles and ambient motion — recommended on older
               devices or with reduced-motion preferences.
+            </p>
+            <div class="set-row">
+              <div class="gfx-switch tips-switch set-gfx" role="group" aria-label="Helper tips">
+                <button type="button" class="tips-opt" data-tips="on" aria-pressed="true">
+                  <i class="ri-question-line" aria-hidden="true"></i>Tips on
+                </button>
+                <button type="button" class="tips-opt" data-tips="off" aria-pressed="false">
+                  <i class="ri-eye-off-line" aria-hidden="true"></i>Tips off
+                </button>
+                <span class="tips-thumb" aria-hidden="true"></span>
+              </div>
+            </div>
+            <p class="set-gfx-note">
+              <i class="ri-information-line"></i>
+              Tips are the small ? dots scattered across the game - hover one for the rule of whatever
+              it sits beside. Off hides every dot.
             </p>
           </section>
 
@@ -488,7 +504,7 @@
         </button>
         <div class="col-titles">
           <h2 class="col-title">Deck Editor</h2>
-          <p class="col-sub"><span id="deck-count">0</span> of 12 heroes - max 4 per role</p>
+          <p class="col-sub"><span id="deck-count">0</span> of 12 heroes - max 4 per role <button type="button" class="tipdot" data-tip="Twelve heroes make a legal deck, at most 4 of any one role. Mix jobs: someone to soak the hits, someone to strike, someone to sustain." aria-label="Tip"><i class="ri-question-line"></i></button></p>
         </div>
         <input
           class="deck-name-input"
@@ -664,6 +680,7 @@
              choice, not a mode. The Set wraps Classic or Draft in a
              Bo3 war; classic single battles stay the default. -->
         <div class="war-length" id="war-length" role="group" aria-label="Match length">
+          <button type="button" class="tipdot wl-tip" data-tip="One battle settles it, or fight a best-of-3 war: a 3-arena fight card, the loser calls each next battlefield, and you must rotate 1-2 heroes between games." aria-label="Tip"><i class="ri-question-line"></i></button>
           <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
             <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
             <span class="wl-body">
@@ -713,7 +730,7 @@
         <button class="mode-card" id="mode-mp-classic">
           <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
           <i class="mode-glyph ra ra-crossed-swords"></i>
-          <span class="mode-name">Ranked Classic</span>
+          <span class="mode-name">Online Classic</span>
           <span class="mode-desc">
             Bring your own deck of 12 against a real opponent, then the same bans and battle as
             Draft.
@@ -724,7 +741,7 @@
         <button class="mode-card" id="mode-mp-draft">
           <i class="mode-wm ra ra-clovers-card" aria-hidden="true"></i>
           <i class="mode-glyph ra ra-clovers-card"></i>
-          <span class="mode-name">Ranked Draft</span>
+          <span class="mode-name">Online Draft</span>
           <span class="mode-desc">
             Snake-draft 12 heroes against a real opponent, then the same bans and battle as Classic.
             Both squads come from one shared pool.
@@ -740,6 +757,7 @@
           <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
           <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
           <p class="mm-sub" id="mm-sub">Searching the queue...</p>
+          <button type="button" class="tipdot mm-tip" data-tip="Online Classic brings a saved deck of 12. Online Draft builds both squads from one shared pool, alternating picks." aria-label="Tip"><i class="ri-question-line"></i></button>
           <div class="mm-vs" id="mm-vs" hidden>
             <span class="mm-side" id="mm-you">You</span>
             <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
@@ -782,9 +800,9 @@
           <p class="col-sub" id="prep-sub">Phase 1 - ban 2 of the enemy's heroes</p>
         </div>
         <div class="prep-steps">
-          <span class="pstep sel" id="pstep-ban"><b>1</b> Bans</span>
-          <span class="pstep" id="pstep-pick"><b>2</b> Field Six</span>
-          <span class="pstep" id="pstep-fight"><b>3</b> Battle</span>
+          <span class="pstep sel" id="pstep-ban"><b>1</b> Bans<button type="button" class="tipdot" data-tip="Ban 2 of the enemy's 12. They ban 2 of yours at the same time - their picks stay hidden until you lock yours in." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+          <span class="pstep" id="pstep-pick"><b>2</b> Field Six<button type="button" class="tipdot" data-tip="Field 6 of your survivors. The front row soaks the hits while the back row supports - tap a slotted hero to swap its row. Basic Skills cost 15 Energy; Signatures hit harder for more." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+          <span class="pstep" id="pstep-fight"><b>3</b> Battle<button type="button" class="tipdot" data-tip="Sides trade one action at a time. In a set, games after the first demand rotation: swap 1-2 fresh heroes in, and a hero subbed out sits out the rest of the set." aria-label="Tip"><i class="ri-question-line"></i></button></span>
         </div>
       </header>
 
@@ -833,6 +851,7 @@
             <button class="btn btn-primary" id="prep-confirm" disabled>
               <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
             </button>
+            <button type="button" class="tipdot prep-go-tip" data-tip="The grey state is the rule, not a bug: when the button explains what it is waiting on (six fielded, swaps made), meet it and it unlocks." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
         </section>
       </div>
@@ -853,7 +872,7 @@
         <div class="bf-card" id="bf-card">
           <div class="bf-art" id="bf-art"></div>
           <div class="bf-body">
-            <div class="bf-kicker">The battlefield is revealed</div>
+            <div class="bf-kicker">The battlefield is revealed <button type="button" class="tipdot" data-tip="Battlefields bend the rules for BOTH sides equally - read the law of the land before you field your six." aria-label="Tip"><i class="ri-question-line"></i></button></div>
             <h3 class="bf-name" id="bf-name"></h3>
             <p class="bf-tag" id="bf-tag"></p>
             <ul class="bf-rules" id="bf-rules"></ul>
@@ -873,7 +892,7 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <h2 class="col-title">Draft</h2>
+          <h2 class="col-title">Draft <button type="button" class="tipdot" data-tip="Snake draft: you and the enemy alternate picks from shared packs. What you skip, they can take - pack by pack, your twelve takes shape." aria-label="Tip"><i class="ri-question-line"></i></button></h2>
           <p class="col-sub" id="draft-sub">Pack 1 of 12 - your pick</p>
         </div>
         <div class="draft-order" id="draft-order"></div>
@@ -910,7 +929,7 @@
         </button>
       </div>
     </div>
-    <!-- Leaving a ranked match forfeits it. Shown for in-app exits;
+    <!-- Leaving an online match forfeits it. Shown for in-app exits;
          the browser shows its own dialog for closing the tab. -->
     <div
       class="quit-modal"
@@ -925,7 +944,7 @@
         <div class="quit-ico"><i class="ra ra-castle-flag"></i></div>
         <h3 class="quit-title" id="quit-title">Leave the match?</h3>
         <p class="quit-body" id="quit-body">
-          This is a ranked match. Leaving now counts as a forfeit and your opponent wins.
+          This is an online match. Leaving now counts as a forfeit and your opponent wins.
         </p>
         <div class="quit-actions">
           <button class="btn btn-ghost btn-slim" id="quit-stay">
@@ -962,41 +981,55 @@
           <div class="en-txt">
             <i class="ra ra-lightning-bolt"></i>
             <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
+            <button type="button" class="tipdot" data-tip="Energy pays for Skills. You gain some every round and unspent Energy carries over, up to the storage cap." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
         </div>
 
         <div class="hud-center">
-          <!-- Turn clock. Multiplayer only: against the bot there is
-               nobody to stall, and a countdown would only add pressure
-               to a single-player game. -->
+          <!-- Turn clock. Guards every action window: online it stops a
+               stalling opponent, solo it simply ends dawdling (an
+               expired clock passes - never acts - for you). -->
           <div class="turn-clock" id="turn-clock" hidden>
             <svg class="tc-ring" viewBox="0 0 40 40" aria-hidden="true">
               <circle class="tc-track" cx="20" cy="20" r="17"></circle>
               <circle class="tc-fill" id="tc-fill" cx="20" cy="20" r="17"></circle>
             </svg>
             <span class="tc-num" id="tc-num">30</span>
+            <button type="button" class="tipdot tc-tip" data-tip="30 seconds per action. When your clock runs out you pass - it never acts for you." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
           <div class="hud-round">
-            <span class="round-label">Round</span>
+            <span class="round-label">Round <button type="button" class="tipdot hud-round-tip" data-tip="Sides trade one action at a time. Passing skips only that action - the round ends when both sides pass back-to-back." aria-label="Tip"><i class="ri-question-line"></i></button></span>
             <span class="round-num" id="round-num">1</span>
             <span class="turn-label" id="turn-label">Your Turn</span>
             <span class="init-tag" id="init-tag" title="Round 1 opening limit">
               <i class="ra ra-hourglass"></i><b id="init-val">Round 1: Basic Skills only</b>
             </span>
+            <!-- THE SET war score: same pill spec as the ramp tag, in
+                 black/gray. Shown instead of the action pill above while
+                 a set is live (the action pill only repeats the turn
+                 label). battle.js fills and toggles it. -->
+            <span
+              class="set-pill"
+              id="set-pill"
+              hidden
+              title="The Set - first to 2 games. The loser of each game calls the next battlefield."
+            ></span>
             <span class="ramp-tag" id="ramp-tag" title="All heroes gain ATK each round">
               <i class="ra ra-muscle-up"></i><b id="ramp-val">+0%</b> ATK
             </span>
           </div>
-          <button class="endturn-btn" id="btn-endturn">
-            <span class="et-label"><i class="ri-skip-forward-fill"></i> Pass</span>
+          <button class="endturn-btn" id="btn-endturn" title="Pass - skip this action">
+            <span class="et-label"><i class="ri-skip-forward-fill"></i></span>
             <span class="et-count"></span>
           </button>
+          <button type="button" class="tipdot et-tip" data-tip="Passing skips only this action - the enemy may still act, and so may you again this round." aria-label="Tip"><i class="ri-question-line"></i></button>
         </div>
 
         <div class="hud-side enemy">
           <div class="en-txt">
             <i class="ra ra-lightning-bolt"></i>
             <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
+            <button type="button" class="tipdot" data-tip="The enemy banks Energy under your rules - watch it to predict when their big Signatures come online." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
           <div class="pf-body">
             <div class="pf-name">
@@ -1119,6 +1152,7 @@
 
       <div class="result" id="result">
         <div class="result-card">
+          <button type="button" class="tipdot result-tip" data-tip="A set is first to 2 games. Between games the loser calls the battlefield and both sides rotate heroes - the sideboard is where the war is won." aria-label="Tip"><i class="ri-question-line"></i></button>
           <div class="result-icon"><i class="ra ra-crown"></i></div>
           <h2 class="result-title">Victory</h2>
           <p class="result-sub"></p>
@@ -1156,7 +1190,7 @@
           <p class="setm-sub" id="set-fightcard-sub"></p>
           <div class="setm-plates" id="set-fightcard-plates"></div>
           <button type="button" class="btn btn-primary setm-go" id="set-fightcard-go">
-            <i class="ra ra-crossed-swords"></i><span>To the bans</span>
+            <i class="ra ra-crossed-swords"></i><span>Field your six</span>
           </button>
         </div>
       </div>
@@ -1176,7 +1210,7 @@
         <div class="setm-scrim"></div>
         <div class="setm-card">
           <h2 class="setm-title" id="set-boardpick-title">
-            <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD
+            <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD <button type="button" class="tipdot" data-tip="You lost, so the call is yours. Pick your ground - or deny the enemy theirs. The slot you leave becomes the decider board." aria-label="Tip"><i class="ri-question-line"></i></button>
           </h2>
           <p class="setm-sub" id="set-boardpick-sub"></p>
           <div class="setm-plates" id="set-boardpick-plates"></div>

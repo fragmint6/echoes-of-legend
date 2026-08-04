@@ -266,7 +266,7 @@
      in FRONT-then-BACK order, which IS the formation - slots 0-2 are
      the front row.
      --------------------------------------------------------- */
-  /* Ranked Classic: both players send their whole twelve at match
+  /* Online Classic: both players send their whole twelve at match
      start. Same latch-and-wait shape as bans and formations, because
      the same race applies - either side can arrive first. */
   var decks = { mine: null, theirs: null, done: null };
@@ -458,7 +458,7 @@
       finish: function () {
         if (window.EOL.mp && window.EOL.mp.endMatch) window.EOL.mp.endMatch();
         /* Retire the session as well as the row. Leaving it alive
-           meant a DECIDED match still counted as "in a ranked match",
+           meant a DECIDED match still counted as "in an online match",
            so closing the tab on the result screen warned about
            forfeiting a game that was already won. */
         if (S) S.dead = true;

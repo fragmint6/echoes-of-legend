@@ -35,6 +35,40 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
   await c('#war-length .wl-opt[data-len="set"]');
   t(await p.evaluate(() => window.EOL.play.warLength() === 'set'), 'Bo3 selected + persisted');
 
+  /* --- helper tip dots: hover pops the shared tooltip, settings kills them --- */
+  t(
+    await p.evaluate(() => document.querySelectorAll('.tipdot').length >= 10),
+    'tip dots scattered across the game (>=10)'
+  );
+  await p.evaluate(() => {
+    document.querySelector('.wl-tip').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+  });
+  await sleep(150);
+  t(
+    await p.evaluate(() => {
+      var f = document.getElementById('tip-float');
+      return f && f.classList.contains('show') && f.textContent.length > 20;
+    }),
+    'hovering a tip dot shows its tooltip'
+  );
+  await p.evaluate(() => {
+    document.querySelector('.wl-tip').dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+  });
+  t(
+    await p.evaluate(() => {
+      document.querySelector('.tips-opt[data-tips="off"]').click();
+      var off =
+        document.body.dataset.tips === 'off' &&
+        getComputedStyle(document.querySelector('.wl-tip')).display === 'none';
+      document.querySelector('.tips-opt[data-tips="on"]').click();
+      var back =
+        document.body.dataset.tips === 'on' &&
+        getComputedStyle(document.querySelector('.wl-tip')).display !== 'none';
+      return off && back;
+    }),
+    'settings toggle hides and restores every tip dot'
+  );
+
   /* --- game 1: classic, surprise-me --- */
   await c('#mode-classic');
   await sleep(400);
@@ -45,18 +79,9 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
     'set state created at prep (game 1)'
   );
   t(
-    await p.evaluate(() => !document.getElementById('set-fightcard').hidden),
-    'fight card modal shown BEFORE bans'
+    await p.evaluate(() => document.getElementById('set-fightcard').hidden),
+    'no fight card at prep start (user law: it reveals after bans)'
   );
-  t(
-    await p.evaluate(
-      () => document.querySelectorAll('#set-fightcard-plates .setm-plate').length === 3
-    ),
-    'fight card shows 3 boards'
-  );
-  await p.screenshot({ path: '/tmp/set_fightcard.png' });
-  await c('#set-fightcard-go');
-  await sleep(300);
 
   /* bans: pick 2 enemy cards then confirm */
   await p.evaluate(() => {
@@ -78,7 +103,39 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
   });
   await sleep(400);
   await p.evaluate(() => { var b = document.getElementById('prep-confirm'); b.disabled = false; b.click(); });
-  await sleep(2600); // reveal + sleep(1150) + battlefield modal
+  await sleep(2600); // reveal + sleep(1150) + fight card
+
+  /* user law 2026-08-04: the fight card replaces the single-board reveal
+     AFTER bans are locked, BEFORE fielding */
+  t(
+    await p.evaluate(() => !document.getElementById('set-fightcard').hidden),
+    'fight card revealed after bans, before fielding'
+  );
+  t(
+    await p.evaluate(
+      () => document.querySelectorAll('#set-fightcard-plates .setm-plate').length === 3
+    ),
+    'fight card shows 3 boards'
+  );
+  t(
+    await p.evaluate(() => {
+      var st = window.EOL.play._setState();
+      if (typeof st.game1Slot !== 'number' || st.game1Slot < 0 || st.game1Slot > 2) return false;
+      if (st.usedSlots.length !== 1 || st.usedSlots[0] !== st.game1Slot) return false;
+      /* gfx low lands instantly: exactly the rolled plate is stamped Game 1 */
+      var slots = Array.prototype.map.call(
+        document.querySelectorAll('#set-fightcard-plates .setm-plate .setm-slot'),
+        (n) => n.textContent
+      );
+      return (
+        slots.filter((x) => /Game 1/.test(x)).length === 1 && /Game 1/.test(slots[st.game1Slot])
+      );
+    }),
+    'game-1 board is the ROLLED slot, never hardwired slot 0'
+  );
+  await p.screenshot({ path: '/tmp/set_fightcard.png' });
+  await c('#set-fightcard-go');
+  await sleep(400);
 
   /* fielding phase: pre-filled? No - game 1: pick 6 from surviving 10 */
   const fielded = await p.evaluate(() => {
@@ -100,10 +157,17 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
   );
   t(
     await p.evaluate(() => {
-      var c = document.getElementById('set-chip');
-      return c && /Game 1/.test(c.textContent);
+      var c = document.getElementById('set-pill');
+      return c && !c.hidden && /G1\/3/.test(c.textContent) && /0 - 0/.test(c.textContent);
     }),
-    'set chip visible: Game 1, 0-0'
+    'set pill visible in HUD: G1/3, 0 - 0'
+  );
+  t(
+    await p.evaluate(() => {
+      var it = document.getElementById('init-tag');
+      return it && !it.classList.contains('on');
+    }),
+    'set pill REPLACES the action pill (action pill suppressed)'
   );
 
   /* forfeit game 1 -> loss recorded, sideboard offered */
@@ -171,16 +235,23 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
     '0 swaps rejected by the rotation law'
   );
 
-  /* make exactly 1 swap, then confirm */
-  await p.evaluate(() => {
+  /* make exactly 1 swap, then confirm (bench excludes every ban list) */
+  const swapIds = await p.evaluate(() => {
     var st = window.EOL.play._prepState();
     var set = window.EOL.play._setState();
     var six = st.front.concat(st.back);
+    var bannedIds = (set.botBans || []).concat(set.youBans || []);
     var bench = st.player12
-      .filter((e) => (set.youBans || []).concat().indexOf(e.card.id) < 0)
       .map((e) => e.card.id)
-      .filter((id) => six.indexOf(id) < 0);
+      .filter(
+        (id) =>
+          six.indexOf(id) < 0 &&
+          bannedIds.indexOf(id) < 0 &&
+          (set.lockedOut || []).indexOf(id) < 0
+      );
+    var outId = st.front[0];
     st.front[0] = bench[0];
+    return { out: outId, inn: bench[0] };
   });
   await p.evaluate(() => { var b = document.getElementById('prep-confirm'); b.disabled = false; b.click(); });
   await sleep(2200);
@@ -188,12 +259,27 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
     await p.evaluate(() => document.body.dataset.view === 'battle'),
     '1 swap accepted: game 2 battle started'
   );
+  /* sub lockout law: the hero swapped OUT sits out the rest of the set */
+  t(
+    await p.evaluate(
+      (o) => window.EOL.play._setState().lockedOut.indexOf(o.out) >= 0,
+      swapIds
+    ),
+    'subbed-out hero locked for the rest of the set (' + swapIds.out + ')'
+  );
+  t(
+    await p.evaluate(
+      (o) => window.EOL.play._setState().lockedOut.indexOf(o.inn) < 0,
+      swapIds
+    ),
+    'subbed-in hero stays eligible (only the out-going lock)'
+  );
   t(
     await p.evaluate(() => {
-      var c = document.getElementById('set-chip');
-      return c && /Game 2/.test(c.textContent);
+      var c = document.getElementById('set-pill');
+      return c && !c.hidden && /G2\/3/.test(c.textContent);
     }),
-    'set chip now reads Game 2'
+    'set pill now reads G2/3'
   );
 
   /* forfeit game 2 -> set over 0-2, New set offered */

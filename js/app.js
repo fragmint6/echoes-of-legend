@@ -596,6 +596,131 @@
   }
 
   /* ---------------------------------------------------------
+     HELPER TIP DOTS
+     -------------------------------------------------------------
+     Every .tipdot in the game is a 14px ? chip beside a control, and
+     its data-tip holds the law of whatever it sits next to. ONE
+     floating tooltip serves them all via delegation (the same pattern
+     as the battle's status-chip pop): dots rendered later - modals,
+     fight cards, JS-written titles - work with zero wiring. body
+     [data-tips] hides the dots outright (Settings > Display), and the
+     choice persists.
+     --------------------------------------------------------- */
+  var TIPS_KEY = 'eol.tips';
+  var tipFloatEl = null;
+  var tipOwner = null;
+
+  function tipsEnabled() {
+    try {
+      return localStorage.getItem(TIPS_KEY) !== 'off';
+    } catch (e) {
+      return true;
+    }
+  }
+  function hideTipDot() {
+    if (tipFloatEl) tipFloatEl.classList.remove('show');
+    tipOwner = null;
+  }
+  function applyTips(on) {
+    document.body.dataset.tips = on ? 'on' : 'off';
+    try {
+      localStorage.setItem(TIPS_KEY, on ? 'on' : 'off');
+    } catch (e) {
+      /* private mode */
+    }
+    document.querySelectorAll('.tips-opt').forEach(function (b) {
+      b.setAttribute('aria-pressed', String((b.dataset.tips === 'on') === on));
+    });
+    if (!on) hideTipDot();
+  }
+  function showTipDot(dot) {
+    var text = dot.getAttribute('data-tip');
+    if (!text) return;
+    if (!tipFloatEl) {
+      tipFloatEl = document.createElement('div');
+      tipFloatEl.id = 'tip-float';
+      tipFloatEl.setAttribute('role', 'tooltip');
+      document.body.appendChild(tipFloatEl);
+    }
+    tipFloatEl.textContent = text;
+    tipFloatEl.classList.add('show');
+    /* above the dot, flipping below when the ceiling is too close, and
+       clamped inside the viewport (mirrors the status-chip pop) */
+    var a = dot.getBoundingClientRect();
+    var w = tipFloatEl.offsetWidth;
+    var h = tipFloatEl.offsetHeight;
+    var pad = 8,
+      gap = 8;
+    var left = Math.max(pad, Math.min(a.left + a.width / 2 - w / 2, window.innerWidth - w - pad));
+    var top = a.top - h - gap;
+    var below = false;
+    if (top < pad) {
+      top = a.bottom + gap;
+      below = true;
+    }
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    tipFloatEl.classList.toggle('below', below);
+    tipFloatEl.style.left = left + 'px';
+    tipFloatEl.style.top = top + 'px';
+    tipOwner = dot;
+  }
+  function initTips() {
+    applyTips(tipsEnabled());
+    document.querySelectorAll('.tips-opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        applyTips(b.dataset.tips === 'on');
+      });
+    });
+    function dotOf(e) {
+      return e.target && e.target.closest ? e.target.closest('.tipdot') : null;
+    }
+    /* A tip dot must never ACT - it only explains. Swallowing its
+       click keeps a badge parked on a corner from ever passing a tap
+       through to the control beneath. */
+    document.addEventListener(
+      'click',
+      function (e) {
+        var d = dotOf(e);
+        if (d) {
+          e.preventDefault();
+          e.stopPropagation();
+          showTipDot(d); /* touch users tap to read */
+        } else if (tipOwner) hideTipDot();
+      },
+      true
+    );
+    document.addEventListener(
+      'mouseover',
+      function (e) {
+        var d = dotOf(e);
+        if (d) showTipDot(d);
+      },
+      true
+    );
+    document.addEventListener(
+      'mouseout',
+      function (e) {
+        if (!tipOwner || dotOf(e) !== tipOwner) return;
+        var to = e.relatedTarget;
+        if (to && to.closest && to.closest('.tipdot') === tipOwner) return;
+        hideTipDot();
+      },
+      true
+    );
+    document.addEventListener(
+      'focusin',
+      function (e) {
+        var d = dotOf(e);
+        if (d) showTipDot(d);
+      },
+      true
+    );
+    document.addEventListener('focusout', hideTipDot, true);
+    window.addEventListener('scroll', hideTipDot, true);
+    window.addEventListener('resize', hideTipDot);
+  }
+
+  /* ---------------------------------------------------------
      GRAPHICS QUALITY
      -------------------------------------------------------------
      Writes body[data-gfx] and persists the choice. Applied at
@@ -688,8 +813,8 @@
       });
       document.getElementById('auth-title').textContent = up ? 'Join the ladder' : 'Welcome back';
       document.getElementById('auth-sub').textContent = up
-        ? 'Create an account to play ranked matches against other players.'
-        : 'Sign in to play ranked matches against other players.';
+        ? 'Create an account to play online matches against other players.'
+        : 'Sign in to play online matches against other players.';
       document.getElementById('auth-submit-txt').textContent = up ? 'Create account' : 'Sign in';
       document.getElementById('auth-name-field').hidden = !up;
       say('');
@@ -1062,6 +1187,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
+    initTips();
     if (window.EOL.auth) window.EOL.auth.init();
     initAuth();
     if (!ROSTER.length) {

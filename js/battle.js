@@ -276,7 +276,7 @@
      A revive resolves synchronously in the engine, so without this the
      card would already show its restored HP and new buffs while the
      death/resurrection is still playing out on screen. */
-  function unitCardHTML(u, deadView) {
+  function unitCardHTML(u, deadView, settledActed) {
     var pct = deadView ? 0 : Math.max(0, (u.hp / u.maxHp) * 100);
     var shieldPct = deadView ? 0 : Math.min(100, (u.shield / u.maxHp) * 100);
     var atk = deadView ? u.baseAtk : E.atkOf(u);
@@ -356,6 +356,8 @@
       .join('');
 
     var acted = deadView ? false : B.acted[u.side][u.uid];
+    /* a veil that was already up before this render returns "settled" -
+       no animation restart (the heal-flicker fix; see captureSlots) */
 
     return (
       '' +
@@ -430,7 +432,11 @@
       esc(u.name) +
       '</div>' +
       '</div>' +
-      (acted ? '<div class="bcard-acted"><i class="ri-check-line"></i></div>' : '') +
+      (acted
+        ? '<div class="bcard-acted' +
+          (settledActed ? ' settled' : '') +
+          '"><i class="ri-check-line"></i></div>'
+        : '') +
       '<div class="bcard-ring"></div>' +
       '</div>' +
       '</div>'
@@ -498,7 +504,17 @@
       var card = el.querySelector('.bcard');
       if (!card || !card.dataset.uid) return;
       var r = el.getBoundingClientRect();
-      map[card.dataset.uid] = { x: r.left, y: r.top };
+      /* remember who ALREADY wore the acted veil: render() rebuilds the
+         whole grid on every action, and a fresh .bcard-acted node plays
+         its veil-in animation again - so by the time a Medic casts (mid/
+         late round, several veils up) the whole board strobed. Settled
+         veils render without the animation; the first application of a
+         veil keeps its fade. */
+      map[card.dataset.uid] = {
+        x: r.left,
+        y: r.top,
+        acted: !!el.querySelector('.bcard-acted'),
+      };
     });
     return map;
   }
@@ -559,7 +575,11 @@
         cell.style.setProperty('--fc-primary', u.faction.colors.primary);
         cell.style.setProperty('--el', ELEMENT_COLOR[u.element] || '#fff');
         cell.dataset.rarity = u.card.rarity;
-        cell.innerHTML = unitCardHTML(u, vdead && u.alive);
+        cell.innerHTML = unitCardHTML(
+          u,
+          vdead && u.alive,
+          !!(slotsBefore[u.uid] && slotsBefore[u.uid].acted)
+        );
 
         var inner = cell.querySelector('.bcard');
         if (inner) {
@@ -570,8 +590,11 @@
           if (E.isFront(u)) inner.classList.add('front');
           else inner.classList.add('back');
         }
-        if (!vdead) {
-          var hit = inner;
+        /* A fallen hero stays READABLE: hovering still opens its panel
+           (buffs, causes of death, the flyout), it just can never be
+           selected - onCardClick treats it as strictly view-only. */
+        var hit = inner;
+        if (hit) {
           hit.addEventListener('click', function (ev) {
             ev.stopPropagation();
             onCardClick(u);
@@ -628,10 +651,38 @@
     tl.textContent = B.over ? 'Battle Over' : B.turn === 'player' ? 'Your Action' : 'Enemy Action';
     tl.classList.toggle('enemy-turn', !B.over && B.turn === 'enemy');
 
+    /* THE SET war score replaces the action pill while a set is live:
+       the pill only repeated the turn label above it, and the old
+       fixed top-centre chip floated over the HUD itself. Same pill
+       spec as the ramp tag, in black/gray. */
+    var setInfo =
+      window.EOL.play && window.EOL.play.setPillInfo ? window.EOL.play.setPillInfo() : null;
+    var sp = $('set-pill');
+    var it = $('init-tag');
+    if (setInfo && sp) {
+      if (it) it.classList.remove('on');
+      sp.hidden = false;
+      var sk = setInfo.game + '-' + setInfo.you + '-' + setInfo.foe;
+      if (sp.dataset.k !== sk) {
+        sp.dataset.k = sk;
+        sp.innerHTML =
+          '<i class="ra ra-laurel-crown"></i><span>SET G' +
+          setInfo.game +
+          '/3 · </span><b>' +
+          setInfo.you +
+          ' - ' +
+          setInfo.foe +
+          '</b>';
+        sp.classList.remove('bump');
+        void sp.offsetWidth; /* restart the pop on a fresh score */
+        sp.classList.add('bump');
+      }
+    } else {
+      if (sp) sp.hidden = true;
+    }
     /* Status line under the round counter. States plainly what the game
        is waiting on, which the old "who opened the round" badge did not. */
-    var it = $('init-tag');
-    if (it) {
+    if (it && !setInfo) {
       var msg,
         cls = false;
       /* SHORT texts only - the pill is centre-clipped to ~150 px so it
@@ -940,7 +991,12 @@
     var isActive = a.type === 'Active';
     var cost = isActive ? E.costOf(B, u, a) : null;
     var usable = isActive && E.canUse(B, u, a);
-    var hasTargets = !isActive || E.pickCount(a) === 0 || E.legalTargets(B, u, a).length > 0;
+    /* a Skill must be able to MEET its pick count, not just legally hit
+       someone: Tsukuyomi-style "choose 2" used to stay lit with one
+       enemy alive and then soft-lock the target picker demanding a
+       second click that could never come */
+    var needTargets = isActive ? E.pickCount(a) : 0;
+    var hasTargets = !isActive || needTargets === 0 || E.legalTargets(B, u, a).length >= needTargets;
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
@@ -971,7 +1027,9 @@
     if (lockedPhase) {
       reason = 'Locked in current Battle Phase';
     } else if (interactive && isActive && dis) {
-      if (!hasTargets) reason = 'No valid targets';
+      if (!hasTargets)
+        reason =
+          needTargets > 1 ? 'Needs ' + needTargets + ' targets - not enough left' : 'No valid targets';
       else if (u.flags.silence > 0 && !a.basic) reason = 'Silenced';
     }
 
@@ -1228,7 +1286,7 @@
     var sig = u.card.ability;
     var role = E.roleAbility(u);
     var mine = u.side === 'player';
-    var interactive = locked && mine && !sel.view && !B.over && B.turn === 'player';
+    var interactive = locked && mine && u.alive && !sel.view && !B.over && B.turn === 'player';
     // Only a genuinely different hero replays the swap animation. Locking
     // the same card (hover -> click) must not re-animate the panel.
     var fresh = dockKey !== u.uid;
@@ -1475,6 +1533,10 @@
 
     // picking a target for a pending ability
     if (targeting) {
+      /* A corpse is never a legal target, and clicking one must not
+         tear down the pending pick either - it stays inspect-by-hover
+         only until the selection resolves. */
+      if (!u.alive) return;
       var pool = E.legalTargets(B, sel.unit, sel.ability);
       var forced = E.forcedTarget(B, sel.unit, sel.ability);
       if (forced) pool = [forced];
@@ -1508,7 +1570,10 @@
        enemy is view-only: their Skills never become clickable,
        because `interactive` in paintDock still demands the hero be
        yours, unacted and on your turn. */
-    var viewOnly = u.side !== 'player' || !myTurn || !!B.acted.player[u.uid];
+    /* A dead hero can be opened but never helm an action: alive joins
+       the same gates that already keep enemy and already-acted heroes
+       strictly read-only. */
+    var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
     paintDock();
     paintSelection();
@@ -1644,12 +1709,8 @@
   }
 
   /* =============================================================
-     TURN CLOCK  (multiplayer only)
+     TURN CLOCK
      -------------------------------------------------------------
-     A human opponent can simply stop responding. The bot never
-     could, so nothing in the loop ever needed a deadline; against a
-     person, one player could hold a match hostage forever.
-
      30 seconds per action. When YOUR clock expires you pass, which
      is always a legal move and never loses the game outright. When
      THEIR clock expires we do not act on it - only the player whose
@@ -1657,7 +1718,11 @@
      disagree about the action stream and desync. Their clock is
      shown purely so you know they are on one too.
 
-     Singleplayer never shows it.
+     Online it was born to stop a stalling opponent; solo it now
+     guards the player's window too (user request 2026-08-04) - the
+     deadline keeps a single-player game moving, and an expiry still
+     only ever PASSES, never acts. The bot's own clock stays hidden:
+     it answers inside a second, so a 30s dial for it is pure noise.
      ============================================================= */
   var TURN_MS = 30000;
   var clockRaf = null;
@@ -1683,7 +1748,12 @@
   }
 
   function startClock(side) {
-    if (!netCtl) return; // singleplayer has nobody to stall
+    /* Solo guards the player's window only - the bot moves instantly,
+       so its dial would be noise (and its expiry must never act). */
+    if (!netCtl && side !== 'player') {
+      stopClock();
+      return;
+    }
     var el = clockEl();
     if (!el || !B || B.over) return;
     clockSide = side;
@@ -1732,7 +1802,7 @@
      FORFEIT
      -------------------------------------------------------------
      Two-step: the first click arms the button, the second confirms.
-     A single mis-click must never end a ranked match. It disarms
+     A single mis-click must never end an online match. It disarms
      itself after a few seconds and on any click elsewhere.
      ============================================================= */
   var forfeitArmed = false;
@@ -2873,95 +2943,372 @@
     });
   }
 
-  /* The strike that lands on each AoE victim - every element has its
-     own signature: storms fork jagged lightning down the board, fire
-     calls a meteor volley, nature blooms leaves, light wheels god-rays
-     behind its beam, magic stamps a rune, shadow tears rifts and
-     physical pounds shock rings out of the impact point. */
+  /* --------------------------------------------------------
+     AoE STRIKE SUITE v3 (2026-08-04 overhaul).
+
+     V2's sin: each element was one static prop on a slide -
+     meteors trailed at a FIXED 26-48deg while actually
+     falling almost straight down (Sekhmet's fire read as a
+     stock graphic gliding sideways), and the moment each
+     strike ended the board snapped back to clean, so nothing
+     IMPACTED and nothing LINGERED.
+
+     v3 law, every element gets four beats:
+       anticipation  something gathers at the strike point a
+                     beat before the hit (flash / gloom /
+                     converging shards / falling motes)
+       transit       the moving body itself, with its trail
+                     computed from ITS OWN velocity vector
+                     (atan2 - never a painted-on angle)
+       impact        burst + the global detonation's mini-pop
+       residual      a trace that outlives the hit by ~1s
+                     (embers rising off scorched ground, ion
+                     haze, a saint's halo, wisps, arcane
+                     afterglow, dust)
+     The extras ride behind !gfxLow(); the base strike is
+     always shown. */
+  function spawnMote(x, y, color, life, ox, oy, dx, dy, cls) {
+    /* one parameterized particle: appears at (ox,oy) relative
+       to (x,y) and travels to (dx,dy). Converge = spawn out,
+       travel to 0,0; rise = spawn at 0,0, travel up. */
+    var m = spawn('fx-mote' + (cls ? ' ' + cls : ''), x, y, color, life);
+    if (!m) return null;
+    m.style.setProperty('--ox', ox.toFixed(1) + 'px');
+    m.style.setProperty('--oy', oy.toFixed(1) + 'px');
+    m.style.setProperty('--dx', dx.toFixed(1) + 'px');
+    m.style.setProperty('--dy', dy.toFixed(1) + 'px');
+    return m;
+  }
+
   function playAoeStrike(t, fx, element) {
     switch (element) {
       case 'Lightning': {
-        // twin forks crashing down - the flicker is what sells it
-        var z = spawn('fx-zigzag', t.x, 0, fx.color, 500);
-        z.style.top = '0px';
-        z.style.setProperty('--h', t.y + 44 + 'px');
-        var z2 = spawn('fx-zigzag', t.x + (Math.random() * 36 - 18), 0, fx.trail, 560);
-        z2.style.top = '0px';
-        z2.style.setProperty('--h', t.y + 44 + 'px');
-        z2.style.animationDelay = '90ms';
+        /* the strike point ionizes a beat BEFORE the sky breaks */
+        spawn('fx-strike-flash', t.x, t.y, fx.color, 300);
+        /* twin forks crashing down, staggered; low mode keeps one */
+        var forks = gfxLow() ? 1 : 2;
+        for (var f = 0; f < forks; f++) {
+          (function (k) {
+            setTimeout(function () {
+              var bx = t.x + (Math.random() * 36 - 18);
+              var z = spawn('fx-zigzag', bx, 0, k ? fx.trail : fx.color, 560);
+              if (!z) return;
+              z.style.top = '0px';
+              z.style.setProperty('--h', t.y + 44 + 'px');
+              if (!gfxLow()) {
+                /* branches fork off the trunk - jagged, short-lived,
+                   angled OFF the trunk's own vertical */
+                for (var b = 0; b < 2; b++) {
+                  var br = spawn(
+                    'fx-branch',
+                    bx + (Math.random() * 14 - 7),
+                    t.y * (0.3 + b * 0.24),
+                    fx.color,
+                    400
+                  );
+                  if (!br) continue;
+                  br.style.setProperty(
+                    '--rot',
+                    (Math.random() < 0.5 ? -1 : 1) * (26 + Math.random() * 32) + 'deg'
+                  );
+                  br.style.setProperty('--bl', Math.floor(26 + Math.random() * 24) + 'px');
+                  br.style.animationDelay = 80 + b * 80 + 'ms';
+                }
+                /* the moment of contact spits white sparks upward */
+                setTimeout(function () {
+                  for (var sp = 0; sp < 3; sp++) {
+                    spawnMote(
+                      t.x,
+                      t.y,
+                      '#ffffff',
+                      460,
+                      0,
+                      0,
+                      Math.random() * 80 - 40,
+                      -(18 + Math.random() * 42),
+                      null
+                    );
+                  }
+                }, 120);
+              }
+            }, k * 120);
+          })(f);
+        }
+        /* residual: the air stays ionized after the bolt is gone */
+        if (!gfxLow()) {
+          setTimeout(function () {
+            spawn('fx-ion', t.x, t.y + 14, fx.trail, 760);
+          }, 240);
+        }
         break;
       }
-      case 'Fire':
-        // a volley of meteors streaking in from above
+      case 'Fire': {
+        /* Meteor volley. THE LAW: the tail angle is derived from
+           THIS meteor's own launch offset, so the flame streams
+           exactly opposite the velocity no matter where it starts.
+           (v2 hardcoded --ta=26-48deg: the meteor fell ~240px
+           vertically while the tail lay mostly horizontal.) */
         for (var m = 0; m < 3; m++) {
           (function (k) {
             setTimeout(function () {
+              var ox = 60 + Math.random() * 140; /* launch up-RIGHT */
+              var oy = -(160 + Math.random() * 150);
               var me = spawn('fx-meteor', t.x, t.y, k === 2 ? '#ffd9a0' : fx.color, 740);
-              me.style.setProperty('--mx', 110 + Math.random() * 90 + 'px');
-              me.style.setProperty('--my', -(200 + Math.random() * 130) + 'px');
-              me.style.setProperty('--ta', 26 + Math.random() * 22 + 'deg');
-            }, k * 90);
+              if (!me) return;
+              me.style.setProperty('--mx', ox.toFixed(0) + 'px');
+              me.style.setProperty('--my', oy.toFixed(0) + 'px');
+              /* tail points back along the displacement (behind the
+                 body); scale its length with how much sky it crossed */
+              me.style.setProperty(
+                '--ta',
+                (((Math.atan2(oy, ox) * 180) / Math.PI + 180) % 360).toFixed(1) + 'deg'
+              );
+              me.style.setProperty(
+                '--tl',
+                Math.min(150, Math.round(Math.hypot(ox, oy) * 0.55)) + 'px'
+              );
+              /* each landing kicks up a pair of hot sparks */
+              if (!gfxLow()) {
+                setTimeout(function () {
+                  for (var e = 0; e < 2; e++) {
+                    spawnMote(
+                      t.x + (Math.random() * 20 - 10),
+                      t.y + 6,
+                      fx.trail,
+                      620,
+                      0,
+                      0,
+                      Math.random() * 44 - 22,
+                      -(16 + Math.random() * 26),
+                      null
+                    );
+                  }
+                }, 420);
+              }
+            }, k * 100);
           })(m);
         }
-        break;
-      case 'Nature': {
-        // leaves and petals blooming out of the ground strike
-        var bl = spawn('fx-bloom', t.x, t.y, fx.color, 1000);
-        var html = '';
-        for (var p = 0; p < 8; p++) {
-          html +=
-            '<i class="ra ' +
-            (p % 2 ? 'ra-leaf' : fx.sigil) +
-            '" style="--a:' +
-            p * 45 +
-            'deg;animation-delay:' +
-            p * 24 +
-            'ms"></i>';
+        /* residual: the ground stays scarred and keeps breathing embers */
+        if (!gfxLow()) {
+          setTimeout(function () {
+            spawn('fx-scorch', t.x, t.y + 20, null, 1250);
+            for (var e2 = 0; e2 < 3; e2++) {
+              (function (k) {
+                setTimeout(function () {
+                  spawnMote(
+                    t.x + (Math.random() * 44 - 22),
+                    t.y + 14,
+                    fx.trail,
+                    1150,
+                    0,
+                    0,
+                    Math.random() * 26 - 13,
+                    -(34 + Math.random() * 32),
+                    'rise'
+                  );
+                }, 150 * k);
+              })(e2);
+            }
+          }, 360);
         }
-        bl.innerHTML = html;
+        break;
+      }
+      case 'Nature': {
+        /* leaves and petals bloom out of the ground strike - the
+           petals travel outward AND settle, motes keep rising after */
+        var bl = spawn('fx-bloom', t.x, t.y, fx.color, 1050);
+        if (bl) {
+          var html = '';
+          for (var p = 0; p < 8; p++) {
+            html +=
+              '<i class="ra ' +
+              (p % 2 ? 'ra-leaf' : fx.sigil) +
+              '" style="--a:' +
+              p * 45 +
+              'deg;animation-delay:' +
+              p * 24 +
+              'ms"></i>';
+          }
+          bl.innerHTML = html;
+        }
         spawn('fx-ring slow', t.x, t.y, fx.trail, 700);
+        if (!gfxLow()) {
+          /* spores drift up where the bloom broke the soil */
+          for (var n = 0; n < 4; n++) {
+            (function (k) {
+              setTimeout(function () {
+                spawnMote(
+                  t.x + (Math.random() * 36 - 18),
+                  t.y + 8,
+                  fx.color,
+                  1100,
+                  0,
+                  0,
+                  Math.random() * 30 - 15,
+                  -(30 + Math.random() * 34),
+                  'rise'
+                );
+              }, 200 + k * 130);
+            })(n);
+          }
+        }
         break;
       }
       case 'Light': {
-        // the classic beam, now with a wheel of god-rays behind it
-        var ry = spawn('fx-rays', t.x, t.y, fx.color, 640);
-        var rh = '';
-        for (var r = 0; r < 8; r++) {
-          rh += '<span style="transform: rotate(' + r * 45 + 'deg)"></span>';
+        /* anticipation: three motes fall INTO the point as the sky
+           answers, then the beam lands behind its god-ray wheel */
+        if (!gfxLow()) {
+          for (var d = 0; d < 3; d++) {
+            (function (k) {
+              setTimeout(function () {
+                spawnMote(
+                  t.x + (Math.random() * 30 - 15),
+                  t.y,
+                  '#fff8dc',
+                  330,
+                  Math.random() * 24 - 12,
+                  -(60 + Math.random() * 30),
+                  0,
+                  -6,
+                  null
+                );
+              }, k * 60);
+            })(d);
+          }
         }
-        ry.innerHTML = rh;
+        var ry = spawn('fx-rays', t.x, t.y, fx.color, 640);
+        if (ry) {
+          var rh = '';
+          for (var r = 0; r < 8; r++) {
+            rh += '<span style="transform: rotate(' + r * 45 + 'deg)"></span>';
+          }
+          ry.innerHTML = rh;
+        }
         var col = spawn('fx-column', t.x, 0, fx.color, 520);
-        col.style.top = '0px';
-        col.style.setProperty('--h', t.y + 40 + 'px');
+        if (col) {
+          col.style.top = '0px';
+          col.style.setProperty('--h', t.y + 40 + 'px');
+        }
+        /* residual: a saint's halo sits where the beam touched ground */
+        if (!gfxLow()) {
+          setTimeout(function () {
+            spawn('fx-halo', t.x, t.y + 18, fx.color, 1000);
+          }, 200);
+        }
         break;
       }
       case 'Magic': {
+        /* anticipation: arcane shards converge on the point from a
+           small ring - the rune answers where they meet */
+        if (!gfxLow()) {
+          for (var cv = 0; cv < 5; cv++) {
+            (function (k) {
+              var a2 = (k / 5) * Math.PI * 2 + 0.6;
+              setTimeout(function () {
+                spawnMote(
+                  t.x,
+                  t.y,
+                  k % 2 ? fx.trail : fx.color,
+                  320,
+                  Math.cos(a2) * 46,
+                  Math.sin(a2) * 30,
+                  0,
+                  0,
+                  'in'
+                );
+              }, k * 26);
+            })(cv);
+          }
+        }
         // a glowing rune stamps down over the target
         var st = spawn('fx-rune-stamp', t.x, t.y, fx.color, 620);
-        st.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+        if (st) st.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
         var col2 = spawn('fx-column', t.x, 0, fx.trail, 500);
-        col2.style.top = '0px';
-        col2.style.opacity = '.55';
-        col2.style.setProperty('--h', t.y + 40 + 'px');
+        if (col2) {
+          col2.style.top = '0px';
+          col2.style.opacity = '.55';
+          col2.style.setProperty('--h', t.y + 40 + 'px');
+        }
+        /* residual: a ghost of the seal keeps turning after it lands */
+        if (!gfxLow()) {
+          setTimeout(function () {
+            var gh = spawn('fx-rune-ghost', t.x, t.y, fx.color, 1200);
+            if (gh) gh.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+          }, 260);
+        }
         break;
       }
-      case 'Shadow':
+      case 'Shadow': {
+        /* anticipation: the light bends first - gloom swells, wisps
+           get sucked INTO the tear (inward motion sells "the world
+           is being pulled apart") */
+        spawn('fx-gloom', t.x, t.y, null, 800);
+        if (!gfxLow()) {
+          for (var s0 = 0; s0 < 6; s0++) {
+            (function (k) {
+              var a3 = (k / 6) * Math.PI * 2 + 0.4;
+              setTimeout(function () {
+                spawnMote(
+                  t.x,
+                  t.y,
+                  fx.trail,
+                  380,
+                  Math.cos(a3) * 52,
+                  Math.sin(a3) * 34,
+                  0,
+                  0,
+                  'in'
+                );
+              }, k * 30);
+            })(s0);
+          }
+        }
         // two rifts tear across the card, one high, one low
         for (var s = 0; s < 2; s++) {
           (function (k) {
             setTimeout(function () {
               var ri = spawn('fx-rift', t.x, t.y + (k ? -14 : 10), fx.color, 700);
-              ri.style.setProperty('--ra', (k ? 24 : -30) + 'deg');
+              if (ri) ri.style.setProperty('--ra', (k ? 24 : -30) + 'deg');
             }, k * 110);
           })(s);
         }
+        /* residual: one wisp escapes and curls upward */
+        if (!gfxLow()) {
+          setTimeout(function () {
+            spawnMote(t.x + 6, t.y + 4, fx.trail, 1080, 0, 0, 18, -44, 'rise');
+          }, 420);
+        }
         break;
-      default:
-        // physical: shock rings pound out of the impact point
+      }
+      default: {
+        /* physical: shock rings pound out of the impact point, dust
+           and chips make it read as WEIGHT not light */
         spawn('fx-quake', t.x, t.y, fx.color, 560);
         setTimeout(function () {
           spawn('fx-quake', t.x, t.y, fx.trail, 700);
         }, 110);
+        if (!gfxLow()) {
+          for (var d2 = 0; d2 < 3; d2++) {
+            (function (k) {
+              setTimeout(function () {
+                var du = spawn('fx-dust', t.x + (k - 1) * 18, t.y + 16, fx.trail, 900);
+                if (du) du.style.setProperty('--dx', (k - 1) * 14 + 'px');
+              }, 60 + k * 70);
+            })(d2);
+          }
+          for (var c2 = 0; c2 < 4; c2++) {
+            (function (k) {
+              var a4 = -Math.PI / 2 + (k - 1.5) * 0.5;
+              var ch = spawn('fx-blast-shard', t.x, t.y, k % 2 ? fx.trail : fx.color, 700);
+              if (!ch) return;
+              ch.style.setProperty('--sx', Math.cos(a4) * (30 + k * 12) + 'px');
+              ch.style.setProperty('--sy', Math.sin(a4) * (26 + k * 9) + 'px');
+              ch.style.setProperty('--rot', Math.floor(Math.random() * 360) + 'deg');
+            })(c2);
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -3588,7 +3935,11 @@
       ? 'The enemy team has fallen.'
       : 'Your team has fallen.';
     ov.querySelector('.result-rounds').textContent =
-      B.round === 1 ? 'Won in a single round' : 'Lasted ' + B.round + ' rounds';
+      B.round === 1
+        ? win
+          ? 'Won in a single round'
+          : 'Lost in a single round'
+        : (win ? 'Won after ' : 'Fell after ') + B.round + ' rounds';
     /* THE SET: play.js reframes the outcome as set progress (score
        line instead of epitaph, "Sideboard"/"New set" instead of
        "Rematch") and returns null when no set is live - a non-set
@@ -3602,6 +3953,11 @@
       var rm = $('btn-rematch');
       if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
     }
+    /* Mid-set there is no walking away from the war: the result screen
+       offers ONLY the sideboard (user law 2026-08-04). Home returns
+       once the set is decided, and was never touched outside a set. */
+    var home = $('btn-result-home');
+    if (home) home.style.display = sr && !sr.over ? 'none' : '';
   }
 
   /* Flyouts are CSS-driven and live inside each card, so nothing to
@@ -3715,7 +4071,7 @@
   /* ---------------------------------------------------------
      HUD COMMANDERS
      -------------------------------------------------------------
-     Both name plates were hardcoded in index.html, so a ranked match
+     Both name plates were hardcoded in index.html, so an online match
      still read "You" vs "Enemy Bot" no matter who was playing. The
      signed-in player's handle and avatar come from auth; the opponent's
      name rides on the netplay controller as `label`.
@@ -3764,11 +4120,11 @@
     setNetWait(false);
     stopClock();
     disarmForfeit();
-    /* Forfeit and the turn clock are multiplayer-only. Against the bot
-       there is nobody to stall and nobody to concede to - you can just
-       leave. */
+    /* Forfeit is available in every battle (user request 2026-08-04):
+       online it concedes to a person, solo it is simply the honest way
+       out of a lost game - same two-step arm/confirm either way. */
     var fbtn = $('btn-forfeit');
-    if (fbtn) fbtn.hidden = !netCtl;
+    if (fbtn) fbtn.hidden = false;
     if (opts.teams && opts.teams.player && opts.teams.enemy) {
       playerDeck = null; // mode flows own their rematch config
       B = E.createBattle(

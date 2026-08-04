@@ -212,7 +212,10 @@ window.EOL.registerFaction({
           effects: [
             { k: 'dmg', power: 0.5, element: 'Fire' },
             { k: 'dmg', power: 0.15, element: 'Fire', if: { targetBurning: true } },
-            { k: 'healMod', pct: 30, turns: 2 },
+            /* negative = reduced healing (healUnit does mod += pct/100);
+               a positive 30 here used to BOOST enemy healing to 130%
+               while the card promises a 30% reduction */
+            { k: 'healMod', pct: -30, turns: 2 },
             { k: 'burn', turns: 1, to: 'enemies', take: { n: 2, by: 'lowestHp' } },
           ],
         },

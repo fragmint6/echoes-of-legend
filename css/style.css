@@ -1781,7 +1781,9 @@ body[data-turn='enemy'] .hud-side.enemy {
   width: 42px;
   height: 42px;
   flex: 0 0 42px;
-  border-radius: 11px;
+  /* a commander portrait is a medal, not a tile: pure circle */
+  border-radius: 50%;
+  overflow: hidden;
   font-size: 21px;
   background:
     radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.14), transparent 62%),
@@ -1912,21 +1914,21 @@ body[data-turn='player'] .turn-label {
   color: #8fe3b0;
 }
 
+/* PASS - a bare circle, deliberately the turn clock's exact size, so
+   the HUD centre balances: clock | round | pass. Icon only; the full
+   meaning rides on the tooltip. */
 .endturn-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0;
   flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
   white-space: nowrap;
-  padding: 11px 20px;
-  border-radius: 11px;
   cursor: var(--cur-pointer);
-  font-family: 'Cinzel', serif;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: #0d1220;
   border: 1px solid rgba(150, 200, 255, 0.8);
   background: linear-gradient(180deg, #cfe3ff, #86b0f0);
@@ -1943,7 +1945,8 @@ body[data-turn='player'] .turn-label {
   filter: grayscale(0.6);
 }
 
-/* auto end-turn countdown: a fill sweeps across the button */
+/* auto end-turn countdown: the disc fills in a conic sweep and the
+   icon yields to the same seconds numeral the clock shows */
 .endturn-btn {
   --fill: 0%;
   position: relative;
@@ -1956,16 +1959,17 @@ body[data-turn='player'] .turn-label {
 .endturn-btn.counting::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--fill);
-  background: linear-gradient(90deg, rgba(255, 225, 150, 0.95), rgba(255, 190, 90, 0.95));
-  box-shadow: 0 0 18px rgba(255, 200, 90, 0.6);
+  inset: 0;
+  background: conic-gradient(
+    from -90deg,
+    rgba(255, 215, 130, 0.98) var(--fill),
+    rgba(255, 255, 255, 0.1) 0
+  );
   z-index: 0;
 }
 .endturn-btn.counting {
   border-color: rgba(255, 215, 130, 0.9);
   animation: et-nudge 1s ease-in-out infinite;
-  padding-right: 40px;
 }
 @keyframes et-nudge {
   50% {
@@ -1975,15 +1979,21 @@ body[data-turn='player'] .turn-label {
 .et-label {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+}
+.et-label i {
+  font-size: 15px;
+}
+.endturn-btn.counting .et-label {
+  display: none; /* the numeral takes over, mirroring the turn clock */
 }
 .et-count {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
+  display: none;
+}
+.endturn-btn.counting .et-count {
+  display: block;
+  font-size: 13px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   color: #2a1c02;
 }
 
@@ -3478,6 +3488,12 @@ body[data-turn='player'] .turn-label {
   backdrop-filter: grayscale(0.7);
   animation: veil-in 0.3s var(--ease);
 }
+/* already-veiled units re-render WITHOUT the fade: render() rebuilds
+   the grid every action, and re-playing veil-in made the whole board
+   strobe whenever a mid/late-round heal landed */
+.bcard-acted.settled {
+  animation: none;
+}
 @keyframes veil-in {
   from {
     opacity: 0;
@@ -3609,19 +3625,24 @@ body[data-turn='player'] .turn-label {
   pointer-events: none;
   z-index: 3;
 }
+/* element orb - styled to sit exactly at status-chip spec (18px,
+   same surface); only its colour keeps saying which element it is */
 .borb {
   display: grid;
   place-items: center;
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  font-size: 12px;
+  font-size: 10.5px;
   color: var(--el);
-  background:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.2), transparent 62%),
-    rgba(6, 8, 14, 0.8);
+  background: rgba(6, 8, 14, 0.88);
   border: 1px solid color-mix(in srgb, var(--el) 55%, transparent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--el) 38%, transparent);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+}
+.borb i {
+  line-height: 1;
+  display: block;
+  transform: translateY(0.5px);
 }
 /* name plate with role line */
 .bcard-foot {
@@ -4015,6 +4036,7 @@ body[data-turn='player'] .turn-label {
   pointer-events: auto;
 }
 .result-card {
+  position: relative; /* anchors the corner tip dot */
   text-align: center;
   padding: 44px 52px;
   border-radius: 20px;
@@ -4671,27 +4693,27 @@ body[data-turn='player'] .turn-label {
     58% 10%
   );
   filter: drop-shadow(0 0 10px var(--fx)) drop-shadow(0 0 26px var(--fx));
-  animation: fx-zigzag 0.46s linear forwards;
+  animation: fx-zigzag 0.6s linear forwards;
 }
 @keyframes fx-zigzag {
   0% {
     opacity: 0;
     transform: scaleY(0.25);
   }
-  12% {
+  10% {
     opacity: 1;
     transform: scaleY(1);
   }
-  26% {
+  24% {
     opacity: 0.3;
   }
-  40% {
+  38% {
     opacity: 1;
   }
-  62% {
+  58% {
     opacity: 0.45;
   }
-  78% {
+  74% {
     opacity: 0.95;
   }
   100% {
@@ -4714,16 +4736,20 @@ body[data-turn='player'] .turn-label {
   animation: fx-meteor 0.48s cubic-bezier(0.3, 0.6, 0.6, 1) forwards;
 }
 .fx-meteor::before {
-  /* the burning tail */
+  /* the burning tail. --ta is COMPUTED in JS from this meteor's own
+     launch offset (atan2), so the flame always streams exactly
+     opposite the velocity - a fixed angle here used to lie sideways
+     off the fall line (the "obviously static" Sekhmet bug). --tl
+     scales the tail with how much sky the meteor crossed. */
   content: '';
   position: absolute;
   right: 50%;
   bottom: 50%;
-  width: 92px;
+  width: var(--tl, 92px);
   height: 8px;
   border-radius: 6px;
   transform-origin: 100% 50%;
-  transform: rotate(var(--ta, 38deg));
+  transform: rotate(var(--ta, 116deg));
   background: linear-gradient(90deg, transparent, var(--fx));
   filter: blur(1px);
 }
@@ -4901,6 +4927,260 @@ body[data-turn='player'] .turn-label {
   }
   100% {
     transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+/* =============================================================
+   AoE STRIKE v3 (2026-08-04) - shared particles + residuals.
+   Every element choreographs anticipation / transit / impact /
+   RESIDUAL; the classes below are the reusable building blocks.
+   ============================================================= */
+
+/* Shared mote: appears at (--ox,--oy) relative to its anchor and
+   travels to (--dx,--dy). Converge = spawn out, travel to 0,0;
+   rise/drift = spawn at 0,0, travel away. */
+.fx-mote {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--fx);
+  box-shadow:
+    0 0 8px var(--fx),
+    0 0 16px var(--fx);
+  animation: fx-mote 0.7s ease-out forwards;
+}
+.fx-mote.rise {
+  filter: blur(0.4px);
+}
+.fx-mote.in {
+  animation-timing-function: cubic-bezier(0.55, 0.1, 0.8, 0.6); /* sucked in, not thrown */
+}
+@keyframes fx-mote {
+  0% {
+    transform: translate(var(--ox, 0px), var(--oy, 0px)) scale(0.4);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Anticipation: the strike point flashes a beat before the hit */
+.fx-strike-flash {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, var(--fx) 45%, transparent 72%);
+  animation: fx-strike-flash 0.28s ease-in forwards;
+}
+@keyframes fx-strike-flash {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  70% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Lightning: a jagged branch off the main fork. --rot aims it
+   away from the trunk, --bl sets its reach (both JS-computed). */
+.fx-branch {
+  position: absolute;
+  width: var(--bl, 30px);
+  height: 4px;
+  margin-top: -2px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, #fff, var(--fx) 55%, transparent);
+  clip-path: polygon(0 40%, 55% 0, 100% 45%, 58% 100%, 0 62%);
+  filter: drop-shadow(0 0 6px var(--fx));
+  animation: fx-branch 0.34s linear forwards;
+}
+@keyframes fx-branch {
+  0% {
+    transform: rotate(var(--rot, 30deg)) scaleX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    transform: rotate(var(--rot, 30deg)) scaleX(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(var(--rot, 30deg)) scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* Lightning residual: the air stays ionized a moment longer */
+.fx-ion {
+  position: absolute;
+  width: 10px;
+  height: 70px;
+  margin: -74px 0 0 -5px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, transparent, var(--fx) 40%, transparent);
+  filter: blur(4px);
+  opacity: 0;
+  animation: fx-ion 0.72s ease-out forwards;
+}
+@keyframes fx-ion {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.6);
+  }
+  25% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+/* Fire residual: scorched ground that fades as the embers rise */
+.fx-scorch {
+  position: absolute;
+  width: 74px;
+  height: 26px;
+  margin: -13px 0 0 -37px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(10, 5, 2, 0.6), transparent 70%);
+  animation: fx-scorch 1.2s ease-out forwards;
+}
+@keyframes fx-scorch {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+/* Light residual: a saint's halo where the beam touched ground */
+.fx-halo {
+  position: absolute;
+  width: 90px;
+  height: 30px;
+  margin: -15px 0 0 -45px;
+  border-radius: 50%;
+  border: 2px solid var(--fx);
+  box-shadow:
+    0 0 22px var(--fx),
+    inset 0 0 14px var(--fx);
+  animation: fx-halo 0.95s ease-out forwards;
+}
+@keyframes fx-halo {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+/* Shadow anticipation: the gloom swells before the tear */
+.fx-gloom {
+  position: absolute;
+  width: 110px;
+  height: 80px;
+  margin: -40px 0 0 -55px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(6, 2, 14, 0.72), rgba(6, 2, 14, 0) 70%);
+  animation: fx-gloom 0.78s ease-out forwards;
+}
+@keyframes fx-gloom {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Physical: dust kicked up by the pound */
+.fx-dust {
+  position: absolute;
+  width: 26px;
+  height: 14px;
+  margin: -7px 0 0 -13px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--fx) 65%, #30251c),
+    transparent 75%
+  );
+  filter: blur(2px);
+  animation: fx-dust 0.85s ease-out forwards;
+}
+@keyframes fx-dust {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(var(--dx, 0px), -14px) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Magic residual: the seal's ghost keeps turning after the stamp */
+.fx-rune-ghost {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  color: var(--fx);
+  font-size: 42px;
+  line-height: 64px;
+  text-align: center;
+  text-shadow: 0 0 18px var(--fx);
+  opacity: 0;
+  animation: fx-rune-ghost 1.15s linear forwards;
+}
+@keyframes fx-rune-ghost {
+  0% {
+    transform: rotate(0deg) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: rotate(160deg) scale(1.05);
     opacity: 0;
   }
 }
@@ -5896,6 +6176,65 @@ body[data-turn='player'] .turn-label {
   color: #ffe0a8;
   font-weight: 800;
 }
+
+/* THE SET war-score pill: exactly the ramp tag's pill spec, in
+   black/gray (user law: the war score must read as quiet furniture,
+   not a banner). It REPLACES the action pill while a set is live. */
+.set-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 2px 9px;
+  max-width: 158px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #aeb4c2;
+  background: rgba(8, 10, 16, 0.66);
+  border: 1px solid rgba(190, 198, 214, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.set-pill[hidden] {
+  display: none;
+}
+.set-pill i {
+  font-size: 11px;
+  color: #7d8395;
+}
+.set-pill span {
+  color: #9aa1b1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.set-pill b {
+  color: #f2f4f8;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.set-pill.bump {
+  animation: setpill-bump 0.5s var(--ease);
+}
+body[data-gfx='low'] .set-pill.bump {
+  animation: none;
+}
+@keyframes setpill-bump {
+  0% {
+    transform: scale(0.86);
+    border-color: rgba(240, 244, 252, 0.7);
+  }
+  55% {
+    transform: scale(1.14);
+    border-color: rgba(240, 244, 252, 0.85);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
 @keyframes ramp-in {
   from {
     opacity: 0;
@@ -5943,7 +6282,16 @@ body[data-turn='player'] .turn-label {
   .fx-rays,
   .fx-rune-stamp,
   .fx-rift,
-  .fx-quake {
+  .fx-quake,
+  .fx-mote,
+  .fx-strike-flash,
+  .fx-branch,
+  .fx-ion,
+  .fx-scorch,
+  .fx-halo,
+  .fx-gloom,
+  .fx-dust,
+  .fx-rune-ghost {
     display: none;
   }
 }
@@ -17669,7 +18017,15 @@ body[data-gfx='low'] .fx-blast-mini {
   color: var(--txt-faint);
 }
 
-/* fight card / board call modal */
+/* =============================================================
+   THE SET - fight card / board call
+   -------------------------------------------------------------
+   The war's theatre, in the game's own visual family: deep navy
+   glass, hairline gold, Cinzel titling, the radial vignette scrim the
+   cinematic battlefield reveal uses. Plates are INFORMATIVE (art +
+   tagline + the law of the land), and the row centres itself whether
+   three boards are on the card or only two slots remain open.
+   ============================================================= */
 .setm {
   position: fixed;
   inset: 0;
@@ -17684,33 +18040,67 @@ body[data-gfx='low'] .fx-blast-mini {
 .setm-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(3, 4, 9, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: radial-gradient(circle at 50% 38%, rgba(6, 8, 16, 0.8), rgba(3, 4, 9, 0.94));
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
   animation: fade-in 0.22s var(--ease);
 }
 .setm-card {
   position: relative;
-  width: min(760px, 100%);
+  width: min(880px, 100%);
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  padding: 30px 30px 26px;
-  border-radius: 20px;
-  border: 1px solid var(--line-2);
-  background: linear-gradient(180deg, rgba(17, 21, 34, 0.99), rgba(9, 11, 19, 0.99));
+  padding: 26px 28px 24px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 30%, transparent);
+  background:
+    radial-gradient(
+      ellipse at 50% -18%,
+      color-mix(in srgb, var(--r-legendary-1) 11%, transparent),
+      transparent 56%
+    ),
+    linear-gradient(180deg, rgba(17, 21, 34, 0.99), rgba(8, 10, 18, 0.99));
   box-shadow:
     0 34px 90px rgba(0, 0, 0, 0.78),
+    0 0 70px color-mix(in srgb, var(--r-legendary-1) 12%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: auth-in 0.28s var(--ease);
+  animation: setm-in 0.34s var(--ease);
   text-align: center;
+}
+@keyframes setm-in {
+  from {
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+/* gold thread across the top edge - the same ticket-notch motif the
+   rare cards wear */
+.setm-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--r-legendary-1) 65%, transparent),
+    transparent
+  );
 }
 .setm-title {
   margin: 0 0 8px;
   font-family: 'Cinzel', serif;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   color: #fff;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--r-legendary-1) 40%, transparent);
 }
 .setm-title i {
   color: var(--r-legendary-1);
@@ -17718,123 +18108,431 @@ body[data-gfx='low'] .fx-blast-mini {
 }
 .setm-sub {
   margin: 0 auto 20px;
-  max-width: 560px;
+  max-width: 620px;
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--txt-faint);
 }
+
+/* centred whether there are three boards or two */
 .setm-plates {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
   gap: 14px;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
 }
 .setm-plate {
   position: relative;
-  display: grid;
-  gap: 6px;
-  padding: 0 0 12px;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid var(--line-2);
-  background: rgba(0, 0, 0, 0.35);
+  text-align: left;
   font-family: inherit;
   color: inherit;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.32));
   transition:
     border-color 0.22s var(--ease),
     transform 0.22s var(--ease),
-    box-shadow 0.22s var(--ease);
+    box-shadow 0.22s var(--ease),
+    opacity 0.3s var(--ease),
+    filter 0.3s var(--ease);
+  animation: setm-plate-in 0.4s var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 90ms);
+}
+@keyframes setm-plate-in {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 .setm-plate.pick {
   cursor: var(--cur-pointer);
 }
-.setm-plate.pick:hover {
-  border-color: color-mix(in srgb, var(--r-legendary-1) 65%, transparent);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+.setm-plate.pick:hover,
+.setm-plate.pick:focus-visible {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 75%, transparent);
+  transform: translateY(-4px);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px color-mix(in srgb, var(--r-legendary-1) 18%, transparent);
+  outline: none;
 }
-.setm-plate.first {
-  border-color: color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--r-legendary-1) 26%, transparent);
+.setm-plate.pick:disabled {
+  cursor: var(--cur-default);
 }
+
 .setm-art {
+  position: relative;
   aspect-ratio: 16 / 9;
   background-size: cover;
   background-position: center;
   border-bottom: 1px solid var(--line-2);
+  flex: 0 0 auto;
+}
+.setm-art::after {
+  /* bottom vignette so the slot chip and the CALLED stamp always read */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 6, 12, 0.16), transparent 34%, rgba(4, 6, 12, 0.62) 88%);
+  pointer-events: none;
 }
 .setm-slot {
-  margin-top: 2px;
-  font-size: 9.5px;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--r-legendary-1);
+  color: #d8deea;
+  background: rgba(5, 7, 13, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
-.setm-plate:not(.first) .setm-slot {
-  color: var(--txt-faint);
+.setm-stamp {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 10px;
+  border-radius: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #1a1405;
+  background: linear-gradient(180deg, #ffe9a8, #e8b64a);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transform: translateX(-50%) scale(0.4) rotate(-9deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.setm-stamp i {
+  font-size: 12px;
+}
+.setm-plate.called .setm-stamp {
+  animation: setm-stamp-in 0.34s cubic-bezier(0.2, 1.6, 0.4, 1) forwards;
+}
+@keyframes setm-stamp-in {
+  to {
+    transform: translateX(-50%) scale(1) rotate(-4deg);
+    opacity: 1;
+  }
+}
+
+.setm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 13px 13px;
+  flex: 1 1 auto;
 }
 .setm-name {
   font-family: 'Cinzel', serif;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--txt);
-  padding: 0 10px;
 }
 .setm-tag {
   font-size: 10.5px;
-  line-height: 1.4;
+  line-height: 1.45;
+  font-style: italic;
   color: var(--txt-faint);
-  padding: 0 12px;
 }
+.setm-rules {
+  list-style: none;
+  margin: 5px 0 0;
+  padding: 8px 10px;
+  display: grid;
+  gap: 5px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 18%, transparent);
+  background: rgba(0, 0, 0, 0.28);
+}
+.setm-rules li {
+  font-size: 10.8px;
+  line-height: 1.4;
+  color: var(--txt-dim);
+}
+.setm-rules li::before {
+  content: '◆';
+  color: color-mix(in srgb, var(--r-legendary-1) 70%, transparent);
+  margin-right: 7px;
+  font-size: 7.5px;
+  vertical-align: 1px;
+}
+
+/* ---- the call roulette ----
+   While it spins every plate steps back except the marked one; the
+   landing flash does the deciding. */
+.setm-plates.spinning .setm-plate {
+  opacity: 0.55;
+  filter: saturate(0.6) brightness(0.78);
+}
+.setm-plates.spinning .setm-plate.hot {
+  opacity: 1;
+  filter: none;
+  transform: translateY(-3px) scale(1.02);
+  border-color: color-mix(in srgb, var(--r-legendary-1) 80%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--r-legendary-1) 45%, transparent),
+    0 0 30px color-mix(in srgb, var(--r-legendary-1) 28%, transparent);
+}
+.setm-plate.called {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 85%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--r-legendary-1) 45%, transparent),
+    0 16px 40px rgba(0, 0, 0, 0.55),
+    0 0 42px color-mix(in srgb, var(--r-legendary-1) 28%, transparent);
+  animation: setm-called 0.5s var(--ease);
+}
+@keyframes setm-called {
+  0% {
+    transform: scale(0.96);
+  }
+  45% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.setm-plate.dim {
+  opacity: 0.4;
+  filter: saturate(0.5) brightness(0.7);
+  transform: scale(0.985);
+}
+
 .setm-go {
-  min-width: 220px;
+  min-width: 230px;
   justify-content: center;
 }
-@media (max-width: 640px) {
-  .setm-plates {
-    grid-template-columns: 1fr;
+@media (max-width: 720px) {
+  .setm-plate {
+    width: min(300px, 88vw);
   }
+}
+@media (max-width: 640px) {
   .war-length {
     grid-template-columns: 1fr;
   }
 }
 
-/* in-battle score chip */
-.set-chip {
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 120;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 42%, transparent);
-  background: linear-gradient(180deg, rgba(14, 17, 28, 0.92), rgba(8, 10, 18, 0.85));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--txt-faint);
-  pointer-events: none;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-.set-chip i {
-  color: var(--r-legendary-1);
-  font-size: 13px;
-}
-.set-chip b {
-  color: var(--txt);
-  letter-spacing: 0.1em;
-}
 body[data-gfx='low'] .setm-scrim,
 body[data-gfx='low'] .setm-card {
   animation: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+body[data-gfx='low'] .setm-plate,
+body[data-gfx='low'] .setm-plate.called,
+body[data-gfx='low'] .setm-plate.called .setm-stamp {
+  animation: none;
+}
+body[data-gfx='low'] .setm-plate.called .setm-stamp {
+  opacity: 1;
+  transform: translateX(-50%) scale(1) rotate(-4deg);
+}
+
+/* =============================================================
+   HELPER TIP DOTS + floating tooltip
+   -------------------------------------------------------------
+   14px ? chips pinned beside controls; one delegated layer (app.js,
+   #tip-float) reads their data-tip. Settings > Display > Helper tips
+   switches every dot off at once via body[data-tips='off'] - the dots
+   leave the DOM flow entirely, so layouts never jump.
+   ============================================================= */
+.tipdot {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(10, 13, 22, 0.75);
+  color: var(--txt-faint);
+  cursor: help;
+  vertical-align: middle;
+  transition:
+    color 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+.tipdot i {
+  font-size: 9px;
+  line-height: 1;
+}
+.tipdot:hover,
+.tipdot:focus-visible {
+  color: var(--r-legendary-1);
+  border-color: color-mix(in srgb, var(--r-legendary-1) 60%, transparent);
+  background: rgba(24, 19, 8, 0.9);
+  outline: none;
+}
+body[data-tips='off'] .tipdot {
+  display: none !important;
+}
+/* dots living inside small chip/label type get a down-sized variant */
+.pstep .tipdot,
+.hud-round-tip,
+.setm-slot .tipdot {
+  width: 12px;
+  height: 12px;
+}
+.pstep .tipdot i,
+.hud-round-tip i {
+  font-size: 8px;
+}
+.pstep .tipdot {
+  margin-left: 4px;
+}
+.en-txt .tipdot {
+  margin-left: 5px;
+}
+.setm-title .tipdot {
+  vertical-align: 3px;
+}
+.col-title .tipdot,
+.col-sub .tipdot,
+.bf-kicker .tipdot {
+  margin-left: 2px;
+}
+
+/* placements that float the dot as a corner badge */
+.war-length {
+  position: relative;
+}
+.wl-tip {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 3;
+}
+.tc-tip {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+}
+.et-tip {
+  position: relative;
+  z-index: 3;
+  align-self: flex-start;
+  margin: 1px 0 0 -11px;
+}
+.mm-tip {
+  display: block;
+  margin: 8px auto 0;
+}
+.result-tip {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+.prep-actions {
+  gap: 8px;
+}
+.prep-go-tip {
+  align-self: center;
+}
+
+/* the one floating tooltip every dot shares */
+#tip-float {
+  position: fixed;
+  z-index: 700;
+  max-width: 250px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 28%, transparent);
+  background: linear-gradient(180deg, rgba(15, 18, 30, 0.97), rgba(9, 11, 19, 0.97));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--txt);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.15s var(--ease),
+    visibility 0.15s;
+}
+#tip-float.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Settings > Display: the tips switch mirrors the gfx switch, in ice
+   blue so the two toggles never read as the same control */
+.tips-opt {
+  position: relative;
+  z-index: 2;
+  appearance: none;
+  border: 0;
+  background: none;
+  cursor: var(--cur-pointer);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  transition: color 0.24s var(--ease);
+}
+.tips-opt[aria-pressed='true'] {
+  color: #0b1220;
+}
+.set-gfx .tips-opt {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.set-gfx .tips-opt i {
+  font-size: 14px;
+}
+.tips-thumb {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d5e6ff, #8db4f2);
+  box-shadow: 0 2px 8px rgba(120, 170, 255, 0.35);
+  transition: transform 0.28s var(--ease);
+}
+body[data-tips='off'] .tips-thumb {
+  transform: translateX(100%);
+}
+body[data-gfx='low'] .tipdot,
+body[data-gfx='low'] #tip-float,
+body[data-gfx='low'] .tips-thumb {
+  transition: none;
 }

@@ -127,8 +127,13 @@
       }
       var u = me();
       if (!sb || !u) return;
+      /* The whole row: an explicit column list once omitted `mode`,
+         and joinMatch then defaulted it to 'draft' - the parked player
+         of a CLASSIC pairing silently landed in a draft (the claimer
+         got the full row from the rpc, so only the parked side broke).
+         `*` can never drift out of sync with joinMatch's reads again. */
       sb.from('mp_matches')
-        .select('id,seed,p1,p2,p1_name,p2_name,status')
+        .select('*')
         .or('p1.eq.' + u.id + ',p2.eq.' + u.id)
         .eq('status', 'active')
         .limit(1)

@@ -24,6 +24,7 @@ const FILES = [
   'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
   'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
   'data/roma.js', 'data/takamagahara.js', 'data/duat.js', 'js/engine.js', 'js/ai.js',
+  'js/text.js',
 ];
 FILES.forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 const EOL = window.EOL, E = EOL.engine, AI = EOL.ai;
@@ -1056,6 +1057,117 @@ section('D. DEATH-TRIGGERED PASSIVES');
 
   ok(!foe.alive, 'Augustus setup: the enemy was defeated');
   ok(healed === 2, `Augustus: Pax Romana heals exactly 2 allies (got ${healed})`);
+}
+
+section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
+
+{ /* Sekhmet: the anti-heal is a REDUCTION. healUnit does mod += pct/100,
+     so the data must say -30; +30 silently boosted enemy healing 1.3x. */
+  const mkBoard = (castIt) => {
+    const B = board(['duat-sekhmet', ...CLEAN_FOES.slice(0, 5)], [
+      'roma-augustus', ...CLEAN_FOES.slice(0, 5),
+    ]);
+    const sekh = U(B, 'duat-sekhmet');
+    if (castIt) E.useAbility(B, sekh, sekh.card.ability, []);
+    return B;
+  };
+  const hurtAndHeal = (B) => {
+    const aug = U(B, 'roma-augustus');
+    B.units.forEach((u) => {
+      if (u.side === 'enemy' && u !== aug) u.hp = u.maxHp;
+    });
+    aug.hp = 2000;
+    const before = aug.hp;
+    E.useAbility(B, aug, E.roleAbility(aug), []);
+    return aug.hp - before;
+  };
+  const withCurse = mkBoard(true);
+  /* every enemy carries the debuff at the NEGATIVE value */
+  ok(
+    foesOf(withCurse).every((u) => u.flags.healMod === -30),
+    'Sekhmet: healMod is -30 on ALL enemies (not +30)'
+  );
+  const boostedHealed = hurtAndHeal(mkBoard(false));
+  const cursedHealed = hurtAndHeal(mkBoard(true));
+  ok(
+    Math.abs(cursedHealed - boostedHealed * 0.7) <= 2,
+    `Sekhmet: cursed heal is exactly 70% of the clean heal (${cursedHealed} vs ${boostedHealed})`
+  );
+  /* sign law: only a NEGATIVE healMod reads as a debuff */
+  const probe = U(mkBoard(true), 'roma-augustus');
+  probe.flags.healMod = 0;
+  probe.flags.healMod = 25;
+  ok(!E.hasDebuff(probe), 'a positive healMod (heal-up) is NOT a debuff');
+  probe.flags.healMod = -25;
+  ok(E.hasDebuff(probe), 'a negative healMod (heal-down) IS a debuff');
+}
+
+{ /* Benkei's Standing Death gate: 15% less damage only at 50+ Energy.
+     incomingMult used to skip the `when` clause entirely. Comparative
+     ratio isolates the gate - every other defender-side mult applies
+     identically in both boards. */
+  const hitBenkei = (energy) => {
+    const B = board(['camelot-mordred', ...CLEAN_FOES.slice(0, 5)], [
+      'yamato-benkei', ...CLEAN_FOES.slice(0, 5),
+    ]);
+    B.energy.enemy = energy;
+    const ben = U(B, 'yamato-benkei');
+    const mord = U(B, 'camelot-mordred');
+    const before = ben.hp;
+    E.useAbility(B, mord, E.roleAbility(mord), [ben]);
+    return before - ben.hp;
+  };
+  const low = hitBenkei(10);
+  const high = hitBenkei(60);
+  ok(
+    Math.abs(high - low * 0.85) <= 2,
+    `Benkei: at 60 Energy takes exactly 85% of the 10-Energy hit (${high} vs ${low})`
+  );
+}
+
+{ /* Zhuge Liang: the drain resolves ONCE per cast even with two victims -
+     one pool is drained, so take:1 keeps it at the printed 15, not 30. */
+  const B = board(['huaxia-zhuge-liang', ...CLEAN_FOES.slice(0, 5)]);
+  B.energy.enemy = 60;
+  const foes = foesOf(B);
+  E.useAbility(B, U(B, 'huaxia-zhuge-liang'), U(B, 'huaxia-zhuge-liang').card.ability, [
+    foes[0],
+    foes[1],
+  ]);
+  ok(B.energy.enemy === 45, `Zhuge Liang drains exactly 15 with two targets (pool ${B.energy.enemy}/60)`);
+}
+
+{ /* Silence refresh: longer remaining duration wins (Burn/Exposed rule) */
+  const B = board(['roma-cicero', ...CLEAN_FOES.slice(0, 5)]);
+  const cic = U(B, 'roma-cicero');
+  const f0 = foesOf(B)[0];
+  const f1 = foesOf(B)[1];
+  f0.flags.silence = 2;
+  E.useAbility(B, cic, cic.card.ability, [f0]);
+  ok(f0.flags.silence === 2, `a fresh 1-turn Silence never shortens a 2-turn one (got ${f0.flags.silence})`);
+  B.acted.player = {}; B.energy.player = 100;
+  E.useAbility(B, cic, cic.card.ability, [f1]);
+  ok(f1.flags.silence === 1, 'Silence still applies normally on a clean target');
+}
+
+{ /* Status chips: Warded + Counter Ready are now visible; healdown obeys
+     the sign law. These STATUS defs existed but statusesOf never emitted. */
+  const B = board(['camelot-guinevere', ...CLEAN_FOES.slice(0, 5)]);
+  const u = alliesOf(B)[0];
+  u.flags.resistPct = 22;
+  u.flags.resistPctTurns = 2;
+  u.flags.counterTurns = 1;
+  u.flags.healMod = -30;
+  u.flags.healModTurns = 2;
+  const keys = EOL.statusesOf(u, E).map((o) => o.key);
+  ok(keys.indexOf('resist') >= 0, 'Warded (timed damageResist) shows a chip');
+  ok(keys.indexOf('counterstrike') >= 0, 'an armed counter-strike shows Counter Ready');
+  ok(keys.indexOf('healdown') >= 0, 'heal-down wears the Healing Reduced chip');
+  u.flags.healMod = 25;
+  ok(
+    EOL.statusesOf(u, E).every((o) => o.key !== 'healdown'),
+    'a heal-UP buff never wears the Healing Reduced chip'
+  );
 }
 
 {
