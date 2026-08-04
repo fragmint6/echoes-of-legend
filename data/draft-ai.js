@@ -44,7 +44,7 @@ window.EOL.draftAI = (function () {
     'camelot-mordred': -0.11,
     'camelot-morgan-le-fay': -0.15,
     'grimmwood-big-bad-wolf': -0.01,
-    'grimmwood-hansel-and-gretel': 0.21,
+    'grimmwood-hansel-gretel': 0.21,
     'grimmwood-pied-piper': -0.74,
     'grimmwood-red-riding-hood': 0.16,
     'grimmwood-rumpelstiltskin': -0.12,
@@ -87,7 +87,7 @@ window.EOL.draftAI = (function () {
     'yamato-kaguya': -1.28,
     'yamato-momotaro': 0.08,
     'yamato-tomoe-gozen': -0.48,
-    'yamato-yoshitsune': 0.44,
+    'yamato-minamoto-no-yoshitsune': 0.44,
   };
   function powerOf(card) {
     var p = POWER[card.id];

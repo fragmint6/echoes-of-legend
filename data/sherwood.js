@@ -29,6 +29,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-knight-helmet',
+      art: 'assets/heroes/sherwood-guy-of-gisborne.png',
     },
     {
       id: 'sherwood-robin-hood',
@@ -53,6 +54,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-archer',
+      art: 'assets/heroes/sherwood-robin-hood.png',
     },
     {
       id: 'sherwood-will-scarlet',
@@ -84,6 +86,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-daggers',
+      art: 'assets/heroes/sherwood-will-scarlet.png',
     },
     {
       id: 'sherwood-little-john',
@@ -112,6 +115,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-heavy-shield',
+      art: 'assets/heroes/sherwood-little-john.png',
     },
     {
       id: 'sherwood-maid-marian',
@@ -132,6 +136,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-two-hearts',
+      art: 'assets/heroes/sherwood-maid-marian.png',
     },
     {
       id: 'sherwood-friar-tuck',
@@ -156,6 +161,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-beer',
+      art: 'assets/heroes/sherwood-friar-tuck.png',
     },
   ],
 });

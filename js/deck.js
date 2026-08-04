@@ -412,15 +412,21 @@
     var host = $('deck-slots-12');
     if (!host) return;
     var dict = byId();
-    host.innerHTML = '';
+    /* Slotkey diffing, same fix as the prep field tray: only a slot
+       whose occupant actually changed gets a new node, so adding or
+       removing one card never replays slot-in on the other eleven. */
     for (var slot = 0; slot < DECK_SIZE; slot++) {
       var id = editing ? editing.ids[slot] : null;
-      var cell = document.createElement('div');
+      var key = id ? id : 'empty-' + slot;
+      var cell = host.children[slot];
+      if (cell && cell.dataset.slotkey === key) continue;
+      var fresh = document.createElement('div');
+      fresh.dataset.slotkey = key;
       if (id) {
         var e = dict[id];
-        cell.className = 'deck-slot filled rarity-' + e.card.rarity;
-        cell.style.setProperty('--fc-primary', e.faction.colors.primary);
-        cell.innerHTML =
+        fresh.className = 'deck-slot filled rarity-' + e.card.rarity;
+        fresh.style.setProperty('--fc-primary', e.faction.colors.primary);
+        fresh.innerHTML =
           '<span class="ds-order">' +
           (slot + 1) +
           '</span>' +
@@ -435,22 +441,21 @@
           '"></i>' +
           esc(e.card.role) +
           '</span>';
-        /* No X button: the whole slot is the control. Clicking a filled
-           slot removes that hero, which is what players tried first
-           anyway, and it leaves the tile clean. */
-        cell.title = 'Click to remove ' + e.card.name;
-        /* `id` is a `var` in a for-loop, so every handler would capture
-           the LAST slot's id. Bind it per iteration. */
+        fresh.title = 'Click to remove ' + e.card.name;
+        /* Rebuilt because a removal shifted the row, not because this
+           hero was just added: no second entrance animation. */
+        if (cell && !cell.dataset.slotkey.match(/^empty-/)) fresh.classList.add('no-enter');
         (function (cardId) {
-          cell.addEventListener('click', function () {
+          fresh.addEventListener('click', function () {
             removeCard(cardId);
           });
         })(id);
       } else {
-        cell.className = 'deck-slot empty';
-        cell.innerHTML = '<span class="ds-num">' + (slot + 1) + '</span>';
+        fresh.className = 'deck-slot empty';
+        fresh.innerHTML = '<span class="ds-num">' + (slot + 1) + '</span>';
       }
-      host.appendChild(cell);
+      if (cell) host.replaceChild(fresh, cell);
+      else host.appendChild(fresh);
     }
     /* Shrink any single long word (Rumpelstiltskin) so it fits on one line
        rather than being split mid-word; multi-word names still wrap at

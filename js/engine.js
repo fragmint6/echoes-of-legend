@@ -18,9 +18,15 @@
   /* Energy GRANTED at the start of each round. Unspent energy now CARRIES
      OVER (2026-07-31): the round grant is added to whatever is left, and the
      total is clamped to ENERGY_CAP. The grant itself still tops out at 100 -
-     it does not scale to the cap - so from round 6 the income is flat and the
-     only way to hold more is to have banked it. */
-  var ENERGY_BY_ROUND = [50, 60, 70, 80, 90, 100];
+     it does not scale to the cap - so from round 3 the income is flat and the
+     only way to hold more is to have banked it.
+
+     RETIMED 2026-08-04 after playtester feedback that the buildup felt
+     too slow: the ladder was [50, 60, 70, 80, 90, 100] and is now
+     [60, 80, 100] - max income arrives three rounds earlier, and the
+     ATK ramp below moved round 6 -> round 4 to keep the late-game
+     timer pressing at the same relative moment of the shorter curve. */
+  var ENERGY_BY_ROUND = [60, 80, 100];
 
   /* Ceiling on banked energy. Battlefields may raise it (Mana Spring). */
   var ENERGY_CAP = 150;
@@ -39,9 +45,9 @@
      instead of closing the gap. */
   var COMEBACK_PER_HERO = 15;
 
-  /* Energy is maxed from round 5, so from round 6 the pressure to close
+  /* Energy is maxed from round 3, so from round 4 the pressure to close
      the game switches over to a compounding ATK bonus instead. */
-  var RAMP_FROM = 6;
+  var RAMP_FROM = 4;
   var RAMP_STEP = 0.15; // +15% ATK per round past the threshold
 
   /* Losing your whole front row exposes the back line. */

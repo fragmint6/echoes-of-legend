@@ -682,17 +682,30 @@
   /* ---------------------------------------------------------
      Battlefield reveal
      -------------------------------------------------------------
-     Rolled at prep start, shown once the bans are locked. The art is a
-     pure-CSS animated scene keyed off `data-field`, so there are no image
-     assets to ship and it scales to any resolution.
+     Rolled at prep start, shown once the bans are locked. When the
+     field ships painted art (its `art` key, all current boards do) the
+     popup shows that backdrop full-bleed; the procedural CSS scene from
+     fieldArt() stays as the fallback for art-less fields.
      --------------------------------------------------------- */
   function revealBattlefield(field, onDone) {
     if (!field) return false;
     var host = $('bf-reveal');
     if (!host) return false;
-    $('bf-art').className = 'bf-art';
-    $('bf-art').dataset.field = field.id;
-    $('bf-art').innerHTML = fieldArt(field.id);
+    var artEl = $('bf-art');
+    artEl.className = 'bf-art';
+    artEl.dataset.field = field.id;
+    if (field.art) {
+      artEl.classList.add('has-art');
+      /* Resolve against the DOCUMENT, not the stylesheet - the bare
+         relative path once 404'd this same way on the battle board. */
+      artEl.style.backgroundImage =
+        'url("' + new URL(field.art, document.baseURI).href + '")';
+      artEl.innerHTML = '';
+    } else {
+      artEl.classList.remove('has-art');
+      artEl.style.removeProperty('background-image');
+      artEl.innerHTML = fieldArt(field.id);
+    }
     $('bf-name').textContent = field.name;
     $('bf-tag').textContent = field.tagline;
     $('bf-rules').innerHTML = (field.rules || [])
@@ -803,6 +816,15 @@
       front: [],
       back: [],
     };
+    /* Warm the battlefield art the moment it is rolled: the reveal popup
+       after the ban phase and then the battle board both paint the same
+       image, so fetching it now, during the ban phase, lets it decode off
+       the critical path - both moments open fully painted instead of
+       fading in a beat late. */
+    if (prep.field && prep.field.art) {
+      var warm = new Image();
+      warm.src = new URL(prep.field.art, document.baseURI).href;
+    }
     if (isMp) window.EOL.netplay.startBans(onFoeBans);
     prepAnim = true;
     renderPrep();
@@ -814,6 +836,32 @@
       "Tap 2 of the enemy's 12 heroes to ban them from the fight. The enemy bans 2 of " +
         'yours at the same time - their picks stay hidden until you lock yours in.'
     );
+  }
+
+  /* Light-touch refresh of everything AROUND the card grids - notes,
+     step chips and confirm buttons - without touching the grid DOM.
+     Ban/pick clicks patch their own tile and then call only this, so a
+     second click can never restart an earlier tile's animation the way
+     the old full renderPrep() rebuild did (re-created nodes replay
+     their entrance/ban-mark CSS every single time). */
+  function updatePrepChrome() {
+    var p = prep;
+    if (!p) return;
+    var dict = byId();
+    var foeBanList = p.botBans || [];
+    var en = $('prep-enemy-note');
+    if (en)
+      en.textContent = p.revealed
+        ? 'struck out - the enemy fields 6 of its remaining 10'
+        : 'tap 2 to ban (' + p.youBans.length + '/' + RULES().BANS + ')';
+    var cm = $('prep-confirm-main');
+    cm.disabled = p.waiting || p.youBans.length !== RULES().BANS;
+    cm.classList.toggle('ready', !cm.disabled);
+    $('prep-confirm-main-txt').textContent = p.waiting ? 'Waiting for opponent...' : 'Confirm bans';
+    var c = $('prep-confirm');
+    c.disabled = p.waiting || p.front.length + p.back.length !== RULES().FIELD_SIZE;
+    c.classList.toggle('ready', !c.disabled);
+    $('prep-confirm-txt').textContent = p.waiting ? 'Waiting...' : 'To battle';
   }
 
   function renderPrep() {
@@ -896,7 +944,12 @@
             }
             p.youBans.push(e.card.id);
           }
-          renderPrep();
+          /* Patch, don't rebuild: a full grid rebuild re-creates every
+             .banpick tile and replays its ban-mark flash, so the second
+             ban used to "redo" the first. Toggling the live node means
+             this click is the only thing that moves. */
+          el.classList.toggle('banpick', i2 < 0);
+          updatePrepChrome();
         });
         foeGrid.appendChild(el);
       });
@@ -907,15 +960,7 @@
 
     if (p.phase === 'pick') renderField();
 
-    /* ---- confirms: dock under the board (ban) / inside the tray (pick) ---- */
-    var cm = $('prep-confirm-main');
-    cm.disabled = p.waiting || p.youBans.length !== RULES().BANS;
-    cm.classList.toggle('ready', !cm.disabled);
-    $('prep-confirm-main-txt').textContent = p.waiting ? 'Waiting for opponent...' : 'Confirm bans';
-    var c = $('prep-confirm');
-    c.disabled = p.waiting || p.front.length + p.back.length !== RULES().FIELD_SIZE;
-    c.classList.toggle('ready', !c.disabled);
-    $('prep-confirm-txt').textContent = p.waiting ? 'Waiting...' : 'To battle';
+    updatePrepChrome();
 
     /* size long single-word names once the tiles have real widths */
     requestAnimationFrame(function () {
@@ -933,6 +978,49 @@
   }
 
   /* Free-slot suggestion for the field tray: frontline roles go front. */
+  /* The live grid tile for one of YOUR heroes (null when not on
+     screen - e.g. resolved bans rebuild the grid once, legitimately).
+     Tiles are appended in player12 order and never re-ordered. */
+  function allyTile(id) {
+    var host = $('prep-player');
+    if (!host || !prep) return null;
+    var idx = -1;
+    prep.player12.some(function (e, i) {
+      if (e.card.id === id) {
+        idx = i;
+        return true;
+      }
+      return false;
+    });
+    return idx >= 0 ? host.children[idx] || null : null;
+  }
+
+  /* Push the current front/back seat into every ally tile's slot chip
+     and picked glow WITHOUT re-creating any tile. A surviving chip
+     only gets new text (never a second pop-in), and a removed id
+     loses its chip - the two ways a full grid rebuild used to
+     re-animate yesterday's picks on every further click. */
+  function syncSixChips() {
+    if (!prep || prep.phase !== 'pick') return;
+    prep.player12.forEach(function (e) {
+      var tile = allyTile(e.card.id);
+      if (!tile) return;
+      var slot = slotOf(e.card.id);
+      tile.classList.toggle('picked', !!slot);
+      var chip = tile.querySelector('.mk-slot');
+      if (slot) {
+        if (!chip) {
+          chip = document.createElement('span');
+          tile.appendChild(chip);
+        }
+        chip.className = 'mk-slot ' + (slot.row === 'front' ? 'f' : 'b');
+        chip.textContent = (slot.row === 'front' ? 'F' : 'B') + (slot.idx + 1);
+      } else if (chip) {
+        chip.remove();
+      }
+    });
+  }
+
   function toggleSix(id) {
     var all = prep.front.concat(prep.back);
     var idx = all.indexOf(id);
@@ -952,7 +1040,9 @@
       else if (prep.front.length < 3) prep.front.push(id);
       else return;
     }
-    renderPrep();
+    syncSixChips();
+    renderField();
+    updatePrepChrome();
   }
 
   function renderField() {
@@ -964,17 +1054,22 @@
     ].forEach(function (pair) {
       var host = $(pair[0]);
       if (!host) return;
-      host.innerHTML = '';
       var ids = pair[1];
       for (var s = 0; s < 3; s++) {
         var id = ids[s];
-        var cell = document.createElement('button');
-        cell.type = 'button';
+        var key = id ? id : 'empty-' + s;
+        var cell = host.children[s];
+        /* Unchanged slot: keep the live node so its slot-in entrance
+           never replays. Only a genuinely new occupant gets built. */
+        if (cell && cell.dataset.slotkey === key) continue;
+        var fresh = document.createElement('button');
+        fresh.type = 'button';
+        fresh.dataset.slotkey = key;
         if (id) {
           var e = dict[id];
-          cell.className = 'field-slot filled rarity-' + e.card.rarity;
-          cell.style.setProperty('--fc-primary', e.faction.colors.primary);
-          cell.innerHTML =
+          fresh.className = 'field-slot filled rarity-' + e.card.rarity;
+          fresh.style.setProperty('--fc-primary', e.faction.colors.primary);
+          fresh.innerHTML =
             '<span class="fs-order">' +
             pair[2] +
             (s + 1) +
@@ -991,21 +1086,26 @@
             esc(e.card.role) +
             '</span>' +
             '<span class="fs-x" title="Swap rows"><i class="ri-arrow-up-down-line"></i></span>';
+          /* Seat shuffle (hero moved rows or list shifted after a
+             removal): rebuild silently - slot-in is a NEW-occupant
+             celebration, not a "things moved" siren. */
+          if (cell && !cell.dataset.slotkey.match(/^empty-/)) fresh.classList.add('no-enter');
           (function (idCopy, row, entry, cellRef) {
-            cell.addEventListener('click', function () {
+            fresh.addEventListener('click', function () {
               swapRow(idCopy, row);
             });
-            cell.addEventListener('mouseenter', function () {
+            fresh.addEventListener('mouseenter', function () {
               showPrepTip(entry, 'you', cellRef);
             });
-            cell.addEventListener('mouseleave', hidePrepTip);
-          })(id, pair[3], e, cell);
+            fresh.addEventListener('mouseleave', hidePrepTip);
+          })(id, pair[3], e, fresh);
         } else {
-          cell.className = 'field-slot empty';
-          cell.innerHTML = '<span class="fs-num">' + pair[2] + (s + 1) + '</span>';
-          cell.disabled = true;
+          fresh.className = 'field-slot empty';
+          fresh.innerHTML = '<span class="fs-num">' + pair[2] + (s + 1) + '</span>';
+          fresh.disabled = true;
         }
-        host.appendChild(cell);
+        if (cell) host.replaceChild(fresh, cell);
+        else host.appendChild(fresh);
       }
     });
   }
@@ -1019,7 +1119,9 @@
     }
     src.splice(src.indexOf(id), 1);
     dst.push(id);
-    renderPrep();
+    syncSixChips();
+    renderField();
+    updatePrepChrome();
   }
 
   /* The opponent's two bans arrived. In a match this is what unblocks

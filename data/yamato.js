@@ -7,7 +7,7 @@ window.EOL.registerFaction({
   colors: { primary: '#e05a4a', secondary: '#f0c05a', glow: '#ff9b7a' },
   cards: [
     {
-      id: 'yamato-yoshitsune',
+      id: 'yamato-minamoto-no-yoshitsune',
       name: 'Minamoto no Yoshitsune',
       rarity: 'rare',
       role: 'Bruiser',
@@ -33,6 +33,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-dervish-swords',
+      art: 'assets/heroes/yamato-minamoto-no-yoshitsune.png',
     },
     {
       id: 'yamato-tomoe-gozen',
@@ -57,6 +58,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-arrow-flights',
+      art: 'assets/heroes/yamato-tomoe-gozen.png',
     },
     {
       id: 'yamato-benkei',
@@ -79,6 +81,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-helmet',
+      art: 'assets/heroes/yamato-benkei.png',
     },
     {
       id: 'yamato-abe-no-seimei',
@@ -156,6 +159,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-rune-stone',
+      art: 'assets/heroes/yamato-abe-no-seimei.png',
     },
     {
       id: 'yamato-momotaro',
@@ -188,6 +192,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-round-shield',
+      art: 'assets/heroes/yamato-momotaro.png',
     },
     {
       id: 'yamato-kaguya',
@@ -205,6 +210,7 @@ window.EOL.registerFaction({
         spec: { target: { side: 'auto' }, effects: [{ k: 'copyAllyActive', scale: 0.7 }] },
       },
       icon: 'ra-moon-sun',
+      art: 'assets/heroes/yamato-kaguya.png',
     },
   ],
 });

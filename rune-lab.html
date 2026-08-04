@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rune Ward Lab -battlefield centrepieces</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Dev preview for the new RUNIC WARD centrepieces. Renders every
+     battlefield's ward over its real painted art, side by side.
+     Links the live style.css so it always matches the game. -->
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body {
+    margin: 0;
+    padding: 28px clamp(12px, 3vw, 40px) 60px;
+    background: #07090f;
+    color: #cfd6e2;
+    font: 14px/1.45 system-ui, sans-serif;
+  }
+  h1 {
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    margin: 0 0 4px;
+  }
+  .sub {
+    color: #7c879b;
+    margin: 0 0 22px;
+    font-size: 12.5px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+    gap: 22px;
+  }
+  .cell label {
+    display: block;
+    margin: 8px 2px 0;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9aa6ba;
+  }
+  .board {
+    position: relative;
+    height: 260px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+<h1>RUNIC WARD LAB</h1>
+<p class="sub">Battlefield centrepieces after the 2026-08-04 rework - one arcane ward per field over its painted art. Animations run live.</p>
+<div class="grid">
+
+  <div class="cell">
+    <div class="board has-art" data-field="narrow-pass" style="--bf-1:#8d7a63;--bf-2:#4a5568;--bf-3:#c9b8a0;--bf-art:url('assets/boards/narrow-pass.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Narrow Pass - gate rune</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="open-plains" style="--bf-1:#7bb661;--bf-2:#e3c567;--bf-3:#c8f08f;--bf-art:url('assets/boards/open-plains.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Open Plains - wind rune</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="mana-spring" style="--bf-1:#4aa3e0;--bf-2:#8be0ff;--bf-3:#a8ecff;--bf-art:url('assets/boards/mana-spring.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Mana Spring - droplet rune</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="energy-void" style="--bf-1:#5b4b8a;--bf-2:#2d2a4a;--bf-3:#9b8bd0;--bf-art:url('assets/boards/energy-void.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Energy Void - collapse sigil</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="colosseum" style="--bf-1:#d4af37;--bf-2:#8a6d3b;--bf-3:#ffe9a8;--bf-art:url('assets/boards/colosseum.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Colosseum - laurel sun</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="mirror-realm" style="--bf-1:#b18cd9;--bf-2:#6fd3e8;--bf-3:#e2c9ff;--bf-art:url('assets/boards/mirror-realm.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Mirror Realm - twin-mirror sigil</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="spirit-world" style="--bf-1:#6fd3e8;--bf-2:#3f9b8c;--bf-3:#b6f5ff;--bf-art:url('assets/boards/spirit-world.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Spirit World - wisp rune</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="ancient-ruins" style="--bf-1:#c2a878;--bf-2:#6b8f71;--bf-3:#f0dcb0;--bf-art:url('assets/boards/ancient-ruins.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Ancient Ruins - broken pillar rune</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="heros-trial" style="--bf-1:#e0a93b;--bf-2:#b3541e;--bf-3:#ffd88a;--bf-art:url('assets/boards/heros-trial.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Hero's Trial - brand rune</label>
+  </div>
+
+  <div class="cell">
+    <div class="board has-art" data-field="blood-battlefield" style="--bf-1:#b03a3a;--bf-2:#5c1a1a;--bf-3:#ff8a8a;--bf-art:url('assets/boards/blood-battlefield.jpg')">
+      <div class="scene"><span class="sc-art"></span><span class="sc-haze"></span><span class="sc-emblem"><i></i><b></b></span></div>
+    </div>
+    <label>The Blood Battlefield - crossed-blades sigil</label>
+  </div>
+
+</div>
+</body>
+</html>

@@ -2131,8 +2131,11 @@ body[data-turn='player'] .turn-label {
   position: relative;
   display: grid;
   place-items: center;
+  /* square: the plate shows the hero's ra glyph (the art moved out -
+     it read as texture at this size), so the tall 58x82 portrait shape
+     no longer had anything to frame */
   width: 58px;
-  height: 82px;
+  height: 58px;
   flex: 0 0 58px;
   border-radius: 9px;
   font-size: 27px;
@@ -3666,6 +3669,15 @@ body[data-turn='player'] .turn-label {
   white-space: nowrap;
   overflow: hidden;
   text-align: center;
+}
+/* fitNames() (battle.js) breaks a long MULTI-word name onto two balanced
+   lines and lets it keep a healthy size - one-word names shrink instead.
+   The two lines must stay centred and tight, and the ellipsis/nowrap of
+   the base rule would fight that, so they are undone here. */
+.bcard-name.wrap {
+  white-space: normal;
+  line-height: 1.05;
+  text-overflow: clip;
 }
 /* legendary shimmer, same as the collection */
 .bcard[data-rarity='legendary'] .bcard-inner::after {
@@ -9753,6 +9765,15 @@ body[data-turn='player'] .turn-label {
     color-mix(in srgb, var(--bf-2) 22%, #05070f)
   );
 }
+.bf-art.has-art {
+  /* Painted battlefield backdrop (assets/boards via the data `art` key)
+     instead of the procedurally-drawn CSS scene; the URL comes in inline
+     from JS. Keep the existing ::after vignette on top for cinema. */
+  background-color: #05070f;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 .bf-art::after {
   /* cinematic vignette + a slow film grain drift */
   content: '';
@@ -11078,7 +11099,7 @@ body[data-turn='player'] .turn-label {
 /* the body lives inside the same box and fades up as it grows */
 .bf-chip-pop {
   grid-column: 1 / -1;
-  padding: 4px 2px 13px;
+  padding: 4px 2px 22px;
   margin: 0 -2px;
   /* The collapsed pill is sized with width:max-content, so the hidden
      body would otherwise dictate the pill's width (measured: 317-459px
@@ -12500,6 +12521,47 @@ body[data-gfx='low'] .bcard.dead {
   animation-duration: 0.7s !important;
 }
 
+/* ---------- LOW MODE, ROUND 2: cheaper paint, not just less motion ----------
+   Round one stopped decorative MOTION, but a stopped layer is still
+   painted every frame, and blur, blend and filter passes are the most
+   expensive paints this stylesheet asks for. Round two removes them.
+   Everything cut here is pure dressing: state (selected / acted /
+   banned / dead) is carried by borders, colour and plain alpha fills,
+   which survive untouched. Box-shadow is deliberately KEPT - the
+   selection rings and hover glows are feedback, not garnish. */
+body[data-gfx='low'] *,
+body[data-gfx='low'] *::before,
+body[data-gfx='low'] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Static particle fields and fog/haze sheets blit every pixel they
+   cover even when their animation is off. The painted art beneath
+   already carries the scene, so these layers go entirely. */
+body[data-gfx='low'] .mb-motes,
+body[data-gfx='low'] .mb-fog,
+body[data-gfx='low'] .card-sheen,
+body[data-gfx='low'] .scene .sc-haze,
+body[data-gfx='low'] .scene .sc-fx2 {
+  display: none !important;
+}
+/* screen/overlay/soft-light blends over the full board are a second
+   full-size composite per layer per frame. Normal blending keeps the
+   same shapes at a fraction of the cost. */
+body[data-gfx='low'] .scene,
+body[data-gfx='low'] .scene *,
+body[data-gfx='low'] .scene *::before,
+body[data-gfx='low'] .scene *::after,
+body[data-gfx='low'] .menu-bg,
+body[data-gfx='low'] .menu-bg * {
+  mix-blend-mode: normal !important;
+}
+/* The ward's large blurred drop-shadow repaints with every pulse; the
+   ring itself stays - only the glow goes. */
+body[data-gfx='low'] .scene .sc-emblem {
+  filter: none !important;
+}
+
 /* =============================================================
    STATUS RULES PANEL
    -------------------------------------------------------------
@@ -13264,19 +13326,22 @@ body[data-gfx='low'] .dk-st {
 }
 
 /* =============================================================
-   BATTLEFIELD CENTREPIECES
+   RUNIC WARDS (battle centrepieces)
    -------------------------------------------------------------
-   Each board gets ONE signature object at its heart, the way the
-   old rune circle anchored the original arena. Not a rune circle
-   ten times over: a gate, a well, a singularity, a laurel, a
-   sundial, a wound. Three nested elements per board:
+   Each board carries ONE arcane ward over its painted art: a still
+   outer ring, a turning band of rune ticks, and a unique centre
+   sigil glowing in the field's own colour - an evolution of the
+   rune circle that anchored the original arena. Three nested
+   elements per board:
 
-     .sc-emblem   the outer form   (the big shape)
-     > i          the middle ring  (structure)
-     > b          the core         (the bright centre)
+     .sc-emblem   the outer ring (still) + ward hue/size
+     > i          the rune band (turns: ticks + inscription arcs)
+     > b          the ward sigil (unique rune per field, pulsing)
 
    All three sit behind the cards at low opacity and carry the
    board's own motion, so the centre of the board is never empty.
+   Per-field knobs: --rune-step/-on (tick pitch/width), --rune-in/
+   -out (band radii), --rune-dur/-dir (turn), --rune-pulse.
    ============================================================= */
 .scene .sc-emblem {
   position: absolute;
@@ -13300,351 +13365,398 @@ body[data-gfx='low'] .dk-st {
   border-radius: 50%;
 }
 body[data-gfx='low'] .sc-emblem,
+body[data-gfx='low'] .sc-emblem::after,
 body[data-gfx='low'] .sc-emblem > i,
-body[data-gfx='low'] .sc-emblem > b {
+body[data-gfx='low'] .sc-emblem > i::before,
+body[data-gfx='low'] .sc-emblem > i::after,
+body[data-gfx='low'] .sc-emblem > b,
+body[data-gfx='low'] .sc-emblem > b::before {
   animation: none !important;
 }
-
-/* --- 1. NARROW PASS: a keystone arch over the choke point --- */
-.board[data-field='narrow-pass'] .sc-emblem {
-  width: min(34vh, 300px);
-  height: min(34vh, 300px);
-  border-radius: 50% 50% 6% 6% / 62% 62% 4% 4%;
-  border: 3px solid color-mix(in srgb, var(--bf-3) 70%, transparent);
-  border-bottom: 0;
-  box-shadow:
-    inset 0 0 60px color-mix(in srgb, var(--bf-3) 12%, transparent),
-    0 0 40px color-mix(in srgb, var(--bf-3) 10%, transparent);
-  opacity: 0.85;
-}
-.board[data-field='narrow-pass'] .sc-emblem > i {
-  inset: 14%;
-  border-radius: 50% 50% 6% 6% / 62% 62% 4% 4%;
-  border: 1px solid color-mix(in srgb, var(--bf-3) 26%, transparent);
-  border-bottom: 0;
-}
-.board[data-field='narrow-pass'] .sc-emblem > b {
-  inset: auto 32% 0 32%;
-  height: 3px;
-  border-radius: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--bf-3) 60%, transparent),
-    transparent
-  );
+/* The refraction and halo layers exist to be watched MOVING; frozen in
+   low mode they would just be two more static sheets over the art, so
+   they are dropped whole. The ring, band, weave and sigil stay. */
+body[data-gfx='low'] .sc-emblem::after,
+body[data-gfx='low'] .sc-emblem > i::after,
+body[data-gfx='low'] .sc-emblem > b::before {
+  display: none !important;
 }
 
-/* --- 2. OPEN PLAINS: a low horizon sun --- */
-.board[data-field='open-plains'] .sc-emblem {
-  width: min(52vh, 470px);
-  height: min(52vh, 470px);
-  top: 74%;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--bf-2) 30%, transparent) 0 24%,
-    color-mix(in srgb, var(--bf-2) 12%, transparent) 38%,
-    transparent 62%
-  );
-  opacity: 0.7;
-  animation: emb-breathe 18s ease-in-out infinite alternate;
-}
-.board[data-field='open-plains'] .sc-emblem > i {
-  inset: 30%;
-  border: 1px solid color-mix(in srgb, var(--bf-2) 34%, transparent);
-}
-.board[data-field='open-plains'] .sc-emblem > b {
-  display: none;
-}
+/* ------------------------- shared ward look -----------------------------
+   v3: every battlefield floats a MULTILAYER arcane ward over the painted
+   art. From outside in:
 
-/* --- 3. MANA SPRING: the wellhead --- */
-.board[data-field='mana-spring'] .sc-emblem {
-  width: min(40vh, 360px);
-  height: min(40vh, 360px);
-  border: 3px solid color-mix(in srgb, var(--bf-3) 72%, transparent);
-  box-shadow:
-    inset 0 0 70px color-mix(in srgb, var(--bf-1) 26%, transparent),
-    0 0 50px color-mix(in srgb, var(--bf-3) 16%, transparent);
-  opacity: 0.9;
-}
-.board[data-field='mana-spring'] .sc-emblem > i {
-  inset: 16%;
-  border: 1px solid color-mix(in srgb, var(--bf-3) 34%, transparent);
-  animation: emb-spin 34s linear infinite;
-  border-style: dashed;
-}
-.board[data-field='mana-spring'] .sc-emblem > b {
-  inset: 38%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--bf-3) 70%, transparent),
-    transparent 70%
-  );
-  animation: emb-pulse 4.5s ease-in-out infinite;
-}
+     .sc-emblem::after   an outer halo of rune dashes orbiting the ring
+     .sc-emblem          the still outer ring itself
+     > i                 the main rune band: tick ring + three inscription
+                         arcs + hexagonal lattice (three woven line sets),
+                         turning slowly
+     > i::before         a SECOND hex lattice of bigger cells, woven at
+                         the opposite angle and counter-turning, so the
+                         two crystal meshes slide over each other
+     > i::after          the light refraction: a spectral conic sweep in
+                         screen blend, spinning against the band while a
+                         hue/brightness breath cycles it, like sun
+                         catching cut glass
+     > b                 the centre sigil (unique rune per field), pulsing
+     > b::before         a prismatic glow spinning behind the sigil
 
-/* --- 4. ENERGY VOID: the singularity --- */
-.board[data-field='energy-void'] .sc-emblem {
-  width: min(42vh, 380px);
-  height: min(42vh, 380px);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    #000 0 26%,
-    color-mix(in srgb, var(--bf-1) 28%, transparent) 34%,
-    transparent 62%
-  );
-  box-shadow: 0 0 70px 10px rgba(0, 0, 0, 0.7);
-  opacity: 0.9;
-}
-.board[data-field='energy-void'] .sc-emblem > i {
-  inset: 8%;
-  border: 1px solid color-mix(in srgb, var(--bf-3) 30%, transparent);
-  animation: emb-spin 22s linear infinite reverse;
-}
-.board[data-field='energy-void'] .sc-emblem > b {
-  inset: 26%;
-  border: 1px dashed color-mix(in srgb, var(--bf-3) 26%, transparent);
-  animation: emb-spin 13s linear infinite;
-}
-
-/* --- 5. COLOSSEUM: the victor's laurel --- */
-.board[data-field='colosseum'] .sc-emblem {
-  width: min(44vh, 400px);
-  height: min(44vh, 400px);
-  border: 3px solid color-mix(in srgb, var(--bf-1) 72%, transparent);
-  border-top-color: transparent;
-  border-bottom-color: color-mix(in srgb, var(--bf-1) 52%, transparent);
-  opacity: 0.5;
-  animation: emb-breathe 22s ease-in-out infinite alternate;
-}
-.board[data-field='colosseum'] .sc-emblem > i {
-  inset: 11%;
-  border: 1px solid color-mix(in srgb, var(--bf-1) 30%, transparent);
-  border-top-color: transparent;
-}
-.board[data-field='colosseum'] .sc-emblem > b {
-  inset: 43%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--bf-3) 62%, transparent),
-    transparent 72%
-  );
-}
-
-/* --- 6. MIRROR REALM: two overlapping discs --- */
-.board[data-field='mirror-realm'] .sc-emblem {
+   Sigils stay tiny inline SVG strokes - carved, asset-free, tinted per
+   field. Structure still varies per field: tick pitch, band radii,
+   lattice density (--hex-cell), turn speed/direction, heartbeat, prism
+   sweep speed, and four fields carry their band on a HEXAGONAL cut
+   (clip-path on > i, which the weave and refraction layers inherit). */
+.board[data-field] .sc-emblem {
+  --hex-line: color-mix(in srgb, var(--bf-3) 19%, transparent);
+  --hex-line2: color-mix(in srgb, var(--bf-3) 13%, transparent);
+  --rune-dir2: reverse;
   width: min(38vh, 340px);
   height: min(38vh, 340px);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--bf-3) 38%, transparent);
+  box-shadow:
+    inset 0 0 30px color-mix(in srgb, var(--bf-3) 8%, transparent),
+    0 0 26px color-mix(in srgb, var(--bf-3) 8%, transparent);
   opacity: 0.85;
 }
-.board[data-field='mirror-realm'] .sc-emblem > i,
-.board[data-field='mirror-realm'] .sc-emblem > b {
-  border: 2.5px solid color-mix(in srgb, var(--bf-1) 74%, transparent);
-  animation: emb-mirror 11s ease-in-out infinite alternate;
-}
-.board[data-field='mirror-realm'] .sc-emblem > b {
-  border-color: color-mix(in srgb, var(--bf-2) 46%, transparent);
-  animation-direction: alternate-reverse;
-}
-@keyframes emb-mirror {
-  0% {
-    transform: translateX(-7%) scale(0.94);
-  }
-  100% {
-    transform: translateX(7%) scale(1);
-  }
-}
-
-/* --- 7. SPIRIT WORLD: the threshold gate --- */
-.board[data-field='spirit-world'] .sc-emblem {
-  width: min(40vh, 360px);
-  height: min(40vh, 360px);
+/* the outer halo: detached dash ring orbiting well outside the band */
+.board[data-field] .sc-emblem::after {
+  content: '';
+  position: absolute;
+  inset: -5%;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--bf-3) 46%, transparent);
-  box-shadow:
-    inset 0 0 80px color-mix(in srgb, var(--bf-1) 20%, transparent),
-    0 0 60px color-mix(in srgb, var(--bf-3) 14%, transparent);
-  opacity: 0.92;
-  animation: emb-breathe 13s ease-in-out infinite alternate;
-}
-/* the two uprights + lintel of a gate, drawn with borders */
-.board[data-field='spirit-world'] .sc-emblem > i {
-  inset: 24% 26%;
-  border-radius: 0;
-  border-left: 4px solid color-mix(in srgb, var(--bf-3) 82%, transparent);
-  border-right: 4px solid color-mix(in srgb, var(--bf-3) 82%, transparent);
-  border-top: 4px solid color-mix(in srgb, var(--bf-3) 88%, transparent);
-}
-.board[data-field='spirit-world'] .sc-emblem > b {
-  inset: 18% 18% auto 18%;
-  height: 3px;
-  border-radius: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--bf-3) 62%, transparent),
-    transparent
+  background: repeating-conic-gradient(
+    from calc(var(--rune-from, 0deg) * -1),
+    color-mix(in srgb, var(--bf-3) 30%, transparent) 0 1.2deg,
+    transparent 1.2deg var(--rune-halo-step, 24deg)
   );
+  -webkit-mask-image: radial-gradient(circle, transparent 90.5%, #000 92% 97%, transparent 99%);
+  mask-image: radial-gradient(circle, transparent 90.5%, #000 92% 97%, transparent 99%);
+  opacity: 0.75;
+  animation: rune-turn calc(var(--rune-dur, 84s) * 1.9) linear infinite var(--rune-dir2, reverse);
 }
-
-/* --- 8. ANCIENT RUINS: the relic dial --- */
-.board[data-field='ancient-ruins'] .sc-emblem {
-  width: min(42vh, 380px);
-  height: min(42vh, 380px);
-  border: 3px solid color-mix(in srgb, var(--bf-1) 62%, transparent);
-  opacity: 0.8;
+.board[data-field] .sc-emblem > i {
+  inset: 5.5%;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(
+      from var(--rune-from, 0deg),
+      color-mix(in srgb, var(--bf-3) 58%, transparent) 0 var(--rune-on, 1.6deg),
+      transparent var(--rune-on, 1.6deg) var(--rune-step, 12deg)
+    ),
+    conic-gradient(
+      from calc(var(--rune-from, 0deg) + 32deg),
+      color-mix(in srgb, var(--bf-3) 16%, transparent) 0 26deg,
+      transparent 26deg 120deg,
+      color-mix(in srgb, var(--bf-3) 16%, transparent) 120deg 146deg,
+      transparent 146deg 240deg,
+      color-mix(in srgb, var(--bf-3) 16%, transparent) 240deg 266deg,
+      transparent 266deg 360deg
+    ),
+    repeating-linear-gradient(30deg, var(--hex-line) 0 1px, transparent 1px var(--hex-cell, 18px)),
+    repeating-linear-gradient(-30deg, var(--hex-line) 0 1px, transparent 1px var(--hex-cell, 18px)),
+    repeating-linear-gradient(90deg, var(--hex-line) 0 1px, transparent 1px var(--hex-cell, 18px));
+  -webkit-mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  animation: rune-turn var(--rune-dur, 84s) linear infinite var(--rune-dir, normal);
 }
-.board[data-field='ancient-ruins'] .sc-emblem > i {
-  inset: 15%;
-  border: 1px dashed color-mix(in srgb, var(--bf-2) 40%, transparent);
-  animation: emb-spin 60s linear infinite;
-}
-/* four cardinal relic sockets */
-.board[data-field='ancient-ruins'] .sc-emblem > b {
+/* the second weave: cells ~1.7x the base lattice, strung across the
+   opposing angles and counter-turning, so the two crystal meshes drift
+   against each other like layers of cut glass */
+.board[data-field] .sc-emblem > i::before {
+  content: '';
+  position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    radial-gradient(
-      circle at 50% 4%,
-      color-mix(in srgb, var(--bf-3) 60%, transparent) 0 3%,
-      transparent 4%
-    ),
-    radial-gradient(
-      circle at 96% 50%,
-      color-mix(in srgb, var(--bf-2) 60%, transparent) 0 3%,
-      transparent 4%
-    ),
-    radial-gradient(
-      circle at 50% 96%,
-      color-mix(in srgb, var(--bf-3) 60%, transparent) 0 3%,
-      transparent 4%
-    ),
-    radial-gradient(
-      circle at 4% 50%,
-      color-mix(in srgb, var(--bf-2) 60%, transparent) 0 3%,
-      transparent 4%
-    );
-  animation: emb-relic 15s ease-in-out infinite;
-}
-@keyframes emb-relic {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: rotate(0deg);
-  }
-  25% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-    transform: rotate(90deg);
-  }
-  75% {
-    opacity: 0.95;
-  }
-}
-
-/* --- 9. HERO'S TRIAL: the champion's brazier --- */
-.board[data-field='heros-trial'] .sc-emblem {
-  width: min(36vh, 330px);
-  height: min(36vh, 330px);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--bf-3) 30%, transparent) 0 18%,
-    color-mix(in srgb, var(--bf-2) 16%, transparent) 34%,
-    transparent 60%
-  );
-  opacity: 0.85;
-  animation: emb-pulse 5.5s ease-in-out infinite;
-}
-.board[data-field='heros-trial'] .sc-emblem > i {
-  inset: 26%;
-  border: 3px solid color-mix(in srgb, var(--bf-1) 80%, transparent);
-  border-radius: 46% 46% 50% 50% / 60% 60% 40% 40%;
-}
-.board[data-field='heros-trial'] .sc-emblem > b {
-  inset: 40%;
-  background: radial-gradient(
-    circle,
-    #fff3d0 0 20%,
-    color-mix(in srgb, var(--bf-1) 70%, transparent) 55%,
-    transparent 75%
-  );
-  animation: emb-pulse 2.4s ease-in-out infinite;
-}
-
-/* --- 10. BLOOD BATTLEFIELD: the wound --- */
-.board[data-field='blood-battlefield'] .sc-emblem {
-  width: min(46vh, 420px);
-  height: min(46vh, 420px);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--bf-3) 20%, transparent) 0 12%,
-    transparent 52%
-  );
+    repeating-linear-gradient(0deg, var(--hex-line2) 0 1px, transparent 1px calc(var(--hex-cell, 18px) * 1.7)),
+    repeating-linear-gradient(60deg, var(--hex-line2) 0 1px, transparent 1px calc(var(--hex-cell, 18px) * 1.7)),
+    repeating-linear-gradient(-60deg, var(--hex-line2) 0 1px, transparent 1px calc(var(--hex-cell, 18px) * 1.7));
+  -webkit-mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
   opacity: 0.7;
-  animation: emb-heart 2.6s cubic-bezier(0.4, 0, 0.3, 1) infinite;
+  animation: rune-turn calc(var(--rune-dur, 84s) * 1.35) linear infinite var(--rune-dir2, reverse);
 }
-.board[data-field='blood-battlefield'] .sc-emblem > i {
-  inset: 20%;
-  border: 3px solid color-mix(in srgb, var(--bf-1) 74%, transparent);
-  border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
+/* the refraction sweep: spectral wedges of the board's own palette in
+   screen blend, turning against the band while rune-prism cycles hue
+   and brightness - light splitting as it passes through the ward */
+.board[data-field] .sc-emblem > i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from calc(var(--rune-from, 0deg) + 140deg),
+    transparent 0deg,
+    rgba(255, 255, 255, 0.1) 16deg,
+    color-mix(in srgb, var(--bf-2) 34%, transparent) 30deg,
+    rgba(255, 255, 255, 0.16) 44deg,
+    color-mix(in srgb, var(--bf-3) 36%, transparent) 58deg,
+    transparent 76deg 168deg,
+    color-mix(in srgb, var(--bf-2) 30%, transparent) 190deg,
+    rgba(255, 255, 255, 0.13) 208deg,
+    color-mix(in srgb, var(--bf-3) 32%, transparent) 226deg,
+    transparent 246deg 318deg,
+    rgba(255, 255, 255, 0.08) 334deg,
+    transparent 350deg
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  mix-blend-mode: screen;
+  opacity: var(--rune-prism, 0.9);
+  animation:
+    rune-turn var(--rune-prism-dur, 46s) linear infinite var(--rune-dir2, reverse),
+    rune-prism var(--rune-prism-pulse, 8s) ease-in-out infinite;
 }
-.board[data-field='blood-battlefield'] .sc-emblem > b {
-  inset: 36%;
-  border: 1px solid color-mix(in srgb, var(--bf-3) 40%, transparent);
-  border-radius: 52% 48% 50% 50% / 48% 52% 48% 52%;
+/* (hexagonal band cuts are applied per-field below via clip-path on > i;
+   the weave and refraction pseudos sit INSIDE > i, so the cut clips
+   them too) */
+.board[data-field] .sc-emblem > b {
+  inset: 30%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--bf-3) 26%, transparent);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--bf-3) 24%, transparent), transparent 66%),
+    var(--rune-sigil) center / 62% no-repeat;
+  animation: rune-pulse var(--rune-pulse, 5.5s) ease-in-out infinite;
 }
-@keyframes emb-heart {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.5;
-  }
-  12% {
-    transform: translate(-50%, -50%) scale(1.05);
-    opacity: 0.85;
-  }
-  24% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.6;
-  }
-  36% {
-    transform: translate(-50%, -50%) scale(1.035);
-    opacity: 0.78;
-  }
-  52%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.5;
-  }
+/* prismatic glow turning behind the sigil - the ward's heart catching
+   light as the band sweeps past */
+.board[data-field] .sc-emblem > b::before {
+  content: '';
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 90deg,
+    color-mix(in srgb, var(--bf-2) 32%, transparent),
+    rgba(255, 255, 255, 0.12),
+    color-mix(in srgb, var(--bf-3) 36%, transparent),
+    rgba(255, 255, 255, 0.08),
+    color-mix(in srgb, var(--bf-2) 32%, transparent)
+  );
+  mix-blend-mode: screen;
+  filter: blur(5px);
+  opacity: 0.45;
+  animation: rune-turn calc(var(--rune-pulse, 5.5s) * 3.5) linear infinite;
 }
-
-/* shared emblem motions */
-@keyframes emb-spin {
+@keyframes rune-turn {
   to {
     transform: rotate(360deg);
   }
 }
-@keyframes emb-pulse {
+@keyframes rune-pulse {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.7;
+    filter: none;
   }
   50% {
     opacity: 1;
+    filter: brightness(1.3);
   }
 }
-@keyframes emb-breathe {
-  0% {
-    opacity: 0.62;
-  }
+/* the refraction layer's breath: hue swings through the band's spectrum
+   while brightness crests, so the sweep reads as MOVING light rather
+   than a static tint on the ring */
+@keyframes rune-prism {
+  0%,
   100% {
-    opacity: 1;
+    filter: hue-rotate(0deg) brightness(1);
   }
+  50% {
+    filter: hue-rotate(28deg) brightness(1.35);
+  }
+}
+
+/* 1. NARROW PASS - the gate rune: uprights, lintel and the wedge that
+      holds the pass open. Chunky ticks and a HEXAGONAL band, like marks
+      cut into canyon masonry. */
+.board[data-field='narrow-pass'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23c9b8a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 26V12 M22 26V12 M6 12h20 M16 7v11 M12 21l4-4 4 4'/%3E%3C/svg%3E");
+  --rune-step: 15deg;
+  --rune-on: 2.2deg;
+  --rune-dur: 76s;
+  --rune-in: 64%;
+  --rune-out: 88%;
+  --rune-from: 7deg;
+  --hex-cell: 20px;
+  --rune-halo-step: 30deg;
+}
+.board[data-field='narrow-pass'] .sc-emblem > i {
+  clip-path: polygon(50% 1%, 93.3% 25.5%, 93.3% 74.5%, 50% 99%, 6.7% 74.5%, 6.7% 25.5%);
+}
+
+/* 2. OPEN PLAINS - the wind rune: three long strokes with barbed tips
+      streaming east. Fine, many ticks, widest band of the set, and the
+      largest crystal weave - big open hexagons for open country. */
+.board[data-field='open-plains'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23c8f08f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 11h19 M25 11l-3.5-2.5 M4 17h22 M26 17l-3.5-2.5 M9 23h17 M26 23l-3.5-2.5'/%3E%3C/svg%3E");
+  --rune-step: 10deg;
+  --rune-on: 1.2deg;
+  --rune-dur: 60s;
+  --rune-in: 56%;
+  --rune-out: 80%;
+  --rune-from: 3deg;
+  --hex-cell: 16px;
+  --rune-prism-dur: 38s;
+}
+
+/* 3. MANA SPRING - the droplet rune over twin waves. Slow turn, gentle
+      six-and-a-half-second heartbeat, slow cool refraction. */
+.board[data-field='mana-spring'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23a8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 5c-5.5 7.5-7.5 10.5 0 16.5 7.5-6 5.5-9 0-16.5z M7 24.5q4.5 2.8 9 0 4.5 2.8 9 0'/%3E%3C/svg%3E");
+  --rune-step: 12deg;
+  --rune-on: 2deg;
+  --rune-dur: 100s;
+  --rune-in: 60%;
+  --rune-out: 82%;
+  --rune-pulse: 6.5s;
+  --rune-from: 11deg;
+  --hex-cell: 19px;
+  --rune-prism-dur: 58s;
+  --rune-prism-pulse: 10s;
+}
+
+/* 4. ENERGY VOID - the collapse sigil: two hooking spirals around a lit
+      point. Few fat ticks, fast reverse turn, hurried pulse, and the
+      refraction spins hard - the singularity bends light violently. */
+.board[data-field='energy-void'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%239b8bd0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 10a8 8 0 1 0 0 12 M22 10a5 5 0 1 1-6 9'/%3E%3Ccircle cx='16' cy='16' r='1.6' fill='%239b8bd0' stroke='none'/%3E%3C/svg%3E");
+  --rune-step: 24deg;
+  --rune-on: 3deg;
+  --rune-dur: 38s;
+  --rune-dir: reverse;
+  --rune-dir2: normal;
+  --rune-in: 66%;
+  --rune-out: 90%;
+  --rune-pulse: 3.2s;
+  --rune-from: 17deg;
+  --hex-cell: 17px;
+  --rune-prism-dur: 24s;
+  --rune-prism-pulse: 5s;
+  --rune-halo-step: 18deg;
+  width: min(32vh, 290px);
+  height: min(32vh, 290px);
+}
+/* the void's band is a hexagonal singularity ring, tight to the core */
+.board[data-field='energy-void'] .sc-emblem > i {
+  clip-path: polygon(50% 1%, 93.3% 25.5%, 93.3% 74.5%, 50% 99%, 6.7% 74.5%, 6.7% 25.5%);
+}
+
+/* 5. COLOSSEUM - the laurel sun: disc and radiant spokes. Dense laurel
+      ticks march at a stately pace under a slow golden sheen. */
+.board[data-field='colosseum'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23ffe9a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='16' cy='16' r='6'/%3E%3Cpath d='M16 3v4 M16 25v4 M3 16h4 M25 16h4 M6.8 6.8l2.9 2.9 M22.3 22.3l2.9 2.9 M25.2 6.8l-2.9 2.9 M9.7 22.3l-2.9 2.9'/%3E%3C/svg%3E");
+  --rune-step: 9deg;
+  --rune-on: 1.4deg;
+  --rune-dur: 90s;
+  --rune-in: 62%;
+  --rune-out: 78%;
+  --rune-from: 5deg;
+  --hex-cell: 18px;
+  --rune-prism-dur: 52s;
+  --rune-halo-step: 20deg;
+  width: min(40vh, 360px);
+  height: min(40vh, 360px);
+}
+
+/* 6. MIRROR REALM - the twin-mirror sigil: two blades point to point.
+      The band turns slowly BACKWARD, the wrong way round - so its
+      weave and refraction turn FORWARD, doubly wrong-footed. */
+.board[data-field='mirror-realm'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23e2c9ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 6h16l-8 9z M8 26h16l-8-9z M12.5 16h7'/%3E%3C/svg%3E");
+  --rune-step: 18deg;
+  --rune-on: 1.6deg;
+  --rune-dur: 70s;
+  --rune-dir: reverse;
+  --rune-dir2: normal;
+  --rune-in: 64%;
+  --rune-out: 86%;
+  --rune-from: 15deg;
+  --hex-cell: 18px;
+  --rune-prism-dur: 44s;
+}
+/* a mirror pane is hexagonal too - facets, not curves */
+.board[data-field='mirror-realm'] .sc-emblem > i {
+  clip-path: polygon(50% 1%, 93.3% 25.5%, 93.3% 74.5%, 50% 99%, 6.7% 74.5%, 6.7% 25.5%);
+}
+
+/* 7. SPIRIT WORLD - the wisp rune: a ghost-flame with its curl inside.
+      Broadest, faintest band and the biggest, softest hexagons; the
+      refraction is barely there, like light through fog. */
+.board[data-field='spirit-world'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23b6f5ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 5c1.2 5 5.6 7.2 5.6 13.4a5.6 5.6 0 0 1-11.2 0C10.4 12.4 14.8 10.2 16 5z M16 21.5a2.6 2.6 0 0 0 2.6-2.6'/%3E%3C/svg%3E");
+  --rune-step: 11.25deg;
+  --rune-on: 1.2deg;
+  --rune-dur: 115s;
+  --rune-in: 54%;
+  --rune-out: 82%;
+  --rune-from: 2deg;
+  --hex-cell: 23px;
+  --hex-line: color-mix(in srgb, var(--bf-3) 13%, transparent);
+  --rune-prism: 0.55;
+  --rune-prism-dur: 74s;
+  --rune-prism-pulse: 12s;
+  width: min(42vh, 380px);
+  height: min(42vh, 380px);
+  opacity: 0.72;
+}
+
+/* 8. ANCIENT RUINS - the broken pillar rune: columns, cracked lintel.
+      Sparse ticks, lazy reverse drift, like rubble settling. */
+.board[data-field='ancient-ruins'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23f0dcb0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 25V13 M22 25V13 M8 13h16 M8 13l4.5-5h2l-2 5h4.5l2.5-5h3l2.5 5'/%3E%3C/svg%3E");
+  --rune-step: 20deg;
+  --rune-on: 1.2deg;
+  --rune-dur: 95s;
+  --rune-dir: reverse;
+  --rune-dir2: normal;
+  --rune-in: 62%;
+  --rune-out: 86%;
+  --rune-from: 9deg;
+  --hex-cell: 20px;
+  --rune-prism-dur: 60s;
+  --rune-halo-step: 30deg;
+}
+/* crumbled masonry is angular: the ruins band is cut hexagonal */
+.board[data-field='ancient-ruins'] .sc-emblem > i {
+  clip-path: polygon(50% 1%, 93.3% 25.5%, 93.3% 74.5%, 50% 99%, 6.7% 74.5%, 6.7% 25.5%);
+}
+
+/* 9. HERO'S TRIAL - the brand rune: flame outline holding its ember.
+      Quick eager turn, short four-second heartbeat, hot fast prism. */
+.board[data-field='heros-trial'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23ffd88a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 4c0.7 4 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0C10.5 9.5 15.3 8 16 4z M16 23a2.8 2.8 0 0 0 2.8-2.8'/%3E%3C/svg%3E");
+  --rune-step: 13.85deg;
+  --rune-on: 1.8deg;
+  --rune-dur: 52s;
+  --rune-in: 62%;
+  --rune-out: 80%;
+  --rune-pulse: 4.2s;
+  --rune-from: 13deg;
+  --hex-cell: 17px;
+  --rune-prism-dur: 30s;
+  --rune-prism-pulse: 6s;
+}
+
+/* 10. BLOOD BATTLEFIELD - the crossed-blades sigil, tips snapped short.
+      Heavy ticks, reverse grind, like a war drum twisting round; the
+      refraction turns forward against it, grinding light off steel. */
+.board[data-field='blood-battlefield'] .sc-emblem {
+  --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23ff8a8a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 8l7.5 7.5 M25 24l-6.2-6.2 M25 8l-7.5 7.5 M7 24l6.2-6.2 M14.5 17.5l3-3'/%3E%3C/svg%3E");
+  --rune-step: 16.36deg;
+  --rune-on: 2.4deg;
+  --rune-dur: 82s;
+  --rune-dir: reverse;
+  --rune-dir2: normal;
+  --rune-in: 58%;
+  --rune-out: 76%;
+  --rune-from: 21deg;
+  --hex-cell: 19px;
+  --rune-prism-dur: 40s;
+  width: min(36vh, 320px);
+  height: min(36vh, 320px);
 }
 
 /* The BAN text stamp is gone entirely (2026-08-02). A banned card is
@@ -15817,21 +15929,13 @@ body[data-gfx='low'] .mb-motes {
   }
 }
 
-/* Hero portrait in the hover panel. Same art as the card, scaled to the
-   small 58x82 plate - the panel is the one place a player reads a hero's
-   details, so showing the icon glyph there while the card showed art was
-   an inconsistency. */
-.dk-portrait.has-art {
-  overflow: hidden;
-}
-.dk-portrait.has-art img {
-  width: 132%;
-  height: auto;
-  image-rendering: pixelated;
-  -ms-interpolation-mode: nearest-neighbor;
-  /* the art is a square bust; the plate is portrait, so anchor the head
-     near the top and let the chest run off the bottom edge */
-  margin-top: 12%;
+/* The hover panel's portrait plate used to render the hero's art on the
+   tall 58x82 plate. Reverted to the ra glyph (and the plate went
+   square): at that size the art read as texture, and the icon is what
+   identifies the hero on the card face, in the collection and in the
+   prep tip. The .dk-portrait.has-art rules were removed with it. */
+.dk-portrait i {
+  /* the glyph reads off the same rarity/faction wash the art sat on */
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
   user-select: none;
 }
@@ -16797,4 +16901,142 @@ body[data-gfx='low'] .sc-weather {
   animation-name: bfx-rise;
   background: var(--bf-3);
   box-shadow: 0 0 6px rgba(255, 138, 138, 0.85);
+}
+
+/* Slot cells rebuilt because a removal shuffled the row, not because a
+   hero was newly added: suppress the slot-in entrance on that rebuild
+   (set from JS; .no-enter only ever exists due to a data shuffle). */
+.field-slot.no-enter,
+.deck-slot.no-enter {
+  animation: none !important;
+}
+
+/* =============================================================
+   TRANSITION VEIL - full-page loading screen
+   -------------------------------------------------------------
+   Boots ON in the markup (index.html) so the first paint is already
+   covered; js/app.js re-covers every view change and lifts the veil
+   once the incoming view's images and fonts have decoded (bounded by
+   a minimum so cached swaps don't strobe, and a maximum so a slow
+   asset can never trap the player). The spinner is a miniature of
+   the battlefield runic wards: still ring, turning rune band,
+   breathing core.
+   ============================================================= */
+#veil {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(64, 48, 104, 0.35), transparent 62%),
+    linear-gradient(180deg, #0b0e18, #06070d);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s var(--ease),
+    visibility 0.3s;
+}
+#veil.on {
+  opacity: 1;
+  visibility: visible;
+}
+.veil-core {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  transform: translateY(2vh);
+}
+.veil-ward {
+  position: relative;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 220, 140, 0.42);
+  box-shadow:
+    inset 0 0 22px rgba(255, 205, 105, 0.1),
+    0 0 30px rgba(255, 200, 90, 0.14);
+}
+.veil-ward > i {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 216, 128, 0.9) 0 2.4deg,
+    transparent 2.4deg 15deg
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent 56%, #000 56% 82%, transparent 82%);
+  mask-image: radial-gradient(circle, transparent 56%, #000 56% 82%, transparent 82%);
+  animation: veil-spin 1.7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+.veil-ward > b {
+  position: absolute;
+  inset: 33%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffedc0, rgba(255, 196, 92, 0.28) 66%, transparent 72%);
+  animation: veil-breathe 1.25s ease-in-out infinite;
+}
+@keyframes veil-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes veil-breathe {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+.veil-title {
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #ead7a4;
+  text-shadow: 0 0 18px rgba(255, 205, 100, 0.3);
+}
+.veil-title em {
+  font-style: normal;
+  color: #b9a06a;
+  letter-spacing: 0.2em;
+}
+.veil-note {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+}
+/* the ellipsis streams one dot at a time by growing its own box */
+.veil-note::after {
+  content: '...';
+  display: inline-block;
+  width: 1.5em;
+  overflow: hidden;
+  vertical-align: bottom;
+  text-align: left;
+  animation: veil-dots 1.4s steps(3, end) infinite;
+}
+@keyframes veil-dots {
+  from {
+    width: 0;
+  }
+  to {
+    width: 1.5em;
+  }
+}
+/* Low graphics: the veil is a gate, not a scene - it stays, minus the
+   glow, and app.js gives it a shorter minimum dwell. */
+body[data-gfx='low'] .veil-ward {
+  box-shadow: none;
+}
+body[data-gfx='low'] .veil-ward > i {
+  animation-timing-function: linear;
 }

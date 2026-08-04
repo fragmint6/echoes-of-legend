@@ -733,6 +733,10 @@
     return Math.max(MIN_NAME_PX, px);
   }
 
+  /* Below this size a one-line fit reads as a squint, so a multi-word
+     name should break onto two lines instead of shrinking further. */
+  var WRAP_MIN_PX = 9.6;
+
   function fitNames() {
     /* Battle-board names only. Preparation cards (.prep-c) deliberately
        wrap onto multiple lines at a fixed size, so they must not be given
@@ -746,16 +750,60 @@
     var weight = probe.fontWeight;
 
     nodes.forEach(function (el) {
-      var text = el.textContent;
+      /* A wrapped name holds a <br>, after which textContent can no longer
+         tell "King Arthur" from "KingArthur" - the true name is kept aside
+         in dataset.raw from the first fit onward. */
+      var text = el.dataset.raw || el.textContent;
       if (!text) return;
+      el.dataset.raw = text;
       // the foot padding is the only thing between the name and the edge
       var avail = el.clientWidth;
       if (!avail) return;
-      if (el.dataset.fitFor === text && el.dataset.fitW === String(avail)) return;
-      var px = fitFontSize(ctx, text, avail, weight, family);
-      el.style.fontSize = px + 'px';
-      el.dataset.fitFor = text;
-      el.dataset.fitW = String(avail);
+      var key = text + '|' + avail;
+      if (el.dataset.fitKey === key) return;
+
+      var words = text.split(/\s+/);
+      var onePx = fitFontSize(ctx, text, avail, weight, family);
+
+      /* A multi-word name that would over-shrink wraps onto two lines:
+         split at the word boundary that most balances the halves, then
+         size both lines to the wider one. A one-word name has no break
+         point, so it keeps the shrink-to-fit behaviour. */
+      if (words.length > 1 && onePx < WRAP_MIN_PX) {
+        var best = null;
+        ctx.font = weight + ' ' + MAX_NAME_PX + 'px ' + family;
+        for (var i = 1; i < words.length; i++) {
+          var w = Math.max(
+            ctx.measureText(words.slice(0, i).join(' ')).width,
+            ctx.measureText(words.slice(i).join(' ')).width
+          );
+          if (!best || w < best.w) best = { i: i, w: w };
+        }
+        var a = words.slice(0, best.i).join(' ');
+        var b = words.slice(best.i).join(' ');
+        var twoPx = Math.min(
+          fitFontSize(ctx, a, avail, weight, family),
+          fitFontSize(ctx, b, avail, weight, family)
+        );
+        /* small hysteresis so a borderline name does not flip between
+           one and two lines on a one-pixel resize */
+        if (twoPx > onePx + 0.3) {
+          el.textContent = '';
+          el.appendChild(document.createTextNode(a));
+          el.appendChild(document.createElement('br'));
+          el.appendChild(document.createTextNode(b));
+          el.style.fontSize = twoPx + 'px';
+          el.classList.add('wrap');
+          el.dataset.fitKey = key;
+          return;
+        }
+      }
+      if (el.classList.contains('wrap')) {
+        el.classList.remove('wrap');
+        el.textContent = text;
+      }
+      el.style.fontSize = onePx + 'px';
+      el.dataset.fitKey = key;
     });
   }
 
@@ -1217,15 +1265,16 @@
 
     fly.innerHTML =
       '<div class="dk-head">' +
-      '<div class="dk-portrait' +
-      (u.card.art ? ' has-art' : '') +
-      '" style="--fc-primary:' +
+      /* The portrait plate shows the hero's assigned ra glyph, not the
+         art: at this size the art read as texture while the icon is what
+         already identifies the hero on the card, in the collection and
+         in the prep tip. The plate is square now that nothing portrait-
+         shaped needs to sit in it. */
+      '<div class="dk-portrait" style="--fc-primary:' +
       u.faction.colors.primary +
-      '">' +
-      (u.card.art
-        ? '<img src="' + esc(u.card.art) + '" alt="" draggable="false" />'
-        : '<i class="ra ' + u.card.icon + '"></i>') +
-      '</div>' +
+      '"><i class="ra ' +
+      u.card.icon +
+      '"></i></div>' +
       '<div class="dk-id">' +
       '<div class="dk-name">' +
       esc(u.name) +

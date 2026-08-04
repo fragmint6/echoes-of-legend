@@ -38,7 +38,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crown',
-      art: 'assets/heroes/camelot-king-arthur.jpg',
+      art: 'assets/heroes/camelot-king-arthur.png',
     },
     {
       id: 'camelot-merlin',
@@ -69,7 +69,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crystal-wand',
-      art: 'assets/heroes/camelot-merlin.jpg',
+      art: 'assets/heroes/camelot-merlin.png',
     },
     {
       id: 'camelot-lancelot',
@@ -130,7 +130,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sword',
-      art: 'assets/heroes/camelot-lancelot.jpg',
+      art: 'assets/heroes/camelot-lancelot.png',
     },
     {
       id: 'camelot-morgan-le-fay',
@@ -156,7 +156,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-raven',
-      art: 'assets/heroes/camelot-morgan-le-fay.jpg',
+      art: 'assets/heroes/camelot-morgan-le-fay.png',
     },
     {
       id: 'camelot-guinevere',
@@ -195,7 +195,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-heart-tower',
-      art: 'assets/heroes/camelot-guinevere.jpg',
+      art: 'assets/heroes/camelot-guinevere.png',
     },
     {
       id: 'camelot-mordred',
@@ -226,7 +226,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-dripping-blade',
-      art: 'assets/heroes/camelot-mordred.jpg',
+      art: 'assets/heroes/camelot-mordred.png',
     },
   ],
 });

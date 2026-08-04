@@ -966,6 +966,24 @@
       </div>
     </section>
 
+    <!-- ==================== TRANSITION VEIL ====================
+         Full-page loading screen. It boots ON in the markup so the very
+         first paint is already covered, and js/app.js re-shows it for
+         every view change: heavy screens (battle boards, the collection)
+         used to appear with their art still catching up, which read as
+         flicker. The veil hides once the new view's images and fonts
+         have decoded, bounded by a short minimum (no strobe) and a hard
+         maximum (never traps the player). The spinner is a miniature of
+         the battlefield runic wards: still ring, turning rune band,
+         breathing core. -->
+    <div id="veil" class="on" aria-hidden="true">
+      <div class="veil-core">
+        <span class="veil-ward"><i></i><b></b></span>
+        <div class="veil-title">Echoes <em>of</em> Legend</div>
+        <div class="veil-note">Summoning the arena</div>
+      </div>
+    </div>
+
     <!-- Card data: one file per faction -->
     <script src="js/text.js"></script>
     <script src="data/_schema.js"></script>

@@ -44,7 +44,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-lightning-bolt',
-      art: 'assets/heroes/olympus-zeus.jpg',
+      art: 'assets/heroes/olympus-zeus.png',
     },
     {
       id: 'olympus-athena',
@@ -70,7 +70,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-shield',
-      art: 'assets/heroes/olympus-athena.jpg',
+      art: 'assets/heroes/olympus-athena.png',
     },
     {
       id: 'olympus-hercules',
@@ -95,7 +95,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-muscle-fat',
-      art: 'assets/heroes/olympus-hercules.jpg',
+      art: 'assets/heroes/olympus-hercules.png',
     },
     {
       id: 'olympus-apollo',
@@ -121,7 +121,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sun-symbol',
-      art: 'assets/heroes/olympus-apollo.jpg',
+      art: 'assets/heroes/olympus-apollo.png',
     },
     {
       id: 'olympus-medusa',
@@ -149,6 +149,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-snake',
+      art: 'assets/heroes/olympus-medusa.png',
     },
     {
       id: 'olympus-ares',
@@ -183,6 +184,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-bleeding-hearts',
+      art: 'assets/heroes/olympus-ares.png',
     },
   ],
 });

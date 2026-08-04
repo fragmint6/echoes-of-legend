@@ -310,6 +310,23 @@
     renderBatch();
   }
 
+  /* Re-arm the lazy loading every time the Collection is opened. The grid
+     used to be filled once and kept forever, so a second visit found all
+     57 cards already in the DOM and showed them in one heavy paint. Now
+     each return starts from the first batch again: the sentinel observer
+     is still watching and pulls the rest in as the user scrolls. Filter
+     state is kept - only the DOM is rebuilt. */
+  document.addEventListener('eol:view', function (e) {
+    if (e.detail !== 'collection') return;
+    var grid = document.getElementById('roster');
+    if (!grid) return;
+    rendered = 0;
+    grid.innerHTML = '';
+    var sent = document.getElementById('roster-sentinel');
+    if (sent) sent.classList.remove('done');
+    renderBatch();
+  });
+
   /* ---------------- custom dropdowns ---------------- */
   function closeAllMenus(except) {
     document.querySelectorAll('.dd.open').forEach(function (d) {
@@ -454,8 +471,106 @@
     }
   }
 
+  /* ---------------- transition veil ----------------
+     Full-page loading screen between views. It boots ON in the markup
+     (covering first paint) and every show() re-covers the swap, then
+     hides once the incoming view's <img> tags, CSS-background art and
+     fonts have decoded - no more half-rendered screens catching up
+     after the transition. Two bounds keep it honest: a MINIMUM so a
+     fast cached swap doesn't strobe the spinner, and a hard MAXIMUM so
+     a slow asset can never trap the player behind the veil. */
+  var veil = document.getElementById('veil');
+  var VEIL_MIN_MS = 430;
+  var VEIL_MIN_LOW_MS = 180; // low-graphics users traded garnish for speed
+  var VEIL_MAX_MS = 1600;
+
+  /* Promises for every visible asset the incoming view needs: <img>
+     tags that haven't completed, and the painted layers that load via
+     CSS background-image (menu parallax, the battle board, the
+     battlefield reveal card). Background fetches are re-warmed through
+     Image() - cached hits resolve immediately. */
+  function veilAssetWaits() {
+    var waits = [];
+    function track(src) {
+      if (!src || waits.length > 60) return;
+      waits.push(
+        new Promise(function (res) {
+          var im = new Image();
+          im.onload = im.onerror = function () {
+            res();
+          };
+          im.src = src;
+        })
+      );
+    }
+    var scopes = [];
+    var view = document.querySelector('[data-view].active');
+    if (view) scopes.push(view);
+    /* the menu parallax lives at body level, outside the home section */
+    if (document.body.dataset.view === 'home') {
+      var mb = document.getElementById('menu-bg');
+      if (mb) scopes.push(mb);
+    }
+    scopes.forEach(function (scope) {
+      scope.querySelectorAll('img').forEach(function (im) {
+        if (!im.complete) track(im.currentSrc || im.src);
+      });
+      scope
+        .querySelectorAll('.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .bf-art.has-art')
+        .forEach(function (el) {
+          var bg = getComputedStyle(el).backgroundImage;
+          if (!bg || bg === 'none') return;
+          (bg.match(/url\(("|')?[^"')]+\1?\)/g) || []).forEach(function (u) {
+            track(u.replace(/^url\(("|')?|("|')?\)$/g, ''));
+          });
+        });
+    });
+    return waits;
+  }
+
+  function veilSettle() {
+    if (!veil || !veil.classList.contains('on')) return;
+    var low = window.EOL.gfx && window.EOL.gfx.isLow();
+    /* Two animation frames first: view modules apply their art (the
+       board's --bf-art, freshly built card grids) synchronously AFTER
+       show() flips the class, so the waits must be collected once that
+       work has landed, not before it. */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var waits = veilAssetWaits();
+        if (document.fonts && document.fonts.ready) {
+          waits.push(
+            document.fonts.ready.then(
+              function () {},
+              function () {}
+            )
+          );
+        }
+        var min = new Promise(function (res) {
+          setTimeout(res, low ? VEIL_MIN_LOW_MS : VEIL_MIN_MS);
+        });
+        var cap = new Promise(function (res) {
+          setTimeout(res, VEIL_MAX_MS);
+        });
+        Promise.race([Promise.all([Promise.all(waits), min]), cap]).then(function () {
+          veil.classList.remove('on');
+        });
+      });
+    });
+  }
+
+  /* Absolute failsafe: if anything above ever threw, the boot veil must
+     still lift - a stuck loading screen is the one bug a user cannot
+     click past. */
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      if (veil) veil.classList.remove('on');
+    }, 3200);
+  });
+
   /* ---------------- view routing ---------------- */
   function show(view) {
+    if (veil) veil.classList.add('on');
     // any battle tooltip must not survive a view change
     if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
     document.querySelectorAll('[data-view]').forEach(function (v) {
@@ -477,6 +592,7 @@
        is hidden (zero width). Announce the change so those modules can
        re-measure at the first moment they are able to. */
     document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
+    veilSettle();
   }
 
   /* ---------------------------------------------------------

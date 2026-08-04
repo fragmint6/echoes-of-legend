@@ -535,7 +535,7 @@ const PROBES = {
     cast(B, u.card.id, [f]);
     ok(u.hp > hp0, 'Big Bad Wolf: lifesteals');
   },
-  'grimmwood-hansel-and-gretel': (B, u) => {
+  'grimmwood-hansel-gretel': (B, u) => {
     cast(B, u.card.id, []);
     ok(u.shield > 0, 'Hansel & Gretel: self shield');
     ok(u.flags.taunt > 0, 'Hansel & Gretel: taunts');
@@ -545,7 +545,7 @@ const PROBES = {
     cast(B, u.card.id, f);
     ok(f.every((x) => x.buffs.some((b) => b.stat === 'atk' && b.amt === -20)), 'Pied Piper: -20% ATK on both');
   },
-  'yamato-yoshitsune': (B, u) => {
+  'yamato-minamoto-no-yoshitsune': (B, u) => {
     const f = foesOf(B)[0];
     const { delta } = cast(B, u.card.id, [f]);
     ok(delta[f.uid] > 0, 'Yoshitsune: deals damage');
