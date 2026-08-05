@@ -458,12 +458,27 @@ const PROBES = {
     const after = E.costOf(B, alliesOf(B)[1], alliesOf(B)[1].card.ability);
     ok(after <= before, 'Merlin: allied skill costs reduced');
     ok(alliesOf(B).every((a) => a.shield > 0), 'Merlin: all allies shielded');
-    /* cost 65 / 8% shield retune (2026-08-05) */
-    ok(u.card.ability.cost === 65, 'Merlin: Prophecy costs 65');
+    /* 55 EN / signature-only tax retune (2026-08-05) */
+    ok(u.card.ability.cost === 55, 'Merlin: Prophecy costs 55');
     ok(
       alliesOf(B).every((a) => a.shield === Math.round(a.maxHp * 0.08)),
       'Merlin: the Shield is exactly 8% Max HP'
     );
+    /* the enemy tax reaches Signatures ONLY - Basics stay priced */
+    const foe =
+      foesOf(B).find((f) => f.card.ability.type === 'Active' && f.card.ability.cost > 0) ||
+      foesOf(B)[0];
+    const basic = E.roleAbility(foe);
+    ok(
+      E.costOf(B, foe, basic) === (basic.cost || 0),
+      'Merlin: enemy Basics are NOT taxed'
+    );
+    if (foe.card.ability.type === 'Active' && foe.card.ability.cost > 0) {
+      ok(
+        E.costOf(B, foe, foe.card.ability) === foe.card.ability.cost + 15,
+        'Merlin: enemy Signatures are taxed +15'
+      );
+    }
   },
   'camelot-guinevere': (B, u) => {
     const t = alliesOf(B).find((x) => x !== u);

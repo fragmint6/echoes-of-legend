@@ -162,7 +162,7 @@ would be pay-to-win by construction. It must not.
 
 | Tier | Means |
 | --- | --- |
-| **Legendary** | The face of its faction. One per faction (Huaxia has two - it has 9 cards). |
+| **Legendary** | The face of its faction. One per faction (Huaxia and Grimmwood have two each). |
 | **Epic** | Deep kits: multiple conditions, branches, or a rare effect kind. |
 | **Rare** | A clear hook with one condition on it. |
 | **Common** | **Simple to play - not weak.** One-line kits a new player can read instantly. |
@@ -185,9 +185,10 @@ it reads in one line, never because it is bad.
 
 ### Shape
 
-Every faction ships **1 Legendary / 2 Epic / 2 Rare / 1 Common** (Huaxia, at 9
-cards, runs 2/3/3/1). Roster total across 9 factions: 10 legendary, 19 epic,
-19 rare, 9 common.
+Every faction ships **1 Legendary / 2 Epic / 2 Rare / 1 Common**, with two
+exceptions: Huaxia (9 cards) runs 2/3/3/1, and Grimmwood (12 cards after the
+2026-08-05 expansion) runs 2/3/5/2. Roster total across 9 factions, 63
+heroes: 11 legendary, 20 epic, 22 rare, 10 common.
 
 ## Raw Stat Ranges by Role
 
@@ -237,9 +238,9 @@ Creativity comes from the **combination** of two things:
 1. **Custom triggers** - the engine's passive trigger list is a vocabulary, not a cap. `allyWarded`, `allyStruckDebuffed`, `incomingAbilityDamage`, `sameTargetStreak`, `wouldDie`, `alliedCastSkill`, `enemyCastSkill`, and the rest define today's lines, and **many more can be added**. If the cool skill you want fires on "when an ally's Shield breaks" and that trigger doesn't exist yet, add it to `js/engine.js` - don't water the skill down.
 2. **The pre-existing keywords** - Burn, Exposed, Mark, Shield, Taunt, Silence, Untargetable, cost-up/cost-down, Energy gain/steal/drain/tax, Crit, lifesteal, counter-strike, revive, cleanse, copy-ally-active, coin flip, random-of, and the stat/damage multipliers. These keywords compose with each other and with any new trigger.
 
-The current effect vocabulary (`k:` keys in `spec.effects`): `dmg`, `heal`, `lifesteal`, `stat`, `shield`, `taunt`, `untargetable`, `silence`, `healMod`, `burn`, `exposed`, `cleanse`, `costMod`, `gainEnergy`, `stealEnergy`, `drainEnergy`, `drainTax`, `counterStrike`, `swapTargets`, `revive`, `branch`, `mark`, `consumeMark`, `coinFlip`, `randomOf`, `copyAllyActive`, `damageResist`, `damageMult`, `outgoingMult`.
+The current effect vocabulary (`k:` keys in `spec.effects`): `dmg`, `heal`, `lifesteal`, `stat`, `shield`, `taunt`, `untargetable`, `silence`, `healMod`, `burn`, `exposed`, `extendDebuffs`, `cleanse`, `costMod`, `gainEnergy`, `stealEnergy`, `drainEnergy`, `loseEnergy`, `drainTax`, `counterStrike`, `swapTargets`, `revive`, `delayed`, `branch`, `mark`, `consumeBuffs`, `consumeMark`, `coinFlip`, `randomOf`, `copyAllyActive`, `damageResist`, `damageMult`, `outgoingMult`. (`costMod` also accepts `signaturesOnly: true` to price Signature Skills only - Merlin's Prophecy.)
 
-Current passive triggers: `static`, `selfAttacked`, `wasAttacked`, `sameTargetStreak`, `allyWarded`, `allyDamaged`, `allyBelowHp`, `allyDied`, `allyStruckDebuffed`, `allyStruckExposed`, `incomingAbilityDamage`, `enemyCastSkill`, `alliedCastSkill`, `wouldDie`, `deathCheat`, `selfKilled`, `counterStrike`.
+Current passive triggers: `static`, `selfAttacked`, `wasAttacked`, `sameTargetStreak`, `allyWarded`, `allyDamaged`, `allyBelowHp`, `allyDied`, `allyStruckDebuffed`, `allyStruckExposed`, `incomingAbilityDamage`, `enemyCastSkill`, `alliedCastSkill`, `wouldDie`, `deathCheat`, `selfKilled`, `teamKilled`, `counterStrike`.
 
 A skill should be judged by how good the combo it creates is, never by whether it fits in a checkbox.
 

@@ -11,7 +11,8 @@ Status: **all 10 regenerated at native resolution** (2026-08-03 refresh).
 > removed along with the rest of the art tooling because its
 > resize-plus-quantise step visibly corrupted the scenes. Boards are now
 > generated at native resolution straight from the briefs in section 4-5
-> and written to `assets/boards/<id>.png` as opaque PNGs. The board layer
+> and written to `assets/boards/<id>.jpg` as opaque JPEGs (q85 - the
+> shipped files are .jpg; battlefield data references those paths). The board layer
 > uses `background-size: cover`, so any landscape aspect close to 1.80
 > fits; the composition rules below (quiet centre, dark value ceiling,
 > margin detail, no figures) are what actually gate shipping now. The
@@ -25,7 +26,7 @@ Status: **all 10 regenerated at native resolution** (2026-08-03 refresh).
 | Constraint | Value | Why |
 | --- | --- | --- |
 | Canvas | **512 x 284** | The board measures 1688 x 934 CSS px on a 1080p desktop. 512 wide upscales x3.30 with `pixelated`. |
-| Pixel scale | ~2.1x the character pixel | Portraits are 96px art in a 154px slot (x1.60). A coarser background pixel makes the backdrop *recede* behind the cards instead of competing with them. Measured, not guessed. |
+| Pixel scale | ~2.1x the character pixel | Portraits are 128 x 176 art rendered into the card tile. A coarser background pixel makes the backdrop *recede* behind the cards instead of competing with them. Measured, not guessed. |
 | Format | JPEG q85, opaque (v2) | No transparency: this is the bottom layer, so no PNG is worth paying for. |
 | Palette | **24 colours max** | Tighter than the 32 allowed for characters. A background must never out-detail a hero. |
 | Anti-aliasing | **None** | `image-rendering: pixelated` is set on the layer; soft edges fight it. |

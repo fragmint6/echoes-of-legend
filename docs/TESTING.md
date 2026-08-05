@@ -38,8 +38,8 @@ trying a new Skill.
 node sim/verify_all.js && node sim/verify_preview.js
 ```
 
-25 seconds, 1,331 assertions. That is the only test that has to pass
-while you iterate. It automatically covers **every faction** - it walks
+About 25 seconds, 1,479 assertions (as of 2026-08-05). That is the only
+test that has to pass while you iterate. It automatically covers **every faction** - it walks
 `EOL.factions`, so a new `data/yourfaction.js` is picked up the moment
 you register it. Nothing to wire up.
 
@@ -71,7 +71,7 @@ Reads `sim/results.json`, writes `sim/results.md`.
 
 ## What each file is for
 
-### `verify_all.js` - 1,331 assertions, ~25s
+### `verify_all.js` - 1,479 assertions, ~25s
 **The one that matters.** Whole-roster audit in three layers: static
 (schema, bands, icons, keyword legality), dynamic (cast each Skill and
 check the real outcome), soak (AI-vs-AI invariants). Run it constantly.
@@ -217,9 +217,9 @@ The individual pieces `full.js` drives. Use them directly only for a
 specific comparison, such as depth 2 against depth 4 on a fixed seed.
 
 They now take `--teams random|draft|pairs` and `--depth N`, which exist
-because random draw cannot measure combos: a 57-hero roster has 1,596
-possible pairs and a 1,200-game run gives the best-covered one just 39
-games. See **[SIM-METHODOLOGY.md](SIM-METHODOLOGY.md)** for what each
+because random draw cannot measure combos: the 63-hero roster has 1,953
+possible pairs and a 1,200-game run gives the best-covered one just a
+few dozen games. See **[SIM-METHODOLOGY.md](SIM-METHODOLOGY.md)** for what each
 mode answers and how to read a disagreement between them.
 
 ---
@@ -232,8 +232,8 @@ thrown away.
 
 It was frozen in time: it deliberately loaded only a **7-faction
 subset** and asserted `7 factions total` / `45 heroes total`. You have
-**9 factions and 57 heroes**. It passed only because it never loaded
-`takamagahara.js` or `duat.js` - so it would have kept showing a green
+**9 factions and (now) 63 heroes**. It passed only because it never
+loaded `takamagahara.js` or `duat.js` - so it would have kept showing a green
 tick no matter what broke in the two newest factions. A test that
 cannot fail is worse than no test.
 

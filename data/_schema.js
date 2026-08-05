@@ -37,10 +37,11 @@
  *   }
  *   icon:      string        RPG Awesome class - fallback art, and the
  *                            glyph still used in lists and tooltips
- *   art:       string|null   optional path to a 96x96 pixel-art portrait,
- *                            relative to the project root. When present the
- *                            card renders it instead of the icon glyph.
- *                            See docs/ART-SPEC.md.
+ *   art:       string|null   optional path to a 128x176 pixel-art portrait
+ *                            (lossless PNG), relative to the project root.
+ *                            When present the card renders it instead of the
+ *                            icon glyph. See docs/ART-SPEC.md (rev 4) and
+ *                            assets/heroes/MANIFEST.csv.
  * }
  *
  * ---- STATUS EFFECTS -----------------------------------------

@@ -5,8 +5,20 @@ Legend. One entry per hero, written so any artist or generator produces a
 piece that sits in the same world as the other 62.
 
 Status: **v2.2 - full-ART environmental card illustrations**, dynamic
-role-driven action compositions, 640 x 880 JPEG, expanded to 63 heroes
-(2026-08-05, rev 3).
+role-driven action compositions, expanded to 63 heroes (2026-08-05,
+rev 3).
+
+> **2026-08-05, rev 4 (SHIPPING FORMAT).** What actually ships in the
+> repo is NOT the 640 x 880 JPEG described below: each hero is a
+> **128 x 176 lossless PNG at `assets/heroes/<id>.png`**, downscaled
+> from the full-art source with a lanczos filter, linear-light
+> correction and a sharpen pass (15) - every file is tracked in
+> `assets/heroes/MANIFEST.csv` (id, size, bytes, filter, sharpen).
+> Card data points at the PNG: `art: 'assets/heroes/<id>.png'`. All
+> composition, lighting and silhouette rules below still govern the
+> source art; treat "save JPEG q85 to `<id>.jpg`" below as "generate
+> the source, then produce the 128 x 176 PNG game build". All 63
+> heroes have generated art present - none are icon-only.
 
 > **2026-08-03, rev 2 (v2.1).** Static bust shots made every card read
 > alike. Cards are now **full art**: each hero is caught mid-motion doing
@@ -48,7 +60,7 @@ These are not stylistic preferences. Break one and the art fails in the UI.
 | Constraint | Value | Why |
 | --- | --- | --- |
 | Canvas | **640 x 880**, portrait (aspect 0.727) | The collection card renders at 250/385 (0.649) with `object-fit: cover`, the battle tile at 5/6 (0.833): a 0.727 source centre-crops cleanly to both. |
-| Format | **JPEG q85, opaque** | v2 art is a baked scene - there is no alpha to preserve, and JPEG keeps the 63-card roster compact. PNG is reserved for the 128px game build and what genuinely needs transparency (menu layers). |
+| Format | Source: **JPEG q85, opaque**. Shipping: **128 x 176 lossless PNG** at `assets/heroes/<id>.png` (rev 4). | v2 art is a baked scene - there is no alpha to preserve. The game build is the PNG downscale tracked in `assets/heroes/MANIFEST.csv`; that is what card `art:` references. |
 | File size | **< 180 KB each** budget | The art downloads once per card viewed; keep the whole roster cheap. |
 | Composition (v2.1) | Dynamic three-quarter-length action figure, dominating the **central 55-70%** of the source canvas width, may reach the lower edge | Static busts read uniform across 63 cards; the role's action is what makes each card distinct. |
 | Head position (v2.1) | Face clearly readable in the **upper third** (~25% from top) | The card's name plate and ability overlay own the bottom; faces live where nothing covers them. |
@@ -233,8 +245,8 @@ Generate at the generator's native landscape size; the centre crop to
 | --- | --- |
 | Write the prompt | one entry per hero, section 5; house style lives in the shared blocks (sections 2-3) so a change propagates to all |
 | Generate | any generator at native resolution, the full scene in one image |
-| Crop and save | centre-crop to the card aspect, resize to exactly 640 x 880, save JPEG q85 to `assets/heroes/<id>.jpg`. No keying, no masking, no palette work |
-| Wire up | `art: 'assets/heroes/<id>.jpg'` on the card; cards without `art` keep their icon glyph, so factions can land one at a time |
+| Crop and save | centre-crop to the card aspect, resize to exactly 640 x 880, save JPEG q85 as the source (rev 4: the shipped file is then the 128 x 176 lossless PNG downscale at `assets/heroes/<id>.png`, recorded in MANIFEST.csv). No keying, no masking, no palette work |
+| Wire up | `art: 'assets/heroes/<id>.png'` on the card (rev 4); cards without `art` keep their icon glyph, so factions can land one at a time |
 
 The menu parallax layers in `assets/menu/` are the one place keying
 survives: they still stack as transparent silhouettes (border flood fill

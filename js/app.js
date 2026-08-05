@@ -874,7 +874,9 @@
     return scalePct / 100;
   }
   function applyScale(pct) {
-    pct = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round(parseFloat(pct) || SCALE_DEF)));
+    /* snap to 5% steps (80/85/90/95/100/105/110) - the slider walks in
+       fives and every entry point lands on a five */
+    pct = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((parseFloat(pct) || SCALE_DEF) / 5) * 5));
     scalePct = pct;
     var de = document.documentElement;
     /* 100% is no zoom at all: the property drops out completely, so
@@ -903,8 +905,8 @@
       var raw = parseInt(localStorage.getItem(SCALE_KEY), 10);
       if (raw) {
         /* legacy migrations: v2 stored levels 1-4, v1 (zoom era)
-           stored a percent 60-130 */
-        scalePct = raw <= 4 ? { 1: 80, 2: 87, 3: 93, 4: 100 }[raw] || SCALE_DEF : raw;
+           stored a percent 60-130; both land on the 5% grid below */
+        scalePct = raw <= 4 ? { 1: 80, 2: 85, 3: 95, 4: 100 }[raw] || SCALE_DEF : raw;
       }
     } catch (e) {
       /* private mode */
@@ -916,7 +918,7 @@
          the app itself rescales once, when the pointer lets go - no
          layout storms while the user is still deciding */
       r.addEventListener('input', function () {
-        var v = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round(parseFloat(r.value) || SCALE_DEF)));
+        var v = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((parseFloat(r.value) || SCALE_DEF) / 5) * 5));
         var out = document.getElementById('scale-val');
         if (out) out.textContent = v + '%';
       });

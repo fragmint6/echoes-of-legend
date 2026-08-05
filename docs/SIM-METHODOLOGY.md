@@ -12,8 +12,9 @@ node sim/full.js
 **Read section 0 first.**
 
 That is the whole balance workflow. It runs three passes (random with
-bans, full draft with bans, and forced inclusion for all 57 heroes)
-and reports four metrics per hero with confidence intervals.
+bans, full draft with bans, and forced inclusion for every hero in the
+roster - all 63 of them as of 2026-08-05) and reports four metrics per
+hero with confidence intervals.
 
 Useful flags:
 
@@ -43,9 +44,10 @@ Merlin's discount is mediocre beside five random heroes and enormous
 beside expensive ones, but random draw almost never produces that
 pairing. **The sim measured his floor while the player used his ceiling.**
 
-The arithmetic is stark. With 57 heroes there are **1,596 possible
-pairs**, and each game shows only 30 of them. Measured on a 1,200-game
-run:
+The arithmetic is stark. At the time the roster held 57 heroes -
+**1,596 possible pairs** (the roster is now 63, i.e. 1,953 pairs, which
+only makes the problem worse) - and each game shows only 30 of them.
+Measured on a 1,200-game run:
 
 | | |
 | --- | --- |

@@ -1,5 +1,12 @@
 # Echoes of Legend — Development Roadmap
-### Locked 2026-08-04. Source: GAMEPLAY-S-TIER.md + user design rulings (this document is the law; the memo is history)
+### Locked 2026-08-04, status updated 2026-08-05. Source: GAMEPLAY-S-TIER.md + user design rulings (this document is the law; the memo is history)
+
+> **STATUS 2026-08-05.** Phase 1 (Unabridged) is **IMPLEMENTED and live
+> in the client** for solo play — see the Phase 1 section for exactly
+> what shipped. The roster has also grown **57 → 63 heroes** (Grimmwood
+> expansion: Gingerbread Man, Evil Queen, Puss in Boots, Rapunzel,
+> Goldilocks, Cinderella), so every "57-card" figure below reads as 63
+> unless it is quoting a historical measurement.
 
 User rulings that shape everything below:
 
@@ -12,7 +19,7 @@ User rulings that shape everything below:
    ≥4 cards of one faction in your deck grants a faction-wide bonus.
    (Example from the user: 4+ Grimmwood → your debuffs last 1 round longer.)
 3. **Legends Gauntlet ships as CHAPTERS.** Chapter 1 uses the current
-   57-card roster and ends at **The First Legend** (chapter boss). New
+   63-card roster and ends at **The First Legend** (chapter boss). New
    chapters arrive with each major card-pool expansion (~50 cards), so
    expansions become events.
 4. **The Gauntlet is the game's ONLY lore vessel.** No lore anywhere else
@@ -23,9 +30,27 @@ User rulings that shape everything below:
 
 ---
 
-## Phase 1 — THE SET (best-of-3 war)  ✅ GREEN-LIT 2026-08-04
+## Phase 1 — UNABRIDGED (best-of-3 war)  ✅ SHIPPED 2026-08-05 (solo)
+**What is live in the client right now** (`js/play.js`, war-length toggle
+on the solo launch screen):
+
+- Single Battle / **Unabridged · Bo3** switch at match launch (solo only;
+  the choice persists in `eol.war.length`).
+- **Fight card**: 3 distinct battlefields rolled at set start and shown
+  up front with their rules; a roulette spin reveals which hosts game 1.
+- **Loser calls the next board** from the remaining slots; the unpicked
+  leftover hosts the decider. (The bot currently calls at random — a
+  board-read heuristic is Phase-1b polish.)
+- **Bans happen once** before game 1 and persist set-wide.
+- **Mandatory substitutions** between games (1-2 swaps); the identical
+  six can never be fielded twice in a row, and a hero subbed OUT is
+  locked out of the rest of the set (both sides play by the same law).
+- First to 2 wins; result screen and set pill track the score.
+
 **Scope** (locked): opt-in mode for solo-vs-bot and MP-unranked at ship;
 ranked integration waits for the ladder (Phase 4). Classic untouched.
+**Remaining Phase-1 work:** the MP wiring (Phase 1b) — all set state is
+seeded-board compatible and nothing in it is solo-engine-tied.
 
 **User adjustments, locked as law over the memo:**
 
@@ -63,9 +88,11 @@ ranked integration waits for the ladder (Phase 4). Classic untouched.
   only if avg-rounds shift ≤ ±1.0, first-kill conversion within ±5pp,
   draw rate not increased.
 
-**Draft-pool consequence (hard requirement):** today the pool is all 57
-cards shuffled into 36, so a faction appears ~3.8 times on average —
-sighting 4 of one faction is a coin flip you then must win picks for.
+**Draft-pool consequence (hard requirement):** today the pool is a
+per-role snapshot — 6 heroes per role drawn from the 63-card roster, 36
+total (`draftPool()` in `data/_schema.js`) — so a faction's cards are
+spread across roles and sighting 4 of one faction in a single draft is
+still a coin flip you then must win picks for.
 With blessings, the pool must guarantee **every faction puts ≥4 cards
 into every draft** (e.g., 9×4 = 36 exactly, plus 2 featured factions at
 5). This turns pack 1 into "which throne do I pledge?" — the intended
@@ -91,7 +118,7 @@ single-tier; decide capstone after meta data exists.
 ---
 
 ## Phase 3 — LEGENDS GAUNTLET, Chapter 1: "The Nine Thrones"
-Chapter 1 = 10 nodes on the current 57-card pool. Boss: **The First
+Chapter 1 = 10 nodes on the current 63-card pool. Boss: **The First
 Legend** (canon vote pending — see §8).
 
 - **Structure:** draft once at node 1 → fight → **2 stash swaps** between
@@ -157,7 +184,8 @@ playtest, since trophies were vetoed globally).
 ## 9. STANDING DEVELOPMENT LAW (every phase)
 - `node --check` every touched JS file; CSS brace-balance 0; curl the
   :8000 server.
-- `node sim/verify_all.js` green (1342 assertions) before every handoff.
+- `node sim/verify_all.js` green (1479 assertions as of 2026-08-05) before
+  every handoff.
 - Any rule that changes pacing runs the A/B harness at ≥1200 games/side
   with the tolerance gates from Phase 2 §law.
 - Runbook `/home/user/art_prep/CONTINUE.md` gets a dated session entry

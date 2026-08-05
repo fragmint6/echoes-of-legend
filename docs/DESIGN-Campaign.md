@@ -1,8 +1,17 @@
 # Campaign Mode - Design Proposal
 
-> **Status: proposal for review. No code written.**
-> Goal: the place a new player *starts*, learning one faction at a time - combos,
-> synergies, and keywords - on a ramping difficulty curve.
+> **Status (updated 2026-08-05): proposal ONLY. No code written, and the
+> concept has been superseded.** The Campaign tab in the client is still
+> the disabled "Coming soon" placeholder. Per ROADMAP.md, the campaign
+> slot is now owned by **Legends Gauntlet chapters** (Phase 3): Chapter 1
+> "The Nine Thrones" on the 63-card roster, ending at The First Legend.
+> This document is kept for its difficulty findings (first-mover
+> advantage swamps AI depth in mirrors) and its reuse map of existing
+> machinery (`BATTLE().start`, `coachShow`, localStorage persistence,
+> `AI.setDepth`), all of which still hold.
+>
+> Original goal: the place a new player *starts*, learning one faction at
+> a time - combos, synergies, and keywords - on a ramping difficulty curve.
 
 ---
 

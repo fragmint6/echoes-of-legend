@@ -56,14 +56,19 @@ window.EOL.registerFaction({
       ability: {
         type: 'Active',
         name: 'Prophecy',
-        cost: 65,
-        text: 'Immediately reduce allied Skill costs by <b>15 Energy</b> and increase enemy Skill costs by <b>15 Energy</b> for 1 round, and grant all allies an <b>8% Max HP Shield</b>.',
+        /* REPRICE 2026-08-05 (user): 65 -> 55 EN, and the enemy tax now
+           touches SIGNATURE SKILLS ONLY - role Basics stay at their
+           normal price. The ally discount and the team Shield are
+           unchanged. Engine: costMod carries `signaturesOnly`, read in
+           costOf() and preserved through cloneBattle/cloneUnit. */
+        cost: 55,
+        text: 'Immediately reduce allied Skill costs by <b>15 Energy</b> and increase enemy <b>Signature</b> costs by <b>15 Energy</b> for 1 round, and grant all allies an <b>8% Max HP Shield</b>.',
         note: null,
         spec: {
           target: { side: 'none' },
           effects: [
             { k: 'costMod', flat: -15, turns: 1, side: 'ally' },
-            { k: 'costMod', flat: 15, turns: 1, side: 'enemy', when: 'now' },
+            { k: 'costMod', flat: 15, turns: 1, side: 'enemy', when: 'now', signaturesOnly: true },
             { k: 'shield', pctMaxHp: 8, to: 'allies' },
           ],
         },
