@@ -322,7 +322,7 @@
       '<div class="pk-ring inner"></div>' +
       '<i class="ra ra-crossed-swords"></i>' +
       '</div>' +
-      '<div class="pk-wordmark"><span>Echoes</span><i class="ra ra-diamond"></i><span>Pack</span></div>';
+      '<div class="pk-wordmark"><span>Echoes</span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
     host.insertBefore(face, host.firstChild);
   }
 
@@ -332,10 +332,10 @@
     var odds = el('product-odds');
     if (odds) {
       odds.innerHTML =
-        '<span><b>Card odds</b> Common 45% <i class="ra ra-diamond tip-dot"></i> Rare 35% ' +
-        '<i class="ra ra-diamond tip-dot"></i> Epic 16% <i class="ra ra-diamond tip-dot"></i> ' +
+        '<span><b>Card odds</b> Common 45% <span class="tip-dot">&middot;</span> Rare 35% ' +
+        '<span class="tip-dot">&middot;</span> Epic 16% <span class="tip-dot">&middot;</span> ' +
         'Legendary 4%</span>' +
-        '<span><b>Final card</b> Epic 80% <i class="ra ra-diamond tip-dot"></i> Legendary 20%</span>';
+        '<span><b>Final card</b> Epic 80% <span class="tip-dot">&middot;</span> Legendary 20%</span>';
     }
 
     el('btn-open-pack').addEventListener('click', begin);

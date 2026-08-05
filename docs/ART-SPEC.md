@@ -2,10 +2,11 @@
 
 The authoritative brief for every hero card illustration in Echoes of
 Legend. One entry per hero, written so any artist or generator produces a
-piece that sits in the same world as the other 56.
+piece that sits in the same world as the other 62.
 
-Status: **v2.1 - full-ART environmental card illustrations**, dynamic
-role-driven action compositions, 640 x 880 JPEG (2026-08-03, rev 2).
+Status: **v2.2 - full-ART environmental card illustrations**, dynamic
+role-driven action compositions, 640 x 880 JPEG, expanded to 63 heroes
+(2026-08-05, rev 3).
 
 > **2026-08-03, rev 2 (v2.1).** Static bust shots made every card read
 > alike. Cards are now **full art**: each hero is caught mid-motion doing
@@ -32,14 +33,11 @@ role-driven action compositions, 640 x 880 JPEG (2026-08-03, rev 2).
 > `assets/heroes/<id>.jpg`. The sigil-ring mask in CSS is deleted; the
 > image simply covers the card and the HUD scrims keep the text legible.
 
-- **never illustrated yet: 5** - Sekhmet, Isis, Nephthys, Snow White,
-  Hansel & Gretel
+- **roster: 63 heroes; generated art present for all 63**
+- Six new Grimmwood heroes were added in rev 3: Gingerbread Man, Evil Queen,
+  Puss in Boots, Rapunzel, Goldilocks and Cinderella.
 
-**Known outstanding:**
-- `grimmwood-snow-white` - the generator's safety filter rejected this one
-  at the OUTPUT stage twice, across two rewordings including a
-  deliberately plain one. Not a visible prompt-content problem; retry
-  later or author by hand.
+**Known outstanding:** none.
 
 ---
 
@@ -50,9 +48,9 @@ These are not stylistic preferences. Break one and the art fails in the UI.
 | Constraint | Value | Why |
 | --- | --- | --- |
 | Canvas | **640 x 880**, portrait (aspect 0.727) | The collection card renders at 250/385 (0.649) with `object-fit: cover`, the battle tile at 5/6 (0.833): a 0.727 source centre-crops cleanly to both. |
-| Format | **JPEG q85, opaque** | v2 art is a baked scene - there is no alpha to preserve, and JPEG keeps a 57-card roster under ~8 MB where portrait PNGs cost ~1 MB each. PNG is reserved for what genuinely needs transparency (menu layers). |
+| Format | **JPEG q85, opaque** | v2 art is a baked scene - there is no alpha to preserve, and JPEG keeps the 63-card roster compact. PNG is reserved for the 128px game build and what genuinely needs transparency (menu layers). |
 | File size | **< 180 KB each** budget | The art downloads once per card viewed; keep the whole roster cheap. |
-| Composition (v2.1) | Dynamic three-quarter-length action figure, dominating the **central 55-70%** of the source canvas width, may reach the lower edge | Static busts read uniform across 57 cards; the role's action is what makes each card distinct. |
+| Composition (v2.1) | Dynamic three-quarter-length action figure, dominating the **central 55-70%** of the source canvas width, may reach the lower edge | Static busts read uniform across 63 cards; the role's action is what makes each card distinct. |
 | Head position (v2.1) | Face clearly readable in the **upper third** (~25% from top) | The card's name plate and ability overlay own the bottom; faces live where nothing covers them. |
 | Environment | Full-scene backdrop, **darker, slightly desaturated, broader pixel clusters** than the character | The figure must read sharply in front; a backdrop that out-detail the hero fights the HUD. |
 | Backdrop geometry | Horizon **no higher than mid-canvas**; no bright shapes directly behind the head; calm upper sky | Bright clutter behind the head destroys the face at thumbnail size. |
@@ -104,8 +102,8 @@ contour. It never becomes an effect in the frame.
 
 | Element | Hex |
 | --- | --- |
-| Physical | `#d8894f` |
-| Magic | `#9b7bff` |
+| Physical | `#ff4d4d` |
+| Magic | `#ff4dd5` |
 | Shadow | `#a05cd8` |
 | Light | `#ffd977` |
 | Lightning | `#63d7ff` |
@@ -428,6 +426,43 @@ sparks.
 shadowed by a tall feathered cap; a thin unreadable smile. Motley of green
 and violet diamonds. Signature: the pipe raised to his lips. `#9b7bff` visible
 notes drifting from it.
+
+**Gingerbread Man** `common / Tank / Physical` - Living gingerbread guardian.
+Baked gingerbread body with white icing piping, gumdrop buttons and a clean
+cookie silhouette. Signature: the icing trim reads as simple cookie armour;
+small `#d8894f` dust motes. Common: plain baked materials, no ornament.
+
+**Evil Queen** `legendary / Caster / Shadow` - Regal fairy-tale queen. Pale,
+severe face, black pointed crown, high collar and black-violet brocade gown.
+Signature: the crown and violet mirror-like facets orbiting her spellwork;
+`#a05cd8` shadow ribbons. Legendary: maximum worked fabric and crown detail.
+
+**Puss in Boots** `rare / Sniper / Physical` - Anthropomorphic cat marksman.
+Dark fur, wide-brimmed feathered hat, green-violet coat, leather belt and tall
+boots. Signature: the hat-and-boots silhouette; one compact crossbow low at
+the edge. `#d8894f` physical glint. Rare: one distinctive costume feature.
+
+**Rapunzel** `epic / Caster / Magic` - Tower princess with living golden hair.
+Violet and damp-green storybook gown, tower collar and an impossibly long
+braid sweeping through the scene. Signature: the hair is part of her body and
+silhouette, never a companion. `#9b7bff` motes along the braid. Epic: layered
+fabric and rich braid detail.
+
+**Goldilocks** `rare / Sniper / Nature` - Adult golden-curled wanderer.
+Ochre dress, moss-green cloak and a small bear-claw motif stitched at the
+collar; no bear or animal companion. Signature: three distinct golden curls;
+`#5fd48a` leaf motes. Rare: practical fairy-tale travel wear.
+
+**Cinderella** `rare / Medic / Light` - Woodland healer in a transformed gown.
+Pale blue and silver dress, repaired storybook seams and a glass-like silver
+shoe at the lower edge. Signature: the silver shoe and cool blue silhouette;
+`#ffd977` light cupped low in her hands. Rare: one elegant costume feature.
+
+**Rev 3 prompt rule.** These six additions use the shared Section 3 prompt
+skeleton unchanged. Replace only `[NAME]`, `[ONE-LINE IDENTITY]`, the role
+action, costume/materials, defining feature, element colour, faction palette,
+environment and rarity direction from the entries above. Do not substitute a
+meta-style instruction for the shared rendering block.
 
 ---
 

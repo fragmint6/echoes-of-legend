@@ -526,7 +526,6 @@
       /* Spirit World reprieve is once per hero, so the AI's lookahead
          must know it has already been spent. */
       spiritSpared: u.spiritSpared,
-      spiritShieldUntil: u.spiritShieldUntil,
       deathCheated: u.deathCheated,
       streakUid: u.streakUid,
       lastDamagedRound: u.lastDamagedRound,
@@ -733,7 +732,7 @@
     return Math.max(0, Math.round((base + flat) * (1 + pct / 100)));
   }
 
-  function canUse(B, unit, ability) {
+  function canUse(B, unit, ability, o) {
     if (!unit.alive || ability.type !== 'Active') return false;
     if (B.acted[unit.side][unit.uid]) return false;
     // Silence prevents the hero's signature Active only; Basics still work.
@@ -754,7 +753,54 @@
        the engine enforces it. Tracked on the unit, so it survives in
        cloneBattle and the AI's lookahead cannot "discover" a second use. */
     if (ability.oncePerBattle && unit.usedOnce['ab:' + ability.name]) return false;
-    return B.energy[unit.side] >= costOf(B, unit, ability);
+    /* o.ignoreEnergy: legality WITHOUT the price, for diagnostics that
+       need to separate "too poor" from "illegal" (whyCantAct). */
+    return (o && o.ignoreEnergy) || B.energy[unit.side] >= costOf(B, unit, ability);
+  }
+
+  /* Can the unit fire this ability RIGHT NOW, targets included? canUse
+     says the cast itself is legal (energy, silence, locks); a cast also
+     needs something to AIM at - an enemy team whose only survivor is
+     Untargetable leaves attacks with nobody to choose, and a side whose
+     every ability is in that state has no actions at all. Abilities that
+     aim at allies (a Medic's heal) still count, self/auto casts always
+     do. */
+  function usableNow(B, unit, ability, o) {
+    if (!canUse(B, unit, ability, o)) return false;
+    var t = (ability.spec && ability.spec.target) || {};
+    if (t.side === 'none' || t.side === 'self' || t.side === 'auto') return true;
+    return legalTargets(B, unit, ability).length > 0;
+  }
+
+  /* WHY can't this side act? The advance banner used to blame Energy
+     whenever anyone stood idle, but a locked-out side can be broke,
+     target-starved, or skill-starved - three different feelings a player
+     should be able to tell apart. Evaluated without Energy first: */
+  function whyCantAct(B, side) {
+    var idle = unitsOf(B, side).filter(function (u) {
+      return u.alive && !B.acted[side][u.uid];
+    });
+    if (!idle.length) return 'acted';
+    var free = { ignoreEnergy: true };
+    /* energy-only blocker: something is fully legal, targets included,
+       if we pretend the side is rich */
+    if (
+      idle.some(function (u) {
+        return usableNow(B, u, u.card.ability, free) || usableNow(B, u, roleAbility(u), free);
+      })
+    )
+      return 'energy';
+    /* casts would be legal but nothing can be aimed at (the Untargetable
+       straggler case) */
+    if (
+      idle.some(function (u) {
+        return canUse(B, u, u.card.ability, free) || canUse(B, u, roleAbility(u), free);
+      })
+    )
+      return 'targets';
+    /* everything left is locked by silence, once-per-battle rules, the
+       opening-Basic phase, or the field's own laws */
+    return 'skills';
   }
 
   /* ---------------------------------------------------------
@@ -916,6 +962,14 @@
       if (row === 'front') {
         var front = pool.filter(isFront);
         if (front.length) pool = front; // back row only once front is cleared
+      } else if (row === 'back') {
+        /* 'back' (Rapunzel, 2026-08-05): symmetric to the melee rule -
+           reach over the front line into the supports; only when the
+           whole back row has fallen does the front become fair game */
+        var back = pool.filter(function (u) {
+          return !isFront(u);
+        });
+        if (back.length) pool = back;
       }
     }
     return pool;
@@ -1205,6 +1259,21 @@
     if (cond.targetHpAbove != null) {
       if (!tgt || tgt.hp / tgt.maxHp <= cond.targetHpAbove) return false;
     }
+    /* Goldilocks: an HP window. `targetHpBetween` is INCLUSIVE at both
+       ends ("between 30% and 70% HP" includes a hero sitting at exactly
+       30% or 70%); `targetHpOutside` is its exact complement, so a
+       two-arm card can price in-window and out-of-window with no gap
+       or overlap. */
+    if (cond.targetHpBetween) {
+      if (!tgt) return false;
+      var hb = tgt.hp / tgt.maxHp;
+      if (hb < cond.targetHpBetween[0] || hb > cond.targetHpBetween[1]) return false;
+    }
+    if (cond.targetHpOutside) {
+      if (!tgt) return false;
+      var ho = tgt.hp / tgt.maxHp;
+      if (ho >= cond.targetHpOutside[0] && ho <= cond.targetHpOutside[1]) return false;
+    }
     if (cond.targetBackRow) {
       if (!tgt || isFront(tgt)) return false;
     }
@@ -1483,30 +1552,25 @@
       tgt.hp = Math.max(0, tgt.hp - dmg);
       tgt.lastDamagedRound = B.round;
     }
-    /* Spirit World: a hero spared THIS action cannot be finished by a
-       later hit of the same action. See spiritShieldUntil below. */
-    if (B.field && B.field.spiritReprieve && tgt.spiritShieldUntil === B.turnId && tgt.hp <= 0) {
-      tgt.hp = 1;
-    }
 
     /* A Mark is spent the moment an Skill damages the target. Captured
        before it is cleared so riders that key off "was Marked" (Ares'
        Burn, Athena's damage cut) still see it for this same blow. */
     /* THE SPIRIT WORLD: nothing dies to damage here. A blow that would
        be lethal instead leaves the hero on 1 HP. It is a once-per-hero
-       reprieve (`spiritSpared`) rather than a standing immunity, so the
-       follow-up still kills - it buys a turn, not invincibility.
-       Checked BEFORE Benkei's death-cheat so the two never both fire on
-       the same blow. */
+       reprieve (`spiritSpared`) rather than a standing immunity - the
+       NEXT blow finishes the job, even a second hit of the SAME cast
+       (user ruling 2026-08-05: a two-part skill's follow-up - Sniper's
+       Aim rider, Guy of Gisborne's execute - must REGISTER; the old
+       same-action shield kept the spare alive but swallowed the follow
+       hit's feedback, which read as "my skill didn't register"). The
+       field's counter-pressure identity is unchanged: single-hit burst
+       is what the reprieve punishes; multi-hit and chip damage are the
+       intended answers. Checked BEFORE Benkei's death-cheat so the two
+       never both fire on the same blow. */
     if (B.field && B.field.spiritReprieve && tgt.hp <= 0 && !tgt.spiritSpared) {
       tgt.spiritSpared = true;
       tgt.hp = 1;
-      /* The reprieve buys a TURN, not a cast. A multi-hit ability
-         (Guy of Gisborne's execute rider, Nezha's follow-up) would
-         otherwise spend the reprieve on hit 1 and kill on hit 2 in the
-         same swing, which reads as the field doing nothing. Immunity
-         is held until the caster's action finishes resolving. */
-      tgt.spiritShieldUntil = B.turnId;
       emit(B, { t: 'spirit-spared', uid: tgt.uid, round: B.round });
       logMsg(B, 'passive', tgt.name + ' is held at the threshold by the spirits.', {
         uid: tgt.uid,
@@ -2182,6 +2246,25 @@
       applyEffect(B, src, adj, e2, ctx);
       return;
     }
+    /* Enemies standing in the same ROW as each incoming target (front
+       row <-> front row, back row <-> back row; the target itself is
+       included). Mordred's Treasonous Strike spreads Exposed down the
+       line this way (2026-08-05, replacing the old adjacency rule). */
+    if (e.to === 'targetRowEnemies') {
+      var rowMates = [];
+      (list || []).forEach(function (t) {
+        if (e.if && !condMet(B, e.if, condCtx(ctx, t))) return;
+        unitsOf(B, t.side).forEach(function (u) {
+          if (isFront(u) === isFront(t) && rowMates.indexOf(u) < 0) rowMates.push(u);
+        });
+      });
+      var e2r = {};
+      Object.keys(e).forEach(function (k) {
+        if (k !== 'if' && k !== 'to') e2r[k] = e[k];
+      });
+      applyEffect(B, src, rowMates, e2r, ctx);
+      return;
+    }
 
     // "to" redirects which units the effect lands on
     if (e.to === 'self') list = [src];
@@ -2335,6 +2418,13 @@
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var amt = e.pctMaxHp != null ? t.maxHp * (e.pctMaxHp / 100) : atkOf(src) * (e.power || 1);
+          /* Cinderella (Glass Slipper): an extra slice of Max HP for
+             every debuff this cast has already cleansed from THIS
+             target, recorded on ctx by the cleanse case. The two heal
+             lines stay separate in the log so the bonus reads as its
+             own number. */
+          if (e.perCleansed && ctx.cleansed && ctx.cleansed[t.uid])
+            amt += t.maxHp * (e.perCleansed / 100) * ctx.cleansed[t.uid];
           healUnit(B, src, t, amt * (ctx.scale || 1), {
             overflowShield: e.overflow === 'shield',
             signature: !!ctx.signature,
@@ -2674,7 +2764,10 @@
             }
             return;
           }
-          var n = e.count || 1,
+          /* count:'all' scrubs every debuff (Cinderella). The loop is
+             work-conserving - it stops the moment nothing is left to
+             remove, so the 99 is just an upper bound, never busywork. */
+          var n = e.count === 'all' ? 99 : e.count || 1,
             removed = 0,
             removedWhat = [];
           for (var i = 0; i < n; i++) {
@@ -2711,6 +2804,13 @@
               removed++;
               removedWhat.push('marked');
             }
+          }
+          /* Remember how much this cast scrubbed from each target -
+             Cinderella's per-debuff heal (perCleansed) reads it later
+             in the same cast. */
+          if (removed && ctx) {
+            ctx.cleansed = ctx.cleansed || {};
+            ctx.cleansed[t.uid] = (ctx.cleansed[t.uid] || 0) + removed;
           }
           if (removed) logMsg(B, 'cleanse', t.name + ' is cleansed.', { uid: t.uid });
           if (removed)
@@ -3355,7 +3455,7 @@
   function unitsCanAct(B, side) {
     return unitsOf(B, side).filter(function (u) {
       if (B.acted[side][u.uid]) return false;
-      return canUse(B, u, u.card.ability) || canUse(B, u, roleAbility(u));
+      return usableNow(B, u, u.card.ability) || usableNow(B, u, roleAbility(u));
     });
   }
 
@@ -3389,6 +3489,18 @@
       var hpBefore = u.hp;
       u.hp = Math.max(0, u.hp - dmg);
       u.lastDamagedRound = B.round;
+      /* The Spirit World's reprieve covers burn damage exactly like a
+         blow: a lethal tick holds the hero at 1 HP once, and the NEXT
+         tick (or any blow) finishes the job. Before this, burn ignored
+         the field entirely and killed through the reprieve. */
+      if (B.field && B.field.spiritReprieve && u.hp <= 0 && !u.spiritSpared) {
+        u.spiritSpared = true;
+        u.hp = 1;
+        emit(B, { t: 'spirit-spared', uid: u.uid, round: B.round });
+        logMsg(B, 'passive', u.name + ' is held at the threshold by the spirits.', {
+          uid: u.uid,
+        });
+      }
       logMsg(B, 'burn', u.name + ' burns for ' + dmg + '.', {
         uid: u.uid,
         amount: dmg,
@@ -3712,7 +3824,7 @@
 
     logMsg(B, 'round', 'Round ' + B.round + ' - Energy restored to ' + e + '.', {});
     if (B.round === RAMP_FROM) {
-      logMsg(B, 'round', 'The tide turns - all heroes grow stronger each round.', {});
+      logMsg(B, 'round', 'The tide turns - all legends grow stronger each round.', {});
     }
     checkEnd(B);
     return B.round;
@@ -3757,6 +3869,8 @@
     buffCount: buffCount,
     costOf: costOf,
     canUse: canUse,
+    usableNow: usableNow,
+    whyCantAct: whyCantAct,
     legalTargets: legalTargets,
     pickCount: pickCount,
     resolveTargets: resolveTargets,

@@ -18,12 +18,12 @@
     return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
   });
 
-  /* ---- lookup tables ---- */
+  /* ---- lookup tables ---- (see battle.js for the element glyph law) */
   var ELEMENT_ICON = {
-    Physical: 'ra-crossed-swords',
-    Magic: 'ra-crystals',
+    Physical: 'ra-axe',
+    Magic: 'ra-crystal-wand',
     Shadow: 'ra-moon-sun',
-    Light: 'ra-sun',
+    Light: 'ra-sunbeams',
     Lightning: 'ra-lightning-bolt',
     Fire: 'ra-fire',
     Nature: 'ra-leaf',
@@ -175,9 +175,9 @@
       '</h3>' +
       '<div class="ov-meta">' +
       esc(card.rarity) +
-      '<i class="ra ra-diamond dot"></i>' +
+      '<span class="dot">&middot;</span>' +
       esc(card.role) +
-      '<i class="ra ra-diamond dot"></i><span class="el">' +
+      '<span class="dot">&middot;</span><span class="el">' +
       esc(card.element) +
       '</span>' +
       '</div>' +
@@ -618,6 +618,10 @@
     }
   }
   function hideTipDot() {
+    if (tipHoverTimer) {
+      clearTimeout(tipHoverTimer);
+      tipHoverTimer = null;
+    }
     if (tipFloatEl) tipFloatEl.classList.remove('show');
     tipOwner = null;
   }
@@ -633,35 +637,50 @@
     });
     if (!on) hideTipDot();
   }
+  /* 2026-08-05 redesign: the tooltip is a composed little panel
+     (eyebrow + body + caret), not a bare text bubble. Hover opens it
+     with a short intent delay so swiping the cursor across the screen
+     doesn't light up every dot on the way past. */
+  var tipHoverTimer = null;
   function showTipDot(dot) {
     var text = dot.getAttribute('data-tip');
     if (!text) return;
+    hideTipDot();
     if (!tipFloatEl) {
       tipFloatEl = document.createElement('div');
       tipFloatEl.id = 'tip-float';
       tipFloatEl.setAttribute('role', 'tooltip');
+      tipFloatEl.innerHTML = '<div class="tf-eyebrow">Tip</div><div class="tf-body"></div>';
       document.body.appendChild(tipFloatEl);
     }
-    tipFloatEl.textContent = text;
+    tipFloatEl.querySelector('.tf-body').textContent = text;
+    /* restart the entrance animation for each owner */
+    tipFloatEl.classList.remove('show');
+    void tipFloatEl.offsetWidth;
     tipFloatEl.classList.add('show');
     /* above the dot, flipping below when the ceiling is too close, and
-       clamped inside the viewport (mirrors the status-chip pop) */
+       clamped inside the viewport (mirrors the status-chip pop).
+       Root-zoom bridge: rects are zoomed px, style/offset px are not -
+       so everything crossing the glass divides by the factor. */
+    var z = window.EOL.scale ? window.EOL.scale.factor() : 1;
     var a = dot.getBoundingClientRect();
     var w = tipFloatEl.offsetWidth;
     var h = tipFloatEl.offsetHeight;
     var pad = 8,
-      gap = 8;
-    var left = Math.max(pad, Math.min(a.left + a.width / 2 - w / 2, window.innerWidth - w - pad));
-    var top = a.top - h - gap;
+      gap = 9;
+    var left = Math.max(pad, Math.min(a.left / z + a.width / z / 2 - w / 2, window.innerWidth / z - w - pad));
+    var top = a.top / z - h - gap;
     var below = false;
     if (top < pad) {
-      top = a.bottom + gap;
+      top = a.bottom / z + gap;
       below = true;
     }
-    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    top = Math.max(pad, Math.min(top, window.innerHeight / z - h - pad));
     tipFloatEl.classList.toggle('below', below);
     tipFloatEl.style.left = left + 'px';
     tipFloatEl.style.top = top + 'px';
+    /* caret points BACK at the dot even when the panel slid aside */
+    tipFloatEl.style.setProperty('--cx', Math.round(a.left / z + a.width / z / 2 - left) + 'px');
     tipOwner = dot;
   }
   function initTips() {
@@ -693,14 +712,26 @@
       'mouseover',
       function (e) {
         var d = dotOf(e);
-        if (d) showTipDot(d);
+        if (!d || d === tipOwner) return;
+        /* intent delay: a dot you merely sweep past never opens */
+        if (tipHoverTimer) clearTimeout(tipHoverTimer);
+        tipHoverTimer = setTimeout(function () {
+          tipHoverTimer = null;
+          showTipDot(d);
+        }, 150);
       },
       true
     );
     document.addEventListener(
       'mouseout',
       function (e) {
-        if (!tipOwner || dotOf(e) !== tipOwner) return;
+        var d = dotOf(e);
+        if (d && tipHoverTimer) {
+          /* left before the intent delay fired - no flash, no tip */
+          clearTimeout(tipHoverTimer);
+          tipHoverTimer = null;
+        }
+        if (!tipOwner || d !== tipOwner) return;
         var to = e.relatedTarget;
         if (to && to.closest && to.closest('.tipdot') === tipOwner) return;
         hideTipDot();
@@ -775,6 +806,132 @@
     },
     set: applyGfx,
   };
+
+  /* ---------------------------------------------------------
+     GUI SCALE
+     -------------------------------------------------------------
+     80-110%, default 100. The thumb GLIDES while you drag (only the
+     read-out follows it) and snaps to a whole percent when you let go.
+
+     Semantics law (2026-08-05, third and final model): behave EXACTLY
+     like the browser's own Ctrl +/-, because that is what players
+     already reach for when they want the game to fit their screen.
+     Ctrl +/- does not clip or leave dead bands - it changes the LAYOUT
+     viewport, and everything reflows to fill the window at a new
+     density. Two earlier models both failed at that:
+       v1 `document.body.style.zoom`: viewport units inside the tree
+          resolved against the DEVICE window and then got zoom-scaled
+          on top - at >100% a 100dvh child rendered taller than the
+          window and the bottom was cropped off.
+       v2 paint-side `transform: scale()` on `.view`: layout can never
+          see a transform, so shrinking 13% left a 13% empty band at
+          the bottom (and 6.5% each side) - reads as "cut off".
+     v3: `zoom` on the ROOT element. Probe-proven (2026-08-05, Chrome
+     148): fixed/absolute layers pinned with inset:0 adapt to the
+     zoomed viewport exactly like page zoom, and every length scales
+     uniformly. Root zoom differs from real Ctrl +/- in only two
+     places, and both are homed into line here:
+       (a) viewport UNITS - style.css never names one directly; every
+           vh/vw/dvh/vmax is var(--vh1)/var(--vw1)/var(--dvh1)/
+           var(--vmax1) driven, and paintViewport() writes those as
+           (device pixels / zoom / 100) = the LOGICAL viewport unit,
+           exactly what Ctrl +/- would resolve them to;
+       (b) pixel media queries - the breakpoints are html.mqw MQW
+           and html.mqh classes toggled from the same logical numbers.
+     Rect math: getBoundingClientRect reports ZOOMED pixels while
+     style assignments and offset* are unzoomed - every rect->style
+     conversion divides by EOL.scale.factor() (uiS() in battle.js,
+     play.js, deck.js, plus the two body-level floaters: the tip dot
+     here and the status popover in battle.js). */
+  var SCALE_KEY = 'eol.scale';
+  var SCALE_MIN = 80;
+  var SCALE_MAX = 110;
+  var SCALE_DEF = 100;
+  var scalePct = SCALE_DEF;
+  /* every emulated pixel breakpoint in style.css lives in one list so
+     the stylesheet and this toggle can never drift apart */
+  var MQ_W = [520, 560, 640, 720, 780, 900, 980];
+  var MQ_H = [820];
+
+  function paintViewport() {
+    var z = scalePct / 100;
+    /* logical viewport = device / zoom - what Ctrl +/- would report */
+    var lw = window.innerWidth / z;
+    var lh = window.innerHeight / z;
+    var de = document.documentElement;
+    de.style.setProperty('--vw1', (lw / 100).toFixed(3) + 'px');
+    de.style.setProperty('--vh1', (lh / 100).toFixed(3) + 'px');
+    de.style.setProperty('--dvh1', (lh / 100).toFixed(3) + 'px');
+    de.style.setProperty('--vmax1', (Math.max(lw, lh) / 100).toFixed(3) + 'px');
+    for (var i = 0; i < MQ_W.length; i++) de.classList.toggle('mqw' + MQ_W[i], lw <= MQ_W[i]);
+    for (var j = 0; j < MQ_H.length; j++) de.classList.toggle('mqh' + MQ_H[j], lh <= MQ_H[j]);
+  }
+
+  function guiScale() {
+    return scalePct;
+  }
+  function scaleFactor() {
+    return scalePct / 100;
+  }
+  function applyScale(pct) {
+    pct = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round(parseFloat(pct) || SCALE_DEF)));
+    scalePct = pct;
+    var de = document.documentElement;
+    /* 100% is no zoom at all: the property drops out completely, so
+       the default build is byte-identical to build before the feature */
+    if (pct === 100) de.style.removeProperty('zoom');
+    else de.style.setProperty('zoom', String(pct / 100));
+    paintViewport();
+    try {
+      localStorage.setItem(SCALE_KEY, String(pct));
+    } catch (e) {
+      /* private mode */
+    }
+    var r = document.getElementById('scale-range');
+    if (r && parseFloat(r.value) !== pct) r.value = String(pct);
+    var out = document.getElementById('scale-val');
+    if (out) out.textContent = pct + '%';
+    /* root zoom does not fire window.resize by itself; every layout
+       sizer (board, dock, menus) already listens for resize - let
+       them all do their job at the new density */
+    try {
+      window.dispatchEvent(new Event('resize'));
+    } catch (e2) {}
+  }
+  function initScale() {
+    try {
+      var raw = parseInt(localStorage.getItem(SCALE_KEY), 10);
+      if (raw) {
+        /* legacy migrations: v2 stored levels 1-4, v1 (zoom era)
+           stored a percent 60-130 */
+        scalePct = raw <= 4 ? { 1: 80, 2: 87, 3: 93, 4: 100 }[raw] || SCALE_DEF : raw;
+      }
+    } catch (e) {
+      /* private mode */
+    }
+    applyScale(scalePct);
+    var r = document.getElementById('scale-range');
+    if (r) {
+      /* glide-then-snap: mid-drag only the READ-OUT follows the thumb;
+         the app itself rescales once, when the pointer lets go - no
+         layout storms while the user is still deciding */
+      r.addEventListener('input', function () {
+        var v = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round(parseFloat(r.value) || SCALE_DEF)));
+        var out = document.getElementById('scale-val');
+        if (out) out.textContent = v + '%';
+      });
+      r.addEventListener('change', function () {
+        applyScale(parseFloat(r.value));
+      });
+    }
+    var res = document.getElementById('scale-reset');
+    if (res)
+      res.addEventListener('click', function () {
+        applyScale(SCALE_DEF);
+      });
+    window.addEventListener('resize', paintViewport);
+  }
+  window.EOL.scale = { get: guiScale, set: applyScale, factor: scaleFactor };
 
   /* ---------------------------------------------------------
      AUTH UI
@@ -872,16 +1029,12 @@
     }
 
     openBtn.addEventListener('click', function (e) {
-      var u = A && A.user && A.user();
-      if (u) {
-        /* Signed in: open a small menu (Settings / Log out) instead of
-           dumping the session - one mercy click between the profile
-           button and being signed out. */
-        e.stopPropagation();
-        toggleAcctMenu();
-        return;
-      }
-      open();
+      /* The profile button opens the account menu for EVERYONE now
+         (session 24 - the corner gear is gone, the menu carries
+         Settings for all, plus Sign in or Log out depending on
+         body[data-auth]). */
+      e.stopPropagation();
+      toggleAcctMenu();
     });
     document.getElementById('auth-close').addEventListener('click', close);
     document.getElementById('auth-scrim').addEventListener('click', close);
@@ -974,6 +1127,10 @@
       document.getElementById('acct-logout').addEventListener('click', function () {
         toggleAcctMenu(false);
         A.signOut();
+      });
+      document.getElementById('acct-login').addEventListener('click', function () {
+        toggleAcctMenu(false);
+        open();
       });
       document.getElementById('acct-settings').addEventListener('click', function () {
         toggleAcctMenu(false);
@@ -1185,9 +1342,130 @@
     })();
   }
 
+  /* ---------------------------------------------------------
+     MENU ATMOSPHERE
+     -------------------------------------------------------------
+     Populates the five weather layers in the home backdrop (the
+     CSS and choreography live next to .mb-ultra & friends in
+     style.css). Every field is SEEDED so the scene is composed,
+     not dice - all players get the same intentional frame, and a
+     reload never re-deals the sky. All motion lives in CSS custom
+     properties; this file only deals the --x/--dur/--o cards.
+     --------------------------------------------------------- */
+  function seededRng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s + 0x6d2b79f5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function between(rng, lo, hi) {
+    return lo + rng() * (hi - lo);
+  }
+  function pick(rng, arr) {
+    return arr[Math.floor(rng() * arr.length) % arr.length];
+  }
+
+  var MENU_FIELDS = [
+    /* fourth mote band: barely-visible dust hanging in the sky, the
+       slowest thing in the frame */
+    {
+      sel: '.mb-ultra', n: 42, seed: 20260805,
+      sz: [1, 2], dur: [70, 130], o: [0.16, 0.4], sway: [10, 34],
+      tints: ['#cdd8f2', '#b9c8ec', '#e8ecf7'],
+    },
+    /* cold ash sifting down through the whole scene - the campfires'
+       other half, grey where the embers are gold */
+    {
+      sel: '.mb-ash', n: 26, seed: 20260806,
+      sz: [2, 4], dur: [38, 72], o: [0.2, 0.5], sway: [18, 46],
+      tints: ['#cfd3dd', '#b9bdcb', '#e3d9c8', '#d6cec2'],
+    },
+    /* big soft seeds riding up-currents, dreamy and rare */
+    {
+      sel: '.mb-spores', n: 14, seed: 20260807,
+      sz: [4, 8], dur: [50, 92], o: [0.16, 0.38], sway: [42, 110],
+      tints: ['rgba(255,236,190,0.85)', 'rgba(214,226,255,0.8)', 'rgba(255,222,168,0.7)'],
+    },
+  ];
+  /* banks and rays are not fields - four lanes and three shafts,
+     hand-placed, no dice at all */
+  var MENU_BANKS = [
+    { b: '2%', h: 150, pc: 'rgba(158,172,214,0.10)', f: -26, to: 20, dur: 118, dl: -40 },
+    { b: '7%', h: 210, pc: 'rgba(170,150,214,0.08)', f: 18, to: -24, dur: 96, dl: -12 },
+    { b: '12%', h: 130, pc: 'rgba(150,168,220,0.12)', f: -14, to: 26, dur: 74, dl: -55 },
+    { b: '0%', h: 260, pc: 'rgba(180,190,230,0.06)', f: 30, to: -30, dur: 132, dl: -70 },
+  ];
+  var MENU_RAYS = [
+    { x: '14%', w: 300, l1: -16, l2: -11, o: 0.3, dur: 34, dl: -8, rx: 46 },
+    { x: '46%', w: 380, l1: -13, l2: -18, o: 0.42, dur: 47, dl: -22, rx: 64 },
+    { x: '74%', w: 260, l1: -18, l2: -13, o: 0.26, dur: 39, dl: -15, rx: 52 },
+  ];
+
+  function initMenuParticles() {
+    MENU_FIELDS.forEach(function (f) {
+      var host = document.querySelector(f.sel);
+      if (!host || host.dataset.seeded) return;
+      host.dataset.seeded = '1';
+      var rng = seededRng(f.seed);
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < f.n; i++) {
+        var el = document.createElement('i');
+        var dur = between(rng, f.dur[0], f.dur[1]);
+        el.style.setProperty('--x', between(rng, 1.5, 98.5).toFixed(2) + '%');
+        el.style.setProperty('--dur', dur.toFixed(1) + 's');
+        /* negative delays - the field is already mid-flight on load,
+           nobody watches a synchronized wave rehearse */
+        el.style.setProperty('--dl', (-between(rng, 0, dur)).toFixed(1) + 's');
+        el.style.setProperty('--sz', between(rng, f.sz[0], f.sz[1]).toFixed(2) + 'px');
+        el.style.setProperty('--o', between(rng, f.o[0], f.o[1]).toFixed(3));
+        el.style.setProperty('--s1', Math.round(between(rng, f.sway[0], f.sway[1])) + 'px');
+        el.style.setProperty('--s2', Math.round(between(rng, f.sway[0], f.sway[1])) + 'px');
+        el.style.setProperty('--pc', pick(rng, f.tints));
+        frag.appendChild(el);
+      }
+      host.appendChild(frag);
+    });
+    var banks = document.querySelector('.mb-fogbanks');
+    if (banks && !banks.dataset.seeded) {
+      banks.dataset.seeded = '1';
+      MENU_BANKS.forEach(function (bk) {
+        var el = document.createElement('i');
+        el.style.setProperty('--b', bk.b);
+        el.style.setProperty('--h', bk.h + 'px');
+        el.style.setProperty('--pc', bk.pc);
+        el.style.setProperty('--f', String(bk.f));
+        el.style.setProperty('--to', String(bk.to));
+        el.style.setProperty('--dur', bk.dur + 's');
+        el.style.setProperty('--dl', bk.dl + 's');
+        banks.appendChild(el);
+      });
+    }
+    var rays = document.querySelector('.mb-rays');
+    if (rays && !rays.dataset.seeded) {
+      rays.dataset.seeded = '1';
+      MENU_RAYS.forEach(function (r) {
+        var el = document.createElement('i');
+        el.style.setProperty('--x', r.x);
+        el.style.setProperty('--w', r.w + 'px');
+        el.style.setProperty('--l1', r.l1 + 'deg');
+        el.style.setProperty('--l2', r.l2 + 'deg');
+        el.style.setProperty('--o', String(r.o));
+        el.style.setProperty('--dur', r.dur + 's');
+        el.style.setProperty('--dl', r.dl + 's');
+        el.style.setProperty('--rx', r.rx + 'px');
+        rays.appendChild(el);
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
     initTips();
+    initScale();
+    initMenuParticles();
     if (window.EOL.auth) window.EOL.auth.init();
     initAuth();
     if (!ROSTER.length) {

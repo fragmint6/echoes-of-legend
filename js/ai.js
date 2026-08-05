@@ -283,6 +283,12 @@
         return targets.indexOf(u) < 0;
       });
     if (e.to === 'enemies') return E.unitsOf(B, E.opposite(unit.side));
+    /* targetRowEnemies (Mordred's row-wide Exposed): score the real row
+       of the first target instead of pretending it is single-target */
+    if (e.to === 'targetRowEnemies' && targets.length)
+      return E.unitsOf(B, targets[0].side).filter(function (u) {
+        return E.isFront(u) === E.isFront(targets[0]);
+      });
     return targets; // triggerTarget / adjacentTargets: approximate by targets
   }
 

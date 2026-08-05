@@ -3,6 +3,17 @@
    ============================================================= */
 
 :root {
+  /* Viewport-unit law (GUI scale v3, 2026-08-05): the stylesheet never
+     names a raw vh/vw/dvh/vmax - every one resolves through these
+     logical-viewport variables, which js/app.js paintViewport()
+     rewrites to (device px / zoom / 100) so they mean exactly what
+     real Ctrl +/- would resolve. The raw-unit values below are right
+     whenever JS has not written them yet. */
+  --vh1: 1vh;
+  --dvh1: 1dvh;
+  --vw1: 1vw;
+  --vmax1: 1vmax;
+
   --bg-0: #06070d;
   --bg-1: #0b0e18;
   --bg-2: #121728;
@@ -23,8 +34,8 @@
   --r-common-2: #78849c;
 
   /* elements */
-  --e-physical: #d8894f;
-  --e-magic: #9b7bff;
+  --e-physical: #ff4d4d;
+  --e-magic: #ff4dd5;
   --e-shadow: #a05cd8;
   --e-light: #ffd977;
   --e-lightning: #63d7ff;
@@ -258,8 +269,8 @@ html {
 
 body {
   position: relative;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(var(--vh1) * 100);
+  height: calc(var(--dvh1) * 100);
   overflow: hidden; /* views handle their own scrolling */
   margin: 0;
   background: var(--bg-0);
@@ -356,6 +367,9 @@ body {
 }
 .view.active {
   opacity: 1;
+  /* GUI scale v3 (2026-08-05) lives on the ROOT element as zoom, the
+     same semantics as the browser's own Ctrl +/- - this box never
+     needs a scale rule, it simply fills the logical viewport. */
   transform: none;
   visibility: visible;
   pointer-events: auto;
@@ -444,7 +458,7 @@ body {
   font-weight: 800;
   line-height: 0.98;
   letter-spacing: 0.055em;
-  font-size: clamp(46px, 11vw, 104px);
+  font-size: clamp(46px, calc(var(--vw1) * 11), 104px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -501,7 +515,7 @@ body {
 
 .home-sub {
   margin: 16px 0 0;
-  font-size: clamp(11px, 2.4vw, 13.5px);
+  font-size: clamp(11px, calc(var(--vw1) * 2.4), 13.5px);
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: var(--txt-dim);
@@ -543,6 +557,22 @@ body {
 }
 .btn:hover {
   transform: translateY(-3px);
+}
+/* Jitter fix (2026-08-05): the -3px lift carried the button out from
+   under a cursor sitting at its bottom edge, so :hover flickered
+   on/off. This invisible bleed below the button is part of its hover
+   area, so the bottom strip stays "inside" through the lift. */
+.btn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 6px;
+  pointer-events: none;
+}
+.btn:hover::after {
+  pointer-events: auto;
 }
 .btn:active {
   transform: translateY(-1px);
@@ -642,9 +672,9 @@ body {
   font-weight: 700;
 }
 .home-stats .sep {
-  color: var(--r-legendary-1);
-  opacity: 0.6;
-  font-size: 8px;
+  width: 1px;
+  height: 14px;
+  background: rgba(232, 219, 182, 0.22);
 }
 
 /* lazy-loading sentinel at the foot of the card grid */
@@ -731,7 +761,7 @@ body {
 .col-title {
   margin: 0;
   font-family: 'Cinzel', Georgia, serif;
-  font-size: clamp(26px, 4vw, 38px);
+  font-size: clamp(26px, calc(var(--vw1) * 4), 38px);
   font-weight: 700;
   letter-spacing: 0.05em;
   background: linear-gradient(180deg, #fff 10%, #c8d2f4 90%);
@@ -1398,18 +1428,19 @@ body {
 .ov-meta .dot {
   color: var(--rar-1);
   margin: 0 5px;
-  font-size: 8px;
+  font-size: 11px;
+  line-height: 0;
 }
 .ov-meta .el {
   color: var(--el);
 }
 
-/* tiny diamond separators inside battle tooltips */
+/* tiny midpoint separators inside battle tooltips */
 .tip-dot {
   color: var(--r-legendary-1);
   opacity: 0.6;
-  font-size: 7px;
-  margin: 0 7px;
+  font-size: 10px;
+  margin: 0 6px;
   vertical-align: 1px;
 }
 
@@ -1665,42 +1696,44 @@ footer {
   }
 }
 
-@media (max-width: 640px) {
-  :root {
-    --card-w: 165px;
-  }
-  .collection {
-    padding: 22px 14px 60px;
-  }
-  .art-glyph {
-    font-size: 84px;
-  }
-  .ov-head {
-    padding-top: 22px;
-  }
-  .search-wrap input {
-    width: 150px;
-  }
-  .dd-btn {
-    min-width: 0;
-    flex: 1;
-  }
-  .filters {
-    width: 100%;
-  }
-  .dd {
-    flex: 1 1 46%;
-  }
-  .tool-right {
-    width: 100%;
-  }
-  .search-wrap {
-    flex: 1;
-  }
-  .search-wrap input {
-    width: 100%;
-  }
+/* Emulated breakpoint (max-width: 640px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw640 by paintViewport() in js/app.js. */
+html.mqw640 {
+  --card-w: 165px;
 }
+html.mqw640 .collection {
+  padding: 22px 14px 60px;
+}
+html.mqw640 .art-glyph {
+  font-size: 84px;
+}
+html.mqw640 .ov-head {
+  padding-top: 22px;
+}
+html.mqw640 .search-wrap input {
+  width: 150px;
+}
+html.mqw640 .dd-btn {
+  min-width: 0;
+    flex: 1;
+}
+html.mqw640 .filters {
+  width: 100%;
+}
+html.mqw640 .dd {
+  flex: 1 1 46%;
+}
+html.mqw640 .tool-right {
+  width: 100%;
+}
+html.mqw640 .search-wrap {
+  flex: 1;
+}
+html.mqw640 .search-wrap input {
+  width: 100%;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1727,7 +1760,13 @@ footer {
 
 /* ---------------- HUD ---------------- */
 .hud {
-  display: flex;
+  display: grid;
+  /* Session 25: the bar is a grid now, not loose flex. The centre
+     column is exactly as wide as its contents and the two side panels
+     split what remains evenly, so the round/action/pills stack sits at
+     the mathematical centre of the bar no matter how the side panels
+     grow (long names, wide energy numbers). */
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 14px;
   flex: 0 0 auto;
@@ -1741,7 +1780,8 @@ footer {
   padding: 8px 14px;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(180deg, rgba(24, 28, 46, 0.55), rgba(11, 14, 24, 0.4));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .back-btn.small {
   padding: 7px 13px 7px 10px;
@@ -2705,7 +2745,7 @@ body[data-turn='player'] .turn-label {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(74vh, 660px);
+  width: min(calc(var(--vh1) * 74), 660px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
@@ -3370,7 +3410,7 @@ body[data-turn='player'] .turn-label {
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: clamp(24px, 3vw, 46px);
+  font-size: clamp(24px, calc(var(--vw1) * 3), 46px);
   color: color-mix(in srgb, var(--rar-1) 70%, #fff);
   opacity: 0.52;
   text-shadow: 0 0 26px color-mix(in srgb, var(--rar-1) 62%, transparent);
@@ -3508,7 +3548,7 @@ body[data-turn='player'] .turn-label {
   place-items: center;
 }
 .bcard-art > i {
-  font-size: clamp(34px, 4.4vw, 66px);
+  font-size: clamp(34px, calc(var(--vw1) * 4.4), 66px);
   color: color-mix(in srgb, var(--rar-1) 70%, #fff);
   opacity: 0.55;
   text-shadow: 0 0 26px color-mix(in srgb, var(--rar-1) 62%, transparent);
@@ -4635,13 +4675,13 @@ body[data-turn='player'] .turn-label {
   --flashc: rgba(255, 217, 119, 0.16);
 }
 .board.flash-magic {
-  --flashc: rgba(195, 170, 255, 0.16);
+  --flashc: rgba(255, 124, 213, 0.16);
 }
 .board.flash-shadow {
   --flashc: rgba(160, 92, 216, 0.19);
 }
 .board.flash-physical {
-  --flashc: rgba(255, 178, 122, 0.12);
+  --flashc: rgba(255, 117, 117, 0.12);
 }
 @keyframes board-flash {
   0%,
@@ -6487,7 +6527,7 @@ body[data-gfx='low'] .set-pill.bump {
 }
 /* outer dashed ring, turning slowly one way */
 .arena-runes span:nth-child(1) {
-  width: min(66vh, 580px);
+  width: min(calc(var(--vh1) * 66), 580px);
   aspect-ratio: 1;
   margin: 0;
   translate: -50% -50%;
@@ -6496,7 +6536,7 @@ body[data-gfx='low'] .set-pill.bump {
 }
 /* mid ring of ticks, turning the other way */
 .arena-runes span:nth-child(2) {
-  width: min(48vh, 420px);
+  width: min(calc(var(--vh1) * 48), 420px);
   aspect-ratio: 1;
   translate: -50% -50%;
   border: 1px solid rgba(255, 205, 110, 0.12);
@@ -6511,7 +6551,7 @@ body[data-gfx='low'] .set-pill.bump {
 }
 /* inner ring, a slow counter-rotation */
 .arena-runes span:nth-child(3) {
-  width: min(30vh, 260px);
+  width: min(calc(var(--vh1) * 30), 260px);
   aspect-ratio: 1;
   translate: -50% -50%;
   border: 1px solid rgba(255, 205, 110, 0.22);
@@ -6998,7 +7038,7 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .view.deck,
 .view.shop {
-  padding: 26px clamp(16px, 4vw, 54px) 60px;
+  padding: 26px clamp(16px, calc(var(--vw1) * 4), 54px) 60px;
 }
 
 .btn-slim {
@@ -7257,7 +7297,7 @@ body[data-gfx='low'] .set-pill.bump {
   pointer-events: auto;
 }
 .dp-card {
-  width: min(560px, 94vw);
+  width: min(560px, calc(var(--vw1) * 94));
   padding: 24px 26px 20px;
   border-radius: calc(var(--radius) + 4px);
   border: 1px solid rgba(255, 214, 130, 0.4);
@@ -7417,12 +7457,12 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .product {
   display: flex;
-  gap: clamp(22px, 4vw, 48px);
+  gap: clamp(22px, calc(var(--vw1) * 4), 48px);
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
   max-width: 860px;
-  padding: clamp(20px, 3vw, 38px);
+  padding: clamp(20px, calc(var(--vw1) * 3), 38px);
   border: 1px solid var(--line);
   border-radius: calc(var(--radius) + 4px);
   background:
@@ -7456,8 +7496,15 @@ body[data-gfx='low'] .set-pill.bump {
   bottom: 0;
   width: 42%;
   left: -60%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.34), transparent);
-  transform: skewX(-18deg);
+  background: linear-gradient(
+    105deg,
+    transparent 16%,
+    rgba(255, 255, 255, 0.14) 40%,
+    rgba(255, 255, 255, 0.32) 50%,
+    rgba(255, 255, 255, 0.14) 60%,
+    transparent 84%
+  );
+  transform: skewX(-16deg);
   transition: left 0.9s var(--ease);
   pointer-events: none;
 }
@@ -7705,14 +7752,16 @@ body[data-gfx='low'] .set-pill.bump {
   font-size: 8px;
   opacity: 0.75;
 }
-@media (max-width: 900px) {
-  .po-pack .pk-emblem i {
-    --pk-icon-sz: 46px;
-  }
-  .pk-wordmark {
-    font-size: 11px;
-  }
+/* Emulated breakpoint (max-width: 900px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw900 by paintViewport() in js/app.js. */
+html.mqw900 .po-pack .pk-emblem i {
+  --pk-icon-sz: 46px;
 }
+html.mqw900 .pk-wordmark {
+  font-size: 11px;
+}
+
 
 /* =============================================================
    PACK OPENING (cinematic overlay)
@@ -7769,8 +7818,8 @@ body[data-gfx='low'] .set-pill.bump {
   position: absolute;
   left: 50%;
   top: 46%;
-  width: 150vmax;
-  height: 150vmax;
+  width: calc(var(--vmax1) * 150);
+  height: calc(var(--vmax1) * 150);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -7829,7 +7878,7 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .po-pack {
   position: relative;
-  width: min(240px, 54vw);
+  width: min(240px, calc(var(--vw1) * 54));
   aspect-ratio: 5 / 7;
   border-radius: 16px;
   overflow: hidden;
@@ -7876,7 +7925,7 @@ body[data-gfx='low'] .set-pill.bump {
 @keyframes po-pack-drop {
   0% {
     opacity: 0;
-    transform: translateY(-46vh) rotateX(38deg) scale(1.25);
+    transform: translateY(calc(var(--vh1) * -46)) rotateX(38deg) scale(1.25);
     filter: blur(7px);
   }
   62% {
@@ -8009,7 +8058,7 @@ body[data-gfx='low'] .set-pill.bump {
     opacity: 1;
   }
   100% {
-    transform: translateY(-46vh) translateX(-14vw) rotate(-32deg);
+    transform: translateY(calc(var(--vh1) * -46)) translateX(calc(var(--vw1) * -14)) rotate(-32deg);
     opacity: 0;
   }
 }
@@ -8019,7 +8068,7 @@ body[data-gfx='low'] .set-pill.bump {
     opacity: 1;
   }
   100% {
-    transform: translateY(46vh) translateX(12vw) rotate(26deg);
+    transform: translateY(calc(var(--vh1) * 46)) translateX(calc(var(--vw1) * 12)) rotate(26deg);
     opacity: 0;
   }
 }
@@ -8123,10 +8172,10 @@ body[data-gfx='low'] .set-pill.bump {
   gap: 20px;
   align-items: center;
   justify-content: center;
-  max-width: 96vw;
+  max-width: calc(var(--vw1) * 96);
 }
 .po-flip {
-  width: clamp(120px, 17vw, 188px);
+  width: clamp(120px, calc(var(--vw1) * 17), 188px);
   perspective: 1200px;
   animation: po-flip-in 0.62s cubic-bezier(0.2, 0.75, 0.3, 1.08) backwards;
 }
@@ -8136,7 +8185,7 @@ body[data-gfx='low'] .set-pill.bump {
 @keyframes po-flip-in {
   0% {
     opacity: 0;
-    transform: translateY(30vh) scale(0.42) rotate(-16deg);
+    transform: translateY(calc(var(--vh1) * 30)) scale(0.42) rotate(-16deg);
   }
   60% {
     opacity: 1;
@@ -8237,7 +8286,7 @@ body[data-gfx='low'] .set-pill.bump {
   align-items: center;
   gap: 12px;
   font-family: 'Cinzel', Georgia, serif;
-  font-size: clamp(20px, 4vw, 34px);
+  font-size: clamp(20px, calc(var(--vw1) * 4), 34px);
   font-weight: 800;
   letter-spacing: 0.12em;
   white-space: nowrap;
@@ -8353,36 +8402,38 @@ body[data-gfx='low'] .set-pill.bump {
 }
 
 /* ---- small screens ---- */
-@media (max-width: 900px) {
-  .deck-slot {
-    min-height: 100px;
-  }
-  .po-cards {
-    gap: 10px;
+/* Emulated breakpoint (max-width: 900px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw900 by paintViewport() in js/app.js. */
+html.mqw900 .deck-slot {
+  min-height: 100px;
+}
+html.mqw900 .po-cards {
+  gap: 10px;
     flex-wrap: wrap;
     top: 46%;
-  }
-  .po-flip {
-    width: clamp(104px, 28vw, 150px);
-  }
-  .po-summary {
-    bottom: 2.5%;
-    width: 94%;
-  }
-  .product {
-    flex-direction: column;
-    text-align: center;
-  }
-  .product-info {
-    max-width: 520px;
-  }
-  .product-info .btn {
-    margin: 0 auto;
-  }
-  .product-odds {
-    align-items: center;
-  }
 }
+html.mqw900 .po-flip {
+  width: clamp(104px, calc(var(--vw1) * 28), 150px);
+}
+html.mqw900 .po-summary {
+  bottom: 2.5%;
+    width: 94%;
+}
+html.mqw900 .product {
+  flex-direction: column;
+    text-align: center;
+}
+html.mqw900 .product-info {
+  max-width: 520px;
+}
+html.mqw900 .product-info .btn {
+  margin: 0 auto;
+}
+html.mqw900 .product-odds {
+  align-items: center;
+}
+
 
 /* =============================================================
    PLAY FLOW - mode select, deck modal, preparation, draft
@@ -8413,6 +8464,7 @@ body[data-gfx='low'] .set-pill.bump {
 
 /* ---------------- collection tabs ---------------- */
 .col-tabs {
+  position: relative;
   display: inline-flex;
   gap: 4px;
   margin-left: auto;
@@ -8422,6 +8474,8 @@ body[data-gfx='low'] .set-pill.bump {
   border: 1px solid var(--line);
 }
 .col-tab {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -8436,7 +8490,9 @@ body[data-gfx='low'] .set-pill.bump {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: var(--cur-pointer);
-  transition: all 0.2s var(--ease);
+  transition:
+    color 0.24s var(--ease),
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .col-tab i {
   font-size: 15px;
@@ -8444,11 +8500,38 @@ body[data-gfx='low'] .set-pill.bump {
 .col-tab:hover {
   color: var(--txt);
 }
+/* The selected state is a THUMB that slides under the active tab
+   (session 26, mirroring the play screen's segment bar): the buttons
+   stay glass so the gold plate shows through, only their ink darkens
+   as it travels. */
 .col-tab.sel {
   color: #0d1220;
+}
+.col-thumb {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: 0;
+  width: var(--thumb-w, 50%);
+  height: calc(100% - 8px);
+  transform: translateX(var(--thumb-x, 4px));
+  border-radius: 9px;
   background: linear-gradient(180deg, #ffe9b8, #e8b95f);
-  border-color: rgba(255, 215, 130, 0.8);
   box-shadow: 0 4px 16px rgba(230, 185, 95, 0.28);
+  transition:
+    transform 0.34s cubic-bezier(0.3, 1.4, 0.5, 1),
+    width 0.34s cubic-bezier(0.3, 1.4, 0.5, 1),
+    opacity 0.2s var(--ease);
+  pointer-events: none;
+  /* invisible until JS has actually parked it over a tab - an
+     unmeasured fallback position is just a gold slab on the screen */
+  opacity: 0;
+}
+.col-tabs[data-measured='1'] .col-thumb {
+  opacity: 1;
+}
+body[data-gfx='low'] .col-thumb {
+  transition: none;
 }
 .col-panel[hidden] {
   display: none;
@@ -8648,7 +8731,7 @@ body[data-gfx='low'] .set-pill.bump {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   max-width: 1100px;
   width: 100%;
-  margin: clamp(16px, 7vh, 66px) auto 14px;
+  margin: clamp(16px, calc(var(--vh1) * 7), 66px) auto 14px;
 }
 .mode-card {
   position: relative;
@@ -8657,7 +8740,7 @@ body[data-gfx='low'] .set-pill.bump {
   flex-direction: column;
   align-items: flex-start;
   gap: 13px;
-  min-height: clamp(300px, 40vh, 340px);
+  min-height: clamp(300px, calc(var(--vh1) * 40), 340px);
   padding: 30px 24px 22px;
   border-radius: 20px;
   text-align: left;
@@ -8697,9 +8780,16 @@ body[data-gfx='low'] .set-pill.bump {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 40%;
-  background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.1) 50%, transparent);
-  transform: translateX(-170%) skewX(-14deg);
+  width: 42%;
+  background: linear-gradient(
+    105deg,
+    transparent 16%,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0.13) 50%,
+    rgba(255, 255, 255, 0.05) 60%,
+    transparent 84%
+  );
+  transform: translateX(-170%) skewX(-16deg);
   pointer-events: none;
   z-index: 2;
 }
@@ -8708,10 +8798,10 @@ body[data-gfx='low'] .set-pill.bump {
 }
 @keyframes mc-sheen {
   from {
-    transform: translateX(-170%) skewX(-14deg);
+    transform: translateX(-170%) skewX(-16deg);
   }
   to {
-    transform: translateX(430%) skewX(-14deg);
+    transform: translateX(410%) skewX(-16deg);
   }
 }
 .mode-card:hover:not(.soon) {
@@ -8880,8 +8970,8 @@ body[data-gfx='low'] .set-pill.bump {
   pointer-events: auto;
 }
 .dm-card {
-  width: min(460px, calc(100vw - 40px));
-  max-height: min(600px, calc(100vh - 60px));
+  width: min(460px, calc(calc(var(--vw1) * 100) - 40px));
+  max-height: min(600px, calc(calc(var(--vh1) * 100) - 60px));
   display: flex;
   flex-direction: column;
   padding: 20px 22px 16px;
@@ -8996,7 +9086,7 @@ body[data-gfx='low'] .set-pill.bump {
    whole phase always fits without scrolling: header + steps, the two
    decks, and the confirm dock. */
 .view.prep {
-  --bcw: clamp(88px, calc((100vh - 344px) / 3.6), 140px);
+  --bcw: clamp(88px, calc((calc(var(--vh1) * 100) - 344px) / 3.6), 140px);
 }
 .prep .col-header {
   margin-bottom: 12px;
@@ -9064,7 +9154,7 @@ body[data-gfx='low'] .set-pill.bump {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  gap: clamp(20px, 3vw, 44px);
+  gap: clamp(20px, calc(var(--vw1) * 3), 44px);
   width: 100%;
   min-height: 0;
 }
@@ -9155,7 +9245,7 @@ body[data-gfx='low'] .set-pill.bump {
 .prep-cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, var(--bcw)));
-  gap: clamp(8px, 1.2vh, 12px);
+  gap: clamp(8px, calc(var(--vh1) * 1.2), 12px);
   justify-content: center;
 }
 
@@ -9343,7 +9433,7 @@ body[data-gfx='low'] .set-pill.bump {
 
 /* the field-side panel replaces the enemy deck in phase 2 */
 .prep-side.field {
-  width: min(430px, 38vw);
+  width: min(430px, calc(var(--vw1) * 38));
   flex: 0 0 auto;
   padding: 18px 20px 20px;
   border-radius: 16px;
@@ -9528,9 +9618,11 @@ body[data-gfx='low'] .set-pill.bump {
 .prep-actions {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 12px;
 }
 .prep-actions.main {
-  margin-top: clamp(10px, 2vh, 20px);
+  margin-top: clamp(10px, calc(var(--vh1) * 2), 20px);
   flex: 0 0 auto;
 }
 .prep-actions.main[hidden] {
@@ -9567,20 +9659,27 @@ body[data-gfx='low'] .set-pill.bump {
   bottom: -30%;
   left: 0;
   width: 42%;
-  background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.42) 50%, transparent);
-  transform: translateX(-180%) skewX(-14deg);
+  background: linear-gradient(
+    105deg,
+    transparent 16%,
+    rgba(255, 255, 255, 0.16) 40%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0.16) 60%,
+    transparent 84%
+  );
+  transform: translateX(-180%) skewX(-16deg);
   animation: sheen-pass 2.4s ease-in-out infinite;
   pointer-events: none;
 }
 @keyframes sheen-pass {
   0% {
-    transform: translateX(-180%) skewX(-14deg);
+    transform: translateX(-180%) skewX(-16deg);
   }
   55% {
-    transform: translateX(430%) skewX(-14deg);
+    transform: translateX(410%) skewX(-16deg);
   }
   100% {
-    transform: translateX(430%) skewX(-14deg);
+    transform: translateX(410%) skewX(-16deg);
   }
 }
 
@@ -9630,7 +9729,7 @@ body[data-gfx='low'] .set-pill.bump {
   z-index: 70;
   transform: translateX(-8px);
   transform-origin: left center;
-  max-height: calc(100vh - 20px);
+  max-height: calc(calc(var(--vh1) * 100) - 20px);
   box-shadow:
     0 20px 54px rgba(0, 0, 0, 0.75),
     0 0 0 1px rgba(0, 0, 0, 0.45);
@@ -9665,7 +9764,7 @@ body[data-gfx='low'] .set-pill.bump {
 /* Pack cards: the collection's geometry, capped by viewport height so
    the pack plus both squad piles always fit without scrolling. */
 .view.draft {
-  --dkw: clamp(150px, calc((100vh - 300px) * 0.6494), 250px);
+  --dkw: clamp(150px, calc((calc(var(--vh1) * 100) - 300px) * 0.6494), 250px);
 }
 .draft .col-header {
   margin-bottom: 8px;
@@ -9699,9 +9798,9 @@ body[data-gfx='low'] .set-pill.bump {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: clamp(14px, 2vw, 22px);
+  gap: clamp(14px, calc(var(--vw1) * 2), 22px);
   flex-wrap: wrap;
-  margin: clamp(14px, 5vh, 62px) auto 6px;
+  margin: clamp(14px, calc(var(--vh1) * 5), 62px) auto 6px;
   max-width: 920px;
   min-height: calc(var(--dkw) * 1.54 + 12px); /* reserve the card height */
   transition: filter 0.35s var(--ease);
@@ -9834,7 +9933,7 @@ body[data-gfx='low'] .set-pill.bump {
   flex: 0 0 auto;
   display: grid;
   gap: 12px;
-  margin: clamp(10px, 2vh, 20px) auto 0;
+  margin: clamp(10px, calc(var(--vh1) * 2), 20px) auto 0;
   grid-template-columns: 1fr 1fr;
   max-width: 860px;
   width: 100%;
@@ -9902,7 +10001,7 @@ body[data-gfx='low'] .set-pill.bump {
   pointer-events: auto;
 }
 .coach-card {
-  width: min(440px, calc(100vw - 40px));
+  width: min(440px, calc(calc(var(--vw1) * 100) - 40px));
   padding: 26px 26px 20px;
   border-radius: 18px;
   text-align: center;
@@ -10004,49 +10103,55 @@ body[data-gfx='low'] .set-pill.bump {
 
 /* tighter trays on small screens - the views still refuse to scroll
    until the viewport gets genuinely small (then they scroll gracefully) */
-@media (max-width: 980px) {
-  .view.prep {
-    --bcw: clamp(76px, calc((100vh - 344px) / 3.6), 112px);
-  }
-  .deck-slots-12 {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .draft-piles {
-    grid-template-columns: 1fr;
-    max-width: 560px;
-  }
+/* Emulated breakpoint (max-width: 980px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw980 by paintViewport() in js/app.js. */
+html.mqw980 .view.prep {
+  --bcw: clamp(76px, calc((calc(var(--vh1) * 100) - 344px) / 3.6), 112px);
 }
-@media (max-width: 780px) {
-  .prep .col-header,
-  .draft .col-header,
-  .play .col-header {
-    flex-wrap: wrap;
+html.mqw980 .deck-slots-12 {
+  grid-template-columns: repeat(4, 1fr);
+}
+html.mqw980 .draft-piles {
+  grid-template-columns: 1fr;
+    max-width: 560px;
+}
+
+/* Emulated breakpoint (max-width: 780px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw780 by paintViewport() in js/app.js. */
+html.mqw780 .prep .col-header,
+html.mqw780 .draft .col-header,
+html.mqw780 .play .col-header {
+  flex-wrap: wrap;
     row-gap: 12px;
-  }
-  .prep-steps,
-  .draft-order {
-    order: 3;
+}
+html.mqw780 .prep-steps,
+html.mqw780 .draft-order {
+  order: 3;
     width: 100%;
     margin-left: 0;
     justify-content: flex-end;
-  }
-  .prep-board {
-    flex-wrap: wrap;
-  }
-  .prep-side.field {
-    width: 100%;
-  }
 }
-@media (max-width: 640px) {
-  .view.play,
-  .view.prep,
-  .view.draft {
-    padding: 20px 14px 20px;
-  }
-  .draft-pack {
-    gap: 12px;
-  }
+html.mqw780 .prep-board {
+  flex-wrap: wrap;
 }
+html.mqw780 .prep-side.field {
+  width: 100%;
+}
+
+/* Emulated breakpoint (max-width: 640px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw640 by paintViewport() in js/app.js. */
+html.mqw640 .view.play,
+html.mqw640 .view.prep,
+html.mqw640 .view.draft {
+  padding: 20px 14px 20px;
+}
+html.mqw640 .draft-pack {
+  gap: 12px;
+}
+
 
 /* =============================================================
    BATTLEFIELDS - cinematic reveal + animated scenes
@@ -10083,7 +10188,7 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .bf-card {
   position: relative;
-  width: min(680px, 92vw);
+  width: min(680px, calc(var(--vw1) * 92));
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--bf-3, #fff) 35%, transparent);
@@ -13661,8 +13766,8 @@ body[data-gfx='low'] .dk-st {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(46vh, 420px);
-  height: min(46vh, 420px);
+  width: min(calc(var(--vh1) * 46), 420px);
+  height: min(calc(var(--vh1) * 46), 420px);
   transform: translate(-50%, -50%);
   pointer-events: none;
   display: block;
@@ -13724,8 +13829,8 @@ body[data-gfx='low'] .sc-emblem > b::before {
   --hex-line: color-mix(in srgb, var(--bf-3) 19%, transparent);
   --hex-line2: color-mix(in srgb, var(--bf-3) 13%, transparent);
   --rune-dir2: reverse;
-  width: min(38vh, 340px);
-  height: min(38vh, 340px);
+  width: min(calc(var(--vh1) * 38), 340px);
+  height: min(calc(var(--vh1) * 38), 340px);
   border-radius: 50%;
   border: 1.5px solid color-mix(in srgb, var(--bf-3) 38%, transparent);
   box-shadow:
@@ -13950,8 +14055,8 @@ body[data-gfx='low'] .sc-emblem > b::before {
   --rune-prism-dur: 24s;
   --rune-prism-pulse: 5s;
   --rune-halo-step: 18deg;
-  width: min(32vh, 290px);
-  height: min(32vh, 290px);
+  width: min(calc(var(--vh1) * 32), 290px);
+  height: min(calc(var(--vh1) * 32), 290px);
 }
 /* the void's band is a hexagonal singularity ring, tight to the core */
 .board[data-field='energy-void'] .sc-emblem > i {
@@ -13971,8 +14076,8 @@ body[data-gfx='low'] .sc-emblem > b::before {
   --hex-cell: 18px;
   --rune-prism-dur: 52s;
   --rune-halo-step: 20deg;
-  width: min(40vh, 360px);
-  height: min(40vh, 360px);
+  width: min(calc(var(--vh1) * 40), 360px);
+  height: min(calc(var(--vh1) * 40), 360px);
 }
 
 /* 6. MIRROR REALM - the twin-mirror sigil: two blades point to point.
@@ -14012,8 +14117,8 @@ body[data-gfx='low'] .sc-emblem > b::before {
   --rune-prism: 0.55;
   --rune-prism-dur: 74s;
   --rune-prism-pulse: 12s;
-  width: min(42vh, 380px);
-  height: min(42vh, 380px);
+  width: min(calc(var(--vh1) * 42), 380px);
+  height: min(calc(var(--vh1) * 42), 380px);
   opacity: 0.72;
 }
 
@@ -14069,8 +14174,8 @@ body[data-gfx='low'] .sc-emblem > b::before {
   --rune-from: 21deg;
   --hex-cell: 19px;
   --rune-prism-dur: 40s;
-  width: min(36vh, 320px);
-  height: min(36vh, 320px);
+  width: min(calc(var(--vh1) * 36), 320px);
+  height: min(calc(var(--vh1) * 36), 320px);
 }
 
 /* The BAN text stamp is gone entirely (2026-08-02). A banned card is
@@ -14315,7 +14420,7 @@ body[data-auth='in'] .acct-avatar {
 .auth-card {
   position: relative;
   width: min(392px, 100%);
-  max-height: calc(100vh - 48px);
+  max-height: calc(calc(var(--vh1) * 100) - 48px);
   overflow-y: auto;
   padding: 26px 26px 20px;
   border-radius: 18px;
@@ -14921,6 +15026,39 @@ body[data-gfx='low'] .turn-clock.crit {
 .turn-clock.theirs .tc-num {
   color: var(--txt-faint);
 }
+/* parked between windows (session 25): full quiet ring, no numeral.
+   It holds the left slot of the centre cluster so ROUND|pass never
+   shifts when a window starts or stops. */
+.turn-clock.idle {
+  opacity: 0.42;
+}
+.turn-clock.idle .tc-fill {
+  stroke: rgba(200, 212, 255, 0.35);
+}
+.turn-clock.idle .tc-track {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+/* the PASS caption rides under the circle on a wrapper - the button
+   itself is overflow:hidden for its countdown disc, which would clip
+   any caption placed inside it (found the hard way, session 25) */
+.et-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+}
+.et-cap {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  pointer-events: none;
+}
 
 /* =============================================================
    FORFEIT BUTTON
@@ -15011,7 +15149,7 @@ body[data-gfx='low'] .turn-clock.crit {
 }
 .quit-card {
   position: relative;
-  width: min(400px, calc(100vw - 32px));
+  width: min(400px, calc(calc(var(--vw1) * 100) - 32px));
   padding: 22px 22px 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 98, 87, 0.34);
@@ -15496,18 +15634,20 @@ body[data-view='home'] .menu-bg {
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
 }
-/* THE SEAM-FREE LOOP. Each tile is authored 640x360 (exactly 16:9) and
-   rendered by `background-size: auto 100%`, so its on-screen width is
-   always 100vh * 16/9, at ANY viewport aspect. The layer therefore
-   translates by precisely one rendered tile - after one period the
-   repeat-x continuum is pixel-identical, so the wrap is invisible.
-   The old version translated a full VIEWPORT (half the 200%-wide span),
-   which only equals a whole number of tiles at exactly 16:9; at every
-   other window shape the seam jumped by the fractional remainder. */
-.menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps) {
+/* THE SEAM-FREE LOOP. `background-size: auto 100%` renders each tile at
+   the viewport height, so one rendered tile is exactly 100vh * (tile
+   intrinsic width / intrinsic height) wide. Translating by precisely
+   that distance makes the after-period frame pixel-identical to the
+   start, at ANY window shape - the wrap is invisible.
+   ROOT CAUSE of the old visible jumps: the keyframe hardcoded 16:9
+   while the real tiles are 1211x768 (and near is 1240x768), so every
+   layer under-travelled by ~12% of a tile and snapped the difference
+   at each wrap, each on its own period. The ratio now rides a
+   per-layer custom property measured from the real files. */
+.menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps):not(.mb-ultra):not(.mb-rays):not(.mb-fogbanks):not(.mb-ash):not(.mb-spores) {
   /* viewport + more than one max tile period of slack, so no gap can
      open on the right during the travel */
-  width: calc(100vw + 200vh);
+  width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
   /* Longhand, NOT the `animation:` shorthand. The shorthand resets every
      sub-property it omits, so it set animation-duration back to 0s and
      silently killed the scroll on all four layers - they loaded and
@@ -15521,24 +15661,28 @@ body[data-view='home'] .menu-bg {
     transform: translate3d(0, 0, 0);
   }
   to {
-    /* exactly one rendered tile width (640:360 = 16:9 at full height) */
-    transform: translate3d(calc(-100vh * 16 / 9), 0, 0);
+    /* exactly one rendered tile width: 100vh * intrinsic aspect */
+    transform: translate3d(calc(calc(var(--vh1) * -100) * var(--tile-r, 1.57683)), 0, 0);
   }
 }
 .mb-sky {
   background-image: url('../assets/menu/sky.png');
+  --tile-r: 1.57683; /* 1211 / 768 */
   animation-duration: 420s;
 }
 .mb-far {
   background-image: url('../assets/menu/far.png');
+  --tile-r: 1.57683;
   animation-duration: 260s;
 }
 .mb-mid {
   background-image: url('../assets/menu/mid.png');
+  --tile-r: 1.57683;
   animation-duration: 150s;
 }
 .mb-near {
   background-image: url('../assets/menu/near.png');
+  --tile-r: 1.61458; /* 1240 / 768 */
   animation-duration: 90s;
 }
 
@@ -15592,7 +15736,7 @@ body[data-view='home'] .menu-bg {
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--dx, 18px), -78vh, 0) scale(1);
+    transform: translate3d(var(--dx, 18px), calc(var(--vh1) * -78), 0) scale(1);
   }
 }
 .mb-embers i:nth-child(1) {
@@ -15817,7 +15961,7 @@ body[data-gfx='low'] .mb-shoot {
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--dx, 40px), 108vh, 0);
+    transform: translate3d(var(--dx, 40px), calc(var(--vh1) * 108), 0);
   }
 }
 
@@ -16809,7 +16953,7 @@ body[data-gfx='low'] .mb-motes {
   }
   100% {
     opacity: 0;
-    transform: translate3d(112vw, var(--dx, 30px), 0);
+    transform: translate3d(calc(var(--vw1) * 112), var(--dx, 30px), 0);
   }
 }
 /* Mana Spring: bubbles rising from the pool */
@@ -16925,67 +17069,193 @@ body[data-gfx='low'] .sc-weather {
    ============================================================= */
 
 /* ------------------------- MENU: shooting stars -------------- */
+/* ============ SHOOTING STARS (session 24 rebuild) ============
+   Each star is a small machine riding one rotated, linear-timing mover:
+     .st-head   - the white-hot leading tip + cross flare, flickering
+     .st-core   - the solid bright body of the streak
+     .st-chunks - the tail, shattered into dashes that dissolve by mask
+     .st-sp     - two sparks the meteor sheds as it flies
+   The mover NEVER eases and never shortens its path: ignition is a fast
+   flare-up, burnout a fast fade, both at full velocity - slowing down
+   at the end was exactly what made the old ones feel fake. */
 .mb-shoot {
   inset: 0;
 }
 .mb-shoot i {
   position: absolute;
-  width: 54px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  animation-name: mb-shoot;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+  --st-h: 216, 231, 255; /* streak tint (st-c overrides warmer) */
+}
+.mb-shoot i b {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  pointer-events: none;
+}
+/* head: 3px white core, halo, and a cross flare that breathes */
+.st-head {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 6px 1px rgba(255, 255, 255, 0.95),
+    0 0 14px 3px rgba(var(--st-h), 0.65);
+  animation: st-flick 0.34s steps(2, jump-none) infinite;
+}
+.st-head::before,
+.st-head::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+}
+.st-head::before {
+  width: 17px;
+  height: 1px;
+}
+.st-head::after {
+  width: 1px;
+  height: 13px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  opacity: 0.85;
+}
+@keyframes st-flick {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.45);
+  }
+}
+/* solid bright body, ~64px, dissolving past 75% */
+.st-core {
+  width: 66px;
   height: 2px;
   border-radius: 2px;
-  /* Head at the LEFT end (0%), trail dissolving to the right: these fall
-     down-LEFT, so the bright end must lead. It used to sit right, which
-     made every star fly tail-first. The extra glow hangs off the leading
-     tip via the local -x offset (transforms rotate box and shadow
-     together, so it stays on the head at any angle). */
-  background: linear-gradient(90deg, #ffffff 0%, #eef4ff 12%, rgba(200, 220, 255, 0.35) 45%, transparent 100%);
-  box-shadow:
-    -2px 0 8px 1px rgba(255, 255, 255, 0.85),
-    0 0 6px rgba(210, 228, 255, 0.7);
-  opacity: 0;
-  animation: mb-shoot linear infinite;
-  will-change: transform, opacity;
+  background: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    rgba(var(--st-h), 0.85) 22%,
+    rgba(var(--st-h), 0.35) 62%,
+    transparent 96%
+  );
+  box-shadow: 0 0 5px rgba(var(--st-h), 0.55);
 }
-/* The flight vector uses vw on BOTH axes (-46, 10), so the descent angle
-   is atan(10/46) = 12.3 degrees at every viewport shape; the streak is
-   rotated by the same -12.3 degrees, which points its head exactly along
-   the velocity. Mixing vw with vh here (the old -42vw / 12vh) made the
-   true angle aspect-dependent, and the fixed 16deg roll never matched the
-   travel direction at all - the trail lagged off-axis the whole way. */
+/* shattered tail: dashes shrinking behind the core, masked to nothing */
+.st-chunks {
+  left: 58px;
+  top: 0.5px;
+  width: 118px;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(var(--st-h), 0.8) 0 4px,
+    transparent 4px 9px,
+    rgba(var(--st-h), 0.5) 9px 11px,
+    transparent 11px 17px
+  );
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.45) 42%, transparent 88%);
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.45) 42%, transparent 88%);
+  opacity: 0.85;
+}
+/* shed sparks: ignite mid-flight, tumble back off the tail, die fast */
+.st-sp {
+  left: 34px;
+  top: 1px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(var(--st-h), 0.95);
+  opacity: 0;
+  animation: st-spark 1.15s linear infinite;
+}
+.st-sp.p2 {
+  left: 52px;
+  animation-delay: 0.18s;
+  animation-duration: 1.02s;
+}
+@keyframes st-spark {
+  0%,
+  72% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  76% {
+    opacity: 0.95;
+  }
+  88% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(46px, 8px, 0);
+  }
+}
+/* Flight: vw on BOTH axes keeps the descent at atan(10/46) ≈ 12.3° at
+   every viewport shape, and the streak is rotated by the same -12.3°,
+   so the head points exactly down the velocity vector. Translation is
+   one constant-speed run; opacity ramps are clipped to its ends. */
 @keyframes mb-shoot {
-  0%, 82% {
+  0%,
+  78.5% {
     opacity: 0;
     transform: translate3d(0, 0, 0) rotate(-12.3deg);
   }
-  84% {
+  80% {
     opacity: 1;
   }
-  92% {
-    opacity: 0.9;
-    transform: translate3d(-46vw, 10vw, 0) rotate(-12.3deg);
+  89.5% {
+    opacity: 1;
+    transform: translate3d(calc(var(--vw1) * -46), calc(var(--vw1) * 10), 0) rotate(-12.3deg);
   }
-  94%, 100% {
+  91%,
+  100% {
     opacity: 0;
-    transform: translate3d(-48vw, 10.4vw, 0) rotate(-12.3deg);
+    transform: translate3d(calc(var(--vw1) * -48.4), calc(var(--vw1) * 10.53), 0) rotate(-12.3deg);
   }
 }
-.mb-shoot i:nth-child(1) {
+/* star A: the common one */
+.st-a {
   left: 74%;
   top: 9%;
   animation-duration: 17s;
   animation-delay: 2s;
 }
-.mb-shoot i:nth-child(2) {
+/* star B: the long binary - doubled core riding 4px below the first */
+.st-b {
   left: 88%;
   top: 17%;
   animation-duration: 26s;
   animation-delay: 9s;
 }
-.mb-shoot i:nth-child(3) {
+.st-b .st-core {
+  width: 88px;
+  box-shadow:
+    0 0 5px rgba(var(--st-h), 0.55),
+    0 5px 0 rgba(var(--st-h), 0.28);
+}
+.st-b .st-chunks {
+  left: 80px;
+  width: 130px;
+}
+/* star C: brief, warmer, lower - the close one */
+.st-c {
   left: 57%;
-  top: 6%;
+  top: 24%;
   animation-duration: 34s;
   animation-delay: 21s;
+  --st-h: 255, 226, 178;
 }
 
 /* ------------------------- MENU: firefly wisps --------------- */
@@ -17108,7 +17378,7 @@ body[data-gfx='low'] .sc-weather {
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--dx, 16px), -46vh, 0) scale(0.7);
+    transform: translate3d(var(--dx, 16px), calc(var(--vh1) * -46), 0) scale(0.7);
   }
 }
 @keyframes bfx-fall {
@@ -17124,7 +17394,7 @@ body[data-gfx='low'] .sc-weather {
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--dx, 24px), 44vh, 0);
+    transform: translate3d(var(--dx, 24px), calc(var(--vh1) * 44), 0);
   }
 }
 @keyframes bfx-bwander {
@@ -17183,7 +17453,7 @@ body[data-gfx='low'] .sc-weather {
   }
   60% {
     opacity: calc(var(--peak, 0.8) * 0.55);
-    transform: translate3d(calc((50vw - 100%) * 0.18), calc((42vh - 100%) * 0.18), 0) scale(0.7);
+    transform: translate3d(calc((calc(var(--vw1) * 50) - 100%) * 0.18), calc((calc(var(--vh1) * 42) - 100%) * 0.18), 0) scale(0.7);
   }
 }
 .board.has-art[data-field='energy-void'] .sc-weather i:nth-child(5n) {
@@ -17280,7 +17550,7 @@ body[data-gfx='low'] .sc-weather {
   display: grid;
   justify-items: center;
   gap: 20px;
-  transform: translateY(2vh);
+  transform: translateY(calc(var(--vh1) * 2));
 }
 .veil-ward {
   position: relative;
@@ -17387,12 +17657,21 @@ body[data-gfx='low'] .veil-ward > i {
    graphics quality.
    ============================================================= */
 
-/* Discord chip, bottom-left of the home view */
+/* Discord chip, TOP-LEFT of the home view (moved in session 24 - the
+   bottom-left corner is free and the top corners now balance:
+   community left, account right) */
 .home-discord {
   position: absolute;
   left: 22px;
-  bottom: 20px;
+  top: 20px;
   z-index: 30;
+  animation: corner-drop 0.7s var(--ease) 1.05s backwards;
+}
+@keyframes corner-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.7);
+  }
 }
 /* on the LEFT edge the label rides out to the right instead */
 .home-discord .discord-tip {
@@ -17420,6 +17699,19 @@ body[data-gfx='low'] .veil-ward > i {
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
   pointer-events: none;
   user-select: none;
+  animation: credit-rise 0.8s var(--ease) 1.15s backwards;
+  transition: opacity 0.2s var(--ease);
+}
+.art-credit b {
+  color: var(--r-legendary-1);
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(255, 200, 90, 0.4);
+}
+@keyframes credit-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 /* signed-in account dropdown */
@@ -17584,6 +17876,8 @@ body[data-gfx='low'] .veil-ward > i {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+  /* breathing room between the Display controls (2026-08-05) */
+  margin-top: 18px;
 }
 /* the modal's own quality switch: full-width, roomier than the
    bare .gfx-switch it reuses, so High and Low read as real
@@ -17615,7 +17909,11 @@ body[data-gfx='low'] .veil-ward > i {
   font-size: 11.5px;
   line-height: 1.55;
   color: var(--txt-faint);
-  margin: 14px 0 0;
+  /* tighter to its control above, wider gap to the next control */
+  margin: 8px 0 12px;
+}
+.set-gfx-note:last-child {
+  margin-bottom: 2px;
 }
 .set-gfx-note i {
   margin-top: 2px;
@@ -17634,15 +17932,17 @@ body[data-gfx='low'] .veil-ward > i {
   margin: -8px 0 0;
   padding-top: 18px;
 }
-@media (max-width: 560px) {
-  .set-card {
-    padding: 28px 18px 20px;
+/* Emulated breakpoint (max-width: 560px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw560 by paintViewport() in js/app.js. */
+html.mqw560 .set-card {
+  padding: 28px 18px 20px;
     gap: 22px;
-  }
-  .set-block {
-    padding: 18px 16px 16px;
-  }
 }
+html.mqw560 .set-block {
+  padding: 18px 16px 16px;
+}
+
 .uname-skip {
   width: 100%;
   margin-top: 10px;
@@ -18048,7 +18348,7 @@ body[data-gfx='low'] .fx-blast-mini {
 .setm-card {
   position: relative;
   width: min(880px, 100%);
-  max-height: calc(100vh - 48px);
+  max-height: calc(calc(var(--vh1) * 100) - 48px);
   overflow-y: auto;
   padding: 26px 28px 24px;
   border-radius: 22px;
@@ -18326,16 +18626,20 @@ body[data-gfx='low'] .fx-blast-mini {
   min-width: 230px;
   justify-content: center;
 }
-@media (max-width: 720px) {
-  .setm-plate {
-    width: min(300px, 88vw);
-  }
+/* Emulated breakpoint (max-width: 720px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw720 by paintViewport() in js/app.js. */
+html.mqw720 .setm-plate {
+  width: min(300px, calc(var(--vw1) * 88));
 }
-@media (max-width: 640px) {
-  .war-length {
-    grid-template-columns: 1fr;
-  }
+
+/* Emulated breakpoint (max-width: 640px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw640 by paintViewport() in js/app.js. */
+html.mqw640 .war-length {
+  grid-template-columns: 1fr;
 }
+
 
 body[data-gfx='low'] .setm-scrim,
 body[data-gfx='low'] .setm-card {
@@ -18364,31 +18668,39 @@ body[data-gfx='low'] .setm-plate.called .setm-stamp {
 .tipdot {
   display: inline-grid;
   place-items: center;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   flex: 0 0 auto;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(158, 176, 210, 0.32);
   border-radius: 50%;
-  background: rgba(10, 13, 22, 0.75);
-  color: var(--txt-faint);
+  background: rgba(14, 17, 26, 0.66);
+  color: rgba(178, 192, 218, 0.58);
   cursor: help;
   vertical-align: middle;
+  /* 2026-08-05 redesign: the dots were gold, breathing, and everywhere
+     at once - intrusive visual noise. They now sit at ambient glass
+     level: quiet steel rings that only wake up under the pointer. NO
+     idle animation - a tip is an answer, not an advertisement. */
   transition:
-    color 0.18s var(--ease),
-    border-color 0.18s var(--ease),
-    background 0.18s var(--ease);
+    color 0.16s var(--ease),
+    border-color 0.16s var(--ease),
+    background 0.16s var(--ease),
+    box-shadow 0.16s var(--ease),
+    transform 0.16s var(--ease);
 }
 .tipdot i {
-  font-size: 9px;
+  font-size: 8px;
   line-height: 1;
 }
 .tipdot:hover,
 .tipdot:focus-visible {
-  color: var(--r-legendary-1);
-  border-color: color-mix(in srgb, var(--r-legendary-1) 60%, transparent);
-  background: rgba(24, 19, 8, 0.9);
+  color: #e6edf9;
+  border-color: rgba(190, 206, 236, 0.62);
+  background: rgba(24, 29, 43, 0.92);
   outline: none;
+  transform: scale(1.14);
+  box-shadow: 0 0 9px rgba(150, 178, 225, 0.26);
 }
 body[data-tips='off'] .tipdot {
   display: none !important;
@@ -18420,29 +18732,24 @@ body[data-tips='off'] .tipdot {
 }
 
 /* placements that float the dot as a corner badge */
-.war-length {
-  position: relative;
+.wl-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 2px -1px;
 }
-.wl-tip {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  z-index: 3;
+.wl-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
 }
-.tc-tip {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-}
-.et-tip {
-  position: relative;
-  z-index: 3;
-  align-self: flex-start;
-  margin: 1px 0 0 -11px;
-}
-.mm-tip {
-  display: block;
-  margin: 8px auto 0;
+.mm-subrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 .result-tip {
   position: absolute;
@@ -18460,25 +18767,103 @@ body[data-tips='off'] .tipdot {
 #tip-float {
   position: fixed;
   z-index: 700;
-  max-width: 250px;
-  padding: 8px 11px;
+  max-width: 236px;
+  padding: 9px 12px 10px 14px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 28%, transparent);
-  background: linear-gradient(180deg, rgba(15, 18, 30, 0.97), rgba(9, 11, 19, 0.97));
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
-  font-size: 11px;
-  line-height: 1.5;
+  border: 1px solid rgba(200, 214, 240, 0.1);
+  background: linear-gradient(180deg, rgba(17, 21, 33, 0.96), rgba(10, 13, 22, 0.96));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  font-size: 11.5px;
+  line-height: 1.55;
   color: var(--txt);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition:
-    opacity 0.15s var(--ease),
-    visibility 0.15s;
+    opacity 0.16s var(--ease),
+    visibility 0.16s;
+}
+/* the gold spine: one deliberate accent so the panel belongs to the
+   game's frame language without glowing at you */
+#tip-float::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(236, 190, 96, 0.85), rgba(236, 190, 96, 0.25));
+}
+/* caret: a small chip turned diamond-wise, docked to whichever edge
+   faces the dot (--cx set by app.js so it always points home) */
+#tip-float::before {
+  content: '';
+  position: absolute;
+  left: var(--cx, 50%);
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(13, 16, 27, 0.97);
+  border-right: 1px solid rgba(200, 214, 240, 0.1);
+  border-bottom: 1px solid rgba(200, 214, 240, 0.1);
+}
+#tip-float.below::before {
+  bottom: auto;
+  top: -4px;
+  transform: translateX(-50%) rotate(225deg);
+}
+#tip-float .tf-eyebrow {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(226, 183, 102, 0.85);
+  margin-bottom: 3px;
+}
+#tip-float .tf-body {
+  color: rgba(230, 227, 220, 0.95);
 }
 #tip-float.show {
   opacity: 1;
   visibility: visible;
+  animation: tf-in 0.18s var(--ease) both;
+}
+@keyframes tf-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+#tip-float.below.show {
+  animation-name: tf-in-below;
+}
+@keyframes tf-in-below {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+body[data-gfx='low'] #tip-float.show {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #tip-float.show {
+    animation: none;
+  }
 }
 
 /* Settings > Display: the tips switch mirrors the gfx switch, in ice
@@ -18535,4 +18920,1372 @@ body[data-gfx='low'] .tipdot,
 body[data-gfx='low'] #tip-float,
 body[data-gfx='low'] .tips-thumb {
   transition: none;
+}
+
+/* =============================================================
+   LUSTRE PASS (session 24)
+   -------------------------------------------------------------
+   Global interaction polish for everything that isn't the match:
+   - buttons get real physics (lift / press / rebound) and a proper
+     two-layer shine instead of a single pale sweep
+   - the singleplayer/multiplayer swap is a directed slide, not a cut
+   - small state changes everywhere answer with a tiny animation:
+     tabs, war-length picks, account menu, checkboxes, filter chips,
+     focus rings, deck rows
+   body[data-gfx='low'] + prefers-reduced-motion strip all of it at
+   the bottom of this block.
+   ============================================================= */
+
+/* ---------------- buttons: physics + shine ---------------- */
+.btn {
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.24s var(--ease),
+    border-color 0.24s var(--ease),
+    background 0.24s var(--ease),
+    filter 0.24s var(--ease);
+}
+.btn:hover {
+  transform: translateY(-3px) scale(1.025);
+}
+.btn:active {
+  transform: translateY(0) scale(0.955);
+  transition-duration: 0.06s;
+  filter: brightness(0.94);
+}
+.btn > i:first-child {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn:hover > i:first-child {
+  transform: scale(1.14) rotate(-4deg);
+}
+.btn:focus-visible {
+  outline: 2px solid rgba(255, 214, 130, 0.9);
+  outline-offset: 3px;
+}
+/* primary: warmer rest state, ember halo on hover, faster bright sheen */
+.btn-primary {
+  background: linear-gradient(180deg, #ffedbc 0%, #f6c45c 52%, #dd9427 100%);
+  box-shadow:
+    0 10px 30px rgba(230, 165, 55, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -3px 8px rgba(150, 80, 10, 0.28);
+}
+.btn-primary::before {
+  /* soft ember under-glow that floods in on hover - the "shine" the
+     old single sheen never delivered on its own */
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 75% 90% at 50% 108%, rgba(255, 166, 40, 0.55), transparent 62%);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+  pointer-events: none;
+}
+.btn-primary:hover::before {
+  opacity: 1;
+}
+.btn-primary::after {
+  /* THE EOL SHEEN LAW (session 25): every shine in the game is the same
+     band - 105deg gradient, skewX(-16deg), 42% of the surface, sweeping
+     left to right. Only its peak opacity varies by surface. The old
+     Play-button band rode a 100deg/-18deg spec with a washed-out three
+     hump gradient; this is the one true geometry now. */
+  left: -60%;
+  width: 42%;
+  background: linear-gradient(
+    105deg,
+    transparent 16%,
+    rgba(255, 255, 255, 0.24) 40%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.24) 60%,
+    transparent 84%
+  );
+  transform: skewX(-16deg);
+  transition: left 0.6s var(--ease);
+  z-index: 1;
+}
+.btn > i,
+.btn > span {
+  position: relative;
+  z-index: 2;
+}
+.btn-primary:hover {
+  box-shadow:
+    0 16px 46px rgba(240, 180, 70, 0.52),
+    0 0 26px rgba(255, 190, 80, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -3px 8px rgba(150, 80, 10, 0.22);
+}
+/* ghost: glass brightens + its own quieter sheen sweep */
+.btn-ghost {
+  overflow: hidden;
+}
+.btn-ghost::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 42%;
+  /* same band as the law, quieter peak for dark glass */
+  background: linear-gradient(
+    105deg,
+    transparent 16%,
+    rgba(220, 232, 255, 0.09) 40%,
+    rgba(220, 232, 255, 0.2) 50%,
+    rgba(220, 232, 255, 0.09) 60%,
+    transparent 84%
+  );
+  transform: skewX(-16deg);
+  transition: left 0.6s var(--ease);
+  pointer-events: none;
+  z-index: 1;
+}
+.btn-ghost:hover::after {
+  left: 118%;
+}
+
+/* ---------------- play: arena swap slides ---------------- */
+.mg-out {
+  animation: mg-out-l 0.185s var(--ease) forwards;
+  pointer-events: none;
+}
+.mg-out-r {
+  animation: mg-out-r 0.185s var(--ease) forwards;
+  pointer-events: none;
+}
+.mg-in {
+  animation: mg-in-l 0.44s var(--ease);
+}
+.mg-in-r {
+  animation: mg-in-r 0.44s var(--ease);
+}
+@keyframes mg-out-l {
+  to {
+    opacity: 0;
+    transform: translateX(-42px) scale(0.985);
+  }
+}
+@keyframes mg-out-r {
+  to {
+    opacity: 0;
+    transform: translateX(42px) scale(0.985);
+  }
+}
+@keyframes mg-in-l {
+  from {
+    opacity: 0;
+    transform: translateX(42px) scale(0.985);
+  }
+}
+@keyframes mg-in-r {
+  from {
+    opacity: 0;
+    transform: translateX(-42px) scale(0.985);
+  }
+}
+/* incoming cards cascade; war-length bar lands first, cards after */
+.mg-in .war-length,
+.mg-in-r .war-length {
+  animation: mg-rise 0.5s var(--ease) backwards;
+}
+.mg-in .mode-card,
+.mg-in-r .mode-card {
+  animation: mg-rise 0.55s var(--ease) backwards;
+}
+.mg-in .war-length,
+.mg-in-r .war-length {
+  animation-delay: 0.05s;
+}
+.mg-in .mode-card:nth-of-type(1),
+.mg-in-r .mode-card:nth-of-type(1) {
+  animation-delay: 0.12s;
+}
+.mg-in .mode-card:nth-of-type(2),
+.mg-in-r .mode-card:nth-of-type(2) {
+  animation-delay: 0.19s;
+}
+.mg-in .mode-card:nth-of-type(3),
+.mg-in-r .mode-card:nth-of-type(3) {
+  animation-delay: 0.26s;
+}
+@keyframes mg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+}
+/* the thumb's slide gets a spring */
+.play-tab-thumb {
+  transition:
+    transform 0.38s cubic-bezier(0.3, 1.4, 0.5, 1),
+    width 0.38s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.play-tab span,
+.play-tab i {
+  transition:
+    color 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+.play-tab:active span,
+.play-tab:active i {
+  transform: scale(0.93);
+}
+
+/* ---------------- small answers everywhere ---------------- */
+/* back buttons: the arrow leans the way you'll travel */
+.back-btn i {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.back-btn:hover i {
+  transform: translateX(-3px);
+}
+.back-btn:active {
+  transform: scale(0.95);
+}
+/* war-length pick pops as it arms */
+.wl-opt {
+  transition:
+    border-color 0.22s var(--ease),
+    color 0.22s var(--ease),
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s var(--ease),
+    background 0.22s var(--ease);
+}
+.wl-opt[aria-pressed='true'] {
+  animation: wl-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes wl-pop {
+  0% {
+    transform: scale(0.97);
+  }
+  60% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.wl-opt > i {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.wl-opt:hover > i {
+  transform: scale(1.15) rotate(-4deg);
+}
+/* collection + filter chips */
+.col-tab,
+.f-chip {
+  transition:
+    color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s var(--ease);
+}
+.col-tab:active,
+.f-chip:active {
+  transform: scale(0.92);
+}
+/* the sliding thumb IS the selection feedback now - no extra pop */
+.f-chip:hover {
+  transform: translateY(-1px);
+}
+/* deck rows in the picker: hover slides them open */
+.dm-row {
+  transition:
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s var(--ease);
+}
+.dm-row:hover:not(.disabled) {
+  transform: translateX(4px);
+}
+.dm-row:active:not(.disabled) {
+  transform: translateX(4px) scale(0.98);
+}
+/* account menu: pop from the trigger + per-item cascade */
+.acct-menu {
+  animation: am-pop 0.24s cubic-bezier(0.3, 1.35, 0.5, 1);
+  transform-origin: top right;
+}
+@keyframes am-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.92);
+  }
+}
+.acct-menu-item {
+  animation: am-item 0.28s var(--ease) backwards;
+}
+.acct-menu-item:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.acct-menu-item:nth-child(3) {
+  animation-delay: 0.1s;
+}
+@keyframes am-item {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+/* menu contents depend on session state: signed-out gets Sign in +
+   Settings, signed-in gets Settings + Log out */
+body[data-auth='in'] #acct-login {
+  display: none;
+}
+body:not([data-auth='in']) #acct-logout {
+  display: none;
+}
+/* modals: one shared entrance - settle, don't teleport */
+.auth-modal .auth-card,
+.mm-modal .mm-card,
+.deck-modal .dm-card {
+  animation: modal-in 0.34s cubic-bezier(0.3, 1.3, 0.45, 1);
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.955);
+  }
+}
+.auth-scrim,
+.mm-scrim {
+  animation: scrim-in 0.26s var(--ease);
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+/* text inputs answer focus */
+.search-wrap input,
+.deck-name-input,
+.si-field input {
+  transition:
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    background 0.2s var(--ease);
+}
+.search-wrap input:focus,
+.deck-name-input:focus,
+.si-field input:focus {
+  box-shadow: 0 0 0 3px rgba(255, 205, 110, 0.16);
+}
+/* empty states bob gently so screens never feel dead */
+.empty-state {
+  animation: em-bob 3.4s ease-in-out infinite;
+}
+@keyframes em-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+/* title: rare cold shimmer sweeping the letters */
+.ht-line {
+  background-size: 260% 100%;
+  animation:
+    title-rise 0.9s var(--ease) backwards,
+    ht-sheen 11s linear 2.2s infinite;
+}
+@keyframes ht-sheen {
+  0%,
+  84%,
+  100% {
+    background-position: 0% 0;
+  }
+  92% {
+    background-position: -130% 0;
+  }
+}
+/* home buttons cascade on arrival */
+.home-actions .btn {
+  animation: mg-rise 0.7s var(--ease) backwards;
+}
+.home-actions .btn:nth-child(1) {
+  animation-delay: 0.66s;
+}
+.home-actions .btn:nth-child(2) {
+  animation-delay: 0.76s;
+}
+.home-actions .btn:nth-child(3) {
+  animation-delay: 0.86s;
+}
+
+/* all of the above respects the two kill switches */
+body[data-gfx='low'] .btn,
+body[data-gfx='low'] .btn > i:first-child,
+body[data-gfx='low'] .play-tab-thumb,
+body[data-gfx='low'] .wl-opt,
+body[data-gfx='low'] .wl-opt > i,
+body[data-gfx='low'] .col-tab,
+body[data-gfx='low'] .f-chip,
+body[data-gfx='low'] .dm-row,
+body[data-gfx='low'] .back-btn i,
+body[data-gfx='low'] .play-tab span,
+body[data-gfx='low'] .play-tab i {
+  transition: none;
+}
+body[data-gfx='low'] .mg-out,
+body[data-gfx='low'] .mg-out-r,
+body[data-gfx='low'] .mg-in,
+body[data-gfx='low'] .mg-in-r,
+body[data-gfx='low'] .mg-in .war-length,
+body[data-gfx='low'] .mg-in-r .war-length,
+body[data-gfx='low'] .mg-in .mode-card,
+body[data-gfx='low'] .mg-in-r .mode-card,
+body[data-gfx='low'] .home-actions .btn,
+body[data-gfx='low'] .wl-opt[aria-pressed='true'],
+body[data-gfx='low'] .col-tab.sel,
+body[data-gfx='low'] .acct-menu,
+body[data-gfx='low'] .acct-menu-item,
+body[data-gfx='low'] .auth-modal .auth-card,
+body[data-gfx='low'] .mm-modal .mm-card,
+body[data-gfx='low'] .deck-modal .dm-card,
+body[data-gfx='low'] .auth-scrim,
+body[data-gfx='low'] .mm-scrim,
+body[data-gfx='low'] .empty-state,
+body[data-gfx='low'] .tipdot,
+body[data-gfx='low'] .ht-line {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-out,
+  .mg-out-r,
+  .mg-in,
+  .mg-in-r,
+  .mg-in .war-length,
+  .mg-in-r .war-length,
+  .mg-in .mode-card,
+  .mg-in-r .mode-card,
+  .home-actions .btn,
+  .wl-opt[aria-pressed='true'],
+  .col-tab.sel,
+  .acct-menu,
+  .acct-menu-item,
+  .auth-modal .auth-card,
+  .mm-modal .mm-card,
+  .deck-modal .dm-card,
+  .auth-scrim,
+  .mm-scrim,
+  .empty-state,
+  .tipdot,
+  .ht-line {
+    animation: none;
+  }
+}
+
+/* ---------------- LUSTRE PASS: cinema backplates ----------------
+   The non-match views floated on a void. Each one now gets the menu's
+   colosseum art as a faint floor panorama far below the content - same
+   world, lower voice - with a slow pan. Content layers sit above it. */
+.play::before,
+.collection::before,
+.shop::before,
+.prep::before,
+.deck::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('../assets/menu/mid.png') repeat-x bottom center / auto calc(var(--vh1) * 54);
+  opacity: 0.13;
+  -webkit-mask-image: linear-gradient(180deg, transparent 34%, #000 80%);
+  mask-image: linear-gradient(180deg, transparent 34%, #000 80%);
+  animation: plate-pan 340s linear infinite alternate;
+}
+.collection::before,
+.shop::before,
+.deck::before {
+  opacity: 0.09;
+}
+@keyframes plate-pan {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: calc(var(--vh1) * -60);
+  }
+}
+.play .col-header,
+.play .play-tabs,
+.play .mode-grid,
+.collection .col-header,
+.collection .col-panel,
+.shop .col-header,
+.shop .pack-grid,
+.deck .col-header,
+.deck .deck-tray,
+.deck .deck-roster {
+  position: relative;
+  z-index: 1;
+}
+/* play view: compose, don't stack - tabs up top, grid optically centred */
+.play.active {
+  display: flex;
+  flex-direction: column;
+}
+.play .mode-grid {
+  margin-top: auto;
+  margin-bottom: auto;
+  padding-top: clamp(10px, calc(var(--vh1) * 3), 30px);
+  padding-bottom: clamp(10px, calc(var(--vh1) * 3), 30px);
+}
+/* hairline rule with a warm centre under the header of menu screens */
+.play .col-header,
+.collection .col-header,
+.shop .col-header,
+.deck .col-header {
+  position: relative;
+}
+.play .col-header::after,
+.collection .col-header::after,
+.shop .col-header::after,
+.deck .col-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 4%,
+    rgba(140, 155, 210, 0.22) 30%,
+    rgba(255, 205, 110, 0.5) 50%,
+    rgba(140, 155, 210, 0.22) 70%,
+    transparent 96%
+  );
+}
+body[data-gfx='low'] .play::before,
+body[data-gfx='low'] .collection::before,
+body[data-gfx='low'] .shop::before,
+body[data-gfx='low'] .prep::before,
+body[data-gfx='low'] .deck::before {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .play::before,
+  .collection::before,
+  .shop::before,
+  .prep::before,
+  .deck::before {
+    animation: none;
+  }
+}
+
+/* =============================================================
+   SESSION 25 - HOME & MENU DESIGN PASS
+   -------------------------------------------------------------
+   The brief: less template-slop, more game. A composed hero with a
+   readability plate behind it, a clear CTA hierarchy (one BIG Play,
+   two quiet secondaries), the stat strip as a glass pill, and small
+   ceremonial touches on the emblem. Shared header diamond chip for
+   every menu screen's H2 ties the non-match UI to one language.
+   ============================================================= */
+.home-inner {
+  position: relative;
+}
+.home-inner::before {
+  /* readability plate: one soft dark pool behind the whole hero so the
+     type never fights the menu art - no hard panel edges, just air */
+  content: '';
+  position: absolute;
+  inset: -7% -20%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 64% 60% at 50% 45%,
+    rgba(6, 8, 16, 0.72),
+    rgba(6, 8, 16, 0.34) 52%,
+    transparent 78%
+  );
+}
+/* emblem: counter-rotating tick ring over the dashed one */
+.home-emblem::after {
+  content: '';
+  position: absolute;
+  inset: -25px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  border-top-color: rgba(255, 205, 110, 0.55);
+  border-bottom-color: rgba(255, 205, 110, 0.55);
+  animation: spin-rev 24s linear infinite;
+}
+@keyframes spin-rev {
+  to {
+    transform: rotate(-1turn);
+  }
+}
+/* CTA hierarchy: Play is THE button; shop and collection step back */
+.home-actions {
+  width: min(600px, calc(var(--vw1) * 92));
+  display: grid;
+  /* Play owns a full row, secondaries split the one below - the
+     hierarchy reads instantly instead of three same-size buttons */
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  justify-content: center;
+}
+.btn-hero {
+  grid-column: 1 / -1;
+  padding: 21px 40px;
+  font-size: 19px;
+  letter-spacing: 0.24em;
+  text-indent: 0.1em;
+}
+.btn-hero .b-arrow {
+  font-size: 21px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-hero:hover .b-arrow {
+  transform: translateX(5px);
+}
+#btn-shop,
+#btn-collection {
+  padding: 17px 24px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  min-width: 0;
+}
+/* stat strip: one glass pill, hairlines between numbers */
+.home-stats {
+  margin-top: 46px;
+  padding: 11px 24px;
+  gap: 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(8, 11, 20, 0.52);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+/* menu screen titles: type alone carries them (the diamond chips were
+   pulled 2026-08-05 - they read as spam, not ceremony) */
+.col-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+body[data-gfx='low'] .home-emblem::after {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-emblem::after {
+    animation: none;
+  }
+}
+
+/* =============================================================
+   SESSION 26 - GAME-FEEL MENU PASS
+   -------------------------------------------------------------
+   The complaint: the menu still read as a fullstack website -
+   document headings top-left, flat SaaS cards, icon chips in
+   rounded squares, pill CTAs. The pass, in four strokes:
+   A) every menu screen opens with a CREST MASTHEAD: a medallion
+      glyph over a centred Cinzel title, an engraved rule with a
+      seal bead, then a tracking-wide kicker;
+   B) mode cards become FRAMED ARENA STANDARDS: warm hairline
+      frame with corner rivets and an engraved inner frame, the
+      glyph minted as a medallion, an engraved rule under the
+      name, and the CTA a notched gold ribbon; the unlaunched
+      Campaign card is closed with a wax seal and a corner
+      ribbon instead of being greyed out;
+   C) buttons get physicality: primaries are enamel (rim light
+      above, hard bevel below, pressed inset on :active), ghosts
+      are brushed glass;
+   D) the home Play button stands over a soft warm dais.
+   Hover physics (spring translate/scale) and the EOL Sheen Law
+   (one 105deg band, skewX(-16deg), 42% wide) are untouched.
+   ============================================================= */
+
+/* ---- A. crest masthead (play / collection / shop) ---- */
+.col-header.mast {
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 30px;
+}
+/* the wide S24 page hairline is replaced by the masthead's own
+   engraved rule - two rules would read as a spreadsheet */
+.col-header.mast::after {
+  display: none;
+}
+.col-header.mast .back-btn {
+  position: absolute;
+  left: 0;
+  top: 2px;
+}
+.col-header.mast .col-titles {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mast-emblem {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 13px;
+  border-radius: 50%;
+  font-size: 24px;
+  color: #ffd682;
+  text-shadow: 0 0 16px rgba(255, 200, 90, 0.65);
+  background: radial-gradient(circle at 50% 30%, rgba(54, 40, 18, 0.9), rgba(8, 10, 17, 0.97) 74%);
+  border: 1px solid rgba(255, 214, 130, 0.55);
+  box-shadow:
+    0 0 0 4px rgba(9, 12, 20, 0.85),
+    0 0 0 5px rgba(255, 214, 130, 0.2),
+    0 10px 26px rgba(0, 0, 0, 0.5),
+    inset 0 0 16px rgba(255, 200, 90, 0.14);
+}
+.col-header.mast .col-title {
+  justify-content: center;
+  font-size: clamp(30px, calc(var(--vw1) * 4.4), 42px);
+  letter-spacing: 0.17em;
+  text-indent: 0.17em; /* keeps tracked caps honestly centred */
+}
+.mast-rule {
+  position: relative;
+  width: min(320px, calc(var(--vw1) * 62));
+  height: 12px;
+  margin-top: 13px;
+}
+.mast-rule::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(158, 176, 210, 0.34) 18%,
+    rgba(255, 214, 130, 0.8) 50%,
+    rgba(158, 176, 210, 0.34) 82%,
+    transparent
+  );
+}
+.mast-rule::after {
+  /* the seal bead the rule pours through */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffd682;
+  box-shadow:
+    0 0 0 3px rgba(9, 12, 20, 0.9),
+    0 0 12px rgba(255, 200, 90, 0.9);
+}
+.col-header.mast .col-sub {
+  margin-top: 11px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+/* Emulated breakpoint (max-width: 720px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw720 by paintViewport() in js/app.js. */
+html.mqw720 .mast-emblem {
+  width: 44px;
+    height: 44px;
+    font-size: 20px;
+    margin-bottom: 9px;
+}
+html.mqw720 .col-header.mast .col-sub {
+  letter-spacing: 0.2em;
+}
+
+/* collection's tab control left the header when the masthead took
+   over - it now stands alone, centred, between title and toolbar */
+.view.collection .col-tabs {
+  display: flex;
+  width: fit-content;
+  margin: 2px auto 24px;
+}
+
+/* ---- B. mode cards: framed arena standards ---- */
+.mode-card {
+  border: 1px solid rgba(255, 214, 130, 0.3);
+  background:
+    /* corner rivets */
+    radial-gradient(circle 2.2px at 13px 13px, rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle 2.2px at calc(100% - 13px) 13px, rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle 2.2px at 13px calc(100% - 13px), rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle 2.2px at calc(100% - 13px) calc(100% - 13px), rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle at 80% -10%, rgba(255, 215, 130, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(22, 26, 41, 0.72), rgba(9, 12, 20, 0.86));
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.mode-card::before {
+  /* the engraved inner frame */
+  content: '';
+  position: absolute;
+  inset: 7px;
+  z-index: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 214, 130, 0.16);
+  pointer-events: none;
+  transition: border-color 0.28s var(--ease);
+}
+.mode-card:hover:not(.soon)::before {
+  border-color: rgba(255, 214, 130, 0.36);
+}
+.mode-card:hover:not(.soon) {
+  border-color: rgba(255, 214, 130, 0.62);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(255, 190, 90, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* the glyph, minted as a medallion - gold ring, dark core */
+.mode-glyph {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  color: #ffd682;
+  border: 1px solid rgba(255, 214, 130, 0.55);
+  background: radial-gradient(circle at 50% 28%, rgba(54, 40, 18, 0.92), rgba(8, 10, 17, 0.98) 76%);
+  box-shadow:
+    0 0 0 3px rgba(9, 12, 20, 0.85),
+    0 0 0 4px rgba(255, 214, 130, 0.2),
+    0 8px 20px rgba(0, 0, 0, 0.55),
+    inset 0 0 15px rgba(255, 200, 90, 0.15);
+  text-shadow: 0 0 22px rgba(255, 200, 90, 0.6);
+}
+/* engraved rule with a bead under the mode name */
+.mode-name {
+  position: relative;
+  padding-bottom: 11px;
+  font-size: 24px;
+  letter-spacing: 0.09em;
+}
+.mode-name::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffd682;
+  box-shadow: 0 0 9px rgba(255, 200, 90, 0.85);
+}
+.mode-name::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  width: 74px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 214, 130, 0.75), rgba(255, 214, 130, 0.16) 72%, transparent);
+}
+.mode-desc {
+  color: var(--txt-dim); /* plaque is darker now - the old faint grey drowned */
+}
+/* the CTA is a notched gold ribbon, enamelled like the primaries */
+.mode-cta {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 11.5px;
+  letter-spacing: 0.15em;
+  padding: 11px 28px 11px 18px; /* right pad keeps the arrow clear of the notch */
+  border-radius: 6px;
+  border: 1px solid rgba(255, 226, 150, 0.95);
+  border-bottom-color: rgba(150, 92, 16, 0.85);
+  background: linear-gradient(180deg, #ffedbc 0%, #f6c45c 52%, #dd9427 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 0 rgba(140, 80, 10, 0.42);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%);
+  transition: filter 0.25s var(--ease);
+}
+.mode-card:hover:not(.soon) .mode-cta {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 0 rgba(140, 80, 10, 0.42);
+  filter: drop-shadow(0 5px 14px rgba(255, 200, 90, 0.38));
+}
+/* Campaign: launched under wax and ribbon, not greyed out */
+.mode-card.soon {
+  filter: none;
+  opacity: 1;
+  border-color: rgba(190, 84, 62, 0.3);
+  background:
+    radial-gradient(circle 2.2px at 13px 13px, rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle 2.2px at calc(100% - 13px) 13px, rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle 2.2px at 13px calc(100% - 13px), rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle 2.2px at calc(100% - 13px) calc(100% - 13px), rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(circle at 80% -10%, rgba(190, 62, 48, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(19, 20, 30, 0.66), rgba(8, 9, 15, 0.84));
+}
+.mode-card.soon::before {
+  border-color: rgba(214, 138, 110, 0.18);
+}
+.mode-card.soon .mode-glyph {
+  /* the wax seal - hand-pressed, so the circle is imperfect */
+  color: #f4c8b8;
+  border-color: rgba(96, 20, 10, 0.95);
+  border-radius: 48% 52% 51% 49% / 52% 48% 51% 49%;
+  background: radial-gradient(circle at 42% 30%, #a8382a 0%, #7e1f14 46%, #5c1209 100%);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.55),
+    inset 0 2px 3px rgba(255, 200, 170, 0.42),
+    inset 0 -3px 6px rgba(30, 4, 0, 0.62),
+    inset 0 0 0 4px rgba(60, 10, 4, 0.35);
+  text-shadow: 0 1px 2px rgba(40, 4, 0, 0.8);
+}
+.mode-card.soon .mode-wm {
+  opacity: 0.04;
+}
+.mode-card.soon .mode-name,
+.mode-card.soon .mode-desc {
+  color: var(--txt-faint);
+}
+.mode-card.soon .mode-name::before,
+.mode-card.soon .mode-name::after {
+  opacity: 0.4;
+}
+.mode-soon-tag {
+  /* a ribbon across the corner instead of a dashed pill */
+  top: 20px;
+  right: -34px;
+  width: 150px;
+  padding: 5px 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 214, 130, 0.55);
+  border-bottom: 1px solid rgba(255, 214, 130, 0.4);
+  border-radius: 0;
+  background: linear-gradient(180deg, #9c2f22, #6e160c);
+  color: #ffe9d8;
+  text-align: center;
+  transform: rotate(45deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.22em;
+}
+/* the shop's product panel gets the same framed-plaque language */
+.product {
+  position: relative;
+  border-color: rgba(255, 214, 130, 0.3);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.product::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: calc(var(--radius) - 3px);
+  border: 1px solid rgba(255, 214, 130, 0.16);
+  pointer-events: none;
+}
+
+/* ---- C. button physicality ---- */
+.btn-primary {
+  border-top-color: rgba(255, 240, 200, 0.95);
+  border-bottom-color: rgba(150, 92, 16, 0.9);
+  /* poured gold enamel: rim light above, hard bevel below */
+  box-shadow:
+    0 10px 30px rgba(230, 165, 55, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -2px 0 rgba(140, 80, 10, 0.55),
+    inset 0 -4px 10px rgba(150, 80, 10, 0.26),
+    inset 0 0 0 1px rgba(255, 244, 214, 0.18);
+}
+.btn-primary:hover {
+  box-shadow:
+    0 16px 46px rgba(240, 180, 70, 0.52),
+    0 0 26px rgba(255, 190, 80, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -2px 0 rgba(140, 80, 10, 0.5),
+    inset 0 -4px 10px rgba(150, 80, 10, 0.22),
+    inset 0 0 0 1px rgba(255, 244, 214, 0.22);
+}
+.btn-primary:active {
+  /* the bevel inverts when the enamel is pressed in */
+  box-shadow:
+    0 4px 14px rgba(230, 165, 55, 0.3),
+    inset 0 2px 6px rgba(140, 80, 10, 0.5),
+    inset 0 0 0 1px rgba(255, 244, 214, 0.1);
+}
+.btn-ghost {
+  /* brushed glass: vertical falloff plus a lit top hairline */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.015) 42%,
+    rgba(0, 0, 0, 0.18)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.42);
+}
+.btn-ghost:hover {
+  box-shadow:
+    0 12px 34px rgba(90, 130, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.36);
+}
+
+/* ---- D. home: the command row stands over a warm dais ---- */
+.home-actions {
+  position: relative;
+}
+.home-actions::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -38px;
+  width: 86%;
+  height: 64px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 196, 96, 0.13), transparent 68%);
+  pointer-events: none;
+}
+body[data-gfx='low'] .home-actions::before {
+  display: none;
+}
+
+/* ======================================================================
+   Session 26 addendum (2026-08-05) - launch-flow + GUI-scale polish
+   1) Match length moved off the play screen INTO the deck popup, so the
+      play menu is a one-look mode select that never scrolls; the popup
+      widened a touch to host the two war-length cards side by side.
+   2) Settings > Display gained a GUI-scale slider - one lived number,
+      applied via body zoom (see js/app.js's GUI SCALE block for why
+      zoom and not transform).
+   ====================================================================== */
+
+/* ---- 1. war-length lives in the deck popup now ---- */
+.dm-card {
+  width: min(560px, calc(calc(var(--vw1) * 100) - 40px));
+}
+.dm-card .war-length {
+  max-width: none;
+  margin: 0 0 12px;
+}
+.dm-card .wl-opt {
+  padding: 10px 12px;
+  gap: 10px;
+  border-radius: 12px;
+}
+.dm-card .wl-opt > i {
+  font-size: 19px;
+}
+.dm-card .wl-sub {
+  font-size: 9.5px;
+}
+.dm-card .wl-head {
+  margin-bottom: 2px;
+}
+.dm-list {
+  min-height: 60px;
+}
+/* Emulated breakpoint (max-width: 520px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqw520 by paintViewport() in js/app.js. */
+html.mqw520 .dm-card .war-length {
+  grid-template-columns: 1fr;
+}
+
+
+/* ---- 2. settings: the GUI-scale slider ----
+   the settings card is only 392px wide, so the row stacks: label +
+   readout + reset on one line, the track full-width beneath it */
+.scale-row {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas:
+    'lbl val reset'
+    'range range range';
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 12px;
+}
+.scale-lbl {
+  grid-area: lbl;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.scale-lbl i {
+  font-size: 15px;
+  color: var(--r-legendary-1);
+}
+.scale-range {
+  -webkit-appearance: none;
+  appearance: none;
+  grid-area: range;
+  width: 100%;
+  min-width: 0;
+  height: 4px;
+  margin: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255, 214, 130, 0.55), rgba(255, 214, 130, 0.14));
+  outline: none;
+  cursor: var(--cur-pointer);
+}
+.scale-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 32%, #ffe9b8, #f6c45c 68%, #dd9427);
+  border: 1px solid rgba(255, 226, 150, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(9, 12, 20, 0.85),
+    0 0 12px rgba(255, 200, 90, 0.55);
+  cursor: var(--cur-pointer);
+}
+.scale-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(255, 226, 150, 0.95);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 32%, #ffe9b8, #f6c45c 68%, #dd9427);
+  box-shadow:
+    0 0 0 3px rgba(9, 12, 20, 0.85),
+    0 0 12px rgba(255, 200, 90, 0.55);
+  cursor: var(--cur-pointer);
+}
+.scale-range::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: transparent;
+}
+.scale-val {
+  grid-area: val;
+  min-width: 46px;
+  padding: 4px 8px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffe3a8;
+  background: rgba(255, 214, 130, 0.09);
+  border: 1px solid rgba(255, 214, 130, 0.35);
+  border-radius: 8px;
+}
+.scale-reset {
+  grid-area: reset;
+  padding: 6px 10px;
+}
+
+/* short screens: the masthead compresses so the mode select still
+   fits without scrolling (measured: 1366x768 overflowed by 11px) */
+/* Emulated breakpoint (max-height: 820px) measured against the
+   LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
+   Toggled as html.mqh820 by paintViewport() in js/app.js. */
+html.mqh820 .col-header.mast {
+  margin-bottom: 20px;
+}
+html.mqh820 .col-header.mast .mast-emblem {
+  width: 44px;
+    height: 44px;
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+html.mqh820 .col-header.mast .mast-rule {
+  margin-top: 9px;
+}
+html.mqh820 .col-header.mast .col-sub {
+  margin-top: 7px;
+}
+html.mqh820 .col-header.mast .col-title {
+  font-size: clamp(26px, calc(var(--vw1) * 4), 36px);
+}
+
+
+/* -------------------------------------------------------------
+   ATMOSPHERE EXPANSION (2026-08-05)
+   -------------------------------------------------------------
+   Five more weather layers for the main menu: ultra-far sky dust,
+   skyfire light shafts, gliding fog banks, falling ash, and big
+   rising spores. Every layer is populated by initMenuParticles()
+   (js/app.js) from a SEEDED field, so the composition is deliberate
+   and identical on every load - random per-load would be noise, not
+   design. A particle is an inert <i> carrying its whole choreography
+   in custom properties; the keyframes are shared, so a field of
+   dozens still costs only paint, never layout. Motion-reduced and
+   low-graphics players miss none of the art: the layers simply go.
+   ------------------------------------------------------------- */
+
+/* falling flakes/motes: drop the full height with a double sway */
+@keyframes mb-fall-sway {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--vh1) * -8), 0);
+  }
+  9% {
+    opacity: var(--o, 0.4);
+  }
+  27% {
+    transform: translate3d(var(--s1, 26px), calc(var(--vh1) * 22), 0);
+  }
+  50% {
+    transform: translate3d(calc(var(--s2, 18px) * -1), calc(var(--vh1) * 50), 0);
+  }
+  73% {
+    transform: translate3d(var(--s1, 26px), calc(var(--vh1) * 78), 0);
+  }
+  91% {
+    opacity: var(--o, 0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--vh1) * 108), 0);
+  }
+}
+/* rising spores: the same walk, up-current and mirrored */
+@keyframes mb-rise-sway {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--vh1) * 108), 0);
+  }
+  10% {
+    opacity: var(--o, 0.32);
+  }
+  28% {
+    transform: translate3d(calc(var(--s2, 60px) * -1), calc(var(--vh1) * 76), 0);
+  }
+  52% {
+    transform: translate3d(var(--s1, 84px), calc(var(--vh1) * 46), 0);
+  }
+  76% {
+    transform: translate3d(calc(var(--s2, 60px) * -1), calc(var(--vh1) * 22), 0);
+  }
+  90% {
+    opacity: var(--o, 0.32);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--vh1) * -12), 0);
+  }
+}
+/* light shafts: lean and breathe against the mountain band */
+@keyframes mb-ray {
+  from {
+    opacity: calc(var(--o, 0.4) * 0.5);
+    transform: translate3d(calc(var(--rx, 56px) * -1), 0, 0) skewX(var(--l1, -14deg));
+  }
+  to {
+    opacity: var(--o, 0.4);
+    transform: translate3d(var(--rx, 56px), 0, 0) skewX(var(--l2, -10deg));
+  }
+}
+/* fog banks: long lanes gliding back and forth across the floor */
+@keyframes mb-bank {
+  from {
+    transform: translate3d(calc(var(--vw1) * var(--f, -22)), 0, 0);
+  }
+  to {
+    transform: translate3d(calc(var(--vw1) * var(--to, 22)), 0, 0);
+  }
+}
+
+.mb-ultra i {
+  position: absolute;
+  top: 0;
+  left: var(--x, 50%);
+  width: var(--sz, 1px);
+  height: var(--sz, 1px);
+  margin-left: calc(var(--sz, 1px) / -2);
+  border-radius: 50%;
+  background: var(--pc, #cdd8f2);
+  opacity: 0;
+  animation: mb-fall-sway var(--dur, 95s) linear var(--dl, 0s) infinite;
+}
+.mb-ash i {
+  position: absolute;
+  top: 0;
+  left: var(--x, 50%);
+  width: var(--sz, 2px);
+  height: calc(var(--sz, 2px) * 0.55);
+  border-radius: 42%;
+  background: var(--pc, #cfd3dd);
+  box-shadow: 0 0 3px rgba(200, 208, 224, 0.35);
+  opacity: 0;
+  animation: mb-fall-sway var(--dur, 52s) linear var(--dl, 0s) infinite;
+}
+.mb-spores i {
+  position: absolute;
+  top: 0;
+  left: var(--x, 50%);
+  width: var(--sz, 6px);
+  height: var(--sz, 6px);
+  margin-left: calc(var(--sz, 6px) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pc, rgba(255, 236, 190, 0.75)) 0%, transparent 68%);
+  opacity: 0;
+  animation: mb-rise-sway var(--dur, 70s) ease-in-out var(--dl, 0s) infinite;
+}
+.mb-rays i {
+  position: absolute;
+  top: calc(var(--vh1) * -18);
+  left: var(--x, 40%);
+  width: var(--w, 320px);
+  height: calc(var(--vh1) * 135);
+  transform-origin: top center;
+  background: linear-gradient(
+    180deg,
+    rgba(196, 210, 255, 0.16) 0%,
+    rgba(196, 210, 255, 0.05) 52%,
+    transparent 78%
+  );
+  filter: blur(9px);
+  opacity: 0;
+  animation: mb-ray var(--dur, 38s) ease-in-out var(--dl, 0s) infinite alternate;
+}
+.mb-fogbanks i {
+  position: absolute;
+  left: calc(var(--vw1) * -15);
+  bottom: var(--b, 0%);
+  width: calc(var(--vw1) * 130);
+  height: var(--h, 180px);
+  background: radial-gradient(
+    ellipse 58% 100% at 50% 100%,
+    var(--pc, rgba(158, 172, 214, 0.1)) 0%,
+    transparent 72%
+  );
+  animation: mb-bank var(--dur, 90s) ease-in-out var(--dl, 0s) infinite alternate;
+}
+
+/* these five are pure weather: gone entirely for motion-reduced and
+   low-graphics players, exactly like the embers and wisps before them */
+body[data-gfx='low'] .mb-ultra,
+body[data-gfx='low'] .mb-rays,
+body[data-gfx='low'] .mb-fogbanks,
+body[data-gfx='low'] .mb-ash,
+body[data-gfx='low'] .mb-spores {
+  display: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mb-ultra,
+  .mb-rays,
+  .mb-fogbanks,
+  .mb-ash,
+  .mb-spores {
+    display: none;
+  }
 }

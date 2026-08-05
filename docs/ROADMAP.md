@@ -3,9 +3,11 @@
 
 User rulings that shape everything below:
 
-1. **The Set (Bo3 + sideboard + loser-picks-board) ships — but never in
-   Classic.** Classic stays single-game speed. In ranked, The Set only
+1. **Unabridged (Bo3 + sideboard + loser-picks-board) ships — but never in
+   Classic.** Classic stays single-game speed. In ranked, Unabridged only
    unlocks at a mid-ladder rank (new players play Bo1).
+   (2026-08-05 rebrand: the system once called "The Set" is now
+   **Unabridged**; it is still played in sets of games.)
 2. **Trophy Forge is REJECTED.** Its replacement is **Faction Blessings**:
    ≥4 cards of one faction in your deck grants a faction-wide bonus.
    (Example from the user: 4+ Grimmwood → your debuffs last 1 round longer.)
@@ -30,7 +32,7 @@ ranked integration waits for the ladder (Phase 4). Classic untouched.
 - **Prep is OPEN-INFO, always, in every mode.** Both 12-card decks are
   shown; each side bans 2 of the OPPONENT's cards; only the 6-fielding
   is simultaneous-hidden (you never see their six until the battle
-  starts). This is current behavior and must never change — in The Set
+  starts). This is current behavior and must never change — in Unabridged
   it applies set-wide: bans happen once, before game 1, and persist for
   all games of the set.
 - **Fight card = 3 battlefields revealed AT PREP START** (before bans),
@@ -116,11 +118,11 @@ Legend** (canon vote pending — see §8).
 ---
 
 ## Phase 4 — RANKED LADDER + THE LONG WAR
-The Set enters ranked here, gated.
+Unabridged enters ranked here, gated.
 
 - 6 tiers, placements = 5 provisional games, MMR-lite (Elo-k on Bo1 sets:
   Bo3 counts double weight).
-- **The Set unlocks at Tier 3 ("Gold" equivalent)** with an unlock
+- **Unabridged unlocks at Tier 3 ("Gold" equivalent)** with an unlock
   ceremony: *"You have earned the Long War."* Below Tier 3: Bo1 ranked —
   new players learn single matches; veterans get the full war.
 - Unranked MP keeps its Set opt-in from Phase 1. Classic never changes.

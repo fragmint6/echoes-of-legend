@@ -240,7 +240,7 @@
   function add(id) {
     if (!editing || !byId()[id] || has(id)) return false;
     if (count() >= DECK_SIZE) {
-      hintWarn('Deck is full - remove a hero first.');
+      hintWarn('Deck is full - remove a legend first.');
       return false;
     }
     var cand = byId()[id].card;
@@ -248,7 +248,7 @@
       hintWarn(
         'Max ' +
           MAX_PER_ROLE +
-          ' heroes per role - this deck already runs ' +
+          ' legends per role - this deck already runs ' +
           MAX_PER_ROLE +
           ' ' +
           cand.role +
@@ -303,10 +303,30 @@
   }
 
   /* ---------------- collection tabs ---------------- */
+  /* The tab bar is a segmented control: a gold thumb slides under the
+     active tab (same language as the play screen's arena segment),
+     and the two panels trade places with a directional slide. Both
+     are presentation-only wrappers around the class/hidden flips. */
+  function moveColThumb() {
+    var bar = document.querySelector('.col-tabs');
+    if (!bar) return;
+    var selBtn = bar.querySelector('.col-tab.sel');
+    if (!selBtn) return;
+    var z =
+      window.EOL && window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
+    var b = bar.getBoundingClientRect();
+    var t = selBtn.getBoundingClientRect();
+    if (!t.width) return; // view hidden - measure on next show
+    bar.style.setProperty('--thumb-x', Math.round((t.left - b.left) / z) + 'px');
+    bar.style.setProperty('--thumb-w', Math.round(t.width / z) + 'px');
+    bar.dataset.measured = '1';
+  }
+  var colAnimT = 0;
   function showTab(which) {
     var heroes = which === 'heroes';
     var ch = $('ctab-heroes'),
       cd = $('ctab-decks');
+    var wasHeroes = ch && ch.classList.contains('sel');
     if (ch) {
       ch.classList.toggle('sel', heroes);
       ch.setAttribute('aria-selected', String(heroes));
@@ -315,11 +335,35 @@
       cd.classList.toggle('sel', !heroes);
       cd.setAttribute('aria-selected', String(!heroes));
     }
+    moveColThumb();
     var ph = $('cpanel-heroes'),
       pd = $('cpanel-decks');
-    if (ph) ph.hidden = !heroes;
-    if (pd) pd.hidden = heroes;
+    if (!ph || !pd) return;
     if (!heroes) renderManager();
+    /* Directional panel swap: the outgoing view slides out the way the
+       thumb travels, the incoming one rises in from the far side.
+       gfx-low (and the initial paint) swap instantly. */
+    var showEl = heroes ? ph : pd,
+      hideEl = heroes ? pd : ph,
+      dir = heroes ? '-r' : '';
+    clearTimeout(colAnimT);
+    ph.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
+    pd.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
+    if (document.body.dataset.gfx === 'low' || hideEl.hidden || wasHeroes === heroes) {
+      hideEl.hidden = true;
+      showEl.hidden = false;
+      return;
+    }
+    hideEl.classList.add('mg-out' + dir);
+    colAnimT = setTimeout(function () {
+      hideEl.hidden = true;
+      hideEl.classList.remove('mg-out' + dir);
+      showEl.hidden = false;
+      showEl.classList.add('mg-in' + dir);
+      colAnimT = setTimeout(function () {
+        showEl.classList.remove('mg-in' + dir);
+      }, 620);
+    }, 185);
   }
 
   /* ---------------- manager rendering ---------------- */
@@ -661,6 +705,15 @@
       tabD.addEventListener('click', function () {
         showTab('decks');
       });
+    /* the thumb is measured - re-park it whenever widths can move:
+       view shown (it starts display:none, widthless), window resize,
+       and once the display face finishes loading. */
+    document.addEventListener('eol:view', function (ev) {
+      if (ev.detail === 'collection') requestAnimationFrame(moveColThumb);
+    });
+    window.addEventListener('resize', moveColThumb);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveColThumb);
+    requestAnimationFrame(moveColThumb);
 
     var nw = $('btn-new-deck');
     if (nw)

@@ -51,17 +51,48 @@
     <div class="menu-bg" id="menu-bg" aria-hidden="true">
       <span class="mb-sky"></span>
       <!-- Shooting stars: rare streaks across the upper sky, sitting
-           between sky and mountains in depth. Long fallow periods, a
-           fast slash, then gone. -->
-      <span class="mb-shoot"><i></i><i></i><i></i></span>
+           between sky and mountains in depth. Each star is a small
+           machine: a bright head with cross-flare, a solid core, a
+           shattered chunk-trail behind it, and two shed sparks. Travel
+           speed is constant - they burn out quick instead of slowing
+           down - then a long fallow gap before the next. -->
+      <span class="mb-shoot">
+        <i class="st-a"
+          ><b class="st-core"></b><b class="st-chunks"></b><b class="st-head"></b
+          ><b class="st-sp p1"></b><b class="st-sp p2"></b
+        ></i>
+        <i class="st-b"
+          ><b class="st-core"></b><b class="st-chunks"></b><b class="st-head"></b
+          ><b class="st-sp p1"></b><b class="st-sp p2"></b
+        ></i>
+        <i class="st-c"
+          ><b class="st-core"></b><b class="st-chunks"></b><b class="st-head"></b
+          ><b class="st-sp p1"></b><b class="st-sp p2"></b
+        ></i>
+      </span>
       <span class="mb-far"></span>
       <span class="mb-mid"></span>
+      <!-- Skyfire shafts: three wide columns of pale light leaning out
+           of the upper sky, breathing slowly against the mountains.
+           They sit BEHIND the near ridge so the ground stays dark
+           and the light reads as distance, not as an overlay. -->
+      <span class="mb-rays"></span>
       <span class="mb-near"></span>
+      <!-- Fog banks: broad low clouds gliding across the ruin floor on
+           three separate lanes and speeds, layering over the static
+           breathing fog to give the ground real weather. -->
+      <span class="mb-fogbanks"></span>
       <span class="mb-fog"></span>
       <span class="mb-embers">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i><i></i
         ><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </span>
+      <!-- Ultra-far motes: a fourth depth band of barely-visible dust
+           hanging in the sky itself, drifting slower than everything
+           else - it is what sells the mountains as far away.
+           Spawned by initMenuParticles() so the field can be denser
+           than any hand-authored sheet. -->
+      <span class="mb-ultra"></span>
       <!-- Atmospheric drift: fine motes falling across the whole scene.
            Three depth bands, each a different size and speed, so the air
            reads as having volume rather than one flat sheet of dots. -->
@@ -83,6 +114,15 @@
       <span class="mb-wisps">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </span>
+      <!-- Ash fall: the cold counterpart to the rising embers - fine
+           grey flecks sifting DOWN through the whole scene with a side
+           sway, the smell of the campfires made visible.
+           Spawned by initMenuParticles(). -->
+      <span class="mb-ash"></span>
+      <!-- Spore drift: a handful of big soft seeds riding up-currents
+           on long diagonal tacks with a heavy sway - near-air volume,
+           slower and dreamier than the motes. initMenuParticles(). -->
+      <span class="mb-spores"></span>
       <!-- A hotter second tier of embers rising from the two campfires
            in the near foreground (they sit under the general ember
            layer's coverage, so these are brighter and faster). -->
@@ -110,21 +150,17 @@
                having credentials and the session coming back -->
           <span class="acct-spin" aria-hidden="true"><i></i><i></i><i></i></span>
         </button>
-        <!-- Settings: same round chip as the Discord button, sitting to
-             the RIGHT of sign-in on the same row. -->
-        <button
-          type="button"
-          class="discord-btn acct-settings"
-          id="settings-btn"
-          aria-haspopup="dialog"
-          aria-label="Settings"
-        >
-          <i class="ri-settings-4-line" aria-hidden="true"></i>
-          <span class="discord-tip" aria-hidden="true">Settings</span>
-        </button>
+        <!-- Session 24: the standalone gear chip is GONE. Settings lives
+             in the profile menu below (and opens from the profile button
+             when signed out), so the top-right corner is just the
+             account pill. -->
         <!-- Signed-in account menu: clicking the profile button no longer
              dumps you straight out - it offers the choice. -->
         <div class="acct-menu" id="acct-menu" hidden role="menu">
+          <!-- shown only signed-out (body[data-auth] != 'in') -->
+          <button type="button" class="acct-menu-item" id="acct-login" role="menuitem">
+            <i class="ri-login-box-line"></i><span>Sign in</span>
+          </button>
           <button type="button" class="acct-menu-item" id="acct-settings" role="menuitem">
             <i class="ri-settings-4-line"></i><span>Settings</span>
           </button>
@@ -134,9 +170,10 @@
         </div>
       </div>
 
-      <!-- Community link. Bottom-LEFT corner of the main menu (the
-           tooltip flips to ride out to the right so it never leaves
-           the viewport). -->
+      <!-- Community link. TOP-LEFT corner of the main menu (session 24:
+           it used to sit bottom-left; the old bottom-left slot is empty
+           now, gear is gone from the top-right, credit keeps
+           bottom-right). -->
       <a
         class="discord-btn home-discord"
         href="https://discord.gg/HFFk6wc7Ha"
@@ -147,7 +184,285 @@
         <i class="ri-discord-fill" aria-hidden="true"></i>
         <span class="discord-tip" aria-hidden="true">Discord</span>
       </a>
-      <span class="art-credit">art by mobpsychofan</span>
+      <span class="art-credit">art by <b>sh4dowmob</b></span>
+
+
+      <!-- ==================== SETTINGS MODAL ====================
+           Account edits (username / password, signed-in only) plus the
+           graphics-quality switch. The graphics buttons reuse the exact
+           .gfx-switch structure, so body[data-gfx] styles the thumb and
+           initGfx's delegated listener already drives them. -->
+
+      <!-- ==================== USERNAME PROMPT ====================
+           Shown once after a Google account is provisioned: Google gives
+           us a name but not a callsign, and matchmaking needs one. The
+           rules (letters / numbers / . _ -) are enforced on submit. -->
+
+      <div class="home-inner">
+        <div class="home-emblem">
+          <i class="ra ra-crossed-swords"></i>
+        </div>
+
+        <h1 class="home-title">
+          <span class="ht-line">Echoes</span>
+          <span class="ht-of">of</span>
+          <span class="ht-line">Legend</span>
+        </h1>
+
+        <div class="home-rule"><span></span><i class="ra ra-crossed-swords"></i><span></span></div>
+
+        <p class="home-sub">History Meets Destiny</p>
+
+        <div class="home-actions">
+          <button class="btn btn-primary btn-hero" id="btn-play">
+            <i class="ra ra-crossed-swords"></i>
+            <span>Play</span>
+            <i class="ri-arrow-right-line b-arrow" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-ghost" id="btn-shop">
+            <i class="ri-store-2-line"></i>
+            <span>Shop</span>
+          </button>
+          <button class="btn btn-ghost" id="btn-collection">
+            <i class="ra ra-book"></i>
+            <span>Collection</span>
+          </button>
+        </div>
+
+        <div class="home-stats">
+          <span><b id="stat-heroes"></b> Legends</span>
+          <span class="sep"></span>
+          <span><b id="stat-factions"></b> Factions</span>
+          <span class="sep"></span>
+          <span><b>6v6</b> Battles</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== COLLECTION ==================== -->
+    <section class="view collection" data-view="collection">
+      <header class="col-header mast">
+        <button class="back-btn" id="btn-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-book"></i></span>
+          <h2 class="col-title">Collection</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">
+            <span id="visible-count">0</span> of <span id="total-count">0</span> legends
+          </p>
+        </div>
+      </header>
+
+      <!-- Legends / Decks tabs - session 26: moved under the masthead,
+           centred, so the header above it stays purely ceremonial -->
+      <div class="col-tabs" role="tablist">
+        <span class="col-thumb" aria-hidden="true"></span>
+        <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
+          <i class="ra ra-player"></i><span>Legends</span>
+        </button>
+        <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
+          <i class="ri-stack-line"></i><span>Decks</span>
+        </button>
+      </div>
+
+      <!-- tab: heroes (the collection, unchanged) -->
+      <div class="col-panel" id="cpanel-heroes">
+        <!-- static toolbar: intentionally NOT sticky -->
+        <div class="toolbar">
+          <div class="filters" id="filters"></div>
+          <div class="tool-right">
+            <div class="search-wrap">
+              <i class="ri-search-line"></i>
+              <input type="text" id="search" placeholder="Search legends..." />
+            </div>
+            <button class="reset-btn" id="reset" title="Reset filters">
+              <i class="ri-refresh-line"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-grid" id="roster"></div>
+        <div class="roster-sentinel" id="roster-sentinel" aria-hidden="true"><span></span></div>
+
+        <div class="empty-state" id="empty">
+          <i class="ra ra-broken-shield"></i>
+          No legends match these filters.
+        </div>
+      </div>
+
+      <!-- tab: decks (the deck manager) -->
+      <div class="col-panel" id="cpanel-decks" hidden>
+        <div class="decks-head">
+          <p class="decks-intro">
+            <i class="ri-information-line"></i>
+            A deck holds <b>12 legends</b> (max 4 per role). When a battle begins, the enemy bans 2
+            of them and you field 6 of the survivors.
+          </p>
+          <button class="btn btn-primary btn-slim" id="btn-new-deck">
+            <i class="ri-add-line"></i><span>New deck</span>
+          </button>
+        </div>
+        <div class="decks-list" id="decks-list"></div>
+        <div class="empty-state" id="decks-empty">
+          <i class="ri-stack-line"></i>
+          No decks yet - forge your first squad of twelve.
+        </div>
+      </div>
+
+      <footer>Echoes of Legend - Prototype</footer>
+    </section>
+
+    <!-- ==================== DECK EDITOR ==================== -->
+    <section class="view deck" data-view="deck">
+      <header class="col-header">
+        <button class="back-btn" id="btn-deck-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <h2 class="col-title">Deck Editor</h2>
+          <p class="col-sub"><span id="deck-count">0</span> of 12 legends - max 4 per role <button type="button" class="tipdot" data-tip="A deck holds 12 legends, with at most 4 of the same role. Bring a mix: tough front-liners, damage dealers, and support." aria-label="Tip"><i class="ri-question-line"></i></button></p>
+        </div>
+        <input
+          class="deck-name-input"
+          id="deck-name"
+          maxlength="24"
+          placeholder="Name this deck"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </header>
+
+      <div class="deck-tray">
+        <div class="deck-rows">
+          <div class="deck-row-tag">
+            Your Twelve
+            <span class="deck-row-note"
+              >order here doesn't matter - you pick your battle six when the fight starts</span
+            >
+          </div>
+          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
+        </div>
+        <div class="deck-side">
+          <div class="deck-hint">
+            <i class="ri-information-line"></i>
+            Click a legend to add or remove them. Saves itself as you build - 12 legends and at most 4
+            of any role makes it battle-ready.
+          </div>
+          <div class="deck-actions">
+            <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
+              <i class="ri-refresh-line"></i><span>Clear</span>
+            </button>
+            <button class="btn btn-primary btn-slim" id="btn-deck-save">
+              <i class="ri-check-line"></i><span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- same toolbar as the collection -->
+      <div class="toolbar">
+        <div class="filters" id="deck-filters"></div>
+        <div class="tool-right">
+          <div class="search-wrap">
+            <i class="ri-search-line"></i>
+            <input type="text" id="deck-search" placeholder="Search legends..." />
+          </div>
+          <button class="reset-btn" id="deck-reset" title="Reset filters">
+            <i class="ri-refresh-line"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-grid deck-grid" id="deck-grid"></div>
+
+      <div class="empty-state" id="deck-empty">
+        <i class="ra ra-broken-shield"></i>
+        No legends match these filters.
+      </div>
+
+      <footer>Echoes of Legend - Prototype</footer>
+    </section>
+
+    <!-- ==================== SHOP ==================== -->
+    <section class="view shop" data-view="shop">
+      <header class="col-header mast">
+        <button class="back-btn" id="btn-shop-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <span class="mast-emblem" aria-hidden="true"><i class="ri-store-2-line"></i></span>
+          <h2 class="col-title">Shop</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">Pack preview - your collection is already complete</p>
+        </div>
+      </header>
+
+      <div class="shop-body">
+        <article class="product">
+          <div class="product-pack pk-host">
+            <div class="product-sheen"></div>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">Echoes Pack</h3>
+            <p class="product-desc">
+              Five legends from across all six factions. The final card is always
+              <b>Epic</b> rarity or better.
+            </p>
+            <p class="product-odds" id="product-odds"></p>
+            <p class="product-note">
+              <i class="ri-information-line"></i>
+              Preview only: legends you reveal here are <b>not</b> added anywhere - you already own
+              the full collection.
+            </p>
+            <button class="btn btn-primary" id="btn-open-pack">
+              <i class="ra ra-gem"></i><span>Open Pack</span>
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <!-- cinematic pack opening -->
+      <div class="pack-opening" id="pack-opening" aria-hidden="true">
+        <div class="po-vignette"></div>
+        <div class="po-rays"><span></span><span></span></div>
+        <button class="po-skip" id="po-skip">
+          <i class="ri-skip-forward-fill"></i><span>Skip</span>
+        </button>
+        <div class="po-packwrap" id="po-packwrap">
+          <div class="po-pack" id="po-pack" role="button" tabindex="0" aria-label="Open the pack">
+            <div class="po-pack-main pk-host"></div>
+            <div class="po-pack-seam"></div>
+            <div class="po-halves">
+              <span class="po-half top pk-host"></span>
+              <span class="po-half bot pk-host"></span>
+            </div>
+            <div class="po-pack-glow"></div>
+          </div>
+          <div class="po-hint" id="po-hint">Click the pack to open it</div>
+        </div>
+        <div class="po-particles" id="po-particles"></div>
+        <div class="po-flash" id="po-flash"></div>
+        <div class="po-cards" id="po-cards"></div>
+        <div class="po-legend-banner" id="po-legend-banner"></div>
+        <div class="po-summary" id="po-summary">
+          <h3 class="po-sum-title">Pack Contents</h3>
+          <p class="po-sum-note">
+            <i class="ri-information-line"></i>
+            Preview only - nothing was added to your collection.
+          </p>
+          <div class="po-sum-actions">
+            <button class="btn btn-ghost btn-slim" id="po-again">
+              <i class="ra ra-gem"></i><span>Open Another</span>
+            </button>
+            <button class="btn btn-primary btn-slim" id="po-done">
+              <i class="ri-check-line"></i><span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
       <div
         class="auth-modal"
@@ -170,6 +485,11 @@
               Sign in to play online matches against other players.
             </p>
           </div>
+
+          <p class="auth-foot" id="auth-foot">
+            <i class="ri-information-line"></i>
+            An account unlocks multiplayer. Your decks stay on this device.
+          </p>
 
           <div class="auth-tabs" role="tablist">
             <button
@@ -229,18 +549,8 @@
             </button>
           </form>
 
-          <p class="auth-foot" id="auth-foot">
-            <i class="ri-information-line"></i>
-            An account unlocks multiplayer. Your decks stay on this device.
-          </p>
         </div>
       </div>
-
-      <!-- ==================== SETTINGS MODAL ====================
-           Account edits (username / password, signed-in only) plus the
-           graphics-quality switch. The graphics buttons reuse the exact
-           .gfx-switch structure, so body[data-gfx] styles the thumb and
-           initGfx's delegated listener already drives them. -->
       <div
         class="auth-modal"
         id="settings-modal"
@@ -260,6 +570,8 @@
             <h2 class="auth-title" id="settings-title">Settings</h2>
             <p class="auth-sub">Account and display preferences.</p>
           </div>
+
+          <p class="auth-foot" id="settings-foot"></p>
 
           <section class="set-block" id="set-account" aria-labelledby="set-account-h">
             <h3 class="set-h" id="set-account-h">
@@ -341,16 +653,35 @@
               Tips are the small ? dots scattered across the game - hover one for the rule of whatever
               it sits beside. Off hides every dot.
             </p>
+            <div class="set-row scale-row">
+              <span class="scale-lbl" id="scale-lbl">
+                <i class="ri-zoom-in-line" aria-hidden="true"></i>GUI scale
+              </span>
+              <input
+                type="range"
+                class="scale-range"
+                id="scale-range"
+                min="80"
+                max="110"
+                step="0.01"
+                value="100"
+                aria-labelledby="scale-lbl"
+              />
+              <span class="scale-val" id="scale-val" aria-live="polite">100%</span>
+              <button type="button" class="btn btn-ghost btn-slim scale-reset" id="scale-reset">
+                <i class="ri-restart-line" aria-hidden="true"></i><span>Reset</span>
+              </button>
+            </div>
+            <p class="set-gfx-note">
+              <i class="ri-information-line"></i>
+              Works exactly like your browser's own zoom (Ctrl +/-) - the whole game reflows to
+              fill your screen at 80-110%, nothing gets clipped. 100 is full size. The handle
+              glides while you drag and snaps to a whole percent when you let go.
+            </p>
           </section>
 
-          <p class="auth-foot" id="settings-foot"></p>
         </div>
       </div>
-
-      <!-- ==================== USERNAME PROMPT ====================
-           Shown once after a Google account is provisioned: Google gives
-           us a name but not a callsign, and matchmaking needs one. The
-           rules (letters / numbers / . _ -) are enforced on submit. -->
       <div
         class="auth-modal"
         id="uname-modal"
@@ -362,13 +693,14 @@
         <div class="auth-scrim" id="uname-scrim"></div>
         <div class="auth-card" role="document">
           <div class="auth-head">
-            <div class="auth-emblem"><i class="ra ra-laurel-crown"></i></div>
+            <div class="auth-emblem"><i class="ra ra-crown"></i></div>
             <h2 class="auth-title" id="uname-title">Choose your callsign</h2>
             <p class="auth-sub">
               This is the name other players see in matchmaking. Letters, numbers, and
               <b>. _ -</b> only.
             </p>
           </div>
+          <p class="auth-foot" id="uname-foot"></p>
           <form class="auth-form" id="uname-form" autocomplete="off">
             <label class="auth-field">
               <span class="auth-lbl">Username</span>
@@ -378,280 +710,22 @@
               <i class="ra ra-quill-ink"></i><span>Claim this name</span>
             </button>
           </form>
-          <p class="auth-foot" id="uname-foot"></p>
           <button type="button" class="btn btn-ghost uname-skip" id="uname-skip">
             <i class="ri-time-line"></i><span>Pick one later</span>
           </button>
         </div>
       </div>
 
-      <div class="home-inner">
-        <div class="home-emblem">
-          <i class="ra ra-crossed-swords"></i>
-        </div>
-
-        <h1 class="home-title">
-          <span class="ht-line">Echoes</span>
-          <span class="ht-of">of</span>
-          <span class="ht-line">Legend</span>
-        </h1>
-
-        <div class="home-rule"><span></span><i class="ra ra-diamond"></i><span></span></div>
-
-        <p class="home-sub">History Meets Destiny</p>
-
-        <div class="home-actions">
-          <button class="btn btn-primary" id="btn-play">
-            <i class="ra ra-crossed-swords"></i>
-            <span>Play</span>
-          </button>
-          <button class="btn btn-ghost" id="btn-shop">
-            <i class="ri-store-2-line"></i>
-            <span>Shop</span>
-          </button>
-          <button class="btn btn-ghost" id="btn-collection">
-            <i class="ra ra-book"></i>
-            <span>Collection</span>
-          </button>
-        </div>
-
-        <div class="home-stats">
-          <span><b id="stat-heroes"></b> Heroes</span>
-          <i class="ra ra-diamond sep"></i>
-          <span><b id="stat-factions"></b> Factions</span>
-          <i class="ra ra-diamond sep"></i>
-          <span><b>6v6</b> Battles</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== COLLECTION ==================== -->
-    <section class="view collection" data-view="collection">
-      <header class="col-header">
-        <button class="back-btn" id="btn-back">
-          <i class="ri-arrow-left-line"></i><span>Back</span>
-        </button>
-        <div class="col-titles">
-          <h2 class="col-title">Collection</h2>
-          <p class="col-sub">
-            <span id="visible-count">0</span> of <span id="total-count">0</span> heroes
-          </p>
-        </div>
-
-        <!-- Heroes / Decks tabs -->
-        <div class="col-tabs" role="tablist">
-          <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
-            <i class="ra ra-player"></i><span>Heroes</span>
-          </button>
-          <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
-            <i class="ri-stack-line"></i><span>Decks</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- tab: heroes (the collection, unchanged) -->
-      <div class="col-panel" id="cpanel-heroes">
-        <!-- static toolbar: intentionally NOT sticky -->
-        <div class="toolbar">
-          <div class="filters" id="filters"></div>
-          <div class="tool-right">
-            <div class="search-wrap">
-              <i class="ri-search-line"></i>
-              <input type="text" id="search" placeholder="Search heroes..." />
-            </div>
-            <button class="reset-btn" id="reset" title="Reset filters">
-              <i class="ri-refresh-line"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="card-grid" id="roster"></div>
-        <div class="roster-sentinel" id="roster-sentinel" aria-hidden="true"><span></span></div>
-
-        <div class="empty-state" id="empty">
-          <i class="ra ra-broken-shield"></i>
-          No heroes match these filters.
-        </div>
-      </div>
-
-      <!-- tab: decks (the deck manager) -->
-      <div class="col-panel" id="cpanel-decks" hidden>
-        <div class="decks-head">
-          <p class="decks-intro">
-            <i class="ri-information-line"></i>
-            A deck holds <b>12 heroes</b> (max 4 per role). When a battle begins, the enemy bans 2
-            of them and you field 6 of the survivors.
-          </p>
-          <button class="btn btn-primary btn-slim" id="btn-new-deck">
-            <i class="ri-add-line"></i><span>New deck</span>
-          </button>
-        </div>
-        <div class="decks-list" id="decks-list"></div>
-        <div class="empty-state" id="decks-empty">
-          <i class="ri-stack-line"></i>
-          No decks yet - forge your first squad of twelve.
-        </div>
-      </div>
-
-      <footer>Echoes of Legend - Prototype</footer>
-    </section>
-
-    <!-- ==================== DECK EDITOR ==================== -->
-    <section class="view deck" data-view="deck">
-      <header class="col-header">
-        <button class="back-btn" id="btn-deck-back">
-          <i class="ri-arrow-left-line"></i><span>Back</span>
-        </button>
-        <div class="col-titles">
-          <h2 class="col-title">Deck Editor</h2>
-          <p class="col-sub"><span id="deck-count">0</span> of 12 heroes - max 4 per role <button type="button" class="tipdot" data-tip="Twelve heroes make a legal deck, at most 4 of any one role. Mix jobs: someone to soak the hits, someone to strike, someone to sustain." aria-label="Tip"><i class="ri-question-line"></i></button></p>
-        </div>
-        <input
-          class="deck-name-input"
-          id="deck-name"
-          maxlength="24"
-          placeholder="Name this deck"
-          autocomplete="off"
-          spellcheck="false"
-        />
-      </header>
-
-      <div class="deck-tray">
-        <div class="deck-rows">
-          <div class="deck-row-tag">
-            <i class="ra ra-diamond"></i> Your Twelve
-            <span class="deck-row-note"
-              >order here doesn't matter - you pick your battle six when the fight starts</span
-            >
-          </div>
-          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
-        </div>
-        <div class="deck-side">
-          <div class="deck-hint">
-            <i class="ri-information-line"></i>
-            Click a hero to add or remove them. Saves itself as you build - 12 heroes and at most 4
-            of any role makes it battle-ready.
-          </div>
-          <div class="deck-actions">
-            <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
-              <i class="ri-refresh-line"></i><span>Clear</span>
-            </button>
-            <button class="btn btn-primary btn-slim" id="btn-deck-save">
-              <i class="ri-check-line"></i><span>Done</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- same toolbar as the collection -->
-      <div class="toolbar">
-        <div class="filters" id="deck-filters"></div>
-        <div class="tool-right">
-          <div class="search-wrap">
-            <i class="ri-search-line"></i>
-            <input type="text" id="deck-search" placeholder="Search heroes..." />
-          </div>
-          <button class="reset-btn" id="deck-reset" title="Reset filters">
-            <i class="ri-refresh-line"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="card-grid deck-grid" id="deck-grid"></div>
-
-      <div class="empty-state" id="deck-empty">
-        <i class="ra ra-broken-shield"></i>
-        No heroes match these filters.
-      </div>
-
-      <footer>Echoes of Legend - Prototype</footer>
-    </section>
-
-    <!-- ==================== SHOP ==================== -->
-    <section class="view shop" data-view="shop">
-      <header class="col-header">
-        <button class="back-btn" id="btn-shop-back">
-          <i class="ri-arrow-left-line"></i><span>Back</span>
-        </button>
-        <div class="col-titles">
-          <h2 class="col-title">Shop</h2>
-          <p class="col-sub">Pack preview - your collection is already complete</p>
-        </div>
-      </header>
-
-      <div class="shop-body">
-        <article class="product">
-          <div class="product-pack pk-host">
-            <div class="product-sheen"></div>
-          </div>
-          <div class="product-info">
-            <h3 class="product-name">Echoes Pack</h3>
-            <p class="product-desc">
-              Five heroes from across all six factions. The final card is always
-              <b>Epic</b> rarity or better.
-            </p>
-            <p class="product-odds" id="product-odds"></p>
-            <p class="product-note">
-              <i class="ri-information-line"></i>
-              Preview only: heroes you reveal here are <b>not</b> added anywhere - you already own
-              the full collection.
-            </p>
-            <button class="btn btn-primary" id="btn-open-pack">
-              <i class="ra ra-gem"></i><span>Open Pack</span>
-            </button>
-          </div>
-        </article>
-      </div>
-
-      <!-- cinematic pack opening -->
-      <div class="pack-opening" id="pack-opening" aria-hidden="true">
-        <div class="po-vignette"></div>
-        <div class="po-rays"><span></span><span></span></div>
-        <button class="po-skip" id="po-skip">
-          <i class="ri-skip-forward-fill"></i><span>Skip</span>
-        </button>
-        <div class="po-packwrap" id="po-packwrap">
-          <div class="po-pack" id="po-pack" role="button" tabindex="0" aria-label="Open the pack">
-            <div class="po-pack-main pk-host"></div>
-            <div class="po-pack-seam"></div>
-            <div class="po-halves">
-              <span class="po-half top pk-host"></span>
-              <span class="po-half bot pk-host"></span>
-            </div>
-            <div class="po-pack-glow"></div>
-          </div>
-          <div class="po-hint" id="po-hint">Click the pack to open it</div>
-        </div>
-        <div class="po-particles" id="po-particles"></div>
-        <div class="po-flash" id="po-flash"></div>
-        <div class="po-cards" id="po-cards"></div>
-        <div class="po-legend-banner" id="po-legend-banner"></div>
-        <div class="po-summary" id="po-summary">
-          <h3 class="po-sum-title">Pack Contents</h3>
-          <p class="po-sum-note">
-            <i class="ri-information-line"></i>
-            Preview only - nothing was added to your collection.
-          </p>
-          <div class="po-sum-actions">
-            <button class="btn btn-ghost btn-slim" id="po-again">
-              <i class="ra ra-gem"></i><span>Open Another</span>
-            </button>
-            <button class="btn btn-primary btn-slim" id="po-done">
-              <i class="ri-check-line"></i><span>Done</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- ==================== PLAY (mode select) ==================== -->
     <section class="view play" data-view="play">
-      <header class="col-header">
+      <header class="col-header mast">
         <button class="back-btn" id="btn-play-back">
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
+          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-crossed-swords"></i></span>
           <h2 class="col-title">Play</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">Choose your battlefield</p>
         </div>
       </header>
@@ -676,32 +750,15 @@
       </div>
 
       <div class="mode-grid" id="mode-grid-solo">
-        <!-- THE SET (roadmap Phase 1): match length is a mode-level
-             choice, not a mode. The Set wraps Classic or Draft in a
-             Bo3 war; classic single battles stay the default. -->
-        <div class="war-length" id="war-length" role="group" aria-label="Match length">
-          <button type="button" class="tipdot wl-tip" data-tip="One battle settles it, or fight a best-of-3 war: a 3-arena fight card, the loser calls each next battlefield, and you must rotate 1-2 heroes between games." aria-label="Tip"><i class="ri-question-line"></i></button>
-          <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
-            <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
-            <span class="wl-body">
-              <span class="wl-name">Single Battle</span>
-              <span class="wl-sub">One game, quick war</span>
-            </span>
-          </button>
-          <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
-            <i class="ra ra-laurel-crown" aria-hidden="true"></i>
-            <span class="wl-body">
-              <span class="wl-name">The Set · Bo3</span>
-              <span class="wl-sub">3-board fight card, swaps between games</span>
-            </span>
-          </button>
-        </div>
+        <!-- THE SET (roadmap Phase 1): match length is chosen at launch,
+             inside the deck popup below - the play screen itself stays
+             a one-look mode select with no scrolling. -->
         <button class="mode-card" id="mode-classic">
           <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
           <i class="mode-glyph ra ra-crossed-swords"></i>
           <span class="mode-name">Classic</span>
           <span class="mode-desc">
-            Bring a saved deck of 12. Ban 2 of the enemy's heroes, field your six, fight.
+            Bring a saved deck of 12. Ban 2 of the enemy's legends, field your six, fight.
           </span>
           <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
         </button>
@@ -711,7 +768,7 @@
           <i class="mode-glyph ra ra-clovers-card"></i>
           <span class="mode-name">Draft</span>
           <span class="mode-desc">
-            Build from nothing - snake-draft 12 heroes against the bot, then the same bans and
+            Build from nothing - snake-draft 12 legends against the bot, then the same bans and
             battle as Classic.
           </span>
           <span class="mode-cta">Enter draft <i class="ri-arrow-right-line"></i></span>
@@ -743,7 +800,7 @@
           <i class="mode-glyph ra ra-clovers-card"></i>
           <span class="mode-name">Online Draft</span>
           <span class="mode-desc">
-            Snake-draft 12 heroes against a real opponent, then the same bans and battle as Classic.
+            Snake-draft 12 legends against a real opponent, then the same bans and battle as Classic.
             Both squads come from one shared pool.
           </span>
           <span class="mode-cta">Find a match <i class="ri-arrow-right-line"></i></span>
@@ -756,8 +813,10 @@
         <div class="mm-card">
           <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
           <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
-          <p class="mm-sub" id="mm-sub">Searching the queue...</p>
-          <button type="button" class="tipdot mm-tip" data-tip="Online Classic brings a saved deck of 12. Online Draft builds both squads from one shared pool, alternating picks." aria-label="Tip"><i class="ri-question-line"></i></button>
+          <div class="mm-subrow">
+            <p class="mm-sub" id="mm-sub">Searching the queue...</p>
+            <button type="button" class="tipdot mm-tip" data-tip="Classic: fight with a deck you built yourself. Draft: both players take turns picking legends from the same pile, then fight with what they got." aria-label="Tip"><i class="ri-question-line"></i></button>
+          </div>
           <div class="mm-vs" id="mm-vs" hidden>
             <span class="mm-side" id="mm-you">You</span>
             <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
@@ -774,6 +833,29 @@
         <div class="dm-card">
           <h3 class="dm-title">Choose your deck</h3>
           <p class="dm-sub">The enemy builds a random squad of 12 - max 4 of a role, like yours.</p>
+          <!-- Match length = part of the launch decision, so it lives in
+               this popup (2026-08-05). Hidden when the modal is serving
+               an online classic pick - the room owns length there. -->
+          <div class="war-length" id="war-length" role="group" aria-label="Match length">
+            <div class="wl-head">
+              <span class="wl-kicker">Match length</span>
+              <button type="button" class="tipdot" data-tip="Pick your match length. Single Battle is one quick fight. Unabridged is best of 3: three arenas get shuffled at the start, and between games you must swap 1 or 2 legends on your bench." aria-label="Tip"><i class="ri-question-line"></i></button>
+            </div>
+            <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
+              <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
+              <span class="wl-body">
+                <span class="wl-name">Single Battle</span>
+                <span class="wl-sub">One game, quick war</span>
+              </span>
+            </button>
+            <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
+              <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+              <span class="wl-body">
+                <span class="wl-name">Unabridged · Bo3</span>
+                <span class="wl-sub">3-board fight card, swaps between games</span>
+              </span>
+            </button>
+          </div>
           <div class="dm-list" id="dm-list"></div>
           <div class="dm-foot">
             <button class="btn btn-ghost btn-slim" id="dm-new">
@@ -797,12 +879,12 @@
         </button>
         <div class="col-titles">
           <h2 class="col-title">Preparation</h2>
-          <p class="col-sub" id="prep-sub">Phase 1 - ban 2 of the enemy's heroes</p>
+          <p class="col-sub" id="prep-sub">Phase 1 - ban 2 of the enemy's legends</p>
         </div>
         <div class="prep-steps">
-          <span class="pstep sel" id="pstep-ban"><b>1</b> Bans<button type="button" class="tipdot" data-tip="Ban 2 of the enemy's 12. They ban 2 of yours at the same time - their picks stay hidden until you lock yours in." aria-label="Tip"><i class="ri-question-line"></i></button></span>
-          <span class="pstep" id="pstep-pick"><b>2</b> Field Six<button type="button" class="tipdot" data-tip="Field 6 of your survivors. The front row soaks the hits while the back row supports - tap a slotted hero to swap its row. Basic Skills cost 15 Energy; Signatures hit harder for more." aria-label="Tip"><i class="ri-question-line"></i></button></span>
-          <span class="pstep" id="pstep-fight"><b>3</b> Battle<button type="button" class="tipdot" data-tip="Sides trade one action at a time. In a set, games after the first demand rotation: swap 1-2 fresh heroes in, and a hero subbed out sits out the rest of the set." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+          <span class="pstep sel" id="pstep-ban"><b>1</b> Bans<button type="button" class="tipdot" data-tip="Choose 2 of the enemy's legends to ban - they can't be used this battle. The enemy bans 2 of yours at the same time, and nobody sees the other side's picks first." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+          <span class="pstep" id="pstep-pick"><b>2</b> Field Six<button type="button" class="tipdot" data-tip="Pick the 6 legends who fight. The front row takes the hits, the back row attacks and supports. Tap a legend to move it between rows. Big moves cost more Energy." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+          <span class="pstep" id="pstep-fight"><b>3</b> Battle<button type="button" class="tipdot" data-tip="You and the enemy take turns making one move each. In Unabridged, you must swap 1 or 2 legends between games to keep your squad fresh." aria-label="Tip"><i class="ri-question-line"></i></button></span>
         </div>
       </header>
 
@@ -833,8 +915,8 @@
 
         <section class="prep-side field" id="prep-field" hidden>
           <div class="prep-side-tag">
-            <i class="ra ra-diamond"></i><span>Your Battle Six</span>
-            <span class="prep-note">tap a slotted hero to swap rows - front soaks the hits</span>
+            <span>Your Battle Six</span>
+            <span class="prep-note">tap a slotted legend to swap rows - front soaks the hits</span>
           </div>
           <div class="prep-field-body">
             <div class="field-rows">
@@ -848,10 +930,13 @@
             <div class="field-count"><b id="field-n">0</b><span>/6 fielded</span></div>
           </div>
           <div class="prep-actions">
+            <button class="btn btn-ghost btn-slim" id="prep-fields" type="button">
+              <i class="ri-map-2-line"></i><span>See battlefields</span>
+            </button>
             <button class="btn btn-primary" id="prep-confirm" disabled>
               <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
             </button>
-            <button type="button" class="tipdot prep-go-tip" data-tip="The grey state is the rule, not a bug: when the button explains what it is waiting on (six fielded, swaps made), meet it and it unlocks." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <button type="button" class="tipdot prep-go-tip" data-tip="Button greyed out? Read what it says under it - it tells you what is still missing, like picking your 6 legends or making your swaps." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
         </section>
       </div>
@@ -872,7 +957,7 @@
         <div class="bf-card" id="bf-card">
           <div class="bf-art" id="bf-art"></div>
           <div class="bf-body">
-            <div class="bf-kicker">The battlefield is revealed <button type="button" class="tipdot" data-tip="Battlefields bend the rules for BOTH sides equally - read the law of the land before you field your six." aria-label="Tip"><i class="ri-question-line"></i></button></div>
+            <div class="bf-kicker">The battlefield is revealed <button type="button" class="tipdot" data-tip="Every arena changes the rules of the fight a little, and it applies to both sides. Read what this one does before the battle starts." aria-label="Tip"><i class="ri-question-line"></i></button></div>
             <h3 class="bf-name" id="bf-name"></h3>
             <p class="bf-tag" id="bf-tag"></p>
             <ul class="bf-rules" id="bf-rules"></ul>
@@ -892,7 +977,7 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <h2 class="col-title">Draft <button type="button" class="tipdot" data-tip="Snake draft: you and the enemy alternate picks from shared packs. What you skip, they can take - pack by pack, your twelve takes shape." aria-label="Tip"><i class="ri-question-line"></i></button></h2>
+          <h2 class="col-title">Draft <button type="button" class="tipdot" data-tip="You and the enemy take turns picking legends from the same packs. Whatever you skip, they can grab." aria-label="Tip"><i class="ri-question-line"></i></button></h2>
           <p class="col-sub" id="draft-sub">Pack 1 of 12 - your pick</p>
         </div>
         <div class="draft-order" id="draft-order"></div>
@@ -981,24 +1066,26 @@
           <div class="en-txt">
             <i class="ra ra-lightning-bolt"></i>
             <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
-            <button type="button" class="tipdot" data-tip="Energy pays for Skills. You gain some every round and unspent Energy carries over, up to the storage cap." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <button type="button" class="tipdot" data-tip="Energy pays for your legends' skills. You get more every round, and what you don't spend is saved for later, up to a cap." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
         </div>
 
         <div class="hud-center">
           <!-- Turn clock. Guards every action window: online it stops a
                stalling opponent, solo it simply ends dawdling (an
-               expired clock passes - never acts - for you). -->
-          <div class="turn-clock" id="turn-clock" hidden>
+               expired clock passes - never acts - for you). Session 25:
+               the dial is ALWAYS in the bar (no more hidden attribute) -
+               between windows it parks in a quiet idle ring so the round
+               block never jumps off-centre. -->
+          <div class="turn-clock idle" id="turn-clock">
             <svg class="tc-ring" viewBox="0 0 40 40" aria-hidden="true">
               <circle class="tc-track" cx="20" cy="20" r="17"></circle>
               <circle class="tc-fill" id="tc-fill" cx="20" cy="20" r="17"></circle>
             </svg>
-            <span class="tc-num" id="tc-num">30</span>
-            <button type="button" class="tipdot tc-tip" data-tip="30 seconds per action. When your clock runs out you pass - it never acts for you." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <span class="tc-num" id="tc-num"></span>
           </div>
           <div class="hud-round">
-            <span class="round-label">Round <button type="button" class="tipdot hud-round-tip" data-tip="Sides trade one action at a time. Passing skips only that action - the round ends when both sides pass back-to-back." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+            <span class="round-label">Round <button type="button" class="tipdot hud-round-tip" data-tip="You and the enemy take turns making one move each. The dial beside the round shows your time to move - if it runs out, that move is skipped for you. A round ends when both sides pass in a row." aria-label="Tip"><i class="ri-question-line"></i></button></span>
             <span class="round-num" id="round-num">1</span>
             <span class="turn-label" id="turn-label">Your Turn</span>
             <span class="init-tag" id="init-tag" title="Round 1 opening limit">
@@ -1012,24 +1099,29 @@
               class="set-pill"
               id="set-pill"
               hidden
-              title="The Set - first to 2 games. The loser of each game calls the next battlefield."
+              title="Unabridged - first to 2 games. The loser of each game calls the next battlefield."
             ></span>
-            <span class="ramp-tag" id="ramp-tag" title="All heroes gain ATK each round">
+            <span class="ramp-tag" id="ramp-tag" title="All legends gain ATK each round">
               <i class="ra ra-muscle-up"></i><b id="ramp-val">+0%</b> ATK
             </span>
           </div>
-          <button class="endturn-btn" id="btn-endturn" title="Pass - skip this action">
-            <span class="et-label"><i class="ri-skip-forward-fill"></i></span>
-            <span class="et-count"></span>
-          </button>
-          <button type="button" class="tipdot et-tip" data-tip="Passing skips only this action - the enemy may still act, and so may you again this round." aria-label="Tip"><i class="ri-question-line"></i></button>
+          <div class="et-wrap">
+            <button class="endturn-btn" id="btn-endturn" title="Pass - skip this action">
+              <span class="et-label"><i class="ri-skip-forward-fill"></i></span>
+              <span class="et-count"></span>
+            </button>
+            <!-- the word rides UNDER the circle: the button itself is
+                 overflow:hidden for its countdown disc, so the caption
+                 lives on the wrapper instead (session 25) -->
+            <span class="et-cap" aria-hidden="true">Pass</span>
+          </div>
         </div>
 
         <div class="hud-side enemy">
           <div class="en-txt">
             <i class="ra ra-lightning-bolt"></i>
             <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
-            <button type="button" class="tipdot" data-tip="The enemy banks Energy under your rules - watch it to predict when their big Signatures come online." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <button type="button" class="tipdot" data-tip="The enemy plays by the same Energy rules you do. Watch their bar to guess when their strongest move is nearly ready." aria-label="Tip"><i class="ri-question-line"></i></button>
           </div>
           <div class="pf-body">
             <div class="pf-name">
@@ -1152,7 +1244,7 @@
 
       <div class="result" id="result">
         <div class="result-card">
-          <button type="button" class="tipdot result-tip" data-tip="A set is first to 2 games. Between games the loser calls the battlefield and both sides rotate heroes - the sideboard is where the war is won." aria-label="Tip"><i class="ri-question-line"></i></button>
+          <button type="button" class="tipdot result-tip" data-tip="The first player to win 2 games takes the set. After each game, the loser picks the next arena and both sides swap legends here on the sideboard." aria-label="Tip"><i class="ri-question-line"></i></button>
           <div class="result-icon"><i class="ra ra-crown"></i></div>
           <h2 class="result-title">Victory</h2>
           <p class="result-sub"></p>
@@ -1185,7 +1277,7 @@
         <div class="setm-scrim"></div>
         <div class="setm-card fightcard">
           <h2 class="setm-title" id="set-fightcard-title">
-            <i class="ra ra-laurel-crown" aria-hidden="true"></i> THE SET — FIGHT CARD
+            <i class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED — FIGHT CARD
           </h2>
           <p class="setm-sub" id="set-fightcard-sub"></p>
           <div class="setm-plates" id="set-fightcard-plates"></div>
@@ -1210,7 +1302,7 @@
         <div class="setm-scrim"></div>
         <div class="setm-card">
           <h2 class="setm-title" id="set-boardpick-title">
-            <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD <button type="button" class="tipdot" data-tip="You lost, so the call is yours. Pick your ground - or deny the enemy theirs. The slot you leave becomes the decider board." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD <button type="button" class="tipdot" data-tip="You lost the last game, so you get to pick the next arena. Choose the one that suits your legends - the one you skip becomes the arena for the final game." aria-label="Tip"><i class="ri-question-line"></i></button>
           </h2>
           <p class="setm-sub" id="set-boardpick-sub"></p>
           <div class="setm-plates" id="set-boardpick-plates"></div>

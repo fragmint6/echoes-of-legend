@@ -70,11 +70,11 @@ EOL.battlefields.forEach((f) => {
 sec('B. Energy carry-over (cap 150)');
 {
   const B = board(null);
-  ok(B.energy.player === 50, `round 1 grants 50 (${B.energy.player})`);
+  ok(B.energy.player === 60, `round 1 grants 60 (${B.energy.player})`);
   B.energy.player = 50; B.energy.enemy = 50;
-  E.nextRound(B); // round 2 grants 60
-  ok(B.energy.player === 110, `unspent 50 + 60 grant = 110 (${B.energy.player})`);
-  E.nextRound(B); // round 3 grants 70 -> 180 clamped to 150
+  E.nextRound(B); // round 2 grants 80
+  ok(B.energy.player === 130, `unspent 50 + 80 grant = 130 (${B.energy.player})`);
+  E.nextRound(B); // round 3 grants 100 -> 230 clamped to 150
   ok(B.energy.player === 150, `clamped to the 150 cap (${B.energy.player})`);
   E.nextRound(B);
   ok(B.energy.player === 150, `stays at the cap (${B.energy.player})`);
@@ -136,8 +136,8 @@ sec('E. Mana Spring / Energy Void');
 {
   const B = board(F('mana-spring'));
   B.energy.player = 0; B.energy.enemy = 0;
-  E.nextRound(B); // round 2: 60 + 20
-  ok(B.energy.player === 80, `+20 per round (${B.energy.player})`);
+  E.nextRound(B); // round 2: 80 + 20
+  ok(B.energy.player === 100, `+20 per round (${B.energy.player})`);
   ok(E.energyCap(B) === 170, `cap raised to 170 (${E.energyCap(B)})`);
   B.energy.player = 165;
   E.addEnergy(B, 'player', 50);
@@ -146,8 +146,8 @@ sec('E. Mana Spring / Energy Void');
 {
   const B = board(F('energy-void'));
   B.energy.player = 0; B.energy.enemy = 0;
-  E.nextRound(B); // round 2: 60 - 10
-  ok(B.energy.player === 50, `-10 per round (${B.energy.player})`);
+  E.nextRound(B); // round 2: 80 - 10
+  ok(B.energy.player === 70, `-10 per round (${B.energy.player})`);
   ok(E.energyCap(B) === 150, 'cap unchanged at 150');
   const c = U(B, 'camelot-merlin');
   ok(E.costOf(B, c, c.card.ability) === c.card.ability.cost, 'ability costs are unchanged');
@@ -206,16 +206,20 @@ sec('G. The Mirror Realm');
 
 /* ---------------- 7. Spirit World ---------------- */
 sec('H. The Spirit World');
+/* victims are chosen deliberately: Guan Yu (front-row Tank, no death
+   passive / no always-on defence) - NOT Benkei, whose Standing Death
+   passive revives him at 2% after any real kill and would pollute
+   every lethality assertion. */
+const SW_VICTIM = 'huaxia-guan-yu';
 {
   /* New rule (2026-08-02): a lethal blow leaves the hero on 1 HP
      instead of killing them. Once per hero. */
   const B = board(F('spirit-world'));
   B.energy.player = 150;
   const killer = U(B, 'sherwood-guy-of-gisborne');
-  const front = B.units.filter((u) => u.side === 'enemy' && u.alive && E.isFront(u));
-  const tgt = front[0];
+  const tgt = U(B, SW_VICTIM);
   tgt.hp = 1;
-  E.useAbility(B, killer, killer.card.ability, [tgt]);
+  E.useAbility(B, killer, E.roleAbility(killer), [tgt]); // single-hit BASIC
   ok(tgt.alive, 'a lethal blow does NOT kill in the Spirit World');
   ok(tgt.hp === 1, `the hero is held on exactly 1 HP (got ${tgt.hp})`);
   ok(tgt.spiritSpared === true, 'the reprieve is recorded on the hero');
@@ -225,29 +229,66 @@ sec('H. The Spirit World');
   const B = board(F('spirit-world'));
   B.energy.player = 150;
   const killer = U(B, 'sherwood-guy-of-gisborne');
-  const tgt = B.units.filter((u) => u.side === 'enemy' && u.alive && E.isFront(u))[0];
+  const tgt = U(B, SW_VICTIM);
   tgt.hp = 1;
-  E.useAbility(B, killer, killer.card.ability, [tgt]);
+  E.useAbility(B, killer, E.roleAbility(killer), [tgt]);
   B.acted.player = {};
   B.energy.player = 150;
-  E.useAbility(B, killer, killer.card.ability, [tgt]);
+  E.useAbility(B, killer, E.roleAbility(killer), [tgt]);
   ok(!tgt.alive, 'the second lethal blow kills - the reprieve is once per hero');
+}
+{
+  /* USER LAW 2026-08-05: "the next blow finishes the job" - a TWO-PART
+     skill's follow-up REGISTERS inside the same cast. Guy of Gisborne's
+     execute rider (fires below 40% HP) used to be swallowed by the
+     same-action shield; now the spare lands on hit 1 and the rider
+     kills. */
+  const B = board(F('spirit-world'));
+  B.energy.player = 150;
+  const guy = U(B, 'sherwood-guy-of-gisborne');
+  const tgt = U(B, SW_VICTIM);
+  tgt.hp = Math.round(tgt.maxHp * 0.10); // below the 40% execute line, and hit 1 is lethal
+  let hits = 0;
+  const prevHook = EOL.onBattleEvent;
+  EOL.onBattleEvent = (BB, ev) => { if (ev.t === 'dmg' && ev.tgt === tgt.uid) hits++; };
+  E.useAbility(B, guy, guy.card.ability, [tgt]);
+  EOL.onBattleEvent = prevHook;
+  ok(hits === 2, `both parts of the two-part skill fired (${hits}/2)`);
+  ok(tgt.spiritSpared === true, 'hit 1 was reprieved at the threshold');
+  ok(!tgt.alive, 'the follow-up hit REGISTERS and kills - the next blow finishes the job');
+}
+{
+  /* burn ticks honour the same reprieve: a lethal tick spares once,
+     the next tick kills. (Previously burn ignored the field and killed
+     straight through.) */
+  const B = board(F('spirit-world'));
+  const tgt = U(B, SW_VICTIM);
+  tgt.flags.burn = 3;
+  tgt.hp = 5;
+  E.setTurn(B, 'enemy'); // the burning side is handed the action -> tick
+  ok(tgt.alive && tgt.hp === 1, `a lethal burn tick is reprieved to 1 HP (hp ${tgt.hp})`);
+  ok(tgt.spiritSpared === true, 'the burn reprieve is recorded on the hero');
+  E.setTurn(B, 'player');
+  E.setTurn(B, 'enemy'); // second tick
+  ok(!tgt.alive, 'the next burn tick finishes the job');
 }
 {
   /* and it is field-gated */
   const B = board(null);
   B.energy.player = 150;
-  const front = B.units.filter((u) => u.side === 'enemy' && E.isFront(u));
-  front[0].hp = 1;
-  E.useAbility(B, U(B, 'sherwood-guy-of-gisborne'), U(B, 'sherwood-guy-of-gisborne').card.ability, [front[0]]);
-  ok(!front[0].alive, 'without the field a lethal blow kills as normal');
+  const tgt = U(B, SW_VICTIM);
+  tgt.hp = 1;
+  const guy2 = U(B, 'sherwood-guy-of-gisborne');
+  E.useAbility(B, guy2, E.roleAbility(guy2), [tgt]);
+  ok(!tgt.alive, 'without the field a lethal blow kills as normal');
 }
 
 /* ---------------- 8. Ancient Ruins ---------------- */
 sec('I. The Ancient Ruins');
 {
   const f = F('ancient-ruins');
-  ok(f.roundBuffs.length >= 6, `relic pool has ${f.roundBuffs.length} entries`);
+  /* user law 2026-08-04: exactly three relics (+5% ATK / +5% DEF / 5% heal) */
+  ok(f.roundBuffs.length === 3, `relic pool has exactly 3 entries (${f.roundBuffs.length})`);
   ok(f.roundBuffs.every((b) => b.id && b.label && Array.isArray(b.effects)),
     'every relic has id/label/effects');
   const seen = {};
@@ -261,7 +302,7 @@ sec('I. The Ancient Ruins');
     evs.forEach((id) => (seen[id] = (seen[id] || 0) + 1));
   }
   const distinct = Object.keys(seen).length;
-  ok(distinct >= 5, `relics vary across rounds (${distinct} distinct in 60 rolls)`);
+  ok(distinct >= 3, `relics vary across rounds (${distinct} distinct in 60 rolls)`);
   ok(Object.keys(seen).every((k) => f.roundBuffs.some((b) => b.id === k)),
     'every fired relic exists in the pool');
 }

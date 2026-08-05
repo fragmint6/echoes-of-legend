@@ -458,6 +458,12 @@ const PROBES = {
     const after = E.costOf(B, alliesOf(B)[1], alliesOf(B)[1].card.ability);
     ok(after <= before, 'Merlin: allied skill costs reduced');
     ok(alliesOf(B).every((a) => a.shield > 0), 'Merlin: all allies shielded');
+    /* cost 65 / 8% shield retune (2026-08-05) */
+    ok(u.card.ability.cost === 65, 'Merlin: Prophecy costs 65');
+    ok(
+      alliesOf(B).every((a) => a.shield === Math.round(a.maxHp * 0.08)),
+      'Merlin: the Shield is exactly 8% Max HP'
+    );
   },
   'camelot-guinevere': (B, u) => {
     const t = alliesOf(B).find((x) => x !== u);
@@ -469,14 +475,50 @@ const PROBES = {
   },
   'camelot-mordred': (B, u) => {
     const { delta } = cast(B, u.card.id, []);
-    const lo = foesOf(B).slice().sort((a, b) => a.hp - b.hp)[0];
     ok(Object.values(delta).some((d) => d > 0), 'Mordred: deals damage to the lowest-HP enemy');
+    /* row law (2026-08-05): Exposed spreads along the TARGET's row -
+       no adjacency, no other row */
+    const lo = foesOf(B).slice().sort((a, b) => a.hp - b.hp)[0];
+    const sameRow = foesOf(B).filter((f) => E.isFront(f) === E.isFront(lo));
+    const otherRow = foesOf(B).filter((f) => E.isFront(f) !== E.isFront(lo));
+    ok(
+      sameRow.length >= 2 && sameRow.every((f) => f.flags.exposed > 0),
+      `Mordred: Exposed lands on the target's whole row (${sameRow.length})`
+    );
+    ok(
+      otherRow.every((f) => !(f.flags.exposed > 0)),
+      'Mordred: the other row stays clean'
+    );
   },
   'camelot-morgan-le-fay': (B, u) => {
     const f = foesOf(B).slice(0, 2);
+    const slots = f.map((x) => x.slot);
     cast(B, u.card.id, f);
     ok(f.every((x) => x.flags.exposed > 0), 'Morgan: applies Exposed to both');
     ok(f.every((x) => x.buffs.some((b) => b.stat === 'atk' && b.amt === -30)), 'Morgan: -30% ATK on both');
+    /* the swap is gone (2026-08-05): too broken in player hands. The
+       debuffs stay, the BOARD positions never move. */
+    ok(
+      f.every((x, i) => x.slot === slots[i]),
+      'Morgan: nobody swaps places anymore'
+    );
+  },
+  'grimmwood-rapunzel': (B, u) => {
+    /* back-row law (2026-08-05): the hair reaches the BACK row only,
+       not the whole enemy side */
+    const fronts = foesOf(B).filter((f) => E.isFront(f));
+    const backs = foesOf(B).filter((f) => !E.isFront(f));
+    const fHp = fronts.map((f) => f.hp);
+    const bHp = backs.map((b) => b.hp);
+    cast(B, u.card.id, []);
+    ok(
+      backs.every((b, i) => b.hp < bHp[i] || b.flags.exposed > 0 || b.buffs.length > 0),
+      'Rapunzel: every back-row enemy is hit'
+    );
+    ok(
+      fronts.every((f, i) => f.hp === fHp[i] && !(f.flags.exposed > 0) && !f.buffs.length),
+      'Rapunzel: the front row is untouched'
+    );
   },
   'olympus-zeus': (B, u) => {
     const foes = foesOf(B);

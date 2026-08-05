@@ -29,9 +29,19 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
   await sleep(700);
 
   /* --- war-length toggle exists + drives state --- */
+  /* 2026-08-05: match length is chosen in the deck popup (the launch
+     decision), not on the play screen grid. */
   await p.evaluate(() => window.EOL.ui.show('play'));
   await sleep(350);
-  t(await p.$('#war-length') !== null, 'war-length toggle rendered in solo grid');
+  await c('#mode-classic');
+  await sleep(400);
+  t(
+    await p.evaluate(() => {
+      var w = document.getElementById('war-length');
+      return !!w && !w.hidden;
+    }),
+    'war-length toggle rendered inside the deck popup'
+  );
   await c('#war-length .wl-opt[data-len="set"]');
   t(await p.evaluate(() => window.EOL.play.warLength() === 'set'), 'Bo3 selected + persisted');
 
@@ -41,7 +51,7 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
     'tip dots scattered across the game (>=10)'
   );
   await p.evaluate(() => {
-    document.querySelector('.wl-tip').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    document.querySelector('.wl-head .tipdot').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
   });
   await sleep(150);
   t(
@@ -52,26 +62,24 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
     'hovering a tip dot shows its tooltip'
   );
   await p.evaluate(() => {
-    document.querySelector('.wl-tip').dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+    document.querySelector('.wl-head .tipdot').dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
   });
   t(
     await p.evaluate(() => {
       document.querySelector('.tips-opt[data-tips="off"]').click();
       var off =
         document.body.dataset.tips === 'off' &&
-        getComputedStyle(document.querySelector('.wl-tip')).display === 'none';
+        getComputedStyle(document.querySelector('.wl-head .tipdot')).display === 'none';
       document.querySelector('.tips-opt[data-tips="on"]').click();
       var back =
         document.body.dataset.tips === 'on' &&
-        getComputedStyle(document.querySelector('.wl-tip')).display !== 'none';
+        getComputedStyle(document.querySelector('.wl-head .tipdot')).display !== 'none';
       return off && back;
     }),
     'settings toggle hides and restores every tip dot'
   );
 
-  /* --- game 1: classic, surprise-me --- */
-  await c('#mode-classic');
-  await sleep(400);
+  /* --- game 1: classic, surprise-me (deck popup already open) --- */
   await c('.dm-row.random');
   await sleep(1200);
   t(
@@ -227,6 +235,15 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
   });
   t(sb.ok, 'sideboard = pick phase with last six pre-slotted (' + JSON.stringify(sb) + ')');
 
+  /* 2026-08-05: the header shows the score only - the rotation law is
+     carried by the Field Six tip and the confirm button's reason, not
+     a second lecture in the sub line */
+  const subTxt = await p.evaluate(() => document.getElementById('prep-sub').textContent);
+  t(
+    /^Unabridged · Game 2 of 3/.test(subTxt) && !/fresh legends/.test(subTxt),
+    'sideboard header = score line only ("' + subTxt + '")'
+  );
+
   /* law: NO swap = confirm rejected (toast, stays on prep) */
   await p.evaluate(() => { var b = document.getElementById('prep-confirm'); b.disabled = false; b.click(); });
   await sleep(700);
@@ -295,8 +312,8 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
   });
   t(end.wins && end.wins.foe === 2, 'second forfeit ends the set 0-2');
   t(end.pending === 'over', 'pending=over at set end');
-  t(/New set/.test(end.label), 'button relabelled "New set"');
-  t(/set slips away/i.test(end.sub), 'set-loss framing in the epitaph');
+  t(/New Unabridged/.test(end.label), 'button relabelled "New Unabridged"');
+  t(/Unabridged is lost/i.test(end.sub), 'Unabridged-loss framing in the epitaph');
   await p.screenshot({ path: '/tmp/set_result_end.png' });
 
   /* New set -> fresh fight card */

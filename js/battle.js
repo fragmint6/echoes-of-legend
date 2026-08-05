@@ -40,11 +40,14 @@
     Medic: 'ra-health',
     Sniper: 'ra-archery-target',
   };
+  /* Element glyph law (2026-08-05): unique, semantic, and never the
+     brand's crossed swords - those belong to the game's emblem. Magic
+     casts (wand), Light radiates (beams), Physical strikes (axe). */
   var ELEMENT_ICON = {
-    Physical: 'ra-crossed-swords',
-    Magic: 'ra-crystals',
+    Physical: 'ra-axe',
+    Magic: 'ra-crystal-wand',
     Shadow: 'ra-moon-sun',
-    Light: 'ra-sun',
+    Light: 'ra-sunbeams',
     Lightning: 'ra-lightning-bolt',
     Fire: 'ra-fire',
     Nature: 'ra-leaf',
@@ -72,6 +75,16 @@
     return new Promise(function (r) {
       setTimeout(r, ms);
     });
+  }
+  /* GUI-scale bridge: the scale feature is root-element zoom behaving
+     exactly like the browser's own Ctrl +/- (js/app.js). Under zoom,
+     getBoundingClientRect reports ZOOMED px (= factor x layout px)
+     while style assignments and offset* stay in LAYOUT px. Divide
+     rect-derived numbers by uiS() whenever one is turned into the
+     other, or every dock/float/FX drifts off-target the moment the
+     app is scaled away from 100%. */
+  function uiS() {
+    return window.EOL && window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
   }
 
   /* ---------------------------------------------------------
@@ -481,12 +494,12 @@
       '</span>' +
       '<span class="tip-meta">' +
       esc(u.role) +
-      '<i class="ra ra-diamond tip-dot"></i><span style="color:' +
+      '<span class="tip-dot">&middot;</span><span style="color:' +
       (ELEMENT_COLOR[u.element] || '#fff') +
       '">' +
       esc(u.element) +
       '</span>' +
-      '<i class="ra ra-diamond tip-dot"></i>' +
+      '<span class="tip-dot">&middot;</span>' +
       (E.isFront(u) ? 'Front' : 'Back') +
       ' Row</span>' +
       '</div>' +
@@ -526,8 +539,9 @@
       var old = before[card.dataset.uid];
       if (!old) return;
       var r = el.getBoundingClientRect();
-      var dx = old.x - r.left,
-        dy = old.y - r.top;
+      var z = uiS(); // screen-px delta -> layout-px translate
+      var dx = (old.x - r.left) / z,
+        dy = (old.y - r.top) / z;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
       // jump back to the old spot, then release for a smooth glide
       el.style.transition = 'none';
@@ -640,10 +654,10 @@
       var next = Math.round((E.rampMult(B.round + 1) - 1) * 100);
       rt.title =
         ramp > 0
-          ? 'All heroes have +' + ramp + '% ATK. Next round: +' + next + '%.'
+          ? 'All legends have +' + ramp + '% ATK. Next round: +' + next + '%.'
           : 'From round ' +
             E.RAMP_FROM +
-            ', all heroes gain +' +
+            ', all legends gain +' +
             Math.round(E.RAMP_STEP * 100) +
             '% ATK each round.';
     }
@@ -666,7 +680,7 @@
       if (sp.dataset.k !== sk) {
         sp.dataset.k = sk;
         sp.innerHTML =
-          '<i class="ra ra-laurel-crown"></i><span>SET G' +
+          '<i class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
           setInfo.game +
           '/3 · </span><b>' +
           setInfo.you +
@@ -735,7 +749,9 @@
       var rowH = cell.getBoundingClientRect().height;
       var statsH = stats.getBoundingClientRect().height;
       var gap = 5;
-      var artH = Math.max(40, rowH - statsH - gap);
+      /* rects are screen-scale px under GUI scale; --cardw is a layout
+         value, so convert down first */
+      var artH = Math.max(40, (rowH - statsH) / uiS() - gap);
       grid.style.setProperty('--cardw', Math.floor((artH * 250) / 355) + 'px');
     });
     fitNames();
@@ -1313,7 +1329,7 @@
           '" data-choice="' +
           i +
           '"><i class="ra ' +
-          (c.icon || 'ra-diamond') +
+          (c.icon || 'ra-sword') +
           '"></i>' +
           esc(c.label) +
           '</button>';
@@ -1492,13 +1508,16 @@
     var b = board.getBoundingClientRect();
     var h = fly.offsetHeight || 300;
     var PAD = 10;
+    /* board rect is screen px under GUI scale; the assignment is layout
+       px (fly sits inside the board) */
+    var bh = b.height / uiS();
 
     /* Always vertically centred on the BOARD, never on the hovered card.
        Tracking the card's row made the panel jump to a different height
        for every row, which reads as the panel moving around rather than
        as a stable place to look. */
-    var top = (b.height - h) / 2;
-    top = Math.max(PAD, Math.min(top, b.height - h - PAD));
+    var top = (bh - h) / 2;
+    top = Math.max(PAD, Math.min(top, bh - h - PAD));
     fly.style.top = top + 'px';
   }
 
@@ -1726,6 +1745,7 @@
      ============================================================= */
   var TURN_MS = 30000;
   var clockRaf = null;
+  var clockIv = null; // background-tab watchdog (see startClock)
   var clockEnd = 0;
   var clockSide = null;
 
@@ -1738,18 +1758,30 @@
       cancelAnimationFrame(clockRaf);
       clockRaf = null;
     }
+    if (clockIv) {
+      clearInterval(clockIv);
+      clockIv = null;
+    }
     clockSide = null;
     document.body.classList.remove('time-low');
     var el = clockEl();
     if (el) {
-      el.hidden = true;
+      /* Session 25: the dial NEVER leaves the top bar (its hole used to
+         shift the round block off-centre every time it hid). Stopping
+         just parks it in the idle state: full quiet ring, no numeral. */
+      el.hidden = false;
       el.classList.remove('warn', 'crit', 'theirs');
+      el.classList.add('idle');
+      var num = $('tc-num');
+      if (num) num.textContent = '';
+      var fill = $('tc-fill');
+      if (fill) fill.style.strokeDashoffset = 0;
     }
   }
 
   function startClock(side) {
     /* Solo guards the player's window only - the bot moves instantly,
-       so its dial would be noise (and its expiry must never act). */
+       so its dial parks in idle instead (expiry must never act). */
     if (!netCtl && side !== 'player') {
       stopClock();
       return;
@@ -1759,13 +1791,14 @@
     clockSide = side;
     clockEnd = performance.now() + TURN_MS;
     el.hidden = false;
+    el.classList.remove('idle');
     el.classList.toggle('theirs', side !== 'player');
 
     var fill = $('tc-fill');
     var num = $('tc-num');
     var CIRC = 106.8;
 
-    function frame(now) {
+    function frame(now, fromIv) {
       if (!B || B.over || clockSide !== side) {
         stopClock();
         return;
@@ -1793,9 +1826,24 @@
         }
         return;
       }
-      clockRaf = requestAnimationFrame(frame);
+      /* Only the rAF path continues the rAF chain - the watchdog below
+         also calls this, and letting each of those calls schedule
+         another rAF would compound into parallel chains. */
+      if (!fromIv) clockRaf = requestAnimationFrame(function (t) { frame(t); });
     }
-    clockRaf = requestAnimationFrame(frame);
+    clockRaf = requestAnimationFrame(function (t) { frame(t); });
+    /* Keep honest time in a BACKGROUNDED tab. rAF pauses there, which
+       used to freeze the dial for the player and quietly suspend the
+       expiry: alt-tabbing out of an online match was a free stall, and
+       a headless/secondary page never ticked at all (the turn timer
+       must always be visible and always tell the truth - Session 25
+       law). A coarse interval re-runs the same frame; it recomputes
+       from the absolute deadline, so it can never drift, and Chrome's
+       ~1s clamp on background intervals is plenty for a 30s dial. */
+    if (clockIv) clearInterval(clockIv);
+    clockIv = setInterval(function () {
+      if (clockSide === side) frame(performance.now(), true);
+    }, 250);
   }
 
   /* =============================================================
@@ -2237,52 +2285,79 @@
 
      This wraps the call so a forced pass is ANNOUNCED. It returns the
      side to act, exactly as advanceAction does. */
-  function advanceAndReport() {
+  /* Advance to the next actor, then IMMEDIATELY play whatever the
+     handoff itself produced before the next side is allowed to act.
+     Burn ticks resolve inside advanceAction (setTurn), and their log
+     entries used to sit orphaned until some LATER flashRecent picked
+     them up - so a burn's floating number either never appeared, or
+     dumped a full action late inside someone else's replay, and a
+     LETHAL tick skipped its damage text entirely as endBattle drew
+     over the board ("Burn doesn't show any damage text, even when
+     killing"). cb receives the next actor once every tick FX has run
+     its course. */
+  function advanceAndReport(cb) {
     var wasOut = { player: B.passed.player, enemy: B.passed.enemy };
     var nxt = E.advanceAction(B);
+    var tickHold = flashRecent();
     ['player', 'enemy'].forEach(function (sd) {
       if (B.passed[sd] && !wasOut[sd]) {
         /* Newly locked out for the round. Name the reason, because
-           "no Energy" and "nothing left to do" feel very different to
-           a player deciding whether they misplayed. */
-        var broke = E.energyCap
-          ? B.units.some(function (u) {
-              return u.side === sd && u.alive && !B.acted[sd][u.uid];
-            })
-          : false;
+           "no targets" (an Untargetable straggler), "no Energy" and
+           "nothing left to do" feel very different to a player deciding
+           whether they misplayed. The engine diagnoses precisely. */
+        var reason = E.whyCantAct(B, sd);
         cine(
           sd === 'player' ? 'NO ACTIONS LEFT' : 'ENEMY HAS NO ACTIONS',
-          broke ? 'Not enough Energy' : 'Every hero has acted',
+          reason === 'energy'
+            ? 'Not enough Energy'
+            : reason === 'targets'
+              ? 'No available targets'
+              : reason === 'skills'
+                ? 'No skills available'
+                : 'Every legend has acted',
           sd,
           1100,
           true
         );
       }
     });
-    return nxt;
+    if (!tickHold) return cb(nxt);
+    busy = true;
+    document.body.dataset.busy = '1';
+    setTimeout(function () {
+      busy = false;
+      document.body.dataset.busy = '0';
+      if (!B) return; // the player bailed mid-tick
+      render();
+      cb(nxt);
+    }, tickHold);
   }
 
   function afterPlayerAction() {
     if (B.over) return endBattle();
-    var nxt = advanceAndReport();
-    if (!nxt) {
-      startNextRound();
-      return;
-    }
-    if (nxt === 'enemy') {
+    advanceAndReport(function (nxt) {
+      /* The handoff's own tick can end the battle (a lethal Burn
+         crossing) - its number and fall just played, now the result. */
+      if (B.over) return endBattle();
+      if (!nxt) {
+        startNextRound();
+        return;
+      }
+      if (nxt === 'enemy') {
+        render();
+        /* Announce the handover NOW, not when the opponent finally
+           moves. Against a person that wait can be many seconds, and
+           the board previously sat silent the whole time looking
+           frozen. */
+        announceTurn('enemy');
+        startClock('enemy');
+        runEnemyAction();
+        return;
+      }
+      // still the player's action (the enemy passed)
       render();
-      /* Announce the handover NOW, not when the opponent finally
-         moves. Against a person that wait can be many seconds, and
-         the board previously sat silent the whole time looking
-         frozen. */
-      announceTurn('enemy');
-      startClock('enemy');
-      runEnemyAction();
-      return;
-    }
-    // still the player's action (the enemy passed)
-    render();
-    maybeAutoEndTurn();
+      maybeAutoEndTurn();
+    });
   }
 
   /* "Pass" skips ONLY this action (2026-07-30 ruling): the enemy may
@@ -2327,17 +2402,22 @@
       return endBattle();
     }
     announceRound();
-    var nxt = advanceAndReport();
-    if (!nxt) {
-      startNextRound();
-      return;
-    }
-    if (nxt === 'enemy') {
-      announceTurn('enemy'); // banner up front, not when they finally move
-      runEnemyAction();
-      return;
-    }
-    maybeAutoEndTurn();
+    advanceAndReport(function (nxt) {
+      if (B.over) {
+        render();
+        return endBattle();
+      }
+      if (!nxt) {
+        startNextRound();
+        return;
+      }
+      if (nxt === 'enemy') {
+        announceTurn('enemy'); // banner up front, not when they finally move
+        runEnemyAction();
+        return;
+      }
+      maybeAutoEndTurn();
+    });
   }
 
   /* The opponent takes exactly ONE action, then control returns.
@@ -2433,17 +2513,19 @@
     document.body.dataset.busy = '0';
     if (B.over) return endBattle();
 
-    var nxt = advanceAndReport();
-    if (!nxt) {
-      startNextRound();
-      return;
-    }
-    if (nxt === 'enemy') {
-      runEnemyAction(); // already their streak - announceTurn dedupes
-      return;
-    } // player passed
-    render();
-    maybeAutoEndTurn();
+    advanceAndReport(function (nxt) {
+      if (B.over) return endBattle();
+      if (!nxt) {
+        startNextRound();
+        return;
+      }
+      if (nxt === 'enemy') {
+        runEnemyAction(); // already their streak - announceTurn dedupes
+        return;
+      } // player passed
+      render();
+      maybeAutoEndTurn();
+    });
   }
 
   /* ---------------------------------------------------------
@@ -2568,16 +2650,16 @@
      --------------------------------------------------------- */
   var ELEMENT_FX = {
     Physical: {
-      color: '#ffb27a',
+      color: '#ff7575',
       style: 'slash',
-      trail: '#d8894f',
-      sigil: 'ra-crossed-swords',
+      trail: '#ff4d4d',
+      sigil: 'ra-axe',
       shape: 'blade',
     },
     Magic: {
-      color: '#c3aaff',
+      color: '#ff7cd5',
       style: 'orb',
-      trail: '#9b7bff',
+      trail: '#ff4dd5',
       sigil: 'ra-rune-stone',
       shape: 'arcane',
     },
@@ -2592,7 +2674,7 @@
       color: '#ffe9a8',
       style: 'beam',
       trail: '#ffd977',
-      sigil: 'ra-sun-symbol',
+      sigil: 'ra-sunbeams',
       shape: 'holy',
     },
     Lightning: {
@@ -2633,9 +2715,15 @@
     var el = document.querySelector('.bcard[data-uid="' + uid + '"]');
     var layer = fxLayer();
     if (!el) return null;
+    var z = uiS();
     var lr = layer.getBoundingClientRect();
     var r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2 - lr.left, y: r.top + r.height / 2 - lr.top, el: el };
+    /* layer is inside the board; spawn coordinates are layout px */
+    return {
+      x: (r.left + r.width / 2 - lr.left) / z,
+      y: (r.top + r.height / 2 - lr.top) / z,
+      el: el,
+    };
   }
 
   function spawn(cls, x, y, color, life) {
@@ -2754,8 +2842,9 @@
   function playCritImpact(x, y, fx) {
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
+    var z = uiS();
 
-    var dim = spawn('fx-dim', lr.width / 2, lr.height / 2, null, 620);
+    var dim = spawn('fx-dim', lr.width / 2 / z, lr.height / 2 / z, null, 620);
     dim.style.left = '0';
     dim.style.top = '0';
 
@@ -3481,10 +3570,11 @@
   function playCoinFlip(face, label) {
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
+    var z = uiS();
     var wrap = document.createElement('div');
     wrap.className = 'fx-coin-wrap';
-    wrap.style.left = lr.width / 2 + 'px';
-    wrap.style.top = lr.height * 0.34 + 'px';
+    wrap.style.left = lr.width / 2 / z + 'px';
+    wrap.style.top = (lr.height * 0.34) / z + 'px';
     wrap.innerHTML =
       '<div class="fx-coin ' +
       face +
@@ -4003,22 +4093,26 @@
     el.style.setProperty('--sc', colour || '#fff');
     el.classList.add('show');
 
+    /* root-zoom bridge: rects are zoomed px, style/offset px are not -
+       the pop lives at body level, so its assignment space divides
+       by uiS() exactly like the in-view consumers */
+    var z = uiS();
     var a = anchor.getBoundingClientRect();
     var w = el.offsetWidth;
     var h = el.offsetHeight;
     var pad = 8;
     var gap = 9;
 
-    var left = a.left + a.width / 2 - w / 2;
-    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    var left = a.left / z + a.width / z / 2 - w / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth / z - w - pad));
 
-    var top = a.top - h - gap;
+    var top = a.top / z - h - gap;
     var below = false;
     if (top < pad) {
-      top = a.bottom + gap;
+      top = a.bottom / z + gap;
       below = true;
     }
-    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    top = Math.max(pad, Math.min(top, window.innerHeight / z - h - pad));
 
     el.classList.toggle('below', below);
     el.style.left = left + 'px';

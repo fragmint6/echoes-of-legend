@@ -56,15 +56,15 @@ window.EOL.registerFaction({
       ability: {
         type: 'Active',
         name: 'Prophecy',
-        cost: 45,
-        text: 'Immediately reduce allied Skill costs by <b>15 Energy</b> and increase enemy Skill costs by <b>15 Energy</b> for 1 round, and grant all allies a <b>10% Max HP Shield</b>.',
+        cost: 65,
+        text: 'Immediately reduce allied Skill costs by <b>15 Energy</b> and increase enemy Skill costs by <b>15 Energy</b> for 1 round, and grant all allies an <b>8% Max HP Shield</b>.',
         note: null,
         spec: {
           target: { side: 'none' },
           effects: [
             { k: 'costMod', flat: -15, turns: 1, side: 'ally' },
             { k: 'costMod', flat: 15, turns: 1, side: 'enemy', when: 'now' },
-            { k: 'shield', pctMaxHp: 10, to: 'allies' },
+            { k: 'shield', pctMaxHp: 8, to: 'allies' },
           ],
         },
       },
@@ -143,12 +143,14 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Dark Illusion',
         cost: 40,
-        text: 'Swap two enemies, reduce their ATK by <b>30% for 2 rounds</b>, and apply <b>Exposed for 2 rounds</b>, then deal <b>60% ATK Shadow Damage</b> to them.',
+        /* The swap is gone (2026-08-05): repositioning two enemies in
+           the player's hands broke formations for free. Everything else
+           - the ATK cut, the Expose, the hit - stays exactly as tuned. */
+        text: "Reduce two enemies' ATK by <b>30% for 2 rounds</b> and apply <b>Exposed for 2 rounds</b>, then deal <b>60% ATK Shadow Damage</b> to them.",
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'two', row: 'any' },
           effects: [
-            { k: 'swapTargets' },
             { k: 'stat', stat: 'atk', amt: -30, turns: 2, to: 'targets', when: 'now' },
             { k: 'exposed', turns: 2, to: 'targets', when: 'now' },
             { k: 'dmg', power: 0.6, element: 'Shadow' },
@@ -208,20 +210,17 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Treasonous Strike',
         cost: 40,
-        text: "Deal <b>180% ATK Shadow Damage</b> to the lowest HP enemy, refunding <b>10 Energy</b> to your team's pool if that enemy is <b>Exposed</b>, and applying <b>Exposed</b> to adjacent enemies for 1 round.",
+        text: "Deal <b>180% ATK Shadow Damage</b> to the lowest HP enemy and apply <b>Exposed</b> to enemies in the same row as the target for <b>1 round</b>. Refund <b>10 Energy</b> to your team's pool if the target is <b>Exposed</b>.",
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'auto', auto: 'lowestHp', row: 'any' },
           effects: [
             { k: 'dmg', power: 1.8, element: 'Shadow' },
             { k: 'gainEnergy', amt: 10, if: { targetExposed: true } },
-            {
-              k: 'exposed',
-              turns: 1,
-              to: 'adjacentTargets',
-              if: { targetExposed: true },
-              when: 'now',
-            },
+            /* ROW law (2026-08-05): the adjacency rule created
+               complications - Exposed now runs the target's whole row,
+               unconditionally. */
+            { k: 'exposed', turns: 1, to: 'targetRowEnemies', when: 'now' },
           ],
         },
       },

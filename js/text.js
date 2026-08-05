@@ -127,12 +127,16 @@
      is. Only the parts a player cannot infer - that Provoke is a tax
      rather than a wall, that Burn ignores DEF and Shields, that Exposed
      zeroes DEF rather than trimming it. */
+  /* Glyph law (2026-08-05): every status wears a UNIQUE, semantic icon -
+     no two chips alike, and none borrows the brand's crossed swords.
+     Cost rides the battery family (Energy), a Mark is a target, Counter
+     is a boomerang (it comes back), Untargetable is a cloak. */
   window.EOL.STATUS = {
     // --- stat buffs ---
     'atk+': { icon: 'ra-muscle-up', kind: 'buff', label: 'ATK Up', color: '#ffb347', desc: '' },
     'def+': { icon: 'ra-heavy-shield', kind: 'buff', label: 'DEF Up', color: '#8fd0ff', desc: '' },
     'crit+': {
-      icon: 'ra-target-arrows',
+      icon: 'ra-on-target',
       kind: 'buff',
       label: 'Crit Up',
       color: '#ffd050',
@@ -162,18 +166,18 @@
     },
     // --- flags / special states ---
     taunt: {
-      icon: 'ra-shield',
+      icon: 'ra-aware',
       kind: 'buff',
       label: 'Provoking',
       color: '#ffd98a',
-      desc: 'Enemy single-target attacks must hit this hero. Anything that gets around it (area damage, Sniper Skills) deals <b>30% less</b>.',
+      desc: 'Enemy single-target attacks must hit this legend. Anything that gets around it (area damage, Sniper Skills) deals <b>30% less</b>.',
     },
     untargetable: {
-      icon: 'ra-aura',
+      icon: 'ra-cloak-and-dagger',
       kind: 'buff',
       label: 'Untargetable',
       color: '#a9e9ff',
-      desc: 'Enemies cannot target this hero at all. No exceptions.',
+      desc: 'Enemies cannot target this legend at all. No exceptions.',
     },
     shield: {
       icon: 'ra-round-shield',
@@ -183,18 +187,18 @@
       desc: 'Absorbs damage before HP. Burn ignores it.',
     },
     silence: {
-      icon: 'ra-uncertainty',
+      icon: 'ra-speech-bubble',
       kind: 'debuff',
       label: 'Silenced',
       color: '#e0a3ff',
       desc: 'Cannot act at all. Skills and Basics both.',
     },
     marked: {
-      icon: 'ra-lightning-storm',
+      icon: 'ra-targeted',
       kind: 'debuff',
       label: 'Marked',
       color: '#ffe066',
-      desc: 'The next Skill to damage this hero consumes the Mark - EVERY Skill consumes it, whether or not that Skill gains anything from it. Basics do not. No timer.',
+      desc: 'The next Skill to damage this legend consumes the Mark - EVERY Skill consumes it, whether or not that Skill gains anything from it. Basics do not. No timer.',
     },
     burn: {
       icon: 'ra-burning-embers',
@@ -211,14 +215,14 @@
       desc: 'DEF counts as 0.',
     },
     resist: {
-      icon: 'ra-aura',
+      icon: 'ra-bolt-shield',
       kind: 'buff',
       label: 'Warded',
       color: '#b6f5ff',
       desc: 'Flat damage reduction. Works even while Exposed.',
     },
     counterstrike: {
-      icon: 'ra-crossed-swords',
+      icon: 'ra-boomerang',
       kind: 'buff',
       label: 'Counter Ready',
       color: '#ffd977',
@@ -232,18 +236,18 @@
       desc: 'Shields are unaffected.',
     },
     costup: {
-      icon: 'ra-hourglass',
+      icon: 'ra-battery-25',
       kind: 'debuff',
       label: 'Skill Cost Up',
       color: '#ff9d9d',
-      desc: 'Whole team, not just this hero.',
+      desc: 'Whole team, not just this legend.',
     },
     costdown: {
-      icon: 'ra-hourglass',
+      icon: 'ra-battery-100',
       kind: 'buff',
       label: 'Skill Cost Down',
       color: '#8fe3b0',
-      desc: 'Whole team, not just this hero.',
+      desc: 'Whole team, not just this legend.',
     },
   };
 

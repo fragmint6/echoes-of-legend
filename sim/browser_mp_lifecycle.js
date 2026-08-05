@@ -104,8 +104,10 @@ function shim(isHost,opp){return `(()=>{
  t(res2.over&&res2.winner==='player','opponent WINS ('+res2.winner+')');
  t(res.title==='Defeat'&&res2.title==='Victory','result screens are opposite: "'+res.title+'" / "'+res2.title+'"');
  t(res.ended,'endMatch() called so the row is closed server-side');
- const clk=await A.evaluate(()=>document.getElementById('turn-clock').hidden);
- t(clk,'clock hidden once the battle ends');
+ /* session 25: the dial never hides - it parks in the idle ring */
+ const clk=await A.evaluate(()=>{const c=document.getElementById('turn-clock');
+   return {hidden:c.hidden,idle:c.classList.contains('idle')}});
+ t(!clk.hidden&&clk.idle,'clock stays on the bar, parked idle, once the battle ends');
 
  t(errs.length===0,'no console/page errors ('+errs.length+')');
  errs.slice(0,5).forEach(e=>console.log('    '+e));

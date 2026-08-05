@@ -107,7 +107,8 @@ window.EOL.registerFaction({
       ability: {
         type: 'Active',
         name: 'Forest Blessing',
-        cost: 32,
+        /* nerf 2026-08-05 (user): 32 -> 35 */
+        cost: 35,
         text: 'Immediately heal all allies for <b>22% Max HP</b>, remove one debuff from each, and grant <b>15% DEF for 2 rounds</b>.',
         note: null,
         spec: {
@@ -199,6 +200,177 @@ window.EOL.registerFaction({
       },
       icon: 'ra-horn-call',
       art: 'assets/heroes/grimmwood-pied-piper.png',
+    },
+    /* ---- 2026-08-05 expansion: +6 completes a full single-faction deck
+       (Tank/Bruiser/Controller/Medic/Caster/Sniper x2) for new accounts ---- */
+    {
+      id: 'grimmwood-gingerbread-man',
+      name: 'Gingerbread Man',
+      rarity: 'common',
+      role: 'Tank',
+      element: 'Physical',
+      stats: { hp: 6900, atk: 1000, def: 30 },
+      ability: {
+        type: 'Active',
+        name: 'Run, Run, Run',
+        cost: 40,
+        text: 'Immediately gain a <b>15% Max HP Shield</b> and <b>Provoke</b> for 1 round, healing <b>4% Max HP</b> each time you are attacked while Provoking. The <b>2 lowest-HP enemies</b> suffer <b>20% reduced ATK</b> for 2 rounds.',
+        note: null,
+        spec: {
+          target: { side: 'self' },
+          effects: [
+            { k: 'shield', pctMaxHp: 15, to: 'self' },
+            { k: 'taunt', turns: 1, to: 'self', healOnHit: 4 },
+            /* he cannot catch them - so he slows THEM down instead */
+            { k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'enemies', take: { n: 2, by: 'lowestHp' }, when: 'now' },
+          ],
+        },
+      },
+      icon: 'ra-shoe-prints',
+      art: 'assets/heroes/grimmwood-gingerbread-man.png',
+    },
+    {
+      id: 'grimmwood-evil-queen',
+      name: 'Evil Queen',
+      rarity: 'legendary',
+      role: 'Caster',
+      element: 'Shadow',
+      stats: { hp: 4740, atk: 1900, def: 15 },
+      ability: {
+        type: 'Active',
+        name: 'The Mirror Never Lies',
+        cost: 45,
+        text: 'Deal <b>50% ATK Shadow Damage</b> to all enemies, then the mirror turns on the <b>highest-HP enemy</b> - they suffer <b>Exposed</b> for 2 rounds.',
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'all', row: 'any' },
+          effects: [
+            { k: 'dmg', power: 0.5, element: 'Shadow' },
+            /* the mirror names the fairest of them all */
+            { k: 'exposed', turns: 2, to: 'targets', take: { n: 1, by: 'highestHp' }, when: 'now' },
+          ],
+        },
+      },
+      icon: 'ra-queen-crown',
+      art: 'assets/heroes/grimmwood-evil-queen.png',
+    },
+    {
+      id: 'grimmwood-puss-in-boots',
+      name: 'Puss in Boots',
+      rarity: 'rare',
+      role: 'Sniper',
+      element: 'Nature',
+      stats: { hp: 4530, atk: 1955, def: 10 },
+      ability: {
+        type: 'Active',
+        name: 'Clever Feint',
+        cost: 40,
+        text: 'Deal <b>150% ATK Nature Damage</b> at full power even past a <b>Provoke</b>. If the target has <b>2+ debuffs</b>, deal <b>45% more</b> and refund <b>10 Energy</b>.',
+        note: null,
+        spec: {
+          /* noPierceTax: the feint was AIMED at the gap in the wall - a
+             Sniper signature already pierces the redirect; this one is
+             never priced down for it either. */
+          target: { side: 'enemy', pick: 'single', row: 'any', noPierceTax: true },
+          effects: [
+            {
+              k: 'dmg',
+              power: 1.5,
+              element: 'Nature',
+              ifMult: [{ when: { debuffCountAtLeast: 2 }, mult: 1.45 }],
+            },
+            { k: 'gainEnergy', amt: 10, if: { debuffCountAtLeast: 2 } },
+          ],
+        },
+      },
+      icon: 'ra-cat',
+      art: 'assets/heroes/grimmwood-puss-in-boots.png',
+    },
+    {
+      id: 'grimmwood-rapunzel',
+      name: 'Rapunzel',
+      rarity: 'epic',
+      role: 'Caster',
+      element: 'Magic',
+      stats: { hp: 4740, atk: 1880, def: 15 },
+      ability: {
+        type: 'Active',
+        name: 'Let Down Your Hair',
+        cost: 40,
+        text: 'Deal <b>55% ATK Magic Damage</b> to back-row enemies and reduce their <b>ATK by 15% for 2 rounds</b>. Any enemy already debuffed is instead <b>Exposed</b> for 1 round.',
+        note: null,
+        spec: {
+          /* back row only (2026-08-05): hitting everyone was the all -
+               the hair now reaches past the front line into the row she
+               can actually see over their heads */
+          target: { side: 'enemy', pick: 'all', row: 'back' },
+          effects: [
+            { k: 'dmg', power: 0.55, element: 'Magic' },
+            /* ORDER MATTERS (same rule Pied Piper follows): the Exposed
+               check runs BEFORE her own ATK debuff lands, or every clean
+               target would count as "already debuffed" off the very
+               debuff this cast just applied. */
+            { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
+            { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'targets', if: { targetHasDebuff: false }, when: 'now' },
+          ],
+        },
+      },
+      icon: 'ra-tower',
+      art: 'assets/heroes/grimmwood-rapunzel.png',
+    },
+    {
+      id: 'grimmwood-goldilocks',
+      name: 'Goldilocks',
+      rarity: 'rare',
+      role: 'Sniper',
+      element: 'Nature',
+      stats: { hp: 4420, atk: 1900, def: 12 },
+      ability: {
+        type: 'Active',
+        name: 'Just Right',
+        cost: 40,
+        text: 'Deal <b>120% ATK Nature Damage</b>. If the target is between <b>30% and 70% HP</b>, instead deal <b>250% ATK</b>.',
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'single', row: 'any' },
+          effects: [
+            /* exactly one arm fires - the window is inclusive, its
+               complement covers everything else, so it always reads as
+               ONE hit, priced by where the target stands */
+            { k: 'dmg', power: 2.5, element: 'Nature', if: { targetHpBetween: [0.3, 0.7] } },
+            { k: 'dmg', power: 1.2, element: 'Nature', if: { targetHpOutside: [0.3, 0.7] } },
+          ],
+        },
+      },
+      icon: 'ra-honeycomb',
+      art: 'assets/heroes/grimmwood-goldilocks.png',
+    },
+    {
+      id: 'grimmwood-cinderella',
+      name: 'Cinderella',
+      rarity: 'rare',
+      role: 'Medic',
+      element: 'Light',
+      stats: { hp: 4820, atk: 1060, def: 20 },
+      ability: {
+        type: 'Active',
+        name: 'Glass Slipper',
+        cost: 30,
+        text: 'Immediately heal an ally for <b>30% Max HP</b> and cleanse <b>all</b> of their debuffs; for each debuff cleansed, heal an extra <b>5% Max HP</b>.',
+        note: null,
+        spec: {
+          target: { side: 'ally', pick: 'single', row: 'any' },
+          effects: [
+            { k: 'heal', pctMaxHp: 30 },
+            { k: 'cleanse', count: 'all', to: 'targets' },
+            /* pctMaxHp 0 alone heals nothing (logs nothing); with a
+               scrubbed target the per-debuff rider is the whole heal */
+            { k: 'heal', pctMaxHp: 0, perCleansed: 5, to: 'targets' },
+          ],
+        },
+      },
+      icon: 'ra-glass-heart',
+      art: 'assets/heroes/grimmwood-cinderella.png',
     },
   ],
 });

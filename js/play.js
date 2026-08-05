@@ -60,6 +60,12 @@
       setTimeout(r, ms);
     });
   }
+  /* GUI-scale bridge (see the same note in battle.js): with scale =
+     root-element zoom, rects come back in zoomed px while style
+     assignments are layout px. Divide by uiS() at the glass. */
+  function uiS() {
+    return window.EOL && window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
+  }
 
   /* ---------------- status toasts (non-blocking beats) ---------------- */
   function toast(msg, icon) {
@@ -430,27 +436,33 @@
   function placePrepTip(tip, anchor) {
     if (!anchor) return;
     var host = tip.offsetParent || document.body;
+    var z = uiS();
     var hostBox = host.getBoundingClientRect();
     var card = anchor.getBoundingClientRect();
+    /* rects come back in screen px under GUI scale. Convert once into
+       host-relative LAYOUT px, then every rule below is layout-true. */
+    var cardL = (card.left - hostBox.left) / z;
+    var cardT = (card.top - hostBox.top) / z;
+    var cardR = cardL + card.width / z;
     var tw = tip.offsetWidth || 268;
     var th = tip.offsetHeight || 320;
-    var vw = document.documentElement.clientWidth;
-    var vh = document.documentElement.clientHeight;
+    var vw = host.clientWidth || document.documentElement.clientWidth / z;
+    var vh = host.clientHeight || document.documentElement.clientHeight / z;
 
-    var rightX = card.right + TIP_GAP;
-    var leftX = card.left - TIP_GAP - tw;
+    var rightX = cardR + TIP_GAP;
+    var leftX = cardL - TIP_GAP - tw;
 
     var placeLeft = rightX + tw > vw - TIP_EDGE && leftX >= TIP_EDGE;
     var vpLeft = placeLeft ? leftX : rightX;
     vpLeft = Math.max(TIP_EDGE, Math.min(vpLeft, vw - tw - TIP_EDGE));
 
     /* tops aligned, then pulled up if it would overflow the bottom */
-    var vpTop = card.top;
+    var vpTop = cardT;
     if (vpTop + th > vh - TIP_EDGE) vpTop = vh - th - TIP_EDGE;
     vpTop = Math.max(TIP_EDGE, vpTop);
 
-    tip.style.left = vpLeft - hostBox.left + 'px';
-    tip.style.top = vpTop - hostBox.top + 'px';
+    tip.style.left = vpLeft + 'px';
+    tip.style.top = vpTop + 'px';
     tip.style.right = 'auto';
     /* grow from the edge nearest the card */
     tip.classList.toggle('from-right', placeLeft);
@@ -721,7 +733,21 @@
     host.classList.add('show');
     host.setAttribute('aria-hidden', 'false');
     var go = $('bf-go');
+    /* "Field your six" stays locked until the battlefield card's
+       entrance finishes (2026-08-05) - the reveal IS the battlefield
+       selection animation in single games, and clicking through it mid-
+       flight cut the moment short. bf-in runs 0.6s after a 0.12s delay;
+       the timeout is a fallback if animationend never reaches us. */
+    go.disabled = true;
+    var unlock = function () {
+      go.disabled = false;
+      card.removeEventListener('animationend', unlock);
+      clearTimeout(unlockT);
+    };
+    var unlockT = setTimeout(unlock, 900);
+    card.addEventListener('animationend', unlock);
     go.onclick = function () {
+      if (go.disabled) return;
       host.classList.remove('show');
       host.setAttribute('aria-hidden', 'true');
       if (onDone) setTimeout(onDone, 260); // let the card fade before the tip
@@ -840,8 +866,8 @@
     coachShow(
       'prep-ban',
       'ra-interdiction',
-      'Phase 1: Ban Two Heroes',
-      "Tap 2 of the enemy's 12 heroes to ban them from the fight. The enemy bans 2 of " +
+      'Phase 1: Ban Two Legends',
+      "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
         'yours at the same time - their picks stay hidden until you lock yours in.'
     );
   }
@@ -881,7 +907,7 @@
       : !sixOk
         ? 'To battle'
         : needSubs && swaps < 1
-          ? 'Swap in 1-2 fresh heroes'
+          ? 'Swap in 1-2 fresh legends'
           : needSubs && swaps > 2
             ? 'Too many swaps (max 2)'
             : 'To battle';
@@ -897,11 +923,12 @@
 
     $('prep-sub').textContent =
       p.phase === 'ban'
-        ? "Phase 1 - ban 2 of the enemy's heroes"
+        ? "Phase 1 - ban 2 of the enemy's legends"
         : setState && p.setContinues
-          ? setScoreLine() +
-            ' - swap in 1-2 fresh heroes (required); subbed-out heroes sit out the rest of the set'
-          : 'Phase 2 - field 6 of your surviving heroes';
+          ? setScoreLine() /* rotation law lives in the Field Six tip and on
+                             the confirm button's disabled reason - a second
+                             lecture in the header is noise (2026-08-05) */
+          : 'Phase 2 - field 6 of your surviving legends';
     $('pstep-ban').classList.toggle('sel', p.phase === 'ban');
     $('pstep-pick').classList.toggle('sel', p.phase === 'pick');
     $('pstep-ban').classList.toggle('done', p.phase !== 'ban');
@@ -1213,10 +1240,10 @@
       var afterReveal = function () {
         coachShow(
           'prep-pick',
-          'ra-diamond',
+          'ra-crossed-swords',
           'Phase 2: Field Your Six',
-          'Pick 6 of your surviving heroes and mind the formation: the front row soaks the ' +
-            'hits while the back row supports. Tap a slotted hero to swap its row.'
+          'Pick 6 of your surviving legends and mind the formation: the front row soaks the ' +
+            'hits while the back row supports. Tap a slotted legend to swap its row.'
         );
       };
       /* THE SET: the FIGHT CARD replaces the single-board reveal here
@@ -1243,8 +1270,8 @@
       if (swaps < 1 || swaps > 2) {
         toast(
           swaps < 1
-            ? 'The Set demands rotation: swap in at least 1 fresh hero'
-            : 'Too many changes - swap at most 2 heroes of your six',
+            ? 'Unabridged demands rotation: swap in at least 1 fresh legend'
+            : 'Too many changes - swap at most 2 legends of your six',
           'ri-repeat-line'
         );
         return;
@@ -1661,6 +1688,12 @@
        hand us a click Event here - truthy, but not callable, so every row
        threw "choose is not a function" on click. */
     var choose = typeof onPick === 'function' ? onPick : startClassicDeck;
+    /* The war-length choice is a SOLO launch decision. When the modal is
+       serving an online classic pick, the room owns match length
+       (Phase 1b wiring), so a dead toggle would only confuse. */
+    var wl = $('war-length');
+    if (wl) wl.hidden = typeof onPick === 'function';
+    paintWarLength();
     var host = $('dm-list');
     host.innerHTML = '';
 
@@ -1704,7 +1737,7 @@
           '</span>' +
           '<span class="dm-meta">' +
           d.ids.length +
-          '/12 heroes' +
+          '/12 legends' +
           (ok ? '' : ' - needs 12 to battle (edit it)') +
           '</span></span>' +
           (ok ? '<i class="dm-go ri-arrow-right-line"></i>' : '');
@@ -1856,7 +1889,7 @@
       wrap.style.animationDelay = i * 90 + 'ms';
       var card = window.EOL.ui.buildCard(e.card, e.faction, i);
       var hint = card.querySelector('.hint-txt');
-      if (hint) hint.textContent = 'draft this hero';
+      if (hint) hint.textContent = 'draft this legend';
       wrap.appendChild(card);
       wrap.addEventListener('click', function () {
         youPick(e);
@@ -2313,9 +2346,9 @@
     var m = $('set-fightcard');
     if (!m || !setState) return cb && cb();
     fightTitle(
-      'ra-laurel-crown',
-      'THE SET — FIGHT CARD',
-      'The whole fight card is public from the first click. The spin decides which arena hosts game 1 - the loser of every later game calls the next board from the open slots.'
+      'ra-scroll-unfurled',
+      'UNABRIDGED — FIGHT CARD',
+      'All three arenas are open information right away. The spin decides which one hosts game 1 - after that, the loser of each game picks the next arena.'
     );
     /* every plate starts an open slot - WHICH one hosts game 1 is the
        spin's whole point (rolled at setBegin, revealed here) */
@@ -2328,8 +2361,15 @@
       'All three boards are public from the first click of the set. The loser of each game calls the next one from the open slots.';
     var btn = $('set-fightcard-go');
     btn.querySelector('span').textContent = 'Field your six';
+    /* Locked until the roulette lands (2026-08-05): clicking "Field your
+       six" mid-spin skipped the reveal AND raced the plates' own
+       animation. The button wakes the moment the marker settles -
+       including the reduced-motion path, where spinPlates lands
+       instantly and this same callback fires. */
+    btn.disabled = true;
     var skip = spinPlates($('set-fightcard-plates'), setState.game1Slot, function () {
       if (!setState) return;
+      btn.disabled = false;
       var plates = $('set-fightcard-plates').querySelectorAll('.setm-plate');
       var landed = plates[setState.game1Slot];
       if (landed) {
@@ -2411,7 +2451,7 @@
     fightTitle(
       'ra-crowned-heart',
       'THE ENEMY CALLS THE NEXT BATTLEFIELD',
-      'The loser of the last game calls the next battlefield. The slot they leave open becomes the decider board if the set goes the distance.'
+      'The loser of the last game picks the next arena. The arena left over hosts the final game if the set goes there.'
     );
     $('set-fightcard-plates').innerHTML = remaining
       .map(function (slot, i) {
@@ -2424,6 +2464,7 @@
       ', so the call is theirs. The slot they leave becomes the decider if the set goes the distance.';
     var btn = $('set-fightcard-go');
     btn.querySelector('span').textContent = 'To the sideboard';
+    btn.disabled = true; // wake when the enemy's call lands
     var auto = null;
     var done = function () {
       btn.removeEventListener('click', done);
@@ -2434,6 +2475,7 @@
     };
     var skip = spinPlates($('set-fightcard-plates'), remaining.indexOf(pick), function () {
       if (!setState) return;
+      btn.disabled = false;
       $('set-fightcard-sub').textContent = 'The enemy calls ' + setState.card[pick].name + '.';
       auto = setTimeout(done, 1700);
     });
@@ -2441,11 +2483,55 @@
     m.hidden = false;
   }
 
+  /* Read-only re-open of the fight card from the field-six screen:
+     no spin, no gate - every plate already tells its story, the current
+     host is lit, the played ones dimmed. */
+  function showFightCardViewer() {
+    var m = $('set-fightcard');
+    if (!m || !setState) return false;
+    fightTitle(
+      'ra-scroll-unfurled',
+      'UNABRIDGED — FIGHT CARD',
+      'All three arenas are open information. The loser of each game calls the next arena.'
+    );
+    $('set-fightcard-plates').innerHTML = setState.card
+      .map(function (f, i) {
+        var usedAt = setState.usedSlots.indexOf(i);
+        return setmPlateHTML(f, usedAt >= 0 ? 'Game ' + (usedAt + 1) : 'Open slot', i);
+      })
+      .join('');
+    var cur = setState.usedSlots[setState.usedSlots.length - 1];
+    Array.prototype.forEach.call(
+      $('set-fightcard-plates').querySelectorAll('.setm-plate'),
+      function (pl, i) {
+        var usedAt = setState.usedSlots.indexOf(i);
+        pl.classList.toggle('called', i === cur);
+        pl.classList.toggle('dim', usedAt >= 0 && i !== cur);
+      }
+    );
+    $('set-fightcard-sub').textContent =
+      'Game ' +
+      setState.game +
+      ' is being fought on ' +
+      setState.card[cur].name +
+      '. First to 2 wins takes the set.';
+    var btn = $('set-fightcard-go');
+    btn.querySelector('span').textContent = 'Back to fielding';
+    btn.disabled = false;
+    var done = function () {
+      btn.removeEventListener('click', done);
+      m.hidden = true;
+    };
+    btn.addEventListener('click', done);
+    m.hidden = false;
+    return true;
+  }
+
   /* Score line, everywhere it is needed */
   function setScoreLine() {
     var w = setState.wins;
     return (
-      'The Set · Game ' +
+      'Unabridged · Game ' +
       setState.game +
       ' of 3 · You ' +
       w.you +
@@ -2580,8 +2666,8 @@
       over: over,
       sub: over
         ? playerWon
-          ? 'THE SET IS YOURS, ' + w.you + ' - ' + w.foe + '.'
-          : 'The set slips away, ' + w.you + ' - ' + w.foe + '.'
+          ? 'UNABRIDGED IS YOURS, ' + w.you + ' - ' + w.foe + '.'
+          : 'Unabridged is lost, ' + w.you + ' - ' + w.foe + '.'
         : 'Game ' +
           setState.game +
           (playerWon ? ' to you' : ' to the enemy') +
@@ -2590,7 +2676,7 @@
           ' - ' +
           w.foe +
           '  ·  next stop: the sideboard',
-      rematchLabel: over ? 'New set' : 'Sideboard',
+      rematchLabel: over ? 'New Unabridged' : 'Sideboard',
     };
   }
 
@@ -2675,11 +2761,12 @@
     if (!bar) return;
     var sel = bar.querySelector('.play-tab.sel');
     if (!sel) return;
+    var z = uiS();
     var b = bar.getBoundingClientRect();
     var t = sel.getBoundingClientRect();
     if (!t.width) return; // laid out but hidden - nothing to measure yet
-    bar.style.setProperty('--thumb-x', Math.round(t.left - b.left) + 'px');
-    bar.style.setProperty('--thumb-w', Math.round(t.width) + 'px');
+    bar.style.setProperty('--thumb-x', Math.round((t.left - b.left) / z) + 'px');
+    bar.style.setProperty('--thumb-w', Math.round(t.width / z) + 'px');
   }
 
   function initMultiplayer() {
@@ -2688,6 +2775,7 @@
 
     /* tab switching */
     var tabs = document.querySelectorAll('.play-tab');
+    var gridAnimT = 0;
     function setArena(which) {
       document.querySelectorAll('.play-tab').forEach(function (t) {
         var on = t.dataset.arena === which;
@@ -2699,8 +2787,31 @@
       moveTabThumb();
       var solo = $('mode-grid-solo'),
         mp = $('mode-grid-mp');
-      if (solo) solo.hidden = which !== 'solo';
-      if (mp) mp.hidden = which !== 'mp';
+      if (!solo || !mp) return;
+      /* Directional swap (session 24): the outgoing grid slides out the
+         way the thumb travels, the incoming one rises in from the other
+         side with a small card stagger. gfx-low swaps instantly. */
+      var showEl = which === 'solo' ? solo : mp,
+        hideEl = which === 'solo' ? mp : solo,
+        dir = which === 'mp' ? '' : '-r';
+      clearTimeout(gridAnimT);
+      solo.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
+      mp.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
+      if (document.body.dataset.gfx === 'low' || hideEl.hidden || hideEl === showEl) {
+        hideEl.hidden = true;
+        showEl.hidden = false;
+        return;
+      }
+      hideEl.classList.add('mg-out' + dir);
+      gridAnimT = setTimeout(function () {
+        hideEl.hidden = true;
+        hideEl.classList.remove('mg-out' + dir);
+        showEl.hidden = false;
+        showEl.classList.add('mg-in' + dir);
+        gridAnimT = setTimeout(function () {
+          showEl.classList.remove('mg-in' + dir);
+        }, 620);
+      }, 185);
     }
     tabs.forEach(function (t) {
       t.addEventListener('click', function () {
@@ -2971,6 +3082,16 @@
     if (pc) pc.addEventListener('click', prepConfirm);
     var pcm = $('prep-confirm-main');
     if (pcm) pcm.addEventListener('click', prepConfirm);
+    /* "See battlefields" (2026-08-05): re-opens the arena popup mid-
+       fielding. In an Unabridged set that is the fight card (all three
+       arenas, current game marked); a single game re-shows its one
+       battlefield reveal. */
+    var pf = $('prep-fields');
+    if (pf)
+      pf.addEventListener('click', function () {
+        if (setState && showFightCardViewer()) return;
+        if (prep && prep.field) revealBattlefield(prep.field, null);
+      });
 
     var ck = $('coach-ok');
     if (ck) ck.addEventListener('click', coachHide);
