@@ -1,15 +1,14 @@
-# Campaign Mode - Design Proposal
+# Campaign Mode - Design Proposal (ARCHIVED)
 
-> **Status (updated 2026-08-05): proposal ONLY. No code written, and the
-> concept has been superseded.** The Campaign tab in the client is still
-> the disabled "Coming soon" placeholder. Per ROADMAP.md, the campaign
-> slot is now owned by **Legends Gauntlet chapters** (Phase 3): Chapter 1
-> "The Nine Thrones" on the 63-card roster, ending at The First Legend.
-> This document is kept for its difficulty findings (first-mover
-> advantage swamps AI depth in mirrors) and its reuse map of existing
-> machinery (`BATTLE().start`, `coachShow`, localStorage persistence,
-> `AI.setDepth`), all of which still hold.
+> **SUPERSEDED 2026-08-05.** The campaign that is actually being built is
+> specified in **`docs/DESIGN-Campaign-Chapter1.md`** (Chapter 1: "The
+> Road of Echoes" - 10 personality-rival stages, Gilgamesh finale). This
+> older proposal is kept for two things that remain true and useful: the
+> difficulty findings (AI search depth is NOT a usable difficulty dial;
+> first-mover advantage swamps AI quality in fixed mirrors) and the
+> reuse map of existing machinery below.
 >
+> Original status: proposal ONLY, no code written, concept superseded.
 > Original goal: the place a new player *starts*, learning one faction at
 > a time - combos, synergies, and keywords - on a ramping difficulty curve.
 
