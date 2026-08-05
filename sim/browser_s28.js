@@ -250,12 +250,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         backs.every((x, i) => x.hp < bHp[i] || x.buffs.length > 0 || x.flags.exposed > 0) &&
         fronts.every((x, i) => x.hp === fHp[i] && !x.buffs.length && !(x.flags.exposed > 0));
     }
-    // Merlin: cost 65, 8% shield
+    // Merlin: cost 55 (signatures-only tax), 8% shield
     {
       const B3 = E.createBattle(P, Q, { rng, roleAware: true, simulation: true, field: EOL.battlefieldById('colosseum') });
       B3.noOpeningLimit = true; B3.energy.player = 150;
       const me = B3.units.find((u) => u.card.id === 'camelot-merlin');
-      const okCost = me.card.ability.cost === 65;
+      const okCost = me.card.ability.cost === 55;
       E.useAbility(B3, me, me.card.ability, []);
       out.merlin =
         okCost &&

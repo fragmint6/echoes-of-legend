@@ -47,6 +47,10 @@
 
   /* Energy is maxed from round 3, so from round 4 the pressure to close
      the game switches over to a compounding ATK bonus instead. */
+  /* THE CRIT MULTIPLIER IS FIXED (2026-08-05): a crit always multiplies
+     the post-DEF damage by exactly CRIT_MULT. No variance, no scaling,
+     no battlefield can touch it - Crit Chance is the only moving part. */
+  var CRIT_MULT = 1.5;
   var RAMP_FROM = 4;
   var RAMP_STEP = 0.15; // +15% ATK per round past the threshold
 
@@ -559,7 +563,7 @@
     }
     if (u.costMods) {
       c.costMods = u.costMods.map(function (m) {
-        return { flat: m.flat, pct: m.pct, turns: m.turns };
+        return { flat: m.flat, pct: m.pct, turns: m.turns, signaturesOnly: m.signaturesOnly };
       });
     }
     if (u.triggeredBy) {
@@ -590,10 +594,10 @@
       roundEchoUsed: B.roundEchoUsed,
       costMods: {
         player: B.costMods.player.map(function (m) {
-          return { flat: m.flat, pct: m.pct, turns: m.turns };
+          return { flat: m.flat, pct: m.pct, turns: m.turns, signaturesOnly: m.signaturesOnly };
         }),
         enemy: B.costMods.enemy.map(function (m) {
-          return { flat: m.flat, pct: m.pct, turns: m.turns };
+          return { flat: m.flat, pct: m.pct, turns: m.turns, signaturesOnly: m.signaturesOnly };
         }),
       },
       log: [],
@@ -721,11 +725,14 @@
     if (base === 0) return 0;
     var flat = 0,
       pct = 0;
+    /* `signaturesOnly` modifiers skip role Basics entirely (Prophecy). */
     B.costMods[unit.side].forEach(function (m) {
+      if (m.signaturesOnly && ability.basic) return;
       flat += m.flat || 0;
       pct += m.pct || 0;
     });
     (unit.costMods || []).forEach(function (m) {
+      if (m.signaturesOnly && ability.basic) return;
       flat += m.flat || 0;
       pct += m.pct || 0;
     });
@@ -1522,11 +1529,11 @@
     var mult = outM * inM * resistM;
     var afterDef = raw * mult * (1 - defOf(tgt) / 100);
 
-    // crit
+    // crit - always exactly CRIT_MULT (1.5x), never variable
     var crit = false;
     if (critOf(src) > 0 && B.rng() * 100 < critOf(src)) {
       crit = true;
-      afterDef *= 1.5;
+      afterDef *= CRIT_MULT;
     }
 
     var dmg = Math.max(1, Math.round(afterDef));
@@ -1633,7 +1640,7 @@
       var xd = tgt.baseDef + sumBuffs(tgt, 'def');
       if (!isFront(tgt) && frontRowWiped(B, tgt.side)) xd -= BACKLINE_DEF_PENALTY;
       xd = clamp(xd, 0, 75);
-      if (xd > 0) exposedBonus = Math.round(raw * mult * (xd / 100) * (crit ? 1.5 : 1));
+      if (xd > 0) exposedBonus = Math.round(raw * mult * (xd / 100) * (crit ? CRIT_MULT : 1));
     }
     emit(B, {
       t: 'dmg',
@@ -2833,19 +2840,29 @@
         if (e.side) {
           // team-wide modifier
           var s = e.side === 'ally' ? src.side : opposite(src.side);
-          B.costMods[s].push({ flat: e.flat || 0, pct: e.pct || 0, turns: e.turns });
+          B.costMods[s].push({
+            flat: e.flat || 0,
+            pct: e.pct || 0,
+            turns: e.turns,
+            /* `signaturesOnly: true` prices ONLY Signature Skills - role
+               Basics are exempt (Merlin's Prophecy tax, 2026-08-05). */
+            signaturesOnly: !!e.signaturesOnly,
+          });
           var up = (e.flat || 0) > 0 || (e.pct || 0) > 0;
           logMsg(
             B,
             up ? 'debuff' : 'buff',
-            'Skill costs shifted for ' + (s === 'player' ? 'your team' : 'the enemy') + '.',
+            (e.signaturesOnly ? 'Signature costs' : 'Skill costs') +
+              ' shifted for ' +
+              (s === 'player' ? 'your team' : 'the enemy') +
+              '.',
             { side: s, status: up ? 'costup' : 'costdown', signature: !!ctx.signature }
           );
         } else {
           list.forEach(function (t) {
             if (!condMet(B, e.if, condCtx(ctx, t))) return;
             t.costMods = t.costMods || [];
-            t.costMods.push({ flat: e.flat || 0, pct: e.pct || 0, turns: e.turns });
+            t.costMods.push({ flat: e.flat || 0, pct: e.pct || 0, turns: e.turns, signaturesOnly: !!e.signaturesOnly });
           });
         }
         break;
@@ -3847,6 +3864,7 @@
   window.EOL.engine = {
     ENERGY_BY_ROUND: ENERGY_BY_ROUND,
     energyForRound: energyForRound,
+    CRIT_MULT: CRIT_MULT,
     RAMP_FROM: RAMP_FROM,
     RAMP_STEP: RAMP_STEP,
     rampMult: rampMult,

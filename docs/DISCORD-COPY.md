@@ -3,8 +3,9 @@
 Three ready-to-paste messages, one per channel. Discord markdown throughout
 (`**bold**`, `#`/`##` headers, `>` quotes, `-#` subtext). No em dashes.
 
-Everything factual below was checked against the shipping build: 57 heroes,
-9 factions, 6 roles, 10 battlefields, 2 bans, teams of 6 from decks of 12.
+Everything factual below was checked against the shipping build: 63 heroes,
+9 factions, 6 roles, 10 battlefields, 2 bans, teams of 6 from decks of 12,
+and Unabridged (best-of-3 wars) in solo. Updated 2026-08-05.
 
 ---
 
@@ -22,7 +23,7 @@ A browser-based tactical card battler. Six heroes a side, drawn from world folkl
 - Fight it out in energy-gated rounds until one side is wiped
 
 **The roster**
-57 heroes across 9 factions. Camelot, Olympus, Sherwood, Grimmwood, Yamato, Huaxia, Roma, Takamagahara and Duat. King Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus, Izanagi, Ma'at and 48 more.
+63 heroes across 9 factions. Camelot, Olympus, Sherwood, Grimmwood, Yamato, Huaxia, Roma, Takamagahara and Duat. King Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus, Izanagi, Ma'at and 54 more.
 
 Every hero has one **Signature Skill** that is theirs alone, plus a **Basic Skill** from their role. Six roles: Tank, Bruiser, Sniper, Caster, Controller and Medic. Skills cost Energy, Energy grows each round, so round 1 and round 6 are different games.
 
@@ -31,7 +32,8 @@ Placement matters. Front row eats what the back row would have taken, and a Tank
 
 **Modes**
 - **Classic** and **Draft** against the AI
-- **Ranked Draft** and **Ranked Classic** against real players
+- **Unabridged** - a best-of-3 war: three arenas, loser picks the next board, mandatory swaps between games
+- **Online Draft** and **Online Classic** against real players
 - Campaign is planned, not built
 
 Free, no install, no download. Runs in the browser on desktop or phone.
@@ -51,9 +53,9 @@ https://fragmint6.web.app/echoes-of-legend/
 Echoes of Legend is playable in your browser right now. No download, no install, free.
 
 **What's in it**
-- 57 heroes, 9 factions, 6 roles
-- **Classic** and **Draft** vs the AI
-- **Ranked Draft** and **Ranked Classic** vs real players (needs a free account)
+- 63 heroes, 9 factions, 6 roles
+- **Classic** and **Draft** vs the AI, plus **Unabridged** best-of-3 wars
+- **Online Draft** and **Online Classic** vs real players (needs a free account)
 - 10 battlefields that each change how a match plays
 
 **What I actually need from you**
@@ -95,7 +97,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 ## Further out
 - **Campaign.** Deliberately parked. Hand-authored fights get solved once and then never replayed, so it competes for time with the part of the game that has replay value. It comes back only if there's a version worth playing twice.
-- **Packs, currency, unlockable heroes.** Deliberately parked too. Locking the roster behind a grind on a demo with a small player base makes matchmaking worse, not better. Everyone gets all 57 heroes for now.
+- **Packs, currency, unlockable heroes.** Deliberately parked too. Locking the roster behind a grind on a demo with a small player base makes matchmaking worse, not better. Everyone gets all 63 heroes for now.
 - **More factions.**
 
 ## Not planned
@@ -114,4 +116,4 @@ Want something moved up this list? Say so. A demo this early is exactly when pri
   the 2,000-character message limit. No splitting needed.
 - If you turn `#about` into the channel description instead of a message, the
   short version is: *"A free browser card battler. Six folklore heroes a side,
-  57 to choose from, ban your opponent's best two, then fight."*
+  63 to choose from, ban your opponent's best two, then fight."*

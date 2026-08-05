@@ -1,6 +1,23 @@
 # Echoes of Legend — From 8/10 to 10/10
 ### Gameplay memo, 2026-08-04. The question: what makes strangers try it and veterans stay.
 
+> **IMPLEMENTATION STATUS (updated 2026-08-05).** This memo is history;
+> ROADMAP.md is the law. Where they stand today:
+>
+> - **I. THE SET — SHIPPED.** Rebranded **Unabridged**; live in the
+>   client as the solo best-of-3 war (fight card of 3 boards, roulette
+>   for game 1, loser calls the next board, set-wide bans, mandatory
+>   1-2 substitutions between games with subbed-out heroes locked out).
+>   MP wiring is the remaining Phase-1b work.
+> - **II. TROPHY FORGE — REJECTED** by user ruling. Its replacement is
+>   **Faction Blessings** (ROADMAP Phase 2). Not built.
+> - **III. LEGENDS GAUNTLET — NOT BUILT.** Adopted in principle as
+>   ROADMAP Phase 3 (chapters; Chapter 1 "The Nine Thrones" on the
+>   current 63-card roster). The Campaign tab is still the placeholder.
+> - **Spices IV-VII — PARKED** (ROADMAP §7).
+> - The roster below is quoted at 57 heroes; the shipping roster is 63
+>   (Grimmwood expansion). Everything else in the memo reads as written.
+
 Everything below is GAMEPLAY. No new art, no sound, no modes-as-ornament.
 Each idea is grounded in systems that already exist (draft, bans, hidden
 prep, 60/80/100 energy, ramp-at-4, 10 boards, 9 factions, the sim harness),

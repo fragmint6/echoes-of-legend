@@ -2,6 +2,32 @@
 
 > Written against the 5,000-game run. Every number below is measured, not
 > estimated. Three questions, answered in the order you raised them.
+>
+> **WHAT SINCE SHIPPED (updated 2026-08-05).** This memo is history -
+> the shipping build resolved its recommendations as follows:
+>
+> - **Campaign (§1):** no mission campaign was built; the placeholder tab
+>   remains, and the concept became Legends Gauntlet chapters (ROADMAP
+>   Phase 3). Faction Trials / Daily Puzzle stay as future ideas.
+> - **Buff exit valve (§2 Fix 2): SHIPPED** - `consumeBuffs` exists and
+>   Inari's Kitsune's Bounty strips and cashes enemy buffs.
+> - **Debuff-count conversion (§2 Fix 3): SHIPPED** - `perDebuff` scaling
+>   and `debuffCountAtLeast` are live (Pied Piper, Friar Tuck, Cicero,
+>   Anubis's extended execute threshold).
+> - **Team-wide buff law (§2 Fix 1): applied** in the buff pass (e.g.
+>   Guinevere's rider became a team ATK buff).
+> - **Silence: REWORKED as recommended** - it now blocks ALL actions,
+>   Basics included (2026-07-31).
+> - **Comeback (§3):** shipped as **energy**, not actions - the trailing
+>   side gets +15 Energy per round per hero of deficit
+>   (`COMEBACK_PER_HERO`), chosen over the extra-action proposal after
+>   empirical tuning. Healing decay was removed outright instead.
+> - **Ramp:** kept at +15%/round but **retimed round 6 -> round 4**, and
+>   the energy ladder was retimed to 60/80/100 with carry-over and a 150
+>   cap. The "reduce ramp to 8%" option was not taken.
+> - **Replays/anti-cheat (§4):** multiplayer runs lockstep with a shared
+>   seed and per-action board checksums (js/netplay.js) - deterministic
+>   replay infrastructure, shipped with the online modes.
 
 ---
 

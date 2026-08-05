@@ -18991,7 +18991,17 @@ body[data-gfx='low'] .tips-thumb {
      band - 105deg gradient, skewX(-16deg), 42% of the surface, sweeping
      left to right. Only its peak opacity varies by surface. The old
      Play-button band rode a 100deg/-18deg spec with a washed-out three
-     hump gradient; this is the one true geometry now. */
+     hump gradient; this is the one true geometry now.
+
+     FIX (2026-08-05): the jitter-fix `.btn::after` bleed strip declares
+     `height: 6px`, and this block used to rely on top/bottom stretching
+     without re-declaring it. An explicit height on an over-constrained
+     absolute box makes CSS drop `bottom`, so the band collapsed into a
+     6px strip along the TOP edge of the button. The full-height geometry
+     is now stated here explicitly so the leak can never bite again. */
+  top: 0;
+  bottom: 0;
+  height: auto;
   left: -60%;
   width: 42%;
   background: linear-gradient(
@@ -19005,6 +19015,14 @@ body[data-gfx='low'] .tips-thumb {
   transform: skewX(-16deg);
   transition: left 0.6s var(--ease);
   z-index: 1;
+}
+.btn-primary:hover::after {
+  /* the sweep itself. Stated HERE (after the legacy hover rules higher
+     in the file) so the band keeps its skewX(-16deg) geometry while it
+     moves - an older `.btn-primary:hover::after` rule replaces the
+     transform with translateX(100%) otherwise, and the law wins last. */
+  left: 118%;
+  transform: skewX(-16deg);
 }
 .btn > i,
 .btn > span {
@@ -19027,6 +19045,10 @@ body[data-gfx='low'] .tips-thumb {
   position: absolute;
   top: 0;
   bottom: 0;
+  /* same leak as the primary sheen: `.btn::after` declares height:6px,
+     and an over-constrained box drops `bottom` - state height:auto so
+     the band stretches the full button height again */
+  height: auto;
   left: -60%;
   width: 42%;
   /* same band as the law, quieter peak for dark glass */

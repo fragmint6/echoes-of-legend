@@ -1,7 +1,8 @@
 # Supabase setup - accounts and multiplayer draft
 
-The goal: **two people on two different computers queue for Ranked Draft
-and play each other.**
+The goal: **two people on two different computers queue for Online Draft
+(or Online Classic) and play each other.** Nothing here is ranked yet -
+the ladder is ROADMAP Phase 4; these are the unranked online modes.
 
 ---
 
@@ -229,7 +230,8 @@ This is the part you asked for.
    - Whatever address you use must be listed in **Redirect URLs**.
 2. Each player clicks the account button (top right) and makes their own
    account. **Two different email addresses.**
-3. Both go to **Play -> Multiplayer -> Ranked Draft -> Find a match**.
+3. Both go to **Play -> Multiplayer -> Online Draft -> Find a match**
+   (Online Classic works the same way with saved decks).
 4. The first one to click waits in the queue; the second is paired
    immediately and both drop into the same draft.
 
@@ -278,7 +280,8 @@ Both were real, both were latent in singleplayer, and both are fixed:
 - **Deck sync is gone, on purpose.** You asked to drop it. Decks live in
   `localStorage`. An account is only an identity for matchmaking, so
   signing in or out can never touch your decks.
-- **Ranked Classic.** Marked coming soon.
+- **Ranked anything.** Online Classic and Online Draft both ship
+  UNRANKED; the ladder (and Unabridged in ranked) is ROADMAP Phase 4.
 - **Trophies and ladder.** The table exists; nothing writes it. Trophy
   updates must be server-side or players can award themselves rank.
 - **Server-authoritative battle.** Both clients run the engine and trust

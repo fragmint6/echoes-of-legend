@@ -1,8 +1,16 @@
-# Campaign Mode - Design Proposal
+# Campaign Mode - Design Proposal (ARCHIVED)
 
-> **Status: proposal for review. No code written.**
-> Goal: the place a new player *starts*, learning one faction at a time - combos,
-> synergies, and keywords - on a ramping difficulty curve.
+> **SUPERSEDED 2026-08-05.** The campaign that is actually being built is
+> specified in **`docs/DESIGN-Campaign-Chapter1.md`** (Chapter 1: "The
+> Road of Echoes" - 10 personality-rival stages, Gilgamesh finale). This
+> older proposal is kept for two things that remain true and useful: the
+> difficulty findings (AI search depth is NOT a usable difficulty dial;
+> first-mover advantage swamps AI quality in fixed mirrors) and the
+> reuse map of existing machinery below.
+>
+> Original status: proposal ONLY, no code written, concept superseded.
+> Original goal: the place a new player *starts*, learning one faction at
+> a time - combos, synergies, and keywords - on a ramping difficulty curve.
 
 ---
 

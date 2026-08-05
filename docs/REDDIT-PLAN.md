@@ -128,12 +128,13 @@ Free, runs in a tab, no download. Singleplayer needs no account.
 
 The loop: bring or draft a deck of 12 heroes, look at your opponent's 12 and ban 2 of them, then pick 6 of your remaining 10 and place them across a front and back row.
 
-57 heroes from world folklore across 9 factions. Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus. Each has one Signature Skill unique to them plus a Basic Skill from their role.
+63 heroes from world folklore across 9 factions. Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus. Each has one Signature Skill unique to them plus a Basic Skill from their role.
 
 Where the decisions are:
 - Front row soaks what the back row would have taken, and a Tank that Provokes drags shots off the people you need alive
 - Energy grows every round, so round 1 and round 6 are different games
 - 10 battlefields bend the rules. One floods you with Energy, one starves it, one is neutral
+- Unabridged: a best-of-3 war where the loser picks the next battlefield and both sides must swap heroes between games
 
 There's an AI opponent for singleplayer and real-time PvP if you want it.
 
@@ -162,7 +163,7 @@ Both players bring 12 heroes. You see their 12, they see yours, and you each ban
 
 The ban phase turned out to be the best part. It's the only moment where you're reasoning about what they're going to do rather than what you want to do, and watching someone ban the wrong hero because they misread your deck is genuinely satisfying.
 
-57 heroes across 9 folklore factions, 10 battlefields that each change the rules, AI opponent plus real-time PvP.
+63 heroes across 9 folklore factions, 10 battlefields that each change the rules, best-of-3 Unabridged wars, AI opponent plus real-time PvP.
 
 Solo project, first demo. Tearing it apart is the point.
 ```
@@ -178,7 +179,7 @@ Read their promo rules first. If they require a flair or a specific thread, use 
 ```
 https://fragmint6.web.app/echoes-of-legend/
 
-No pulls, no currency, no energy timers. All 57 heroes are unlocked for everyone from the start. I wanted the interesting part of a hero collector, which to me is team comp, without the part where you can't test a comp because you don't own the unit.
+No pulls, no currency, no energy timers. All 63 heroes are unlocked for everyone from the start. I wanted the interesting part of a hero collector, which to me is team comp, without the part where you can't test a comp because you don't own the unit.
 
 How a match runs: 12 heroes in your deck, ban 2 of your opponent's, field 6 across a front and back row, fight in energy-gated rounds.
 
@@ -206,7 +207,7 @@ something worth reading. Ceiling is much higher than anything above.
 > **Title:** I wrote a bot to play thousands of games of my own card game. It found a 13,000 shield, and taught me that random sampling cannot answer balance questions.
 
 ```
-Solo dev, 57-hero team battler. Two things I got wrong that might be useful to someone.
+Solo dev, 63-hero team battler. Two things I got wrong that might be useful to someone.
 
 **1. "Max stacks" was a concurrent cap, not a lifetime cap**
 
@@ -220,7 +221,7 @@ The lesson I'd pass on: a stack cap has to count every stack ever granted, not e
 
 I wanted to know which pairs of heroes are too strong together, so I ran thousands of randomised matches and looked at pair win rates.
 
-57 heroes is 1,596 possible pairs. Each game only shows you 30 of them. At 1,200 games I measured: median 21 games per pair, best-covered pair 39 games, and **zero pairs above 40**.
+63 heroes is 1,953 possible pairs. Each game only shows you 30 of them. At 1,200 games I measured: median 21 games per pair, best-covered pair 39 games, and **zero pairs above 40**.
 
 There is no practical sample size where uniform random draw gives you confidence on a specific pair. If you want pair data you have to force the pairs, not sample and hope. I now run a separate forced-inclusion phase that pins each hero into a deck and measures it directly.
 

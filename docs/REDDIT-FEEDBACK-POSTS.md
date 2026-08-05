@@ -34,8 +34,8 @@ The good news: you have a genuinely unresolved question sitting in your data.
 
 Measured against the live roster just now:
 
-- **9 of 57 heroes are `common`** (15.8%)
-- **7 of those 9 commons are Passives** (no Energy cost, always on)
+- **10 of 63 heroes are `common`** (15.9%)
+- **7 of those 10 commons are Passives** (no Energy cost, always on)
 - In the last balance run, **3 of the 4 most-banned heroes were commons**:
   Maid Marian (97.6%), Spartacus (96.6%), Snow White (93.0%). Susanoo, 4th at
   92.2%, is `rare`.
@@ -79,7 +79,7 @@ days later (the question is system design, not code, so it travels).
 > **Title:** In my card game, the three most-banned characters are all commons, and the legendaries are safe. I can't tell if that's a bug or the correct outcome.
 
 ```
-Solo dev on a 6v6 team battler. 57 characters, four rarities. Both players see each other's roster and ban 2 before the match.
+Solo dev on a 6v6 team battler. 63 characters, four rarities. Both players see each other's roster and ban 2 before the match.
 
 I ran a few thousand simulated matches with an AI doing the banning, and the ban rates came out like this:
 
@@ -90,7 +90,7 @@ I ran a few thousand simulated matches with an AI doing the banning, and the ban
 
 Not one legendary in the top tier. My legendaries have the highest attack on the roster by a wide margin (1,711 average vs 1,274 for commons) and nobody wants to ban them.
 
-Some structure that might explain it: only 9 of my 57 characters are common, and 7 of those 9 have passive skills - no cost, always on, no button to press. Everything else costs energy and competes with the rest of your turn. Also, every single one of the four above is a tank or a healer. Zero damage dealers.
+Some structure that might explain it: only 10 of my 63 characters are common, and 7 of those 10 have passive skills - no cost, always on, no button to press. Everything else costs energy and competes with the rest of your turn. Also, every single one of the four above is a tank or a healer. Zero damage dealers.
 
 I can think of three explanations and I genuinely don't know which one it is:
 
@@ -126,18 +126,18 @@ Space it 1 to 2 weeks from Post 1.
 > **Title:** I wanted to know which pairs of characters are too strong together. The math says random sampling can never tell me.
 
 ```
-57 characters, 6 per team. I wanted pair-level balance data - which two characters are broken when drafted together.
+63 characters, 6 per team. I wanted pair-level balance data - which two characters are broken when drafted together.
 
 Obvious approach: run a lot of randomised matches, look at win rate per pair.
 
-57 characters is 1,596 possible pairs. Each match only shows you 30 of them (6 choose 2 per side, times 2 sides). So coverage is thin, but I figured volume would fix it.
+63 characters is 1,953 possible pairs. Each match only shows you 30 of them (6 choose 2 per side, times 2 sides). So coverage is thin, but I figured volume would fix it.
 
 It does not. At 1,200 games I measured:
 - median 21 games per pair
 - best-covered pair: 39 games
 - pairs with 40+ games: zero
 
-To get a usable confidence interval on a pair you want a few hundred games of it. Scaling up doesn't save you either, because every game you add spreads across all 1,596 pairs at once. The coverage stays flat while the runtime doesn't.
+To get a usable confidence interval on a pair you want a few hundred games of it. Scaling up doesn't save you either, because every game you add spreads across all 1,953 pairs at once. The coverage stays flat while the runtime doesn't.
 
 What I switched to: a forced-inclusion phase that pins a specific character into a deck and guarantees it gets fielded, then measures directly. Sampling answers "how is the meta doing," forcing answers "is this specific thing broken." They're different questions and I'd been using the wrong tool for the second one.
 
@@ -167,7 +167,7 @@ Building it, the ban phase turned out to be my favourite part - it's the only mo
 
 So the actual question: in games you've played with a ban phase, does it make drafting better or does it mostly feel like being told no?
 
-57 characters across 9 folklore factions, AI opponent, and real-time PvP if you want it. First demo, so balance takes and bug reports are extremely welcome.
+63 characters across 9 folklore factions, AI opponent, and real-time PvP if you want it. First demo, so balance takes and bug reports are extremely welcome.
 ```
 
 ---
