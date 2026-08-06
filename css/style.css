@@ -20938,38 +20938,43 @@ body[data-view='chapter'] .bg-grid {
   z-index: 1;
 }
 
-/* dark vignette ring around the edges + cool grade over the whole scene */
+/* subtle dark frame around the edges — doesn't compete with lantern glow */
 .cw-vignette {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   background:
-    /* heavy dark edge vignette — darker corners, pulls focus to centre */
-    radial-gradient(ellipse 75% 75% at 50% 45%, transparent 35%, rgba(2,4,9,0.78) 100%),
-    /* deepen the lower half — road disappears into true gloom */
-    linear-gradient(to top, rgba(2,4,9,0.62) 0%, transparent 50%),
-    /* cool blue tint over the upper sky — colder night feel */
-    linear-gradient(to bottom, rgba(12,16,34,0.30) 0%, transparent 48%);
+    radial-gradient(ellipse 80% 80% at 50% 45%, transparent 50%, rgba(3,5,10,0.45) 100%),
+    linear-gradient(to top, rgba(3,5,10,0.35) 0%, transparent 45%),
+    linear-gradient(to bottom, rgba(14,18,40,0.18) 0%, transparent 40%);
 }
 
-/* warm lantern under-glow that breathes — makes the fire feel alive */
+/* warm lantern under-glow — large, visible, breathing amber firelight */
 .cw-glow {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
+  mix-blend-mode: screen;
   background:
-    radial-gradient(ellipse 36% 34% at 50% 70%, rgba(255,175,80,0.22), transparent 58%),
-    radial-gradient(ellipse 22% 22% at 50% 65%, rgba(255,200,110,0.32), transparent 52%),
-    radial-gradient(ellipse 10% 12% at 50% 62%, rgba(255,225,150,0.48), transparent 48%),
-    radial-gradient(ellipse 4% 5% at 50% 60%, rgba(255,240,190,0.55), transparent 45%);
-  animation: cw-lantern-breathe 3.5s ease-in-out infinite alternate;
+    /* outermost warm bloom — large amber pool flooding the road */
+    radial-gradient(ellipse 48% 40% at 50% 72%, rgba(255,170,80,0.14), transparent 55%),
+    /* mid bloom — tighter golden wash */
+    radial-gradient(ellipse 32% 28% at 50% 66%, rgba(255,200,110,0.22), transparent 48%),
+    /* core glow — bright amber around the lantern */
+    radial-gradient(ellipse 16% 16% at 50% 62%, rgba(255,220,140,0.38), transparent 42%),
+    /* tight hot core — the flame itself */
+    radial-gradient(ellipse 6% 8% at 50% 59%, rgba(255,240,180,0.55), transparent 40%),
+    /* tiny white-hot centre */
+    radial-gradient(ellipse 2% 3% at 50% 58%, rgba(255,255,230,0.6), transparent 35%);
+  animation: cw-lantern-breathe 3.2s ease-in-out infinite alternate;
 }
 
 @keyframes cw-lantern-breathe {
-  from { opacity: 0.6; }
-  to   { opacity: 1.15; }
+  0%   { opacity: 0.65; transform: scale(1); }
+  50%  { opacity: 1.0;  transform: scale(1.06); }
+  100% { opacity: 0.7;  transform: scale(0.96); }
 }
 
 /* drifting mist bands — thin horizontal haze strips at different depths */
