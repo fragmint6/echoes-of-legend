@@ -20924,7 +20924,7 @@ body[data-view='chapter'] .bg-grid {
   pointer-events: none;
 }
 .cw-scene {
-  background: url('../assets/chapter-1/road-of-echoes.png') center bottom / cover no-repeat;
+  background: url('../assets/chapter-1/road-of-echoes.gif') center bottom / cover no-repeat;
   image-rendering: auto;
 }
 
@@ -20942,7 +20942,7 @@ body[data-view='chapter'] .bg-grid {
   position: relative;
   margin-top: auto;
   padding: 30px 0 2px;
-  color: rgba(223, 225, 247, 0.48);
+  color: rgba(210, 208, 192, 0.55);
   text-align: center;
 }
 .chapter-head {
@@ -20950,32 +20950,49 @@ body[data-view='chapter'] .bg-grid {
   margin-bottom: 20px;
   padding: 12px 18px 18px;
   border-radius: 16px;
-  background: radial-gradient(
-    ellipse at 50% 120%,
-    rgba(255, 214, 130, 0.06),
-    rgba(10, 14, 30, 0.35) 75%
-  );
-  border: 1px solid rgba(189, 174, 231, 0.12);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 .chapter-head .col-titles {
   gap: 0;
 }
 .chapter-emblem {
-  color: #e9c47b;
-  text-shadow: 0 0 20px rgba(236, 192, 104, 0.45);
+  color: #f4d694;
+  text-shadow: 0 0 20px rgba(236, 192, 104, 0.65);
 }
 .chapter-overline {
   margin: 2px 0 6px;
-  color: rgba(244, 210, 139, 0.84);
+  color: #f8e0a8;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.24em;
   line-height: 1;
   text-transform: uppercase;
 }
+/* back button brighter for the dark forest backdrop */
+.chapter-head .back-btn {
+  color: #e8dbbf;
+  border-color: rgba(210, 195, 155, 0.45);
+  background: rgba(20, 16, 8, 0.45);
+}
+.chapter-head .back-btn:hover {
+  color: #fff;
+  border-color: rgba(240, 210, 140, 0.7);
+  background: rgba(50, 35, 12, 0.55);
+}
+.chapter-head .col-title {
+  background: linear-gradient(180deg, #fff 10%, #f2e0b8 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 30px rgba(220, 190, 120, 0.25);
+}
+.chapter-head .col-sub {
+  color: #d8ceaa;
+}
 
-/* Translucent misty glass progress header, blending into the forest atmosphere */
+/* Subtle progress strip — no glass block, just a quiet rule */
 .chapter-brief {
   position: relative;
   display: flex;
@@ -20987,14 +21004,12 @@ body[data-view='chapter'] .bg-grid {
   padding: 14px 20px;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid rgba(189, 174, 231, 0.14);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(20, 24, 48, 0.32), rgba(10, 12, 28, 0.24));
-  box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .chapter-brief::after {
   position: absolute;
@@ -21003,10 +21018,9 @@ body[data-view='chapter'] .bg-grid {
   bottom: 0;
   left: 0;
   width: 3px;
-  border-radius: 14px 0 0 14px;
+  border-radius: 2px;
   content: '';
-  background: linear-gradient(180deg, #ffd682, #8d6dd0);
-  /* No outer glow: this must read as an in-plate rule, not an overlay. */
+  background: linear-gradient(180deg, rgba(255, 214, 130, 0.7), rgba(141, 109, 208, 0.5));
 }
 .chapter-brief-copy,
 .chapter-progress {
@@ -21020,7 +21034,7 @@ body[data-view='chapter'] .bg-grid {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #e7c678;
+  color: #f2d694;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -21032,7 +21046,7 @@ body[data-view='chapter'] .bg-grid {
 .chapter-brief-copy p {
   max-width: 700px;
   margin: 5px 0 0;
-  color: #b2b6ce;
+  color: #c8c4b4;
   font-size: 12px;
   line-height: 1.45;
 }
@@ -21044,13 +21058,13 @@ body[data-view='chapter'] .bg-grid {
   gap: 2px;
   min-width: 116px;
   padding-left: 18px;
-  border-left: 1px solid rgba(213, 210, 243, 0.14);
+  border-left: 1px solid rgba(213, 210, 243, 0.2);
 }
 .chapter-progress-n {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  color: #e9cf8a;
+  color: #f2dca4;
   font-family: 'Cinzel', serif;
 }
 .chapter-progress-n b {
@@ -21058,12 +21072,12 @@ body[data-view='chapter'] .bg-grid {
   letter-spacing: 0.06em;
 }
 .chapter-progress-n i {
-  color: rgba(214, 215, 234, 0.45);
+  color: rgba(230, 228, 210, 0.55);
   font-size: 13px;
   font-style: normal;
 }
 .chapter-progress-label {
-  color: #8990ac;
+  color: #b0a990;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -21167,7 +21181,7 @@ body[data-view='chapter'] .bg-grid {
 }
 .sc-meta {
   font-size: 11.5px;
-  color: #a4accd;
+  color: #c8c0aa;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -21192,7 +21206,7 @@ body[data-view='chapter'] .bg-grid {
 }
 .sc-chevron {
   font-size: 20px;
-  color: #8990ac;
+  color: #b0a890;
   transition: transform 0.25s var(--ease);
 }
 .stage-card:not(.is-locked):hover .sc-chevron {
