@@ -1574,6 +1574,18 @@
     document.getElementById('btn-collection').addEventListener('click', function () {
       show('collection');
     });
+    var btnRulebook = document.getElementById('btn-rulebook');
+    if (btnRulebook) {
+      btnRulebook.addEventListener('click', function () {
+        show('rulebook');
+      });
+    }
+    var btnRulebookBack = document.getElementById('btn-rulebook-back');
+    if (btnRulebookBack) {
+      btnRulebookBack.addEventListener('click', function () {
+        goBack();
+      });
+    }
     document.getElementById('btn-back').addEventListener('click', function () {
       goBack();
     });

@@ -139,9 +139,6 @@
          the planes drift at distinct speeds to give the chapter map
          depth without borrowing the main-menu colosseum. -->
     <div class="chapter-bg" id="chapter-bg" aria-hidden="true">
-      <!-- An opaque scene bed keeps the generated silhouette planes from
-           revealing keyed-away black pockets as they drift past each other. -->
-      <span class="cb-base"></span>
       <span class="cb-sky"></span>
       <span class="cb-far"></span>
       <span class="cb-mid"></span>
@@ -244,6 +241,10 @@
             <i class="ra ra-book"></i>
             <span>Collection</span>
           </button>
+          <button class="btn btn-ghost" id="btn-rulebook">
+            <i class="ra ra-scroll-unfurled"></i>
+            <span>Rulebook</span>
+          </button>
         </div>
 
         <div class="home-stats">
@@ -329,6 +330,338 @@
       </div>
 
       <footer>Echoes of Legend - Prototype</footer>
+    </section>
+
+    <!-- ==================== RULEBOOK ==================== -->
+    <section class="view rulebook" data-view="rulebook">
+      <header class="col-header mast">
+        <button class="back-btn" id="btn-rulebook-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-scroll-unfurled"></i></span>
+          <h2 class="col-title">Rulebook</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">Comprehensive Engine Rules & Mechanics Reference</p>
+        </div>
+      </header>
+
+      <div class="rulebook-grid">
+        <!-- Section 1: Turn & Round Model -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-cycle"></i>
+            <h3>1. Turn Flow & Round Phasing</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Alternating Actions:</b> Rounds progress as a sequence of single actions
+                alternating between players (<code
+                  >Player 1 &rarr; Player 2 &rarr; Player 1 &rarr; ...</code
+                >). 1 action = 1 living hero casting 1 ability.
+              </li>
+              <li>
+                <b>Starting Initiative:</b> In singleplayer, campaign, and multiplayer matches, the
+                opening player of Round 1 is determined <b>50/50 randomly</b>. The starting side
+                alternates between odd and even rounds.
+              </li>
+              <li>
+                <b>Phase 1 (Round 1):</b> Basic Skills only. Signature Skills are locked to
+                establish opening board tempo.
+              </li>
+              <li>
+                <b>Phase 2 (Round 2+):</b> Signature Skills unlock. Big tactical plays and combos
+                become castable.
+              </li>
+              <li>
+                <b>Phase 3 (Round 4+):</b> ATK Ramp begins. All legends gain an additional
+                <b>+20% ATK</b> per round cumulatively (+20% in R4, +40% in R5, etc.) to ensure
+                matches resolve cleanly.
+              </li>
+              <li>
+                <b>Turn Passing:</b> A player may pass their action. If both sides pass
+                consecutively or if neither side has legal moves left, the round ends and rolls
+                over.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 2: Energy Economy -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-lightning-bolt"></i>
+            <h3>2. Energy Economy & Carry-over</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Energy Income:</b> Both sides receive a rising base energy pool each round:
+                <b>50 EN</b> (R1), <b>60 EN</b> (R2), <b>70 EN</b> (R3), <b>80 EN</b> (R4),
+                <b>90 EN</b> (R5), <b>100 EN</b> (R6+).
+              </li>
+              <li>
+                <b>Carry-over Cap:</b> Any unspent Energy at the end of a round carries over to the
+                next round, up to a maximum cap of <b>150 EN</b>.
+              </li>
+              <li>
+                <b>Comeback Mechanic:</b> If you start a round with fewer living legends than your
+                opponent, your team rallies with <b>+15 Energy per hero of deficit</b>.
+              </li>
+              <li>
+                <b>Ability Costs:</b> Basic skills cost 15 EN (or 0 EN if specified); Signature
+                Active skills cost between 20 and 55 EN.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 3: Formation & Targeting -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-crossed-axes"></i>
+            <h3>3. Formations & Targeting Laws</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>6v6 Board Layout:</b> Each squad fields 6 legends arranged into
+                <b>3 Front Row</b> (slots 0, 1, 2) and <b>3 Back Row</b> (slots 3, 4, 5) positions.
+              </li>
+              <li>
+                <b>Melee / Front-Row Lock:</b> <b>Tanks</b> and <b>Bruisers</b> must target enemy
+                Front Row legends as long as any front-row enemy is alive. They can only target the
+                backline once the front row is cleared.
+              </li>
+              <li>
+                <b>Ranged Targeting:</b> <b>Casters</b>, <b>Controllers</b>, <b>Medics</b>, and
+                <b>Snipers</b> can freely target any row.
+              </li>
+              <li>
+                <b>Backline DEF Penalty:</b> When an entire Front Row is wiped out, surviving
+                Backline legends suffer a <b>-10% DEF penalty</b> as their defensive line has
+                collapsed.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 4: Combat Math -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-sword"></i>
+            <h3>4. Damage Calculation & Mitigation</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Raw Damage:</b>
+                <code
+                  >Attacker_ATK &times; Skill_Power &times; Bonus_Multipliers &times;
+                  Provoke_Tax</code
+                >.
+              </li>
+              <li>
+                <b>Mitigation Formula:</b>
+                <code
+                  >Raw &times; Outgoing_Mult &times; Incoming_Mult &times; (1 - Resist_Pct) &times;
+                  (1 - Target_DEF / 100)</code
+                >.
+              </li>
+              <li>
+                <b>DEF Cap:</b> DEF is a percentage reduction, hard-capped at <b>75% max</b> so
+                damage is never completely reduced to zero.
+              </li>
+              <li>
+                <b>Damage Resistance Cap:</b> Flat timed damage resistance (Warded / Resist) is
+                capped at <b>90% max</b>.
+              </li>
+              <li>
+                <b>Critical Strikes:</b> Critical hits deal a fixed
+                <b>1.5&times; damage multiplier</b> based on the attacker's Crit Chance.
+              </li>
+              <li>
+                <b>Minimum Damage:</b> Every hit that connects deals at least <b>1 damage</b>.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 5: Protection System -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-heavy-shield"></i>
+            <h3>5. Protection Mechanics</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Provoke (Taunt):</b> Forces all single-target enemy attacks onto the provoker.
+                Area-of-Effect (AoE) skills and sniper signature skills pierce the redirect, but
+                suffer a <b>30% Provoke Tax</b> (0.70&times; power) against all non-provoker
+                targets. The provoker always takes full 100% damage.
+              </li>
+              <li>
+                <b>Untargetable:</b> Absolute targeting negation. The unit cannot be targeted by
+                single-target enemy abilities. If an Untargetable unit also Provokes, enemy
+                single-target attacks cannot be cast (forcing an auto-pass unless ally-targeted
+                skills like Medic heal are used).
+              </li>
+              <li>
+                <b>Shields:</b> Absorbs incoming damage point-for-point before HP is damaged. Burn
+                damage bypasses shields. Overhealing from certain skills (e.g. Medic Restore)
+                converts excess healing into shields.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 6: Status Effects Reference -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-burning-embers"></i>
+            <h3>6. Status Effects & Afflictions</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Burn:</b> Deals <b>5% Max HP true damage</b> whenever that side begins a turn.
+                Bypasses DEF and Shields completely.
+              </li>
+              <li><b>Exposed:</b> Target's DEF is reduced to <b>0%</b>.</li>
+              <li>
+                <b>Marked:</b> The next damaging Skill consumes the Mark and triggers on-hit/combo
+                bonuses (Ares Burn, Apollo follow-up, Zeus detonation). Basic attacks do NOT consume
+                Marks. Marks have no turn expiration.
+              </li>
+              <li>
+                <b>Silence:</b> Completely locks out the unit from acting (both Signature Skills and
+                Basic attacks are blocked).
+              </li>
+              <li>
+                <b>Warded (Resist):</b> Grants flat damage reduction (works even while Exposed).
+              </li>
+              <li>
+                <b>Counter Ready:</b> Retaliates with an immediate counter-attack when struck while
+                Shielded.
+              </li>
+              <li>
+                <b>Healing Reduction:</b> Reduces incoming healing percentage (Shields unaffected).
+              </li>
+              <li>
+                <b>Cost Modifiers:</b> Increases or decreases team-wide ability Energy costs (+15%
+                or -15%).
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 7: Stacking & Debuff Scaling -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-fox"></i>
+            <h3>7. Debuff Scaling & Payoffs</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Debuff Counting:</b> Distinct debuffs counted include each negative stat buff
+                (-ATK, -DEF, -Crit), Silence, negative Healing Modifiers, Burn, Exposed, Marked, and
+                Energy Cost increases.
+              </li>
+              <li>
+                <b>Debuff Damage Scaling:</b> Legends like <b>Inari</b> (+30% ATK per debuff, max
+                4), <b>Cicero</b> (+15% ATK per debuff, max 3), <b>Friar Tuck</b> (+14% ATK per
+                debuff, max 3), and <b>Pied Piper</b> (+13% ATK per debuff, max 3) scale their
+                damage multiplicatively off debuffs on the target.
+              </li>
+              <li>
+                <b>Buff Stripping:</b> Abilities with <code>consumeBuffs</code> strip all positive
+                stat buffs and shields from the target.
+              </li>
+              <li>
+                <b>Stack Caps:</b> Passive stacking buffs (e.g. Red Riding Hood, Ares, Lancelot)
+                enforce battle-wide lifetime stack limits (max 4-5 stacks) so numbers remain
+                balanced.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 8: The 10 Battlefields -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-arena"></i>
+            <h3>8. The 10 Battlefields & Terrain Laws</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li><b>The Colosseum:</b> Neutral proving ground. No special terrain modifiers.</li>
+              <li>
+                <b>The Mirror Realm:</b> The first Signature Skill cast by <b>each player</b> each
+                round repeats at <b>50% effectiveness</b> cost-free. (Basic attacks do not echo).
+              </li>
+              <li>
+                <b>The Spirit World:</b> Lethal blows leave the legend on <b>1 HP</b> instead of
+                defeating them (once per legend per battle). A second hit in the same cast or turn
+                finishes the job.
+              </li>
+              <li>
+                <b>The Narrow Pass:</b> Only front-row legends may use Basic attacks. Back-row
+                legends must spend Energy on real skills to contribute.
+              </li>
+              <li>
+                <b>The Open Plains:</b> Wide open ground &mdash; the -10% Backline DEF Penalty when
+                the front row falls is waived.
+              </li>
+              <li><b>Mana Spring:</b> +20 Energy granted to both teams every round.</li>
+              <li><b>Energy Void:</b> -10 Energy granted to both teams every round.</li>
+              <li>
+                <b>The Ancient Ruins:</b> A random field relic buff is granted to all living legends
+                at the start of each round.
+              </li>
+              <li>
+                <b>The Hero's Trial:</b> All living legends grow stronger each round, gaining +15%
+                ATK at each round rollover.
+              </li>
+              <li>
+                <b>The Blood Battlefield:</b> Defeating an enemy legend immediately awards +20
+                Energy to your team.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 9: Draft & Deck Construction -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-cards"></i>
+            <h3>9. Draft & Deck Construction</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Deck Composition:</b> A legal deck contains exactly <b>12 legends</b> with a
+                strict cap of <b>at most 4 legends of the same role</b> (Tanks, Bruisers, Casters,
+                Controllers, Medics, Snipers).
+              </li>
+              <li>
+                <b>Snake Draft:</b> 12 packs of 3 legends. Players take turns opening packs and
+                picking 1 card each; the 3rd card in each pack burns away until both squads reach 12
+                legends.
+              </li>
+              <li>
+                <b>Unabridged Set Format:</b> Best of 3 games. Between games, the losing player
+                selects the next battlefield and players may swap 1&ndash;2 legends from their
+                sideboard to adapt their team composition.
+              </li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <footer>Echoes of Legend - Complete Engine & Rules Reference</footer>
     </section>
 
     <!-- ==================== DECK EDITOR ==================== -->
@@ -1349,6 +1682,9 @@
         <button class="back-btn" id="btn-prep-back">
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
+        <button class="btn btn-ghost btn-slim" id="prep-fields" type="button" hidden>
+          <i class="ri-map-2-line"></i><span>See battlefields</span>
+        </button>
         <div class="col-titles">
           <h2 class="col-title">Preparation</h2>
           <p class="col-sub" id="prep-sub">Phase 1 - ban 2 of the enemy's legends</p>
@@ -1426,9 +1762,6 @@
             <div class="field-count"><b id="field-n">0</b><span>/6 fielded</span></div>
           </div>
           <div class="prep-actions">
-            <button class="btn btn-ghost btn-slim" id="prep-fields" type="button">
-              <i class="ri-map-2-line"></i><span>See battlefields</span>
-            </button>
             <button class="btn btn-primary" id="prep-confirm" disabled>
               <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
             </button>

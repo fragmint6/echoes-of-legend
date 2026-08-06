@@ -8440,20 +8440,23 @@ html.mqw900 .product-odds {
 .view.play,
 .view.prep,
 .view.draft,
-.view.campaign {
+.view.campaign,
+.view.rulebook {
   padding: 30px max(22px, calc((100% - 1520px) / 2)) 30px;
 }
 .view.play.active,
 .view.prep.active,
 .view.draft.active,
-.view.campaign.active {
+.view.campaign.active,
+.view.rulebook.active {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
 }
 .view.play footer,
-.view.campaign footer {
+.view.campaign footer,
+.view.rulebook footer {
   margin-top: auto;
   padding-top: 38px;
 }
@@ -19682,7 +19685,8 @@ body[data-gfx='low'] .ht-line {
 .collection::before,
 .shop::before,
 .prep::before,
-.deck::before {
+.deck::before,
+.rulebook::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -19696,7 +19700,8 @@ body[data-gfx='low'] .ht-line {
 }
 .collection::before,
 .shop::before,
-.deck::before {
+.deck::before,
+.rulebook::before {
   opacity: 0.09;
 }
 @keyframes plate-pan {
@@ -19718,7 +19723,8 @@ body[data-gfx='low'] .ht-line {
 .deck .deck-tray,
 .deck .deck-roster,
 .campaign .col-header,
-.chapter .col-header {
+.chapter .col-header,
+.rulebook .col-header {
   position: relative;
   z-index: 1;
 }
@@ -20899,23 +20905,12 @@ body[data-view='chapter'] .bg-grid {
 /* Same seam-free loop law as .menu-bg. Each plane carries the same real
    aspect ratio as its matching home-menu depth plane, so the translation
    remains a precise one-tile loop at every logical viewport size. */
-.chapter-bg > span:not(.cb-base):not(.cb-mist):not(.cb-grade) {
+.chapter-bg > span:not(.cb-mist):not(.cb-grade) {
   width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
   animation-name: cb-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   will-change: transform;
-}
-/* The generated art is retained in the moving planes, but this opaque
-   flattened bed makes the scene complete before the planes ever overlap.
-   It is intentionally static: it is a continuity layer, not a fifth
-   parallax speed, so it cannot introduce a wrap seam of its own. */
-.cb-base {
-  background-image: url('../assets/chapter-1/base.png');
-  background-repeat: no-repeat !important;
-  background-position: center;
-  background-size: cover;
-  filter: brightness(0.84) saturate(0.88);
 }
 @keyframes cb-drift {
   from {
@@ -20929,25 +20924,25 @@ body[data-view='chapter'] .bg-grid {
   background-image: url('../assets/chapter-1/sky.png');
   --tile-r: 1.57683; /* 1211 / 768, matches .mb-sky */
   animation-duration: 420s;
-  opacity: 0.34;
+  opacity: 1;
 }
 .cb-far {
   background-image: url('../assets/chapter-1/far.png');
   --tile-r: 1.57683; /* 1211 / 768, matches .mb-far */
   animation-duration: 260s;
-  opacity: 0.42;
+  opacity: 1;
 }
 .cb-mid {
   background-image: url('../assets/chapter-1/mid.png');
   --tile-r: 1.57683; /* 1211 / 768, matches .mb-mid */
   animation-duration: 150s;
-  opacity: 0.5;
+  opacity: 1;
 }
 .cb-near {
   background-image: url('../assets/chapter-1/near.png');
   --tile-r: 1.61458; /* 1240 / 768, matches .mb-near */
   animation-duration: 90s;
-  opacity: 0.58;
+  opacity: 1;
 }
 /* Atmospheric dressing follows the main menu's rule too: art planes carry
    the depth, and the CSS-only fog adds a little air without obscuring them. */
@@ -21896,5 +21891,90 @@ html.mqw640 .chapter-dialogue-foot {
 @media (prefers-reduced-motion: reduce) {
   .chapter-dialogue-card {
     animation: none;
+  }
+}
+
+/* ======================================================================
+   RULEBOOK VIEW
+   ====================================================================== */
+.rulebook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 20px;
+  width: 100%;
+  margin: 10px auto 40px;
+  position: relative;
+  z-index: 1;
+}
+.rule-card {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid var(--line-2);
+  background:
+    radial-gradient(circle at 90% -20%, rgba(255, 214, 130, 0.06), transparent 50%),
+    linear-gradient(180deg, rgba(22, 27, 44, 0.72), rgba(11, 14, 25, 0.85));
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition:
+    transform 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.rule-card:hover {
+  border-color: rgba(255, 214, 130, 0.45);
+  transform: translateY(-2px);
+}
+.rc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.rc-head i {
+  font-size: 24px;
+  color: #ffd682;
+  text-shadow: 0 0 12px rgba(255, 200, 90, 0.5);
+}
+.rc-head h3 {
+  margin: 0;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--txt);
+}
+.rc-body ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--txt-dim);
+}
+.rc-body li b {
+  color: #ffd682;
+}
+.rc-body code {
+  font-family: monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #9fd8ff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+@media (max-width: 640px) {
+  .rulebook-grid {
+    grid-template-columns: 1fr;
+  }
+  .rule-card {
+    padding: 16px 18px;
   }
 }

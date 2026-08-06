@@ -1125,6 +1125,7 @@
     $('prep-field').hidden = p.phase !== 'pick';
     $('prep-actions-main').hidden = p.phase === 'pick';
     $('prep-vs').hidden = p.phase === 'pick';
+    if ($('prep-fields')) $('prep-fields').hidden = p.phase !== 'pick';
 
     /* entrance stagger only on phase entry; pick clicks stay snappy */
     youGrid.classList.toggle('quiet', !prepAnim);

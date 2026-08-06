@@ -941,10 +941,10 @@
   /* highlight selected unit + legal targets */
   function paintSelection() {
     document.querySelectorAll('.bcard').forEach(function (c) {
-      c.classList.remove('selected', 'targetable', 'chosen');
+      c.classList.remove('selected', 'targetable', 'chosen', 'viewing');
     });
     clearPreview();
-    if (!sel) return;
+    if (!sel || !sel.unit) return;
 
     var selEl = document.querySelector('.bcard[data-uid="' + sel.unit.uid + '"]');
     if (selEl) selEl.classList.add(sel.view ? 'viewing' : 'selected');
@@ -1603,6 +1603,12 @@
     /* A dead hero can be opened but never helm an action: alive joins
        the same gates that already keep enemy and already-acted heroes
        strictly read-only. */
+    // Toggle/deselect if clicking the currently selected/viewed card
+    if (sel && sel.unit && sel.unit.uid === u.uid && !targeting) {
+      clearSel();
+      return;
+    }
+
     var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
     paintDock();
@@ -2887,8 +2893,10 @@
       bd.classList.remove('shake', 'crit-flash');
     }, 520);
 
-    var word = spawn('fx-crit', x, y, '#ffd050', 1200);
-    word.textContent = 'CRITICAL';
+    setTimeout(function () {
+      var word = spawn('fx-crit', x, y - 24, '#ffd050', 1000);
+      word.textContent = 'CRITICAL';
+    }, 420);
   }
 
   function playImpact(x, y, fx, crit, element) {
