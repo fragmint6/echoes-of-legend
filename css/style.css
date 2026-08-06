@@ -20543,15 +20543,17 @@ body[data-gfx='low'] .chapter-card:hover {
 /*
    This deliberately follows the main menu's parallax contract instead of
    treating Chapter 1 as four independently panning postcards:
-   - each generated art plane is a horizontal, seamless 1212 x 768 tile;
+   - each generated plane uses the home menu's exact tile geometry:
+     sky/far/mid are 1211 x 768 and near is 1240 x 768;
    - the sky is opaque; far/mid/near are true transparent PNG silhouettes;
    - `repeat-x` and an exact one-tile translate make the loop invisible;
-   - speed is depth (sky 420s → foreground 90s), not blur or scaling.
+   - speed and travel distance are the home menu's exact depth ratios
+     (sky 420s → foreground 90s), not blur or scaling.
 
-   The source art was generated 100px wider than its output tile. Its final
-   edge was cross-faded into the opening edge before export; the resulting
-   wrap discontinuity is <= 1.13x normal internal pixel change on every
-   layer, below the art spec's 2.0 invisibility threshold.
+   Each source was looped against a 100px continuation before export: its
+   final edge was cross-faded into the opening edge. The resulting wrap
+   discontinuity is <= 1.67x normal internal pixel change on every layer,
+   below the art spec's 2.0 invisibility threshold.
 */
 .chapter-bg {
   position: fixed;
@@ -20582,9 +20584,9 @@ body[data-view='chapter'] .bg-grid {
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
 }
-/* Same seam-free loop law as .menu-bg. The tile is scaled from its real
-   aspect (1212 / 768), so the translation remains a precise one-tile loop
-   at every logical viewport size rather than snapping at the reset. */
+/* Same seam-free loop law as .menu-bg. Each plane carries the same real
+   aspect ratio as its matching home-menu depth plane, so the translation
+   remains a precise one-tile loop at every logical viewport size. */
 .chapter-bg > span:not(.cb-mist):not(.cb-grade) {
   width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
   animation-name: cb-drift;
@@ -20597,27 +20599,27 @@ body[data-view='chapter'] .bg-grid {
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(calc(calc(var(--vh1) * -100) * var(--tile-r, 1.578125)), 0, 0);
+    transform: translate3d(calc(calc(var(--vh1) * -100) * var(--tile-r, 1.57683)), 0, 0);
   }
 }
 .cb-sky {
   background-image: url('../assets/chapter-1/sky.png');
-  --tile-r: 1.578125; /* 1212 / 768 */
+  --tile-r: 1.57683; /* 1211 / 768, matches .mb-sky */
   animation-duration: 420s;
 }
 .cb-far {
   background-image: url('../assets/chapter-1/far.png');
-  --tile-r: 1.578125;
+  --tile-r: 1.57683; /* 1211 / 768, matches .mb-far */
   animation-duration: 260s;
 }
 .cb-mid {
   background-image: url('../assets/chapter-1/mid.png');
-  --tile-r: 1.578125;
+  --tile-r: 1.57683; /* 1211 / 768, matches .mb-mid */
   animation-duration: 150s;
 }
 .cb-near {
   background-image: url('../assets/chapter-1/near.png');
-  --tile-r: 1.578125;
+  --tile-r: 1.61458; /* 1240 / 768, matches .mb-near */
   animation-duration: 90s;
 }
 /* Atmospheric dressing follows the main menu's rule too: art planes carry
