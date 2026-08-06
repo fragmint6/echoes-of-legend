@@ -143,6 +143,10 @@
       <span class="cb-far"></span>
       <span class="cb-mid"></span>
       <span class="cb-near"></span>
+      <span class="cb-motes"></span>
+      <span class="cb-wisps"></span>
+      <span class="cb-rays"></span>
+      <span class="cb-fogbanks"></span>
       <span class="cb-mist"></span>
       <span class="cb-grade"></span>
     </div>
@@ -348,33 +352,33 @@
           <div class="rc-body">
             <ul>
               <li>
-                <b>Alternating Actions:</b> Rounds progress as a sequence of single actions
-                alternating between players (<code
-                  >Player 1 &rarr; Player 2 &rarr; Player 1 &rarr; ...</code
-                >). 1 action = 1 living hero casting 1 ability.
+                <b>Alternating Turns:</b> Battles are played in alternating single actions. You make
+                one move with one living legend, then your opponent makes one move, back and forth
+                across the board.
               </li>
               <li>
                 <b>Starting Initiative:</b> In singleplayer, campaign, and multiplayer matches, the
-                opening player of Round 1 is determined <b>50/50 randomly</b>. The starting side
-                alternates between odd and even rounds.
+                opening player of Round 1 is decided by a fair <b>50/50 coin flip</b>. The starting
+                side alternates between odd and even rounds.
               </li>
               <li>
-                <b>Phase 1 (Round 1):</b> Basic Skills only. Signature Skills are locked to
-                establish opening board tempo.
+                <b>Round 1 (Phase 1):</b> Basic Skills only. Powerful Signature Skills are locked
+                during the opening round to establish frontline positions and build initial tempo.
               </li>
               <li>
-                <b>Phase 2 (Round 2+):</b> Signature Skills unlock. Big tactical plays and combos
-                become castable.
+                <b>Round 2 Onward (Phase 2):</b> All Signature Skills unlock, allowing full team
+                combos, ultimate abilities, and tactical counters.
               </li>
               <li>
-                <b>Phase 3 (Round 4+):</b> ATK Ramp begins. All living legends gain
-                <b>+15% ATK per round</b> compounding (<code>1 + (round - 3) &times; 15%</code>
-                &mdash; +15% in R4, +30% in R5, +45% in R6, etc.) to ensure matches resolve cleanly.
+                <b>Round 4 Onward (Late-Game Ramp):</b> Starting in Round 4, all living legends grow
+                stronger each round, gaining an extra <b>+15% Attack power every round</b> (+15% in
+                Round 4, +30% in Round 5, +45% in Round 6, etc.) to ensure matches resolve
+                decisively.
               </li>
               <li>
-                <b>Turn Passing:</b> A player may pass their action. If both sides pass
-                consecutively or if neither side has legal moves left, the round ends and rolls
-                over.
+                <b>Passing Turns:</b> You may pass your action to save Energy or wait for an enemy
+                response. A round ends only when both players pass in a row or when neither side has
+                any legal moves left.
               </li>
             </ul>
           </div>
@@ -389,23 +393,22 @@
           <div class="rc-body">
             <ul>
               <li>
-                <b>Energy Income:</b> Both sides receive energy at round rollover according to
-                <code>ENERGY_BY_ROUND = [60, 80, 100]</code>: <b>60 EN</b> in Round 1,
-                <b>80 EN</b> in Round 2, and <b>100 EN</b> in Round 3 and every subsequent round.
+                <b>Energy Income:</b> Both teams receive energy at the start of each round:
+                <b>60 Energy in Round 1</b>, <b>80 Energy in Round 2</b>, and
+                <b>100 Energy in Round 3 and every round after</b>.
               </li>
               <li>
                 <b>Carry-over Cap:</b> Any unspent Energy at the end of a round carries over and
-                adds to the next round's income, up to a hard ceiling of
-                <b>150 EN</b> (<code>ENERGY_CAP</code>).
+                adds to your next round's income, up to a maximum bank of <b>150 Energy</b>.
               </li>
               <li>
-                <b>Comeback Mechanic:</b> If you start a round with fewer living legends than your
-                opponent, your team rallies with
-                <b>+15 Energy per hero of deficit</b> (<code>COMEBACK_PER_HERO</code>).
+                <b>Comeback Bonus:</b> If you begin a round with fewer surviving legends than your
+                opponent, your team rallies with an extra
+                <b>+15 Energy for each lost hero deficit</b> to help you turn the tide.
               </li>
               <li>
-                <b>Ability Costs:</b> Basic skills cost 15 EN (or 0 EN if specified on role/card);
-                Signature Active skills cost between 20 and 55 EN.
+                <b>Skill Costs:</b> Basic skills typically cost 15 Energy (or are free on certain
+                roles), while signature active skills cost between 20 and 55 Energy.
               </li>
             </ul>
           </div>
@@ -421,22 +424,22 @@
             <ul>
               <li>
                 <b>6v6 Board Layout:</b> Each squad fields 6 legends arranged into
-                <b>3 Front Row</b> (slots 0, 1, 2) and <b>3 Back Row</b> (slots 3, 4, 5) positions.
+                <b>3 Front Row</b> positions (slots 0, 1, 2) and <b>3 Back Row</b> positions (slots
+                3, 4, 5).
               </li>
               <li>
-                <b>Melee / Front-Row Lock:</b> <b>Tanks</b> and <b>Bruisers</b> must target enemy
-                Front Row legends as long as any front-row enemy is alive (<code>isFront</code>).
-                They can only target the backline once the front row is cleared.
+                <b>Melee Frontline Lock:</b> <b>Tanks</b> and <b>Bruisers</b> are close-combat
+                fighters and must attack enemy Front Row legends. They can only strike at the Back
+                Row once every front-line enemy has fallen.
               </li>
               <li>
-                <b>Ranged Targeting:</b> <b>Casters</b>, <b>Controllers</b>, <b>Medics</b>, and
-                <b>Snipers</b> can freely target any row.
+                <b>Ranged Freedom:</b> <b>Casters</b>, <b>Controllers</b>, <b>Medics</b>, and
+                <b>Snipers</b> can aim their skills at any enemy on the board regardless of row.
               </li>
               <li>
-                <b>Backline DEF Penalty:</b> When an entire Front Row is wiped out
-                (<code>frontRowWiped</code>), surviving Backline legends suffer a
-                <b>-5% DEF penalty</b> (<code>BACKLINE_DEF_PENALTY = 5</code>) as their defensive
-                line has collapsed.
+                <b>Broken Frontline Penalty:</b> When an entire Front Row is wiped out, surviving
+                Back Row legends suffer a <b>-5% Defense penalty</b> because their protective
+                vanguard has collapsed.
               </li>
             </ul>
           </div>
@@ -451,37 +454,30 @@
           <div class="rc-body">
             <ul>
               <li>
-                <b>Raw Damage:</b>
-                <code
-                  >Attacker_ATK &times; Skill_Power &times; Bonus_Multipliers &times;
-                  Provoke_Tax</code
-                >.
+                <b>Damage Power:</b> The damage you deal begins with your legend's
+                <b>Attack stat multiplied by the Skill's power percentage</b>, plus any active
+                attack modifiers and buffs.
               </li>
               <li>
-                <b>Mitigation Formula:</b>
-                <code
-                  >Raw &times; Outgoing_Mult &times; Incoming_Mult &times; (1 - Resist_Pct) &times;
-                  (1 - Target_DEF / 100)</code
-                >.
+                <b>Defense & Mitigation:</b> That damage is reduced by the enemy's
+                <b>Defense percentage</b> (which reduces incoming damage up to a maximum of 75%) and
+                any active damage resistance barriers (up to 90%).
               </li>
               <li>
-                <b>DEF Cap:</b> DEF is a percentage reduction, hard-capped at <b>75% max</b> (<code
-                  >clamp(d, 0, 75)</code
-                >) so damage is never completely reduced to zero.
+                <b>Defense Ceiling:</b> Defense percentage is hard-capped at
+                <b>75% maximum reduction</b> so that armor never completely reduces damage to zero.
               </li>
               <li>
-                <b>Damage Resistance Cap:</b> Flat timed damage resistance (Warded / Resist) is
-                capped at <b>90% max</b> (<code>Math.min(90, tgt.flags.resistPct)</code>).
+                <b>Resistance Ceiling:</b> Timed damage resistance barriers (such as Warded) are
+                hard-capped at <b>90% maximum reduction</b>.
               </li>
               <li>
-                <b>Critical Strikes:</b> Critical hits deal a fixed
-                <b>1.5&times; damage multiplier</b> (<code>CRIT_MULT = 1.5</code>) based on the
-                attacker's Crit Chance.
+                <b>Critical Strikes:</b> Critical hits multiply damage by exactly <b>1.5x</b> (50%
+                bonus damage), determined by your legend's Critical Chance stat.
               </li>
               <li>
-                <b>Minimum Damage:</b> Every hit that connects deals at least <b>1 damage</b> (<code
-                  >Math.max(1, Math.round(afterDef))</code
-                >).
+                <b>Guaranteed Impact:</b> Every attack that connects is guaranteed to deal at least
+                <b>1 point of damage</b>.
               </li>
             </ul>
           </div>
@@ -497,20 +493,18 @@
             <ul>
               <li>
                 <b>Provoke (Taunt):</b> Forces all single-target enemy attacks onto the provoker.
-                Area-of-Effect (AoE) skills and sniper signature skills pierce the redirect, but
-                suffer a <b>30% Provoke Tax</b> (0.70&times; power) against all non-provoker
-                targets. The provoker always takes full 100% damage.
+                Area-of-effect spells and sniper skills that shoot around the provoker deal
+                <b>30% less damage</b> to all other targets. The provoker always takes full 100%
+                damage.
               </li>
               <li>
-                <b>Untargetable:</b> Absolute targeting negation. The unit cannot be targeted by
-                single-target enemy abilities. If an Untargetable unit also Provokes, enemy
-                single-target attacks cannot be cast (forcing an auto-pass unless ally-targeted
-                skills like Medic heal are used).
+                <b>Untargetable:</b> Absolute protection. An Untargetable legend cannot be targeted
+                by any enemy single-target skill under any circumstances.
               </li>
               <li>
-                <b>Shields:</b> Absorbs incoming damage point-for-point before HP is damaged. Burn
-                damage bypasses shields. Overhealing from certain skills (e.g. Medic Restore)
-                converts excess healing into shields.
+                <b>Shields:</b> Absorbs incoming damage point-for-point before your health takes a
+                hit. Burn damage bypasses shields. Overhealing from certain skills (like Medic
+                Restore) converts excess healing into shields.
               </li>
             </ul>
           </div>
@@ -525,32 +519,37 @@
           <div class="rc-body">
             <ul>
               <li>
-                <b>Burn:</b> Deals <b>5% Max HP true damage</b> whenever that side begins a turn.
-                Bypasses DEF and Shields completely.
-              </li>
-              <li><b>Exposed:</b> Target's DEF is reduced to <b>0%</b>.</li>
-              <li>
-                <b>Marked:</b> The next damaging Skill consumes the Mark and triggers on-hit/combo
-                bonuses (Ares Burn, Apollo follow-up, Zeus detonation). Basic attacks do NOT consume
-                Marks. Marks have no turn expiration.
+                <b>Burn:</b> Deals <b>5% of maximum health</b> as true damage at the start of each
+                turn that team takes. Bypasses Defense and Shields completely.
               </li>
               <li>
-                <b>Silence:</b> Completely locks out the unit from acting (both Signature Skills and
-                Basic attacks are blocked).
+                <b>Exposed:</b> Strips away the target's Defense, reducing it to <b>0%</b> for heavy
+                damage.
               </li>
               <li>
-                <b>Warded (Resist):</b> Grants flat damage reduction (works even while Exposed).
+                <b>Marked:</b> Places a target reticle on an enemy. The next damaging Skill consumes
+                the Mark and triggers powerful bonus effects (such as bonus damage or burning).
+                Basic attacks do not consume Marks.
               </li>
               <li>
-                <b>Counter Ready:</b> Retaliates with an immediate counter-attack when struck while
-                Shielded.
+                <b>Silence:</b> Completely stops a legend from acting &mdash; both Signature Skills
+                and Basic attacks are blocked.
               </li>
               <li>
-                <b>Healing Reduction:</b> Reduces incoming healing percentage (Shields unaffected).
+                <b>Warded:</b> Grants flat damage resistance that protects the legend even if they
+                are Exposed.
               </li>
               <li>
-                <b>Cost Modifiers:</b> Increases or decreases team-wide ability Energy costs (+15%
-                or -15%).
+                <b>Counter Ready:</b> Automatically strikes back against any attacker when hit while
+                shielded.
+              </li>
+              <li>
+                <b>Healing Reduced:</b> Lowers the amount of healing received from skills. Shields
+                are unaffected.
+              </li>
+              <li>
+                <b>Cost Modifiers:</b> Increases or decreases Energy costs across the entire team
+                (+15% or -15%).
               </li>
             </ul>
           </div>
@@ -565,24 +564,23 @@
           <div class="rc-body">
             <ul>
               <li>
-                <b>Debuff Counting:</b> Distinct debuffs counted include each negative stat buff
-                (-ATK, -DEF, -Crit), Silence, negative Healing Modifiers, Burn, Exposed, Marked, and
-                Energy Cost increases.
+                <b>Debuff Synergies:</b> Distinct debuffs include stat reductions (reduced Attack,
+                Defense, or Crit), Silence, healing cuts, Burn, Exposed, Marked, and increased
+                Energy costs.
               </li>
               <li>
-                <b>Debuff Damage Scaling:</b> Legends like <b>Inari</b> (+30% ATK per debuff, max
-                4), <b>Cicero</b> (+15% ATK per debuff, max 3), <b>Friar Tuck</b> (+14% ATK per
-                debuff, max 3), and <b>Pied Piper</b> (+13% ATK per debuff, max 3) scale their
-                damage multiplicatively off debuffs on the target.
+                <b>Debuff Damage Scaling:</b> Legends like <b>Inari</b> (+30% Attack per debuff),
+                <b>Cicero</b> (+15% Attack per debuff), <b>Friar Tuck</b> (+14% Attack per debuff),
+                and <b>Pied Piper</b> (+13% Attack per debuff) deal dramatically higher damage
+                against debuffed enemies.
               </li>
               <li>
-                <b>Buff Stripping:</b> Abilities with <code>consumeBuffs</code> strip all positive
-                stat buffs and shields from the target.
+                <b>Blessing Stripping:</b> Certain skills strip all positive blessings and shields
+                from enemies to turn the momentum in your favor.
               </li>
               <li>
-                <b>Stack Caps:</b> Passive stacking buffs (e.g. Red Riding Hood, Ares, Lancelot)
-                enforce battle-wide lifetime stack limits (max 4-5 stacks) so numbers remain
-                balanced.
+                <b>Stack Caps:</b> Passive stacking traits enforce battle-wide lifetime stack limits
+                (typically 4 to 5 stacks) to keep power balanced across long fights.
               </li>
             </ul>
           </div>
@@ -596,37 +594,41 @@
           </div>
           <div class="rc-body">
             <ul>
-              <li><b>The Colosseum:</b> Neutral proving ground. No special terrain modifiers.</li>
               <li>
-                <b>The Mirror Realm:</b> The first Signature Skill cast by <b>each player</b> each
-                round repeats at <b>50% effectiveness</b> cost-free. (Basic attacks do not echo).
+                <b>The Colosseum:</b> Neutral arena where pure tactical skill decides the victor. No
+                special terrain modifiers.
               </li>
               <li>
-                <b>The Spirit World:</b> Lethal blows leave the legend on <b>1 HP</b> instead of
-                defeating them (once per legend per battle). A second hit in the same cast or turn
+                <b>The Mirror Realm:</b> The first Signature Skill cast by <b>each player</b> each
+                round repeats a second time for free at <b>50% power</b>. (Basic attacks do not
+                echo).
+              </li>
+              <li>
+                <b>The Spirit World:</b> The first lethal blow against each legend leaves them alive
+                on <b>1 HP</b> instead of defeating them (once per legend per battle). A second hit
                 finishes the job.
               </li>
               <li>
-                <b>The Narrow Pass:</b> Only front-row legends may use Basic attacks. Back-row
-                legends must spend Energy on real skills to contribute.
+                <b>The Narrow Pass:</b> Melee chokepoint &mdash; only Front Row legends may use
+                Basic attacks. Back Row legends must spend Energy on real skills to contribute.
               </li>
               <li>
-                <b>The Open Plains:</b> Wide open ground &mdash; the -10% Backline DEF Penalty when
-                the front row falls is waived.
+                <b>The Open Plains:</b> Wide open ground &mdash; the -5% Backline Defense Penalty
+                when the front row falls is waived.
               </li>
-              <li><b>Mana Spring:</b> +20 Energy granted to both teams every round.</li>
-              <li><b>Energy Void:</b> -10 Energy granted to both teams every round.</li>
+              <li><b>Mana Spring:</b> +20 bonus Energy granted to both teams every round.</li>
+              <li><b>Energy Void:</b> -10 Energy reduction for both teams every round.</li>
               <li>
-                <b>The Ancient Ruins:</b> A random field relic buff is granted to all living legends
-                at the start of each round.
-              </li>
-              <li>
-                <b>The Hero's Trial:</b> All living legends grow stronger each round, gaining +15%
-                ATK at each round rollover.
+                <b>The Ancient Ruins:</b> A random ancient relic blessing is granted to all
+                surviving legends at the start of each round.
               </li>
               <li>
-                <b>The Blood Battlefield:</b> Defeating an enemy legend immediately awards +20
-                Energy to your team.
+                <b>The Hero's Trial:</b> All legends grow in strength every round, gaining +15%
+                Attack at each round rollover.
+              </li>
+              <li>
+                <b>The Blood Battlefield:</b> Defeating any enemy legend immediately rewards your
+                team with +20 bonus Energy.
               </li>
             </ul>
           </div>
@@ -642,7 +644,7 @@
             <ul>
               <li>
                 <b>Deck Composition:</b> A legal deck contains exactly <b>12 legends</b> with a
-                strict cap of <b>at most 4 legends of the same role</b> (Tanks, Bruisers, Casters,
+                strict cap of <b>at most 4 legends of any single role</b> (Tanks, Bruisers, Casters,
                 Controllers, Medics, Snipers).
               </li>
               <li>
@@ -651,9 +653,9 @@
                 legends.
               </li>
               <li>
-                <b>Unabridged Set Format:</b> Best of 3 games. Between games, the losing player
-                selects the next battlefield and players may swap 1&ndash;2 legends from their
-                sideboard to adapt their team composition.
+                <b>Unabridged Match Sets:</b> A competitive best-of-3 series. Between games, the
+                losing player selects the next battlefield and players may swap 1 to 2 legends from
+                their reserve bench.
               </li>
             </ul>
           </div>

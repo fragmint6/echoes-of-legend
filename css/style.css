@@ -20970,10 +20970,80 @@ body[data-view='chapter'] .bg-grid {
   animation-duration: 90s;
   opacity: 1;
 }
-/* Atmospheric dressing follows the main menu's rule too: art planes carry
-   the depth, and the CSS-only fog adds a little air without obscuring them. */
+/* Atmospheric dressing & particles for Chapter 1: starry motes, ethereal wisps, light shafts, and fog */
+.cb-motes,
+.cb-wisps,
+.cb-rays,
+.cb-fogbanks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cb-motes i {
+  position: absolute;
+  top: -8px;
+  border-radius: 50%;
+  background: var(--pc, #dce8ff);
+  opacity: 0;
+  box-shadow: 0 0 6px var(--pc, #dce8ff);
+  animation: mb-mote var(--dur, 60s) linear var(--dl, 0s) infinite;
+}
+.cb-wisps i {
+  position: absolute;
+  top: 0;
+  left: var(--x, 50%);
+  width: var(--sz, 4px);
+  height: var(--sz, 4px);
+  margin-left: calc(var(--sz, 4px) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pc, rgba(255, 214, 130, 0.85)) 0%, transparent 70%);
+  box-shadow: 0 0 10px var(--pc, rgba(255, 214, 130, 0.8));
+  opacity: 0;
+  animation: mb-rise-sway var(--dur, 60s) ease-in-out var(--dl, 0s) infinite;
+}
+.cb-rays i {
+  position: absolute;
+  top: calc(var(--vh1) * -18);
+  left: var(--x, 40%);
+  width: var(--w, 320px);
+  height: calc(var(--vh1) * 135);
+  transform-origin: top center;
+  background: linear-gradient(
+    180deg,
+    rgba(196, 210, 255, 0.14) 0%,
+    rgba(196, 210, 255, 0.04) 50%,
+    transparent 78%
+  );
+  filter: blur(10px);
+  opacity: 0;
+  animation: mb-ray var(--dur, 38s) ease-in-out var(--dl, 0s) infinite alternate;
+}
+.cb-fogbanks i {
+  position: absolute;
+  left: calc(var(--vw1) * -15);
+  bottom: var(--b, 0%);
+  width: calc(var(--vw1) * 130);
+  height: var(--h, 180px);
+  background: radial-gradient(
+    ellipse 58% 100% at 50% 100%,
+    var(--pc, rgba(160, 150, 220, 0.11)) 0%,
+    transparent 72%
+  );
+  animation: mb-bank var(--dur, 90s) ease-in-out var(--dl, 0s) infinite alternate;
+}
 .cb-mist {
-  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(16, 18, 38, 0.35) 60%,
+    rgba(9, 11, 24, 0.7) 100%
+  );
+  pointer-events: none;
 }
 .cb-grade {
   inset: 0 !important;
