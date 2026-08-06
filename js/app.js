@@ -1549,66 +1549,11 @@
     }
   }
 
-  function initChapterAtmosphere() {
-    var hostEmbers = document.querySelector('.cw-embers');
-    if (hostEmbers && !hostEmbers.dataset.seeded) {
-      hostEmbers.dataset.seeded = '1';
-      var rng = seededRng(20260806);
-      var frag = document.createDocumentFragment();
-      for (var i = 0; i < 24; i++) {
-        var el = document.createElement('i');
-        var dur = between(rng, 2.2, 4.2);
-        el.style.setProperty('--dur', dur.toFixed(2) + 's');
-        el.style.setProperty('--dl', (-between(rng, 0, dur)).toFixed(2) + 's');
-        el.style.setProperty('--sz', between(rng, 1.8, 3.5).toFixed(1) + 'px');
-        el.style.setProperty('--dx', between(rng, -35, 45).toFixed(1) + 'px');
-        el.style.setProperty('--dy', (-between(rng, 110, 190)).toFixed(1) + 'px');
-        frag.appendChild(el);
-      }
-      hostEmbers.appendChild(frag);
-    }
-
-    var hostStars = document.querySelector('.cw-stars');
-    if (hostStars && !hostStars.dataset.seeded) {
-      hostStars.dataset.seeded = '1';
-      var rngS = seededRng(7182818);
-      var fragS = document.createDocumentFragment();
-      for (var j = 0; j < 36; j++) {
-        var st = document.createElement('i');
-        var durS = between(rngS, 1.8, 4.0);
-        st.style.left = between(rngS, 2, 98).toFixed(2) + '%';
-        st.style.top = between(rngS, 2, 44).toFixed(2) + '%';
-        st.style.setProperty('--dur', durS.toFixed(2) + 's');
-        st.style.setProperty('--dl', (-between(rngS, 0, durS)).toFixed(2) + 's');
-        st.style.setProperty('--sz', between(rngS, 1.5, 3.2).toFixed(1) + 'px');
-        fragS.appendChild(st);
-      }
-      hostStars.appendChild(fragS);
-    }
-
-    var hostSmoke = document.querySelector('.cw-smoke');
-    if (hostSmoke && !hostSmoke.dataset.seeded) {
-      hostSmoke.dataset.seeded = '1';
-      var rngM = seededRng(314159);
-      var fragM = document.createDocumentFragment();
-      for (var k = 0; k < 6; k++) {
-        var sm = document.createElement('i');
-        var durM = between(rngM, 5.0, 8.0);
-        sm.style.setProperty('--dur', durM.toFixed(2) + 's');
-        sm.style.setProperty('--dl', (-between(rngM, 0, durM)).toFixed(2) + 's');
-        sm.style.setProperty('--dx', between(rngM, 20, 60).toFixed(1) + 'px');
-        fragM.appendChild(sm);
-      }
-      hostSmoke.appendChild(fragM);
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
     initTips();
     initScale();
     initMenuParticles();
-    initChapterAtmosphere();
     if (window.EOL.auth) window.EOL.auth.init();
     initAuth();
     if (!ROSTER.length) {
