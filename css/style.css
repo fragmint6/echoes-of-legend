@@ -20899,6 +20899,7 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
+/* ---------------- chapter 1: atmospheric woods backdrop ---------------- */
 .chapter-bg {
   position: fixed;
   inset: 0;
@@ -20906,7 +20907,7 @@ body[data-gfx='low'] .chapter-card:hover {
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
-  background: #070916;
+  background: #060714;
   transition: opacity 0.6s var(--ease);
 }
 body[data-view='chapter'] .chapter-bg {
@@ -20915,143 +20916,170 @@ body[data-view='chapter'] .chapter-bg {
 /* The global grid is useful on the system screens, but it should not read
    as a fifth art texture over this painted scene. */
 body[data-view='chapter'] .bg-grid {
-  opacity: 0.11;
+  opacity: 0.1;
 }
 .chapter-bg > span {
   position: absolute;
   inset: 0;
   display: block;
   pointer-events: none;
-  background-repeat: repeat-x;
-  background-position: 0 0;
-  background-size: auto 100%;
+}
+.cw-scene {
+  background: url('../assets/chapter-1/woods-scene.png') center bottom / cover no-repeat;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
 }
-/* Same seam-free loop law as .menu-bg. Each plane carries the same real
-   aspect ratio as its matching home-menu depth plane, so the translation
-   remains a precise one-tile loop at every logical viewport size. */
-.chapter-bg > span:not(.cb-mist):not(.cb-grade) {
-  width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
-  animation-name: cb-drift;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: transform;
-}
-@keyframes cb-drift {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(calc(calc(var(--vh1) * -100) * var(--tile-r, 1.57683)), 0, 0);
-  }
-}
-.cb-sky {
-  background-image: url('../assets/chapter-1/sky.png');
-  --tile-r: 1.57683; /* 1211 / 768, matches .mb-sky */
-  animation-duration: 420s;
-  opacity: 1;
-}
-.cb-far {
-  background-image: url('../assets/chapter-1/far.png');
-  --tile-r: 1.57683; /* 1211 / 768, matches .mb-far */
-  animation-duration: 260s;
-  opacity: 1;
-}
-.cb-mid {
-  background-image: url('../assets/chapter-1/mid.png');
-  --tile-r: 1.57683; /* 1211 / 768, matches .mb-mid */
-  animation-duration: 150s;
-  opacity: 1;
-}
-.cb-near {
-  background-image: url('../assets/chapter-1/near.png');
-  --tile-r: 1.61458; /* 1240 / 768, matches .mb-near */
-  animation-duration: 90s;
-  opacity: 1;
-}
-/* Atmospheric dressing & particles for Chapter 1: starry motes, ethereal wisps, light shafts, and fog */
-.cb-motes,
-.cb-wisps,
-.cb-rays,
-.cb-fogbanks {
+.cw-campfire-glow {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.cb-motes i {
-  position: absolute;
-  top: -8px;
+  left: 23%;
+  bottom: 14%;
+  width: 380px;
+  height: 280px;
+  margin-left: -190px;
+  margin-bottom: -140px;
   border-radius: 50%;
-  background: var(--pc, #dce8ff);
-  opacity: 0;
-  box-shadow: 0 0 6px var(--pc, #dce8ff);
-  animation: mb-mote var(--dur, 60s) linear var(--dl, 0s) infinite;
-}
-.cb-wisps i {
-  position: absolute;
-  top: 0;
-  left: var(--x, 50%);
-  width: var(--sz, 4px);
-  height: var(--sz, 4px);
-  margin-left: calc(var(--sz, 4px) / -2);
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--pc, rgba(255, 214, 130, 0.85)) 0%, transparent 70%);
-  box-shadow: 0 0 10px var(--pc, rgba(255, 214, 130, 0.8));
-  opacity: 0;
-  animation: mb-rise-sway var(--dur, 60s) ease-in-out var(--dl, 0s) infinite;
-}
-.cb-rays i {
-  position: absolute;
-  top: calc(var(--vh1) * -18);
-  left: var(--x, 40%);
-  width: var(--w, 320px);
-  height: calc(var(--vh1) * 135);
-  transform-origin: top center;
-  background: linear-gradient(
-    180deg,
-    rgba(196, 210, 255, 0.14) 0%,
-    rgba(196, 210, 255, 0.04) 50%,
-    transparent 78%
-  );
-  filter: blur(10px);
-  opacity: 0;
-  animation: mb-ray var(--dur, 38s) ease-in-out var(--dl, 0s) infinite alternate;
-}
-.cb-fogbanks i {
-  position: absolute;
-  left: calc(var(--vw1) * -15);
-  bottom: var(--b, 0%);
-  width: calc(var(--vw1) * 130);
-  height: var(--h, 180px);
   background: radial-gradient(
-    ellipse 58% 100% at 50% 100%,
-    var(--pc, rgba(160, 150, 220, 0.11)) 0%,
-    transparent 72%
+    circle,
+    rgba(255, 145, 45, 0.45) 0%,
+    rgba(255, 95, 20, 0.2) 42%,
+    transparent 75%
   );
-  animation: mb-bank var(--dur, 90s) ease-in-out var(--dl, 0s) infinite alternate;
+  animation: fire-flicker 2.6s ease-in-out infinite alternate;
+  pointer-events: none;
+  filter: blur(10px);
 }
-.cb-mist {
+@keyframes fire-flicker {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.75;
+  }
+  25% {
+    transform: scale(1.05) translateY(-3px);
+    opacity: 0.96;
+  }
+  50% {
+    transform: scale(0.97);
+    opacity: 0.82;
+  }
+  75% {
+    transform: scale(1.07) translateY(-5px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.78;
+  }
+}
+.cw-embers i {
+  position: absolute;
+  bottom: 18%;
+  left: 23%;
+  width: var(--sz, 2.5px);
+  height: var(--sz, 2.5px);
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow:
+    0 0 6px #ff8c28,
+    0 0 12px #ff5a10;
+  opacity: 0;
+  animation: ember-rise var(--dur, 3.2s) ease-out var(--dl, 0s) infinite;
+}
+@keyframes ember-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(1);
+  }
+  18% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 20px), calc(var(--dy, -150px))) scale(0.25);
+  }
+}
+.cw-stars i {
+  position: absolute;
+  width: var(--sz, 2px);
+  height: var(--sz, 2px);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 4px #ffd98a,
+    0 0 8px rgba(255, 230, 160, 0.8);
+  opacity: 0.3;
+  animation: star-twinkle var(--dur, 2.8s) ease-in-out var(--dl, 0s) infinite alternate;
+}
+@keyframes star-twinkle {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+}
+.cw-smoke i {
+  position: absolute;
+  bottom: 20%;
+  left: 23%;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(160, 165, 200, 0.13) 0%, transparent 70%);
+  filter: blur(8px);
+  opacity: 0;
+  animation: smoke-drift var(--dur, 6.5s) ease-out var(--dl, 0s) infinite;
+}
+@keyframes smoke-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.5);
+  }
+  30% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 45px), -140px) scale(2.4);
+  }
+}
+.cw-fog {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 120px;
+  height: 160px;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(16, 18, 38, 0.35) 60%,
-    rgba(9, 11, 24, 0.7) 100%
+    rgba(14, 16, 32, 0.35) 50%,
+    rgba(7, 9, 20, 0.78) 100%
   );
   pointer-events: none;
 }
-.cb-grade {
-  inset: 0 !important;
+.cw-grade {
+  position: absolute;
+  inset: 0;
   background: radial-gradient(
-    ellipse 88% 82% at 50% 50%,
-    transparent 45%,
-    rgba(3, 4, 9, 0.75) 100%
+    ellipse 90% 85% at 50% 50%,
+    transparent 40%,
+    rgba(4, 5, 14, 0.65) 100%
   );
+  pointer-events: none;
+}
+body[data-gfx='low'] .cw-campfire-glow,
+body[data-gfx='low'] .cw-embers,
+body[data-gfx='low'] .cw-stars,
+body[data-gfx='low'] .cw-smoke {
+  display: none !important;
 }
 
 /* ---------------- chapter view chrome ---------------- */
