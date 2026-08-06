@@ -185,28 +185,36 @@
   }
 
   function startRecruiterFight() {
-    var heroIds = [
-      'grimmwood-hansel-gretel',
-      'grimmwood-big-bad-wolf',
-      'grimmwood-snow-white',
-      'grimmwood-red-riding-hood',
-      'grimmwood-pied-piper',
-      'grimmwood-rumpelstiltskin',
-    ];
-
-    var pTeam = heroIds.map(findCard).filter(Boolean);
-    var eTeam = heroIds.map(findCard).filter(Boolean);
-    var field = (window.EOL.battlefieldById && window.EOL.battlefieldById('colosseum')) || null;
-
     activeCampaignStage = 1;
+    if (window.EOL.play && window.EOL.play.openClassicModal) {
+      window.EOL.play.openClassicModal(function (deckId) {
+        var deck = deckId ? window.EOL.decks.get(deckId) : null;
+        var starter = window.EOL.decks.get('starter-grimmwood');
+        var player12 = deck
+          ? window.EOL.decks.entriesOf(deck)
+          : starter
+            ? window.EOL.decks.entriesOf(starter)
+            : null;
 
-    if (window.EOL.ui) window.EOL.ui.show('battle');
-    if (window.EOL.battle && window.EOL.battle.start) {
-      window.EOL.battle.start({
-        teams: { player: pTeam, enemy: eTeam },
-        playerFormed: true,
-        enemyFormed: true,
-        field: field,
+        var recruiter12 = starter ? window.EOL.decks.entriesOf(starter) : player12;
+        var colosseum =
+          (window.EOL.battlefieldById && window.EOL.battlefieldById('colosseum')) || null;
+
+        var modal = document.getElementById('deck-modal');
+        if (modal) {
+          modal.classList.remove('show');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+
+        window.EOL.play.startPrep({
+          mode: 'classic',
+          deckId: deckId,
+          player12: player12,
+          enemy12: recruiter12,
+          field: colosseum,
+          campaignStage: 1,
+          warLength: 'single',
+        });
       });
     }
   }

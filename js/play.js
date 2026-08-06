@@ -1545,7 +1545,11 @@
     var cfg = prep;
     prep = null;
     window.EOL.ui.show('battle');
-    BATTLE().start({ teams: { player: playerSix, enemy: enemySix }, field: cfg.field });
+    BATTLE().start({
+      teams: { player: playerSix, enemy: enemySix },
+      field: cfg.field,
+      campaignStage: cfg.campaignStage,
+    });
     lastConfig =
       cfg.mode === 'classic'
         ? { mode: 'classic', deckId: cfg.deckId, random: !cfg.deckId }
