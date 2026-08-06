@@ -20899,7 +20899,7 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
-/* ---- chapter 1: four-plane parallax ---- */
+/* ---- chapter 1: four-plane sway parallax ---- */
 .chapter-bg {
   position: fixed;
   inset: 0;
@@ -20918,60 +20918,29 @@ body[data-view='chapter'] .bg-grid {
 }
 .chapter-bg > span {
   position: absolute;
-  top: 0; left: 0;
-  width: 1920px; height: 1080px;
+  top: -4%; left: -4%;
+  width: 108%; height: 108%;
   display: block;
   pointer-events: none;
-  background-size: auto 100%;
-  background-repeat: repeat-x;
-  background-position: 0 0;
-  image-rendering: auto;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  will-change: transform;
 }
 
-/* layer 1: sky — slowest pan, distant stars and night-to-dawn gradient */
-.cw-sky {
-  background-image: url('../assets/chapter-1/cw-sky.png');
-  z-index: 1;
-  animation: cw-pan-sky 420s linear infinite;
-}
+/* layer 1: sky — slow gentle drift */
+.cw-sky  { background-image: url('../assets/chapter-1/cw-sky.png');  z-index: 1; animation: cw-sway-sky  38s ease-in-out infinite alternate; }
+/* layer 2: far ridge */
+.cw-far  { background-image: url('../assets/chapter-1/cw-far.png');  z-index: 2; animation: cw-sway-far  28s ease-in-out infinite alternate; }
+/* layer 3: mid road + trees + lantern */
+.cw-mid  { background-image: url('../assets/chapter-1/cw-mid.png');  z-index: 3; animation: cw-sway-mid  19s ease-in-out infinite alternate; }
+/* layer 4: near silhouettes — fastest closest */
+.cw-near { background-image: url('../assets/chapter-1/cw-near.png'); z-index: 4; animation: cw-sway-near 11s ease-in-out infinite alternate; }
 
-/* layer 2: far ridge — distant forest canopy silhouettes */
-.cw-far {
-  background-image: url('../assets/chapter-1/cw-far.png');
-  z-index: 2;
-  animation: cw-pan-far 280s linear infinite;
-}
-
-/* layer 3: mid — the road, mid trees, brass tags, lantern glow */
-.cw-mid {
-  background-image: url('../assets/chapter-1/cw-mid.png');
-  z-index: 3;
-  animation: cw-pan-mid 180s linear infinite;
-}
-
-/* layer 4: near — foreground silhouette trunks framing the view */
-.cw-near {
-  background-image: url('../assets/chapter-1/cw-near.png');
-  z-index: 4;
-  animation: cw-pan-near 90s linear infinite;
-}
-
-@keyframes cw-pan-sky {
-  from { background-position: 0 0; }
-  to   { background-position: -1920px 0; }
-}
-@keyframes cw-pan-far {
-  from { background-position: 0 0; }
-  to   { background-position: -1920px 0; }
-}
-@keyframes cw-pan-mid {
-  from { background-position: 0 0; }
-  to   { background-position: -1920px 0; }
-}
-@keyframes cw-pan-near {
-  from { background-position: 0 0; }
-  to   { background-position: -1920px 0; }
-}
+@keyframes cw-sway-sky  { from { transform: translateX(-0.5%) translateY(0%); }    to { transform: translateX(0.5%) translateY(-0.3%); } }
+@keyframes cw-sway-far  { from { transform: translateX(-1.0%) translateY(0%); }    to { transform: translateX(1.0%) translateY(-0.5%); } }
+@keyframes cw-sway-mid  { from { transform: translateX(-2.0%) translateY(0%); }    to { transform: translateX(2.0%) translateY(-1.0%); } }
+@keyframes cw-sway-near { from { transform: translateX(-3.5%) translateY(0%); }    to { transform: translateX(3.5%) translateY(-1.5%); } }
 
 /* ---------------- chapter view chrome ---------------- */
 .view.chapter {
