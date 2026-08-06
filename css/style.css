@@ -20899,7 +20899,7 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
-/* ---- chapter 1: four-plane sway parallax ---- */
+/* ---- chapter 1: static backdrop + drifting fog ---- */
 .chapter-bg {
   position: fixed;
   inset: 0;
@@ -20916,31 +20916,34 @@ body[data-view='chapter'] .chapter-bg {
 body[data-view='chapter'] .bg-grid {
   opacity: 0.08;
 }
-.chapter-bg > span {
+
+/* painted backdrop — fills the viewport, never moves */
+.cw-bg {
   position: absolute;
-  top: -4%; left: -4%;
-  width: 108%; height: 108%;
-  display: block;
-  pointer-events: none;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  will-change: transform;
+  inset: 0;
+  background: url('../assets/chapter-1/cw-bg.png') center center / cover no-repeat;
+  z-index: 1;
 }
 
-/* layer 1: sky — slow gentle drift */
-.cw-sky  { background-image: url('../assets/chapter-1/cw-sky.png');  z-index: 1; animation: cw-sway-sky  38s ease-in-out infinite alternate; }
-/* layer 2: far ridge */
-.cw-far  { background-image: url('../assets/chapter-1/cw-far.png');  z-index: 2; animation: cw-sway-far  28s ease-in-out infinite alternate; }
-/* layer 3: mid road + trees + lantern */
-.cw-mid  { background-image: url('../assets/chapter-1/cw-mid.png');  z-index: 3; animation: cw-sway-mid  19s ease-in-out infinite alternate; }
-/* layer 4: near silhouettes — fastest closest */
-.cw-near { background-image: url('../assets/chapter-1/cw-near.png'); z-index: 4; animation: cw-sway-near 11s ease-in-out infinite alternate; }
+/* fog strip — scrolls horizontally across the bottom half */
+.cw-fog {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 34%;
+  z-index: 2;
+  background: url('../assets/chapter-1/cw-fog.png') repeat-x 0 0 / auto 100%;
+  animation: cw-fog-drift 60s linear infinite;
+  opacity: 0.55;
+  pointer-events: none;
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.4) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.4) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 100%);
+}
 
-@keyframes cw-sway-sky  { from { transform: translateX(-0.5%) translateY(0%); }    to { transform: translateX(0.5%) translateY(-0.3%); } }
-@keyframes cw-sway-far  { from { transform: translateX(-1.0%) translateY(0%); }    to { transform: translateX(1.0%) translateY(-0.5%); } }
-@keyframes cw-sway-mid  { from { transform: translateX(-2.0%) translateY(0%); }    to { transform: translateX(2.0%) translateY(-1.0%); } }
-@keyframes cw-sway-near { from { transform: translateX(-3.5%) translateY(0%); }    to { transform: translateX(3.5%) translateY(-1.5%); } }
+@keyframes cw-fog-drift {
+  from { background-position: 0 0; }
+  to   { background-position: -3000px 0; }
+}
 
 /* ---------------- chapter view chrome ---------------- */
 .view.chapter {
@@ -21763,15 +21766,17 @@ html.mqh820 .rival-art.has-portrait {
 
 /* The full paint remains in low graphics; only optional scene/card motion
    drops, matching the main menu's accessibility and performance contract. */
-body[data-gfx='low'] .chapter-bg > span {
+body[data-gfx='low'] .cw-fog {
   animation: none !important;
+  opacity: 0.3;
 }
 body[data-gfx='low'] .rival-card.is-first:hover {
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .chapter-bg > span {
+  .cw-fog {
     animation: none !important;
+    opacity: 0.3;
   }
   .rival-card,
   .rival-open i {
