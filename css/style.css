@@ -20699,9 +20699,11 @@ body[data-view='chapter'] .bg-grid {
   justify-content: space-between;
   gap: 28px;
   width: min(100%, 1160px);
+  min-height: 96px;
   margin: clamp(15px, calc(var(--vh1) * 2.6), 26px) auto 0;
   padding: 13px 17px 13px 20px;
-  overflow: hidden;
+  /* Wrapped lore belongs inside the plate, never beneath a clipped edge. */
+  overflow: visible;
   border: 1px solid rgba(189, 174, 231, 0.18);
   border-radius: 14px;
   background:
@@ -20974,6 +20976,53 @@ body[data-view='chapter'] .bg-grid {
   bottom: 18%;
   border-color: color-mix(in srgb, var(--rival-b) 58%, transparent);
 }
+
+/* Rival plates use the same full-art portrait law as ordinary legend cards:
+   a complete opaque scene, face high in the frame, with the text plate
+   allowed to own the lower edge. The normal-card source is 128 x 176 and
+   `cover` crops it like the collection/battle card does. */
+.rival-art.has-portrait {
+  flex-basis: 128px;
+  min-height: 128px;
+  margin: 6px 10px 0;
+  border: 1px solid color-mix(in srgb, var(--rival-a) 35%, rgba(255, 255, 255, 0.12));
+  border-radius: 10px 10px 3px 3px;
+  background: #0a0c18;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.24),
+    inset 0 1px rgba(255, 255, 255, 0.08);
+}
+.rival-portrait {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 23%;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+/* A quiet lower scrim retains the card's art-first composition while
+   protecting the information band where it meets the portrait. */
+.rival-art.has-portrait::before {
+  z-index: 1;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(6, 8, 18, 0.02) 32%, rgba(6, 8, 18, 0.22) 76%, rgba(5, 6, 15, 0.56)),
+    linear-gradient(90deg, rgba(4, 5, 12, 0.2), transparent 28%, transparent 72%, rgba(4, 5, 12, 0.2));
+  box-shadow: none;
+}
+.rival-art.has-portrait::after,
+.rival-art.has-portrait > i,
+.rival-art.has-portrait > b,
+.rival-art.has-portrait > em {
+  display: none;
+}
 .rival-body {
   display: flex;
   flex: 0 0 auto;
@@ -21207,6 +21256,22 @@ html.mqh820 .rival-card {
 }
 html.mqh820 .rival-art {
   min-height: 78px;
+}
+/* Portraits retain enough of their normal-card frame to keep the face and
+   silhouette readable at every compact chapter breakpoint. */
+html.mqw520 .rival-art.has-portrait {
+  flex-basis: 102px;
+  min-height: 102px;
+  margin-inline: 7px;
+}
+html.mqw520 .rival-art.has-portrait::before {
+  inset: 0;
+  width: auto;
+  height: auto;
+}
+html.mqh820 .rival-art.has-portrait {
+  flex-basis: 108px;
+  min-height: 108px;
 }
 
 /* The full paint remains in low graphics; only optional scene/card motion
