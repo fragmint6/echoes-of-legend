@@ -15681,8 +15681,19 @@ body[data-gfx='low'].time-low .time-warn {
   opacity: 0;
   transition: opacity 0.7s var(--ease);
 }
-body[data-view='home'] .menu-bg {
+body[data-view='home'] .menu-bg,
+body[data-view='chapter'] .menu-bg {
   opacity: 1;
+}
+/* When on the chapter view, hide the menu's landscape parallax layers
+   so only the atmospheric particles (embers, wisps, fog, etc.) show up
+   over the chapter's own painted backdrop. */
+body[data-view='chapter'] .mb-sky,
+body[data-view='chapter'] .mb-far,
+body[data-view='chapter'] .mb-mid,
+body[data-view='chapter'] .mb-near,
+body[data-view='chapter'] .mb-grade {
+  opacity: 0 !important;
 }
 .menu-bg > span {
   position: absolute;
@@ -20903,7 +20914,7 @@ body[data-gfx='low'] .chapter-card:hover {
 .chapter-bg {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
