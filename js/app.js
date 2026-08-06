@@ -511,12 +511,21 @@
       var mb = document.getElementById('menu-bg');
       if (mb) scopes.push(mb);
     }
+    /* Chapter 1's four generated parallax planes also live beside the
+       views, so include them when the route opens. This keeps the veil
+       from lifting halfway through a cold image decode. */
+    if (document.body.dataset.view === 'chapter') {
+      var cb = document.getElementById('chapter-bg');
+      if (cb) scopes.push(cb);
+    }
     scopes.forEach(function (scope) {
       scope.querySelectorAll('img').forEach(function (im) {
         if (!im.complete) track(im.currentSrc || im.src);
       });
       scope
-        .querySelectorAll('.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .bf-art.has-art')
+        .querySelectorAll(
+          '.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
+        )
         .forEach(function (el) {
           var bg = getComputedStyle(el).backgroundImage;
           if (!bg || bg === 'none') return;
@@ -1528,7 +1537,8 @@
       if (e.key !== 'Escape') return;
       var v = document.body.dataset.view;
       if (v === 'battle' || v === 'play') show('home');
-      else if (v === 'prep' || v === 'draft') show('play');
+      else if (v === 'prep' || v === 'draft' || v === 'campaign') show('play');
+      else if (v === 'chapter') show('campaign');
       else if (v === 'deck' && window.EOL.decks) window.EOL.decks.closeEditor();
       // the shop and the deck picker modal handle Esc themselves
     });

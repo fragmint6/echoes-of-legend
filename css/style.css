@@ -20473,18 +20473,38 @@ body[data-gfx='low'] .mb-spores {
   font-size: 12px;
   color: var(--txt-faint);
 }
-/* The one honest note on the card: it is not playable yet. Dashed and
-   quiet, so it reads as a status and not as a button. */
+/* The plate now opens the chapter route, so its final line is a quiet
+   directional cue rather than a misleading "coming soon" status. */
 .ch-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 6px;
-  padding: 8px 15px;
+  padding: 8px 13px 8px 15px;
   border-radius: 999px;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(245, 197, 111, 0.4);
+  background: rgba(230, 171, 82, 0.08);
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--txt-faint);
+  color: #ecd08a;
+  transition:
+    color 0.24s ease,
+    border-color 0.24s ease,
+    background 0.24s ease;
+}
+.ch-cta i {
+  font-size: 14px;
+  transition: transform 0.24s var(--ease);
+}
+.chapter-card:hover .ch-cta {
+  border-color: rgba(255, 217, 139, 0.82);
+  background: rgba(236, 180, 88, 0.15);
+  color: #fff0bf;
+}
+.chapter-card:hover .ch-cta i {
+  transform: translateX(3px);
 }
 
 body[data-gfx='low'] .ch-mist {
@@ -20498,7 +20518,714 @@ body[data-gfx='low'] .chapter-card:hover {
     animation: none;
   }
   .chapter-card,
-  .ch-wm {
+  .ch-wm,
+  .ch-cta,
+  .ch-cta i {
     transition: none;
+  }
+}
+
+/* ======================================================================
+   CAMPAIGN — CHAPTER 1 RIVAL ROUTE (2026-08-06)
+   ----------------------------------------------------------------------
+   The chapter plate is intentionally only a doorway. This screen is the
+   first real look down The Road of Echoes: ten portrait-oriented rival
+   cards, with the first gate visibly available and the rest visibly
+   locked. It is presentation-only until campaign data and save state land.
+
+   The road gets its own four generated pixel-art planes rather than
+   reusing the main menu's colosseum. Like the home backdrop, it uses an
+   opaque sky behind three transparent silhouette planes that repeat and
+   scroll at distinct rates, so depth comes from parallax rather than blur.
+   ====================================================================== */
+
+/* ---------------- chapter 1: four-plane parallax ---------------- */
+/*
+   This deliberately follows the main menu's parallax contract instead of
+   treating Chapter 1 as four independently panning postcards:
+   - each generated art plane is a horizontal, seamless 1212 x 768 tile;
+   - the sky is opaque; far/mid/near are true transparent PNG silhouettes;
+   - `repeat-x` and an exact one-tile translate make the loop invisible;
+   - speed is depth (sky 420s → foreground 90s), not blur or scaling.
+
+   The source art was generated 100px wider than its output tile. Its final
+   edge was cross-faded into the opening edge before export; the resulting
+   wrap discontinuity is <= 1.13x normal internal pixel change on every
+   layer, below the art spec's 2.0 invisibility threshold.
+*/
+.chapter-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background: #070916;
+  transition: opacity 0.6s var(--ease);
+}
+body[data-view='chapter'] .chapter-bg {
+  opacity: 1;
+}
+/* The global grid is useful on the system screens, but it should not read
+   as a fifth art texture over this painted scene. */
+body[data-view='chapter'] .bg-grid {
+  opacity: 0.11;
+}
+.chapter-bg > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  background-repeat: repeat-x;
+  background-position: 0 0;
+  background-size: auto 100%;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+/* Same seam-free loop law as .menu-bg. The tile is scaled from its real
+   aspect (1212 / 768), so the translation remains a precise one-tile loop
+   at every logical viewport size rather than snapping at the reset. */
+.chapter-bg > span:not(.cb-mist):not(.cb-grade) {
+  width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
+  animation-name: cb-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes cb-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(calc(var(--vh1) * -100) * var(--tile-r, 1.578125)), 0, 0);
+  }
+}
+.cb-sky {
+  background-image: url('../assets/chapter-1/sky.png');
+  --tile-r: 1.578125; /* 1212 / 768 */
+  animation-duration: 420s;
+}
+.cb-far {
+  background-image: url('../assets/chapter-1/far.png');
+  --tile-r: 1.578125;
+  animation-duration: 260s;
+}
+.cb-mid {
+  background-image: url('../assets/chapter-1/mid.png');
+  --tile-r: 1.578125;
+  animation-duration: 150s;
+}
+.cb-near {
+  background-image: url('../assets/chapter-1/near.png');
+  --tile-r: 1.578125;
+  animation-duration: 90s;
+}
+/* Atmospheric dressing follows the main menu's rule too: art planes carry
+   the depth, and the CSS-only fog adds a little air without obscuring them. */
+.cb-mist {
+  inset: 0 !important;
+  background:
+    radial-gradient(ellipse 42% 11% at 20% 70%, rgba(191, 179, 238, 0.13), transparent 74%),
+    radial-gradient(ellipse 48% 12% at 81% 62%, rgba(217, 167, 181, 0.1), transparent 73%),
+    radial-gradient(ellipse 66% 14% at 50% 88%, rgba(142, 141, 204, 0.1), transparent 75%);
+  animation-name: chapter-mist;
+  animation-duration: 24s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+@keyframes chapter-mist {
+  from {
+    opacity: 0.52;
+    transform: translate3d(-1.2%, 0, 0) scale(1.02);
+  }
+  to {
+    opacity: 0.92;
+    transform: translate3d(1.5%, -1.3%, 0) scale(1.06);
+  }
+}
+.cb-grade {
+  inset: 0 !important;
+  background:
+    radial-gradient(ellipse 62% 47% at 50% 45%, rgba(7, 8, 19, 0.26) 0%, rgba(7, 8, 19, 0.5) 54%, rgba(5, 6, 14, 0.78) 100%),
+    linear-gradient(180deg, rgba(4, 6, 15, 0.5), transparent 27%, rgba(4, 5, 12, 0.78) 100%),
+    linear-gradient(90deg, rgba(3, 5, 12, 0.49), transparent 22%, transparent 78%, rgba(3, 5, 12, 0.49));
+}
+
+/* ---------------- chapter view chrome ---------------- */
+.view.chapter {
+  padding: 28px max(22px, calc((100% - 1520px) / 2)) 30px;
+}
+.view.chapter.active {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.view.chapter footer {
+  position: relative;
+  margin-top: auto;
+  padding: 30px 0 2px;
+  color: rgba(223, 225, 247, 0.48);
+  text-align: center;
+}
+.chapter-head {
+  position: relative;
+}
+.chapter-head .col-titles {
+  gap: 0;
+}
+.chapter-emblem {
+  color: #e9c47b;
+  text-shadow: 0 0 20px rgba(236, 192, 104, 0.45);
+}
+.chapter-overline {
+  margin: 2px 0 6px;
+  color: rgba(244, 210, 139, 0.84);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* The chapter note is a quiet glass signpost, not a second card system. */
+.chapter-brief {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  width: min(100%, 1160px);
+  margin: clamp(15px, calc(var(--vh1) * 2.6), 26px) auto 0;
+  padding: 13px 17px 13px 20px;
+  overflow: hidden;
+  border: 1px solid rgba(189, 174, 231, 0.18);
+  border-radius: 14px;
+  background:
+    linear-gradient(100deg, rgba(12, 14, 29, 0.76), rgba(24, 23, 47, 0.52)),
+    rgba(7, 8, 20, 0.55);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.2),
+    inset 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+}
+.chapter-brief::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  content: '';
+  background: linear-gradient(180deg, #e8c879, #8d6dd0);
+  box-shadow: 0 0 14px rgba(221, 185, 105, 0.55);
+}
+.chapter-brief-copy {
+  min-width: 0;
+}
+.chapter-brief-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #e7c678;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.chapter-brief-kicker i {
+  font-size: 13px;
+}
+.chapter-brief-copy p {
+  max-width: 700px;
+  margin: 5px 0 0;
+  color: #b2b6ce;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.chapter-progress {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 116px;
+  padding-left: 18px;
+  border-left: 1px solid rgba(213, 210, 243, 0.14);
+}
+.chapter-progress-n {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #e9cf8a;
+  font-family: 'Cinzel', serif;
+}
+.chapter-progress-n b {
+  font-size: 23px;
+  letter-spacing: 0.06em;
+}
+.chapter-progress-n i {
+  color: rgba(214, 215, 234, 0.45);
+  font-size: 13px;
+  font-style: normal;
+}
+.chapter-progress-label {
+  color: #8990ac;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---------------- the ten vertical rival cards ---------------- */
+.rival-route {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: stretch;
+  gap: 15px;
+  width: min(100%, 1160px);
+  margin: clamp(18px, calc(var(--vh1) * 3), 32px) auto 28px;
+}
+.rival-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 290px;
+  padding: 0;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(210, 211, 236, 0.17);
+  border-radius: 16px;
+  color: #eef0fb;
+  text-align: left;
+  font-family: inherit;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--rival-a) 23%, transparent), transparent 40%),
+    radial-gradient(circle at 84% 31%, color-mix(in srgb, var(--rival-b) 16%, transparent), transparent 42%),
+    linear-gradient(165deg, rgba(28, 30, 53, 0.92), rgba(8, 10, 23, 0.95));
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.31),
+    inset 0 1px rgba(255, 255, 255, 0.07);
+  cursor: var(--cur-pointer);
+  transition:
+    transform 0.28s var(--ease),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    filter 0.28s ease;
+}
+/* A shallow double-frame gives the route cards the same minted plate
+   language as the mode cards without making them look like hero cards. */
+.rival-card::before {
+  position: absolute;
+  z-index: -1;
+  inset: 5px;
+  border: 1px solid color-mix(in srgb, var(--rival-a) 30%, rgba(255, 255, 255, 0.1));
+  border-radius: 11px;
+  content: '';
+  opacity: 0.82;
+}
+.rival-card::after {
+  position: absolute;
+  z-index: -1;
+  top: -54%;
+  right: -46%;
+  width: 120%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--rival-b) 22%, transparent);
+  border-radius: 50%;
+  content: '';
+  box-shadow:
+    0 0 0 13px color-mix(in srgb, var(--rival-a) 7%, transparent),
+    0 0 0 30px color-mix(in srgb, var(--rival-b) 4%, transparent);
+}
+.rival-card.is-first {
+  border-color: rgba(227, 199, 115, 0.56);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.38),
+    0 0 26px color-mix(in srgb, var(--rival-a) 22%, transparent),
+    inset 0 1px rgba(255, 244, 208, 0.13);
+}
+.rival-card.is-first:hover {
+  z-index: 2;
+  transform: translateY(-6px);
+  border-color: rgba(250, 218, 135, 0.92);
+  box-shadow:
+    0 22px 42px rgba(0, 0, 0, 0.44),
+    0 0 36px color-mix(in srgb, var(--rival-b) 30%, transparent),
+    inset 0 1px rgba(255, 245, 214, 0.2);
+}
+.rival-card.is-first:active {
+  transform: translateY(-2px);
+}
+/* Browser disabled buttons normally fade themselves. We own the lock
+   treatment, so retain the authored opacity and remove no information. */
+.rival-card:disabled {
+  opacity: 1;
+  -webkit-text-fill-color: currentColor;
+}
+.rival-card.is-locked {
+  border-color: rgba(181, 186, 205, 0.2);
+  background:
+    linear-gradient(165deg, rgba(50, 53, 66, 0.84), rgba(14, 16, 24, 0.95));
+  box-shadow:
+    0 10px 23px rgba(0, 0, 0, 0.24),
+    inset 0 1px rgba(255, 255, 255, 0.035);
+  filter: grayscale(1) saturate(0.08) brightness(0.74);
+}
+.rival-card.is-locked::before {
+  border-color: rgba(205, 208, 218, 0.18);
+  opacity: 0.62;
+}
+.rival-card.is-locked::after {
+  opacity: 0.42;
+}
+
+.rival-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 14px 0;
+}
+.rival-num {
+  color: color-mix(in srgb, var(--rival-a) 64%, #fff);
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.07em;
+  text-shadow: 0 1px rgba(0, 0, 0, 0.4);
+}
+.rival-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(233, 235, 246, 0.72);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.rival-state i {
+  color: color-mix(in srgb, var(--rival-b) 68%, #fff);
+  font-size: 11px;
+}
+.rival-art {
+  position: relative;
+  display: grid;
+  flex: 1 0 92px;
+  place-items: center;
+  min-height: 92px;
+  margin: 3px 12px -2px;
+  overflow: hidden;
+}
+.rival-art::before,
+.rival-art::after {
+  position: absolute;
+  border: 1px solid color-mix(in srgb, var(--rival-b) 32%, transparent);
+  border-radius: 50%;
+  content: '';
+}
+.rival-art::before {
+  width: 74px;
+  height: 74px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rival-a) 20%, transparent), transparent 68%);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--rival-a) 24%, transparent);
+}
+.rival-art::after {
+  width: 96px;
+  height: 96px;
+  border-style: dashed;
+  opacity: 0.66;
+  transform: rotate(-18deg);
+}
+.rival-art i {
+  position: relative;
+  z-index: 2;
+  color: color-mix(in srgb, var(--rival-b) 68%, #fff);
+  font-size: clamp(45px, calc(var(--vw1) * 3.1), 62px);
+  line-height: 1;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.18)) drop-shadow(0 0 11px color-mix(in srgb, var(--rival-a) 62%, transparent));
+}
+.rival-art b,
+.rival-art em {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  border: 1px solid color-mix(in srgb, var(--rival-a) 48%, transparent);
+  transform: rotate(45deg);
+}
+.rival-art b {
+  width: 9px;
+  height: 9px;
+  top: 19%;
+  left: 25%;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--rival-a) 55%, transparent);
+}
+.rival-art em {
+  width: 6px;
+  height: 6px;
+  right: 25%;
+  bottom: 18%;
+  border-color: color-mix(in srgb, var(--rival-b) 58%, transparent);
+}
+.rival-body {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-height: 116px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(230, 231, 248, 0.1);
+  background: linear-gradient(180deg, rgba(7, 8, 19, 0.05), rgba(4, 5, 13, 0.42));
+}
+.rival-kicker {
+  color: color-mix(in srgb, var(--rival-a) 62%, #e9eafa);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.125em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+.rival-name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #f0f1fc;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(14px, calc(var(--vw1) * 1.15), 18px);
+  font-weight: 800;
+  letter-spacing: 0.018em;
+  line-height: 1.17;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.rival-desc {
+  display: -webkit-box;
+  min-height: 27px;
+  overflow: hidden;
+  color: #aab0c8;
+  font-size: 10px;
+  line-height: 1.34;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.rival-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin-top: auto;
+  overflow: hidden;
+  color: #c1c6db;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rival-meta i {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--rival-b) 72%, #fff);
+  font-size: 11px;
+}
+.rival-open,
+.rival-lock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 6px 14px 7px;
+  border-top: 1px solid rgba(232, 233, 249, 0.1);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.105em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.rival-open {
+  color: #f2d68d;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--rival-a) 17%, transparent), color-mix(in srgb, var(--rival-b) 10%, transparent));
+}
+.rival-open i {
+  font-size: 13px;
+  transition: transform 0.2s var(--ease);
+}
+.rival-card.is-first:hover .rival-open i {
+  transform: translateX(3px);
+}
+.rival-lock {
+  color: rgba(215, 218, 229, 0.68);
+  background: rgba(0, 0, 0, 0.22);
+}
+.rival-lock i {
+  font-size: 11px;
+}
+.rival-card.is-final .rival-art::before {
+  border-color: rgba(224, 191, 104, 0.45);
+}
+
+/* The map lands as a road, not a wall of simultaneous tiles. Motion is
+   decorative only, and the existing global quality/reduced-motion switches
+   disable it completely. */
+@keyframes rival-route-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.view.chapter.active .rival-card {
+  animation: rival-route-arrive 0.46s var(--ease) both;
+}
+.view.chapter.active .rival-card:nth-child(1) { animation-delay: 55ms; }
+.view.chapter.active .rival-card:nth-child(2) { animation-delay: 90ms; }
+.view.chapter.active .rival-card:nth-child(3) { animation-delay: 125ms; }
+.view.chapter.active .rival-card:nth-child(4) { animation-delay: 160ms; }
+.view.chapter.active .rival-card:nth-child(5) { animation-delay: 195ms; }
+.view.chapter.active .rival-card:nth-child(6) { animation-delay: 230ms; }
+.view.chapter.active .rival-card:nth-child(7) { animation-delay: 265ms; }
+.view.chapter.active .rival-card:nth-child(8) { animation-delay: 300ms; }
+.view.chapter.active .rival-card:nth-child(9) { animation-delay: 335ms; }
+.view.chapter.active .rival-card:nth-child(10) { animation-delay: 370ms; }
+
+/* ---------------- responsive chapter map ---------------- */
+html.mqw900 .view.chapter {
+  padding-inline: 20px;
+}
+html.mqw900 .rival-route {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 186px), 1fr));
+  gap: 12px;
+}
+html.mqw900 .rival-card {
+  min-height: 274px;
+}
+html.mqw720 .chapter-brief {
+  gap: 16px;
+}
+html.mqw720 .rival-route {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+html.mqw720 .rival-card {
+  min-height: 262px;
+}
+html.mqw720 .rival-body {
+  min-height: 111px;
+  padding-inline: 11px;
+}
+html.mqw720 .rival-top {
+  padding-inline: 11px;
+}
+html.mqw720 .rival-open,
+html.mqw720 .rival-lock {
+  padding-inline: 11px;
+  font-size: 7.5px;
+}
+html.mqw640 .chapter-brief {
+  align-items: flex-start;
+  flex-direction: column;
+}
+html.mqw640 .chapter-progress {
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  padding-top: 9px;
+  padding-left: 0;
+  border-top: 1px solid rgba(213, 210, 243, 0.14);
+  border-left: 0;
+}
+html.mqw640 .rival-route {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+html.mqw520 .view.chapter {
+  padding: 18px 13px 23px;
+}
+html.mqw520 .chapter-brief {
+  margin-top: 13px;
+  padding: 12px 13px 12px 16px;
+}
+html.mqw520 .chapter-brief-copy p {
+  font-size: 11px;
+}
+html.mqw520 .rival-route {
+  gap: 9px;
+  margin-top: 15px;
+}
+html.mqw520 .rival-card {
+  min-height: 250px;
+  border-radius: 13px;
+}
+html.mqw520 .rival-art {
+  min-height: 80px;
+}
+html.mqw520 .rival-art::before {
+  width: 65px;
+  height: 65px;
+}
+html.mqw520 .rival-art::after {
+  width: 83px;
+  height: 83px;
+}
+html.mqw520 .rival-art i {
+  font-size: 43px;
+}
+html.mqw520 .rival-name {
+  font-size: 13px;
+}
+html.mqw520 .rival-desc {
+  display: none;
+}
+html.mqw520 .rival-body {
+  min-height: 92px;
+  gap: 4px;
+  padding-top: 8px;
+  padding-bottom: 9px;
+}
+html.mqw520 .rival-kicker,
+html.mqw520 .rival-meta {
+  font-size: 7.5px;
+}
+html.mqw520 .rival-open,
+html.mqw520 .rival-lock {
+  min-height: 24px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  font-size: 6.8px;
+  letter-spacing: 0.055em;
+}
+html.mqh820 .rival-card {
+  min-height: 258px;
+}
+html.mqh820 .rival-art {
+  min-height: 78px;
+}
+
+/* The full paint remains in low graphics; only optional scene/card motion
+   drops, matching the main menu's accessibility and performance contract. */
+body[data-gfx='low'] .chapter-bg > span,
+body[data-gfx='low'] .view.chapter.active .rival-card {
+  animation: none !important;
+}
+body[data-gfx='low'] .rival-card.is-first:hover {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter-bg > span,
+  .view.chapter.active .rival-card {
+    animation: none !important;
+  }
+  .rival-card,
+  .rival-open i {
+    transition: none;
+  }
+  .rival-card.is-first:hover {
+    transform: none;
   }
 }
