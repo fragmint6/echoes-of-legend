@@ -15697,8 +15697,8 @@ body[data-view='chapter'] .menu-bg {
 }
 
 /* On the chapter view: hide the menu's landscape parallax planes and
-   any effects that don't fit the forest atmosphere. Keep the embers,
-   wisps, fog banks, ash, spores, and motes — the organic weather. */
+   any effects that don't fit the forest atmosphere. Still allowed are
+   the subtle motes (far/mid/near) for ambient depth. */
 body[data-view='chapter'] .mb-base,
 body[data-view='chapter'] .mb-sky,
 body[data-view='chapter'] .mb-far,
@@ -15707,7 +15707,14 @@ body[data-view='chapter'] .mb-near,
 body[data-view='chapter'] .mb-grade,
 body[data-view='chapter'] .mb-shoot,
 body[data-view='chapter'] .mb-rays,
-body[data-view='chapter'] .mb-embers.hot {
+body[data-view='chapter'] .mb-embers.hot,
+body[data-view='chapter'] .mb-embers,
+body[data-view='chapter'] .mb-wisps,
+body[data-view='chapter'] .mb-fog,
+body[data-view='chapter'] .mb-fogbanks,
+body[data-view='chapter'] .mb-ash,
+body[data-view='chapter'] .mb-spores,
+body[data-view='chapter'] .mb-ultra {
   opacity: 0 !important;
 }
 
@@ -19724,6 +19731,7 @@ body[data-gfx='low'] .ht-line {
 .shop::before,
 .prep::before,
 .deck::before,
+.campaign::before,
 .rulebook::before {
   content: '';
   position: fixed;
@@ -21056,6 +21064,21 @@ body[data-view='chapter'] .bg-grid {
   color: #d8ceaa;
 }
 
+/* glass backdrop for the masthead body — floats the title, rule, and sub
+   over the dark forest without a hard container edge. The back button
+   stays free of the glass so it reads as a separate control. */
+.chapter-head-inner {
+  padding: 16px 28px 18px;
+  border-radius: 18px;
+  background: rgba(10, 13, 24, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(220, 200, 150, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 /* Subtle progress strip — no glass block, just a quiet rule */
 .chapter-brief {
   position: relative;
@@ -22117,5 +22140,187 @@ html.mqw640 .chapter-dialogue-foot {
   }
   .rule-card {
     padding: 16px 18px;
+  }
+}
+
+/* ======================================================================
+   TUTORIAL OVERLAY
+   ====================================================================== */
+.tut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  background: rgba(2, 3, 10, 0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.3s var(--ease),
+    visibility 0.3s;
+}
+.tut-overlay.on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.tut-highlight {
+  position: fixed;
+  z-index: 8001;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px rgba(2, 3, 10, 0.65),
+    0 0 0 3px rgba(255, 214, 130, 0.8),
+    0 0 24px rgba(255, 200, 90, 0.35);
+  transition:
+    left 0.35s var(--ease),
+    top 0.35s var(--ease),
+    width 0.35s var(--ease),
+    height 0.35s var(--ease);
+}
+
+.tut-pulse {
+  animation: tut-pulse 0.8s ease-in-out 3;
+}
+
+@keyframes tut-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 130, 0); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 214, 130, 0.45); }
+}
+
+.tut-dialog {
+  position: fixed;
+  z-index: 8002;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  width: min(540px, calc(100% - 48px));
+  padding: 22px 26px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 214, 130, 0.35);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 130, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(18, 22, 38, 0.98), rgba(8, 10, 20, 0.99));
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(255, 190, 80, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    left 0.35s var(--ease),
+    bottom 0.35s var(--ease),
+    transform 0.35s var(--ease);
+}
+
+.tut-dialog.tut-center {
+  bottom: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.tut-dialog.tut-below {
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
+.tut-dialog.tut-right {
+  left: auto;
+  right: 24px;
+  bottom: 50%;
+  transform: translateY(50%);
+  width: min(380px, calc(100% - 48px));
+}
+
+.tut-dialog.tut-left {
+  left: 24px;
+  right: auto;
+  bottom: 50%;
+  transform: translateY(50%);
+  width: min(380px, calc(100% - 48px));
+}
+
+.tut-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.tut-close:hover {
+  color: #fff;
+  border-color: rgba(255, 180, 130, 0.6);
+}
+
+.tut-title {
+  margin: 0 0 10px;
+  padding-right: 32px;
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffd682;
+  text-shadow: 0 0 14px rgba(255, 200, 90, 0.3);
+}
+
+.tut-body {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #d0d4e8;
+}
+.tut-body b {
+  color: #ffe9a8;
+}
+
+.tut-step {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.tut-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.tut-prev,
+.tut-next {
+  min-width: 110px;
+}
+
+body.tut-active {
+  overflow: hidden;
+}
+
+body[data-gfx='low'] .tut-overlay {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tut-overlay,
+  .tut-highlight,
+  .tut-dialog {
+    transition: none;
+  }
+  .tut-pulse {
+    animation: none;
   }
 }

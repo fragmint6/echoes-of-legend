@@ -1645,5 +1645,14 @@
 
     show('home');
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
+
+    /* Tutorial: runs once on first visit. Starts after the veil lifts so
+       the DOM is painted. The 900ms delay gives the home transition its
+       full moment before the overlay interrupts. */
+    setTimeout(function () {
+      if (window.EOL.tutorial && !window.EOL.tutorial.isDone()) {
+        window.EOL.tutorial.start();
+      }
+    }, 900);
   });
 })();
