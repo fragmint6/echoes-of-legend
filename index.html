@@ -41,15 +41,12 @@
     <div class="bg-layer"></div>
     <div class="bg-grid"></div>
 
-    <!-- ==================== MENU PARALLAX ====================
-         Animated pixel-art backdrop for the main menu. Four layers,
-         each a 640x360 tile that repeats horizontally and scrolls at
-         its own speed, so the scene has real depth rather than one
-         flat image. Only rendered while body[data-view='home'].
-         Every layer is aria-hidden and pointer-events:none.
-         ======================================================== -->
+    <!-- ==================== MENU BACKDROP ====================
+         Static 1080p pixel-art backdrop: ancient ruins beneath an
+         open sky. All particle layers (embers, wisps, shooting stars,
+         fog banks, ash, spores, motes) render on top. -->
     <div class="menu-bg" id="menu-bg" aria-hidden="true">
-      <span class="mb-sky"></span>
+      <span class="mb-base"></span>
       <!-- Shooting stars: rare streaks across the upper sky, sitting
            between sky and mountains in depth. Each star is a small
            machine: a bright head with cross-flare, a solid core, a
@@ -134,11 +131,10 @@
 
     <!-- ==================== CHAPTER 1: THE ROAD OF ECHOES ====================
          A single highly detailed pixel-art backdrop with CSS atmosphere:
-         dark vignette, lantern under-glow, and drifting mist bands. -->
+         dark vignette and drifting mist bands. -->
     <div class="chapter-bg" id="chapter-bg" aria-hidden="true">
       <span class="cw-bg"></span>
       <span class="cw-vignette"></span>
-      <span class="cw-glow"></span>
       <span class="cw-haze"></span>
     </div>
 

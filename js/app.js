@@ -527,7 +527,7 @@
       });
       scope
         .querySelectorAll(
-          '.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-base, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
+          '.sc-art, .mb-base, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-base, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
         )
         .forEach(function (el) {
           var bg = getComputedStyle(el).backgroundImage;
