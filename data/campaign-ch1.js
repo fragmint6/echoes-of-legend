@@ -24,7 +24,7 @@ window.EOL.campaignCh1 = {
       playerDeck: 'starter-grimmwood',
       format: 'Classic · Grimmwood deck',
       terrain: 'The Colosseum',
-      line: 'Beneath ancient twisted pines, an immortal memory broker opens a weathered ledger and asks what you want to outlive.',
+      line: 'Beneath ancient twisted pines at the threshold of the road, an immortal memory broker opens a weathered ledger and writes a blank line. “You are not exactly dead — which is why we must be quick. Every Echo thinks this road leads to immortality. It does not. It only asks you to survive yourself.” He presses a brass coin bearing an empty chair into your palm, waiting to see if your story has the strength to continue.',
       lock: 'The first question',
     },
     {

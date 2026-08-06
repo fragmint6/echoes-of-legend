@@ -20925,7 +20925,7 @@ body[data-view='chapter'] .bg-grid {
   pointer-events: none;
 }
 .cw-scene {
-  background: url('../assets/chapter-1/woods-scene.png') center bottom / cover no-repeat;
+  background: url('../assets/chapter-1/woods-scene.gif') center bottom / cover no-repeat;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
 }
@@ -21119,29 +21119,26 @@ body[data-gfx='low'] .cw-smoke {
   text-transform: uppercase;
 }
 
-/* The chapter note is a quiet glass signpost, not a second card system. */
+/* Translucent misty glass progress header, blending into the forest atmosphere */
 .chapter-brief {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 28px;
-  width: min(100%, 1160px);
-  min-height: 96px;
-  margin: clamp(15px, calc(var(--vh1) * 2.6), 26px) auto 0;
-  padding: 13px 17px 13px 20px;
-  /* The minimum height holds wrapped lore; clipping now keeps the left
-     signal physically inside the plate rather than leaking into the gutter. */
+  gap: 24px;
+  width: min(100%, 920px);
+  margin: clamp(12px, calc(var(--vh1) * 2), 22px) auto 0;
+  padding: 14px 20px;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid rgba(189, 174, 231, 0.18);
+  border: 1px solid rgba(189, 174, 231, 0.14);
   border-radius: 14px;
-  background:
-    linear-gradient(100deg, rgba(12, 14, 29, 0.76), rgba(24, 23, 47, 0.52)), rgba(7, 8, 20, 0.55);
+  background: linear-gradient(135deg, rgba(20, 24, 48, 0.32), rgba(10, 12, 28, 0.24));
   box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.2),
-    inset 0 1px rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
+    0 12px 36px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .chapter-brief::after {
   position: absolute;
@@ -21152,7 +21149,7 @@ body[data-gfx='low'] .cw-smoke {
   width: 3px;
   border-radius: 14px 0 0 14px;
   content: '';
-  background: linear-gradient(180deg, #e8c879, #8d6dd0);
+  background: linear-gradient(180deg, #ffd682, #8d6dd0);
   /* No outer glow: this must read as an in-plate rule, not an overlay. */
 }
 .chapter-brief-copy,
