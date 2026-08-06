@@ -18,6 +18,11 @@
 
   var STORAGE_KEY = 'eol.decks.v1';
   var LEGACY_KEY = 'eol.deck.v1';
+  /* The Chapter 1 player begins with a real legal Grimmwood deck. This
+     marker prevents a deleted starter from respawning on every boot while
+     still granting it once to existing local collections. */
+  var GRIMMWOOD_STARTER_KEY = 'eol.grimmwood-starter.v1';
+  var GRIMMWOOD_STARTER_ID = 'starter-grimmwood';
   var DECK_SIZE = (window.EOL.deckRules && window.EOL.deckRules.DECK_SIZE) || 12;
   var MAX_PER_ROLE = (window.EOL.deckRules && window.EOL.deckRules.MAX_PER_ROLE) || 4;
 
@@ -104,6 +109,68 @@
     return true;
   }
 
+  /* ---------------- Chapter 1 starter deck ---------------- */
+  function grimmwoodStarterIds() {
+    var faction = (window.EOL.factions || []).filter(function (f) {
+      return f.id === 'grimmwood';
+    })[0];
+    if (!faction || !Array.isArray(faction.cards)) return [];
+    return faction.cards.map(function (card) {
+      return card.id;
+    });
+  }
+
+  function sameIds(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  function starterAlreadyPresent(ids) {
+    return decks.some(function (deck) {
+      return deck.id === GRIMMWOOD_STARTER_ID || (deck.name === 'Grimmwood' && sameIds(deck.ids, ids));
+    });
+  }
+
+  function starterClaimed() {
+    try {
+      return localStorage.getItem(GRIMMWOOD_STARTER_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function markStarterClaimed() {
+    try {
+      localStorage.setItem(GRIMMWOOD_STARTER_KEY, '1');
+    } catch (e) {
+      /* private mode: this session still owns the deck */
+    }
+  }
+
+  /* Seed once on the first load that sees this campaign-era build. The
+     Grimmwood faction contains exactly twelve cards and its 2-per-role
+     spread is legal under the normal 12-card / max-4 deck law. */
+  function seedGrimmwoodStarter() {
+    var ids = grimmwoodStarterIds();
+    if (ids.length !== DECK_SIZE || starterAlreadyPresent(ids) || starterClaimed()) return null;
+    var entries = ids
+      .map(function (id) {
+        return byId()[id];
+      })
+      .filter(Boolean);
+    if (!window.EOL.deckRules || !window.EOL.deckRules.isLegal(entries)) return null;
+    var deck = {
+      id: GRIMMWOOD_STARTER_ID,
+      name: 'Grimmwood',
+      ids: ids,
+      ts: Date.now(),
+    };
+    decks.unshift(deck);
+    markStarterClaimed();
+    return deck;
+  }
+
   function load() {
     decks = [];
     var raw;
@@ -113,16 +180,24 @@
       return;
     }
     if (!raw) {
-      if (migrate()) save(); // first boot after the 12-card change
+      var migrated = migrate(); // first boot after the 12-card change
+      var starter = seedGrimmwoodStarter();
+      if (migrated || starter) save(starter);
       return;
     }
     var arr;
     try {
       arr = JSON.parse(raw);
     } catch (e) {
+      var recoveredStarter = seedGrimmwoodStarter();
+      if (recoveredStarter) save(recoveredStarter);
       return;
     }
-    if (!Array.isArray(arr)) return;
+    if (!Array.isArray(arr)) {
+      var invalidStarter = seedGrimmwoodStarter();
+      if (invalidStarter) save(invalidStarter);
+      return;
+    }
     var dict = byId();
     arr.forEach(function (d) {
       if (!d || !Array.isArray(d.ids)) return;
@@ -144,6 +219,8 @@
       var n = parseInt(String(deck.id).slice(1), 10);
       if (!isNaN(n) && n >= idSeq) idSeq = n + 1;
     });
+    var starter = seedGrimmwoodStarter();
+    if (starter) save(starter);
   }
 
   /* ---------------- deck api ---------------- */
@@ -758,6 +835,7 @@
   window.EOL.decks = {
     STORAGE_KEY: STORAGE_KEY,
     LEGACY_KEY: LEGACY_KEY,
+    GRIMMWOOD_STARTER_KEY: GRIMMWOOD_STARTER_KEY,
     DECK_SIZE: DECK_SIZE,
     MAX_PER_ROLE: MAX_PER_ROLE,
     list: list,
@@ -784,6 +862,9 @@
     },
     refresh: render,
     reload: load,
+    /* Campaign boot / browser regression hooks. */
+    grimmwoodStarterIds: grimmwoodStarterIds,
+    seedGrimmwoodStarter: seedGrimmwoodStarter,
     renderManager: renderManager,
   };
 })();

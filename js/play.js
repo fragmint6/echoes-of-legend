@@ -3169,12 +3169,10 @@
       md.addEventListener('click', function () {
         startDraft();
       });
-    /* CAMPAIGN (2026-08-05). The mode card now routes to a real view -
-       a chapter select with exactly one chapter on it. Everything past
-       that point is still unbuilt: the chapter card acknowledges the
-       click and goes nowhere, and nothing in this flow touches save
-       state, the roster or a battle. Chapter 1's ten stages are
-       specified in docs/DESIGN-Campaign-Chapter1.md (rev 5). */
+    /* CAMPAIGN (2026-08-06). The route is still a presentation slice:
+       the chapter plate opens its ten-rival map, but no stage writes
+       progress or starts a battle. Keeping this navigation real lets the
+       map, locks and Chapter 1 art be judged before campaign logic lands. */
     if (mcmp)
       mcmp.addEventListener('click', function () {
         window.EOL.ui.show('campaign');
@@ -3187,7 +3185,21 @@
     var ch1 = $('chapter-1');
     if (ch1)
       ch1.addEventListener('click', function () {
-        toast('The Road of Echoes is not open yet', 'ra-compass');
+        window.EOL.ui.show('chapter');
+      });
+    var chback = $('btn-chapter-back');
+    if (chback)
+      chback.addEventListener('click', function () {
+        window.EOL.ui.show('campaign');
+      });
+    var stage1 = $('chapter-stage-1');
+    if (stage1)
+      stage1.addEventListener('click', function () {
+        if (window.EOL.campaign && window.EOL.campaign.openRecruiterDialogue) {
+          window.EOL.campaign.openRecruiterDialogue();
+        } else {
+          toast('The Recruiter is opening his ledger', 'ra-compass');
+        }
       });
 
     var bp = $('btn-play-back');
