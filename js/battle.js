@@ -1636,6 +1636,7 @@
         chosen: s.chosen,
         choose: s.choose,
       });
+    clearSel();
     render();
     hideTip();
 
@@ -2376,6 +2377,7 @@
         return;
       }
       // still the player's action (the enemy passed or has no actions)
+      clearSel();
       render();
       announceTurn('player');
       maybeAutoEndTurn();
@@ -2496,6 +2498,21 @@
       cine('ENEMY PASSES', '', 'enemy', 1100, true);
       await sleep(cineMs(700));
     } else {
+      // Stage 1 (The Recruiter): moderates power to measure rather than overwhelm
+      if (act && !act.ability.basic && B.campaignStage === 1) {
+        var usedSig = B._recruiterSigUsed === B.round;
+        if (usedSig || Math.random() < 0.65) {
+          var basic = E.roleAbility(act.unit);
+          if (E.canUse(B, act.unit, basic)) {
+            var pool = E.legalTargets(B, act.unit, basic);
+            if (pool.length) {
+              act = { unit: act.unit, ability: basic, chosen: [pool[0]], choose: 0 };
+            }
+          }
+        } else {
+          B._recruiterSigUsed = B.round;
+        }
+      }
       announceTurn('enemy');
       // brief highlight so the player can follow what the bot is doing
       var el = document.querySelector('.bcard[data-uid="' + act.unit.uid + '"]');
@@ -4421,6 +4438,7 @@
     paintCommanders();
 
     render();
+    if (opts.campaignStage) B.campaignStage = opts.campaignStage;
 
     /* Round 1 opens on whoever the engine says it does. Singleplayer is
        always the player; in a match the guest opens the even rounds, so

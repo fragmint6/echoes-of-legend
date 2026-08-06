@@ -1013,12 +1013,37 @@
       setKill();
       if (canBeSet(cfg)) cfg.field = cfg.field || setBegin(cfg);
     }
-    var foeBans = isMp ? null : chooseBans(cfg.player12, cfg.enemy12);
+    var foeBans;
+    if (isMp) {
+      foeBans = null;
+    } else if (cfg.campaignStage === 1) {
+      // Stage 1: The Recruiter specifically bans Hansel & Gretel and Cinderella
+      var hg = cfg.player12.find(function (e) {
+        return e.card.id === 'grimmwood-hansel-gretel';
+      });
+      var cin = cfg.player12.find(function (e) {
+        return e.card.id === 'grimmwood-cinderella';
+      });
+      foeBans = [];
+      if (hg) foeBans.push(hg.card.id);
+      if (cin) foeBans.push(cin.card.id);
+      if (foeBans.length < RULES().BANS) {
+        var normal = chooseBans(cfg.player12, cfg.enemy12);
+        normal.forEach(function (id) {
+          if (foeBans.length < RULES().BANS && foeBans.indexOf(id) === -1) {
+            foeBans.push(id);
+          }
+        });
+      }
+    } else {
+      foeBans = chooseBans(cfg.player12, cfg.enemy12);
+    }
     prep = {
       mode: cfg.mode,
       mp: isMp,
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
+      campaignStage: cfg.campaignStage || null,
       /* The battlefield is rolled NOW but not revealed until bans are
          locked, so neither side can ban around the terrain. */
       field: cfg.field || window.EOL.rollBattlefield(),
@@ -1869,37 +1894,43 @@
     });
   }
 
-  function openClassicModal(onPick) {
-    /* `onPick` diverts the chosen deck somewhere other than a
-       singleplayer board - Online Classic uses it to carry the deck
-       into matchmaking. Omitted, it behaves exactly as before. */
-    /* Guard against being wired straight to addEventListener, which would
-       hand us a click Event here - truthy, but not callable, so every row
-       threw "choose is not a function" on click. */
+  function openClassicModal(onPick, opts) {
+    opts = opts || {};
+    var isCampaign = !!opts.isCampaign;
     var choose = typeof onPick === 'function' ? onPick : startClassicDeck;
-    /* The war-length choice is a SOLO launch decision. When the modal is
-       serving an online classic pick, the room owns match length
-       (Phase 1b wiring), so a dead toggle would only confuse. */
     var wl = $('war-length');
-    if (wl) wl.hidden = typeof onPick === 'function';
+    if (wl) wl.hidden = isCampaign || typeof onPick === 'function';
     paintWarLength();
+
+    var titleEl = document.querySelector('.dm-title');
+    var subEl = document.querySelector('.dm-sub');
+    if (isCampaign) {
+      if (titleEl) titleEl.textContent = 'Choose your deck to face The Recruiter';
+      if (subEl) subEl.textContent = 'Select your squad of 12 for the battle on The Colosseum.';
+    } else {
+      if (titleEl) titleEl.textContent = 'Choose your deck';
+      if (subEl)
+        subEl.textContent = 'The enemy builds a squad of 12 — max 4 of a role, like yours.';
+    }
+
     var host = $('dm-list');
     host.innerHTML = '';
 
-    /* Shuffle row first - instant classic for a new player, and a
-       "get me in" shortcut even for deck owners. */
-    var r = document.createElement('button');
-    r.className = 'dm-row random';
-    r.type = 'button';
-    r.innerHTML =
-      '<span class="dm-ico"><i class="ri-shuffle-line"></i></span>' +
-      '<span class="dm-body"><span class="dm-name">Surprise me</span>' +
-      '<span class="dm-meta">A random legal squad of 12 - just this game</span></span>' +
-      '<i class="dm-go ri-arrow-right-line"></i>';
-    r.addEventListener('click', function () {
-      choose(null);
-    });
-    host.appendChild(r);
+    /* Shuffle row only in non-campaign modes */
+    if (!isCampaign && !opts.hideRandom) {
+      var r = document.createElement('button');
+      r.className = 'dm-row random';
+      r.type = 'button';
+      r.innerHTML =
+        '<span class="dm-ico"><i class="ri-shuffle-line"></i></span>' +
+        '<span class="dm-body"><span class="dm-name">Surprise me</span>' +
+        '<span class="dm-meta">A random legal squad of 12 - just this game</span></span>' +
+        '<i class="dm-go ri-arrow-right-line"></i>';
+      r.addEventListener('click', function () {
+        choose(null);
+      });
+      host.appendChild(r);
+    }
 
     var decks = window.EOL.decks.list();
     if (!decks.length) {
