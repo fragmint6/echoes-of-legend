@@ -3195,7 +3195,11 @@
     var stage1 = $('chapter-stage-1');
     if (stage1)
       stage1.addEventListener('click', function () {
-        toast('The Recruiter is waiting - stages are not playable yet', 'ra-compass');
+        if (window.EOL.campaign && window.EOL.campaign.openRecruiterDialogue) {
+          window.EOL.campaign.openRecruiterDialogue();
+        } else {
+          toast('The Recruiter is opening his ledger', 'ra-compass');
+        }
       });
 
     var bp = $('btn-play-back');

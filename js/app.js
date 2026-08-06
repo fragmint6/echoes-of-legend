@@ -524,7 +524,7 @@
       });
       scope
         .querySelectorAll(
-          '.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
+          '.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-base, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
         )
         .forEach(function (el) {
           var bg = getComputedStyle(el).backgroundImage;
@@ -1535,6 +1535,12 @@
     // No Leave buttons on these screens - Esc backs out one level.
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
+      /* Campaign dialogue owns Escape while it is open; do not let the
+         shared view-back handler strand an open scene on another screen. */
+      if (window.EOL.campaign && window.EOL.campaign.dialogueOpen && window.EOL.campaign.dialogueOpen()) {
+        window.EOL.campaign.closeRecruiterDialogue();
+        return;
+      }
       var v = document.body.dataset.view;
       if (v === 'battle' || v === 'play') show('home');
       else if (v === 'prep' || v === 'draft' || v === 'campaign') show('play');

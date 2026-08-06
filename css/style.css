@@ -20545,8 +20545,9 @@ body[data-gfx='low'] .chapter-card:hover {
    treating Chapter 1 as four independently panning postcards:
    - each generated plane uses the home menu's exact tile geometry:
      sky/far/mid are 1211 x 768 and near is 1240 x 768;
-   - the sky is opaque; far/mid/near are true transparent PNG silhouettes;
-   - `repeat-x` and an exact one-tile translate make the loop invisible;
+   - an opaque composed scene bed sits beneath the moving planes, so a
+     keyed silhouette can never reveal an empty or black pocket;
+   - `repeat-x` and an exact one-tile translate make the moving loops invisible;
    - speed and travel distance are the home menu's exact depth ratios
      (sky 420s → foreground 90s), not blur or scaling.
 
@@ -20587,12 +20588,23 @@ body[data-view='chapter'] .bg-grid {
 /* Same seam-free loop law as .menu-bg. Each plane carries the same real
    aspect ratio as its matching home-menu depth plane, so the translation
    remains a precise one-tile loop at every logical viewport size. */
-.chapter-bg > span:not(.cb-mist):not(.cb-grade) {
+.chapter-bg > span:not(.cb-base):not(.cb-mist):not(.cb-grade) {
   width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
   animation-name: cb-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   will-change: transform;
+}
+/* The generated art is retained in the moving planes, but this opaque
+   flattened bed makes the scene complete before the planes ever overlap.
+   It is intentionally static: it is a continuity layer, not a fifth
+   parallax speed, so it cannot introduce a wrap seam of its own. */
+.cb-base {
+  background-image: url('../assets/chapter-1/base.png');
+  background-repeat: no-repeat !important;
+  background-position: center;
+  background-size: cover;
+  filter: brightness(0.84) saturate(0.88);
 }
 @keyframes cb-drift {
   from {
@@ -20606,21 +20618,25 @@ body[data-view='chapter'] .bg-grid {
   background-image: url('../assets/chapter-1/sky.png');
   --tile-r: 1.57683; /* 1211 / 768, matches .mb-sky */
   animation-duration: 420s;
+  opacity: 0.34;
 }
 .cb-far {
   background-image: url('../assets/chapter-1/far.png');
   --tile-r: 1.57683; /* 1211 / 768, matches .mb-far */
   animation-duration: 260s;
+  opacity: 0.42;
 }
 .cb-mid {
   background-image: url('../assets/chapter-1/mid.png');
   --tile-r: 1.57683; /* 1211 / 768, matches .mb-mid */
   animation-duration: 150s;
+  opacity: 0.5;
 }
 .cb-near {
   background-image: url('../assets/chapter-1/near.png');
   --tile-r: 1.61458; /* 1240 / 768, matches .mb-near */
   animation-duration: 90s;
+  opacity: 0.58;
 }
 /* Atmospheric dressing follows the main menu's rule too: art planes carry
    the depth, and the CSS-only fog adds a little air without obscuring them. */
@@ -20702,8 +20718,10 @@ body[data-view='chapter'] .bg-grid {
   min-height: 96px;
   margin: clamp(15px, calc(var(--vh1) * 2.6), 26px) auto 0;
   padding: 13px 17px 13px 20px;
-  /* Wrapped lore belongs inside the plate, never beneath a clipped edge. */
-  overflow: visible;
+  /* The minimum height holds wrapped lore; clipping now keeps the left
+     signal physically inside the plate rather than leaking into the gutter. */
+  overflow: hidden;
+  isolation: isolate;
   border: 1px solid rgba(189, 174, 231, 0.18);
   border-radius: 14px;
   background:
@@ -20716,13 +20734,20 @@ body[data-view='chapter'] .bg-grid {
 }
 .chapter-brief::after {
   position: absolute;
+  z-index: 0;
   top: 0;
   bottom: 0;
   left: 0;
   width: 3px;
+  border-radius: 14px 0 0 14px;
   content: '';
   background: linear-gradient(180deg, #e8c879, #8d6dd0);
-  box-shadow: 0 0 14px rgba(221, 185, 105, 0.55);
+  /* No outer glow: this must read as an in-plate rule, not an overlay. */
+}
+.chapter-brief-copy,
+.chapter-progress {
+  position: relative;
+  z-index: 1;
 }
 .chapter-brief-copy {
   min-width: 0;
@@ -21066,18 +21091,18 @@ body[data-view='chapter'] .bg-grid {
 }
 .rival-meta {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
   max-width: 100%;
   margin-top: auto;
-  overflow: hidden;
+  overflow: visible;
   color: #c1c6db;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.035em;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  text-overflow: clip;
+  white-space: normal;
 }
 .rival-meta i {
   flex: 0 0 auto;
@@ -21294,5 +21319,206 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   }
   .rival-card.is-first:hover {
     transform: none;
+  }
+}
+
+/* ---------------- Recruiter: first conversation ---------------- */
+.chapter-dialogue {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.chapter-dialogue[hidden] {
+  display: none;
+}
+.chapter-dialogue-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 62% 66% at 50% 48%, rgba(33, 41, 53, 0.3), rgba(3, 5, 12, 0.9)),
+    rgba(2, 3, 10, 0.78);
+  backdrop-filter: blur(6px);
+}
+.chapter-dialogue-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(176px, 0.58fr) minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  width: min(100%, 790px);
+  min-height: 340px;
+  overflow: hidden;
+  border: 1px solid rgba(230, 195, 114, 0.46);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 14% 18%, rgba(89, 170, 112, 0.12), transparent 38%),
+    radial-gradient(circle at 92% 2%, rgba(147, 103, 202, 0.14), transparent 42%),
+    linear-gradient(135deg, rgba(19, 25, 34, 0.98), rgba(10, 11, 25, 0.99));
+  box-shadow:
+    0 26px 78px rgba(0, 0, 0, 0.65),
+    0 0 50px rgba(112, 199, 141, 0.1),
+    inset 0 1px rgba(255, 255, 255, 0.12);
+  animation: chapter-dialogue-enter 0.35s var(--ease) both;
+}
+@keyframes chapter-dialogue-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.chapter-dialogue-close {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(238, 240, 252, 0.17);
+  border-radius: 50%;
+  color: rgba(237, 239, 251, 0.75);
+  background: rgba(5, 7, 17, 0.58);
+  font-size: 16px;
+  cursor: var(--cur-pointer);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.chapter-dialogue-close:hover {
+  border-color: rgba(247, 209, 128, 0.7);
+  color: #fff0c2;
+  background: rgba(70, 55, 34, 0.55);
+}
+.chapter-dialogue-art {
+  position: relative;
+  min-height: 270px;
+  overflow: hidden;
+  border-right: 1px solid rgba(235, 238, 252, 0.11);
+  background: #101827;
+}
+.chapter-dialogue-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 24%;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  filter: saturate(0.88) contrast(1.05);
+}
+.chapter-dialogue-art::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background:
+    linear-gradient(180deg, rgba(4, 7, 14, 0.02) 26%, rgba(5, 8, 15, 0.34) 76%, rgba(5, 7, 14, 0.84)),
+    linear-gradient(90deg, rgba(4, 8, 14, 0.22), transparent 70%);
+  pointer-events: none;
+}
+.chapter-dialogue-road {
+  position: absolute;
+  z-index: 1;
+  right: -34px;
+  bottom: -48px;
+  width: 148px;
+  height: 148px;
+  border: 1px dashed rgba(235, 207, 135, 0.38);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px rgba(111, 187, 126, 0.06);
+  transform: rotate(-18deg);
+}
+.chapter-dialogue-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 38px 48px 28px 32px;
+}
+.chapter-dialogue-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: #dec682;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.chapter-dialogue-kicker i {
+  font-size: 13px;
+}
+.chapter-dialogue-copy h3 {
+  margin: 0 0 13px;
+  color: #f4e4b9;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(21px, calc(var(--vw1) * 1.7), 29px);
+  letter-spacing: 0.03em;
+}
+.chapter-dialogue-copy p {
+  max-width: 450px;
+  margin: 0;
+  color: #c4c9db;
+  font-size: 14px;
+  line-height: 1.72;
+}
+.chapter-dialogue-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 66px;
+  padding: 12px 18px 12px 22px;
+  border-top: 1px solid rgba(234, 237, 252, 0.1);
+  background: rgba(3, 5, 14, 0.48);
+}
+.chapter-dialogue-step {
+  color: rgba(226, 228, 242, 0.5);
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.chapter-dialogue-next {
+  min-width: 152px;
+  justify-content: center;
+  gap: 8px;
+}
+html.mqw640 .chapter-dialogue {
+  padding: 13px;
+}
+html.mqw640 .chapter-dialogue-card {
+  grid-template-columns: 1fr;
+  grid-template-rows: 170px auto auto;
+  min-height: 0;
+}
+html.mqw640 .chapter-dialogue-art {
+  min-height: 0;
+  border-right: 0;
+  border-bottom: 1px solid rgba(235, 238, 252, 0.11);
+}
+html.mqw640 .chapter-dialogue-art img {
+  object-position: 50% 28%;
+}
+html.mqw640 .chapter-dialogue-copy {
+  min-height: 205px;
+  padding: 29px 25px 24px;
+}
+html.mqw640 .chapter-dialogue-copy p {
+  font-size: 13px;
+}
+html.mqw640 .chapter-dialogue-foot {
+  min-height: 61px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter-dialogue-card {
+    animation: none;
   }
 }

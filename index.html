@@ -139,6 +139,9 @@
          the planes drift at distinct speeds to give the chapter map
          depth without borrowing the main-menu colosseum. -->
     <div class="chapter-bg" id="chapter-bg" aria-hidden="true">
+      <!-- An opaque scene bed keeps the generated silhouette planes from
+           revealing keyed-away black pockets as they drift past each other. -->
+      <span class="cb-base"></span>
       <span class="cb-sky"></span>
       <span class="cb-far"></span>
       <span class="cb-mid"></span>
@@ -794,7 +797,7 @@
           <i class="mode-glyph ra ra-compass"></i>
           <span class="mode-name">Campaign</span>
           <span class="mode-desc">
-            The road of legends - ten stages, ten rivals, one chapter at a time.
+            A nameless Wayfarer crosses ten gates before the First Legend decides whether a story can continue.
           </span>
           <span class="mode-cta">Take the road <i class="ri-arrow-right-line"></i></span>
         </button>
@@ -902,7 +905,7 @@
           <span class="mast-emblem" aria-hidden="true"><i class="ra ra-compass"></i></span>
           <h2 class="col-title">Campaign</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">The road of legends, one chapter at a time</p>
+          <p class="col-sub">Where unfinished stories learn how to continue</p>
         </div>
       </header>
 
@@ -916,7 +919,7 @@
             <span class="ch-kicker">Chapter 1</span>
             <span class="ch-name">The Road of Echoes</span>
             <span class="ch-desc">
-              Ten stages, ten rivals, and a first legend waiting at the end of the road.
+              A nameless Wayfarer crosses ten gates before the First Legend decides whether a story can continue.
             </span>
             <span class="ch-meta">
               <span class="ch-chip"><i class="ri-flag-line"></i>10 stages</span>
@@ -944,145 +947,173 @@
           <p class="chapter-overline">Chapter 1</p>
           <h2 class="col-title" id="chapter-title">The Road of Echoes</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">A passage of trials between story and memory</p>
+          <p class="col-sub">An unfinished story walks between memory and the Quiet</p>
         </div>
       </header>
 
       <div class="chapter-brief" aria-label="Chapter progress">
         <div class="chapter-brief-copy">
-          <span class="chapter-brief-kicker"><i class="ri-route-line" aria-hidden="true"></i> The first road</span>
-          <p>Ten champions hold the way to the First Legend. Each gate opens only after the one before it.</p>
+          <span class="chapter-brief-kicker"><i class="ri-route-line" aria-hidden="true"></i> The first question</span>
+          <p>Ten guardians test whether an Echo can last without becoming a prison. Beyond them waits Gilgamesh — and a gate toward Uruk.</p>
         </div>
         <div class="chapter-progress" aria-label="Stage progress: 1 of 10 available">
           <span class="chapter-progress-n"><b>01</b><i>/</i>10</span>
-          <span class="chapter-progress-label">First gate awaits</span>
+          <span class="chapter-progress-label">The Recruiter waits</span>
         </div>
       </div>
 
       <div class="rival-route" aria-label="The ten rivals of Chapter 1">
-        <button class="rival-card is-first" id="chapter-stage-1" type="button" style="--rival-a:#4fa86a; --rival-b:#8a5ad8;" aria-current="step">
+        <button class="rival-card is-first" id="chapter-stage-1" type="button" style="--rival-a:#4fa86a; --rival-b:#8a5ad8;" aria-current="step" data-campaign-stage="1">
           <span class="rival-top"><span class="rival-num">I</span><span class="rival-state"><i class="ri-sparkling-2-line"></i> First gate</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-recruiter.png" alt="" draggable="false" /><i class="ra ra-player-thunder-struck"></i><b></b><em></em></span>
           <span class="rival-body">
-            <span class="rival-kicker">Stage 1 · Fixed Six</span>
+            <span class="rival-kicker">Stage 1 · Classic · Grimmwood deck</span>
             <strong class="rival-name">The Recruiter</strong>
-            <span class="rival-desc">A straight measure of your first echo.</span>
+            <span class="rival-desc">An old memory broker asks what you want to outlive.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> Colosseum</span>
           </span>
-          <span class="rival-open"><i class="ri-arrow-right-line"></i> Not yet playable</span>
+          <span class="rival-open"><i class="ri-chat-1-line"></i> Hear his question</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#4c7bd8; --rival-b:#c9a227;" aria-label="Stage 2 locked: The Oathkeeper">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#4c7bd8; --rival-b:#c9a227;" aria-label="Stage 2 locked: The Oathkeeper" data-campaign-stage="2">
           <span class="rival-top"><span class="rival-num">II</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-oathkeeper.png" alt="" draggable="false" /><i class="ra ra-shield"></i><b></b><em></em></span>
           <span class="rival-body">
             <span class="rival-kicker">Stage 2 · Classic</span>
             <strong class="rival-name">The Oathkeeper</strong>
-            <span class="rival-desc">A promised wall waits at the pass.</span>
+            <span class="rival-desc">A veteran who returned with twelve asks who your strength protects.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> The Narrow Pass</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Recruiter</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#3f9b5c; --rival-b:#c8a34a;" aria-label="Stage 3 locked: The Outlaw">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#3f9b5c; --rival-b:#c8a34a;" aria-label="Stage 3 locked: The Outlaw" data-campaign-stage="3">
           <span class="rival-top"><span class="rival-num">III</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-outlaw.png" alt="" draggable="false" /><i class="ra ra-archery-target"></i><b></b><em></em></span>
           <span class="rival-body">
             <span class="rival-kicker">Stage 3 · Classic</span>
             <strong class="rival-name">The Outlaw</strong>
-            <span class="rival-desc">The road's sharpest eye finds your carry.</span>
+            <span class="rival-desc">A rifle sights your brightest echo to see who you leave behind.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> The Open Plains</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Oathkeeper</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#d8b64c; --rival-b:#6fd3e8;" aria-label="Stage 4 locked: The Anointed">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#d8b64c; --rival-b:#6fd3e8;" aria-label="Stage 4 locked: The Anointed" data-campaign-stage="4">
           <span class="rival-top"><span class="rival-num">IV</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-anointed.png" alt="" draggable="false" /><i class="ra ra-sunbeams"></i><b></b><em></em></span>
           <span class="rival-body">
             <span class="rival-kicker">Stage 4 · Classic</span>
             <strong class="rival-name">The Anointed</strong>
-            <span class="rival-desc">Every Mark is a promise.</span>
+            <span class="rival-desc">A Mark is a promise. Decide whether it becomes prophecy.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> The Mana Spring</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Outlaw</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#c9a227; --rival-b:#8f6dc2;" aria-label="Stage 5 locked: The Warden of the Mid-Road">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#c9a227; --rival-b:#8f6dc2;" aria-label="Stage 5 locked: The Warden of the Mid-Road" data-campaign-stage="5">
           <span class="rival-top"><span class="rival-num">V</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-warden-of-the-mid-road.png" alt="" draggable="false" /><i class="ra ra-helmet"></i><b></b><em></em></span>
           <span class="rival-body">
-            <span class="rival-kicker">Stage 5 · Unabridged</span>
+            <span class="rival-kicker">Stage 5 · Unabridged · Three gates</span>
             <strong class="rival-name">The Warden of the Mid-Road</strong>
-            <span class="rival-desc">Three gates. One unbroken watch.</span>
-            <span class="rival-meta"><i class="ri-map-2-line"></i> Fight card</span>
+            <span class="rival-desc">At the Mid-Road, the guardians reveal why they chose to remain.</span>
+            <span class="rival-meta"><i class="ri-map-2-line"></i> Colosseum · Pass · Plains</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Anointed</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#e05a4a; --rival-b:#f0c05a;" aria-label="Stage 6 locked: The Trickster">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#e05a4a; --rival-b:#f0c05a;" aria-label="Stage 6 locked: The Trickster" data-campaign-stage="6">
           <span class="rival-top"><span class="rival-num">VI</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-trickster.png" alt="" draggable="false" /><i class="ra ra-clovers-card"></i><b></b><em></em></span>
           <span class="rival-body">
             <span class="rival-kicker">Stage 6 · Draft</span>
             <strong class="rival-name">The Trickster</strong>
-            <span class="rival-desc">Every pick is part of the prank.</span>
+            <span class="rival-desc">Every choice leaves another possible self across the table.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> The Energy Void</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear the Mid-Road</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#7b4dc0; --rival-b:#d4af37;" aria-label="Stage 7 locked: The Strategist">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#7b4dc0; --rival-b:#d4af37;" aria-label="Stage 7 locked: The Strategist" data-campaign-stage="7">
           <span class="rival-top"><span class="rival-num">VII</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-strategist.png" alt="" draggable="false" /><i class="ra ra-gears"></i><b></b><em></em></span>
           <span class="rival-body">
             <span class="rival-kicker">Stage 7 · Draft</span>
             <strong class="rival-name">The Strategist</strong>
-            <span class="rival-desc">He has already read your last war.</span>
+            <span class="rival-desc">He calls every choice a pattern. You must prove it is not destiny.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> Blood Battlefield</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Trickster</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#e8e3d3; --rival-b:#c4392f;" aria-label="Stage 8 locked: The Chronicler">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#e8e3d3; --rival-b:#c4392f;" aria-label="Stage 8 locked: The Chronicler" data-campaign-stage="8">
           <span class="rival-top"><span class="rival-num">VIII</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-chronicler.png" alt="" draggable="false" /><i class="ra ra-book"></i><b></b><em></em></span>
           <span class="rival-body">
             <span class="rival-kicker">Stage 8 · Draft</span>
             <strong class="rival-name">The Chronicler</strong>
-            <span class="rival-desc">He writes down every forgotten name.</span>
+            <span class="rival-desc">In the wall-less library, the Quiet learns that you exist.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> Spirit World</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Strategist</span>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#79bdb4; --rival-b:#c9a227;" aria-label="Stage 9 locked: The Last Guardian">
+        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#79bdb4; --rival-b:#c9a227;" aria-label="Stage 9 locked: The Last Guardian" data-campaign-stage="9">
           <span class="rival-top"><span class="rival-num">IX</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-last-guardian.png" alt="" draggable="false" /><i class="ra ra-shield"></i><b></b><em></em></span>
           <span class="rival-body">
-            <span class="rival-kicker">Stage 9 · Unabridged</span>
+            <span class="rival-kicker">Stage 9 · Unabridged · Three gates</span>
             <strong class="rival-name">The Last Guardian</strong>
-            <span class="rival-desc">The final gate does not speak.</span>
-            <span class="rival-meta"><i class="ri-map-2-line"></i> Fight card</span>
+            <span class="rival-desc">A nameless guardian shows what it costs to hold a door shut.</span>
+            <span class="rival-meta"><i class="ri-map-2-line"></i> Void · Battlefield · Spirit World</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Chronicler</span>
         </button>
 
-        <button class="rival-card is-locked is-final" type="button" disabled style="--rival-a:#c9a227; --rival-b:#1f4e79;" aria-label="Stage 10 locked: Gilgamesh">
+        <button class="rival-card is-locked is-final" type="button" disabled style="--rival-a:#c9a227; --rival-b:#1f4e79;" aria-label="Stage 10 locked: Gilgamesh" data-campaign-stage="10">
           <span class="rival-top"><span class="rival-num">X</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
           <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/gilgamesh.png" alt="" draggable="false" /><i class="ra ra-crowned-heart"></i><b></b><em></em></span>
           <span class="rival-body">
-            <span class="rival-kicker">Stage 10 · Unabridged</span>
+            <span class="rival-kicker">Stage 10 · Unabridged · Final judgment</span>
             <strong class="rival-name">Gilgamesh</strong>
-            <span class="rival-desc">The First Legend weighs your story.</span>
+            <span class="rival-desc">The First Legend judges whether a story can continue without becoming a prison.</span>
             <span class="rival-meta"><i class="ri-landscape-line"></i> The Legend's Trial</span>
           </span>
           <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Last Guardian</span>
         </button>
       </div>
 
-      <footer>Chapter 1 route · 10 rivals · Progression is coming soon</footer>
+      <footer>One unfinished story · ten guardians · a gate toward Uruk</footer>
     </section>
+
+    <!-- ==================== CHAPTER 1 DIALOGUE ====================
+         Recruiter scene only for now. It is a narrative encounter, not a
+         battle launch: the Classic fight will arrive once campaign state and
+         authored rival teams exist. -->
+    <div class="chapter-dialogue" id="chapter-dialogue" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="chapter-dialogue-speaker">
+      <div class="chapter-dialogue-scrim" id="chapter-dialogue-scrim"></div>
+      <section class="chapter-dialogue-card">
+        <button class="chapter-dialogue-close" id="chapter-dialogue-close" type="button" aria-label="Close dialogue">
+          <i class="ri-close-line"></i>
+        </button>
+        <div class="chapter-dialogue-art" aria-hidden="true">
+          <img src="assets/rivals/the-recruiter.png" alt="" draggable="false" />
+          <span class="chapter-dialogue-road"></span>
+        </div>
+        <div class="chapter-dialogue-copy">
+          <span class="chapter-dialogue-kicker"><i class="ri-book-open-line"></i> Chapter 1 · Gate I</span>
+          <h3 id="chapter-dialogue-speaker">The Recruiter</h3>
+          <p id="chapter-dialogue-text"></p>
+        </div>
+        <footer class="chapter-dialogue-foot">
+          <span class="chapter-dialogue-step" id="chapter-dialogue-step">01 / 06</span>
+          <button class="btn btn-primary chapter-dialogue-next" id="chapter-dialogue-next" type="button">
+            <span>Continue</span><i class="ri-arrow-right-line"></i>
+          </button>
+        </footer>
+      </section>
+    </div>
 
     <!-- ==================== PREPARATION (bans + field six) ==================== -->
     <section class="view prep" data-view="prep" id="prep-view">
@@ -1555,6 +1586,7 @@
     <script src="data/takamagahara.js"></script>
     <script src="data/duat.js"></script>
     <script src="data/battlefields.js"></script>
+    <script src="data/campaign-ch1.js"></script>
     <script src="data/draft-ai.js"></script>
 
     <script src="js/engine.js"></script>
@@ -1562,6 +1594,7 @@
     <script src="js/battle.js"></script>
     <script src="js/deck.js"></script>
     <script src="js/play.js"></script>
+    <script src="js/campaign.js"></script>
     <script src="js/shop.js"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
