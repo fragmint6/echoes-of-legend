@@ -4094,6 +4094,9 @@
       var rm = $('btn-rematch');
       if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
     }
+    if (window.EOL.campaign && window.EOL.campaign.onBattleResult) {
+      window.EOL.campaign.onBattleResult(win);
+    }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
        once the set is decided, and was never touched outside a set. */

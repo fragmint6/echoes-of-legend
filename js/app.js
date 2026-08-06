@@ -581,6 +581,19 @@
   });
 
   /* ---------------- view routing ---------------- */
+  var PARENT_VIEW = {
+    deck: 'collection',
+    collection: 'home',
+    rulebook: 'home',
+    shop: 'home',
+    play: 'home',
+    campaign: 'play',
+    chapter: 'campaign',
+    prep: 'play',
+    draft: 'play',
+    battle: 'home',
+  };
+
   var navHistory = [];
   var currentView = 'home';
 
@@ -590,9 +603,16 @@
     hideTipDot();
     // any battle tooltip must not survive a view change
     if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
+
     if (!opts.isBack && currentView && currentView !== view) {
-      navHistory.push(currentView);
-      if (navHistory.length > 50) navHistory.shift();
+      // Loop protection: if navigating to a view already in history, truncate to that point
+      var existingIndex = navHistory.indexOf(view);
+      if (existingIndex >= 0) {
+        navHistory = navHistory.slice(0, existingIndex);
+      } else {
+        navHistory.push(currentView);
+        if (navHistory.length > 30) navHistory.shift();
+      }
     }
     currentView = view;
     document.querySelectorAll('[data-view]').forEach(function (v) {
@@ -625,17 +645,15 @@
       window.EOL.decks.closeEditor();
       return;
     }
+    while (navHistory.length > 0 && navHistory[navHistory.length - 1] === cur) {
+      navHistory.pop();
+    }
     if (navHistory.length > 0) {
       var prev = navHistory.pop();
       show(prev, { isBack: true });
     } else {
-      // Default view hierarchy fallback
-      if (cur === 'chapter') show('campaign', { isBack: true });
-      else if (cur === 'campaign' || cur === 'prep' || cur === 'draft')
-        show('play', { isBack: true });
-      else if (cur === 'play' || cur === 'collection' || cur === 'shop' || cur === 'battle')
-        show('home', { isBack: true });
-      else show('home', { isBack: true });
+      var fallback = PARENT_VIEW[cur] || 'home';
+      show(fallback, { isBack: true });
     }
   }
 
