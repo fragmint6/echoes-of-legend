@@ -453,10 +453,20 @@ section('B6. Susanoo - Slayer of Yamata no Orochi (per-trigger routing)');
 section('B7. Regression probes - existing roster actives');
 const PROBES = {
   'camelot-merlin': (B, u) => {
-    const before = E.costOf(B, alliesOf(B)[1], alliesOf(B)[1].card.ability);
+    const mate = alliesOf(B)[1];
+    const mateBasic = E.roleAbility(mate);
+    const before = E.costOf(B, mate, mate.card.ability);
+    const beforeBasic = E.costOf(B, mate, mateBasic);
     cast(B, u.card.id, []);
-    const after = E.costOf(B, alliesOf(B)[1], alliesOf(B)[1].card.ability);
+    const after = E.costOf(B, mate, mate.card.ability);
     ok(after <= before, 'Merlin: allied skill costs reduced');
+    /* BOTH halves of Prophecy are Signature-only (2026-08-05). Allied
+       role Basics keep their printed price - without this the discount
+       silently subsidised the cheap fallback every hero casts. */
+    ok(
+      E.costOf(B, mate, mateBasic) === beforeBasic,
+      'Merlin: allied Basics are NOT discounted'
+    );
     ok(alliesOf(B).every((a) => a.shield > 0), 'Merlin: all allies shielded');
     /* 55 EN / signature-only tax retune (2026-08-05) */
     ok(u.card.ability.cost === 55, 'Merlin: Prophecy costs 55');
@@ -1273,6 +1283,165 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
   ok(
     wu.buffs.some((b) => b.stat === 'atk' && b.amt > 0),
     'Sun Wukong: the rebirth ATK buff survives its own wipe'
+  );
+}
+
+/* =============================================================
+   F. DRAFT INTELLIGENCE - rating coverage
+   -------------------------------------------------------------
+   The defect this section exists to prevent, in full, because it
+   shipped: the draft AI used to score cards from a hand-copied
+   `POWER` table that rated 51 of 63 heroes. `powerOf` returned 0 for
+   the other twelve, and 0 is not "unknown", it is the roster MEAN -
+   so every Duat hero and half of Grimmwood were drafted, banned and
+   fielded as exactly average. Nothing anywhere asserted that the
+   table covered the roster, so adding a faction silently degraded
+   the bot and no test went red.
+
+   data/draft-ai.js no longer has a table - it prices cards off their
+   own effect trees and then MEASURES them by playing them - so
+   coverage is total by construction. These assertions make that
+   structural claim a checked one: add a hero, add a faction, and if
+   the brain cannot rate it this goes red immediately.
+
+   The cheap path (the analytic cold-start estimate) is asserted
+   always. `--probe` additionally runs the real measurement, which
+   plays a few hundred duels and takes ~15s, and asserts the same
+   coverage on the rating that actually ships.
+   ============================================================= */
+section('F. DRAFT INTELLIGENCE - rating coverage');
+{
+  eval(fs.readFileSync(path.join(ROOT, 'data/draft-ai.js'), 'utf8'));
+  const DAI = EOL.draftAI;
+  ok(!!DAI, 'draft AI module loads');
+
+  const rate = (label, of) => {
+    const vals = ALL.map((c) => of(c));
+    const bad = ALL.filter((c, i) => !isFinite(vals[i]));
+    ok(bad.length === 0, `${label}: every hero rates to a finite number (${bad.map((c) => c.id).join(', ')})`);
+    /* The old failure mode was invisible precisely because it looked
+       like a valid number. A card is only allowed to sit exactly on
+       the roster mean if a real measurement put it there, so more
+       than a couple of exact zeros means ids are being missed. */
+    const zeros = ALL.filter((c, i) => vals[i] === 0);
+    ok(
+      zeros.length <= 1,
+      `${label}: at most one hero sits exactly on the mean (got ${zeros.length}: ${zeros
+        .map((c) => c.id)
+        .slice(0, 14)
+        .join(', ')})`
+    );
+    const distinct = new Set(vals.map((v) => v.toFixed(3))).size;
+    ok(distinct >= ALL.length * 0.8, `${label}: ratings discriminate (${distinct} distinct of ${ALL.length})`);
+    const sorted = vals.slice().sort((a, b) => a - b);
+    ok(sorted[sorted.length - 1] - sorted[0] > 1, `${label}: the scale has real spread`);
+    return vals;
+  };
+
+  ok(DAI.ratingSource() === 'estimated', 'cold start answers from the analytic estimate, not a table');
+  rate('cold-start estimate', (c) => DAI.powerOf(c));
+
+  /* Synergy has to be alive. It was dead code in the shipped module
+     for its entire life - `tags()` was handed the {card,faction}
+     wrapper and indexed it by `.id`, so every one of the 1,953 pairs
+     scored 0.0 and the bot never once considered a combination. */
+  const POOL = [];
+  EOL.factions.forEach((f) => f.cards.forEach((c) => POOL.push({ card: c, faction: f })));
+  let synTotal = 0, synPairs = 0;
+  for (let i = 0; i < POOL.length; i += 1) {
+    for (let j = i + 1; j < POOL.length; j += 1) {
+      synTotal += DAI.pairSynergy(POOL[i], POOL[j]);
+      synPairs += 1;
+    }
+  }
+  ok(synTotal > 0, `pair synergy is live, not dead code (${synTotal.toFixed(1)} over ${synPairs} pairs)`);
+
+  /* The cold-start estimate prices an ability by walking the same
+     effect tree the engine executes. An effect kind it has no case for
+     is priced at nothing - silently, exactly like the missing table
+     rows did. So: every kind the ROSTER actually uses must have a case
+     in `nodeValue`. Ship a new effect and this goes red on the same run
+     that the engine's own kind check does. */
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'data/draft-ai.js'), 'utf8');
+    const from = src.indexOf('function nodeValue(');
+    const to = src.indexOf('\n  function ', from + 1);
+    ok(from > 0 && to > from, 'the draft AI effect pricer is findable for auditing');
+    const priced = new Set(
+      (src.slice(from, to).match(/case '(\w+)':/g) || []).map((m) => m.match(/'(\w+)'/)[1])
+    );
+    /* Structural nodes: the walker recurses into them and prices the
+       arms, so the node itself correctly costs nothing. */
+    ['branch', 'coinFlip', 'randomOf', 'delayed', 'repeat', 'perTarget'].forEach((k) => priced.add(k));
+    const used = new Set();
+    ALL.forEach((c) => walkEffects(c, (e) => used.add(e.k)));
+    const unpriced = [...used].filter((k) => !priced.has(k)).sort();
+    ok(
+      unpriced.length === 0,
+      `the draft AI prices every effect kind in the roster (unpriced: ${unpriced.join(', ')})`
+    );
+  }
+
+  /* Scale discipline: both public scores must be a property of the
+     FIT, not of how many cards happen to be on the board. Summed
+     terms grow with team size and drown the strength term - the bug
+     that made the first rewrite lose 71/29 to the module it replaced. */
+  const cand = POOL.find((e) => e.card.id === 'camelot-mordred');
+  const small = POOL.filter((e) => e.card.id !== cand.card.id).slice(0, 3);
+  const big = POOL.filter((e) => e.card.id !== cand.card.id).slice(0, 11);
+  const vSmall = DAI.value(small, cand, { size: 12 });
+  const vBig = DAI.value(big, cand, { size: 12 });
+  ok(Math.abs(vBig - vSmall) < 6, `value() does not inflate with team size (3 mates ${vSmall.toFixed(2)} vs 11 mates ${vBig.toFixed(2)})`);
+  const dSmall = DAI.denyValue(small, cand, small);
+  const dBig = DAI.denyValue(big, cand, big);
+  ok(Math.abs(dBig - dSmall) < 6, `denyValue() does not inflate with roster size (${dSmall.toFixed(2)} vs ${dBig.toFixed(2)})`);
+
+  if (process.argv.indexOf('--probe') >= 0) {
+    const t0 = Date.now();
+    /* The probe retunes the search AI's depth and rollout budget - both
+       module-level globals - and must hand them back exactly as it
+       found them. A probe that forgot would quietly play the rest of
+       the session, or the rest of a sim run, at depth 1. */
+    const depthBefore = AI.SEARCH_DEPTH;
+    const budgetBefore = JSON.stringify(AI.simulationBudget());
+    const measured = DAI.measureNow();
+    ok(!!measured, 'the measured rating runs against the live engine');
+    ok(
+      measured && Object.keys(measured).length === ALL.length,
+      `the measured rating covers the whole roster (${measured ? Object.keys(measured).length : 0}/${ALL.length})`
+    );
+    ok(DAI.ratingSource() === 'cached', 'after measuring, powerOf answers from the measurement');
+    rate('measured rating', (c) => DAI.powerOf(c));
+    ok(AI.SEARCH_DEPTH === depthBefore, 'the probe hands the search AI back at the depth it borrowed it at');
+    ok(JSON.stringify(AI.simulationBudget()) === budgetBefore, 'the probe restores the search AI rollout budget');
+
+    /* DETERMINISM. js/ai.js cuts its rollout loops on wall clock, so a
+       probe run under a real time budget measures a card differently on
+       a loaded machine than on an idle one - and the result is cached
+       in the player's localStorage, so that difference would persist.
+       The probe sets an unreachable budget for exactly this reason;
+       this asserts it, because the failure is silent and only shows up
+       as ratings that drift between sessions. */
+    DAI._rebuild();
+    const again = DAI.measureNow();
+    ok(
+      JSON.stringify(again) === JSON.stringify(measured),
+      'the measured rating is deterministic - two runs agree exactly'
+    );
+    console.log('  (probe took ' + ((Date.now() - t0) / 1000).toFixed(1) + 's for two full runs)');
+  }
+
+  /* A hero the roster has never seen - a campaign boss handed straight
+     to the engine - must be priced, not called average. Last, because
+     `learn()` widens the roster and the coverage counts above are
+     exact. */
+  const boss = JSON.parse(JSON.stringify(CARD['camelot-mordred']));
+  boss.id = '_audit-boss';
+  boss.stats.atk = Math.round(boss.stats.atk * 1.6);
+  DAI.learn(boss);
+  ok(
+    isFinite(DAI.powerOf(boss)) && DAI.powerOf(boss) !== 0,
+    'an unknown card is priced on the spot, not defaulted to the mean'
   );
 }
 

@@ -60,14 +60,26 @@ window.EOL.registerFaction({
            touches SIGNATURE SKILLS ONLY - role Basics stay at their
            normal price. The ally discount and the team Shield are
            unchanged. Engine: costMod carries `signaturesOnly`, read in
-           costOf() and preserved through cloneBattle/cloneUnit. */
+           costOf() and preserved through cloneBattle/cloneUnit.
+
+           FIX 2026-08-05 (user): the ALLY half now carries the same
+           flag. Prophecy is meant to be a Signature enabler on both
+           ends - "Merlin's signature should only affect the signatures
+           of other cards and not basics". Half-flagged, it read as a
+           symmetric effect on the card but behaved asymmetrically:
+           enemy Basics were exempt while allied Basics got the -15.
+           That is a real edge, not a cosmetic one, because role Basics
+           are the cheap fallback every hero can cast every round - a
+           blanket discount on them turned a setup piece into a
+           team-wide economy engine, and it is why he over-performed
+           beside a wide board rather than beside expensive kits. */
         cost: 55,
-        text: 'Immediately reduce allied Skill costs by <b>15 Energy</b> and increase enemy <b>Signature</b> costs by <b>15 Energy</b> for 1 round, and grant all allies an <b>8% Max HP Shield</b>.',
-        note: null,
+        text: 'Immediately reduce allied <b>Signature</b> costs by <b>15 Energy</b> and increase enemy <b>Signature</b> costs by <b>15 Energy</b> for 1 round, and grant all allies an <b>8% Max HP Shield</b>.',
+        note: 'Role Basics are unaffected on both sides.',
         spec: {
           target: { side: 'none' },
           effects: [
-            { k: 'costMod', flat: -15, turns: 1, side: 'ally' },
+            { k: 'costMod', flat: -15, turns: 1, side: 'ally', signaturesOnly: true },
             { k: 'costMod', flat: 15, turns: 1, side: 'enemy', when: 'now', signaturesOnly: true },
             { k: 'shield', pctMaxHp: 8, to: 'allies' },
           ],

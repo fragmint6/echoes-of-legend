@@ -699,6 +699,81 @@
      popup shows that backdrop full-bleed; the procedural CSS scene from
      fieldArt() stays as the fallback for art-less fields.
      --------------------------------------------------------- */
+  /* ---------------------------------------------------------
+     BATTLEFIELD ART PRELOADER
+     -------------------------------------------------------------
+     The boards are 100-230 KB JPEGs and the reveal popup paints one
+     full-bleed the instant bans are locked. Previously the only
+     warm-up was a throwaway `new Image()` in startPrep: a local that
+     went out of scope immediately, so the decoded bitmap was
+     collectible, and it warmed ONLY game 1's board - in Unabridged the
+     other two arenas were cold every time. Either way the popup opened
+     on a flat colour and the photo faded in a beat later, which is the
+     "not rendered right away" the player sees.
+
+     Three things fix it, and all three are needed:
+       1. Keep a reference. `KEPT` holds the Image objects for the life
+          of the page so nothing decoded is thrown away.
+       2. decode(), not just load. `onload` means the bytes arrived;
+          `decode()` means the bitmap is ready to paint this frame.
+          Skipping it left a real decode on the critical path for a
+          230 KB photo.
+       3. Warm every board the MATCH can reach, not just the next one,
+          during the ban phase - which is dead time measured in seconds.
+     `warm()` is idempotent and returns the same promise per URL.
+     --------------------------------------------------------- */
+  var ART_CACHE = {};
+  var KEPT = [];
+  function artUrl(field) {
+    return field && field.art ? new URL(field.art, document.baseURI).href : null;
+  }
+  function warm(field) {
+    var url = artUrl(field);
+    if (!url) return Promise.resolve(false);
+    if (ART_CACHE[url]) return ART_CACHE[url];
+    var img = new Image();
+    KEPT.push(img);
+    var p = new Promise(function (resolve) {
+      var done = function (okay) {
+        return function () {
+          resolve(okay);
+        };
+      };
+      img.onload = function () {
+        /* decode() rejects on a broken image and is missing on older
+           engines - either way the load alone is still a win, so the
+           failure path resolves rather than propagating. */
+        if (img.decode) img.decode().then(done(true), done(true));
+        else resolve(true);
+      };
+      img.onerror = done(false);
+      img.src = url;
+    });
+    ART_CACHE[url] = p;
+    return p;
+  }
+  /* Warm a whole match's worth of boards: the one in play plus every
+     slot on an Unabridged fight card. */
+  function warmFields(list) {
+    (list || []).forEach(function (f) {
+      warm(f);
+    });
+  }
+  /* Resolve when the art is painted-ready, or when `ms` is up - a slow
+     or missing file must never hold the popup shut. */
+  function warmOrTimeout(field, ms) {
+    var url = artUrl(field);
+    if (!url) return Promise.resolve(false);
+    return Promise.race([
+      warm(field),
+      new Promise(function (r) {
+        setTimeout(function () {
+          r(false);
+        }, ms);
+      }),
+    ]);
+  }
+
   function revealBattlefield(field, onDone) {
     if (!field) return false;
     var host = $('bf-reveal');
@@ -710,8 +785,7 @@
       artEl.classList.add('has-art');
       /* Resolve against the DOCUMENT, not the stylesheet - the bare
          relative path once 404'd this same way on the battle board. */
-      artEl.style.backgroundImage =
-        'url("' + new URL(field.art, document.baseURI).href + '")';
+      artEl.style.backgroundImage = 'url("' + artUrl(field) + '")';
       artEl.innerHTML = '';
     } else {
       artEl.classList.remove('has-art');
@@ -730,28 +804,42 @@
     card.style.setProperty('--bf-1', field.colors.primary);
     card.style.setProperty('--bf-2', field.colors.secondary);
     card.style.setProperty('--bf-3', field.colors.glow);
-    host.classList.add('show');
-    host.setAttribute('aria-hidden', 'false');
+
     var go = $('bf-go');
-    /* "Field your six" stays locked until the battlefield card's
-       entrance finishes (2026-08-05) - the reveal IS the battlefield
-       selection animation in single games, and clicking through it mid-
-       flight cut the moment short. bf-in runs 0.6s after a 0.12s delay;
-       the timeout is a fallback if animationend never reaches us. */
-    go.disabled = true;
-    var unlock = function () {
-      go.disabled = false;
-      card.removeEventListener('animationend', unlock);
-      clearTimeout(unlockT);
-    };
-    var unlockT = setTimeout(unlock, 900);
-    card.addEventListener('animationend', unlock);
     go.onclick = function () {
       if (go.disabled) return;
       host.classList.remove('show');
       host.setAttribute('aria-hidden', 'true');
       if (onDone) setTimeout(onDone, 260); // let the card fade before the tip
     };
+
+    /* HOLD THE CURTAIN until the backdrop can paint. The card's entrance
+       (bf-in, 0.6s) is the moment the board is revealed, and starting it
+       over an empty rectangle - then dropping the photo in mid-flight -
+       is what read as unpolished. `warmFields` has almost always
+       finished this during the ban phase, so the wait is normally zero
+       frames; the 500ms cap means a cold cache or a missing file
+       degrades to exactly the old behaviour instead of hanging. */
+    var open = function () {
+      host.classList.add('show');
+      host.setAttribute('aria-hidden', 'false');
+      /* "Field your six" stays locked until the battlefield card's
+         entrance finishes (2026-08-05) - the reveal IS the battlefield
+         selection animation in single games, and clicking through it
+         mid-flight cut the moment short. bf-in runs 0.6s after a 0.12s
+         delay; the timeout is a fallback if animationend never reaches
+         us. */
+      go.disabled = true;
+      var unlock = function () {
+        go.disabled = false;
+        card.removeEventListener('animationend', unlock);
+        clearTimeout(unlockT);
+      };
+      var unlockT = setTimeout(unlock, 900);
+      card.addEventListener('animationend', unlock);
+    };
+    if (field.art) warmOrTimeout(field, 500).then(open);
+    else open();
     return true;
   }
 
@@ -823,13 +911,16 @@
        host rolls it from the shared match rng and it is derived, not
        re-rolled, on the guest. */
     var isMp = !!cfg.mp;
-    /* THE SET: a fresh solo prep under warLength 'set' begins a new war
+    /* THE SET: a fresh prep under warLength 'set' begins a new war
        (fight card drawn here, game 1's board pre-designated). ANY
-       non-continuing prep - a classic single, a draft, an MP match -
-       kills a stale set, so quitting mid-set can never leak state. */
-    if (!isMp && !cfg.setContinues) {
+       non-continuing prep kills a stale set, so quitting mid-set can
+       never leak state. The kill is UNCONDITIONAL - it used to skip
+       multiplayer, which left a live solo set attached to an online
+       match and let setGameResult() reframe that match's result as
+       war progress. */
+    if (!cfg.setContinues) {
       setKill();
-      if (warLength() === 'set') cfg.field = cfg.field || setBegin(cfg);
+      if (canBeSet(cfg)) cfg.field = cfg.field || setBegin(cfg);
     }
     var foeBans = isMp ? null : chooseBans(cfg.player12, cfg.enemy12);
     prep = {
@@ -852,13 +943,17 @@
     };
     /* Warm the battlefield art the moment it is rolled: the reveal popup
        after the ban phase and then the battle board both paint the same
-       image, so fetching it now, during the ban phase, lets it decode off
-       the critical path - both moments open fully painted instead of
-       fading in a beat late. */
-    if (prep.field && prep.field.art) {
-      var warm = new Image();
-      warm.src = new URL(prep.field.art, document.baseURI).href;
-    }
+       image, so fetching AND DECODING it now, during the ban phase, keeps
+       it off the critical path - both moments open fully painted instead
+       of fading in a beat late.
+
+       In Unabridged all three fight-card arenas are warmed, not just
+       game 1's. Games 2 and 3 pick their board from that card, and the
+       old one-image warm-up meant those two reveals were always cold -
+       the exact place the pop-in was most visible, because by then the
+       player knows what they are waiting for. Three JPEGs is ~500 KB
+       against a ban phase that lasts seconds. */
+    warmFields([prep.field].concat(setState ? setState.card : []));
     if (isMp) window.EOL.netplay.startBans(onFoeBans);
     prepAnim = true;
     renderPrep();
@@ -2171,6 +2266,27 @@
     });
   }
 
+  /* WHICH MATCHES CAN BE A WAR (user law, 2026-08-05).
+     -------------------------------------------------------------
+     Unabridged is a CLASSIC format and nothing else. A draft is a
+     single game: you build a twelve out of packs instead of bringing
+     a saved one, and then you play exactly one Classic-shaped game.
+
+     This used to be decided by `warLength()` alone, and that toggle is
+     a persisted global (`eol.war.length`) written by the Classic deck
+     popup. A draft never opens that popup, so it could not turn the
+     setting off - it just inherited whatever the last Classic launch
+     left behind. Anyone who had played one Unabridged Classic got
+     three-battlefield wars out of every draft from then on, with no
+     control anywhere in the UI. Reading the MODE here is what makes it
+     impossible rather than merely unlikely, and it also covers
+     multiplayer, where the format is the room's to decide. */
+  function canBeSet(cfg) {
+    if (!cfg || cfg.mp) return false;
+    if (cfg.mode !== 'classic') return false;
+    return warLength() === 'set';
+  }
+
   var setState = null; /* see setBegin */
   function setBegin(cfg) {
     var card = [];
@@ -2731,7 +2847,13 @@
      also guard, but the chip must not linger over the menu. */
   document.addEventListener('eol:view', function (e) {
     if (!setState) return;
-    var v = e.detail && e.detail.view;
+    /* `eol:view` carries the view NAME as its detail, not an object -
+       see ui.show() in js/app.js and every other listener in the
+       client. Reading `.view` off a string is always undefined, so the
+       guard below could never fire and a war outlived every exit from
+       it. The set pill then hung over the main menu and the next
+       Classic result was still scored as war progress. */
+    var v = typeof e.detail === 'string' ? e.detail : e.detail && e.detail.view;
     if (v && v !== 'prep' && v !== 'battle' && v !== 'draft') setKill();
   });
 
@@ -3010,6 +3132,23 @@
   document.addEventListener('DOMContentLoaded', function () {
     initQuitGuard();
     initMultiplayer();
+    /* Rate the roster while the player is still on the menu.
+       -------------------------------------------------------------
+       The draft brain works out how strong a hero is by PLAYING it -
+       a controlled duel per card against a squad of average bodies -
+       instead of reading a hand-maintained table that goes stale
+       (see data/draft-ai.js §2). That costs a few seconds of CPU the
+       first time a roster version is seen, so it is started here, at
+       the menu, on idle callbacks only, and the result is cached in
+       localStorage under a fingerprint of every card's stats and
+       ability. It never runs while a battle is on screen, and until it
+       lands the AI answers from its analytic estimate - so this is
+       purely a head start, never a dependency. */
+    try {
+      if (DAI() && DAI().warm) DAI().warm();
+    } catch (e) {
+      /* a rating that cannot start must never stop the menu loading */
+    }
     /* THE SET: the war-length toggle's listeners. Bound HERE with the
        other main wiring (not in the set module, whose own DCL listener
        registered too late in the script order to fire). */
@@ -3030,11 +3169,25 @@
       md.addEventListener('click', function () {
         startDraft();
       });
-    // mode-campaign is disabled-markup only: a visible placeholder that
-    // does nothing until the campaign arrives
+    /* CAMPAIGN (2026-08-05). The mode card now routes to a real view -
+       a chapter select with exactly one chapter on it. Everything past
+       that point is still unbuilt: the chapter card acknowledges the
+       click and goes nowhere, and nothing in this flow touches save
+       state, the roster or a battle. Chapter 1's ten stages are
+       specified in docs/DESIGN-Campaign-Chapter1.md (rev 5). */
     if (mcmp)
-      mcmp.addEventListener('click', function (e) {
-        e.preventDefault();
+      mcmp.addEventListener('click', function () {
+        window.EOL.ui.show('campaign');
+      });
+    var cback = $('btn-campaign-back');
+    if (cback)
+      cback.addEventListener('click', function () {
+        window.EOL.ui.show('play');
+      });
+    var ch1 = $('chapter-1');
+    if (ch1)
+      ch1.addEventListener('click', function () {
+        toast('The Road of Echoes is not open yet', 'ra-compass');
       });
 
     var bp = $('btn-play-back');
