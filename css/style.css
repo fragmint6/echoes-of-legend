@@ -20899,8 +20899,7 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
-/* ---------------- chapter 1: animated road-of-echoes backdrop ---------------- */
-
+/* ---- chapter 1: four-plane parallax ---- */
 .chapter-bg {
   position: fixed;
   inset: 0;
@@ -20919,13 +20918,59 @@ body[data-view='chapter'] .bg-grid {
 }
 .chapter-bg > span {
   position: absolute;
-  inset: 0;
+  top: 0; left: 0;
+  width: 1920px; height: 1080px;
   display: block;
   pointer-events: none;
-}
-.cw-scene {
-  background: url('../assets/chapter-1/road-of-echoes.gif') center bottom / cover no-repeat;
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+  background-position: 0 0;
   image-rendering: auto;
+}
+
+/* layer 1: sky — slowest pan, distant stars and night-to-dawn gradient */
+.cw-sky {
+  background-image: url('../assets/chapter-1/cw-sky.png');
+  z-index: 1;
+  animation: cw-pan-sky 420s linear infinite;
+}
+
+/* layer 2: far ridge — distant forest canopy silhouettes */
+.cw-far {
+  background-image: url('../assets/chapter-1/cw-far.png');
+  z-index: 2;
+  animation: cw-pan-far 280s linear infinite;
+}
+
+/* layer 3: mid — the road, mid trees, brass tags, lantern glow */
+.cw-mid {
+  background-image: url('../assets/chapter-1/cw-mid.png');
+  z-index: 3;
+  animation: cw-pan-mid 180s linear infinite;
+}
+
+/* layer 4: near — foreground silhouette trunks framing the view */
+.cw-near {
+  background-image: url('../assets/chapter-1/cw-near.png');
+  z-index: 4;
+  animation: cw-pan-near 90s linear infinite;
+}
+
+@keyframes cw-pan-sky {
+  from { background-position: 0 0; }
+  to   { background-position: -1920px 0; }
+}
+@keyframes cw-pan-far {
+  from { background-position: 0 0; }
+  to   { background-position: -1920px 0; }
+}
+@keyframes cw-pan-mid {
+  from { background-position: 0 0; }
+  to   { background-position: -1920px 0; }
+}
+@keyframes cw-pan-near {
+  from { background-position: 0 0; }
+  to   { background-position: -1920px 0; }
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -21749,16 +21794,14 @@ html.mqh820 .rival-art.has-portrait {
 
 /* The full paint remains in low graphics; only optional scene/card motion
    drops, matching the main menu's accessibility and performance contract. */
-body[data-gfx='low'] .chapter-bg > span,
-body[data-gfx='low'] .view.chapter.active .rival-card {
+body[data-gfx='low'] .chapter-bg > span {
   animation: none !important;
 }
 body[data-gfx='low'] .rival-card.is-first:hover {
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .chapter-bg > span,
-  .view.chapter.active .rival-card {
+  .chapter-bg > span {
     animation: none !important;
   }
   .rival-card,
