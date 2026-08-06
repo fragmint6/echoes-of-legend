@@ -20899,7 +20899,8 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
-/* ---------------- chapter 1: animated woods backdrop ---------------- */
+/* ---------------- chapter 1: animated road-of-echoes backdrop ---------------- */
+
 .chapter-bg {
   position: fixed;
   inset: 0;
@@ -20923,9 +20924,8 @@ body[data-view='chapter'] .bg-grid {
   pointer-events: none;
 }
 .cw-scene {
-  background: url('../assets/chapter-1/woods-scene.gif') center bottom / cover no-repeat;
-  image-rendering: pixelated;
-  -ms-interpolation-mode: nearest-neighbor;
+  background: url('../assets/chapter-1/road-of-echoes.png') center bottom / cover no-repeat;
+  image-rendering: auto;
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -20948,8 +20948,6 @@ body[data-view='chapter'] .bg-grid {
 .chapter-head {
   position: relative;
   margin-bottom: 20px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: 12px 18px 18px;
   border-radius: 16px;
   background: radial-gradient(
