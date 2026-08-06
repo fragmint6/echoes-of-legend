@@ -15685,14 +15685,17 @@ body[data-view='home'] .menu-bg,
 body[data-view='chapter'] .menu-bg {
   opacity: 1;
 }
-/* When on the chapter view, hide the menu's landscape parallax layers
-   so only the atmospheric particles (embers, wisps, fog, etc.) show up
-   over the chapter's own painted backdrop. */
+/* On the chapter view: hide the menu's landscape parallax planes and
+   any effects that don't fit the forest atmosphere. Keep the embers,
+   wisps, fog banks, ash, spores, and motes — the organic weather. */
 body[data-view='chapter'] .mb-sky,
 body[data-view='chapter'] .mb-far,
 body[data-view='chapter'] .mb-mid,
 body[data-view='chapter'] .mb-near,
-body[data-view='chapter'] .mb-grade {
+body[data-view='chapter'] .mb-grade,
+body[data-view='chapter'] .mb-shoot,
+body[data-view='chapter'] .mb-rays,
+body[data-view='chapter'] .mb-embers.hot {
   opacity: 0 !important;
 }
 .menu-bg > span {
@@ -20942,30 +20945,31 @@ body[data-view='chapter'] .bg-grid {
   z-index: 2;
   pointer-events: none;
   background:
-    /* heavy dark edge vignette */
-    radial-gradient(ellipse 80% 80% at 50% 45%, transparent 40%, rgba(3,5,10,0.72) 100%),
-    /* deepen the lower half — road feels like it's disappearing into gloom */
-    linear-gradient(to top, rgba(3,5,10,0.55) 0%, transparent 55%),
-    /* cool blue tint over the upper half — colder night feel */
-    linear-gradient(to bottom, rgba(14,18,40,0.25) 0%, transparent 50%);
+    /* heavy dark edge vignette — darker corners, pulls focus to centre */
+    radial-gradient(ellipse 75% 75% at 50% 45%, transparent 35%, rgba(2,4,9,0.78) 100%),
+    /* deepen the lower half — road disappears into true gloom */
+    linear-gradient(to top, rgba(2,4,9,0.62) 0%, transparent 50%),
+    /* cool blue tint over the upper sky — colder night feel */
+    linear-gradient(to bottom, rgba(12,16,34,0.30) 0%, transparent 48%);
 }
 
-/* warm lantern under-glow — a subtle pulse that makes the light feel alive */
+/* warm lantern under-glow that breathes — makes the fire feel alive */
 .cw-glow {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 28% 28% at 50% 68%, rgba(255,180,90,0.18), transparent 60%),
-    radial-gradient(ellipse 16% 18% at 50% 64%, rgba(255,200,120,0.25), transparent 55%),
-    radial-gradient(ellipse 6% 8% at 50% 62%, rgba(255,220,160,0.35), transparent 50%);
-  animation: cw-lantern-breathe 4s ease-in-out infinite alternate;
+    radial-gradient(ellipse 36% 34% at 50% 70%, rgba(255,175,80,0.22), transparent 58%),
+    radial-gradient(ellipse 22% 22% at 50% 65%, rgba(255,200,110,0.32), transparent 52%),
+    radial-gradient(ellipse 10% 12% at 50% 62%, rgba(255,225,150,0.48), transparent 48%),
+    radial-gradient(ellipse 4% 5% at 50% 60%, rgba(255,240,190,0.55), transparent 45%);
+  animation: cw-lantern-breathe 3.5s ease-in-out infinite alternate;
 }
 
 @keyframes cw-lantern-breathe {
-  from { opacity: 0.7; }
-  to   { opacity: 1; }
+  from { opacity: 0.6; }
+  to   { opacity: 1.15; }
 }
 
 /* drifting mist bands — thin horizontal haze strips at different depths */
@@ -20976,11 +20980,11 @@ body[data-view='chapter'] .bg-grid {
   pointer-events: none;
   background:
     /* far mist band */
-    radial-gradient(ellipse 110% 18% at 50% 50%, rgba(180,190,210,0.09), transparent 70%),
+    radial-gradient(ellipse 110% 16% at 50% 46%, rgba(175,188,210,0.10), transparent 68%),
     /* mid mist band */
-    radial-gradient(ellipse 80% 14% at 50% 70%, rgba(170,180,200,0.10), transparent 65%),
-    /* low fog band */
-    radial-gradient(ellipse 90% 16% at 50% 85%, rgba(160,170,190,0.12), transparent 68%);
+    radial-gradient(ellipse 80% 13% at 50% 68%, rgba(165,178,200,0.11), transparent 62%),
+    /* low fog band — thicker near the road */
+    radial-gradient(ellipse 90% 15% at 50% 84%, rgba(155,168,192,0.14), transparent 66%);
   animation: cw-haze-drift 26s ease-in-out infinite alternate;
 }
 
