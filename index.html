@@ -246,14 +246,6 @@
             <span>Rulebook</span>
           </button>
         </div>
-
-        <div class="home-stats">
-          <span><b id="stat-heroes"></b> Legends</span>
-          <span class="sep"></span>
-          <span><b id="stat-factions"></b> Factions</span>
-          <span class="sep"></span>
-          <span><b>6v6</b> Battles</span>
-        </div>
       </div>
     </section>
 
@@ -375,9 +367,9 @@
                 become castable.
               </li>
               <li>
-                <b>Phase 3 (Round 4+):</b> ATK Ramp begins. All legends gain an additional
-                <b>+20% ATK</b> per round cumulatively (+20% in R4, +40% in R5, etc.) to ensure
-                matches resolve cleanly.
+                <b>Phase 3 (Round 4+):</b> ATK Ramp begins. All living legends gain
+                <b>+15% ATK per round</b> compounding (<code>1 + (round - 3) &times; 15%</code>
+                &mdash; +15% in R4, +30% in R5, +45% in R6, etc.) to ensure matches resolve cleanly.
               </li>
               <li>
                 <b>Turn Passing:</b> A player may pass their action. If both sides pass
@@ -397,21 +389,23 @@
           <div class="rc-body">
             <ul>
               <li>
-                <b>Energy Income:</b> Both sides receive a rising base energy pool each round:
-                <b>50 EN</b> (R1), <b>60 EN</b> (R2), <b>70 EN</b> (R3), <b>80 EN</b> (R4),
-                <b>90 EN</b> (R5), <b>100 EN</b> (R6+).
+                <b>Energy Income:</b> Both sides receive energy at round rollover according to
+                <code>ENERGY_BY_ROUND = [60, 80, 100]</code>: <b>60 EN</b> in Round 1,
+                <b>80 EN</b> in Round 2, and <b>100 EN</b> in Round 3 and every subsequent round.
               </li>
               <li>
-                <b>Carry-over Cap:</b> Any unspent Energy at the end of a round carries over to the
-                next round, up to a maximum cap of <b>150 EN</b>.
+                <b>Carry-over Cap:</b> Any unspent Energy at the end of a round carries over and
+                adds to the next round's income, up to a hard ceiling of
+                <b>150 EN</b> (<code>ENERGY_CAP</code>).
               </li>
               <li>
                 <b>Comeback Mechanic:</b> If you start a round with fewer living legends than your
-                opponent, your team rallies with <b>+15 Energy per hero of deficit</b>.
+                opponent, your team rallies with
+                <b>+15 Energy per hero of deficit</b> (<code>COMEBACK_PER_HERO</code>).
               </li>
               <li>
-                <b>Ability Costs:</b> Basic skills cost 15 EN (or 0 EN if specified); Signature
-                Active skills cost between 20 and 55 EN.
+                <b>Ability Costs:</b> Basic skills cost 15 EN (or 0 EN if specified on role/card);
+                Signature Active skills cost between 20 and 55 EN.
               </li>
             </ul>
           </div>
@@ -431,17 +425,18 @@
               </li>
               <li>
                 <b>Melee / Front-Row Lock:</b> <b>Tanks</b> and <b>Bruisers</b> must target enemy
-                Front Row legends as long as any front-row enemy is alive. They can only target the
-                backline once the front row is cleared.
+                Front Row legends as long as any front-row enemy is alive (<code>isFront</code>).
+                They can only target the backline once the front row is cleared.
               </li>
               <li>
                 <b>Ranged Targeting:</b> <b>Casters</b>, <b>Controllers</b>, <b>Medics</b>, and
                 <b>Snipers</b> can freely target any row.
               </li>
               <li>
-                <b>Backline DEF Penalty:</b> When an entire Front Row is wiped out, surviving
-                Backline legends suffer a <b>-10% DEF penalty</b> as their defensive line has
-                collapsed.
+                <b>Backline DEF Penalty:</b> When an entire Front Row is wiped out
+                (<code>frontRowWiped</code>), surviving Backline legends suffer a
+                <b>-5% DEF penalty</b> (<code>BACKLINE_DEF_PENALTY = 5</code>) as their defensive
+                line has collapsed.
               </li>
             </ul>
           </div>
@@ -470,19 +465,23 @@
                 >.
               </li>
               <li>
-                <b>DEF Cap:</b> DEF is a percentage reduction, hard-capped at <b>75% max</b> so
-                damage is never completely reduced to zero.
+                <b>DEF Cap:</b> DEF is a percentage reduction, hard-capped at <b>75% max</b> (<code
+                  >clamp(d, 0, 75)</code
+                >) so damage is never completely reduced to zero.
               </li>
               <li>
                 <b>Damage Resistance Cap:</b> Flat timed damage resistance (Warded / Resist) is
-                capped at <b>90% max</b>.
+                capped at <b>90% max</b> (<code>Math.min(90, tgt.flags.resistPct)</code>).
               </li>
               <li>
                 <b>Critical Strikes:</b> Critical hits deal a fixed
-                <b>1.5&times; damage multiplier</b> based on the attacker's Crit Chance.
+                <b>1.5&times; damage multiplier</b> (<code>CRIT_MULT = 1.5</code>) based on the
+                attacker's Crit Chance.
               </li>
               <li>
-                <b>Minimum Damage:</b> Every hit that connects deals at least <b>1 damage</b>.
+                <b>Minimum Damage:</b> Every hit that connects deals at least <b>1 damage</b> (<code
+                  >Math.max(1, Math.round(afterDef))</code
+                >).
               </li>
             </ul>
           </div>
@@ -1260,17 +1259,24 @@
 
       <div class="chapter-rail">
         <button
-          class="chapter-card"
+          class="chapter-card has-cover"
           id="chapter-1"
           type="button"
           aria-label="Open Chapter 1: The Road of Echoes"
         >
           <span class="ch-art" aria-hidden="true">
-            <i class="ch-wm ra ra-compass"></i>
+            <img
+              class="ch-cover-img"
+              src="assets/rivals/gilgamesh.png"
+              alt="Gilgamesh"
+              draggable="false"
+            />
+            <span class="ch-cover-vignette"></span>
+            <i class="ch-wm ra ra-crowned-heart"></i>
             <span class="ch-mist"></span>
           </span>
           <span class="ch-body">
-            <span class="ch-kicker">Chapter 1</span>
+            <span class="ch-kicker">Chapter 1 &middot; Final Guardian: Gilgamesh</span>
             <span class="ch-name">The Road of Echoes</span>
             <span class="ch-desc">
               A nameless Wayfarer crosses ten gates before the First Legend decides whether a story
@@ -1278,7 +1284,7 @@
             </span>
             <span class="ch-meta">
               <span class="ch-chip"><i class="ri-flag-line"></i>10 stages</span>
-              <span class="ch-chip"><i class="ra ra-crossed-swords"></i>63 legends</span>
+              <span class="ch-chip"><i class="ra ra-crowned-heart"></i>Gilgamesh</span>
             </span>
             <span class="ch-cta"
               >Open chapter <i class="ri-arrow-right-line" aria-hidden="true"></i
