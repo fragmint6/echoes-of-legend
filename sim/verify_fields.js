@@ -9,12 +9,23 @@ const ROOT = path.resolve(__dirname, '..');
 global.window = {};
 global.performance = { now: () => Date.now() };
 [
-  'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
-  'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
-  'data/roma.js', 'data/takamagahara.js', 'data/battlefields.js',
-  'js/engine.js', 'js/ai.js',
+  'data/_schema.js',
+  'data/roles.js',
+  'data/camelot.js',
+  'data/olympus.js',
+  'data/sherwood.js',
+  'data/grimmwood.js',
+  'data/yamato.js',
+  'data/huaxia.js',
+  'data/roma.js',
+  'data/takamagahara.js',
+  'data/battlefields.js',
+  'js/engine.js',
+  'js/ai.js',
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
-const EOL = window.EOL, E = EOL.engine, AI = EOL.ai;
+const EOL = window.EOL,
+  E = EOL.engine,
+  AI = EOL.ai;
 
 const ALL = [];
 EOL.factions.forEach((f) => f.cards.forEach((c) => ALL.push(c)));
@@ -22,22 +33,40 @@ const CARD = {};
 ALL.forEach((c) => (CARD[c.id] = c));
 const ent = (id) => ({ card: CARD[id], faction: CARD[id].faction });
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 const fails = [];
-const ok = (c, m) => { if (c) pass++; else { fail++; fails.push(m); console.log('  \x1b[31mFAIL\x1b[0m  ' + m); } };
+const ok = (c, m) => {
+  if (c) pass++;
+  else {
+    fail++;
+    fails.push(m);
+    console.log('  \x1b[31mFAIL\x1b[0m  ' + m);
+  }
+};
 const sec = (t) => console.log('\n\x1b[1m' + t + '\x1b[0m');
 
 const FRONT = ['camelot-king-arthur', 'olympus-hercules', 'sherwood-guy-of-gisborne'];
 const BACK = ['sherwood-robin-hood', 'camelot-merlin', 'olympus-apollo'];
 const SIX = FRONT.concat(BACK);
-const FOES = ['yamato-benkei', 'huaxia-guan-yu', 'grimmwood-big-bad-wolf',
-  'olympus-medusa', 'grimmwood-pied-piper', 'camelot-guinevere'];
+const FOES = [
+  'yamato-benkei',
+  'huaxia-guan-yu',
+  'grimmwood-big-bad-wolf',
+  'olympus-medusa',
+  'grimmwood-pied-piper',
+  'camelot-guinevere',
+];
 
 function board(field, opts) {
   let n = (opts && opts.seed) || 1;
-  const rng = () => ((n = (n * 1103515245 + 12345) % 2147483648) / 2147483648);
-  const B = E.createBattle(SIX.map(ent), FOES.map(ent),
-    { rng, roleAware: true, simulation: true, field: field });
+  const rng = () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const B = E.createBattle(SIX.map(ent), FOES.map(ent), {
+    rng,
+    roleAware: true,
+    simulation: true,
+    field: field,
+  });
   B.noOpeningLimit = true;
   return B;
 }
@@ -51,7 +80,8 @@ const ids = EOL.battlefields.map((f) => f.id);
 ok(new Set(ids).size === ids.length, 'battlefield ids unique');
 const ICON_FILE = path.join(__dirname, 'fixtures', 'rpg-awesome-icons.txt');
 const ICONS = fs.existsSync(ICON_FILE)
-  ? new Set(fs.readFileSync(ICON_FILE, 'utf8').trim().split('\n')) : null;
+  ? new Set(fs.readFileSync(ICON_FILE, 'utf8').trim().split('\n'))
+  : null;
 EOL.battlefields.forEach((f) => {
   ok(!!f.name && !!f.tagline && !!f.icon, `${f.id}: has name/tagline/icon`);
   ok(Array.isArray(f.rules) && f.rules.length > 0, `${f.id}: documents its rules`);
@@ -60,10 +90,23 @@ EOL.battlefields.forEach((f) => {
 });
 {
   const c = F('colosseum');
-  const mods = ['basicsFrontRowOnly', 'backRowAtk', 'frontRowDef', 'energyPerRound',
-    'energyCap', 'echoFirstAbility', 'deathEnergy', 'woundedAtk', 'championAtk',
-    'championHp', 'roundBuffs'];
-  ok(mods.every((k) => c[k] === undefined), 'Colosseum carries NO mechanical modifiers');
+  const mods = [
+    'basicsFrontRowOnly',
+    'backRowAtk',
+    'frontRowDef',
+    'energyPerRound',
+    'energyCap',
+    'echoFirstAbility',
+    'deathEnergy',
+    'woundedAtk',
+    'championAtk',
+    'championHp',
+    'roundBuffs',
+  ];
+  ok(
+    mods.every((k) => c[k] === undefined),
+    'Colosseum carries NO mechanical modifiers'
+  );
 }
 
 /* ---------------- energy carry-over ---------------- */
@@ -71,7 +114,8 @@ sec('B. Energy carry-over (cap 150)');
 {
   const B = board(null);
   ok(B.energy.player === 60, `round 1 grants 60 (${B.energy.player})`);
-  B.energy.player = 50; B.energy.enemy = 50;
+  B.energy.player = 50;
+  B.energy.enemy = 50;
   E.nextRound(B); // round 2 grants 80
   ok(B.energy.player === 130, `unspent 50 + 80 grant = 130 (${B.energy.player})`);
   E.nextRound(B); // round 3 grants 100 -> 230 clamped to 150
@@ -114,18 +158,25 @@ sec('C. The Narrow Pass');
   }
   const B2 = board(null);
   B2.energy.player = 150;
-  ok(E.canUse(B2, U(B2, 'sherwood-robin-hood'), E.roleAbility(U(B2, 'sherwood-robin-hood'))),
-    'without the field the back row keeps its Basic');
+  ok(
+    E.canUse(B2, U(B2, 'sherwood-robin-hood'), E.roleAbility(U(B2, 'sherwood-robin-hood'))),
+    'without the field the back row keeps its Basic'
+  );
 }
 
 /* ---------------- 2. Open Plains ---------------- */
 sec('D. The Open Plains');
 {
-  const plain = board(null), open = board(F('open-plains'));
-  const bp = U(plain, 'sherwood-robin-hood'), bo = U(open, 'sherwood-robin-hood');
-  const fp = U(plain, 'camelot-king-arthur'), fo = U(open, 'camelot-king-arthur');
-  ok(Math.abs(E.atkOf(bo) / E.atkOf(bp) - 1.15) < 0.02,
-    `back row ATK +15% (${E.atkOf(bp)} -> ${E.atkOf(bo)})`);
+  const plain = board(null),
+    open = board(F('open-plains'));
+  const bp = U(plain, 'sherwood-robin-hood'),
+    bo = U(open, 'sherwood-robin-hood');
+  const fp = U(plain, 'camelot-king-arthur'),
+    fo = U(open, 'camelot-king-arthur');
+  ok(
+    Math.abs(E.atkOf(bo) / E.atkOf(bp) - 1.15) < 0.02,
+    `back row ATK +15% (${E.atkOf(bp)} -> ${E.atkOf(bo)})`
+  );
   ok(E.defOf(fo) === E.defOf(fp) - 15, `front row DEF -15 (${E.defOf(fp)} -> ${E.defOf(fo)})`);
   ok(E.atkOf(fo) === E.atkOf(fp), 'front row ATK unchanged');
   ok(E.defOf(bo) === E.defOf(bp), 'back row DEF unchanged');
@@ -135,7 +186,8 @@ sec('D. The Open Plains');
 sec('E. Mana Spring / Energy Void');
 {
   const B = board(F('mana-spring'));
-  B.energy.player = 0; B.energy.enemy = 0;
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B); // round 2: 80 + 20
   ok(B.energy.player === 100, `+20 per round (${B.energy.player})`);
   ok(E.energyCap(B) === 170, `cap raised to 170 (${E.energyCap(B)})`);
@@ -145,7 +197,8 @@ sec('E. Mana Spring / Energy Void');
 }
 {
   const B = board(F('energy-void'));
-  B.energy.player = 0; B.energy.enemy = 0;
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B); // round 2: 80 - 10
   ok(B.energy.player === 70, `-10 per round (${B.energy.player})`);
   ok(E.energyCap(B) === 150, 'cap unchanged at 150');
@@ -156,14 +209,20 @@ sec('E. Mana Spring / Energy Void');
 /* ---------------- 5. Colosseum ---------------- */
 sec('F. The Colosseum (neutral)');
 {
-  const plain = board(null), col = board(F('colosseum'));
-  const a = U(plain, 'sherwood-robin-hood'), b = U(col, 'sherwood-robin-hood');
+  const plain = board(null),
+    col = board(F('colosseum'));
+  const a = U(plain, 'sherwood-robin-hood'),
+    b = U(col, 'sherwood-robin-hood');
   ok(E.atkOf(a) === E.atkOf(b) && E.defOf(a) === E.defOf(b), 'stats identical to no-field');
-  col.energy.player = 0; plain.energy.player = 0;
-  E.nextRound(col); E.nextRound(plain);
+  col.energy.player = 0;
+  plain.energy.player = 0;
+  E.nextRound(col);
+  E.nextRound(plain);
   ok(col.energy.player === plain.energy.player, 'energy identical to no-field');
-  ok(E.canUse(col, U(col, 'sherwood-robin-hood'), E.roleAbility(U(col, 'sherwood-robin-hood'))),
-    'back row keeps its Basic');
+  ok(
+    E.canUse(col, U(col, 'sherwood-robin-hood'), E.roleAbility(U(col, 'sherwood-robin-hood'))),
+    'back row keeps its Basic'
+  );
 }
 
 /* ---------------- 6. Mirror Realm ---------------- */
@@ -177,31 +236,45 @@ sec('G. The Mirror Realm');
   const eBefore = B.energy.player;
   const cost = E.costOf(B, merlin, merlin.card.ability);
   E.useAbility(B, merlin, merlin.card.ability, []);
-  ok(B.roundEchoUsed === true, 'echo flag set after the first ability');
+  ok(
+    B.roundEchoUsed.player === true || B.roundEchoUsed === true,
+    "echo flag set after the player's first signature"
+  );
   ok(B.energy.player === eBefore - cost, `echo costs no energy (spent only ${cost})`);
-  // a second cast must NOT echo
+  // a second cast by player must NOT echo
   const gis = U(B, 'sherwood-guy-of-gisborne');
   B.energy.player = 150;
-  const before2 = B.roundEchoUsed;
+  const before2 = B.roundEchoUsed.player || B.roundEchoUsed;
   E.useAbility(B, gis, gis.card.ability, [foes.find((f) => f.alive && E.isFront(f)) || foes[0]]);
-  ok(before2 && B.roundEchoUsed, 'still only one echo this round');
+  ok(
+    before2 && (B.roundEchoUsed.player || B.roundEchoUsed),
+    'still only one echo for player this round'
+  );
   E.nextRound(B);
-  ok(B.roundEchoUsed === false, 'echo resets on the next round');
+  ok(!B.roundEchoUsed.player && !B.roundEchoUsed.enemy, 'echo resets on the next round');
 }
 {
   // the echo really does deal ~50% extra on a damaging skill
   const plain = board(null, { seed: 7 });
   const mirror = board(F('mirror-realm'), { seed: 7 });
-  [plain, mirror].forEach((B) => { B.energy.player = 150; });
-  const gp = U(plain, 'sherwood-guy-of-gisborne'), gm = U(mirror, 'sherwood-guy-of-gisborne');
+  [plain, mirror].forEach((B) => {
+    B.energy.player = 150;
+  });
+  const gp = U(plain, 'sherwood-guy-of-gisborne'),
+    gm = U(mirror, 'sherwood-guy-of-gisborne');
   const tp = plain.units.filter((u) => u.side === 'enemy' && E.isFront(u))[0];
   const tm = mirror.units.filter((u) => u.side === 'enemy' && E.isFront(u))[0];
-  const p0 = tp.hp, m0 = tm.hp;
+  const p0 = tp.hp,
+    m0 = tm.hp;
   E.useAbility(plain, gp, gp.card.ability, [tp]);
   E.useAbility(mirror, gm, gm.card.ability, [tm]);
-  const dp = p0 - tp.hp, dm = m0 - tm.hp;
+  const dp = p0 - tp.hp,
+    dm = m0 - tm.hp;
   ok(dm > dp, `echo adds damage (${dp} -> ${dm})`);
-  ok(Math.abs(dm / dp - 1.5) < 0.15, `echo is ~50% of the original (ratio ${(dm / dp).toFixed(2)})`);
+  ok(
+    Math.abs(dm / dp - 1.5) < 0.15,
+    `echo is ~50% of the original (ratio ${(dm / dp).toFixed(2)})`
+  );
 }
 
 /* ---------------- 7. Spirit World ---------------- */
@@ -247,10 +320,12 @@ const SW_VICTIM = 'huaxia-guan-yu';
   B.energy.player = 150;
   const guy = U(B, 'sherwood-guy-of-gisborne');
   const tgt = U(B, SW_VICTIM);
-  tgt.hp = Math.round(tgt.maxHp * 0.10); // below the 40% execute line, and hit 1 is lethal
+  tgt.hp = Math.round(tgt.maxHp * 0.1); // below the 40% execute line, and hit 1 is lethal
   let hits = 0;
   const prevHook = EOL.onBattleEvent;
-  EOL.onBattleEvent = (BB, ev) => { if (ev.t === 'dmg' && ev.tgt === tgt.uid) hits++; };
+  EOL.onBattleEvent = (BB, ev) => {
+    if (ev.t === 'dmg' && ev.tgt === tgt.uid) hits++;
+  };
   E.useAbility(B, guy, guy.card.ability, [tgt]);
   EOL.onBattleEvent = prevHook;
   ok(hits === 2, `both parts of the two-part skill fired (${hits}/2)`);
@@ -289,22 +364,30 @@ sec('I. The Ancient Ruins');
   const f = F('ancient-ruins');
   /* user law 2026-08-04: exactly three relics (+5% ATK / +5% DEF / 5% heal) */
   ok(f.roundBuffs.length === 3, `relic pool has exactly 3 entries (${f.roundBuffs.length})`);
-  ok(f.roundBuffs.every((b) => b.id && b.label && Array.isArray(b.effects)),
-    'every relic has id/label/effects');
+  ok(
+    f.roundBuffs.every((b) => b.id && b.label && Array.isArray(b.effects)),
+    'every relic has id/label/effects'
+  );
   const seen = {};
   for (let i = 0; i < 60; i++) {
     const B = board(f, { seed: 1000 + i * 37 });
-    B.units.forEach((u) => { u.hp = Math.round(u.maxHp * 0.5); });
+    B.units.forEach((u) => {
+      u.hp = Math.round(u.maxHp * 0.5);
+    });
     const evs = [];
-    EOL.onBattleEvent = (BB, ev) => { if (ev.t === 'fieldBuff') evs.push(ev.id); };
+    EOL.onBattleEvent = (BB, ev) => {
+      if (ev.t === 'fieldBuff') evs.push(ev.id);
+    };
     E.nextRound(B);
     EOL.onBattleEvent = null;
     evs.forEach((id) => (seen[id] = (seen[id] || 0) + 1));
   }
   const distinct = Object.keys(seen).length;
   ok(distinct >= 3, `relics vary across rounds (${distinct} distinct in 60 rolls)`);
-  ok(Object.keys(seen).every((k) => f.roundBuffs.some((b) => b.id === k)),
-    'every fired relic exists in the pool');
+  ok(
+    Object.keys(seen).every((k) => f.roundBuffs.some((b) => b.id === k)),
+    'every fired relic exists in the pool'
+  );
 }
 {
   // the relic reaches BOTH sides
@@ -312,10 +395,14 @@ sec('I. The Ancient Ruins');
   let applied = false;
   for (let i = 0; i < 40 && !applied; i++) {
     const B = board(f, { seed: 500 + i * 13 });
-    B.units.forEach((u) => { u.hp = Math.round(u.maxHp * 0.4); });
+    B.units.forEach((u) => {
+      u.hp = Math.round(u.maxHp * 0.4);
+    });
     const before = B.units.map((u) => u.hp);
     let fired = null;
-    EOL.onBattleEvent = (BB, ev) => { if (ev.t === 'fieldBuff') fired = ev.id; };
+    EOL.onBattleEvent = (BB, ev) => {
+      if (ev.t === 'fieldBuff') fired = ev.id;
+    };
     E.nextRound(B);
     EOL.onBattleEvent = null;
     if (fired === 'mend') {
@@ -325,32 +412,47 @@ sec('I. The Ancient Ruins');
       applied = true;
     }
   }
-  if (!applied) console.log('       (mend relic did not roll in 40 tries - skipped symmetry probe)');
+  if (!applied)
+    console.log('       (mend relic did not roll in 40 tries - skipped symmetry probe)');
 }
 {
   // row-scoped relics hit only their row
   const B = board(F('ancient-ruins'));
   const front = B.units.filter((u) => u.side === 'player' && E.isFront(u))[0];
   const back = B.units.filter((u) => u.side === 'player' && !E.isFront(u))[0];
-  E.applyEffectsPublic(B, front, [front],
+  E.applyEffectsPublic(
+    B,
+    front,
+    [front],
     [{ k: 'stat', stat: 'def', amt: 10, turns: 1, to: 'self', frontOnly: true }],
-    { immediate: true });
-  ok(front.buffs.some((b) => b.stat === 'def'), 'frontOnly relic reaches a front hero');
-  E.applyEffectsPublic(B, back, [back],
+    { immediate: true }
+  );
+  ok(
+    front.buffs.some((b) => b.stat === 'def'),
+    'frontOnly relic reaches a front hero'
+  );
+  E.applyEffectsPublic(
+    B,
+    back,
+    [back],
     [{ k: 'stat', stat: 'def', amt: 10, turns: 1, to: 'self', frontOnly: true }],
-    { immediate: true });
+    { immediate: true }
+  );
   ok(!back.buffs.some((b) => b.stat === 'def'), 'frontOnly relic skips a back hero');
 }
 
 /* ---------------- 9. Hero's Trial ---------------- */
 sec("J. The Hero's Trial");
 {
-  const plain = board(null), trial = board(F('heros-trial'));
+  const plain = board(null),
+    trial = board(F('heros-trial'));
   ['player', 'enemy'].forEach((side) => {
     const champs = trial.units.filter((u) => u.side === side && u.isChampion);
     ok(champs.length === 1, `${side}: exactly one champion (${champs.length})`);
     const team = trial.units.filter((u) => u.side === side);
-    const costs = team.map((u) => (u.card.ability.type === 'Active' ? u.card.ability.cost || 0 : 0));
+    const costs = team.map((u) =>
+      u.card.ability.type === 'Active' ? u.card.ability.cost || 0 : 0
+    );
     const maxCost = Math.max.apply(null, costs);
     const champ = champs[0];
     const cc = champ.card.ability.type === 'Active' ? champ.card.ability.cost || 0 : 0;
@@ -358,10 +460,15 @@ sec("J. The Hero's Trial");
   });
   const cp = trial.units.find((u) => u.isChampion && u.side === 'player');
   const same = plain.units.find((u) => u.card.id === cp.card.id);
-  ok(Math.abs(cp.maxHp / same.maxHp - 1.3) < 0.01, `champion +30% Max HP (${same.maxHp} -> ${cp.maxHp})`);
+  ok(
+    Math.abs(cp.maxHp / same.maxHp - 1.3) < 0.01,
+    `champion +30% Max HP (${same.maxHp} -> ${cp.maxHp})`
+  );
   ok(cp.hp === cp.maxHp, 'champion starts at full HP');
-  ok(Math.abs(E.atkOf(cp) / E.atkOf(same) - 1.2) < 0.02,
-    `champion +20% ATK (${E.atkOf(same)} -> ${E.atkOf(cp)})`);
+  ok(
+    Math.abs(E.atkOf(cp) / E.atkOf(same) - 1.2) < 0.02,
+    `champion +20% ATK (${E.atkOf(same)} -> ${E.atkOf(cp)})`
+  );
   const nonChamp = trial.units.find((u) => u.side === 'player' && !u.isChampion);
   const plainNon = plain.units.find((u) => u.card.id === nonChamp.card.id);
   ok(nonChamp.maxHp === plainNon.maxHp, 'non-champions are untouched');
@@ -376,14 +483,19 @@ sec('K. The Blood Battlefield');
   const healthy = E.atkOf(u);
   u.hp = Math.round(u.maxHp * 0.49);
   const wounded = E.atkOf(u);
-  ok(Math.abs(wounded / healthy - 1.25) < 0.02, `below 50% HP = +25% ATK (${healthy} -> ${wounded})`);
+  ok(
+    Math.abs(wounded / healthy - 1.25) < 0.02,
+    `below 50% HP = +25% ATK (${healthy} -> ${wounded})`
+  );
   u.hp = Math.round(u.maxHp * 0.51);
   ok(E.atkOf(u) === healthy, 'above 50% HP is unaffected');
   const plain = board(null);
   const p = U(plain, 'sherwood-guy-of-gisborne');
   p.hp = Math.round(p.maxHp * 0.3);
-  ok(E.atkOf(p) === E.atkOf(U(board(null), 'sherwood-guy-of-gisborne')),
-    'no wounded bonus without the field');
+  ok(
+    E.atkOf(p) === E.atkOf(U(board(null), 'sherwood-guy-of-gisborne')),
+    'no wounded bonus without the field'
+  );
 }
 
 /* ---------------- AI integration ---------------- */
@@ -392,7 +504,10 @@ sec('L. AI rollouts respect the field');
   const B = board(F('narrow-pass'));
   const C = E.cloneBattle(B, B.rng);
   ok(C.field && C.field.id === 'narrow-pass', 'cloneBattle carries the battlefield');
-  ok(C.roundEchoUsed === B.roundEchoUsed, 'cloneBattle carries the echo guard');
+  ok(
+    JSON.stringify(C.roundEchoUsed) === JSON.stringify(B.roundEchoUsed),
+    'cloneBattle carries the echo guard'
+  );
 }
 
 /* ---------------- full games on every field ---------------- */
@@ -401,38 +516,63 @@ sec('M. Soak - full AI games on all 10 battlefields');
   const POOL = [];
   EOL.factions.forEach((f) => f.cards.forEach((c) => POOL.push({ card: c, faction: f.id })));
   AI.setDepth(2);
-  AI.setSimulationBudget({ beamWidth: 4, pruneKeep: 2, minRollouts: 1, maxRollouts: 3, timeBudget: 12 });
+  AI.setSimulationBudget({
+    beamWidth: 4,
+    pruneKeep: 2,
+    minRollouts: 1,
+    maxRollouts: 3,
+    timeBudget: 12,
+  });
   let totalErr = 0;
   EOL.battlefields.forEach((field) => {
-    let err = 0, done = 0, rounds = 0, p1 = 0, viol = 0;
+    let err = 0,
+      done = 0,
+      rounds = 0,
+      p1 = 0,
+      viol = 0;
     for (let i = 0; i < 12; i++) {
       try {
         let a = 4242 + i * 7919;
-        const rng = () => ((a = (a * 1103515245 + 12345) % 2147483648) / 2147483648);
+        const rng = () => (a = (a * 1103515245 + 12345) % 2147483648) / 2147483648;
         const t = EOL.rules.splitCapped(POOL, rng);
-        const B = E.createBattle(t[0], t[1], { rng, roleAware: true, simulation: true, field: field });
+        const B = E.createBattle(t[0], t[1], {
+          rng,
+          roleAware: true,
+          simulation: true,
+          field: field,
+        });
         let g = 0;
         while (!B.over && B.round <= 20 && g++ < 5000) {
           const side = E.advanceAction(B);
-          if (!side) { if (!B.over) E.nextRound(B); continue; }
+          if (!side) {
+            if (!B.over) E.nextRound(B);
+            continue;
+          }
           const act = AI.bestAction(B, side);
-          if (!act) { E.passTurn(B, side); continue; }
+          if (!act) {
+            E.passTurn(B, side);
+            continue;
+          }
           E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
           const cap = E.energyCap(B);
           if (B.energy.player > cap || B.energy.enemy > cap) viol++;
           if (B.energy.player < 0 || B.energy.enemy < 0) viol++;
           if (B.units.some((u) => u.hp < 0 || u.hp > u.maxHp)) viol++;
         }
-        done++; rounds += B.round;
+        done++;
+        rounds += B.round;
         if (B.winner === 'player') p1++;
       } catch (e) {
-        err++; totalErr++;
+        err++;
+        totalErr++;
         if (err <= 1) console.log('       ERR ' + field.id + ': ' + e.message);
       }
     }
-    ok(err === 0 && viol === 0,
+    ok(
+      err === 0 && viol === 0,
       `${field.name.padEnd(22)} ${done} games, avg ${(rounds / Math.max(1, done)).toFixed(1)} rounds, ` +
-      `P1 ${Math.round((100 * p1) / Math.max(1, done))}%${err ? ' ERRORS:' + err : ''}${viol ? ' VIOL:' + viol : ''}`);
+        `P1 ${Math.round((100 * p1) / Math.max(1, done))}%${err ? ' ERRORS:' + err : ''}${viol ? ' VIOL:' + viol : ''}`
+    );
   });
   ok(totalErr === 0, `no engine errors across all fields (${totalErr})`);
 }

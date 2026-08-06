@@ -20,7 +20,7 @@ window.EOL.registerFaction({
         text: 'Deal <b>150% ATK</b>, gaining <b>+6% per 10 Energy above 20</b> (max +30%). Kill: refund 20 Energy.',
         note: null,
         spec: {
-          target: { side: 'enemy', pick: 'single', row: 'any' },
+          target: { side: 'enemy', pick: 'single', row: 'front' },
           effects: [
             {
               k: 'dmg',

@@ -132,22 +132,11 @@
       <span class="mb-grade"></span>
     </div>
 
-    <!-- ==================== CHAPTER 1 PARALLAX ====================
-         The Road of Echoes is a separate four-plane scene from the
-         home menu: a starfield, distant gate, road, and near ruin. Its
-         generated pixel art is only visible while the chapter is open;
-         the planes drift at distinct speeds to give the chapter map
-         depth without borrowing the main-menu colosseum. -->
+    <!-- ==================== CHAPTER 1 ATMOSPHERIC WOODS ====================
+         Animated 16-bit woods scene with crackling campfire, floating embers,
+         and twinkling starry night sky. -->
     <div class="chapter-bg" id="chapter-bg" aria-hidden="true">
-      <!-- An opaque scene bed keeps the generated silhouette planes from
-           revealing keyed-away black pockets as they drift past each other. -->
-      <span class="cb-base"></span>
-      <span class="cb-sky"></span>
-      <span class="cb-far"></span>
-      <span class="cb-mid"></span>
-      <span class="cb-near"></span>
-      <span class="cb-mist"></span>
-      <span class="cb-grade"></span>
+      <span class="cw-scene"></span>
     </div>
 
     <!-- ==================== HOME / DASHBOARD ==================== -->
@@ -204,7 +193,6 @@
       </a>
       <span class="art-credit">art by <b>sh4dowmob</b></span>
 
-
       <!-- ==================== SETTINGS MODAL ====================
            Account edits (username / password, signed-in only) plus the
            graphics-quality switch. The graphics buttons reuse the exact
@@ -245,14 +233,10 @@
             <i class="ra ra-book"></i>
             <span>Collection</span>
           </button>
-        </div>
-
-        <div class="home-stats">
-          <span><b id="stat-heroes"></b> Legends</span>
-          <span class="sep"></span>
-          <span><b id="stat-factions"></b> Factions</span>
-          <span class="sep"></span>
-          <span><b>6v6</b> Battles</span>
+          <button class="btn btn-ghost" id="btn-rulebook">
+            <i class="ra ra-scroll-unfurled"></i>
+            <span>Rulebook</span>
+          </button>
         </div>
       </div>
     </section>
@@ -332,6 +316,343 @@
       <footer>Echoes of Legend - Prototype</footer>
     </section>
 
+    <!-- ==================== RULEBOOK ==================== -->
+    <section class="view rulebook" data-view="rulebook">
+      <header class="col-header mast">
+        <button class="back-btn" id="btn-rulebook-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-scroll-unfurled"></i></span>
+          <h2 class="col-title">Rulebook</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">Comprehensive Engine Rules & Mechanics Reference</p>
+        </div>
+      </header>
+
+      <div class="rulebook-grid">
+        <!-- Section 1: Turn & Round Model -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-cycle"></i>
+            <h3>1. Turn Flow & Round Phasing</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Alternating Turns:</b> Battles are played in alternating single actions. You make
+                one move with one living legend, then your opponent makes one move, back and forth
+                across the board.
+              </li>
+              <li>
+                <b>Starting Initiative:</b> In singleplayer, campaign, and multiplayer matches, the
+                opening player of Round 1 is decided by a fair <b>50/50 coin flip</b>. The starting
+                side alternates between odd and even rounds.
+              </li>
+              <li>
+                <b>Round 1 (Phase 1):</b> Basic Skills only. Powerful Signature Skills are locked
+                during the opening round to establish frontline positions and build initial tempo.
+              </li>
+              <li>
+                <b>Round 2 Onward (Phase 2):</b> All Signature Skills unlock, allowing full team
+                combos, ultimate abilities, and tactical counters.
+              </li>
+              <li>
+                <b>Round 4 Onward (Late-Game Ramp):</b> Starting in Round 4, all living legends grow
+                stronger each round, gaining an extra <b>+15% Attack power every round</b> (+15% in
+                Round 4, +30% in Round 5, +45% in Round 6, etc.) to ensure matches resolve
+                decisively.
+              </li>
+              <li>
+                <b>Passing Turns:</b> You may pass your action to save Energy or wait for an enemy
+                response. A round ends only when both players pass in a row or when neither side has
+                any legal moves left.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 2: Energy Economy -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-lightning-bolt"></i>
+            <h3>2. Energy Economy & Carry-over</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Energy Income:</b> Both teams receive energy at the start of each round:
+                <b>60 Energy in Round 1</b>, <b>80 Energy in Round 2</b>, and
+                <b>100 Energy in Round 3 and every round after</b>.
+              </li>
+              <li>
+                <b>Carry-over Cap:</b> Any unspent Energy at the end of a round carries over and
+                adds to your next round's income, up to a maximum bank of <b>150 Energy</b>.
+              </li>
+              <li>
+                <b>Comeback Bonus:</b> If you begin a round with fewer surviving legends than your
+                opponent, your team rallies with an extra
+                <b>+15 Energy for each lost hero deficit</b> to help you turn the tide.
+              </li>
+              <li>
+                <b>Skill Costs:</b> Basic skills typically cost 15 Energy (or are free on certain
+                roles), while signature active skills cost between 20 and 55 Energy.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 3: Formation & Targeting -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-crossed-axes"></i>
+            <h3>3. Formations & Targeting Laws</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>6v6 Board Layout:</b> Each squad fields 6 legends arranged into
+                <b>3 Front Row</b> positions (slots 0, 1, 2) and <b>3 Back Row</b> positions (slots
+                3, 4, 5).
+              </li>
+              <li>
+                <b>Melee Frontline Lock:</b> <b>Tanks</b> and <b>Bruisers</b> are close-combat
+                fighters and must attack enemy Front Row legends. They can only strike at the Back
+                Row once every front-line enemy has fallen.
+              </li>
+              <li>
+                <b>Ranged Freedom:</b> <b>Casters</b>, <b>Controllers</b>, <b>Medics</b>, and
+                <b>Snipers</b> can aim their skills at any enemy on the board regardless of row.
+              </li>
+              <li>
+                <b>Broken Frontline Penalty:</b> When an entire Front Row is wiped out, surviving
+                Back Row legends suffer a <b>-5% Defense penalty</b> because their protective
+                vanguard has collapsed.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 4: Combat Math -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-sword"></i>
+            <h3>4. Damage Calculation & Mitigation</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Damage Power:</b> The damage you deal begins with your legend's
+                <b>Attack stat multiplied by the Skill's power percentage</b>, plus any active
+                attack modifiers and buffs.
+              </li>
+              <li>
+                <b>Defense & Mitigation:</b> That damage is reduced by the enemy's
+                <b>Defense percentage</b> (which reduces incoming damage up to a maximum of 75%) and
+                any active damage resistance barriers (up to 90%).
+              </li>
+              <li>
+                <b>Defense Ceiling:</b> Defense percentage is hard-capped at
+                <b>75% maximum reduction</b> so that armor never completely reduces damage to zero.
+              </li>
+              <li>
+                <b>Resistance Ceiling:</b> Timed damage resistance barriers (such as Warded) are
+                hard-capped at <b>90% maximum reduction</b>.
+              </li>
+              <li>
+                <b>Critical Strikes:</b> Critical hits multiply damage by exactly <b>1.5x</b> (50%
+                bonus damage), determined by your legend's Critical Chance stat.
+              </li>
+              <li>
+                <b>Guaranteed Impact:</b> Every attack that connects is guaranteed to deal at least
+                <b>1 point of damage</b>.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 5: Protection System -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-heavy-shield"></i>
+            <h3>5. Protection Mechanics</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Provoke (Taunt):</b> Forces all single-target enemy attacks onto the provoker.
+                Area-of-effect spells and sniper skills that shoot around the provoker deal
+                <b>30% less damage</b> to all other targets. The provoker always takes full 100%
+                damage.
+              </li>
+              <li>
+                <b>Untargetable:</b> Absolute protection. An Untargetable legend cannot be targeted
+                by any enemy single-target skill under any circumstances.
+              </li>
+              <li>
+                <b>Shields:</b> Absorbs incoming damage point-for-point before your health takes a
+                hit. Burn damage bypasses shields. Overhealing from certain skills (like Medic
+                Restore) converts excess healing into shields.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 6: Status Effects Reference -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-burning-embers"></i>
+            <h3>6. Status Effects & Afflictions</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Burn:</b> Deals <b>5% of maximum health</b> as true damage at the start of each
+                turn that team takes. Bypasses Defense and Shields completely.
+              </li>
+              <li>
+                <b>Exposed:</b> Strips away the target's Defense, reducing it to <b>0%</b> for heavy
+                damage.
+              </li>
+              <li>
+                <b>Marked:</b> Places a target reticle on an enemy. The next damaging Skill consumes
+                the Mark and triggers powerful bonus effects (such as bonus damage or burning).
+                Basic attacks do not consume Marks.
+              </li>
+              <li>
+                <b>Silence:</b> Completely stops a legend from acting &mdash; both Signature Skills
+                and Basic attacks are blocked.
+              </li>
+              <li>
+                <b>Warded:</b> Grants flat damage resistance that protects the legend even if they
+                are Exposed.
+              </li>
+              <li>
+                <b>Counter Ready:</b> Automatically strikes back against any attacker when hit while
+                shielded.
+              </li>
+              <li>
+                <b>Healing Reduced:</b> Lowers the amount of healing received from skills. Shields
+                are unaffected.
+              </li>
+              <li>
+                <b>Cost Modifiers:</b> Increases or decreases Energy costs across the entire team
+                (+15% or -15%).
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 7: Stacking & Debuff Scaling -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-fox"></i>
+            <h3>7. Debuff Scaling & Payoffs</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Debuff Synergies:</b> Distinct debuffs include stat reductions (reduced Attack,
+                Defense, or Crit), Silence, healing cuts, Burn, Exposed, Marked, and increased
+                Energy costs.
+              </li>
+              <li>
+                <b>Debuff Damage Scaling:</b> Legends like <b>Inari</b> (+30% Attack per debuff),
+                <b>Cicero</b> (+15% Attack per debuff), <b>Friar Tuck</b> (+14% Attack per debuff),
+                and <b>Pied Piper</b> (+13% Attack per debuff) deal dramatically higher damage
+                against debuffed enemies.
+              </li>
+              <li>
+                <b>Blessing Stripping:</b> Certain skills strip all positive blessings and shields
+                from enemies to turn the momentum in your favor.
+              </li>
+              <li>
+                <b>Stack Caps:</b> Passive stacking traits enforce battle-wide lifetime stack limits
+                (typically 4 to 5 stacks) to keep power balanced across long fights.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 8: The 10 Battlefields -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-arena"></i>
+            <h3>8. The 10 Battlefields & Terrain Laws</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>The Colosseum:</b> Neutral arena where pure tactical skill decides the victor. No
+                special terrain modifiers.
+              </li>
+              <li>
+                <b>The Mirror Realm:</b> The first Signature Skill cast by <b>each player</b> each
+                round repeats a second time for free at <b>50% power</b>. (Basic attacks do not
+                echo).
+              </li>
+              <li>
+                <b>The Spirit World:</b> The first lethal blow against each legend leaves them alive
+                on <b>1 HP</b> instead of defeating them (once per legend per battle). A second hit
+                finishes the job.
+              </li>
+              <li>
+                <b>The Narrow Pass:</b> Melee chokepoint &mdash; only Front Row legends may use
+                Basic attacks. Back Row legends must spend Energy on real skills to contribute.
+              </li>
+              <li>
+                <b>The Open Plains:</b> Wide open ground &mdash; the -5% Backline Defense Penalty
+                when the front row falls is waived.
+              </li>
+              <li><b>Mana Spring:</b> +20 bonus Energy granted to both teams every round.</li>
+              <li><b>Energy Void:</b> -10 Energy reduction for both teams every round.</li>
+              <li>
+                <b>The Ancient Ruins:</b> A random ancient relic blessing is granted to all
+                surviving legends at the start of each round.
+              </li>
+              <li>
+                <b>The Hero's Trial:</b> All legends grow in strength every round, gaining +15%
+                Attack at each round rollover.
+              </li>
+              <li>
+                <b>The Blood Battlefield:</b> Defeating any enemy legend immediately rewards your
+                team with +20 bonus Energy.
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Section 9: Draft & Deck Construction -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-cards"></i>
+            <h3>9. Draft & Deck Construction</h3>
+          </div>
+          <div class="rc-body">
+            <ul>
+              <li>
+                <b>Deck Composition:</b> A legal deck contains exactly <b>12 legends</b> with a
+                strict cap of <b>at most 4 legends of any single role</b> (Tanks, Bruisers, Casters,
+                Controllers, Medics, Snipers).
+              </li>
+              <li>
+                <b>Snake Draft:</b> 12 packs of 3 legends. Players take turns opening packs and
+                picking 1 card each; the 3rd card in each pack burns away until both squads reach 12
+                legends.
+              </li>
+              <li>
+                <b>Unabridged Match Sets:</b> A competitive best-of-3 series. Between games, the
+                losing player selects the next battlefield and players may swap 1 to 2 legends from
+                their reserve bench.
+              </li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <footer>Echoes of Legend - Complete Engine & Rules Reference</footer>
+    </section>
+
     <!-- ==================== DECK EDITOR ==================== -->
     <section class="view deck" data-view="deck">
       <header class="col-header">
@@ -340,7 +661,17 @@
         </button>
         <div class="col-titles">
           <h2 class="col-title">Deck Editor</h2>
-          <p class="col-sub"><span id="deck-count">0</span> of 12 legends - max 4 per role <button type="button" class="tipdot" data-tip="A deck holds 12 legends, with at most 4 of the same role. Bring a mix: tough front-liners, damage dealers, and support." aria-label="Tip"><i class="ri-question-line"></i></button></p>
+          <p class="col-sub">
+            <span id="deck-count">0</span> of 12 legends - max 4 per role
+            <button
+              type="button"
+              class="tipdot"
+              data-tip="A deck holds 12 legends, with at most 4 of the same role. Bring a mix: tough front-liners, damage dealers, and support."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i>
+            </button>
+          </p>
         </div>
         <input
           class="deck-name-input"
@@ -365,8 +696,8 @@
         <div class="deck-side">
           <div class="deck-hint">
             <i class="ri-information-line"></i>
-            Click a legend to add or remove them. Saves itself as you build - 12 legends and at most 4
-            of any role makes it battle-ready.
+            Click a legend to add or remove them. Saves itself as you build - 12 legends and at most
+            4 of any role makes it battle-ready.
           </div>
           <div class="deck-actions">
             <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
@@ -482,257 +813,249 @@
       </div>
     </section>
 
-      <div
-        class="auth-modal"
-        id="auth-modal"
-        hidden
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auth-title"
-      >
-        <div class="auth-scrim" id="auth-scrim"></div>
-        <div class="auth-card" role="document">
-          <button type="button" class="auth-close" id="auth-close" aria-label="Close">
-            <i class="ri-close-line"></i>
-          </button>
+    <div
+      class="auth-modal"
+      id="auth-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-title"
+    >
+      <div class="auth-scrim" id="auth-scrim"></div>
+      <div class="auth-card" role="document">
+        <button type="button" class="auth-close" id="auth-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
 
-          <div class="auth-head">
-            <div class="auth-emblem"><i class="ra ra-crossed-swords"></i></div>
-            <h2 class="auth-title" id="auth-title">Welcome back</h2>
-            <p class="auth-sub" id="auth-sub">
-              Sign in to play online matches against other players.
-            </p>
-          </div>
-
-          <p class="auth-foot" id="auth-foot">
-            <i class="ri-information-line"></i>
-            An account unlocks multiplayer. Your decks stay on this device.
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ra ra-crossed-swords"></i></div>
+          <h2 class="auth-title" id="auth-title">Welcome back</h2>
+          <p class="auth-sub" id="auth-sub">
+            Sign in to play online matches against other players.
           </p>
-
-          <div class="auth-tabs" role="tablist">
-            <button
-              type="button"
-              class="auth-tab sel"
-              data-mode="in"
-              role="tab"
-              aria-selected="true"
-            >
-              Sign in
-            </button>
-            <button type="button" class="auth-tab" data-mode="up" role="tab" aria-selected="false">
-              Create account
-            </button>
-            <span class="auth-tab-thumb" aria-hidden="true"></span>
-          </div>
-
-          <button type="button" class="auth-google" id="auth-google">
-            <svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true">
-              <path
-                fill="#4285F4"
-                d="M45.1 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.3z"
-              />
-              <path
-                fill="#34A853"
-                d="M24 46c6 0 11-2 14.5-5.2l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8 41.3 15.4 46 24 46z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M11.8 28.4c-.4-1.3-.7-2.7-.7-4.4s.3-3.1.7-4.4v-5.7H4.5C2.9 17 2 20.4 2 24s.9 7 2.5 10.1l7.3-5.7z"
-              />
-              <path
-                fill="#EA4335"
-                d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 30 2 24 2 15.4 2 8 6.7 4.5 13.9l7.3 5.7c1.7-5.2 6.5-9 12.2-9z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          <div class="auth-or"><span>or</span></div>
-
-          <form class="auth-form" id="auth-form" autocomplete="off">
-            <label class="auth-field" id="auth-name-field" hidden>
-              <span class="auth-lbl">Display name</span>
-              <input type="text" name="name" placeholder="Ser_Lancelot" autocomplete="off" />
-            </label>
-            <label class="auth-field">
-              <span class="auth-lbl">Email</span>
-              <input type="email" name="email" placeholder="you@example.com" autocomplete="off" />
-            </label>
-            <label class="auth-field">
-              <span class="auth-lbl">Password</span>
-              <input type="password" name="password" placeholder="........" autocomplete="off" />
-            </label>
-            <button type="submit" class="btn btn-primary auth-submit" id="auth-submit">
-              <i class="ra ra-key"></i><span id="auth-submit-txt">Sign in</span>
-            </button>
-          </form>
-
         </div>
-      </div>
-      <div
-        class="auth-modal"
-        id="settings-modal"
-        hidden
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settings-title"
-      >
-        <div class="auth-scrim" id="settings-scrim"></div>
-        <div class="auth-card set-card" role="document">
-          <button type="button" class="auth-close" id="settings-close" aria-label="Close">
-            <i class="ri-close-line"></i>
+
+        <p class="auth-foot" id="auth-foot">
+          <i class="ri-information-line"></i>
+          An account unlocks multiplayer. Your decks stay on this device.
+        </p>
+
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab sel" data-mode="in" role="tab" aria-selected="true">
+            Sign in
           </button>
-
-          <div class="auth-head set-head">
-            <div class="auth-emblem set-emblem"><i class="ri-settings-4-line"></i></div>
-            <h2 class="auth-title" id="settings-title">Settings</h2>
-            <p class="auth-sub">Account and display preferences.</p>
-          </div>
-
-          <p class="auth-foot" id="settings-foot"></p>
-
-          <section class="set-block" id="set-account" aria-labelledby="set-account-h">
-            <h3 class="set-h" id="set-account-h">
-              <i class="ri-user-3-line set-h-ico" aria-hidden="true"></i>
-              <span class="set-h-body">
-                Account
-                <small class="set-h-sub">How other players see you online.</small>
-              </span>
-            </h3>
-            <form class="auth-form set-form" id="settings-form" autocomplete="off">
-              <label class="auth-field">
-                <span class="auth-lbl">Username</span>
-                <input
-                  type="text"
-                  name="username"
-                  id="set-username"
-                  placeholder="letters, numbers, . _ -"
-                  autocomplete="off"
-                />
-                <span class="set-hint">3–24 characters. Letters, numbers, . _ - only.</span>
-              </label>
-              <label class="auth-field">
-                <span class="auth-lbl">New password <em>(optional)</em></span>
-                <input
-                  type="password"
-                  name="newpass"
-                  id="set-newpass"
-                  placeholder="leave blank to keep current"
-                  autocomplete="off"
-                />
-                <span class="set-hint">At least 6 characters.</span>
-              </label>
-              <button type="submit" class="btn btn-primary auth-submit" id="settings-save">
-                <i class="ri-save-3-line"></i><span>Save changes</span>
-              </button>
-            </form>
-            <p class="set-out-note" id="set-out-note" hidden>
-              <i class="ri-information-line"></i> Sign in to edit your username or password.
-            </p>
-          </section>
-
-          <section class="set-block" aria-labelledby="set-display-h">
-            <h3 class="set-h" id="set-display-h">
-              <i class="ri-image-line set-h-ico" aria-hidden="true"></i>
-              <span class="set-h-body">
-                Display
-                <small class="set-h-sub">Visual fidelity and motion.</small>
-              </span>
-            </h3>
-            <div class="set-row">
-              <div class="gfx-switch set-gfx" role="group" aria-label="Graphics quality">
-                <button type="button" class="gfx-opt" data-gfx="high" aria-pressed="true">
-                  <i class="ri-sparkling-2-line" aria-hidden="true"></i>High
-                </button>
-                <button type="button" class="gfx-opt" data-gfx="low" aria-pressed="false">
-                  <i class="ri-leaf-line" aria-hidden="true"></i>Low
-                </button>
-                <span class="gfx-thumb" aria-hidden="true"></span>
-              </div>
-            </div>
-            <p class="set-gfx-note">
-              <i class="ri-information-line"></i>
-              Low strips backdrop blur, blends, particles and ambient motion — recommended on older
-              devices or with reduced-motion preferences.
-            </p>
-            <div class="set-row">
-              <div class="gfx-switch tips-switch set-gfx" role="group" aria-label="Helper tips">
-                <button type="button" class="tips-opt" data-tips="on" aria-pressed="true">
-                  <i class="ri-question-line" aria-hidden="true"></i>Tips on
-                </button>
-                <button type="button" class="tips-opt" data-tips="off" aria-pressed="false">
-                  <i class="ri-eye-off-line" aria-hidden="true"></i>Tips off
-                </button>
-                <span class="tips-thumb" aria-hidden="true"></span>
-              </div>
-            </div>
-            <p class="set-gfx-note">
-              <i class="ri-information-line"></i>
-              Tips are the small ? dots scattered across the game - hover one for the rule of whatever
-              it sits beside. Off hides every dot.
-            </p>
-            <div class="set-row scale-row">
-              <span class="scale-lbl" id="scale-lbl">
-                <i class="ri-zoom-in-line" aria-hidden="true"></i>GUI scale
-              </span>
-              <input
-                type="range"
-                class="scale-range"
-                id="scale-range"
-                min="80"
-                max="110"
-                step="5"
-                value="100"
-                aria-labelledby="scale-lbl"
-              />
-              <span class="scale-val" id="scale-val" aria-live="polite">100%</span>
-              <button type="button" class="btn btn-ghost btn-slim scale-reset" id="scale-reset">
-                <i class="ri-restart-line" aria-hidden="true"></i><span>Reset</span>
-              </button>
-            </div>
-            <p class="set-gfx-note">
-              <i class="ri-information-line"></i>
-              Works exactly like your browser's own zoom (Ctrl +/-) - the whole game reflows to
-              fill your screen at 80-110%, nothing gets clipped. 100 is full size. The scale
-              snaps to 5% steps: 80, 85, 90, 95, 100, 105, 110.
-            </p>
-          </section>
-
+          <button type="button" class="auth-tab" data-mode="up" role="tab" aria-selected="false">
+            Create account
+          </button>
+          <span class="auth-tab-thumb" aria-hidden="true"></span>
         </div>
+
+        <button type="button" class="auth-google" id="auth-google">
+          <svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true">
+            <path
+              fill="#4285F4"
+              d="M45.1 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.3z"
+            />
+            <path
+              fill="#34A853"
+              d="M24 46c6 0 11-2 14.5-5.2l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8 41.3 15.4 46 24 46z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M11.8 28.4c-.4-1.3-.7-2.7-.7-4.4s.3-3.1.7-4.4v-5.7H4.5C2.9 17 2 20.4 2 24s.9 7 2.5 10.1l7.3-5.7z"
+            />
+            <path
+              fill="#EA4335"
+              d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 30 2 24 2 15.4 2 8 6.7 4.5 13.9l7.3 5.7c1.7-5.2 6.5-9 12.2-9z"
+            />
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+
+        <div class="auth-or"><span>or</span></div>
+
+        <form class="auth-form" id="auth-form" autocomplete="off">
+          <label class="auth-field" id="auth-name-field" hidden>
+            <span class="auth-lbl">Display name</span>
+            <input type="text" name="name" placeholder="Ser_Lancelot" autocomplete="off" />
+          </label>
+          <label class="auth-field">
+            <span class="auth-lbl">Email</span>
+            <input type="email" name="email" placeholder="you@example.com" autocomplete="off" />
+          </label>
+          <label class="auth-field">
+            <span class="auth-lbl">Password</span>
+            <input type="password" name="password" placeholder="........" autocomplete="off" />
+          </label>
+          <button type="submit" class="btn btn-primary auth-submit" id="auth-submit">
+            <i class="ra ra-key"></i><span id="auth-submit-txt">Sign in</span>
+          </button>
+        </form>
       </div>
-      <div
-        class="auth-modal"
-        id="uname-modal"
-        hidden
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="uname-title"
-      >
-        <div class="auth-scrim" id="uname-scrim"></div>
-        <div class="auth-card" role="document">
-          <div class="auth-head">
-            <div class="auth-emblem"><i class="ra ra-crown"></i></div>
-            <h2 class="auth-title" id="uname-title">Choose your callsign</h2>
-            <p class="auth-sub">
-              This is the name other players see in matchmaking. Letters, numbers, and
-              <b>. _ -</b> only.
-            </p>
-          </div>
-          <p class="auth-foot" id="uname-foot"></p>
-          <form class="auth-form" id="uname-form" autocomplete="off">
+    </div>
+    <div
+      class="auth-modal"
+      id="settings-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
+      <div class="auth-scrim" id="settings-scrim"></div>
+      <div class="auth-card set-card" role="document">
+        <button type="button" class="auth-close" id="settings-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <div class="auth-head set-head">
+          <div class="auth-emblem set-emblem"><i class="ri-settings-4-line"></i></div>
+          <h2 class="auth-title" id="settings-title">Settings</h2>
+          <p class="auth-sub">Account and display preferences.</p>
+        </div>
+
+        <p class="auth-foot" id="settings-foot"></p>
+
+        <section class="set-block" id="set-account" aria-labelledby="set-account-h">
+          <h3 class="set-h" id="set-account-h">
+            <i class="ri-user-3-line set-h-ico" aria-hidden="true"></i>
+            <span class="set-h-body">
+              Account
+              <small class="set-h-sub">How other players see you online.</small>
+            </span>
+          </h3>
+          <form class="auth-form set-form" id="settings-form" autocomplete="off">
             <label class="auth-field">
               <span class="auth-lbl">Username</span>
-              <input type="text" id="uname-input" placeholder="e.g. Scribe_77" autocomplete="off" />
+              <input
+                type="text"
+                name="username"
+                id="set-username"
+                placeholder="letters, numbers, . _ -"
+                autocomplete="off"
+              />
+              <span class="set-hint">3–24 characters. Letters, numbers, . _ - only.</span>
             </label>
-            <button type="submit" class="btn btn-primary auth-submit">
-              <i class="ra ra-quill-ink"></i><span>Claim this name</span>
+            <label class="auth-field">
+              <span class="auth-lbl">New password <em>(optional)</em></span>
+              <input
+                type="password"
+                name="newpass"
+                id="set-newpass"
+                placeholder="leave blank to keep current"
+                autocomplete="off"
+              />
+              <span class="set-hint">At least 6 characters.</span>
+            </label>
+            <button type="submit" class="btn btn-primary auth-submit" id="settings-save">
+              <i class="ri-save-3-line"></i><span>Save changes</span>
             </button>
           </form>
-          <button type="button" class="btn btn-ghost uname-skip" id="uname-skip">
-            <i class="ri-time-line"></i><span>Pick one later</span>
-          </button>
-        </div>
+          <p class="set-out-note" id="set-out-note" hidden>
+            <i class="ri-information-line"></i> Sign in to edit your username or password.
+          </p>
+        </section>
+
+        <section class="set-block" aria-labelledby="set-display-h">
+          <h3 class="set-h" id="set-display-h">
+            <i class="ri-image-line set-h-ico" aria-hidden="true"></i>
+            <span class="set-h-body">
+              Display
+              <small class="set-h-sub">Visual fidelity and motion.</small>
+            </span>
+          </h3>
+          <div class="set-row">
+            <div class="gfx-switch set-gfx" role="group" aria-label="Graphics quality">
+              <button type="button" class="gfx-opt" data-gfx="high" aria-pressed="true">
+                <i class="ri-sparkling-2-line" aria-hidden="true"></i>High
+              </button>
+              <button type="button" class="gfx-opt" data-gfx="low" aria-pressed="false">
+                <i class="ri-leaf-line" aria-hidden="true"></i>Low
+              </button>
+              <span class="gfx-thumb" aria-hidden="true"></span>
+            </div>
+          </div>
+          <p class="set-gfx-note">
+            <i class="ri-information-line"></i>
+            Low strips backdrop blur, blends, particles and ambient motion — recommended on older
+            devices or with reduced-motion preferences.
+          </p>
+          <div class="set-row">
+            <div class="gfx-switch tips-switch set-gfx" role="group" aria-label="Helper tips">
+              <button type="button" class="tips-opt" data-tips="on" aria-pressed="true">
+                <i class="ri-question-line" aria-hidden="true"></i>Tips on
+              </button>
+              <button type="button" class="tips-opt" data-tips="off" aria-pressed="false">
+                <i class="ri-eye-off-line" aria-hidden="true"></i>Tips off
+              </button>
+              <span class="tips-thumb" aria-hidden="true"></span>
+            </div>
+          </div>
+          <p class="set-gfx-note">
+            <i class="ri-information-line"></i>
+            Tips are the small ? dots scattered across the game - hover one for the rule of whatever
+            it sits beside. Off hides every dot.
+          </p>
+          <div class="set-row scale-row">
+            <span class="scale-lbl" id="scale-lbl">
+              <i class="ri-zoom-in-line" aria-hidden="true"></i>GUI scale
+            </span>
+            <input
+              type="range"
+              class="scale-range"
+              id="scale-range"
+              min="80"
+              max="110"
+              step="5"
+              value="100"
+              aria-labelledby="scale-lbl"
+            />
+            <span class="scale-val" id="scale-val" aria-live="polite">100%</span>
+            <button type="button" class="btn btn-ghost btn-slim scale-reset" id="scale-reset">
+              <i class="ri-restart-line" aria-hidden="true"></i><span>Reset</span>
+            </button>
+          </div>
+          <p class="set-gfx-note">
+            <i class="ri-information-line"></i>
+            Works exactly like your browser's own zoom (Ctrl +/-) - the whole game reflows to fill
+            your screen at 80-110%, nothing gets clipped. 100 is full size. The scale snaps to 5%
+            steps: 80, 85, 90, 95, 100, 105, 110.
+          </p>
+        </section>
       </div>
+    </div>
+    <div
+      class="auth-modal"
+      id="uname-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="uname-title"
+    >
+      <div class="auth-scrim" id="uname-scrim"></div>
+      <div class="auth-card" role="document">
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ra ra-crown"></i></div>
+          <h2 class="auth-title" id="uname-title">Choose your callsign</h2>
+          <p class="auth-sub">
+            This is the name other players see in matchmaking. Letters, numbers, and
+            <b>. _ -</b> only.
+          </p>
+        </div>
+        <p class="auth-foot" id="uname-foot"></p>
+        <form class="auth-form" id="uname-form" autocomplete="off">
+          <label class="auth-field">
+            <span class="auth-lbl">Username</span>
+            <input type="text" id="uname-input" placeholder="e.g. Scribe_77" autocomplete="off" />
+          </label>
+          <button type="submit" class="btn btn-primary auth-submit">
+            <i class="ra ra-quill-ink"></i><span>Claim this name</span>
+          </button>
+        </form>
+        <button type="button" class="btn btn-ghost uname-skip" id="uname-skip">
+          <i class="ri-time-line"></i><span>Pick one later</span>
+        </button>
+      </div>
+    </div>
 
     <!-- ==================== PLAY (mode select) ==================== -->
     <section class="view play" data-view="play">
@@ -797,7 +1120,8 @@
           <i class="mode-glyph ra ra-compass"></i>
           <span class="mode-name">Campaign</span>
           <span class="mode-desc">
-            A nameless Wayfarer crosses ten gates before the First Legend decides whether a story can continue.
+            A nameless Wayfarer crosses ten gates before the First Legend decides whether a story
+            can continue.
           </span>
           <span class="mode-cta">Take the road <i class="ri-arrow-right-line"></i></span>
         </button>
@@ -820,76 +1144,87 @@
           <i class="mode-glyph ra ra-clovers-card"></i>
           <span class="mode-name">Online Draft</span>
           <span class="mode-desc">
-            Snake-draft 12 legends against a real opponent, then the same bans and battle as Classic.
-            Both squads come from one shared pool.
+            Snake-draft 12 legends against a real opponent, then the same bans and battle as
+            Classic. Both squads come from one shared pool.
           </span>
           <span class="mode-cta">Find a match <i class="ri-arrow-right-line"></i></span>
         </button>
       </div>
 
-      <!-- matchmaking overlay -->
-      <div class="mm-modal" id="mm-modal" hidden>
-        <div class="mm-scrim" id="mm-scrim"></div>
-        <div class="mm-card">
-          <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
-          <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
-          <div class="mm-subrow">
-            <p class="mm-sub" id="mm-sub">Searching the queue...</p>
-            <button type="button" class="tipdot mm-tip" data-tip="Classic: fight with a deck you built yourself. Draft: both players take turns picking legends from the same pile, then fight with what they got." aria-label="Tip"><i class="ri-question-line"></i></button>
+      <footer>Echoes of Legend - Prototype</footer>
+    </section>
+
+    <!-- classic: pick one of your saved decks -->
+    <div class="deck-modal" id="deck-modal" aria-hidden="true">
+      <div class="dm-card">
+        <h3 class="dm-title">Choose your deck</h3>
+        <p class="dm-sub">The enemy builds a squad of 12 &mdash; max 4 of a role, like yours.</p>
+        <div class="war-length" id="war-length" role="group" aria-label="Match length">
+          <div class="wl-head">
+            <span class="wl-kicker">Match length</span>
+            <button
+              type="button"
+              class="tipdot"
+              data-tip="Pick your match length. Single Battle is one quick fight. Unabridged is best of 3: three arenas get shuffled at the start, and between games you must swap 1 or 2 legends on your bench."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i>
+            </button>
           </div>
-          <div class="mm-vs" id="mm-vs" hidden>
-            <span class="mm-side" id="mm-you">You</span>
-            <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
-            <span class="mm-side" id="mm-opp">Opponent</span>
-          </div>
-          <button class="btn btn-ghost btn-slim" id="mm-cancel">
+          <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
+            <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
+            <span class="wl-body">
+              <span class="wl-name">Single Battle</span>
+              <span class="wl-sub">One game, quick war</span>
+            </span>
+          </button>
+          <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
+            <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+            <span class="wl-body">
+              <span class="wl-name">Unabridged · Bo3</span>
+              <span class="wl-sub">3-board fight card, swaps between games</span>
+            </span>
+          </button>
+        </div>
+        <div class="dm-list" id="dm-list"></div>
+        <div class="dm-foot">
+          <button class="btn btn-ghost btn-slim" id="dm-new">
+            <i class="ri-add-line"></i><span>New deck</span>
+          </button>
+          <button class="btn btn-ghost btn-slim" id="dm-cancel">
             <i class="ri-close-line"></i><span>Cancel</span>
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- classic: pick one of your saved decks -->
-      <div class="deck-modal" id="deck-modal" aria-hidden="true">
-        <div class="dm-card">
-          <h3 class="dm-title">Choose your deck</h3>
-          <p class="dm-sub">The enemy builds a random squad of 12 - max 4 of a role, like yours.</p>
-          <!-- Match length = part of the launch decision, so it lives in
-               this popup (2026-08-05). Hidden when the modal is serving
-               an online classic pick - the room owns length there. -->
-          <div class="war-length" id="war-length" role="group" aria-label="Match length">
-            <div class="wl-head">
-              <span class="wl-kicker">Match length</span>
-              <button type="button" class="tipdot" data-tip="Pick your match length. Single Battle is one quick fight. Unabridged is best of 3: three arenas get shuffled at the start, and between games you must swap 1 or 2 legends on your bench." aria-label="Tip"><i class="ri-question-line"></i></button>
-            </div>
-            <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
-              <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
-              <span class="wl-body">
-                <span class="wl-name">Single Battle</span>
-                <span class="wl-sub">One game, quick war</span>
-              </span>
-            </button>
-            <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
-              <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
-              <span class="wl-body">
-                <span class="wl-name">Unabridged · Bo3</span>
-                <span class="wl-sub">3-board fight card, swaps between games</span>
-              </span>
-            </button>
-          </div>
-          <div class="dm-list" id="dm-list"></div>
-          <div class="dm-foot">
-            <button class="btn btn-ghost btn-slim" id="dm-new">
-              <i class="ri-add-line"></i><span>New deck</span>
-            </button>
-            <button class="btn btn-ghost btn-slim" id="dm-cancel">
-              <i class="ri-close-line"></i><span>Cancel</span>
-            </button>
-          </div>
+    <!-- matchmaking overlay -->
+    <div class="mm-modal" id="mm-modal" hidden>
+      <div class="mm-scrim" id="mm-scrim"></div>
+      <div class="mm-card">
+        <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
+        <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
+        <div class="mm-subrow">
+          <p class="mm-sub" id="mm-sub">Searching the queue...</p>
+          <button
+            type="button"
+            class="tipdot mm-tip"
+            data-tip="Classic: fight with a deck you built yourself. Draft: both players take turns picking legends from the same pile, then fight with what they got."
+            aria-label="Tip"
+          >
+            <i class="ri-question-line"></i>
+          </button>
         </div>
+        <div class="mm-vs" id="mm-vs" hidden>
+          <span class="mm-side" id="mm-you">You</span>
+          <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
+          <span class="mm-side" id="mm-opp">Opponent</span>
+        </div>
+        <button class="btn btn-ghost btn-slim" id="mm-cancel">
+          <i class="ri-close-line"></i><span>Cancel</span>
+        </button>
       </div>
-
-      <footer>Echoes of Legend - Prototype</footer>
-    </section>
+    </div>
 
     <!-- ==================== CAMPAIGN (chapter select) ====================
          The campaign route remains a nonfunctional presentation slice:
@@ -910,22 +1245,34 @@
       </header>
 
       <div class="chapter-rail">
-        <button class="chapter-card" id="chapter-1" type="button" aria-label="Open Chapter 1: The Road of Echoes">
+        <button
+          class="chapter-card has-cover"
+          id="chapter-1"
+          type="button"
+          aria-label="Open Chapter 1: The Road of Echoes"
+        >
           <span class="ch-art" aria-hidden="true">
-            <i class="ch-wm ra ra-compass"></i>
-            <span class="ch-mist"></span>
+            <img
+              class="ch-cover-img"
+              src="assets/chapter-1/cover-gilgamesh.png"
+              alt="Gilgamesh"
+              draggable="false"
+            />
+            <span class="ch-cover-vignette"></span>
           </span>
           <span class="ch-body">
             <span class="ch-kicker">Chapter 1</span>
             <span class="ch-name">The Road of Echoes</span>
             <span class="ch-desc">
-              A nameless Wayfarer crosses ten gates before the First Legend decides whether a story can continue.
+              A nameless Wayfarer crosses ten gates before the First Legend decides whether a story
+              can continue.
             </span>
             <span class="ch-meta">
-              <span class="ch-chip"><i class="ri-flag-line"></i>10 stages</span>
-              <span class="ch-chip"><i class="ra ra-crossed-swords"></i>63 legends</span>
+              <span class="ch-chip"><i class="ri-flag-line"></i>10 gates</span>
             </span>
-            <span class="ch-cta">Open chapter <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+            <span class="ch-cta"
+              >Open chapter <i class="ri-arrow-right-line" aria-hidden="true"></i
+            ></span>
           </span>
         </button>
       </div>
@@ -943,7 +1290,9 @@
           <i class="ri-arrow-left-line"></i><span>Chapters</span>
         </button>
         <div class="col-titles">
-          <span class="mast-emblem chapter-emblem" aria-hidden="true"><i class="ra ra-compass"></i></span>
+          <span class="mast-emblem chapter-emblem" aria-hidden="true"
+            ><i class="ra ra-compass"></i
+          ></span>
           <p class="chapter-overline">Chapter 1</p>
           <h2 class="col-title" id="chapter-title">The Road of Echoes</h2>
           <span class="mast-rule" aria-hidden="true"></span>
@@ -951,136 +1300,431 @@
         </div>
       </header>
 
-      <div class="chapter-brief" aria-label="Chapter progress">
-        <div class="chapter-brief-copy">
-          <span class="chapter-brief-kicker"><i class="ri-route-line" aria-hidden="true"></i> The first question</span>
-          <p>Ten guardians test whether an Echo can last without becoming a prison. Beyond them waits Gilgamesh — and a gate toward Uruk.</p>
-        </div>
-        <div class="chapter-progress" aria-label="Stage progress: 1 of 10 available">
-          <span class="chapter-progress-n"><b>01</b><i>/</i>10</span>
-          <span class="chapter-progress-label">The Recruiter waits</span>
-        </div>
-      </div>
-
-      <div class="rival-route" aria-label="The ten rivals of Chapter 1">
-        <button class="rival-card is-first" id="chapter-stage-1" type="button" style="--rival-a:#4fa86a; --rival-b:#8a5ad8;" aria-current="step" data-campaign-stage="1">
-          <span class="rival-top"><span class="rival-num">I</span><span class="rival-state"><i class="ri-sparkling-2-line"></i> First gate</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-recruiter.png" alt="" draggable="false" /><i class="ra ra-player-thunder-struck"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 1 · Classic · Grimmwood deck</span>
-            <strong class="rival-name">The Recruiter</strong>
-            <span class="rival-desc">An old memory broker asks what you want to outlive.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> Colosseum</span>
-          </span>
-          <span class="rival-open"><i class="ri-chat-1-line"></i> Hear his question</span>
+      <div class="stage-list" aria-label="The ten gates of Chapter 1">
+        <!-- Stage 1 -->
+        <button
+          class="stage-card is-first"
+          id="chapter-stage-1"
+          type="button"
+          data-campaign-stage="1"
+          aria-label="Gate 1: The Recruiter"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate I</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-recruiter.png"
+                alt="The Recruiter"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 1 &middot; Classic</span>
+              <h3 class="sc-name">The Recruiter</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Colosseum</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-unlock-line"></i> Open Gate</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                An old memory broker asks what you want to outlive. “Every Echo thinks this road
+                leads to immortality. It does not. It asks whether your story can last without
+                becoming trapped inside itself.”
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Recruiter
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#4c7bd8; --rival-b:#c9a227;" aria-label="Stage 2 locked: The Oathkeeper" data-campaign-stage="2">
-          <span class="rival-top"><span class="rival-num">II</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-oathkeeper.png" alt="" draggable="false" /><i class="ra ra-shield"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 2 · Classic</span>
-            <strong class="rival-name">The Oathkeeper</strong>
-            <span class="rival-desc">A veteran who returned with twelve asks who your strength protects.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Narrow Pass</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Recruiter</span>
+        <!-- Stage 2 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-2"
+          type="button"
+          disabled
+          data-campaign-stage="2"
+          aria-label="Gate 2: The Oathkeeper"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate II</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-oathkeeper.png"
+                alt="The Oathkeeper"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 2 &middot; Classic</span>
+              <h3 class="sc-name">The Oathkeeper</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Narrow Pass</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A veteran who returned with twelve asks who your strength protects. “I promised to
+                bring forty-three people home. I brought twelve. A wall is not made to keep danger
+                out. It is made to tell danger where it must stop.”
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Oathkeeper
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#3f9b5c; --rival-b:#c8a34a;" aria-label="Stage 3 locked: The Outlaw" data-campaign-stage="3">
-          <span class="rival-top"><span class="rival-num">III</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-outlaw.png" alt="" draggable="false" /><i class="ra ra-archery-target"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 3 · Classic</span>
-            <strong class="rival-name">The Outlaw</strong>
-            <span class="rival-desc">A rifle sights your brightest echo to see who you leave behind.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Open Plains</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Oathkeeper</span>
+        <!-- Stage 3 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-3"
+          type="button"
+          disabled
+          data-campaign-stage="3"
+          aria-label="Gate 3: The Outlaw"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate III</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-outlaw.png"
+                alt="The Outlaw"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 3 &middot; Classic</span>
+              <h3 class="sc-name">The Outlaw</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Open Plains</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A bookshop family whose records were burned before its books. Her rifle sights your
+                brightest echo to see who you leave behind.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Outlaw
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#d8b64c; --rival-b:#6fd3e8;" aria-label="Stage 4 locked: The Anointed" data-campaign-stage="4">
-          <span class="rival-top"><span class="rival-num">IV</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-anointed.png" alt="" draggable="false" /><i class="ra ra-sunbeams"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 4 · Classic</span>
-            <strong class="rival-name">The Anointed</strong>
-            <span class="rival-desc">A Mark is a promise. Decide whether it becomes prophecy.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Mana Spring</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Outlaw</span>
+        <!-- Stage 4 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-4"
+          type="button"
+          disabled
+          data-campaign-stage="4"
+          aria-label="Gate 4: The Anointed"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate IV</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-anointed.png"
+                alt="The Anointed"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 4 &middot; Classic</span>
+              <h3 class="sc-name">The Anointed</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Mana Spring</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A Mark is a promise. Beside the cracked spring pool, decide whether it becomes
+                prophecy or freedom.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Anointed
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#c9a227; --rival-b:#8f6dc2;" aria-label="Stage 5 locked: The Warden of the Mid-Road" data-campaign-stage="5">
-          <span class="rival-top"><span class="rival-num">V</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-warden-of-the-mid-road.png" alt="" draggable="false" /><i class="ra ra-helmet"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 5 · Unabridged · Three gates</span>
-            <strong class="rival-name">The Warden of the Mid-Road</strong>
-            <span class="rival-desc">At the Mid-Road, the guardians reveal why they chose to remain.</span>
-            <span class="rival-meta"><i class="ri-map-2-line"></i> Colosseum · Pass · Plains</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Anointed</span>
+        <!-- Stage 5 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-5"
+          type="button"
+          disabled
+          data-campaign-stage="5"
+          aria-label="Gate 5: The Warden of the Mid-Road"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate V</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-warden-of-the-mid-road.png"
+                alt="The Warden"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 5 &middot; Unabridged</span>
+              <h3 class="sc-name">The Warden of the Mid-Road</h3>
+              <span class="sc-meta"
+                ><i class="ri-map-2-line"></i> Colosseum &middot; Pass &middot; Plains</span
+              >
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                At the three stone arches, the guardians reveal why they chose to remain between
+                memory and the Quiet.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Warden
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#e05a4a; --rival-b:#f0c05a;" aria-label="Stage 6 locked: The Trickster" data-campaign-stage="6">
-          <span class="rival-top"><span class="rival-num">VI</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-trickster.png" alt="" draggable="false" /><i class="ra ra-clovers-card"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 6 · Draft</span>
-            <strong class="rival-name">The Trickster</strong>
-            <span class="rival-desc">Every choice leaves another possible self across the table.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Energy Void</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear the Mid-Road</span>
+        <!-- Stage 6 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-6"
+          type="button"
+          disabled
+          data-campaign-stage="6"
+          aria-label="Gate 6: The Trickster"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate VI</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-trickster.png"
+                alt="The Trickster"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 6 &middot; Draft</span>
+              <h3 class="sc-name">The Trickster</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Energy Void</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                Every choice leaves another possible self across the table. In the void, you learn
+                to win with what remains.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Trickster
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#7b4dc0; --rival-b:#d4af37;" aria-label="Stage 7 locked: The Strategist" data-campaign-stage="7">
-          <span class="rival-top"><span class="rival-num">VII</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-strategist.png" alt="" draggable="false" /><i class="ra ra-gears"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 7 · Draft</span>
-            <strong class="rival-name">The Strategist</strong>
-            <span class="rival-desc">He calls every choice a pattern. You must prove it is not destiny.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> Blood Battlefield</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Trickster</span>
+        <!-- Stage 7 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-7"
+          type="button"
+          disabled
+          data-campaign-stage="7"
+          aria-label="Gate 7: The Strategist"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate VII</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-strategist.png"
+                alt="The Strategist"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 7 &middot; Draft</span>
+              <h3 class="sc-name">The Strategist</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Blood Battlefield</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                He calls every choice a pattern on his marble grid. You must prove it is not
+                destiny.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Strategist
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#e8e3d3; --rival-b:#c4392f;" aria-label="Stage 8 locked: The Chronicler" data-campaign-stage="8">
-          <span class="rival-top"><span class="rival-num">VIII</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-chronicler.png" alt="" draggable="false" /><i class="ra ra-book"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 8 · Draft</span>
-            <strong class="rival-name">The Chronicler</strong>
-            <span class="rival-desc">In the wall-less library, the Quiet learns that you exist.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> Spirit World</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Strategist</span>
+        <!-- Stage 8 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-8"
+          type="button"
+          disabled
+          data-campaign-stage="8"
+          aria-label="Gate 8: The Chronicler"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate VIII</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-chronicler.png"
+                alt="The Chronicler"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 8 &middot; Draft</span>
+              <h3 class="sc-name">The Chronicler</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Spirit World</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                In the wall-less library beneath cold stars, the Quiet learns that you exist.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Chronicler
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked" type="button" disabled style="--rival-a:#79bdb4; --rival-b:#c9a227;" aria-label="Stage 9 locked: The Last Guardian" data-campaign-stage="9">
-          <span class="rival-top"><span class="rival-num">IX</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/the-last-guardian.png" alt="" draggable="false" /><i class="ra ra-shield"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 9 · Unabridged · Three gates</span>
-            <strong class="rival-name">The Last Guardian</strong>
-            <span class="rival-desc">A nameless guardian shows what it costs to hold a door shut.</span>
-            <span class="rival-meta"><i class="ri-map-2-line"></i> Void · Battlefield · Spirit World</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Chronicler</span>
+        <!-- Stage 9 -->
+        <button
+          class="stage-card is-locked"
+          id="chapter-stage-9"
+          type="button"
+          disabled
+          data-campaign-stage="9"
+          aria-label="Gate 9: The Last Guardian"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate IX</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-last-guardian.png"
+                alt="The Last Guardian"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 9 &middot; Unabridged</span>
+              <h3 class="sc-name">The Last Guardian</h3>
+              <span class="sc-meta"
+                ><i class="ri-map-2-line"></i> Void &middot; Battlefield &middot; Spirit World</span
+              >
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A nameless guardian stands before the bronze threshold, showing what it costs to
+                hold a door shut against oblivion.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Last Guardian
+              </div>
+            </div>
+          </div>
         </button>
 
-        <button class="rival-card is-locked is-final" type="button" disabled style="--rival-a:#c9a227; --rival-b:#1f4e79;" aria-label="Stage 10 locked: Gilgamesh" data-campaign-stage="10">
-          <span class="rival-top"><span class="rival-num">X</span><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span>
-          <span class="rival-art has-portrait" aria-hidden="true"><img class="rival-portrait" src="assets/rivals/gilgamesh.png" alt="" draggable="false" /><i class="ra ra-crowned-heart"></i><b></b><em></em></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 10 · Unabridged · Final judgment</span>
-            <strong class="rival-name">Gilgamesh</strong>
-            <span class="rival-desc">The First Legend judges whether a story can continue without becoming a prison.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Legend's Trial</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Last Guardian</span>
+        <!-- Stage 10 -->
+        <button
+          class="stage-card is-locked is-final"
+          id="chapter-stage-10"
+          type="button"
+          disabled
+          data-campaign-stage="10"
+          aria-label="Gate 10: Gilgamesh"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate X</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/gilgamesh.png"
+                alt="Gilgamesh"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 10 &middot; Unabridged &middot; Final Judgment</span>
+              <h3 class="sc-name">Gilgamesh</h3>
+              <span class="sc-meta"
+                ><i class="ri-map-2-line"></i> Trial &middot; Ruins &middot; Mirror Realm</span
+              >
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                The First King stands beside the great scales of memory. The First Legend judges
+                whether a story can continue without becoming a prison.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with Gilgamesh
+              </div>
+            </div>
+          </div>
         </button>
       </div>
 
@@ -1091,10 +1735,23 @@
          Recruiter scene only for now. It is a narrative encounter, not a
          battle launch: the Classic fight will arrive once campaign state and
          authored rival teams exist. -->
-    <div class="chapter-dialogue" id="chapter-dialogue" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="chapter-dialogue-speaker">
+    <div
+      class="chapter-dialogue"
+      id="chapter-dialogue"
+      hidden
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="chapter-dialogue-speaker"
+    >
       <div class="chapter-dialogue-scrim" id="chapter-dialogue-scrim"></div>
       <section class="chapter-dialogue-card">
-        <button class="chapter-dialogue-close" id="chapter-dialogue-close" type="button" aria-label="Close dialogue">
+        <button
+          class="chapter-dialogue-close"
+          id="chapter-dialogue-close"
+          type="button"
+          aria-label="Close dialogue"
+        >
           <i class="ri-close-line"></i>
         </button>
         <div class="chapter-dialogue-art" aria-hidden="true">
@@ -1102,13 +1759,19 @@
           <span class="chapter-dialogue-road"></span>
         </div>
         <div class="chapter-dialogue-copy">
-          <span class="chapter-dialogue-kicker"><i class="ri-book-open-line"></i> Chapter 1 · Gate I</span>
+          <span class="chapter-dialogue-kicker"
+            ><i class="ri-book-open-line"></i> Chapter 1 · Gate I</span
+          >
           <h3 id="chapter-dialogue-speaker">The Recruiter</h3>
           <p id="chapter-dialogue-text"></p>
         </div>
         <footer class="chapter-dialogue-foot">
           <span class="chapter-dialogue-step" id="chapter-dialogue-step">01 / 06</span>
-          <button class="btn btn-primary chapter-dialogue-next" id="chapter-dialogue-next" type="button">
+          <button
+            class="btn btn-primary chapter-dialogue-next"
+            id="chapter-dialogue-next"
+            type="button"
+          >
             <span>Continue</span><i class="ri-arrow-right-line"></i>
           </button>
         </footer>
@@ -1121,14 +1784,41 @@
         <button class="back-btn" id="btn-prep-back">
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
+        <button class="btn btn-ghost btn-slim" id="prep-fields" type="button" hidden>
+          <i class="ri-map-2-line"></i><span>See battlefields</span>
+        </button>
         <div class="col-titles">
           <h2 class="col-title">Preparation</h2>
           <p class="col-sub" id="prep-sub">Phase 1 - ban 2 of the enemy's legends</p>
         </div>
         <div class="prep-steps">
-          <span class="pstep sel" id="pstep-ban"><b>1</b> Bans<button type="button" class="tipdot" data-tip="Choose 2 of the enemy's legends to ban - they can't be used this battle. The enemy bans 2 of yours at the same time, and nobody sees the other side's picks first." aria-label="Tip"><i class="ri-question-line"></i></button></span>
-          <span class="pstep" id="pstep-pick"><b>2</b> Field Six<button type="button" class="tipdot" data-tip="Pick the 6 legends who fight. The front row takes the hits, the back row attacks and supports. Tap a legend to move it between rows. Big moves cost more Energy." aria-label="Tip"><i class="ri-question-line"></i></button></span>
-          <span class="pstep" id="pstep-fight"><b>3</b> Battle<button type="button" class="tipdot" data-tip="You and the enemy take turns making one move each. In Unabridged, you must swap 1 or 2 legends between games to keep your squad fresh." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+          <span class="pstep sel" id="pstep-ban"
+            ><b>1</b> Bans<button
+              type="button"
+              class="tipdot"
+              data-tip="Choose 2 of the enemy's legends to ban - they can't be used this battle. The enemy bans 2 of yours at the same time, and nobody sees the other side's picks first."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i></button
+          ></span>
+          <span class="pstep" id="pstep-pick"
+            ><b>2</b> Field Six<button
+              type="button"
+              class="tipdot"
+              data-tip="Pick the 6 legends who fight. The front row takes the hits, the back row attacks and supports. Tap a legend to move it between rows. Big moves cost more Energy."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i></button
+          ></span>
+          <span class="pstep" id="pstep-fight"
+            ><b>3</b> Battle<button
+              type="button"
+              class="tipdot"
+              data-tip="You and the enemy take turns making one move each. In Unabridged, you must swap 1 or 2 legends between games to keep your squad fresh."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i></button
+          ></span>
         </div>
       </header>
 
@@ -1174,13 +1864,17 @@
             <div class="field-count"><b id="field-n">0</b><span>/6 fielded</span></div>
           </div>
           <div class="prep-actions">
-            <button class="btn btn-ghost btn-slim" id="prep-fields" type="button">
-              <i class="ri-map-2-line"></i><span>See battlefields</span>
-            </button>
             <button class="btn btn-primary" id="prep-confirm" disabled>
               <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
             </button>
-            <button type="button" class="tipdot prep-go-tip" data-tip="Button greyed out? Read what it says under it - it tells you what is still missing, like picking your 6 legends or making your swaps." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <button
+              type="button"
+              class="tipdot prep-go-tip"
+              data-tip="Button greyed out? Read what it says under it - it tells you what is still missing, like picking your 6 legends or making your swaps."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i>
+            </button>
           </div>
         </section>
       </div>
@@ -1201,7 +1895,17 @@
         <div class="bf-card" id="bf-card">
           <div class="bf-art" id="bf-art"></div>
           <div class="bf-body">
-            <div class="bf-kicker">The battlefield is revealed <button type="button" class="tipdot" data-tip="Every arena changes the rules of the fight a little, and it applies to both sides. Read what this one does before the battle starts." aria-label="Tip"><i class="ri-question-line"></i></button></div>
+            <div class="bf-kicker">
+              The battlefield is revealed
+              <button
+                type="button"
+                class="tipdot"
+                data-tip="Every arena changes the rules of the fight a little, and it applies to both sides. Read what this one does before the battle starts."
+                aria-label="Tip"
+              >
+                <i class="ri-question-line"></i>
+              </button>
+            </div>
             <h3 class="bf-name" id="bf-name"></h3>
             <p class="bf-tag" id="bf-tag"></p>
             <ul class="bf-rules" id="bf-rules"></ul>
@@ -1221,7 +1925,17 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <h2 class="col-title">Draft <button type="button" class="tipdot" data-tip="You and the enemy take turns picking legends from the same packs. Whatever you skip, they can grab." aria-label="Tip"><i class="ri-question-line"></i></button></h2>
+          <h2 class="col-title">
+            Draft
+            <button
+              type="button"
+              class="tipdot"
+              data-tip="You and the enemy take turns picking legends from the same packs. Whatever you skip, they can grab."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i>
+            </button>
+          </h2>
           <p class="col-sub" id="draft-sub">Pack 1 of 12 - your pick</p>
         </div>
         <div class="draft-order" id="draft-order"></div>
@@ -1245,6 +1959,9 @@
           <div class="dpile-strip" id="dpile-foe"></div>
         </div>
       </div>
+
+      <!-- hover tooltip: floating hero panel on deck pip hover -->
+      <aside class="flyout" id="draft-tip" data-rarity="common" aria-hidden="true"></aside>
     </section>
 
     <!-- ==================== COACH OVERLAY + TOASTS ==================== -->
@@ -1310,7 +2027,14 @@
           <div class="en-txt">
             <i class="ra ra-lightning-bolt"></i>
             <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
-            <button type="button" class="tipdot" data-tip="Energy pays for your legends' skills. You get more every round, and what you don't spend is saved for later, up to a cap." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <button
+              type="button"
+              class="tipdot"
+              data-tip="Energy pays for your legends' skills. You get more every round, and what you don't spend is saved for later, up to a cap."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i>
+            </button>
           </div>
         </div>
 
@@ -1329,7 +2053,16 @@
             <span class="tc-num" id="tc-num"></span>
           </div>
           <div class="hud-round">
-            <span class="round-label">Round <button type="button" class="tipdot hud-round-tip" data-tip="You and the enemy take turns making one move each. The dial beside the round shows your time to move - if it runs out, that move is skipped for you. A round ends when both sides pass in a row." aria-label="Tip"><i class="ri-question-line"></i></button></span>
+            <span class="round-label"
+              >Round
+              <button
+                type="button"
+                class="tipdot hud-round-tip"
+                data-tip="You and the enemy take turns making one move each. The dial beside the round shows your time to move - if it runs out, that move is skipped for you. A round ends when both sides pass in a row."
+                aria-label="Tip"
+              >
+                <i class="ri-question-line"></i></button
+            ></span>
             <span class="round-num" id="round-num">1</span>
             <span class="turn-label" id="turn-label">Your Turn</span>
             <span class="init-tag" id="init-tag" title="Round 1 opening limit">
@@ -1365,7 +2098,14 @@
           <div class="en-txt">
             <i class="ra ra-lightning-bolt"></i>
             <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
-            <button type="button" class="tipdot" data-tip="The enemy plays by the same Energy rules you do. Watch their bar to guess when their strongest move is nearly ready." aria-label="Tip"><i class="ri-question-line"></i></button>
+            <button
+              type="button"
+              class="tipdot"
+              data-tip="The enemy plays by the same Energy rules you do. Watch their bar to guess when their strongest move is nearly ready."
+              aria-label="Tip"
+            >
+              <i class="ri-question-line"></i>
+            </button>
           </div>
           <div class="pf-body">
             <div class="pf-name">
@@ -1488,7 +2228,14 @@
 
       <div class="result" id="result">
         <div class="result-card">
-          <button type="button" class="tipdot result-tip" data-tip="The first player to win 2 games takes the set. After each game, the loser picks the next arena and both sides swap legends here on the sideboard." aria-label="Tip"><i class="ri-question-line"></i></button>
+          <button
+            type="button"
+            class="tipdot result-tip"
+            data-tip="The first player to win 2 games takes the set. After each game, the loser picks the next arena and both sides swap legends here on the sideboard."
+            aria-label="Tip"
+          >
+            <i class="ri-question-line"></i>
+          </button>
           <div class="result-icon"><i class="ra ra-crown"></i></div>
           <h2 class="result-title">Victory</h2>
           <p class="result-sub"></p>
@@ -1505,53 +2252,61 @@
       </div>
     </section>
 
-      <!-- ==================== THE SET: FIGHT CARD ====================
+    <!-- ==================== THE SET: FIGHT CARD ====================
            Revealed once per set, at prep start, BEFORE bans. All three
            boards are public knowledge from the first click of the set;
            only which board each game lands on is settled game-by-game
            (game 1 pre-designated, later games called by the loser). -->
-      <div
-        class="setm"
-        id="set-fightcard"
-        hidden
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="set-fightcard-title"
-      >
-        <div class="setm-scrim"></div>
-        <div class="setm-card fightcard">
-          <h2 class="setm-title" id="set-fightcard-title">
-            <i class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED — FIGHT CARD
-          </h2>
-          <p class="setm-sub" id="set-fightcard-sub"></p>
-          <div class="setm-plates" id="set-fightcard-plates"></div>
-          <button type="button" class="btn btn-primary setm-go" id="set-fightcard-go">
-            <i class="ra ra-crossed-swords"></i><span>Field your six</span>
-          </button>
-        </div>
+    <div
+      class="setm"
+      id="set-fightcard"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="set-fightcard-title"
+    >
+      <div class="setm-scrim"></div>
+      <div class="setm-card fightcard">
+        <h2 class="setm-title" id="set-fightcard-title">
+          <i class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED — FIGHT CARD
+        </h2>
+        <p class="setm-sub" id="set-fightcard-sub"></p>
+        <div class="setm-plates" id="set-fightcard-plates"></div>
+        <button type="button" class="btn btn-primary setm-go" id="set-fightcard-go">
+          <i class="ra ra-crossed-swords"></i><span>Field your six</span>
+        </button>
       </div>
+    </div>
 
-      <!-- ==================== THE SET: BOARD CALL ====================
+    <!-- ==================== THE SET: BOARD CALL ====================
            Loser of the last game picks the next battlefield from the
            fight card's open slots; the slot they leave becomes the
            decider board. The bot calls for its own side. -->
-      <div
-        class="setm"
-        id="set-boardpick"
-        hidden
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="set-boardpick-title"
-      >
-        <div class="setm-scrim"></div>
-        <div class="setm-card">
-          <h2 class="setm-title" id="set-boardpick-title">
-            <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD <button type="button" class="tipdot" data-tip="You lost the last game, so you get to pick the next arena. Choose the one that suits your legends - the one you skip becomes the arena for the final game." aria-label="Tip"><i class="ri-question-line"></i></button>
-          </h2>
-          <p class="setm-sub" id="set-boardpick-sub"></p>
-          <div class="setm-plates" id="set-boardpick-plates"></div>
-        </div>
+    <div
+      class="setm"
+      id="set-boardpick"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="set-boardpick-title"
+    >
+      <div class="setm-scrim"></div>
+      <div class="setm-card">
+        <h2 class="setm-title" id="set-boardpick-title">
+          <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD
+          <button
+            type="button"
+            class="tipdot"
+            data-tip="You lost the last game, so you get to pick the next arena. Choose the one that suits your legends - the one you skip becomes the arena for the final game."
+            aria-label="Tip"
+          >
+            <i class="ri-question-line"></i>
+          </button>
+        </h2>
+        <p class="setm-sub" id="set-boardpick-sub"></p>
+        <div class="setm-plates" id="set-boardpick-plates"></div>
       </div>
+    </div>
 
     <!-- ==================== TRANSITION VEIL ====================
          Full-page loading screen. It boots ON in the markup so the very

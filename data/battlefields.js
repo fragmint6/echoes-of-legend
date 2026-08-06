@@ -105,10 +105,11 @@ window.EOL.battlefields = [
     tagline: 'A mystic realm where actions echo across reality.',
     colors: { primary: '#b18cd9', secondary: '#6fd3e8', glow: '#e2c9ff' },
     rules: [
-      'The first Skill each round repeats at 50% effectiveness.',
+      'The first Signature Skill for each player each round repeats at 50% effectiveness.',
       'The echo costs no Energy.',
     ],
-    draft: 'Skill-centric legends spike; opening timing becomes a mind game.',
+    draft: 'Signature-centric legends spike; opening timing becomes a mind game.',
+    echoFirstSignature: true,
     echoFirstAbility: true,
     echoScale: 0.5,
   },
@@ -133,8 +134,11 @@ window.EOL.battlefields = [
     icon: 'ra-dead-tree',
     tagline: 'A forgotten battlefield littered with lost relics.',
     colors: { primary: '#c2a878', secondary: '#6b8f71', glow: '#f0dcb0' },
-    rules: ['Each round both sides receive one boon: +5% ATK, +5% DEF or a 5% Max HP heal. The stat boons are permanent.'],
-    draft: 'Every comp scales with time here; stall plans gain the most, so bring an answer for them.',
+    rules: [
+      'Each round both sides receive one boon: +5% ATK, +5% DEF or a 5% Max HP heal. The stat boons are permanent.',
+    ],
+    draft:
+      'Every comp scales with time here; stall plans gain the most, so bring an answer for them.',
     roundBuffs: [
       /* user law 2026-08-04: exactly three relics - +5% ATK for the rest
          of the battle, +5% DEF for the rest of the battle, or a 5% Max

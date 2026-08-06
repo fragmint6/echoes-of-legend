@@ -9,12 +9,24 @@ const ROOT = path.resolve(__dirname, '..');
 global.window = {};
 global.performance = { now: () => Date.now() };
 [
-  'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
-  'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
-  'data/roma.js', 'data/takamagahara.js', 'data/battlefields.js', 'data/draft-ai.js',
-  'js/engine.js', 'js/ai.js',
+  'data/_schema.js',
+  'data/roles.js',
+  'data/camelot.js',
+  'data/olympus.js',
+  'data/sherwood.js',
+  'data/grimmwood.js',
+  'data/yamato.js',
+  'data/huaxia.js',
+  'data/roma.js',
+  'data/takamagahara.js',
+  'data/battlefields.js',
+  'data/draft-ai.js',
+  'js/engine.js',
+  'js/ai.js',
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
-const EOL = window.EOL, E = EOL.engine, AI = EOL.ai;
+const EOL = window.EOL,
+  E = EOL.engine,
+  AI = EOL.ai;
 
 const ALL = [];
 EOL.factions.forEach((f) => f.cards.forEach((c) => ALL.push(c)));
@@ -22,22 +34,46 @@ const CARD = {};
 ALL.forEach((c) => (CARD[c.id] = c));
 const ent = (id) => ({ card: CARD[id], faction: CARD[id].faction });
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 const fails = [];
-const ok = (c, m) => { if (c) pass++; else { fail++; fails.push(m); console.log('  \x1b[31mFAIL\x1b[0m  ' + m); } };
+const ok = (c, m) => {
+  if (c) pass++;
+  else {
+    fail++;
+    fails.push(m);
+    console.log('  \x1b[31mFAIL\x1b[0m  ' + m);
+  }
+};
 const sec = (t) => console.log('\n\x1b[1m' + t + '\x1b[0m');
 
-const FILL = ['camelot-guinevere', 'sherwood-little-john', 'grimmwood-snow-white',
-  'olympus-apollo', 'yamato-momotaro'];
-const CLEAN = ['olympus-hercules', 'camelot-mordred', 'huaxia-mulan',
-  'olympus-medusa', 'grimmwood-pied-piper', 'sherwood-will-scarlet'];
+const FILL = [
+  'camelot-guinevere',
+  'sherwood-little-john',
+  'grimmwood-snow-white',
+  'olympus-apollo',
+  'yamato-momotaro',
+];
+const CLEAN = [
+  'olympus-hercules',
+  'camelot-mordred',
+  'huaxia-mulan',
+  'olympus-medusa',
+  'grimmwood-pied-piper',
+  'sherwood-will-scarlet',
+];
 function board(mine, foes, field) {
   let n = 1;
-  const rng = () => ((n = (n * 1103515245 + 12345) % 2147483648) / 2147483648);
-  const B = E.createBattle(mine.map(ent), (foes || CLEAN).map(ent),
-    { rng, roleAware: true, simulation: true, field: field || null });
+  const rng = () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const B = E.createBattle(mine.map(ent), (foes || CLEAN).map(ent), {
+    rng,
+    roleAware: true,
+    simulation: true,
+    field: field || null,
+  });
   B.noOpeningLimit = true;
-  B.energy.player = 150; B.energy.enemy = 150;
+  B.energy.player = 150;
+  B.energy.enemy = 150;
   return B;
 }
 const U = (B, id) => B.units.find((u) => u.card.id === id);
@@ -92,7 +128,10 @@ sec('C. Per-stack damage conversion');
   const hp0 = foe.hp;
   E.useAbility(B, cic, cic.card.ability, [foe]);
   const clean = hp0 - foe.hp;
-  ok(near(clean, base, 0.08), `clean target takes base 110% (${Math.round(clean)} vs ${Math.round(base)})`);
+  ok(
+    near(clean, base, 0.08),
+    `clean target takes base 110% (${Math.round(clean)} vs ${Math.round(base)})`
+  );
 }
 {
   const B = board(['roma-cicero', ...FILL]);
@@ -108,7 +147,10 @@ sec('C. Per-stack damage conversion');
   const dealt = hp0 - foe.hp;
   ok(n === 3, `fixture has 3 debuffs (${n})`);
   ok(near(dealt, expect, 0.1), `+15% per debuff (${Math.round(dealt)} vs ${Math.round(expect)})`);
-  ok(dealt > E.atkOf(cic) * 1.1 * 0.8, 'stacking still raises the payout (now capped for role integrity)');
+  ok(
+    dealt > E.atkOf(cic) * 1.1 * 0.8,
+    'stacking still raises the payout (now capped for role integrity)'
+  );
 }
 {
   /* the cap must hold */
@@ -122,51 +164,65 @@ sec('C. Per-stack damage conversion');
   const hp0 = foe.hp;
   E.useAbility(B, cic, cic.card.ability, [foe]);
   ok(E.debuffCount(foe) > 3, `fixture really has >3 debuffs (${E.debuffCount(foe)})`);
-  ok(near(hp0 - foe.hp, capped, 0.1), `perDebuffMax caps the bonus at 3 stacks (${Math.round(hp0 - foe.hp)} vs ${Math.round(capped)})`);
+  ok(
+    near(hp0 - foe.hp, capped, 0.1),
+    `perDebuffMax caps the bonus at 3 stacks (${Math.round(hp0 - foe.hp)} vs ${Math.round(capped)})`
+  );
 }
 
 /* =============================================================
-   D. consumeBuffs - the exit valve
+   D. Debuff scaling & buff consumption
    ============================================================= */
-sec('D. Buff consumption (Inari)');
+sec('D. Debuff scaling (Inari) & buff consumption');
 {
   const B = board(['takamagahara-inari', ...FILL]);
   const ina = U(B, 'takamagahara-inari');
   const foe = B.units.find((u) => u.side === 'enemy');
-  foe.buffs.push({ stat: 'atk', amt: 20, turns: 2, tag: null });
-  foe.buffs.push({ stat: 'def', amt: 15, turns: 2, tag: null });
-  foe.shield = 800;
-  const n = E.buffCount(foe);
-  ok(n === 3, `fixture has 3 buffs incl. shield (${n})`);
+  foe.buffs.push({ stat: 'atk', amt: -20, turns: 2, tag: null });
+  foe.buffs.push({ stat: 'def', amt: -15, turns: 2, tag: null });
+  foe.flags.burn = 2;
+  const n = E.debuffCount(foe);
+  ok(n === 3, `fixture has 3 debuffs (${n})`);
+  const base = (E.atkOf(ina) * 0.75 + E.atkOf(ina) * 0.3 * n) * (1 - E.defOf(foe) / 100);
   const hp0 = foe.hp;
   E.useAbility(B, ina, ina.card.ability, [foe]);
   const dealt = hp0 - foe.hp;
-  ok(E.buffCount(foe) === 0, `every buff stripped (${E.buffCount(foe)} left)`);
-  ok(foe.shield === 0, 'shield stripped too (alsoShield)');
-  ok(!foe.buffs.some((b) => b.amt > 0), 'no positive stat buffs survive');
-  ok(dealt > 0, `still deals damage (${Math.round(dealt)})`);
+  ok(dealt > 0, `deals damage (${Math.round(dealt)})`);
+  ok(
+    near(dealt, base, 0.1),
+    `scales by debuffs (+30% per debuff: ${Math.round(dealt)} vs ${Math.round(base)})`
+  );
+  ok(foe.flags.exposed > 0, 'applies Exposed');
 }
 {
-  /* a clean target: no strip, no bonus, ability still works */
+  /* a clean target: no debuffs, base ability still works */
   const B = board(['takamagahara-inari', ...FILL]);
   const ina = U(B, 'takamagahara-inari');
   const foe = B.units.find((u) => u.side === 'enemy');
   const base = E.atkOf(ina) * 0.75 * (1 - E.defOf(foe) / 100);
   const hp0 = foe.hp;
   E.useAbility(B, ina, ina.card.ability, [foe]);
-  ok(near(hp0 - foe.hp, base, 0.1), `unbuffed target takes base 75% (${Math.round(hp0 - foe.hp)} vs ${Math.round(base)})`);
+  ok(
+    near(hp0 - foe.hp, base, 0.1),
+    `undebuffed target takes base 75% (${Math.round(hp0 - foe.hp)} vs ${Math.round(base)})`
+  );
   ok(foe.flags.exposed > 0, 'still applies Exposed');
 }
 {
-  /* negative buffs must survive a consume - it strips blessings only */
+  /* consumeBuffs engine keyword verification */
   const B = board(['takamagahara-inari', ...FILL]);
   const ina = U(B, 'takamagahara-inari');
   const foe = B.units.find((u) => u.side === 'enemy');
   foe.buffs.push({ stat: 'atk', amt: 20, turns: 2, tag: null });
   foe.buffs.push({ stat: 'atk', amt: -25, turns: 2, tag: null });
-  E.useAbility(B, ina, ina.card.ability, [foe]);
-  ok(foe.buffs.some((b) => b.amt < 0), 'debuffs are NOT removed by consumeBuffs');
+  foe.shield = 500;
+  E.applyEffectsPublic(B, ina, [foe], [{ k: 'consumeBuffs', to: 'targets', alsoShield: true }], {});
+  ok(
+    foe.buffs.some((b) => b.amt < 0),
+    'debuffs are NOT removed by consumeBuffs'
+  );
   ok(!foe.buffs.some((b) => b.amt > 0), 'only positive buffs are consumed');
+  ok(foe.shield === 0, 'shield is stripped by consumeBuffs');
 }
 
 /* =============================================================
@@ -182,7 +238,10 @@ sec('E. Trap buffs converted to team-wide');
   E.useAbility(B, g, g.card.ability, [t]);
   const allies = B.units.filter((u) => u.side === 'player' && u.alive);
   const buffed = allies.filter((u) => u.buffs.some((b) => b.stat === 'atk' && b.amt === 10)).length;
-  ok(buffed === allies.length, `Guinevere's ATK rider is now team-wide (${buffed}/${allies.length})`);
+  ok(
+    buffed === allies.length,
+    `Guinevere's ATK rider is now team-wide (${buffed}/${allies.length})`
+  );
 }
 {
   const B = board(['olympus-apollo', ...FILL]);
@@ -201,7 +260,8 @@ sec('E. Trap buffs converted to team-wide');
 sec('F. Comeback energy (+15 per hero of deficit)');
 {
   const B = board(['camelot-king-arthur', ...FILL]);
-  B.energy.player = 0; B.energy.enemy = 0;
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B); // even teams
   ok(B.comeback.player === 0 && B.comeback.enemy === 0, 'no grant when teams are even');
   const even = B.energy.player;
@@ -211,8 +271,12 @@ sec('F. Comeback energy (+15 per hero of deficit)');
   const B = board(['camelot-king-arthur', ...FILL]);
   /* kill two player heroes -> player is 2 down */
   const doomed = B.units.filter((u) => u.side === 'player').slice(0, 2);
-  doomed.forEach((u) => { u.alive = false; u.hp = 0; });
-  B.energy.player = 0; B.energy.enemy = 0;
+  doomed.forEach((u) => {
+    u.alive = false;
+    u.hp = 0;
+  });
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B);
   ok(B.comeback.player === 30, `2 heroes down = +30 energy at 15/hero (${B.comeback.player})`);
   ok(B.comeback.enemy === 0, 'the leading side gets nothing');
@@ -222,18 +286,39 @@ sec('F. Comeback energy (+15 per hero of deficit)');
   /* the grant must FADE as the deficit closes */
   const B = board(['camelot-king-arthur', ...FILL]);
   const doomed = B.units.filter((u) => u.side === 'player').slice(0, 3);
-  doomed.forEach((u) => { u.alive = false; u.hp = 0; });
-  B.energy.player = 0; B.energy.enemy = 0;
+  doomed.forEach((u) => {
+    u.alive = false;
+    u.hp = 0;
+  });
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B);
   ok(B.comeback.player === 45, `3 down = +45 (${B.comeback.player})`);
   /* now the enemy loses two, cutting the deficit to 1 */
-  B.units.filter((u) => u.side === 'enemy').slice(0, 2).forEach((u) => { u.alive = false; u.hp = 0; });
-  B.energy.player = 0; B.energy.enemy = 0;
+  B.units
+    .filter((u) => u.side === 'enemy')
+    .slice(0, 2)
+    .forEach((u) => {
+      u.alive = false;
+      u.hp = 0;
+    });
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B);
-  ok(B.comeback.player === 15, `deficit closed to 1 -> grant shrinks to +15 (${B.comeback.player})`);
+  ok(
+    B.comeback.player === 15,
+    `deficit closed to 1 -> grant shrinks to +15 (${B.comeback.player})`
+  );
   /* and equalise entirely */
-  B.units.filter((u) => u.side === 'enemy' && u.alive).slice(0, 1).forEach((u) => { u.alive = false; u.hp = 0; });
-  B.energy.player = 0; B.energy.enemy = 0;
+  B.units
+    .filter((u) => u.side === 'enemy' && u.alive)
+    .slice(0, 1)
+    .forEach((u) => {
+      u.alive = false;
+      u.hp = 0;
+    });
+  B.energy.player = 0;
+  B.energy.enemy = 0;
   E.nextRound(B);
   ok(B.comeback.player === 0, `tied board -> grant is gone (${B.comeback.player})`);
   ok(B.comeback.enemy === 0, 'and the other side still gets none');
@@ -241,10 +326,19 @@ sec('F. Comeback energy (+15 per hero of deficit)');
 {
   /* it must never break the cap */
   const B = board(['camelot-king-arthur', ...FILL]);
-  B.units.filter((u) => u.side === 'player').slice(0, 4).forEach((u) => { u.alive = false; u.hp = 0; });
+  B.units
+    .filter((u) => u.side === 'player')
+    .slice(0, 4)
+    .forEach((u) => {
+      u.alive = false;
+      u.hp = 0;
+    });
   B.energy.player = 145;
   E.nextRound(B);
-  ok(B.energy.player <= E.energyCap(B), `comeback respects the energy cap (${B.energy.player} <= ${E.energyCap(B)})`);
+  ok(
+    B.energy.player <= E.energyCap(B),
+    `comeback respects the energy cap (${B.energy.player} <= ${E.energyCap(B)})`
+  );
 }
 {
   /* clone must carry it so AI rollouts price it */
@@ -268,7 +362,10 @@ sec('G. AI valuation');
   dirtyFoe.flags.exposed = 1;
   const vClean = AI.scoreAction(B, cic, cic.card.ability, [cleanFoe]);
   const vDirty = AI.scoreAction(B, cic, cic.card.ability, [dirtyFoe]);
-  ok(vDirty > vClean, `AI prefers the stacked target (${Math.round(vClean)} -> ${Math.round(vDirty)})`);
+  ok(
+    vDirty > vClean,
+    `AI prefers the stacked target (${Math.round(vClean)} -> ${Math.round(vDirty)})`
+  );
 }
 {
   const B = board(['takamagahara-inari', ...FILL]);
@@ -280,7 +377,10 @@ sec('G. AI valuation');
   buffed.shield = 700;
   const vPlain = AI.scoreAction(B, ina, ina.card.ability, [plain]);
   const vBuffed = AI.scoreAction(B, ina, ina.card.ability, [buffed]);
-  ok(vBuffed > vPlain, `AI prefers stripping a buffed target (${Math.round(vPlain)} -> ${Math.round(vBuffed)})`);
+  ok(
+    vBuffed > vPlain,
+    `AI prefers stripping a buffed target (${Math.round(vPlain)} -> ${Math.round(vBuffed)})`
+  );
 }
 
 /* =============================================================
@@ -291,20 +391,36 @@ sec('H. Soak');
   const POOL = [];
   EOL.factions.forEach((f) => f.cards.forEach((c) => POOL.push({ card: c, faction: f.id })));
   AI.setDepth(2);
-  AI.setSimulationBudget({ beamWidth: 4, pruneKeep: 2, minRollouts: 1, maxRollouts: 3, timeBudget: 12 });
-  let err = 0, viol = 0, games = 0, silencedTurns = 0, comebackSeen = 0;
+  AI.setSimulationBudget({
+    beamWidth: 4,
+    pruneKeep: 2,
+    minRollouts: 1,
+    maxRollouts: 3,
+    timeBudget: 12,
+  });
+  let err = 0,
+    viol = 0,
+    games = 0,
+    silencedTurns = 0,
+    comebackSeen = 0;
   for (let i = 0; i < 100; i++) {
     try {
       let a = 8080 + i * 7919;
-      const rng = () => ((a = (a * 1103515245 + 12345) % 2147483648) / 2147483648);
+      const rng = () => (a = (a * 1103515245 + 12345) % 2147483648) / 2147483648;
       const t = EOL.rules.splitCapped(POOL, rng);
       const B = E.createBattle(t[0], t[1], { rng, roleAware: true, simulation: true });
       let g = 0;
       while (!B.over && B.round <= 20 && g++ < 5000) {
         const side = E.advanceAction(B);
-        if (!side) { if (!B.over) E.nextRound(B); continue; }
+        if (!side) {
+          if (!B.over) E.nextRound(B);
+          continue;
+        }
         const act = AI.bestAction(B, side);
-        if (!act) { E.passTurn(B, side); continue; }
+        if (!act) {
+          E.passTurn(B, side);
+          continue;
+        }
         /* a silenced unit must never be handed an action */
         if (act.unit.flags.silence > 0) silencedTurns++;
         E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);

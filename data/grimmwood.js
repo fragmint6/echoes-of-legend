@@ -134,7 +134,7 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: "Hunter's Courage",
         cost: null,
-        text: 'Whenever an ally attacks a debuffed enemy, immediately gain <b>8% Crit Chance</b>, <b>5% ATK for 2 rounds</b> and a <b>10% Max HP Shield</b>. Red Riding Hood heals for <b>25%</b> of the damage she deals to debuffed enemies.',
+        text: 'Whenever an ally attacks a debuffed enemy, immediately gain <b>8% Crit Chance for 2 rounds</b>, <b>5% ATK for 2 rounds</b> and a <b>10% Max HP Shield</b>. Red Riding Hood heals for <b>25%</b> of the damage she deals to debuffed enemies.',
         note: 'Max: 4 stacks.',
         passive: {
           trigger: 'allyStruckDebuffed',
@@ -222,7 +222,15 @@ window.EOL.registerFaction({
             { k: 'shield', pctMaxHp: 15, to: 'self' },
             { k: 'taunt', turns: 1, to: 'self', healOnHit: 4 },
             /* he cannot catch them - so he slows THEM down instead */
-            { k: 'stat', stat: 'atk', amt: -20, turns: 2, to: 'enemies', take: { n: 2, by: 'lowestHp' }, when: 'now' },
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: -20,
+              turns: 2,
+              to: 'enemies',
+              take: { n: 2, by: 'lowestHp' },
+              when: 'now',
+            },
           ],
         },
       },
@@ -311,7 +319,15 @@ window.EOL.registerFaction({
                target would count as "already debuffed" off the very
                debuff this cast just applied. */
             { k: 'exposed', turns: 1, to: 'targets', if: { targetHasDebuff: true }, when: 'now' },
-            { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'targets', if: { targetHasDebuff: false }, when: 'now' },
+            {
+              k: 'stat',
+              stat: 'atk',
+              amt: -15,
+              turns: 2,
+              to: 'targets',
+              if: { targetHasDebuff: false },
+              when: 'now',
+            },
           ],
         },
       },

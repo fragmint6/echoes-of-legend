@@ -84,7 +84,9 @@
      other, or every dock/float/FX drifts off-target the moment the
      app is scaled away from 100%. */
   function uiS() {
-    return window.EOL && window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
+    return window.EOL && window.EOL.scale && window.EOL.scale.factor
+      ? window.EOL.scale.factor()
+      : 1;
   }
 
   /* ---------------------------------------------------------
@@ -555,6 +557,12 @@
 
   function render() {
     if (!B) return;
+    hideStatusPop();
+    clearPreview();
+    if (!sel || !sel.unit) {
+      hoverUnit = null;
+      paintDock();
+    }
     var slotsBefore = captureSlots();
     ['enemy', 'player'].forEach(function (side) {
       var wrap = $('grid-' + side);
@@ -933,10 +941,10 @@
   /* highlight selected unit + legal targets */
   function paintSelection() {
     document.querySelectorAll('.bcard').forEach(function (c) {
-      c.classList.remove('selected', 'targetable', 'chosen');
+      c.classList.remove('selected', 'targetable', 'chosen', 'viewing');
     });
     clearPreview();
-    if (!sel) return;
+    if (!sel || !sel.unit) return;
 
     var selEl = document.querySelector('.bcard[data-uid="' + sel.unit.uid + '"]');
     if (selEl) selEl.classList.add(sel.view ? 'viewing' : 'selected');
@@ -1012,7 +1020,8 @@
        enemy alive and then soft-lock the target picker demanding a
        second click that could never come */
     var needTargets = isActive ? E.pickCount(a) : 0;
-    var hasTargets = !isActive || needTargets === 0 || E.legalTargets(B, u, a).length >= needTargets;
+    var hasTargets =
+      !isActive || needTargets === 0 || E.legalTargets(B, u, a).length >= needTargets;
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
@@ -1045,7 +1054,9 @@
     } else if (interactive && isActive && dis) {
       if (!hasTargets)
         reason =
-          needTargets > 1 ? 'Needs ' + needTargets + ' targets - not enough left' : 'No valid targets';
+          needTargets > 1
+            ? 'Needs ' + needTargets + ' targets - not enough left'
+            : 'No valid targets';
       else if (u.flags.silence > 0 && !a.basic) reason = 'Silenced';
     }
 
@@ -1592,6 +1603,12 @@
     /* A dead hero can be opened but never helm an action: alive joins
        the same gates that already keep enemy and already-acted heroes
        strictly read-only. */
+    // Toggle/deselect if clicking the currently selected/viewed card
+    if (sel && sel.unit && sel.unit.uid === u.uid && !targeting) {
+      clearSel();
+      return;
+    }
+
     var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
     paintDock();
@@ -1621,6 +1638,7 @@
       });
     clearSel();
     render();
+    hideTip();
 
     // A coin flip has to be watched before anything else resolves, so
     // block input, play it, then release the rest of the log.
@@ -1632,7 +1650,6 @@
       document.body.dataset.busy = '1';
       var coinHold = playCoinFlip(coin.meta.coin);
       setTimeout(function () {
-        render();
         var h2 = flashRecent();
         setTimeout(function () {
           busy = false;
@@ -1829,9 +1846,14 @@
       /* Only the rAF path continues the rAF chain - the watchdog below
          also calls this, and letting each of those calls schedule
          another rAF would compound into parallel chains. */
-      if (!fromIv) clockRaf = requestAnimationFrame(function (t) { frame(t); });
+      if (!fromIv)
+        clockRaf = requestAnimationFrame(function (t) {
+          frame(t);
+        });
     }
-    clockRaf = requestAnimationFrame(function (t) { frame(t); });
+    clockRaf = requestAnimationFrame(function (t) {
+      frame(t);
+    });
     /* Keep honest time in a BACKGROUNDED tab. rAF pauses there, which
        used to freeze the dial for the player and quietly suspend the
        expiry: alt-tabbing out of an online match was a free stall, and
@@ -2354,8 +2376,10 @@
         runEnemyAction();
         return;
       }
-      // still the player's action (the enemy passed)
+      // still the player's action (the enemy passed or has no actions)
+      clearSel();
       render();
+      announceTurn('player');
       maybeAutoEndTurn();
     });
   }
@@ -2474,6 +2498,21 @@
       cine('ENEMY PASSES', '', 'enemy', 1100, true);
       await sleep(cineMs(700));
     } else {
+      // Stage 1 (The Recruiter): moderates power to measure rather than overwhelm
+      if (act && !act.ability.basic && B.campaignStage === 1) {
+        var usedSig = B._recruiterSigUsed === B.round;
+        if (usedSig || Math.random() < 0.65) {
+          var basic = E.roleAbility(act.unit);
+          if (E.canUse(B, act.unit, basic)) {
+            var pool = E.legalTargets(B, act.unit, basic);
+            if (pool.length) {
+              act = { unit: act.unit, ability: basic, chosen: [pool[0]], choose: 0 };
+            }
+          }
+        } else {
+          B._recruiterSigUsed = B.round;
+        }
+      }
       announceTurn('enemy');
       // brief highlight so the player can follow what the bot is doing
       var el = document.querySelector('.bcard[data-uid="' + act.unit.uid + '"]');
@@ -2616,7 +2655,9 @@
   }
 
   function announceTurn(side) {
-    if (turnBannerSide === side) return; // same streak - stay quiet
+    var other = E.opposite ? E.opposite(side) : side === 'player' ? 'enemy' : 'player';
+    var isOtherPassed = B && B.passed && B.passed[other];
+    if (turnBannerSide === side && !isOtherPassed) return; // same streak - stay quiet unless other side is out
     turnBannerSide = side;
     var sub =
       side === 'enemy' && B.passed.player
@@ -2869,8 +2910,10 @@
       bd.classList.remove('shake', 'crit-flash');
     }, 520);
 
-    var word = spawn('fx-crit', x, y, '#ffd050', 1200);
-    word.textContent = 'CRITICAL';
+    setTimeout(function () {
+      var word = spawn('fx-crit', x, y - 24, '#ffd050', 1000);
+      word.textContent = 'CRITICAL';
+    }, 420);
   }
 
   function playImpact(x, y, fx, crit, element) {
@@ -3225,19 +3268,22 @@
           /* spores drift up where the bloom broke the soil */
           for (var n = 0; n < 4; n++) {
             (function (k) {
-              setTimeout(function () {
-                spawnMote(
-                  t.x + (Math.random() * 36 - 18),
-                  t.y + 8,
-                  fx.color,
-                  1100,
-                  0,
-                  0,
-                  Math.random() * 30 - 15,
-                  -(30 + Math.random() * 34),
-                  'rise'
-                );
-              }, 200 + k * 130);
+              setTimeout(
+                function () {
+                  spawnMote(
+                    t.x + (Math.random() * 36 - 18),
+                    t.y + 8,
+                    fx.color,
+                    1100,
+                    0,
+                    0,
+                    Math.random() * 30 - 15,
+                    -(30 + Math.random() * 34),
+                    'rise'
+                  );
+                },
+                200 + k * 130
+              );
             })(n);
           }
         }
@@ -3379,10 +3425,13 @@
         if (!gfxLow()) {
           for (var d2 = 0; d2 < 3; d2++) {
             (function (k) {
-              setTimeout(function () {
-                var du = spawn('fx-dust', t.x + (k - 1) * 18, t.y + 16, fx.trail, 900);
-                if (du) du.style.setProperty('--dx', (k - 1) * 14 + 'px');
-              }, 60 + k * 70);
+              setTimeout(
+                function () {
+                  var du = spawn('fx-dust', t.x + (k - 1) * 18, t.y + 16, fx.trail, 900);
+                  if (du) du.style.setProperty('--dx', (k - 1) * 14 + 'px');
+                },
+                60 + k * 70
+              );
             })(d2);
           }
           for (var c2 = 0; c2 < 4; c2++) {
@@ -3965,6 +4014,27 @@
         setTimeout(function () {
           c.el.classList.remove('hit', 'healed');
         }, 1000);
+
+        if (l.meta.hpAfter != null && l.meta.maxHp) {
+          var wrap = c.el.closest('.bcell-wrap');
+          if (wrap) {
+            var fill = wrap.querySelector('.bbar-fill');
+            var hpTxt = wrap.querySelector('.bhp-txt');
+            var shieldFill = wrap.querySelector('.bbar-shield');
+            if (fill) {
+              fill.style.width = Math.max(0, (l.meta.hpAfter / l.meta.maxHp) * 100) + '%';
+            }
+            if (shieldFill) {
+              shieldFill.style.width =
+                Math.min(100, ((l.meta.shieldAfter || 0) / l.meta.maxHp) * 100) + '%';
+            }
+            if (hpTxt) {
+              hpTxt.textContent = Math.ceil(
+                l.meta.hpAfter + (l.meta.shieldAfter || 0)
+              ).toLocaleString();
+            }
+          }
+        }
       }
     }, delay);
   }
@@ -4035,13 +4105,14 @@
        "Rematch") and returns null when no set is live - a non-set
        match is untouched. */
     var sr =
-      window.EOL.play && window.EOL.play.setGameResult
-        ? window.EOL.play.setGameResult(win)
-        : null;
+      window.EOL.play && window.EOL.play.setGameResult ? window.EOL.play.setGameResult(win) : null;
     if (sr) {
       ov.querySelector('.result-sub').textContent = sr.sub;
       var rm = $('btn-rematch');
       if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
+    }
+    if (window.EOL.campaign && window.EOL.campaign.onBattleResult) {
+      window.EOL.campaign.onBattleResult(win);
     }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
@@ -4057,6 +4128,11 @@
       t.remove();
     });
     hideStatusPop();
+    clearPreview();
+    if (!sel || !sel.unit) {
+      hoverUnit = null;
+      paintDock();
+    }
   }
 
   /* ---------------------------------------------------------
@@ -4146,6 +4222,15 @@
     document.addEventListener('mouseout', onOut, true);
     document.addEventListener('focusin', onOver, true);
     document.addEventListener('focusout', onOut, true);
+    document.addEventListener(
+      'mousemove',
+      function (e) {
+        if (!e.target || !e.target.closest || !e.target.closest('.st-chip, .dk-sicon')) {
+          hideStatusPop();
+        }
+      },
+      true
+    );
     window.addEventListener('scroll', hideStatusPop, true);
     window.addEventListener('resize', hideStatusPop);
   }
@@ -4240,8 +4325,15 @@
         ? E.createBattle(teams.player, E.optimizeFormation(teams.enemy), {
             roleAware: false,
             field: opts.field || null,
+            rng: opts.rng || null,
+            oddFirst: opts.oddFirst || null,
           })
-        : E.createBattle(teams.player, teams.enemy, { roleAware: true, field: opts.field || null });
+        : E.createBattle(teams.player, teams.enemy, {
+            roleAware: true,
+            field: opts.field || null,
+            rng: opts.rng || null,
+            oddFirst: opts.oddFirst || null,
+          });
     }
     sel = null;
     busy = false;
@@ -4346,6 +4438,7 @@
     paintCommanders();
 
     render();
+    if (opts.campaignStage) B.campaignStage = opts.campaignStage;
 
     /* Round 1 opens on whoever the engine says it does. Singleplayer is
        always the player; in a match the guest opens the even rounds, so

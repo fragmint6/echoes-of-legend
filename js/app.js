@@ -255,8 +255,11 @@
     ELEMENT_COLOR: ELEMENT_COLOR,
     buildDropdown: buildDropdown,
     closeAllMenus: closeAllMenus,
-    show: function (view) {
-      show(view);
+    show: function (view, opts) {
+      show(view, opts);
+    },
+    goBack: function () {
+      goBack();
     },
   };
 
@@ -578,10 +581,40 @@
   });
 
   /* ---------------- view routing ---------------- */
-  function show(view) {
+  var PARENT_VIEW = {
+    deck: 'collection',
+    collection: 'home',
+    rulebook: 'home',
+    shop: 'home',
+    play: 'home',
+    campaign: 'play',
+    chapter: 'campaign',
+    prep: 'play',
+    draft: 'play',
+    battle: 'home',
+  };
+
+  var navHistory = [];
+  var currentView = 'home';
+
+  function show(view, opts) {
+    opts = opts || {};
     if (veil) veil.classList.add('on');
+    hideTipDot();
     // any battle tooltip must not survive a view change
     if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
+
+    if (!opts.isBack && currentView && currentView !== view) {
+      // Loop protection: if navigating to a view already in history, truncate to that point
+      var existingIndex = navHistory.indexOf(view);
+      if (existingIndex >= 0) {
+        navHistory = navHistory.slice(0, existingIndex);
+      } else {
+        navHistory.push(currentView);
+        if (navHistory.length > 30) navHistory.shift();
+      }
+    }
+    currentView = view;
     document.querySelectorAll('[data-view]').forEach(function (v) {
       v.classList.toggle('active', v.dataset.view === view);
     });
@@ -602,6 +635,26 @@
        re-measure at the first moment they are able to. */
     document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
     veilSettle();
+  }
+
+  function goBack() {
+    hideTipDot();
+    if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
+    var cur = currentView;
+    if (cur === 'deck' && window.EOL.decks) {
+      window.EOL.decks.closeEditor();
+      return;
+    }
+    while (navHistory.length > 0 && navHistory[navHistory.length - 1] === cur) {
+      navHistory.pop();
+    }
+    if (navHistory.length > 0) {
+      var prev = navHistory.pop();
+      show(prev, { isBack: true });
+    } else {
+      var fallback = PARENT_VIEW[cur] || 'home';
+      show(fallback, { isBack: true });
+    }
   }
 
   /* ---------------------------------------------------------
@@ -677,7 +730,10 @@
     var h = tipFloatEl.offsetHeight;
     var pad = 8,
       gap = 9;
-    var left = Math.max(pad, Math.min(a.left / z + a.width / z / 2 - w / 2, window.innerWidth / z - w - pad));
+    var left = Math.max(
+      pad,
+      Math.min(a.left / z + a.width / z / 2 - w / 2, window.innerWidth / z - w - pad)
+    );
     var top = a.top / z - h - gap;
     var below = false;
     if (top < pad) {
@@ -885,7 +941,10 @@
   function applyScale(pct) {
     /* snap to 5% steps (80/85/90/95/100/105/110) - the slider walks in
        fives and every entry point lands on a five */
-    pct = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((parseFloat(pct) || SCALE_DEF) / 5) * 5));
+    pct = Math.min(
+      SCALE_MAX,
+      Math.max(SCALE_MIN, Math.round((parseFloat(pct) || SCALE_DEF) / 5) * 5)
+    );
     scalePct = pct;
     var de = document.documentElement;
     /* 100% is no zoom at all: the property drops out completely, so
@@ -927,7 +986,10 @@
          the app itself rescales once, when the pointer lets go - no
          layout storms while the user is still deciding */
       r.addEventListener('input', function () {
-        var v = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((parseFloat(r.value) || SCALE_DEF) / 5) * 5));
+        var v = Math.min(
+          SCALE_MAX,
+          Math.max(SCALE_MIN, Math.round((parseFloat(r.value) || SCALE_DEF) / 5) * 5)
+        );
         var out = document.getElementById('scale-val');
         if (out) out.textContent = v + '%';
       });
@@ -1069,16 +1131,16 @@
       var f = e.target;
       var email = (f.email.value || '').trim();
       var pass = f.password.value || '';
-          var handle = f.name ? (f.name.value || '').trim() : '';
-          if (modal.dataset.mode === 'up' && handle && A.validateHandle) {
-            /* usernames are matchmaking callsigns: letters, numbers, ._- */
-            var badName = A.validateHandle(handle);
-            if (badName) {
-              say(badName, 'warn');
-              return;
-            }
-          }
-          if (!email || !pass) {
+      var handle = f.name ? (f.name.value || '').trim() : '';
+      if (modal.dataset.mode === 'up' && handle && A.validateHandle) {
+        /* usernames are matchmaking callsigns: letters, numbers, ._- */
+        var badName = A.validateHandle(handle);
+        if (badName) {
+          say(badName, 'warn');
+          return;
+        }
+      }
+      if (!email || !pass) {
         say('Enter an email and password.', 'warn');
         return;
       }
@@ -1383,21 +1445,36 @@
     /* fourth mote band: barely-visible dust hanging in the sky, the
        slowest thing in the frame */
     {
-      sel: '.mb-ultra', n: 42, seed: 20260805,
-      sz: [1, 2], dur: [70, 130], o: [0.16, 0.4], sway: [10, 34],
+      sel: '.mb-ultra',
+      n: 42,
+      seed: 20260805,
+      sz: [1, 2],
+      dur: [70, 130],
+      o: [0.16, 0.4],
+      sway: [10, 34],
       tints: ['#cdd8f2', '#b9c8ec', '#e8ecf7'],
     },
     /* cold ash sifting down through the whole scene - the campfires'
        other half, grey where the embers are gold */
     {
-      sel: '.mb-ash', n: 26, seed: 20260806,
-      sz: [2, 4], dur: [38, 72], o: [0.2, 0.5], sway: [18, 46],
+      sel: '.mb-ash',
+      n: 26,
+      seed: 20260806,
+      sz: [2, 4],
+      dur: [38, 72],
+      o: [0.2, 0.5],
+      sway: [18, 46],
       tints: ['#cfd3dd', '#b9bdcb', '#e3d9c8', '#d6cec2'],
     },
     /* big soft seeds riding up-currents, dreamy and rare */
     {
-      sel: '.mb-spores', n: 14, seed: 20260807,
-      sz: [4, 8], dur: [50, 92], o: [0.16, 0.38], sway: [42, 110],
+      sel: '.mb-spores',
+      n: 14,
+      seed: 20260807,
+      sz: [4, 8],
+      dur: [50, 92],
+      o: [0.16, 0.38],
+      sway: [42, 110],
       tints: ['rgba(255,236,190,0.85)', 'rgba(214,226,255,0.8)', 'rgba(255,222,168,0.7)'],
     },
   ];
@@ -1515,8 +1592,20 @@
     document.getElementById('btn-collection').addEventListener('click', function () {
       show('collection');
     });
+    var btnRulebook = document.getElementById('btn-rulebook');
+    if (btnRulebook) {
+      btnRulebook.addEventListener('click', function () {
+        show('rulebook');
+      });
+    }
+    var btnRulebookBack = document.getElementById('btn-rulebook-back');
+    if (btnRulebookBack) {
+      btnRulebookBack.addEventListener('click', function () {
+        goBack();
+      });
+    }
     document.getElementById('btn-back').addEventListener('click', function () {
-      show('home');
+      goBack();
     });
     /* Play now opens the mode menu (Classic / Draft / Campaign). Deck
        building lives in the Collection's Decks tab. */
@@ -1527,25 +1616,26 @@
       show('shop');
     });
     document.getElementById('btn-deck-back').addEventListener('click', function () {
-      show('home');
+      if (window.EOL.decks) window.EOL.decks.closeEditor();
+      else goBack();
     });
     document.getElementById('btn-shop-back').addEventListener('click', function () {
-      show('home');
+      goBack();
     });
     // No Leave buttons on these screens - Esc backs out one level.
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
       /* Campaign dialogue owns Escape while it is open; do not let the
          shared view-back handler strand an open scene on another screen. */
-      if (window.EOL.campaign && window.EOL.campaign.dialogueOpen && window.EOL.campaign.dialogueOpen()) {
+      if (
+        window.EOL.campaign &&
+        window.EOL.campaign.dialogueOpen &&
+        window.EOL.campaign.dialogueOpen()
+      ) {
         window.EOL.campaign.closeRecruiterDialogue();
         return;
       }
-      var v = document.body.dataset.view;
-      if (v === 'battle' || v === 'play') show('home');
-      else if (v === 'prep' || v === 'draft' || v === 'campaign') show('play');
-      else if (v === 'chapter') show('campaign');
-      else if (v === 'deck' && window.EOL.decks) window.EOL.decks.closeEditor();
+      goBack();
       // the shop and the deck picker modal handle Esc themselves
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {

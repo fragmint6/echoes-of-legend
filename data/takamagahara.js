@@ -151,7 +151,7 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: 'A Thousand a Day',
         cost: null,
-        text: "Whenever an ally is defeated, all enemies suffer <b>-10% DEF</b> for 2 rounds, the highest ATK enemy is <b>Burned</b> for 2 rounds, and Izanami gains <b>12% ATK</b> for the rest of the battle.",
+        text: 'Whenever an ally is defeated, all enemies suffer <b>-10% DEF</b> for 2 rounds, the highest ATK enemy is <b>Burned</b> for 2 rounds, and Izanami gains <b>12% ATK</b> for the rest of the battle.',
         note: 'Max: 4 stacks.',
         passive: {
           trigger: 'allyDied',
@@ -188,14 +188,7 @@ window.EOL.registerFaction({
            of 5, which is close enough to free to distort the whole economy.
            Tune upward from evidence, not downward from a crisis. */
         cost: 25,
-        /* BUFF EXIT VALVE 2026-07-31. Inari sat at 40.8% and the roster had
-           a structural hole: 23 of 30 positive buffs were single-target
-           riders that simply ticked away, because nothing CASHED a buff the
-           way consumeMark cashes a Mark. Her fox spirits now collect on the
-           enemy's blessings - the first card in the game that punishes an
-           opponent for stacking buffs, and the reason `consumeBuffs` exists.
-           Steals the tempo instead of just damaging. */
-        text: "Deal <b>75% ATK Nature Damage</b> <b>+30% for each buff</b> on the target, strip every buff from them, and apply <b>Exposed</b> for 1 round - refunding <b>12 Energy</b> to your team's pool, or <b>18 Energy</b> if that enemy was already <b>Exposed</b>.",
+        text: "Deal <b>75% ATK Nature Damage</b> <b>+30% for each debuff</b> on the target, and apply <b>Exposed</b> for 1 round - refunding <b>12 Energy</b> to your team's pool, or <b>18 Energy</b> if that enemy was already <b>Exposed</b>.",
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
@@ -204,9 +197,7 @@ window.EOL.registerFaction({
                refund rewards a PARTNER's setup, never her own */
             { k: 'gainEnergy', amt: 12 },
             { k: 'gainEnergy', amt: 6, if: { targetExposed: true } },
-            { k: 'dmg', power: 0.75, element: 'Nature', perBuff: 0.3, perBuffMax: 4 },
-            /* the strip happens AFTER the damage reads the count */
-            { k: 'consumeBuffs', to: 'targets', alsoShield: true },
+            { k: 'dmg', power: 0.75, element: 'Nature', perDebuff: 0.3, perDebuffMax: 4 },
             { k: 'exposed', turns: 1, to: 'targets', when: 'now' },
           ],
         },

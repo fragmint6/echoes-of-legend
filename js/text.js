@@ -133,14 +133,26 @@
      is a boomerang (it comes back), Untargetable is a cloak. */
   window.EOL.STATUS = {
     // --- stat buffs ---
-    'atk+': { icon: 'ra-muscle-up', kind: 'buff', label: 'ATK Up', color: '#ffb347', desc: '' },
-    'def+': { icon: 'ra-heavy-shield', kind: 'buff', label: 'DEF Up', color: '#8fd0ff', desc: '' },
+    'atk+': {
+      icon: 'ra-muscle-up',
+      kind: 'buff',
+      label: 'ATK Up',
+      color: '#ffb347',
+      desc: 'Increases damage dealt by physical and elemental attacks.',
+    },
+    'def+': {
+      icon: 'ra-heavy-shield',
+      kind: 'buff',
+      label: 'DEF Up',
+      color: '#8fd0ff',
+      desc: 'Reduces incoming damage by a percentage.',
+    },
     'crit+': {
       icon: 'ra-on-target',
       kind: 'buff',
       label: 'Crit Up',
       color: '#ffd050',
-      desc: 'Crits deal 1.5x.',
+      desc: 'Increases critical strike chance (crits deal 1.5x damage).',
     },
     // --- stat debuffs ---
     'atk-': {
@@ -148,21 +160,21 @@
       kind: 'debuff',
       label: 'ATK Down',
       color: '#ff9d9d',
-      desc: '',
+      desc: 'Reduces damage dealt by physical and elemental attacks.',
     },
     'def-': {
       icon: 'ra-cracked-shield',
       kind: 'debuff',
       label: 'DEF Down',
       color: '#ff9d9d',
-      desc: '',
+      desc: 'Increases incoming damage received.',
     },
     'crit-': {
       icon: 'ra-target-arrows',
       kind: 'debuff',
       label: 'Crit Down',
       color: '#ff9d9d',
-      desc: '',
+      desc: 'Reduces critical strike chance.',
     },
     // --- flags / special states ---
     taunt: {
@@ -170,7 +182,7 @@
       kind: 'buff',
       label: 'Provoking',
       color: '#ffd98a',
-      desc: 'Enemy single-target attacks must hit this legend. Anything that gets around it (area damage, Sniper Skills) deals <b>30% less</b>.',
+      desc: 'Enemy single-target attacks must hit this legend. Multi-target attacks and taunt-piercing strikes that bypass this legend deal 30% reduced damage.',
     },
     untargetable: {
       icon: 'ra-cloak-and-dagger',
@@ -184,70 +196,70 @@
       kind: 'buff',
       label: 'Shielded',
       color: '#9fd8ff',
-      desc: 'Absorbs damage before HP. Burn ignores it.',
+      desc: 'Absorbs incoming damage before HP is reduced. Burn ignores shields.',
     },
     silence: {
       icon: 'ra-speech-bubble',
       kind: 'debuff',
       label: 'Silenced',
       color: '#e0a3ff',
-      desc: 'Cannot act at all. Skills and Basics both.',
+      desc: 'Cannot take any actions. Skills and Basic attacks are both blocked.',
     },
     marked: {
       icon: 'ra-targeted',
       kind: 'debuff',
       label: 'Marked',
       color: '#ffe066',
-      desc: 'The next Skill to damage this legend consumes the Mark - EVERY Skill consumes it, whether or not that Skill gains anything from it. Basics do not. No timer.',
+      desc: 'The next damaging Skill consumes the Mark and triggers on-hit Mark bonuses. Basic attacks do not consume Marks.',
     },
     burn: {
       icon: 'ra-burning-embers',
       kind: 'debuff',
       label: 'Burning',
       color: '#ff7a3c',
-      desc: '5% Max HP every turn this side takes. Ignores DEF and Shields.',
+      desc: "Takes 5% Max HP true damage whenever this unit's side begins a turn. Ignores DEF and Shields.",
     },
     exposed: {
       icon: 'ra-broken-shield',
       kind: 'debuff',
       label: 'Exposed',
       color: '#ff5f7e',
-      desc: 'DEF counts as 0.',
+      desc: 'DEF is reduced to 0%.',
     },
     resist: {
       icon: 'ra-bolt-shield',
       kind: 'buff',
       label: 'Warded',
       color: '#b6f5ff',
-      desc: 'Flat damage reduction. Works even while Exposed.',
+      desc: 'Flat damage reduction percentage. Effective even while Exposed.',
     },
     counterstrike: {
       icon: 'ra-boomerang',
       kind: 'buff',
       label: 'Counter Ready',
       color: '#ffd977',
-      desc: 'Strikes back when hit while Shielded.',
+      desc: 'Strikes back against the attacker when struck while Shielded.',
     },
     healdown: {
       icon: 'ra-broken-heart',
       kind: 'debuff',
       label: 'Healing Reduced',
       color: '#ff9d9d',
-      desc: 'Shields are unaffected.',
+      desc: 'Reduces healing received. Shields are unaffected.',
     },
     costup: {
       icon: 'ra-battery-25',
       kind: 'debuff',
       label: 'Skill Cost Up',
       color: '#ff9d9d',
-      desc: 'Whole team, not just this legend.',
+      desc: 'Increases Energy cost of abilities for this team.',
     },
     costdown: {
       icon: 'ra-battery-100',
       kind: 'buff',
       label: 'Skill Cost Down',
       color: '#8fe3b0',
-      desc: 'Whole team, not just this legend.',
+      desc: 'Decreases Energy cost of abilities for this team.',
     },
   };
 
@@ -296,7 +308,6 @@
     }
     // Mark has no duration (it lasts until damaged), so no turn count
     if (u.flags && u.flags.marked > 0) push('marked', null, 1);
-    if (u.pending && u.pending.length) push('marked', null, u.pending.length);
     (u.costMods || []).forEach(function (m) {
       var up = (m.flat || 0) > 0 || (m.pct || 0) > 0;
       push(up ? 'costup' : 'costdown', m.turns, 1);

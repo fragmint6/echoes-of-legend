@@ -64,7 +64,9 @@
      root-element zoom, rects come back in zoomed px while style
      assignments are layout px. Divide by uiS() at the glass. */
   function uiS() {
-    return window.EOL && window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
+    return window.EOL && window.EOL.scale && window.EOL.scale.factor
+      ? window.EOL.scale.factor()
+      : 1;
   }
 
   /* ---------------- status toasts (non-blocking beats) ---------------- */
@@ -565,6 +567,95 @@
     }
   }
 
+  function showDraftTip(e, anchor) {
+    var tip = $('draft-tip') || $('prep-tip');
+    if (!tip) return;
+    var c = e.card,
+      m = statMax();
+    var sig = c.ability;
+    var basic = window.EOL.engine.roleAbility({ role: c.role, element: c.element });
+    var fresh = lastTipId !== c.id;
+    lastTipId = c.id;
+    tip.dataset.rarity = c.rarity;
+    tip.innerHTML =
+      '<div class="dk-head">' +
+      '<div class="dk-portrait" data-rarity="' +
+      c.rarity +
+      '" style="--fc-primary:' +
+      e.faction.colors.primary +
+      '"><i class="ra ' +
+      c.icon +
+      '"></i></div>' +
+      '<div class="dk-id">' +
+      '<div class="dk-name">' +
+      esc(c.name) +
+      '</div>' +
+      '<div class="dk-meta"><span>' +
+      esc(c.role) +
+      '</span>' +
+      '<span style="color:' +
+      elCol(c.element) +
+      '">' +
+      esc(c.element) +
+      '</span></div>' +
+      '<div class="dk-pos">' +
+      esc(e.faction.name) +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="dk-stats">' +
+      tipLine(
+        'ra-health',
+        'HP',
+        c.stats.hp.toLocaleString(),
+        (c.stats.hp / m.hp) * 100,
+        '#ff5f7e'
+      ) +
+      tipLine(
+        'ra-sword',
+        'ATK',
+        c.stats.atk.toLocaleString(),
+        (c.stats.atk / m.atk) * 100,
+        '#ffb347'
+      ) +
+      tipLine('ra-shield', 'DEF', c.stats.def + '%', (c.stats.def / m.def) * 100, '#5fb2ff') +
+      '</div>' +
+      '<div class="dk-abs">' +
+      tipAbRow(
+        sig,
+        sig.type === 'Passive' ? 'passive' : 'sig',
+        sig.type === 'Passive' ? 'Passive' : 'Skill'
+      ) +
+      tipAbRow(basic, 'role', 'Basic') +
+      '</div>';
+    tip.classList.add('anchored');
+    tip.classList.add('show');
+    placePrepTip(tip, anchor);
+    requestAnimationFrame(function () {
+      if (window.EOL.battle && window.EOL.battle.fitAbilityNames)
+        window.EOL.battle.fitAbilityNames(tip);
+    });
+    tip.setAttribute('aria-hidden', 'false');
+    if (fresh) {
+      tip.classList.remove('swap');
+      void tip.offsetWidth;
+      tip.classList.add('swap');
+      clearTimeout(tipSwapTimer);
+      tipSwapTimer = setTimeout(function () {
+        tip.classList.remove('swap');
+      }, 280);
+    }
+  }
+
+  function hideDraftTip() {
+    var tip = $('draft-tip') || $('prep-tip');
+    lastTipId = null;
+    if (tip) {
+      tip.classList.remove('show');
+      tip.setAttribute('aria-hidden', 'true');
+    }
+  }
+
   /* A battle-board card: HP bar + ATK/DEF above a squarer art tile,
      exactly the shape the fight itself uses. Hover opens the tooltip. */
   function boardCard(e, i, side) {
@@ -922,12 +1013,37 @@
       setKill();
       if (canBeSet(cfg)) cfg.field = cfg.field || setBegin(cfg);
     }
-    var foeBans = isMp ? null : chooseBans(cfg.player12, cfg.enemy12);
+    var foeBans;
+    if (isMp) {
+      foeBans = null;
+    } else if (cfg.campaignStage === 1) {
+      // Stage 1: The Recruiter specifically bans Hansel & Gretel and Cinderella
+      var hg = cfg.player12.find(function (e) {
+        return e.card.id === 'grimmwood-hansel-gretel';
+      });
+      var cin = cfg.player12.find(function (e) {
+        return e.card.id === 'grimmwood-cinderella';
+      });
+      foeBans = [];
+      if (hg) foeBans.push(hg.card.id);
+      if (cin) foeBans.push(cin.card.id);
+      if (foeBans.length < RULES().BANS) {
+        var normal = chooseBans(cfg.player12, cfg.enemy12);
+        normal.forEach(function (id) {
+          if (foeBans.length < RULES().BANS && foeBans.indexOf(id) === -1) {
+            foeBans.push(id);
+          }
+        });
+      }
+    } else {
+      foeBans = chooseBans(cfg.player12, cfg.enemy12);
+    }
     prep = {
       mode: cfg.mode,
       mp: isMp,
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
+      campaignStage: cfg.campaignStage || null,
       /* The battlefield is rolled NOW but not revealed until bans are
          locked, so neither side can ban around the terrain. */
       field: cfg.field || window.EOL.rollBattlefield(),
@@ -1034,6 +1150,7 @@
     $('prep-field').hidden = p.phase !== 'pick';
     $('prep-actions-main').hidden = p.phase === 'pick';
     $('prep-vs').hidden = p.phase === 'pick';
+    if ($('prep-fields')) $('prep-fields').hidden = p.phase !== 'pick';
 
     /* entrance stagger only on phase entry; pick clicks stay snappy */
     youGrid.classList.toggle('quiet', !prepAnim);
@@ -1429,12 +1546,10 @@
       /* heroes leaving the six become locked out for the rest of the
          set (BEFORE lastSix is overwritten with the new six) */
       if (setState.lastSix) {
-        setState.lastSix.front
-          .concat(setState.lastSix.back)
-          .forEach(function (id) {
-            if (sixIds.indexOf(id) < 0 && setState.lockedOut.indexOf(id) < 0)
-              setState.lockedOut.push(id);
-          });
+        setState.lastSix.front.concat(setState.lastSix.back).forEach(function (id) {
+          if (sixIds.indexOf(id) < 0 && setState.lockedOut.indexOf(id) < 0)
+            setState.lockedOut.push(id);
+        });
         setState.lastBotIds.forEach(function (id) {
           if (
             !enemySix.some(function (e) {
@@ -1455,7 +1570,11 @@
     var cfg = prep;
     prep = null;
     window.EOL.ui.show('battle');
-    BATTLE().start({ teams: { player: playerSix, enemy: enemySix }, field: cfg.field });
+    BATTLE().start({
+      teams: { player: playerSix, enemy: enemySix },
+      field: cfg.field,
+      campaignStage: cfg.campaignStage,
+    });
     lastConfig =
       cfg.mode === 'classic'
         ? { mode: 'classic', deckId: cfg.deckId, random: !cfg.deckId }
@@ -1775,37 +1894,43 @@
     });
   }
 
-  function openClassicModal(onPick) {
-    /* `onPick` diverts the chosen deck somewhere other than a
-       singleplayer board - Online Classic uses it to carry the deck
-       into matchmaking. Omitted, it behaves exactly as before. */
-    /* Guard against being wired straight to addEventListener, which would
-       hand us a click Event here - truthy, but not callable, so every row
-       threw "choose is not a function" on click. */
+  function openClassicModal(onPick, opts) {
+    opts = opts || {};
+    var isCampaign = !!opts.isCampaign;
     var choose = typeof onPick === 'function' ? onPick : startClassicDeck;
-    /* The war-length choice is a SOLO launch decision. When the modal is
-       serving an online classic pick, the room owns match length
-       (Phase 1b wiring), so a dead toggle would only confuse. */
     var wl = $('war-length');
-    if (wl) wl.hidden = typeof onPick === 'function';
+    if (wl) wl.hidden = isCampaign || typeof onPick === 'function';
     paintWarLength();
+
+    var titleEl = document.querySelector('.dm-title');
+    var subEl = document.querySelector('.dm-sub');
+    if (isCampaign) {
+      if (titleEl) titleEl.textContent = 'Choose your deck to face The Recruiter';
+      if (subEl) subEl.textContent = 'Select your squad of 12 for the battle on The Colosseum.';
+    } else {
+      if (titleEl) titleEl.textContent = 'Choose your deck';
+      if (subEl)
+        subEl.textContent = 'The enemy builds a squad of 12 — max 4 of a role, like yours.';
+    }
+
     var host = $('dm-list');
     host.innerHTML = '';
 
-    /* Shuffle row first - instant classic for a new player, and a
-       "get me in" shortcut even for deck owners. */
-    var r = document.createElement('button');
-    r.className = 'dm-row random';
-    r.type = 'button';
-    r.innerHTML =
-      '<span class="dm-ico"><i class="ri-shuffle-line"></i></span>' +
-      '<span class="dm-body"><span class="dm-name">Surprise me</span>' +
-      '<span class="dm-meta">A random legal squad of 12 - just this game</span></span>' +
-      '<i class="dm-go ri-arrow-right-line"></i>';
-    r.addEventListener('click', function () {
-      choose(null);
-    });
-    host.appendChild(r);
+    /* Shuffle row only in non-campaign modes */
+    if (!isCampaign && !opts.hideRandom) {
+      var r = document.createElement('button');
+      r.className = 'dm-row random';
+      r.type = 'button';
+      r.innerHTML =
+        '<span class="dm-ico"><i class="ri-shuffle-line"></i></span>' +
+        '<span class="dm-body"><span class="dm-name">Surprise me</span>' +
+        '<span class="dm-meta">A random legal squad of 12 - just this game</span></span>' +
+        '<i class="dm-go ri-arrow-right-line"></i>';
+      r.addEventListener('click', function () {
+        choose(null);
+      });
+      host.appendChild(r);
+    }
 
     var decks = window.EOL.decks.list();
     if (!decks.length) {
@@ -2047,6 +2172,10 @@
           (cfg[3] === freshSide && idx === cfg[2].length - 1 ? ' fresh' : '');
         pip.title = e.card.name;
         pip.innerHTML = '<i class="ra ' + e.card.icon + '"></i>';
+        pip.addEventListener('mouseenter', function () {
+          showDraftTip(e, pip);
+        });
+        pip.addEventListener('mouseleave', hideDraftTip);
         host.appendChild(pip);
       });
       var left = RULES().DECK_SIZE - cfg[2].length;
@@ -2417,9 +2546,7 @@
   /* Decelerating marker across `host`'s .setm-plate children, landing
      on finalIdx. Returns skip(): jump to the landing immediately. */
   function spinPlates(host, finalIdx, onLand) {
-    var plates = host
-      ? Array.prototype.slice.call(host.querySelectorAll('.setm-plate'))
-      : [];
+    var plates = host ? Array.prototype.slice.call(host.querySelectorAll('.setm-plate')) : [];
     var n = plates.length;
     var landed = false;
     var timer = null;
@@ -3180,7 +3307,8 @@
     var cback = $('btn-campaign-back');
     if (cback)
       cback.addEventListener('click', function () {
-        window.EOL.ui.show('play');
+        if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+        else window.EOL.ui.show('play');
       });
     var ch1 = $('chapter-1');
     if (ch1)
@@ -3190,7 +3318,8 @@
     var chback = $('btn-chapter-back');
     if (chback)
       chback.addEventListener('click', function () {
-        window.EOL.ui.show('campaign');
+        if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+        else window.EOL.ui.show('campaign');
       });
     var stage1 = $('chapter-stage-1');
     if (stage1)
@@ -3206,14 +3335,16 @@
     if (bp)
       bp.addEventListener('click', function () {
         modalShow(false);
-        window.EOL.ui.show('home');
+        if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+        else window.EOL.ui.show('home');
       });
     var bprep = $('btn-prep-back');
     if (bprep)
       bprep.addEventListener('click', function () {
         confirmQuit(function () {
           prep = null;
-          window.EOL.ui.show('play');
+          if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+          else window.EOL.ui.show('play');
         });
       });
     var bd = $('btn-draft-back');
@@ -3222,7 +3353,8 @@
         confirmQuit(function () {
           draft = null;
           clearDraftMarks();
-          window.EOL.ui.show('play');
+          if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+          else window.EOL.ui.show('play');
         });
       });
 

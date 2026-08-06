@@ -128,7 +128,9 @@
 
   function starterAlreadyPresent(ids) {
     return decks.some(function (deck) {
-      return deck.id === GRIMMWOOD_STARTER_ID || (deck.name === 'Grimmwood' && sameIds(deck.ids, ids));
+      return (
+        deck.id === GRIMMWOOD_STARTER_ID || (deck.name === 'Grimmwood' && sameIds(deck.ids, ids))
+      );
     });
   }
 
@@ -376,7 +378,7 @@
   function closeEditor() {
     editing = null;
     showTab('decks');
-    window.EOL.ui.show('collection');
+    window.EOL.ui.show('collection', { isBack: true });
   }
 
   /* ---------------- collection tabs ---------------- */
