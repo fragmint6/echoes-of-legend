@@ -20899,7 +20899,7 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
-/* ---- chapter 1: static backdrop + drifting fog ---- */
+/* ---- chapter 1: static detailed pixel-art backdrop ---- */
 .chapter-bg {
   position: fixed;
   inset: 0;
@@ -20917,30 +20917,11 @@ body[data-view='chapter'] .bg-grid {
   opacity: 0.08;
 }
 
-/* painted backdrop — fills the viewport, never moves */
 .cw-bg {
   position: absolute;
   inset: 0;
   background: url('../assets/chapter-1/cw-bg.png') center center / cover no-repeat;
   z-index: 1;
-}
-
-/* fog strip — pixel-art fog band scrolling across the scene */
-.cw-fog {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: 8%;
-  height: 32%;
-  z-index: 2;
-  background: url('../assets/chapter-1/cw-fog.png') repeat-x 0 0 / auto 100%;
-  animation: cw-fog-drift 45s linear infinite;
-  opacity: 0.65;
-  pointer-events: none;
-}
-
-@keyframes cw-fog-drift {
-  from { background-position: 0 0; }
-  to   { background-position: -3000px 0; }
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -21764,18 +21745,10 @@ html.mqh820 .rival-art.has-portrait {
 
 /* The full paint remains in low graphics; only optional scene/card motion
    drops, matching the main menu's accessibility and performance contract. */
-body[data-gfx='low'] .cw-fog {
-  animation: none !important;
-  opacity: 0.3;
-}
 body[data-gfx='low'] .rival-card.is-first:hover {
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cw-fog {
-    animation: none !important;
-    opacity: 0.3;
-  }
   .rival-card,
   .rival-open i {
     transition: none;
