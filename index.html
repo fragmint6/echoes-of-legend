@@ -1161,83 +1161,80 @@
         </button>
       </div>
 
-      <!-- matchmaking overlay -->
-      <div class="mm-modal" id="mm-modal" hidden>
-        <div class="mm-scrim" id="mm-scrim"></div>
-        <div class="mm-card">
-          <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
-          <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
-          <div class="mm-subrow">
-            <p class="mm-sub" id="mm-sub">Searching the queue...</p>
+      <footer>Echoes of Legend - Prototype</footer>
+    </section>
+
+    <!-- classic: pick one of your saved decks -->
+    <div class="deck-modal" id="deck-modal" aria-hidden="true">
+      <div class="dm-card">
+        <h3 class="dm-title">Choose your deck</h3>
+        <p class="dm-sub">The enemy builds a squad of 12 &mdash; max 4 of a role, like yours.</p>
+        <div class="war-length" id="war-length" role="group" aria-label="Match length">
+          <div class="wl-head">
+            <span class="wl-kicker">Match length</span>
             <button
               type="button"
-              class="tipdot mm-tip"
-              data-tip="Classic: fight with a deck you built yourself. Draft: both players take turns picking legends from the same pile, then fight with what they got."
+              class="tipdot"
+              data-tip="Pick your match length. Single Battle is one quick fight. Unabridged is best of 3: three arenas get shuffled at the start, and between games you must swap 1 or 2 legends on your bench."
               aria-label="Tip"
             >
               <i class="ri-question-line"></i>
             </button>
           </div>
-          <div class="mm-vs" id="mm-vs" hidden>
-            <span class="mm-side" id="mm-you">You</span>
-            <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
-            <span class="mm-side" id="mm-opp">Opponent</span>
-          </div>
-          <button class="btn btn-ghost btn-slim" id="mm-cancel">
+          <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
+            <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
+            <span class="wl-body">
+              <span class="wl-name">Single Battle</span>
+              <span class="wl-sub">One game, quick war</span>
+            </span>
+          </button>
+          <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
+            <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+            <span class="wl-body">
+              <span class="wl-name">Unabridged · Bo3</span>
+              <span class="wl-sub">3-board fight card, swaps between games</span>
+            </span>
+          </button>
+        </div>
+        <div class="dm-list" id="dm-list"></div>
+        <div class="dm-foot">
+          <button class="btn btn-ghost btn-slim" id="dm-new">
+            <i class="ri-add-line"></i><span>New deck</span>
+          </button>
+          <button class="btn btn-ghost btn-slim" id="dm-cancel">
             <i class="ri-close-line"></i><span>Cancel</span>
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- classic: pick one of your saved decks -->
-      <div class="deck-modal" id="deck-modal" aria-hidden="true">
-        <div class="dm-card">
-          <h3 class="dm-title">Choose your deck</h3>
-          <p class="dm-sub">The enemy builds a random squad of 12 - max 4 of a role, like yours.</p>
-          <!-- Match length = part of the launch decision, so it lives in
-               this popup (2026-08-05). Hidden when the modal is serving
-               an online classic pick - the room owns length there. -->
-          <div class="war-length" id="war-length" role="group" aria-label="Match length">
-            <div class="wl-head">
-              <span class="wl-kicker">Match length</span>
-              <button
-                type="button"
-                class="tipdot"
-                data-tip="Pick your match length. Single Battle is one quick fight. Unabridged is best of 3: three arenas get shuffled at the start, and between games you must swap 1 or 2 legends on your bench."
-                aria-label="Tip"
-              >
-                <i class="ri-question-line"></i>
-              </button>
-            </div>
-            <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
-              <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
-              <span class="wl-body">
-                <span class="wl-name">Single Battle</span>
-                <span class="wl-sub">One game, quick war</span>
-              </span>
-            </button>
-            <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
-              <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
-              <span class="wl-body">
-                <span class="wl-name">Unabridged · Bo3</span>
-                <span class="wl-sub">3-board fight card, swaps between games</span>
-              </span>
-            </button>
-          </div>
-          <div class="dm-list" id="dm-list"></div>
-          <div class="dm-foot">
-            <button class="btn btn-ghost btn-slim" id="dm-new">
-              <i class="ri-add-line"></i><span>New deck</span>
-            </button>
-            <button class="btn btn-ghost btn-slim" id="dm-cancel">
-              <i class="ri-close-line"></i><span>Cancel</span>
-            </button>
-          </div>
+    <!-- matchmaking overlay -->
+    <div class="mm-modal" id="mm-modal" hidden>
+      <div class="mm-scrim" id="mm-scrim"></div>
+      <div class="mm-card">
+        <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
+        <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
+        <div class="mm-subrow">
+          <p class="mm-sub" id="mm-sub">Searching the queue...</p>
+          <button
+            type="button"
+            class="tipdot mm-tip"
+            data-tip="Classic: fight with a deck you built yourself. Draft: both players take turns picking legends from the same pile, then fight with what they got."
+            aria-label="Tip"
+          >
+            <i class="ri-question-line"></i>
+          </button>
         </div>
+        <div class="mm-vs" id="mm-vs" hidden>
+          <span class="mm-side" id="mm-you">You</span>
+          <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
+          <span class="mm-side" id="mm-opp">Opponent</span>
+        </div>
+        <button class="btn btn-ghost btn-slim" id="mm-cancel">
+          <i class="ri-close-line"></i><span>Cancel</span>
+        </button>
       </div>
-
-      <footer>Echoes of Legend - Prototype</footer>
-    </section>
+    </div>
 
     <!-- ==================== CAMPAIGN (chapter select) ====================
          The campaign route remains a nonfunctional presentation slice:
@@ -1330,303 +1327,431 @@
         </div>
       </div>
 
-      <div class="rival-route" aria-label="The ten rivals of Chapter 1">
+      <div class="stage-list" aria-label="The ten gates of Chapter 1">
+        <!-- Stage 1 -->
         <button
-          class="rival-card is-first"
+          class="stage-card is-first"
           id="chapter-stage-1"
           type="button"
-          style="--rival-a: #4fa86a; --rival-b: #8a5ad8"
-          aria-current="step"
           data-campaign-stage="1"
+          aria-label="Gate 1: The Recruiter"
         >
-          <span class="rival-top"
-            ><span class="rival-num">I</span
-            ><span class="rival-state"><i class="ri-sparkling-2-line"></i> First gate</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-recruiter.png"
-              alt=""
-              draggable="false" /><i class="ra ra-player-thunder-struck"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 1 · Classic · Grimmwood deck</span>
-            <strong class="rival-name">The Recruiter</strong>
-            <span class="rival-desc">An old memory broker asks what you want to outlive.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> Colosseum</span>
-          </span>
-          <span class="rival-open"><i class="ri-chat-1-line"></i> Hear his question</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate I</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-recruiter.png"
+                alt="The Recruiter"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 1 &middot; Classic</span>
+              <h3 class="sc-name">The Recruiter</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Colosseum</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-unlock-line"></i> Open Gate</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                An old memory broker asks what you want to outlive. “Every Echo thinks this road
+                leads to immortality. It does not. It asks whether your story can last without
+                becoming trapped inside itself.”
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Recruiter
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 2 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-2"
           type="button"
           disabled
-          style="--rival-a: #4c7bd8; --rival-b: #c9a227"
-          aria-label="Stage 2 locked: The Oathkeeper"
           data-campaign-stage="2"
+          aria-label="Gate 2: The Oathkeeper"
         >
-          <span class="rival-top"
-            ><span class="rival-num">II</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-oathkeeper.png"
-              alt=""
-              draggable="false" /><i class="ra ra-shield"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 2 · Classic</span>
-            <strong class="rival-name">The Oathkeeper</strong>
-            <span class="rival-desc"
-              >A veteran who returned with twelve asks who your strength protects.</span
-            >
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Narrow Pass</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Recruiter</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate II</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-oathkeeper.png"
+                alt="The Oathkeeper"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 2 &middot; Classic</span>
+              <h3 class="sc-name">The Oathkeeper</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Narrow Pass</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A veteran who returned with twelve asks who your strength protects. “I promised to
+                bring forty-three people home. I brought twelve. A wall is not made to keep danger
+                out. It is made to tell danger where it must stop.”
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Oathkeeper
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 3 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-3"
           type="button"
           disabled
-          style="--rival-a: #3f9b5c; --rival-b: #c8a34a"
-          aria-label="Stage 3 locked: The Outlaw"
           data-campaign-stage="3"
+          aria-label="Gate 3: The Outlaw"
         >
-          <span class="rival-top"
-            ><span class="rival-num">III</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-outlaw.png"
-              alt=""
-              draggable="false" /><i class="ra ra-archery-target"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 3 · Classic</span>
-            <strong class="rival-name">The Outlaw</strong>
-            <span class="rival-desc"
-              >A rifle sights your brightest echo to see who you leave behind.</span
-            >
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Open Plains</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Oathkeeper</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate III</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-outlaw.png"
+                alt="The Outlaw"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 3 &middot; Classic</span>
+              <h3 class="sc-name">The Outlaw</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Open Plains</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A bookshop family whose records were burned before its books. Her rifle sights your
+                brightest echo to see who you leave behind.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Outlaw
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 4 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-4"
           type="button"
           disabled
-          style="--rival-a: #d8b64c; --rival-b: #6fd3e8"
-          aria-label="Stage 4 locked: The Anointed"
           data-campaign-stage="4"
+          aria-label="Gate 4: The Anointed"
         >
-          <span class="rival-top"
-            ><span class="rival-num">IV</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-anointed.png"
-              alt=""
-              draggable="false" /><i class="ra ra-sunbeams"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 4 · Classic</span>
-            <strong class="rival-name">The Anointed</strong>
-            <span class="rival-desc">A Mark is a promise. Decide whether it becomes prophecy.</span>
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Mana Spring</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Outlaw</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate IV</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-anointed.png"
+                alt="The Anointed"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 4 &middot; Classic</span>
+              <h3 class="sc-name">The Anointed</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Mana Spring</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A Mark is a promise. Beside the cracked spring pool, decide whether it becomes
+                prophecy or freedom.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Anointed
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 5 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-5"
           type="button"
           disabled
-          style="--rival-a: #c9a227; --rival-b: #8f6dc2"
-          aria-label="Stage 5 locked: The Warden of the Mid-Road"
           data-campaign-stage="5"
+          aria-label="Gate 5: The Warden of the Mid-Road"
         >
-          <span class="rival-top"
-            ><span class="rival-num">V</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-warden-of-the-mid-road.png"
-              alt=""
-              draggable="false" /><i class="ra ra-helmet"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 5 · Unabridged · Three gates</span>
-            <strong class="rival-name">The Warden of the Mid-Road</strong>
-            <span class="rival-desc"
-              >At the Mid-Road, the guardians reveal why they chose to remain.</span
-            >
-            <span class="rival-meta"><i class="ri-map-2-line"></i> Colosseum · Pass · Plains</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Anointed</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate V</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-warden-of-the-mid-road.png"
+                alt="The Warden"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 5 &middot; Unabridged</span>
+              <h3 class="sc-name">The Warden of the Mid-Road</h3>
+              <span class="sc-meta"
+                ><i class="ri-map-2-line"></i> Colosseum &middot; Pass &middot; Plains</span
+              >
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                At the three stone arches, the guardians reveal why they chose to remain between
+                memory and the Quiet.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Warden
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 6 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-6"
           type="button"
           disabled
-          style="--rival-a: #e05a4a; --rival-b: #f0c05a"
-          aria-label="Stage 6 locked: The Trickster"
           data-campaign-stage="6"
+          aria-label="Gate 6: The Trickster"
         >
-          <span class="rival-top"
-            ><span class="rival-num">VI</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-trickster.png"
-              alt=""
-              draggable="false" /><i class="ra ra-clovers-card"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 6 · Draft</span>
-            <strong class="rival-name">The Trickster</strong>
-            <span class="rival-desc"
-              >Every choice leaves another possible self across the table.</span
-            >
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Energy Void</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear the Mid-Road</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate VI</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-trickster.png"
+                alt="The Trickster"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 6 &middot; Draft</span>
+              <h3 class="sc-name">The Trickster</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Energy Void</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                Every choice leaves another possible self across the table. In the void, you learn
+                to win with what remains.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Trickster
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 7 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-7"
           type="button"
           disabled
-          style="--rival-a: #7b4dc0; --rival-b: #d4af37"
-          aria-label="Stage 7 locked: The Strategist"
           data-campaign-stage="7"
+          aria-label="Gate 7: The Strategist"
         >
-          <span class="rival-top"
-            ><span class="rival-num">VII</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-strategist.png"
-              alt=""
-              draggable="false" /><i class="ra ra-gears"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 7 · Draft</span>
-            <strong class="rival-name">The Strategist</strong>
-            <span class="rival-desc"
-              >He calls every choice a pattern. You must prove it is not destiny.</span
-            >
-            <span class="rival-meta"><i class="ri-landscape-line"></i> Blood Battlefield</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Trickster</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate VII</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-strategist.png"
+                alt="The Strategist"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 7 &middot; Draft</span>
+              <h3 class="sc-name">The Strategist</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Blood Battlefield</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                He calls every choice a pattern on his marble grid. You must prove it is not
+                destiny.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Strategist
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 8 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-8"
           type="button"
           disabled
-          style="--rival-a: #e8e3d3; --rival-b: #c4392f"
-          aria-label="Stage 8 locked: The Chronicler"
           data-campaign-stage="8"
+          aria-label="Gate 8: The Chronicler"
         >
-          <span class="rival-top"
-            ><span class="rival-num">VIII</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-chronicler.png"
-              alt=""
-              draggable="false" /><i class="ra ra-book"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 8 · Draft</span>
-            <strong class="rival-name">The Chronicler</strong>
-            <span class="rival-desc"
-              >In the wall-less library, the Quiet learns that you exist.</span
-            >
-            <span class="rival-meta"><i class="ri-landscape-line"></i> Spirit World</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Strategist</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate VIII</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-chronicler.png"
+                alt="The Chronicler"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 8 &middot; Draft</span>
+              <h3 class="sc-name">The Chronicler</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Spirit World</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                In the wall-less library beneath cold stars, the Quiet learns that you exist.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Chronicler
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 9 -->
         <button
-          class="rival-card is-locked"
+          class="stage-card is-locked"
+          id="chapter-stage-9"
           type="button"
           disabled
-          style="--rival-a: #79bdb4; --rival-b: #c9a227"
-          aria-label="Stage 9 locked: The Last Guardian"
           data-campaign-stage="9"
+          aria-label="Gate 9: The Last Guardian"
         >
-          <span class="rival-top"
-            ><span class="rival-num">IX</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/the-last-guardian.png"
-              alt=""
-              draggable="false" /><i class="ra ra-shield"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 9 · Unabridged · Three gates</span>
-            <strong class="rival-name">The Last Guardian</strong>
-            <span class="rival-desc"
-              >A nameless guardian shows what it costs to hold a door shut.</span
-            >
-            <span class="rival-meta"
-              ><i class="ri-map-2-line"></i> Void · Battlefield · Spirit World</span
-            >
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Chronicler</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate IX</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/the-last-guardian.png"
+                alt="The Last Guardian"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 9 &middot; Unabridged</span>
+              <h3 class="sc-name">The Last Guardian</h3>
+              <span class="sc-meta"
+                ><i class="ri-map-2-line"></i> Void &middot; Battlefield &middot; Spirit World</span
+              >
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                A nameless guardian stands before the bronze threshold, showing what it costs to
+                hold a door shut against oblivion.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with The Last Guardian
+              </div>
+            </div>
+          </div>
         </button>
 
+        <!-- Stage 10 -->
         <button
-          class="rival-card is-locked is-final"
+          class="stage-card is-locked is-final"
+          id="chapter-stage-10"
           type="button"
           disabled
-          style="--rival-a: #c9a227; --rival-b: #1f4e79"
-          aria-label="Stage 10 locked: Gilgamesh"
           data-campaign-stage="10"
+          aria-label="Gate 10: Gilgamesh"
         >
-          <span class="rival-top"
-            ><span class="rival-num">X</span
-            ><span class="rival-state"><i class="ri-lock-2-fill"></i> Locked</span></span
-          >
-          <span class="rival-art has-portrait" aria-hidden="true"
-            ><img
-              class="rival-portrait"
-              src="assets/rivals/gilgamesh.png"
-              alt=""
-              draggable="false" /><i class="ra ra-crowned-heart"></i><b></b><em></em
-          ></span>
-          <span class="rival-body">
-            <span class="rival-kicker">Stage 10 · Unabridged · Final judgment</span>
-            <strong class="rival-name">Gilgamesh</strong>
-            <span class="rival-desc"
-              >The First Legend judges whether a story can continue without becoming a prison.</span
-            >
-            <span class="rival-meta"><i class="ri-landscape-line"></i> The Legend's Trial</span>
-          </span>
-          <span class="rival-lock"><i class="ri-lock-2-line"></i> Clear The Last Guardian</span>
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate X</span>
+            <div class="sc-avatar">
+              <img
+                class="sc-portrait"
+                src="assets/rivals/gilgamesh.png"
+                alt="Gilgamesh"
+                draggable="false"
+              />
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 10 &middot; Unabridged &middot; Final Judgment</span>
+              <h3 class="sc-name">Gilgamesh</h3>
+              <span class="sc-meta"
+                ><i class="ri-map-2-line"></i> Trial &middot; Ruins &middot; Mirror Realm</span
+              >
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">
+                The First King stands beside the great scales of memory. The First Legend judges
+                whether a story can continue without becoming a prison.
+              </p>
+              <div class="sc-prompt">
+                <i class="ra ra-speech-bubble"></i> Click to speak with Gilgamesh
+              </div>
+            </div>
+          </div>
         </button>
       </div>
 

@@ -19613,6 +19613,9 @@ body:not([data-auth='in']) #acct-logout {
 .home-actions .btn:nth-child(3) {
   animation-delay: 0.86s;
 }
+.home-actions .btn:nth-child(4) {
+  animation-delay: 0.96s;
+}
 
 /* all of the above respects the two kill switches */
 body[data-gfx='low'] .btn,
@@ -21116,101 +21119,196 @@ body[data-view='chapter'] .bg-grid {
   text-transform: uppercase;
 }
 
-/* ---------------- the ten vertical rival cards ---------------- */
-.rival-route {
+/* ---------------- the horizontal chapter gates ---------------- */
+.stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 920px);
+  margin: clamp(16px, calc(var(--vh1) * 2.8), 28px) auto 40px;
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-  align-items: stretch;
-  gap: 15px;
-  width: min(100%, 1160px);
-  margin: clamp(18px, calc(var(--vh1) * 3), 32px) auto 28px;
+  z-index: 1;
 }
-.rival-card {
+.stage-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  min-height: 290px;
-  padding: 0;
+  width: 100%;
   overflow: hidden;
-  isolation: isolate;
-  border: 1px solid rgba(210, 211, 236, 0.17);
-  border-radius: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(210, 211, 236, 0.18);
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(255, 214, 130, 0.05), transparent 50%),
+    linear-gradient(170deg, rgba(24, 26, 48, 0.9), rgba(9, 11, 24, 0.95));
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   color: #eef0fb;
   text-align: left;
   font-family: inherit;
-  background:
-    radial-gradient(
-      circle at 18% 12%,
-      color-mix(in srgb, var(--rival-a) 23%, transparent),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 84% 31%,
-      color-mix(in srgb, var(--rival-b) 16%, transparent),
-      transparent 42%
-    ),
-    linear-gradient(165deg, rgba(28, 30, 53, 0.92), rgba(8, 10, 23, 0.95));
-  box-shadow:
-    0 14px 30px rgba(0, 0, 0, 0.31),
-    inset 0 1px rgba(255, 255, 255, 0.07);
   cursor: var(--cur-pointer);
-  transition:
-    transform 0.28s var(--ease),
-    border-color 0.28s ease,
-    box-shadow 0.28s ease,
-    filter 0.28s ease;
+  padding: 0;
+  transition: all 0.28s var(--ease);
 }
-/* A shallow double-frame gives the route cards the same minted plate
-   language as the mode cards without making them look like hero cards. */
-.rival-card::before {
-  position: absolute;
-  z-index: -1;
-  inset: 5px;
-  border: 1px solid color-mix(in srgb, var(--rival-a) 30%, rgba(255, 255, 255, 0.1));
-  border-radius: 11px;
-  content: '';
-  opacity: 0.82;
+.stage-card:not(.is-locked):hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 214, 130, 0.7);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    0 0 28px rgba(255, 205, 100, 0.18);
 }
-.rival-card::after {
-  position: absolute;
-  z-index: -1;
-  top: -54%;
-  right: -46%;
-  width: 120%;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--rival-b) 22%, transparent);
+.stage-card:not(.is-locked):active {
+  transform: translateY(-1px);
+}
+.sc-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  min-height: 80px;
+}
+.sc-gate-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffd682;
+  min-width: 64px;
+  text-shadow: 0 0 10px rgba(255, 200, 90, 0.4);
+}
+.sc-avatar {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  content: '';
-  box-shadow:
-    0 0 0 13px color-mix(in srgb, var(--rival-a) 7%, transparent),
-    0 0 0 30px color-mix(in srgb, var(--rival-b) 4%, transparent);
+  overflow: hidden;
+  border: 2px solid rgba(255, 214, 130, 0.4);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  background: #111422;
 }
-.rival-card.is-first {
-  border-color: rgba(227, 199, 115, 0.56);
-  box-shadow:
-    0 16px 36px rgba(0, 0, 0, 0.38),
-    0 0 26px color-mix(in srgb, var(--rival-a) 22%, transparent),
-    inset 0 1px rgba(255, 244, 208, 0.13);
+.sc-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
 }
-.rival-card.is-first:hover {
-  z-index: 2;
-  transform: translateY(-6px);
-  border-color: rgba(250, 218, 135, 0.92);
-  box-shadow:
-    0 22px 42px rgba(0, 0, 0, 0.44),
-    0 0 36px color-mix(in srgb, var(--rival-b) 30%, transparent),
-    inset 0 1px rgba(255, 245, 214, 0.2);
+.sc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
-.rival-card.is-first:active {
-  transform: translateY(-2px);
+.sc-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd682;
 }
-/* Browser disabled buttons normally fade themselves. We own the lock
-   treatment, so retain the authored opacity and remove no information. */
-.rival-card:disabled {
+.sc-name {
+  margin: 0;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+.sc-meta {
+  font-size: 11.5px;
+  color: #a4accd;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sc-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.sc-state-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sc-chevron {
+  font-size: 20px;
+  color: #8990ac;
+  transition: transform 0.25s var(--ease);
+}
+.stage-card:not(.is-locked):hover .sc-chevron {
+  transform: rotate(180deg);
+  color: #ffd682;
+}
+.sc-expand {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height 0.35s var(--ease),
+    opacity 0.3s var(--ease),
+    padding 0.35s var(--ease);
+  background: rgba(4, 6, 15, 0.55);
+  border-top: 1px solid transparent;
+}
+.stage-card:not(.is-locked):hover .sc-expand {
+  max-height: 160px;
   opacity: 1;
-  -webkit-text-fill-color: currentColor;
+  padding: 14px 22px 18px;
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+.sc-lore {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sc-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #d1d5ea;
+  font-style: italic;
+}
+.sc-prompt {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffd682;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stage-card.is-locked {
+  filter: blur(3.5px) grayscale(0.6);
+  opacity: 0.52;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.stage-card.is-cleared {
+  border-color: rgba(143, 227, 176, 0.5);
+}
+.stage-card.is-cleared .sc-state-badge {
+  background: rgba(143, 227, 176, 0.12);
+  border-color: rgba(143, 227, 176, 0.4);
+  color: #8fe3b0;
+}
+@media (max-width: 640px) {
+  .sc-main {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .sc-gate-badge {
+    min-width: 0;
+  }
 }
 .rival-card.is-locked {
   border-color: rgba(181, 186, 205, 0.2);

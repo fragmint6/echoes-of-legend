@@ -78,33 +78,30 @@
       card.classList.toggle('is-cleared', isCleared);
       card.disabled = !isUnlocked;
 
-      var lock = card.querySelector('.rival-lock');
-      var state = card.querySelector('.rival-state');
+      var state = card.querySelector('.sc-state-badge, .rival-state, .rival-lock');
+      var prompt = card.querySelector('.sc-prompt');
 
       if (isCleared) {
-        if (lock) {
-          lock.innerHTML =
+        if (state) {
+          state.innerHTML =
             '<i class="ri-checkbox-circle-fill" style="color:#8fe3b0"></i> Gate Cleared';
         }
-        if (state) {
-          state.innerHTML = '<i class="ri-checkbox-circle-fill" style="color:#8fe3b0"></i> Cleared';
+        if (prompt) {
+          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to replay dialogue';
         }
       } else if (isUnlocked) {
-        if (lock) {
-          lock.innerHTML = '<i class="ri-lock-unlock-line" style="color:#ffd98a"></i> Open Gate';
-        }
         if (state) {
-          state.innerHTML = '<i class="ri-lock-unlock-line" style="color:#ffd98a"></i> Available';
+          state.innerHTML = '<i class="ri-lock-unlock-line" style="color:#ffd98a"></i> Open Gate';
+        }
+        if (prompt) {
+          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to enter dialogue';
         }
       } else {
-        if (lock) {
-          var lockIcon = lock.querySelector('i');
-          lock.textContent = '';
-          if (lockIcon) lock.appendChild(lockIcon);
-          lock.appendChild(document.createTextNode(' ' + stage.lock));
-        }
         if (state) {
           state.innerHTML = '<i class="ri-lock-2-fill"></i> Locked';
+        }
+        if (prompt) {
+          prompt.innerHTML = '<i class="ri-lock-2-line"></i> Gate Locked';
         }
       }
     });
@@ -120,10 +117,11 @@
     (STORY.stages || []).forEach(function (stage) {
       var card = document.querySelector('[data-campaign-stage="' + stage.id + '"]');
       if (!card) return;
-      setText(card.querySelector('.rival-kicker'), stageLabel(stage));
-      setText(card.querySelector('.rival-name'), stage.rival);
-      setText(card.querySelector('.rival-desc'), stage.line);
-      var meta = card.querySelector('.rival-meta');
+      setText(card.querySelector('.sc-kicker, .rival-kicker'), stageLabel(stage));
+      setText(card.querySelector('.sc-name, .rival-name'), stage.rival);
+      var desc = card.querySelector('.sc-desc, .rival-desc');
+      if (desc && stage.line) setText(desc, stage.line);
+      var meta = card.querySelector('.sc-meta, .rival-meta');
       if (meta) {
         var icon = meta.querySelector('i');
         meta.textContent = '';
