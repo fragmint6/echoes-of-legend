@@ -213,7 +213,7 @@
   function debuffCount(u) {
     if (!u) return 0;
     var n = 0;
-    u.buffs.forEach(function (b) {
+    (u.buffs || []).forEach(function (b) {
       if (b.amt < 0) n++;
     });
     if (u.flags.silence > 0) n++;
@@ -238,7 +238,7 @@
   function buffCount(u) {
     if (!u) return 0;
     var n = 0;
-    u.buffs.forEach(function (b) {
+    (u.buffs || []).forEach(function (b) {
       if (b.amt > 0) n++;
     });
     if (u.shield > 0) n++;
@@ -248,16 +248,22 @@
   }
 
   function hasDebuff(u) {
-    return (
-      u.buffs.some(function (b) {
-        return b.amt < 0;
-      }) ||
-      u.flags.silence > 0 ||
-      /* negative healMod only - a heal-up buff is not being "debuffed" */
-      u.flags.healMod < 0 ||
-      u.flags.burn > 0 ||
-      u.flags.exposed > 0 ||
-      u.flags.marked > 0
+    if (!u) return false;
+    return !!(
+      (u.buffs &&
+        u.buffs.some(function (b) {
+          return b.amt < 0;
+        })) ||
+      (u.flags &&
+        (u.flags.silence > 0 ||
+          u.flags.healMod < 0 ||
+          u.flags.burn > 0 ||
+          u.flags.exposed > 0 ||
+          u.flags.marked > 0)) ||
+      (u.costMods &&
+        u.costMods.some(function (m) {
+          return (m.flat || 0) > 0 || (m.pct || 0) > 0;
+        }))
     );
   }
 
@@ -387,16 +393,22 @@
       playerCards = optimizeFormation(playerCards);
       enemyCards = optimizeFormation(enemyCards);
     }
-    /* Which side opens the odd rounds. Singleplayer and every sim leave
-       this alone ('player'). A multiplayer guest passes 'enemy' so that
-       both machines agree on the turn order even though each of them
-       calls itself 'player'. */
-    var oddFirst = opts.oddFirst === 'enemy' ? 'enemy' : 'player';
+    /* Which side opens the odd rounds. Singleplayer, campaign and online
+       now all share a 50/50 starting rule when oddFirst is not explicitly set. */
+    var oddFirst =
+      opts.oddFirst === 'enemy'
+        ? 'enemy'
+        : opts.oddFirst === 'player'
+          ? 'player'
+          : (opts.rng ? opts.rng() : Math.random()) < 0.5
+            ? 'player'
+            : 'enemy';
     var B = {
       round: 1,
       oddFirst: oddFirst,
       turn: firstMover(1, oddFirst),
       first: firstMover(1, oddFirst),
+      roundEchoUsed: { player: false, enemy: false },
       /* Alternating-action bookkeeping. `passed` records sides locked
          out for the rest of the round (auto-pass: nothing legal to do).
          `turnPassed` records a CHOSEN pass of the current action only -
@@ -484,8 +496,7 @@
       var p = passiveOf(u);
       if (!hasTrig(p, 'static')) return;
       var setup = (p.effects || []).filter(function (e) {
-        if (e.k === 'outgoingMult' || e.k === 'damageMult' || e.k === 'damageResist')
-          return false;
+        if (e.k === 'outgoingMult' || e.k === 'damageMult' || e.k === 'damageResist') return false;
         if (e.on) return [].concat(e.on).indexOf('static') >= 0;
         return STATIC_SETUP_KINDS.indexOf(e.k) >= 0;
       });
@@ -591,7 +602,10 @@
       field: B.field, // battlefields are immutable config - share the reference
       comeback: { player: B.comeback.player, enemy: B.comeback.enemy },
       deathSeq: B.deathSeq,
-      roundEchoUsed: B.roundEchoUsed,
+      roundEchoUsed:
+        typeof B.roundEchoUsed === 'object' && B.roundEchoUsed
+          ? { player: !!B.roundEchoUsed.player, enemy: !!B.roundEchoUsed.enemy }
+          : { player: false, enemy: false },
       costMods: {
         player: B.costMods.player.map(function (m) {
           return { flat: m.flat, pct: m.pct, turns: m.turns, signaturesOnly: m.signaturesOnly };
@@ -1245,6 +1259,8 @@
       target: target,
       self: ctx.self,
       preDamaged: ctx.preDamaged,
+      wasMarked: ctx.wasMarked,
+      lastDamage: ctx.lastDamage,
       turnIdAtStart: ctx.turnIdAtStart,
       killedSomething: ctx.killedSomething,
       killCount: ctx.killCount,
@@ -1299,8 +1315,9 @@
     if (cond.targetExposed) {
       if (!tgt || !(tgt.flags.exposed > 0)) return false;
     }
-    if (cond.targetMarked) {
-      if (!tgt || !(tgt.flags.marked > 0)) return false;
+    if (cond.targetMarked || cond.ifTargetMarked) {
+      if (!tgt || !(tgt.flags.marked > 0 || (ctx.wasMarked && ctx.wasMarked[tgt.uid])))
+        return false;
     }
     if (cond.targetBurning) {
       if (!tgt || !(tgt.flags.burn > 0)) return false;
@@ -1667,10 +1684,24 @@
         B,
         'damage',
         src.name + ' hits ' + tgt.name + ' for ' + dmg + (crit ? ' (CRIT)' : '') + '.',
-        { uid: tgt.uid, src: src.uid, amount: dmg, crit: crit, element: element }
+        {
+          uid: tgt.uid,
+          src: src.uid,
+          amount: dmg,
+          crit: crit,
+          element: element,
+          hpAfter: tgt.hp,
+          shieldAfter: tgt.shield,
+          maxHp: tgt.maxHp,
+        }
       );
     } else {
-      logMsg(B, 'shield', tgt.name + ' takes no damage.', { uid: tgt.uid });
+      logMsg(B, 'shield', tgt.name + ' takes no damage.', {
+        uid: tgt.uid,
+        hpAfter: tgt.hp,
+        shieldAfter: tgt.shield,
+        maxHp: tgt.maxHp,
+      });
     }
 
     // Ares: gains ATK when attacking, and burns Marked victims
@@ -1939,9 +1970,14 @@
               immediate: true,
               triggerTarget: u,
             });
-            logMsg(B, 'passive', killer.name + ' presses the rout - ' + killer.card.ability.name + '!', {
-              uid: killer.uid,
-            });
+            logMsg(
+              B,
+              'passive',
+              killer.name + ' presses the rout - ' + killer.card.ability.name + '!',
+              {
+                uid: killer.uid,
+              }
+            );
           }
         }
         /* Augustus (teamKilled): the card says "every time your TEAM defeats
@@ -2398,7 +2434,16 @@
              so Basic attacks consumed Marks too: a Zeus mark you were
              meant to detonate with a Skill evaporated on contact with a
              free attack, and the whole mark-combo loop leaked. */
-          var dealt = dealDamage(B, src, t, raw, element, ctx.signature === true, false, ctx.rider === true);
+          var dealt = dealDamage(
+            B,
+            src,
+            t,
+            raw,
+            element,
+            ctx.signature === true,
+            false,
+            ctx.rider === true
+          );
           ctx.lastDamage = (ctx.lastDamage || 0) + dealt;
           if (e.energyBonus && dealt > 0) {
             addEnergy(B, src.side, e.energyBonus);
@@ -2862,7 +2907,12 @@
           list.forEach(function (t) {
             if (!condMet(B, e.if, condCtx(ctx, t))) return;
             t.costMods = t.costMods || [];
-            t.costMods.push({ flat: e.flat || 0, pct: e.pct || 0, turns: e.turns, signaturesOnly: !!e.signaturesOnly });
+            t.costMods.push({
+              flat: e.flat || 0,
+              pct: e.pct || 0,
+              turns: e.turns,
+              signaturesOnly: !!e.signaturesOnly,
+            });
           });
         }
         break;
@@ -3319,9 +3369,15 @@
       { uid: unit.uid, ability: ability.name, element: unit.element, signature: !ability.basic }
     );
 
-    var ctx0 = { turnIdAtStart: B.turnId, preDamaged: {}, signature: !ability.basic };
+    var ctx0 = {
+      turnIdAtStart: B.turnId,
+      preDamaged: {},
+      wasMarked: {},
+      signature: !ability.basic,
+    };
     targets.forEach(function (t) {
       ctx0.preDamaged[t.uid] = t.lastDamagedRound === B.round;
+      ctx0.wasMarked[t.uid] = t.flags.marked > 0;
     });
 
     /* PROVOKE TAX. Anything that gets around a live Provoke deals
@@ -3415,21 +3471,33 @@
       });
     }
 
-    /* The Mirror Realm: the FIRST ability cast each round echoes at 50%
-       effectiveness, costs nothing, and cannot echo itself (the guard flag
+    /* The Mirror Realm: the FIRST Signature Skill for each player each round
+       echoes at 50% effectiveness, costs nothing, and cannot echo itself (the guard flag
        stops an infinite reflection). Resolved after the original so the
        board state the copy reads is the post-cast one. */
+    var echoUsed =
+      typeof B.roundEchoUsed === 'object' && B.roundEchoUsed
+        ? B.roundEchoUsed[unit.side]
+        : !!B.roundEchoUsed;
     if (
       B.field &&
-      B.field.echoFirstAbility &&
-      !B.roundEchoUsed &&
+      (B.field.echoFirstSignature || B.field.echoFirstAbility) &&
+      !ability.basic &&
+      !echoUsed &&
       !B._echoing &&
       !B.over &&
       unit.alive
     ) {
-      B.roundEchoUsed = true;
+      if (typeof B.roundEchoUsed === 'object' && B.roundEchoUsed) {
+        B.roundEchoUsed[unit.side] = true;
+      } else {
+        B.roundEchoUsed = true;
+      }
       B._echoing = true;
-      logMsg(B, 'info', 'The Mirror Realm echoes ' + ability.name + '!', { uid: unit.uid });
+      logMsg(B, 'info', 'The Mirror Realm echoes ' + ability.name + '!', {
+        uid: unit.uid,
+        signature: true,
+      });
       emit(B, {
         t: 'proc',
         owner: unit.uid,
@@ -3445,8 +3513,9 @@
         : spec.effects;
       applyEffects(B, unit, echoTargets, echoEffects, {
         scale: B.field.echoScale || 0.5,
-        signature: !ability.basic,
+        signature: true,
         preDamaged: ctx0.preDamaged,
+        wasMarked: ctx0.wasMarked,
       });
       B._echoing = false;
       checkEnd(B);
@@ -3791,7 +3860,7 @@
     B.units.forEach(function (u) {
       u.roundFlags = {};
     });
-    B.roundEchoUsed = false; // Mirror Realm: one echo per round
+    B.roundEchoUsed = { player: false, enemy: false }; // Mirror Realm: one signature echo per side per round
     tickTimers(B);
 
     // end-of-round effects land AFTER this round's durations tick, so they

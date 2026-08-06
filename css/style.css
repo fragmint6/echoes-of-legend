@@ -1716,7 +1716,7 @@ html.mqw640 .search-wrap input {
 }
 html.mqw640 .dd-btn {
   min-width: 0;
-    flex: 1;
+  flex: 1;
 }
 html.mqw640 .filters {
   width: 100%;
@@ -1733,7 +1733,6 @@ html.mqw640 .search-wrap {
 html.mqw640 .search-wrap input {
   width: 100%;
 }
-
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -5175,11 +5174,7 @@ body[data-turn='player'] .turn-label {
   height: 14px;
   margin: -7px 0 0 -13px;
   border-radius: 50%;
-  background: radial-gradient(
-    ellipse,
-    color-mix(in srgb, var(--fx) 65%, #30251c),
-    transparent 75%
-  );
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--fx) 65%, #30251c), transparent 75%);
   filter: blur(2px);
   animation: fx-dust 0.85s ease-out forwards;
 }
@@ -7762,7 +7757,6 @@ html.mqw900 .pk-wordmark {
   font-size: 11px;
 }
 
-
 /* =============================================================
    PACK OPENING (cinematic overlay)
    ============================================================= */
@@ -8410,19 +8404,19 @@ html.mqw900 .deck-slot {
 }
 html.mqw900 .po-cards {
   gap: 10px;
-    flex-wrap: wrap;
-    top: 46%;
+  flex-wrap: wrap;
+  top: 46%;
 }
 html.mqw900 .po-flip {
   width: clamp(104px, calc(var(--vw1) * 28), 150px);
 }
 html.mqw900 .po-summary {
   bottom: 2.5%;
-    width: 94%;
+  width: 94%;
 }
 html.mqw900 .product {
   flex-direction: column;
-    text-align: center;
+  text-align: center;
 }
 html.mqw900 .product-info {
   max-width: 520px;
@@ -8433,7 +8427,6 @@ html.mqw900 .product-info .btn {
 html.mqw900 .product-odds {
   align-items: center;
 }
-
 
 /* =============================================================
    PLAY FLOW - mode select, deck modal, preparation, draft
@@ -9694,9 +9687,10 @@ body[data-gfx='low'] .col-thumb {
   }
 }
 
-/* the prep hover tooltip reuses the battle flyout's skin; the only
-   tweak is killing its scrollbar (prep tips are short) */
-#prep-tip {
+/* the prep and draft hover tooltips reuse the battle flyout's skin; the only
+   tweak is killing their scrollbars */
+#prep-tip,
+#draft-tip {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -9727,12 +9721,13 @@ body[data-gfx='low'] .col-thumb {
   -webkit-line-clamp: 3;
 }
 
-/* BESIDE THE CARD (prep).
+/* BESIDE THE CARD (prep and draft).
    Opens to the right of the hovered card with the tops aligned, and
    flips to the left when the right edge has no room. placePrepTip()
    in play.js writes the inline left/top and toggles .from-right, so
    there is no centring transform here to fight the coordinates. */
-#prep-tip.anchored {
+#prep-tip.anchored,
+#draft-tip.anchored {
   top: 0;
   left: 0;
   right: auto;
@@ -9746,17 +9741,21 @@ body[data-gfx='low'] .col-thumb {
     0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 /* flipped to the card's left: grow from the right edge instead */
-#prep-tip.anchored.from-right {
+#prep-tip.anchored.from-right,
+#draft-tip.anchored.from-right {
   transform: translateX(8px);
   transform-origin: right center;
 }
-#prep-tip.anchored.show {
+#prep-tip.anchored.show,
+#draft-tip.anchored.show {
   transform: translateX(0);
 }
-#prep-tip.anchored.swap {
+#prep-tip.anchored.swap,
+#draft-tip.anchored.swap {
   animation: prep-tip-swap 0.24s var(--ease);
 }
-#prep-tip.anchored.from-right.swap {
+#prep-tip.anchored.from-right.swap,
+#draft-tip.anchored.from-right.swap {
   --swap-x: 8px;
 }
 @keyframes prep-tip-swap {
@@ -9765,7 +9764,8 @@ body[data-gfx='low'] .col-thumb {
     transform: translateX(var(--swap-x, -8px));
   }
 }
-#prep-tip::-webkit-scrollbar {
+#prep-tip::-webkit-scrollbar,
+#draft-tip::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
@@ -10125,7 +10125,7 @@ html.mqw980 .deck-slots-12 {
 }
 html.mqw980 .draft-piles {
   grid-template-columns: 1fr;
-    max-width: 560px;
+  max-width: 560px;
 }
 
 /* Emulated breakpoint (max-width: 780px) measured against the
@@ -10135,14 +10135,14 @@ html.mqw780 .prep .col-header,
 html.mqw780 .draft .col-header,
 html.mqw780 .play .col-header {
   flex-wrap: wrap;
-    row-gap: 12px;
+  row-gap: 12px;
 }
 html.mqw780 .prep-steps,
 html.mqw780 .draft-order {
   order: 3;
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-end;
+  width: 100%;
+  margin-left: 0;
+  justify-content: flex-end;
 }
 html.mqw780 .prep-board {
   flex-wrap: wrap;
@@ -10162,7 +10162,6 @@ html.mqw640 .view.draft {
 html.mqw640 .draft-pack {
   gap: 12px;
 }
-
 
 /* =============================================================
    BATTLEFIELDS - cinematic reveal + animated scenes
@@ -12900,9 +12899,7 @@ body[data-gfx='low'] *::after {
 /* ...except the things that MUST keep looping to read as live state */
 body[data-gfx='low'] .turn-dot,
 body[data-gfx='low'] .turn-dot::after,
-body[data-gfx='low'] .ai-acting,
-body[data-gfx='low'] .cine,
-body[data-gfx='low'] .cine * {
+body[data-gfx='low'] .ai-acting {
   animation-iteration-count: infinite !important;
 }
 /* Long decorative loops need `animation: none`, not a capped iteration
@@ -13635,7 +13632,8 @@ body[data-gfx='low'] .card[data-rarity='epic'] .card-art::before {
   transition: width 0.55s var(--ease);
 }
 .flyout.show .dk-stat-bar span,
-#prep-tip.show .dk-stat-bar span {
+#prep-tip.show .dk-stat-bar span,
+#draft-tip.show .dk-stat-bar span {
   width: var(--to, 0);
 }
 /* stagger the three bars */
@@ -13658,7 +13656,8 @@ body[data-gfx='low'] .card[data-rarity='epic'] .card-art::before {
     transform 0.3s var(--ease);
 }
 .flyout.show .dk-stat-v,
-#prep-tip.show .dk-stat-v {
+#prep-tip.show .dk-stat-v,
+#draft-tip.show .dk-stat-v {
   opacity: 1;
   transform: none;
 }
@@ -13679,12 +13678,14 @@ body[data-gfx='low'] .card[data-rarity='epic'] .card-art::before {
     opacity 0.3s var(--ease);
 }
 .flyout .dk-portrait,
-#prep-tip .dk-portrait {
+#prep-tip .dk-portrait,
+#draft-tip .dk-portrait {
   opacity: 0;
   transform: scale(0.86) rotate(-6deg);
 }
 .flyout.show .dk-portrait,
-#prep-tip.show .dk-portrait {
+#prep-tip.show .dk-portrait,
+#draft-tip.show .dk-portrait {
   opacity: 1;
   transform: none;
 }
@@ -13700,7 +13701,8 @@ body[data-gfx='low'] .card[data-rarity='epic'] .card-art::before {
     box-shadow 0.2s var(--ease);
 }
 .flyout.show .dk-ab,
-#prep-tip.show .dk-ab {
+#prep-tip.show .dk-ab,
+#draft-tip.show .dk-ab {
   opacity: 1;
   transform: none;
 }
@@ -13709,7 +13711,8 @@ body[data-gfx='low'] .card[data-rarity='epic'] .card-art::before {
    greyscale survived. Re-state the dim at matching specificity so a
    Skill you cannot cast actually looks like one. */
 .flyout.show .dk-ab.dis,
-#prep-tip.show .dk-ab.dis {
+#prep-tip.show .dk-ab.dis,
+#draft-tip.show .dk-ab.dis {
   opacity: 0.62;
 }
 .dk-abs .dk-ab:nth-child(1) {
@@ -13886,8 +13889,18 @@ body[data-gfx='low'] .sc-emblem > b::before {
     repeating-linear-gradient(30deg, var(--hex-line) 0 1px, transparent 1px var(--hex-cell, 18px)),
     repeating-linear-gradient(-30deg, var(--hex-line) 0 1px, transparent 1px var(--hex-cell, 18px)),
     repeating-linear-gradient(90deg, var(--hex-line) 0 1px, transparent 1px var(--hex-cell, 18px));
-  -webkit-mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
-  mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent var(--rune-in, 58%),
+    #000 var(--rune-in, 58%) var(--rune-out, 80%),
+    transparent var(--rune-out, 80%)
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent var(--rune-in, 58%),
+    #000 var(--rune-in, 58%) var(--rune-out, 80%),
+    transparent var(--rune-out, 80%)
+  );
   animation: rune-turn var(--rune-dur, 84s) linear infinite var(--rune-dir, normal);
 }
 /* the second weave: cells ~1.7x the base lattice, strung across the
@@ -13899,11 +13912,33 @@ body[data-gfx='low'] .sc-emblem > b::before {
   inset: 0;
   border-radius: 50%;
   background:
-    repeating-linear-gradient(0deg, var(--hex-line2) 0 1px, transparent 1px calc(var(--hex-cell, 18px) * 1.7)),
-    repeating-linear-gradient(60deg, var(--hex-line2) 0 1px, transparent 1px calc(var(--hex-cell, 18px) * 1.7)),
-    repeating-linear-gradient(-60deg, var(--hex-line2) 0 1px, transparent 1px calc(var(--hex-cell, 18px) * 1.7));
-  -webkit-mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
-  mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+    repeating-linear-gradient(
+      0deg,
+      var(--hex-line2) 0 1px,
+      transparent 1px calc(var(--hex-cell, 18px) * 1.7)
+    ),
+    repeating-linear-gradient(
+      60deg,
+      var(--hex-line2) 0 1px,
+      transparent 1px calc(var(--hex-cell, 18px) * 1.7)
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      var(--hex-line2) 0 1px,
+      transparent 1px calc(var(--hex-cell, 18px) * 1.7)
+    );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent var(--rune-in, 58%),
+    #000 var(--rune-in, 58%) var(--rune-out, 80%),
+    transparent var(--rune-out, 80%)
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent var(--rune-in, 58%),
+    #000 var(--rune-in, 58%) var(--rune-out, 80%),
+    transparent var(--rune-out, 80%)
+  );
   opacity: 0.7;
   animation: rune-turn calc(var(--rune-dur, 84s) * 1.35) linear infinite var(--rune-dir2, reverse);
 }
@@ -13930,8 +13965,18 @@ body[data-gfx='low'] .sc-emblem > b::before {
     rgba(255, 255, 255, 0.08) 334deg,
     transparent 350deg
   );
-  -webkit-mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
-  mask-image: radial-gradient(circle, transparent var(--rune-in, 58%), #000 var(--rune-in, 58%) var(--rune-out, 80%), transparent var(--rune-out, 80%));
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent var(--rune-in, 58%),
+    #000 var(--rune-in, 58%) var(--rune-out, 80%),
+    transparent var(--rune-out, 80%)
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent var(--rune-in, 58%),
+    #000 var(--rune-in, 58%) var(--rune-out, 80%),
+    transparent var(--rune-out, 80%)
+  );
   mix-blend-mode: screen;
   opacity: var(--rune-prism, 0.9);
   animation:
@@ -15655,7 +15700,10 @@ body[data-view='home'] .menu-bg {
    layer under-travelled by ~12% of a tile and snapped the difference
    at each wrap, each on its own period. The ratio now rides a
    per-layer custom property measured from the real files. */
-.menu-bg > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps):not(.mb-ultra):not(.mb-rays):not(.mb-fogbanks):not(.mb-ash):not(.mb-spores) {
+.menu-bg
+  > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps):not(
+    .mb-ultra
+  ):not(.mb-rays):not(.mb-fogbanks):not(.mb-ash):not(.mb-spores) {
   /* viewport + more than one max tile period of slack, so no gap can
      open on the right during the travel */
   width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
@@ -17310,18 +17358,162 @@ body[data-gfx='low'] .sc-weather {
     transform: translate3d(0, 0, 0);
   }
 }
-.mb-wisps i:nth-child(1)  { left: 6%;  top: 74%; --x1: 28px;  --y1: -20px; --x2: 40px;  --y2: -6px;  --x3: 16px; --y3: -30px; --peak: .75; animation-duration: 17s; animation-delay: 0s;   }
-.mb-wisps i:nth-child(2)  { left: 14%; top: 86%; --x1: -22px; --y1: -26px; --x2: -34px; --y2: -10px; --x3: -14px; --y3: -32px; --peak: .6; animation-duration: 23s; animation-delay: 4s;   }
-.mb-wisps i:nth-child(3)  { left: 22%; top: 68%; --x1: 30px;  --y1: -14px; --x2: 12px;  --y2: -28px; --x3: -18px; --y3: -18px; --peak: .7; animation-duration: 19s; animation-delay: 8s;   }
-.mb-wisps i:nth-child(4)  { left: 31%; top: 90%; --x1: 24px;  --y1: -30px; --x2: -12px; --y2: -18px; --x3: 20px; --y3: -8px;  --peak: .55; animation-duration: 26s; animation-delay: 2s;   }
-.mb-wisps i:nth-child(5)  { left: 40%; top: 72%; --x1: -28px; --y1: -16px; --x2: -8px;  --y2: -30px; --x3: 22px; --y3: -24px; --peak: .8; animation-duration: 15s; animation-delay: 10s;  }
-.mb-wisps i:nth-child(6)  { left: 49%; top: 83%; --x1: 18px;  --y1: -24px; --x2: 34px;  --y2: -8px;  --x3: 8px;  --y3: -28px; --peak: .65; animation-duration: 21s; animation-delay: 6s;  }
-.mb-wisps i:nth-child(7)  { left: 58%; top: 70%; --x1: -24px; --y1: -20px; --x2: -36px; --y2: -32px; --x3: -10px; --y3: -12px; --peak: .75; animation-duration: 18s; animation-delay: 12s;  }
-.mb-wisps i:nth-child(8)  { left: 67%; top: 88%; --x1: 26px;  --y1: -18px; --x2: 6px;   --y2: -26px; --x3: -22px; --y3: -14px; --peak: .55; animation-duration: 25s; animation-delay: 1s;   }
-.mb-wisps i:nth-child(9)  { left: 76%; top: 76%; --x1: -20px; --y1: -28px; --x2: -32px; --y2: -12px; --x3: -6px;  --y3: -34px; --peak: .7; animation-duration: 16s; animation-delay: 7s;   }
-.mb-wisps i:nth-child(10) { left: 84%; top: 66%; --x1: 22px;  --y1: -22px; --x2: 38px;  --y2: -10px; --x3: 14px;  --y3: -26px; --peak: .8; animation-duration: 22s; animation-delay: 11s;  }
-.mb-wisps i:nth-child(11) { left: 92%; top: 82%; --x1: -26px; --y1: -16px; --x2: -10px; --y2: -30px; --x3: -30px; --y3: -20px; --peak: .6; animation-duration: 20s; animation-delay: 3s;   }
-.mb-wisps i:nth-child(12) { left: 11%; top: 63%; --x1: 32px;  --y1: -26px; --x2: 14px;  --y2: -14px; --x3: -16px; --y3: -22px; --peak: .7; animation-duration: 24s; animation-delay: 9s;   }
+.mb-wisps i:nth-child(1) {
+  left: 6%;
+  top: 74%;
+  --x1: 28px;
+  --y1: -20px;
+  --x2: 40px;
+  --y2: -6px;
+  --x3: 16px;
+  --y3: -30px;
+  --peak: 0.75;
+  animation-duration: 17s;
+  animation-delay: 0s;
+}
+.mb-wisps i:nth-child(2) {
+  left: 14%;
+  top: 86%;
+  --x1: -22px;
+  --y1: -26px;
+  --x2: -34px;
+  --y2: -10px;
+  --x3: -14px;
+  --y3: -32px;
+  --peak: 0.6;
+  animation-duration: 23s;
+  animation-delay: 4s;
+}
+.mb-wisps i:nth-child(3) {
+  left: 22%;
+  top: 68%;
+  --x1: 30px;
+  --y1: -14px;
+  --x2: 12px;
+  --y2: -28px;
+  --x3: -18px;
+  --y3: -18px;
+  --peak: 0.7;
+  animation-duration: 19s;
+  animation-delay: 8s;
+}
+.mb-wisps i:nth-child(4) {
+  left: 31%;
+  top: 90%;
+  --x1: 24px;
+  --y1: -30px;
+  --x2: -12px;
+  --y2: -18px;
+  --x3: 20px;
+  --y3: -8px;
+  --peak: 0.55;
+  animation-duration: 26s;
+  animation-delay: 2s;
+}
+.mb-wisps i:nth-child(5) {
+  left: 40%;
+  top: 72%;
+  --x1: -28px;
+  --y1: -16px;
+  --x2: -8px;
+  --y2: -30px;
+  --x3: 22px;
+  --y3: -24px;
+  --peak: 0.8;
+  animation-duration: 15s;
+  animation-delay: 10s;
+}
+.mb-wisps i:nth-child(6) {
+  left: 49%;
+  top: 83%;
+  --x1: 18px;
+  --y1: -24px;
+  --x2: 34px;
+  --y2: -8px;
+  --x3: 8px;
+  --y3: -28px;
+  --peak: 0.65;
+  animation-duration: 21s;
+  animation-delay: 6s;
+}
+.mb-wisps i:nth-child(7) {
+  left: 58%;
+  top: 70%;
+  --x1: -24px;
+  --y1: -20px;
+  --x2: -36px;
+  --y2: -32px;
+  --x3: -10px;
+  --y3: -12px;
+  --peak: 0.75;
+  animation-duration: 18s;
+  animation-delay: 12s;
+}
+.mb-wisps i:nth-child(8) {
+  left: 67%;
+  top: 88%;
+  --x1: 26px;
+  --y1: -18px;
+  --x2: 6px;
+  --y2: -26px;
+  --x3: -22px;
+  --y3: -14px;
+  --peak: 0.55;
+  animation-duration: 25s;
+  animation-delay: 1s;
+}
+.mb-wisps i:nth-child(9) {
+  left: 76%;
+  top: 76%;
+  --x1: -20px;
+  --y1: -28px;
+  --x2: -32px;
+  --y2: -12px;
+  --x3: -6px;
+  --y3: -34px;
+  --peak: 0.7;
+  animation-duration: 16s;
+  animation-delay: 7s;
+}
+.mb-wisps i:nth-child(10) {
+  left: 84%;
+  top: 66%;
+  --x1: 22px;
+  --y1: -22px;
+  --x2: 38px;
+  --y2: -10px;
+  --x3: 14px;
+  --y3: -26px;
+  --peak: 0.8;
+  animation-duration: 22s;
+  animation-delay: 11s;
+}
+.mb-wisps i:nth-child(11) {
+  left: 92%;
+  top: 82%;
+  --x1: -26px;
+  --y1: -16px;
+  --x2: -10px;
+  --y2: -30px;
+  --x3: -30px;
+  --y3: -20px;
+  --peak: 0.6;
+  animation-duration: 20s;
+  animation-delay: 3s;
+}
+.mb-wisps i:nth-child(12) {
+  left: 11%;
+  top: 63%;
+  --x1: 32px;
+  --y1: -26px;
+  --x2: 14px;
+  --y2: -14px;
+  --x3: -16px;
+  --y3: -22px;
+  --peak: 0.7;
+  animation-duration: 24s;
+  animation-delay: 9s;
+}
 
 /* ------------------------- MENU: hot ember tier -------------- */
 /* Brighter, faster embers rising out of the two foreground campfire
@@ -17334,16 +17526,66 @@ body[data-gfx='low'] .sc-weather {
   box-shadow: 0 0 7px rgba(255, 190, 90, 0.95);
   animation-name: mb-ember;
 }
-.mb-embers.hot i:nth-child(1)  { left: 27%; --dx: 14px;  animation-duration: 7s;  animation-delay: 0.5s; }
-.mb-embers.hot i:nth-child(2)  { left: 30%; --dx: -16px; animation-duration: 9s;  animation-delay: 3s;   }
-.mb-embers.hot i:nth-child(3)  { left: 33%; --dx: 20px;  animation-duration: 8s;  animation-delay: 5.5s; }
-.mb-embers.hot i:nth-child(4)  { left: 29%; --dx: -10px; animation-duration: 6.5s; animation-delay: 2s;   }
-.mb-embers.hot i:nth-child(5)  { left: 85%; --dx: 16px;  animation-duration: 8.5s; animation-delay: 1s;   }
-.mb-embers.hot i:nth-child(6)  { left: 88%; --dx: -18px; animation-duration: 7.5s; animation-delay: 4s;   }
-.mb-embers.hot i:nth-child(7)  { left: 90%; --dx: 12px;  animation-duration: 9.5s; animation-delay: 6.5s; }
-.mb-embers.hot i:nth-child(8)  { left: 86%; --dx: -14px; animation-duration: 6s;  animation-delay: 2.8s; }
-.mb-embers.hot i:nth-child(9)  { left: 31%; --dx: 18px;  animation-duration: 10s; animation-delay: 7.5s; }
-.mb-embers.hot i:nth-child(10) { left: 92%; --dx: -12px; animation-duration: 8s;  animation-delay: 5s;   }
+.mb-embers.hot i:nth-child(1) {
+  left: 27%;
+  --dx: 14px;
+  animation-duration: 7s;
+  animation-delay: 0.5s;
+}
+.mb-embers.hot i:nth-child(2) {
+  left: 30%;
+  --dx: -16px;
+  animation-duration: 9s;
+  animation-delay: 3s;
+}
+.mb-embers.hot i:nth-child(3) {
+  left: 33%;
+  --dx: 20px;
+  animation-duration: 8s;
+  animation-delay: 5.5s;
+}
+.mb-embers.hot i:nth-child(4) {
+  left: 29%;
+  --dx: -10px;
+  animation-duration: 6.5s;
+  animation-delay: 2s;
+}
+.mb-embers.hot i:nth-child(5) {
+  left: 85%;
+  --dx: 16px;
+  animation-duration: 8.5s;
+  animation-delay: 1s;
+}
+.mb-embers.hot i:nth-child(6) {
+  left: 88%;
+  --dx: -18px;
+  animation-duration: 7.5s;
+  animation-delay: 4s;
+}
+.mb-embers.hot i:nth-child(7) {
+  left: 90%;
+  --dx: 12px;
+  animation-duration: 9.5s;
+  animation-delay: 6.5s;
+}
+.mb-embers.hot i:nth-child(8) {
+  left: 86%;
+  --dx: -14px;
+  animation-duration: 6s;
+  animation-delay: 2.8s;
+}
+.mb-embers.hot i:nth-child(9) {
+  left: 31%;
+  --dx: 18px;
+  animation-duration: 10s;
+  animation-delay: 7.5s;
+}
+.mb-embers.hot i:nth-child(10) {
+  left: 92%;
+  --dx: -12px;
+  animation-duration: 8s;
+  animation-delay: 5s;
+}
 
 /* =============================================================
    BATTLE: painted-board weather (has-art only)
@@ -17409,7 +17651,8 @@ body[data-gfx='low'] .sc-weather {
   }
 }
 @keyframes bfx-bwander {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
     transform: translate3d(0, 0, 0) scale(0.8);
   }
@@ -17455,7 +17698,8 @@ body[data-gfx='low'] .sc-weather {
   background: var(--bf-3);
 }
 @keyframes bfx-void-drift {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
     transform: translate3d(0, 0, 0) scale(1);
   }
@@ -17464,7 +17708,12 @@ body[data-gfx='low'] .sc-weather {
   }
   60% {
     opacity: calc(var(--peak, 0.8) * 0.55);
-    transform: translate3d(calc((calc(var(--vw1) * 50) - 100%) * 0.18), calc((calc(var(--vh1) * 42) - 100%) * 0.18), 0) scale(0.7);
+    transform: translate3d(
+        calc((calc(var(--vw1) * 50) - 100%) * 0.18),
+        calc((calc(var(--vh1) * 42) - 100%) * 0.18),
+        0
+      )
+      scale(0.7);
   }
 }
 .board.has-art[data-field='energy-void'] .sc-weather i:nth-child(5n) {
@@ -17767,7 +18016,9 @@ body[data-gfx='low'] .veil-ward > i {
   letter-spacing: 0.04em;
   cursor: var(--cur-pointer);
   text-align: left;
-  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  transition:
+    background 0.15s var(--ease),
+    color 0.15s var(--ease);
 }
 .acct-menu-item i {
   font-size: 14px;
@@ -17948,7 +18199,7 @@ body[data-gfx='low'] .veil-ward > i {
    Toggled as html.mqw560 by paintViewport() in js/app.js. */
 html.mqw560 .set-card {
   padding: 28px 18px 20px;
-    gap: 22px;
+  gap: 22px;
 }
 html.mqw560 .set-block {
   padding: 18px 16px 16px;
@@ -18496,7 +18747,12 @@ body[data-gfx='low'] .fx-blast-mini {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(4, 6, 12, 0.16), transparent 34%, rgba(4, 6, 12, 0.62) 88%);
+  background: linear-gradient(
+    180deg,
+    rgba(4, 6, 12, 0.16),
+    transparent 34%,
+    rgba(4, 6, 12, 0.62) 88%
+  );
   pointer-events: none;
 }
 .setm-slot {
@@ -18650,7 +18906,6 @@ html.mqw720 .setm-plate {
 html.mqw640 .war-length {
   grid-template-columns: 1fr;
 }
-
 
 body[data-gfx='low'] .setm-scrim,
 body[data-gfx='low'] .setm-card {
@@ -18989,7 +19244,11 @@ body[data-gfx='low'] .tips-thumb {
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: radial-gradient(ellipse 75% 90% at 50% 108%, rgba(255, 166, 40, 0.55), transparent 62%);
+  background: radial-gradient(
+    ellipse 75% 90% at 50% 108%,
+    rgba(255, 166, 40, 0.55),
+    transparent 62%
+  );
   opacity: 0;
   transition: opacity 0.3s var(--ease);
   pointer-events: none;
@@ -19457,7 +19716,9 @@ body[data-gfx='low'] .ht-line {
 .shop .pack-grid,
 .deck .col-header,
 .deck .deck-tray,
-.deck .deck-roster {
+.deck .deck-roster,
+.campaign .col-header,
+.chapter .col-header {
   position: relative;
   z-index: 1;
 }
@@ -19476,7 +19737,9 @@ body[data-gfx='low'] .ht-line {
 .play .col-header,
 .collection .col-header,
 .shop .col-header,
-.deck .col-header {
+.deck .col-header,
+.campaign .col-header,
+.chapter .col-header {
   position: relative;
 }
 .play .col-header::after,
@@ -19643,6 +19906,7 @@ body[data-gfx='low'] .home-emblem::after {
 
 /* ---- A. crest masthead (play / collection / shop) ---- */
 .col-header.mast {
+  position: relative;
   justify-content: center;
   text-align: center;
   margin-bottom: 30px;
@@ -19734,9 +19998,9 @@ body[data-gfx='low'] .home-emblem::after {
    Toggled as html.mqw720 by paintViewport() in js/app.js. */
 html.mqw720 .mast-emblem {
   width: 44px;
-    height: 44px;
-    font-size: 20px;
-    margin-bottom: 9px;
+  height: 44px;
+  font-size: 20px;
+  margin-bottom: 9px;
 }
 html.mqw720 .col-header.mast .col-sub {
   letter-spacing: 0.2em;
@@ -19755,10 +20019,30 @@ html.mqw720 .col-header.mast .col-sub {
   border: 1px solid rgba(255, 214, 130, 0.3);
   background:
     /* corner rivets */
-    radial-gradient(circle 2.2px at 13px 13px, rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at calc(100% - 13px) 13px, rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at 13px calc(100% - 13px), rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at calc(100% - 13px) calc(100% - 13px), rgba(255, 224, 150, 0.95) 42%, rgba(110, 70, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(
+      circle 2.2px at 13px 13px,
+      rgba(255, 224, 150, 0.95) 42%,
+      rgba(110, 70, 16, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at calc(100% - 13px) 13px,
+      rgba(255, 224, 150, 0.95) 42%,
+      rgba(110, 70, 16, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at 13px calc(100% - 13px),
+      rgba(255, 224, 150, 0.95) 42%,
+      rgba(110, 70, 16, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at calc(100% - 13px) calc(100% - 13px),
+      rgba(255, 224, 150, 0.95) 42%,
+      rgba(110, 70, 16, 0.7) 58%,
+      transparent 74%
+    ),
     radial-gradient(circle at 80% -10%, rgba(255, 215, 130, 0.08), transparent 55%),
     linear-gradient(180deg, rgba(22, 26, 41, 0.72), rgba(9, 12, 20, 0.86));
   box-shadow:
@@ -19826,7 +20110,12 @@ html.mqw720 .col-header.mast .col-sub {
   bottom: 0;
   width: 74px;
   height: 1px;
-  background: linear-gradient(90deg, rgba(255, 214, 130, 0.75), rgba(255, 214, 130, 0.16) 72%, transparent);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 214, 130, 0.75),
+    rgba(255, 214, 130, 0.16) 72%,
+    transparent
+  );
 }
 .mode-desc {
   color: var(--txt-dim); /* plaque is darker now - the old faint grey drowned */
@@ -19859,10 +20148,30 @@ html.mqw720 .col-header.mast .col-sub {
   opacity: 1;
   border-color: rgba(190, 84, 62, 0.3);
   background:
-    radial-gradient(circle 2.2px at 13px 13px, rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at calc(100% - 13px) 13px, rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at 13px calc(100% - 13px), rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at calc(100% - 13px) calc(100% - 13px), rgba(214, 138, 110, 0.8) 42%, rgba(80, 30, 16, 0.7) 58%, transparent 74%),
+    radial-gradient(
+      circle 2.2px at 13px 13px,
+      rgba(214, 138, 110, 0.8) 42%,
+      rgba(80, 30, 16, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at calc(100% - 13px) 13px,
+      rgba(214, 138, 110, 0.8) 42%,
+      rgba(80, 30, 16, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at 13px calc(100% - 13px),
+      rgba(214, 138, 110, 0.8) 42%,
+      rgba(80, 30, 16, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at calc(100% - 13px) calc(100% - 13px),
+      rgba(214, 138, 110, 0.8) 42%,
+      rgba(80, 30, 16, 0.7) 58%,
+      transparent 74%
+    ),
     radial-gradient(circle at 80% -10%, rgba(190, 62, 48, 0.08), transparent 55%),
     linear-gradient(180deg, rgba(19, 20, 30, 0.66), rgba(8, 9, 15, 0.84));
 }
@@ -19986,7 +20295,11 @@ html.mqw720 .col-header.mast .col-sub {
   width: 86%;
   height: 64px;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 196, 96, 0.13), transparent 68%);
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(255, 196, 96, 0.13),
+    transparent 68%
+  );
   pointer-events: none;
 }
 body[data-gfx='low'] .home-actions::before {
@@ -20034,7 +20347,6 @@ body[data-gfx='low'] .home-actions::before {
 html.mqw520 .dm-card .war-length {
   grid-template-columns: 1fr;
 }
-
 
 /* ---- 2. settings: the GUI-scale slider ----
    the settings card is only 392px wide, so the row stacks: label +
@@ -20135,9 +20447,9 @@ html.mqh820 .col-header.mast {
 }
 html.mqh820 .col-header.mast .mast-emblem {
   width: 44px;
-    height: 44px;
-    font-size: 20px;
-    margin-bottom: 8px;
+  height: 44px;
+  font-size: 20px;
+  margin-bottom: 8px;
 }
 html.mqh820 .col-header.mast .mast-rule {
   margin-top: 9px;
@@ -20148,7 +20460,6 @@ html.mqh820 .col-header.mast .col-sub {
 html.mqh820 .col-header.mast .col-title {
   font-size: clamp(26px, calc(var(--vw1) * 4), 36px);
 }
-
 
 /* -------------------------------------------------------------
    ATMOSPHERE EXPANSION (2026-08-05)
@@ -20665,9 +20976,20 @@ body[data-view='chapter'] .bg-grid {
 .cb-grade {
   inset: 0 !important;
   background:
-    radial-gradient(ellipse 62% 47% at 50% 45%, rgba(7, 8, 19, 0.26) 0%, rgba(7, 8, 19, 0.5) 54%, rgba(5, 6, 14, 0.78) 100%),
+    radial-gradient(
+      ellipse 62% 47% at 50% 45%,
+      rgba(7, 8, 19, 0.26) 0%,
+      rgba(7, 8, 19, 0.5) 54%,
+      rgba(5, 6, 14, 0.78) 100%
+    ),
     linear-gradient(180deg, rgba(4, 6, 15, 0.5), transparent 27%, rgba(4, 5, 12, 0.78) 100%),
-    linear-gradient(90deg, rgba(3, 5, 12, 0.49), transparent 22%, transparent 78%, rgba(3, 5, 12, 0.49));
+    linear-gradient(
+      90deg,
+      rgba(3, 5, 12, 0.49),
+      transparent 22%,
+      transparent 78%,
+      rgba(3, 5, 12, 0.49)
+    );
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -20725,8 +21047,7 @@ body[data-view='chapter'] .bg-grid {
   border: 1px solid rgba(189, 174, 231, 0.18);
   border-radius: 14px;
   background:
-    linear-gradient(100deg, rgba(12, 14, 29, 0.76), rgba(24, 23, 47, 0.52)),
-    rgba(7, 8, 20, 0.55);
+    linear-gradient(100deg, rgba(12, 14, 29, 0.76), rgba(24, 23, 47, 0.52)), rgba(7, 8, 20, 0.55);
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.2),
     inset 0 1px rgba(255, 255, 255, 0.05);
@@ -20831,8 +21152,16 @@ body[data-view='chapter'] .bg-grid {
   text-align: left;
   font-family: inherit;
   background:
-    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--rival-a) 23%, transparent), transparent 40%),
-    radial-gradient(circle at 84% 31%, color-mix(in srgb, var(--rival-b) 16%, transparent), transparent 42%),
+    radial-gradient(
+      circle at 18% 12%,
+      color-mix(in srgb, var(--rival-a) 23%, transparent),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 84% 31%,
+      color-mix(in srgb, var(--rival-b) 16%, transparent),
+      transparent 42%
+    ),
     linear-gradient(165deg, rgba(28, 30, 53, 0.92), rgba(8, 10, 23, 0.95));
   box-shadow:
     0 14px 30px rgba(0, 0, 0, 0.31),
@@ -20896,8 +21225,7 @@ body[data-view='chapter'] .bg-grid {
 }
 .rival-card.is-locked {
   border-color: rgba(181, 186, 205, 0.2);
-  background:
-    linear-gradient(165deg, rgba(50, 53, 66, 0.84), rgba(14, 16, 24, 0.95));
+  background: linear-gradient(165deg, rgba(50, 53, 66, 0.84), rgba(14, 16, 24, 0.95));
   box-shadow:
     0 10px 23px rgba(0, 0, 0, 0.24),
     inset 0 1px rgba(255, 255, 255, 0.035);
@@ -20961,7 +21289,11 @@ body[data-view='chapter'] .bg-grid {
 .rival-art::before {
   width: 74px;
   height: 74px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--rival-a) 20%, transparent), transparent 68%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--rival-a) 20%, transparent),
+    transparent 68%
+  );
   box-shadow: 0 0 25px color-mix(in srgb, var(--rival-a) 24%, transparent);
 }
 .rival-art::after {
@@ -20977,7 +21309,8 @@ body[data-view='chapter'] .bg-grid {
   color: color-mix(in srgb, var(--rival-b) 68%, #fff);
   font-size: clamp(45px, calc(var(--vw1) * 3.1), 62px);
   line-height: 1;
-  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.18)) drop-shadow(0 0 11px color-mix(in srgb, var(--rival-a) 62%, transparent));
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.18))
+    drop-shadow(0 0 11px color-mix(in srgb, var(--rival-a) 62%, transparent));
 }
 .rival-art b,
 .rival-art em {
@@ -21038,8 +21371,19 @@ body[data-view='chapter'] .bg-grid {
   border: 0;
   border-radius: inherit;
   background:
-    linear-gradient(180deg, rgba(6, 8, 18, 0.02) 32%, rgba(6, 8, 18, 0.22) 76%, rgba(5, 6, 15, 0.56)),
-    linear-gradient(90deg, rgba(4, 5, 12, 0.2), transparent 28%, transparent 72%, rgba(4, 5, 12, 0.2));
+    linear-gradient(
+      180deg,
+      rgba(6, 8, 18, 0.02) 32%,
+      rgba(6, 8, 18, 0.22) 76%,
+      rgba(5, 6, 15, 0.56)
+    ),
+    linear-gradient(
+      90deg,
+      rgba(4, 5, 12, 0.2),
+      transparent 28%,
+      transparent 72%,
+      rgba(4, 5, 12, 0.2)
+    );
   box-shadow: none;
 }
 .rival-art.has-portrait::after,
@@ -21125,7 +21469,11 @@ body[data-view='chapter'] .bg-grid {
 }
 .rival-open {
   color: #f2d68d;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--rival-a) 17%, transparent), color-mix(in srgb, var(--rival-b) 10%, transparent));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--rival-a) 17%, transparent),
+    color-mix(in srgb, var(--rival-b) 10%, transparent)
+  );
 }
 .rival-open i {
   font-size: 13px;
@@ -21161,16 +21509,36 @@ body[data-view='chapter'] .bg-grid {
 .view.chapter.active .rival-card {
   animation: rival-route-arrive 0.46s var(--ease) both;
 }
-.view.chapter.active .rival-card:nth-child(1) { animation-delay: 55ms; }
-.view.chapter.active .rival-card:nth-child(2) { animation-delay: 90ms; }
-.view.chapter.active .rival-card:nth-child(3) { animation-delay: 125ms; }
-.view.chapter.active .rival-card:nth-child(4) { animation-delay: 160ms; }
-.view.chapter.active .rival-card:nth-child(5) { animation-delay: 195ms; }
-.view.chapter.active .rival-card:nth-child(6) { animation-delay: 230ms; }
-.view.chapter.active .rival-card:nth-child(7) { animation-delay: 265ms; }
-.view.chapter.active .rival-card:nth-child(8) { animation-delay: 300ms; }
-.view.chapter.active .rival-card:nth-child(9) { animation-delay: 335ms; }
-.view.chapter.active .rival-card:nth-child(10) { animation-delay: 370ms; }
+.view.chapter.active .rival-card:nth-child(1) {
+  animation-delay: 55ms;
+}
+.view.chapter.active .rival-card:nth-child(2) {
+  animation-delay: 90ms;
+}
+.view.chapter.active .rival-card:nth-child(3) {
+  animation-delay: 125ms;
+}
+.view.chapter.active .rival-card:nth-child(4) {
+  animation-delay: 160ms;
+}
+.view.chapter.active .rival-card:nth-child(5) {
+  animation-delay: 195ms;
+}
+.view.chapter.active .rival-card:nth-child(6) {
+  animation-delay: 230ms;
+}
+.view.chapter.active .rival-card:nth-child(7) {
+  animation-delay: 265ms;
+}
+.view.chapter.active .rival-card:nth-child(8) {
+  animation-delay: 300ms;
+}
+.view.chapter.active .rival-card:nth-child(9) {
+  animation-delay: 335ms;
+}
+.view.chapter.active .rival-card:nth-child(10) {
+  animation-delay: 370ms;
+}
 
 /* ---------------- responsive chapter map ---------------- */
 html.mqw900 .view.chapter {
@@ -21389,7 +21757,10 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   background: rgba(5, 7, 17, 0.58);
   font-size: 16px;
   cursor: var(--cur-pointer);
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 .chapter-dialogue-close:hover {
   border-color: rgba(247, 209, 128, 0.7);
@@ -21417,7 +21788,12 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   inset: 0;
   content: '';
   background:
-    linear-gradient(180deg, rgba(4, 7, 14, 0.02) 26%, rgba(5, 8, 15, 0.34) 76%, rgba(5, 7, 14, 0.84)),
+    linear-gradient(
+      180deg,
+      rgba(4, 7, 14, 0.02) 26%,
+      rgba(5, 8, 15, 0.34) 76%,
+      rgba(5, 7, 14, 0.84)
+    ),
     linear-gradient(90deg, rgba(4, 8, 14, 0.22), transparent 70%);
   pointer-events: none;
 }

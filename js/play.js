@@ -64,7 +64,9 @@
      root-element zoom, rects come back in zoomed px while style
      assignments are layout px. Divide by uiS() at the glass. */
   function uiS() {
-    return window.EOL && window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
+    return window.EOL && window.EOL.scale && window.EOL.scale.factor
+      ? window.EOL.scale.factor()
+      : 1;
   }
 
   /* ---------------- status toasts (non-blocking beats) ---------------- */
@@ -558,6 +560,95 @@
   }
   function hidePrepTip() {
     var tip = $('prep-tip');
+    lastTipId = null;
+    if (tip) {
+      tip.classList.remove('show');
+      tip.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function showDraftTip(e, anchor) {
+    var tip = $('draft-tip') || $('prep-tip');
+    if (!tip) return;
+    var c = e.card,
+      m = statMax();
+    var sig = c.ability;
+    var basic = window.EOL.engine.roleAbility({ role: c.role, element: c.element });
+    var fresh = lastTipId !== c.id;
+    lastTipId = c.id;
+    tip.dataset.rarity = c.rarity;
+    tip.innerHTML =
+      '<div class="dk-head">' +
+      '<div class="dk-portrait" data-rarity="' +
+      c.rarity +
+      '" style="--fc-primary:' +
+      e.faction.colors.primary +
+      '"><i class="ra ' +
+      c.icon +
+      '"></i></div>' +
+      '<div class="dk-id">' +
+      '<div class="dk-name">' +
+      esc(c.name) +
+      '</div>' +
+      '<div class="dk-meta"><span>' +
+      esc(c.role) +
+      '</span>' +
+      '<span style="color:' +
+      elCol(c.element) +
+      '">' +
+      esc(c.element) +
+      '</span></div>' +
+      '<div class="dk-pos">' +
+      esc(e.faction.name) +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="dk-stats">' +
+      tipLine(
+        'ra-health',
+        'HP',
+        c.stats.hp.toLocaleString(),
+        (c.stats.hp / m.hp) * 100,
+        '#ff5f7e'
+      ) +
+      tipLine(
+        'ra-sword',
+        'ATK',
+        c.stats.atk.toLocaleString(),
+        (c.stats.atk / m.atk) * 100,
+        '#ffb347'
+      ) +
+      tipLine('ra-shield', 'DEF', c.stats.def + '%', (c.stats.def / m.def) * 100, '#5fb2ff') +
+      '</div>' +
+      '<div class="dk-abs">' +
+      tipAbRow(
+        sig,
+        sig.type === 'Passive' ? 'passive' : 'sig',
+        sig.type === 'Passive' ? 'Passive' : 'Skill'
+      ) +
+      tipAbRow(basic, 'role', 'Basic') +
+      '</div>';
+    tip.classList.add('anchored');
+    tip.classList.add('show');
+    placePrepTip(tip, anchor);
+    requestAnimationFrame(function () {
+      if (window.EOL.battle && window.EOL.battle.fitAbilityNames)
+        window.EOL.battle.fitAbilityNames(tip);
+    });
+    tip.setAttribute('aria-hidden', 'false');
+    if (fresh) {
+      tip.classList.remove('swap');
+      void tip.offsetWidth;
+      tip.classList.add('swap');
+      clearTimeout(tipSwapTimer);
+      tipSwapTimer = setTimeout(function () {
+        tip.classList.remove('swap');
+      }, 280);
+    }
+  }
+
+  function hideDraftTip() {
+    var tip = $('draft-tip') || $('prep-tip');
     lastTipId = null;
     if (tip) {
       tip.classList.remove('show');
@@ -1429,12 +1520,10 @@
       /* heroes leaving the six become locked out for the rest of the
          set (BEFORE lastSix is overwritten with the new six) */
       if (setState.lastSix) {
-        setState.lastSix.front
-          .concat(setState.lastSix.back)
-          .forEach(function (id) {
-            if (sixIds.indexOf(id) < 0 && setState.lockedOut.indexOf(id) < 0)
-              setState.lockedOut.push(id);
-          });
+        setState.lastSix.front.concat(setState.lastSix.back).forEach(function (id) {
+          if (sixIds.indexOf(id) < 0 && setState.lockedOut.indexOf(id) < 0)
+            setState.lockedOut.push(id);
+        });
         setState.lastBotIds.forEach(function (id) {
           if (
             !enemySix.some(function (e) {
@@ -2047,6 +2136,10 @@
           (cfg[3] === freshSide && idx === cfg[2].length - 1 ? ' fresh' : '');
         pip.title = e.card.name;
         pip.innerHTML = '<i class="ra ' + e.card.icon + '"></i>';
+        pip.addEventListener('mouseenter', function () {
+          showDraftTip(e, pip);
+        });
+        pip.addEventListener('mouseleave', hideDraftTip);
         host.appendChild(pip);
       });
       var left = RULES().DECK_SIZE - cfg[2].length;
@@ -2417,9 +2510,7 @@
   /* Decelerating marker across `host`'s .setm-plate children, landing
      on finalIdx. Returns skip(): jump to the landing immediately. */
   function spinPlates(host, finalIdx, onLand) {
-    var plates = host
-      ? Array.prototype.slice.call(host.querySelectorAll('.setm-plate'))
-      : [];
+    var plates = host ? Array.prototype.slice.call(host.querySelectorAll('.setm-plate')) : [];
     var n = plates.length;
     var landed = false;
     var timer = null;
@@ -3180,7 +3271,8 @@
     var cback = $('btn-campaign-back');
     if (cback)
       cback.addEventListener('click', function () {
-        window.EOL.ui.show('play');
+        if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+        else window.EOL.ui.show('play');
       });
     var ch1 = $('chapter-1');
     if (ch1)
@@ -3190,7 +3282,8 @@
     var chback = $('btn-chapter-back');
     if (chback)
       chback.addEventListener('click', function () {
-        window.EOL.ui.show('campaign');
+        if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+        else window.EOL.ui.show('campaign');
       });
     var stage1 = $('chapter-stage-1');
     if (stage1)
@@ -3206,14 +3299,16 @@
     if (bp)
       bp.addEventListener('click', function () {
         modalShow(false);
-        window.EOL.ui.show('home');
+        if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+        else window.EOL.ui.show('home');
       });
     var bprep = $('btn-prep-back');
     if (bprep)
       bprep.addEventListener('click', function () {
         confirmQuit(function () {
           prep = null;
-          window.EOL.ui.show('play');
+          if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+          else window.EOL.ui.show('play');
         });
       });
     var bd = $('btn-draft-back');
@@ -3222,7 +3317,8 @@
         confirmQuit(function () {
           draft = null;
           clearDraftMarks();
-          window.EOL.ui.show('play');
+          if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
+          else window.EOL.ui.show('play');
         });
       });
 
