@@ -1,0 +1,11 @@
+id,file,width,height,bytes,format,quality,filter,linear_light,sharpen,source_canvas
+gilgamesh,gilgamesh.png,128,176,50249,png,lossless,lanczos,True,15,640x880
+the-anointed,the-anointed.png,128,176,50252,png,lossless,lanczos,True,15,640x880
+the-chronicler,the-chronicler.png,128,176,45472,png,lossless,lanczos,True,15,640x880
+the-last-guardian,the-last-guardian.png,128,176,47008,png,lossless,lanczos,True,15,640x880
+the-oathkeeper,the-oathkeeper.png,128,176,50174,png,lossless,lanczos,True,15,640x880
+the-outlaw,the-outlaw.png,128,176,51014,png,lossless,lanczos,True,15,640x880
+the-recruiter,the-recruiter.png,128,176,47404,png,lossless,lanczos,True,15,640x880
+the-strategist,the-strategist.png,128,176,46508,png,lossless,lanczos,True,15,640x880
+the-trickster,the-trickster.png,128,176,48785,png,lossless,lanczos,True,15,640x880
+the-warden-of-the-mid-road,the-warden-of-the-mid-road.png,128,176,45164,png,lossless,lanczos,True,15,640x880
