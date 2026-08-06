@@ -20945,9 +20945,9 @@ body[data-view='chapter'] .bg-grid {
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 80% 80% at 50% 45%, transparent 50%, rgba(3,5,10,0.45) 100%),
-    linear-gradient(to top, rgba(3,5,10,0.35) 0%, transparent 45%),
-    linear-gradient(to bottom, rgba(14,18,40,0.18) 0%, transparent 40%);
+    radial-gradient(ellipse 65% 65% at 50% 45%, transparent 30%, rgba(2,4,9,0.75) 100%),
+    linear-gradient(to top, rgba(2,4,9,0.58) 0%, transparent 48%),
+    linear-gradient(to bottom, rgba(10,14,34,0.28) 0%, transparent 42%);
 }
 
 /* warm lantern under-glow — large, visible, breathing amber firelight */
@@ -20959,15 +20959,15 @@ body[data-view='chapter'] .bg-grid {
   mix-blend-mode: screen;
   background:
     /* outermost warm bloom — large amber pool flooding the road */
-    radial-gradient(ellipse 48% 40% at 50% 72%, rgba(255,170,80,0.14), transparent 55%),
+    radial-gradient(ellipse 48% 40% at 53% 87%, rgba(255,170,80,0.14), transparent 55%),
     /* mid bloom — tighter golden wash */
-    radial-gradient(ellipse 32% 28% at 50% 66%, rgba(255,200,110,0.22), transparent 48%),
+    radial-gradient(ellipse 32% 28% at 53% 85%, rgba(255,200,110,0.22), transparent 48%),
     /* core glow — bright amber around the lantern */
-    radial-gradient(ellipse 16% 16% at 50% 62%, rgba(255,220,140,0.38), transparent 42%),
+    radial-gradient(ellipse 16% 16% at 53% 83%, rgba(255,220,140,0.38), transparent 42%),
     /* tight hot core — the flame itself */
-    radial-gradient(ellipse 6% 8% at 50% 59%, rgba(255,240,180,0.55), transparent 40%),
+    radial-gradient(ellipse 6% 8% at 53% 82%, rgba(255,240,180,0.55), transparent 40%),
     /* tiny white-hot centre */
-    radial-gradient(ellipse 2% 3% at 50% 58%, rgba(255,255,230,0.6), transparent 35%);
+    radial-gradient(ellipse 2% 3% at 50% 81%, rgba(255,255,230,0.6), transparent 35%);
   animation: cw-lantern-breathe 3.2s ease-in-out infinite alternate;
 }
 
