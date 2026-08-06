@@ -924,6 +924,23 @@
     clearSimulationBudget: function () {
       SIMULATION_BUDGET = null;
     },
+    /* Read the override back, so a caller that borrows the AI for its
+       own purposes can put the settings back exactly as it found them.
+       data/draft-ai.js rates cards by playing them, which means
+       retuning depth and budget mid-session; without a getter it could
+       only guess at what to restore and would silently reset a sim
+       harness's configuration. Returns null when no override is set. */
+    simulationBudget: function () {
+      return SIMULATION_BUDGET
+        ? {
+            beamWidth: SIMULATION_BUDGET.beamWidth,
+            pruneKeep: SIMULATION_BUDGET.pruneKeep,
+            minRollouts: SIMULATION_BUDGET.minRollouts,
+            maxRollouts: SIMULATION_BUDGET.maxRollouts,
+            timeBudget: SIMULATION_BUDGET.timeBudget,
+          }
+        : null;
+    },
     resetDepth: function () {
       SEARCH_DEPTH = DEFAULT_DEPTH;
       window.EOL.ai.SEARCH_DEPTH = SEARCH_DEPTH;

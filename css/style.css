@@ -8446,18 +8446,21 @@ html.mqw900 .product-odds {
    everything off the screen edges, and the footer pins to the bottom. */
 .view.play,
 .view.prep,
-.view.draft {
+.view.draft,
+.view.campaign {
   padding: 30px max(22px, calc((100% - 1520px) / 2)) 30px;
 }
 .view.play.active,
 .view.prep.active,
-.view.draft.active {
+.view.draft.active,
+.view.campaign.active {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
 }
-.view.play footer {
+.view.play footer,
+.view.campaign footer {
   margin-top: auto;
   padding-top: 38px;
 }
@@ -9002,6 +9005,14 @@ body[data-gfx='low'] .col-thumb {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  /* Rows slide 4px right on hover (.dm-row:hover transform, further
+     down this file). `overflow-y: auto` alone does NOT leave the other
+     axis alone: per spec a computed `visible` beside a non-visible
+     value becomes `auto`, so the shift was producing a real horizontal
+     scrollbar that flashed in and out under the cursor. Clipping the
+     axis kills the bar; the 4px still shows because clipping happens
+     at the PADDING edge and there is 4px of padding to slide into. */
+  overflow-x: hidden;
   padding-right: 4px;
 }
 .dm-row {
@@ -20309,5 +20320,185 @@ body[data-gfx='low'] .mb-spores {
   .mb-ash,
   .mb-spores {
     display: none;
+  }
+}
+
+/* ======================================================================
+   CAMPAIGN - chapter select  (2026-08-05)
+   ----------------------------------------------------------------------
+   NONFUNCTIONAL SHELL. One chapter card, deliberately, and it leads
+   nowhere: Chapter 1's ten stages are designed
+   (docs/DESIGN-Campaign-Chapter1.md rev 5) but not built. The card is
+   styled as a real destination rather than a grey "coming soon" plate
+   because the point of shipping the shell early is to judge the route
+   and the framing; only the CTA admits it is not playable.
+
+   Layout law is the mode grid's, one column wide and centred - the card
+   is VERTICAL (art above text) where a mode card is a text block, so it
+   reads as a chapter plate and not a fourth game mode.
+   ====================================================================== */
+.chapter-rail {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 340px);
+  justify-content: center;
+  width: 100%;
+  margin: clamp(16px, calc(var(--vh1) * 6), 54px) auto 14px;
+}
+.chapter-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 20px;
+  text-align: left;
+  background:
+    radial-gradient(circle at 80% -10%, rgba(255, 215, 130, 0.07), transparent 55%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  color: var(--txt);
+  font-family: inherit;
+  cursor: var(--cur-pointer);
+  transition:
+    transform 0.28s var(--ease),
+    border-color 0.28s var(--ease),
+    box-shadow 0.28s var(--ease);
+}
+.chapter-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 190, 110, 0.62);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.45),
+    0 0 34px rgba(255, 160, 70, 0.12);
+}
+.chapter-card:active {
+  transform: translateY(-2px);
+}
+
+/* ---- the plate ---- */
+.ch-art {
+  position: relative;
+  display: block;
+  height: 176px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 90% at 50% 118%, rgba(255, 186, 96, 0.22), transparent 62%),
+    linear-gradient(180deg, #1a1424 0%, #0d1020 100%);
+  border-bottom: 1px solid var(--line);
+}
+.ch-wm {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 104px;
+  line-height: 1;
+  color: var(--r-legendary-1);
+  opacity: 0.16;
+  text-shadow: 0 0 40px rgba(255, 190, 90, 0.35);
+  transition:
+    transform 0.55s var(--ease),
+    opacity 0.35s var(--ease);
+}
+.chapter-card:hover .ch-wm {
+  transform: translate(-50%, -50%) rotate(-8deg) scale(1.08);
+  opacity: 0.24;
+}
+/* a slow drift of road-haze across the plate */
+.ch-mist {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 42% 30% at 22% 74%, rgba(196, 210, 255, 0.1), transparent 70%),
+    radial-gradient(ellipse 38% 26% at 76% 58%, rgba(255, 196, 120, 0.08), transparent 70%);
+  animation: ch-drift 26s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes ch-drift {
+  to {
+    transform: translateX(14px) translateY(-6px);
+  }
+}
+
+/* ---- the text block ---- */
+.ch-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 20px 22px 20px;
+}
+.ch-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--r-legendary-1);
+}
+.ch-name {
+  font-family: 'Cinzel', serif;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  color: var(--txt);
+}
+.ch-desc {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--txt-faint);
+}
+.ch-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+.ch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.ch-chip i {
+  font-size: 12px;
+  color: var(--txt-faint);
+}
+/* The one honest note on the card: it is not playable yet. Dashed and
+   quiet, so it reads as a status and not as a button. */
+.ch-cta {
+  margin-top: 6px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+}
+
+body[data-gfx='low'] .ch-mist {
+  animation: none;
+}
+body[data-gfx='low'] .chapter-card:hover {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ch-mist {
+    animation: none;
+  }
+  .chapter-card,
+  .ch-wm {
+    transition: none;
   }
 }

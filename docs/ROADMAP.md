@@ -79,8 +79,25 @@ seeded-board compatible and nothing in it is solo-engine-tied.
 - Threshold locks at **draft end on the 12-card deck** — bans cannot
   strip your blessing (no feel-bad; rewards drafting, not luck of the
   ban rotation).
-- **One active blessing max.** If your deck has 4+ of two factions, you
-  choose which blessing to invoke at prep (a pick chip, not silent math).
+- ~~**One active blessing max.** If your deck has 4+ of two factions, you
+  choose which blessing to invoke at prep (a pick chip, not silent math).~~
+  **SUPERSEDED 2026-08-05 (owner ruling R8).** **Blessings STACK.** A
+  4/4/4 tri-faction deck invokes **three** blessings and is the efficient
+  shape; a mono-12 deck invokes one and is the worst rate in the game.
+  This is deliberate - it makes "which throne do I pledge?" a real
+  three-way build decision rather than a single pick chip. Consequences
+  for the campaign's grant curriculum are worked out in
+  `docs/DESIGN-Campaign-Chapter1.md` §2 and §7.3. **The draft AI needs
+  faction-count awareness before blessings ship, or every bot deck will
+  ignore the system.** It has *none* today: `value()` used to carry a
+  flat `+0.6` per same-faction team-mate, and that was deleted in the
+  2026-08-05 rewrite because faction is mechanically inert (the engine
+  stores it on the unit and never reads it) and the cohesion factions
+  *do* have is already measured by the keyword web — same-faction pairs
+  average 0.77 on `pairSynergy` against 0.60 cross-faction. When
+  blessings land, faction stops being inert and the term comes back as
+  a **threshold** (is this the 4th of its banner?), not a per-pair
+  nudge, because that is the shape of the actual rule.
 - Blessings must **reward each faction's existing identity**, never raw
   stat padding — so mono-faction is a *flavour commitment*, not the
   dominant strategy (counter-design against meta homogeneity).
@@ -181,12 +198,62 @@ playtest, since trophies were vetoed globally).
    (4+ blessing, 6-of capstone).
 3. Ladder tier names (Phase 4, no rush).
 
+## 8b. DEFECTS (found 2026-08-05)
+
+- **D1 — `POWER` table covered 51 of 63 cards. RESOLVED 2026-08-05 by
+  deleting the table.** `data/draft-ai.js`'s `POWER` map was missing
+  **all six Duat cards** and **six of the twelve Grimmwood cards**.
+  `powerOf` returned `0` for an unknown id, and 0 is the roster *mean*,
+  so 19% of the game was silently scored as league-average by ban
+  valuation (×4.2 in `denyValue`), draft picks (×3.0 in `value`), bot
+  fielding (`chooseSix`) and set sideboarding (`setBotSix`). It shipped
+  live in Classic and Draft.
+
+  Regenerating the table would have fixed this instance and left the
+  mechanism — a hand-copied artefact with no owner — intact for the next
+  faction. The table is gone instead. `data/draft-ai.js` now works out
+  how strong a hero is by **playing it**: each card is dropped into a
+  controlled duel against a squad of average bodies, the real engine
+  runs the fight under the real search AI, and the health differential
+  is the rating (§2 of that file). Coverage is total by construction,
+  results are cached in `localStorage` under a fingerprint of every
+  card's stats and ability, and changing a number on a card
+  re-measures the roster by itself.
+
+  Measured against a 2,000-game unbiased win-rate run
+  (`sim/rate_check.js`): the deleted table scored r=0.44 with 13 cards
+  blank; the probe scores **r=0.57 with 63/63 covered**. Head to head
+  over 600 drafted games (`sim/ab_draft.js`), the new brain beats the
+  old one **55.2% ± 4.1** (313-254), against a same-brain control that reads
+  50.1%. Locked by `verify_all.js` §F.
+
+- **D2 — `pairSynergy` was dead code. RESOLVED with the same rewrite.**
+  `tags()` indexed `WEB[card.id]` but was handed the `{card, faction}`
+  wrapper, whose `.id` is `undefined`. Every lookup missed: summed over
+  all 1,953 pairs the old module returned exactly **0.0**, so the draft
+  bot never once considered a combination. `verify_all.js` §F now
+  asserts the total is non-zero.
+
 ## 9. STANDING DEVELOPMENT LAW (every phase)
 - `node --check` every touched JS file; CSS brace-balance 0; curl the
   :8000 server.
+- **Touching `data/draft-ai.js`, or any card's stats or ability, re-runs
+  `node sim/verify_all.js --probe`.** The plain run asserts the brain
+  rates the roster; `--probe` (+15s) additionally runs the real measured
+  rating end to end and asserts it covers every hero and hands the
+  search AI back untouched. A rating change also wants
+  `node sim/rate_check.js --gt <run>.json` (correlation against measured
+  win rate) and `node sim/ab_draft.js --games 600` (head to head against
+  the brain it replaces) — a rating is only better if it drafts better,
+  and the harness has a same-brain control for exactly that reason.
 - `node sim/verify_all.js` green (1479 assertions as of 2026-08-05) before
   every handoff.
 - Any rule that changes pacing runs the A/B harness at ≥1200 games/side
   with the tolerance gates from Phase 2 §law.
 - Runbook `/home/user/art_prep/CONTINUE.md` gets a dated session entry
   after every work unit.
+- **Every balance patch re-runs the campaign soak.** Once Chapter 1 ships,
+  ten hand-tuned fixed matchups are a standing regression surface: a nerf
+  to one card can move a stage's win rate by 20pp with nothing to catch it.
+  (Added 2026-08-05 with ruling R9 — there is no card rotation, so the meta
+  moves by patch and the campaign moves with it.)

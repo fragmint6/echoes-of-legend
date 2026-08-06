@@ -774,12 +774,14 @@
           <span class="mode-cta">Enter draft <i class="ri-arrow-right-line"></i></span>
         </button>
 
-        <button class="mode-card soon" id="mode-campaign" disabled>
-          <span class="mode-soon-tag">Coming soon</span>
+        <button class="mode-card" id="mode-campaign">
           <i class="mode-wm ra ra-compass" aria-hidden="true"></i>
           <i class="mode-glyph ra ra-compass"></i>
           <span class="mode-name">Campaign</span>
-          <span class="mode-desc"> The road of legends - a journey for another day. </span>
+          <span class="mode-desc">
+            The road of legends - ten stages, ten rivals, one chapter at a time.
+          </span>
+          <span class="mode-cta">Take the road <i class="ri-arrow-right-line"></i></span>
         </button>
       </div>
 
@@ -866,6 +868,51 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <footer>Echoes of Legend - Prototype</footer>
+    </section>
+
+    <!-- ==================== CAMPAIGN (chapter select) ====================
+         NONFUNCTIONAL BY DESIGN (2026-08-05). This is the shell only: the
+         chapter select exists so the route, the view and the artwork can
+         be judged, but no stage is playable and nothing here writes save
+         state. Chapter 1's ten stages are specified in
+         docs/DESIGN-Campaign-Chapter1.md (rev 5, design locked); the card
+         below is deliberately the only one, and it does nothing when
+         clicked beyond saying so. -->
+    <section class="view campaign" data-view="campaign">
+      <header class="col-header mast">
+        <button class="back-btn" id="btn-campaign-back">
+          <i class="ri-arrow-left-line"></i><span>Back</span>
+        </button>
+        <div class="col-titles">
+          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-compass"></i></span>
+          <h2 class="col-title">Campaign</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">The road of legends, one chapter at a time</p>
+        </div>
+      </header>
+
+      <div class="chapter-rail">
+        <button class="chapter-card" id="chapter-1" type="button">
+          <span class="ch-art" aria-hidden="true">
+            <i class="ch-wm ra ra-compass"></i>
+            <span class="ch-mist"></span>
+          </span>
+          <span class="ch-body">
+            <span class="ch-kicker">Chapter 1</span>
+            <span class="ch-name">The Road of Echoes</span>
+            <span class="ch-desc">
+              Ten stages, ten rivals, and a first legend waiting at the end of the road.
+            </span>
+            <span class="ch-meta">
+              <span class="ch-chip"><i class="ri-flag-line"></i>10 stages</span>
+              <span class="ch-chip"><i class="ra ra-crossed-swords"></i>63 legends</span>
+            </span>
+            <span class="ch-cta">Coming soon</span>
+          </span>
+        </button>
       </div>
 
       <footer>Echoes of Legend - Prototype</footer>
