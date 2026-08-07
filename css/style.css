@@ -22611,8 +22611,10 @@ html.mqw640 .chapter-dialogue-foot {
   position: fixed;
   inset: 0;
   z-index: 8000;
-  background: transparent;
-  pointer-events: none;
+  background: rgba(2,3,10,0.38);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
   opacity: 0;
   visibility: hidden;
   transition:
@@ -22622,70 +22624,32 @@ html.mqw640 .chapter-dialogue-foot {
 .tut-overlay.on {
   opacity: 1;
   visibility: visible;
-  pointer-events: none;
-}
-.tut-overlay.no-target {
   pointer-events: auto;
-  background: rgba(2,3,10,0.32);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
+.tut-overlay.no-target,
 .tut-overlay.has-target {
-  pointer-events: none;
-  background: transparent;
+  pointer-events: auto;
+  background: rgba(2,3,10,0.38);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .tut-blocker {
-  position: fixed;
-  z-index: 8000;
-  background: rgba(2,3,10,0.78);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  pointer-events: auto;
-}
-.tut-blocker.b-top,
-.tut-blocker.b-bottom {
-  left: 0;
-  width: 100%;
+  display: none !important;
 }
 .tut-highlight {
-  position: fixed;
-  z-index: 8001;
-  pointer-events: none;
-  border: 2px solid #ffd682;
-  border-radius: 12px;
-  box-shadow:
-    0 0 0 1px rgba(8,10,18,0.9),
-    0 0 0 4px rgba(255,214,130,0.22),
-    0 0 18px rgba(255,200,90,0.38),
-    0 0 42px rgba(255,200,90,0.16);
-  transition:
-    left 0.34s cubic-bezier(0.22,0.68,0.36,1),
-    top 0.34s cubic-bezier(0.22,0.68,0.36,1),
-    width 0.34s cubic-bezier(0.22,0.68,0.36,1),
-    height 0.34s cubic-bezier(0.22,0.68,0.36,1),
-    border-radius 0.34s var(--ease);
+  display: none !important;
 }
-.tut-highlight { display: none !important; }
-.tut-highlight.tut-pulse {
-  animation: tut-pulse 0.9s ease-in-out 2;
-}
-@keyframes tut-pulse {
-  0%,100% { box-shadow:
-      0 0 0 1px rgba(8,10,18,0.9),
-      0 0 0 4px rgba(255,214,130,0.22),
-      0 0 18px rgba(255,200,90,0.38); }
-  50% { box-shadow:
-      0 0 0 1px rgba(8,10,18,0.9),
-      0 0 0 4px rgba(255,214,130,0.42),
-      0 0 0 10px rgba(255,214,130,0.24),
-      0 0 32px rgba(255,200,90,0.58); }
-}
+.tut-highlight.tut-pulse { display: none !important; }
 .tut-elevated {
   position: relative !important;
+  z-index: 8001 !important;
   pointer-events: auto !important;
-  /* raise above siblings inside same stacking context */
-  z-index: 2 !important;
+  isolation: isolate;
+  /* slight pop so it reads as above dim, without a gold ring */
+  box-shadow: 0 12px 36px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,214,130,0.18);
+  border-radius: inherit;
 }
+
 .tut-dialog {
   position: fixed;
   z-index: 8002;
@@ -22757,6 +22721,15 @@ html.mqw640 .chapter-dialogue-foot {
 body.tut-active {
   overflow: hidden;
 }
+
+/* tutorial layering fix: view must not create a stacking context that traps elevated target below dim.
+   Overlay is 8000, elevated is 8001, dialog 8002, so view needs auto z-index while active. */
+body.tut-active .view,
+body.tut-active .view.active {
+  z-index: auto !important;
+  isolation: auto;
+}
+
 /* disable everything */
 body.tut-active .view,
 body.tut-active .view *,
@@ -22794,7 +22767,7 @@ body.tut-active .tut-dialog * {
   pointer-events: auto !important;
 }
 body.tut-active .tut-overlay {
-  pointer-events: none !important;
+  pointer-events: auto !important;
 }
 body.tut-active .tut-highlight {
   pointer-events: none !important;

@@ -1,24 +1,22 @@
 (function () {
   'use strict';
   var KEY = 'eol.tutorial.done';
-  var PAD = 10;
 
-  /*  New tutorial: dim + elevated target, no gold ring highlight.
-      Only the highlighted element (+ dialog) is interactable.
-      Dialog has arrow pointing at target (via CSS ::before on .tut-below etc).
-      Full path: menu -> campaign -> chapter -> gate -> recruiter dialogue
-      -> deck unlock animation -> collection tour (deck builder) -> back to chapter
-      -> prep -> battle -> done.
+  /* Tutorial v3: dim overlay (lighter) + elevated target layered OVER dim.
+     - Overlay is full-screen rgba(2,3,10,0.38) + blur 4px (main effect blur)
+     - No hole cutout: target sits above dim via z-index 8001
+     - Dialog has arrow pointing at target
+     - Full flow must be completable without hiccups
   */
 
   var STEPS = [
     { id:'welcome', target:null, pos:'center',
       title:'Welcome to Echoes of Legend',
-      body:'I will walk you from menu to your first real gate. Nothing is dimmed except everything except what I point at. Only the pointed thing can be clicked.',
+      body:'I will walk you from menu to your first real gate. The world dims, but only the pointed thing and this box are alive.',
       nextLabel:'Begin' },
     { id:'play-btn', target:'#btn-play', pos:'auto',
       title:'Play',
-      body:'Every battle starts here. Follow the arrow — click the highlighted Play button.',
+      body:'Every battle starts here. Click the highlighted Play button — it floats above the dim.',
       action:true },
     { id:'campaign-mode', target:'#mode-campaign', pos:'auto',
       title:'Campaign',
@@ -34,76 +32,71 @@
       action:true },
     { id:'recruiter-dialogue', target:'#chapter-dialogue-next', pos:'auto',
       title:'Listen to The Recruiter',
-      body:'He speaks in 6 beats. Keep clicking the highlighted Continue. Last beat becomes Fight — click it when it appears.',
+      body:'He speaks in 6 beats. Keep clicking Continue. Last beat becomes Fight — click it when it appears. The dialog sits above the dim, never covering the button.',
       action:true },
 
-    // Special step: deck unlock animation (no target, center dialog triggers animation)
     { id:'deck-unlock', target:null, pos:'center',
       title:'A gift for the road',
-      body:'The Recruiter slides a satchel across the table. You receive the Grimmwood starter — 12 legends from the dark woods. Let me show it with a small ceremony.',
+      body:'The Recruiter slides a satchel across the table. You receive the Grimmwood starter — 12 legends from the dark woods.',
       nextLabel:'Show me',
       onEnter: function (next) {
-        // Ensure Grimmwood starter exists (deck.js seeds on load, but force if missing)
         try {
           if (window.EOL.decks && window.EOL.decks.seedGrimmwoodStarter) {
-            var d = window.EOL.decks.seedGrimmwoodStarter();
-            if (d) {
-              // save already done inside seed
-            }
+            window.EOL.decks.seedGrimmwoodStarter();
           }
-        } catch (e) {}
-        // Show cinematic reward
-        showDeckReward(function () {
-          next();
-        });
+        } catch(e){}
+        showDeckReward(function(){ next(); });
       }
     },
 
     { id:'collection-intro', target:null, pos:'center',
       title:'Your collection',
-      body:'You now own every legend, but decks are how you bring 12 to battle. I will take you to Collection to see Grimmwood and the builder.',
+      body:'Decks are your squads of 12. I will take you to Collection to see Grimmwood and the builder.',
       nextLabel:'To Collection',
       onEnter: function (next) {
-        // navigate to collection
+        // navigate with veil-aware delay
         if (window.EOL.ui && window.EOL.ui.show) window.EOL.ui.show('collection');
-        setTimeout(next, 600);
+        // wait longer than veil (560+720) to ensure view ready
+        setTimeout(next, 1450);
       }
     },
 
     { id:'collection-decks-tab', target:'#ctab-decks', pos:'auto',
       title:'Decks tab',
-      body:'Legends are the codex. Decks are your squads of 12, max 4 per role. Click the highlighted Decks tab.',
+      body:'Legends are the codex. Decks are your squads. Click the highlighted Decks tab.',
       action:true },
 
-    { id:'collection-deck-row', target:'#decks-list .deck-row', pos:'auto',
+    { id:'collection-deck-row', target:'#decks-list .deck-card', pos:'auto',
       title:'Grimmwood starter',
-      body:'There it is — 12 Grimmwood legends, legal and ready. Click it to open the builder and see how it is built.',
-      action:true },
+      body:'There it is — 12 Grimmwood legends. Click it to open the builder.',
+      action:true,
+      // wait helper: if deck-cards not yet rendered, poll
+      waitFor: true },
 
     { id:'deck-builder', target:'#deck-slots-12', pos:'auto',
       title:'The deck builder',
-      body:'Your Twelve on top — order does not matter for battle. Below is the whole roster. Click a legend to add/remove. Bottom shows role counts (max 4 per role). Hover a legend for details. When done, click Done.',
+      body:'Your Twelve on top — order does not matter. Below is the whole roster. When done, click Done.',
       action:false,
       nextLabel:'Got it' },
 
     { id:'deck-builder-save', target:'#btn-deck-save', pos:'auto',
       title:'Save and return',
-      body:'Builder autosaves as you go. Click Done to return to Collection.',
+      body:'Builder autosaves. Click Done to return to Collection.',
       action:true },
 
     { id:'back-to-chapter', target:null, pos:'center',
       title:'Back to the Road',
-      body:'Nice. You now know where decks live. Let me take you back to Chapter 1 to face The Recruiter.',
+      body:'Nice. You now know where decks live. Back to Chapter 1 to face The Recruiter.',
       nextLabel:'Back to gates',
       onEnter: function (next) {
         if (window.EOL.ui && window.EOL.ui.show) window.EOL.ui.show('chapter');
-        setTimeout(next, 650);
+        setTimeout(next, 1450);
       }
     },
 
     { id:'gate-one-again', target:'#chapter-stage-1', pos:'auto',
       title:'Gate I again — now you have a deck',
-      body:'Now that you have seen your deck, face The Recruiter again. Click Gate I, then Fight when dialogue offers.',
+      body:'Now that you have seen your deck, face The Recruiter again. Click Gate I, then Fight.',
       action:true },
 
     { id:'recruiter-dialogue-2', target:'#chapter-dialogue-next', pos:'auto',
@@ -113,12 +106,12 @@
 
     { id:'deck-pick-again', target:'#dm-list .dm-row:not(.disabled)', pos:'auto',
       title:'Choose Grimmwood',
-      body:'Pick the Grimmwood deck you just saw. Highlight matches row shape exactly now — no buggy ring.',
+      body:'Pick the Grimmwood deck you just saw.',
       action:true },
 
     { id:'ban-enemy', target:'#prep-enemy .pcard', pos:'auto',
       title:'Ban 2 enemies',
-      body:'You and enemy ban 2 each, hidden. Click any 2 enemy cards (they turn red), then Next.',
+      body:'You and enemy ban 2 each, hidden. Click any 2 enemy cards (they turn red), then click Next in this box.',
       action:false,
       nextLabel:'Banned 2' },
 
@@ -129,7 +122,7 @@
 
     { id:'field-pick', target:'#prep-player .pcard', pos:'auto',
       title:'Field 6',
-      body:'Pick 6 of your 10 survivors. Front soaks, back supports. Click until 6 fielded, then Next.',
+      body:'Pick 6 of your 10 survivors. Click until 6 fielded, then Next.',
       action:false,
       nextLabel:'Fielded 6' },
 
@@ -140,19 +133,19 @@
 
     { id:'battle-intro', target:null, pos:'center',
       title:'Round 1: Basics only',
-      body:'You are in vs The Recruiter — same Grimmwood vs Grimmwood. Signatures unlock Round 2. Energy 60→80→100 carries to 150. Hover any card — panel appears, no dim. Pass button skips a turn.',
+      body:'You are in vs The Recruiter — same Grimmwood vs Grimmwood. Signatures unlock Round 2. Energy carries. Hover any card — panel appears.',
       nextLabel:'Fight!' },
 
     { id:'done', target:null, pos:'center',
       title:'Road begun',
-      body:'You walked menu → campaign → chapter → got Grimmwood with ceremony → toured collection & builder → back to gate → bans → field → battle. Replay anytime from top-left cap icon.',
+      body:'You walked menu → campaign → chapter → got Grimmwood ceremony → toured collection & builder → back to gate → bans → field → battle. Replay from top-left.',
       nextLabel:'Finish' },
   ];
 
   var overlay, dialog, titleEl, bodyEl, stepEl, prevBtn, nextBtn;
-  var blockers = {}; // top bottom left right
   var current = -1, active = false;
   var boundTarget = null, boundHandler = null;
+  var retryTimer = null;
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function scale(){ return (window.EOL.scale && window.EOL.scale.factor()) || 1; }
@@ -160,13 +153,8 @@
   function build(){
     overlay = document.createElement('div');
     overlay.className = 'tut-overlay';
-    ['top','bottom','left','right'].forEach(function(k){
-      var b=document.createElement('div');
-      b.className='tut-blocker b-'+k;
-      b.setAttribute('aria-hidden','true');
-      overlay.appendChild(b);
-      blockers[k]=b;
-    });
+    overlay.setAttribute('aria-hidden','true');
+
     dialog = document.createElement('div');
     dialog.className='tut-dialog tut-center';
     dialog.setAttribute('role','dialog');
@@ -213,8 +201,9 @@
     overlay.addEventListener('click', function(e){
       if(!active || current<0) return;
       if(dialog.contains(e.target)) return;
+      // clicking dim when no target advances
       var s=STEPS[current];
-      if(!s.target) advance();
+      if(s && !s.target) advance();
     });
   }
 
@@ -225,6 +214,12 @@
       for(var i=0;i<list.length;i++){
         var el=list[i];
         if(!el) continue;
+        // ensure in DOM and visible
+        if(el.offsetParent === null && getComputedStyle(el).position !== 'fixed') {
+          // might still be visible via flex, check rect
+          var r=el.getBoundingClientRect();
+          if(r.width<2 || r.height<2) continue;
+        }
         var r=el.getBoundingClientRect();
         if(r.width>2 && r.height>2) return el;
       }
@@ -232,40 +227,13 @@
     }catch(e){ return null; }
   }
 
-  function placeBlockers(target){
-    var z=scale();
-    var vw=window.innerWidth / z;
-    var vh=window.innerHeight / z;
+  function placeOverlay(target){
     if(!target){
-      Object.values(blockers).forEach(function(b){ b.style.display='none'; });
       overlay.classList.remove('has-target');
       overlay.classList.add('no-target');
       positionDialog(null, 'center');
       return;
     }
-    var r=target.getBoundingClientRect();
-    var left=r.left / z;
-    var top=r.top / z;
-    var w=r.width / z;
-    var h=r.height / z;
-
-    // top
-    blockers.top.style.display='';
-    blockers.top.style.left='0px'; blockers.top.style.top='0px';
-    blockers.top.style.width='100%'; blockers.top.style.height=Math.max(0, top)+'px';
-    // bottom
-    blockers.bottom.style.display='';
-    blockers.bottom.style.left='0px'; blockers.bottom.style.top=(top+h)+'px';
-    blockers.bottom.style.width='100%'; blockers.bottom.style.height=Math.max(0, vh - (top+h))+'px';
-    // left
-    blockers.left.style.display='';
-    blockers.left.style.left='0px'; blockers.left.style.top=top+'px';
-    blockers.left.style.width=Math.max(0, left)+'px'; blockers.left.style.height=h+'px';
-    // right
-    blockers.right.style.display='';
-    blockers.right.style.left=(left+w)+'px'; blockers.right.style.top=top+'px';
-    blockers.right.style.width=Math.max(0, vw - (left+w))+'px'; blockers.right.style.height=h+'px';
-
     overlay.classList.add('has-target');
     overlay.classList.remove('no-target');
     positionDialog(target, STEPS[current] ? STEPS[current].pos : 'auto');
@@ -285,9 +253,10 @@
     var z=scale();
     var vw=window.innerWidth / z;
     var vh=window.innerHeight / z;
+    // ensure dialog has size
     var dr=dialog.getBoundingClientRect();
-    var dw=dr.width / z || 380;
-    var dh=dr.height / z || 180;
+    var dw=(dr.width / z) || 380;
+    var dh=(dr.height / z) || 180;
     var tr=target.getBoundingClientRect();
     var tLeft=tr.left / z, tTop=tr.top / z, tW=tr.width / z, tH=tr.height / z;
     var tRight=tLeft+tW, tBottom=tTop+tH;
@@ -326,10 +295,16 @@
     if(boundTarget && boundHandler){
       try{ boundTarget.removeEventListener('click', boundHandler); }catch(e){}
     }
+    if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
     var elevated=document.querySelectorAll('.tut-elevated');
     elevated.forEach(function(el){
       el.classList.remove('tut-elevated');
-      el.style.removeProperty('position');
+      el.style.removeProperty('box-shadow');
+      // position may have been set to relative for stacking, remove if we set it
+      if(el.dataset.tutPosSet){
+        el.style.removeProperty('position');
+        delete el.dataset.tutPosSet;
+      }
     });
     boundTarget=null; boundHandler=null;
   }
@@ -341,7 +316,6 @@
     var scrim=document.getElementById('dr-scrim');
     if(!modal) { cb && cb(); return; }
 
-    // populate preview with up to 12 grimmwood icons
     try{
       preview.innerHTML='';
       var fac = (window.EOL.factions||[]).find(function(f){ return f.id==='grimmwood'; });
@@ -357,7 +331,10 @@
 
     modal.hidden=false;
     modal.setAttribute('aria-hidden','false');
+    var closed=false;
     var close=function(){
+      if(closed) return;
+      closed=true;
       modal.hidden=true;
       modal.setAttribute('aria-hidden','true');
       if(cont) cont.removeEventListener('click', close);
@@ -366,6 +343,14 @@
     };
     if(cont) cont.addEventListener('click', close);
     if(scrim) scrim.addEventListener('click', close);
+  }
+
+  function waitForTarget(sel, cb, tries){
+    tries = tries || 0;
+    if(tries > 40){ cb(null); return; }
+    var t = getTarget(sel);
+    if(t){ cb(t); return; }
+    retryTimer = setTimeout(function(){ waitForTarget(sel, cb, tries+1); }, 220);
   }
 
   function showStep(i){
@@ -382,25 +367,39 @@
     nextBtn.querySelector('i').className = isLast ? 'ri-check-line' : (s.action ? 'ri-cursor-line' : 'ri-arrow-right-line');
     nextBtn.style.visibility = s.action ? 'hidden' : '';
 
-    var target=getTarget(s.target);
+    var target = getTarget(s.target);
 
-    if(!target && s.target){
-      placeBlockers(null);
-      var retry=function(){
-        document.removeEventListener('eol:view', retry);
-        setTimeout(function(){ if(active) showStep(i); }, 320);
-      };
-      document.addEventListener('eol:view', retry);
-      setTimeout(function(){ if(active && current===i) showStep(i); }, 900);
+    if(s.waitFor && s.target && !target){
+      // poll for target (deck list may render late)
+      placeOverlay(null);
+      waitForTarget(s.target, function(found){
+        if(!active || current!==i) return;
+        if(found) showStep(i); // re-enter same step now that target exists
+      });
       return;
     }
 
-    placeBlockers(target);
+    if(!target && s.target){
+      placeOverlay(null);
+      // wait for view change or element
+      var onView = function(){
+        document.removeEventListener('eol:view', onView);
+        setTimeout(function(){ if(active && current===i) showStep(i); }, 500);
+      };
+      document.addEventListener('eol:view', onView);
+      retryTimer = setTimeout(function(){ if(active && current===i) showStep(i); }, 1100);
+      return;
+    }
+
+    placeOverlay(target);
 
     if(target){
       target.classList.add('tut-elevated');
       var cs=getComputedStyle(target);
-      if(cs.position==='static') target.style.position='relative';
+      if(cs.position==='static'){
+        target.style.position='relative';
+        target.dataset.tutPosSet='1';
+      }
 
       if(s.action){
         boundTarget=target;
@@ -409,42 +408,26 @@
             if(!active) return;
             var nxt=current+1;
             if(nxt>=STEPS.length){ end(); return; }
-            var ns=STEPS[nxt];
-            // if next step has onEnter that does navigation, call it via showStep's onEnter handling below
-            if(ns.target && !getTarget(ns.target)){
-              var r=function(){
-                document.removeEventListener('eol:view', r);
-                setTimeout(function(){ if(active) showStep(nxt); }, 360);
-              };
-              document.addEventListener('eol:view', r);
-              setTimeout(function(){ if(active) showStep(nxt); }, 850);
-              return;
-            }
-            showStep(nxt);
-          }, 340);
+            // small delay to let veil / modal / navigation settle
+            setTimeout(function(){
+              if(active) showStep(nxt);
+            }, 420);
+          }, 320);
         };
         target.addEventListener('click', boundHandler, {once:true});
       }
     }
 
     requestAnimationFrame(function(){
-      if(active && current===i) placeBlockers(target);
+      if(active && current===i) placeOverlay(target);
     });
 
-    // custom onEnter hook (for deck reward, navigation)
     if(s.onEnter){
       try{
         s.onEnter(function(){
-          // next() callback for async steps like deck reward
           var nxt=i+1;
           if(nxt<STEPS.length) showStep(nxt);
         });
-        // if onEnter handled navigation, we already placed blockers, but next step will be called async
-        // For steps with onEnter + target null, we should not auto-advance unless callback called
-        if(!s.target) {
-          // onEnter will call next() when ready, so return
-          // But we already showed current step; onEnter's next will move forward
-        }
       }catch(e){}
     }
   }
@@ -455,7 +438,7 @@
   function onResize(){
     if(!active || current<0) return;
     var s=STEPS[current];
-    placeBlockers(getTarget(s.target));
+    placeOverlay(getTarget(s.target));
   }
 
   function start(){
@@ -478,7 +461,6 @@
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', onResize);
     try{ localStorage.setItem(KEY,'1'); }catch(e){}
-    // ensure deck reward closed
     var dr=document.getElementById('deck-reward');
     if(dr) { dr.hidden=true; dr.setAttribute('aria-hidden','true'); }
   }
