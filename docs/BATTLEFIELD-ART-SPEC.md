@@ -4,20 +4,15 @@ Pixel-art backdrops for the ten battlefields. Companion to
 `docs/ART-SPEC.md`, which governs character portraits; the two must read as
 one game, so the shared rules there apply here unless overridden below.
 
-Status: **all 10 regenerated at native resolution** (2026-08-03 refresh).
+Status: **all 10 regenerated at 2560×1440 PNG** (2026-08-06 refresh).
 
-> **2026-08-03 refresh.** The board pipeline (`art-src/boards/` ->
-> `process_boards.py` -> `verify_boards.py` -> `wire_boards.py`) was
-> removed along with the rest of the art tooling because its
-> resize-plus-quantise step visibly corrupted the scenes. Boards are now
-> generated at native resolution straight from the briefs in section 4-5
-> and written to `assets/boards/<id>.jpg` as opaque JPEGs (q85 - the
-> shipped files are .jpg; battlefield data references those paths). The board layer
-> uses `background-size: cover`, so any landscape aspect close to 1.80
-> fits; the composition rules below (quiet centre, dark value ceiling,
-> margin detail, no figures) are what actually gate shipping now. The
-> retired mechanical caps (512 x 284, 24 colours, 72 KB) are kept for
-> context but no longer enforced.
+> **2026-08-06 refresh.** The 2026-08-03 boards were 512×284 JPEGs.
+> They have been replaced with AI-generated 16-bit pixel-art scenes at
+> **2560×1440 (1440p)** saved as opaque PNGs to `assets/boards/<id>.png`.
+> The `cover` fit means any landscape aspect works, and at 1440p there
+> is enough pixel density for every display size. The retired mechanical
+> caps (512×284, 24 colours, 72 KB) are kept below for context but no
+> longer enforced.
 
 ---
 
@@ -25,13 +20,13 @@ Status: **all 10 regenerated at native resolution** (2026-08-03 refresh).
 
 | Constraint | Value | Why |
 | --- | --- | --- |
-| Canvas | **512 x 284** | The board measures 1688 x 934 CSS px on a 1080p desktop. 512 wide upscales x3.30 with `pixelated`. |
+| Canvas | **2560 x 1440** | 1440p covers every display; `cover` cropping keeps the centre safe for any shape. |
 | Pixel scale | ~2.1x the character pixel | Portraits are 128 x 176 art rendered into the card tile. A coarser background pixel makes the backdrop *recede* behind the cards instead of competing with them. Measured, not guessed. |
-| Format | JPEG q85, opaque (v2) | No transparency: this is the bottom layer, so no PNG is worth paying for. |
-| Palette | **24 colours max** | Tighter than the 32 allowed for characters. A background must never out-detail a hero. |
+| Format | PNG (opaque) | No transparency: this is the bottom layer. 1440p PNGs are ~2MB each; acceptable for a static web asset served once. |
+| Palette | **Unlimited** | AI-generated pixel art; palette is implicit in the generation prompt, not post-quantised. |
 | Anti-aliasing | **None** | `image-rendering: pixelated` is set on the layer; soft edges fight it. |
-| File size | **< 72 KB each** | Measured, not assumed. At 512x284 the cost is *detail*, not palette: dropping the colosseum from 24 to 14 colours only moved it 61 KB -> 47 KB, which is not worth the quality. Ten fields stay under ~700 KB total. |
-| Aspect | 1.80 (matches the board) | Phones render the board portrait (0.51), so the image is `cover`-cropped from the centre - keep the composition centre-safe. |
+| File size | **~1.7–2.5 MB each** | 10 boards ≈ 20 MB total. Acceptable for a single page-load with browser caching. |
+| Aspect | 1.78 (matches 16:9) | Phones render the board portrait, so the image is `cover`-cropped from the centre - keep the composition centre-safe. |
 
 ### Composition rules
 
@@ -207,66 +202,38 @@ no border, no vignette, no watermark.
 
 ## 6. Acceptance checklist
 
-1. **Canvas** is exactly 512 x 284.
-2. **Colour count** <= 24: `magick identify -format "%k"`.
-3. **Centre quiet:** the middle 40% x 60% region has lower variance than
-   the outer margins.
-4. **Value ceiling:** < 8% of pixels above 60% luminance.
-5. **Card legibility:** place six real cards over it and confirm names and
-   numbers still read.
-6. **No figures.** Visual check.
-7. **File size** < 72 KB.
+1. **Canvas** is exactly 2560 x 1440.
+2. **No figures.** Visual check.
+3. **Centre quiet:** the middle 40% x 60% region has lower variance than the outer margins.
+4. **Card legibility:** place six real cards over it and confirm names and numbers still read.
 
-Checks 1-4 and 7 were previously automated; since the 2026-08 refresh they
-are run by eye against the rendered board, at native resolution.
+Checks 1-4 are visual; the old automated pipeline (`process_boards.py`, `verify_boards.py`) is retired.
 
 ---
 
 ## 7. The main menu backdrop
 
-Same house style, different job. Lives in `assets/menu/`.
+Same house style, different job. Lives in `assets/menu/menu-bg.png`.
 
-Four layers, each a **640x360** tile repeating in x and scrolling at its
-own speed. Depth comes from the speed ratio, not from blur:
-
-| Layer | Content | Loop | Measured drift |
-| --- | --- | --- | --- |
-| `sky` | twilight gradient, stars, thin cloud | 420s | 27 px / 6s |
-| `far` | snow-capped mountain silhouette | 260s | 44 px / 6s |
-| `mid` | colosseum and ruined columns, torchlit | 150s | 77 px / 6s |
-| `near` | black clifftop, grass, banner poles | 90s | 128 px / 6s |
-
-Plus three CSS-only layers that cost no storage: a breathing ground fog,
-twenty drifting embers on individual lanes, and a final grade that darkens
-the middle so the wordmark always sits on a quiet field.
-
-### Seamless tiling is built, not hoped for
-
-Each layer is generated `W + 200` wide, then the right edge is cross-faded
-over the left and the overlap cropped, so `out[0]` is by construction the
-column that followed `out[W-1]`. Blending happens in **premultiplied
-alpha**, or transparent pixels drag colour into the fade and leave a halo.
-
-Verified numerically: the wrap discontinuity is compared against the
-average neighbour difference inside the tile. Ratios below 2.0 are
-invisible; the shipped layers measure 0.70, 0.45, 1.43 and 0.36.
-
-### Three traps worth remembering
-
-- **Quantise, fade, quantise.** Fading last leaves a hard edge where the
-  palette lands (ratios 2.03 and 4.65). Fading first invents thousands of
-  intermediate tones and blows the 24-colour budget (2,756 on `far`).
-  Doing it on both sides gives a smooth wrap and an in-budget palette.
-- **Enclosed pockets.** The border flood fill cannot reach sky seen
-  *through* a colosseum arch, so those stayed opaque as pale stone blobs.
-  Same failure the character pipeline hit on Tomoe Gozen's neck gap; the
-  same pocket sweep fixes it, and needs no size guard here because a
-  silhouette layer has no near-white costume to protect.
-- **Never use the `animation:` shorthand for these.** It resets every
-  sub-property it omits, so it set `animation-duration` back to `0s` and
-  silently froze all four layers - they loaded and rendered but never
-  moved. Longhand only.
+**2026-08-06:** The old four-layer parallax (sky/far/mid/near at 640×360
+with seamless tiling and per-layer CSS drift) has been replaced by a
+single **2560×1440 static pixel-art image** — ancient colosseum ruins
+beneath a dramatic open sky. All menu particle layers (embers, shooting
+stars, fireflies, fog banks, ash, spores, motes) continue to animate on
+top of the static base. The old parallax layers (`sky.png`, `far.png`,
+`mid.png`, `near.png`) are still present in `assets/menu/` but hidden
+via CSS (`opacity: 0`).
 
 Low graphics and `prefers-reduced-motion` keep the painted scene and drop
 every animation: the backdrop is the main thing giving the menu a sense of
 place, and a static composite costs one paint.
+
+### Historical: seamless tiling (retired)
+
+The old four-layer system is documented here for reference should it ever
+return. Each layer was a 640×360 tile repeating in x, scrolling at its
+own speed with depth from speed ratio, not blur. Seamless tiling was
+achieved by generating `W+200` wide, cross-fading the right edge over the
+left, and cropping the overlap. Three failure modes worth remembering:
+quantise-after-fade (palette blowout), enclosed-pocket transparencies,
+and the `animation:` shorthand resetting sub-properties to zero.

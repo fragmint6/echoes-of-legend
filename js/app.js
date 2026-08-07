@@ -527,7 +527,7 @@
       });
       scope
         .querySelectorAll(
-          '.sc-art, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-base, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
+          '.sc-art, .mb-base, .mb-sky, .mb-far, .mb-mid, .mb-near, .cb-base, .cb-sky, .cb-far, .cb-mid, .cb-near, .bf-art.has-art'
         )
         .forEach(function (el) {
           var bg = getComputedStyle(el).backgroundImage;
@@ -1593,9 +1593,24 @@
       show('collection');
     });
     var btnRulebook = document.getElementById('btn-rulebook');
+    var btnCornerRulebook = document.getElementById('btn-corner-rulebook');
     if (btnRulebook) {
       btnRulebook.addEventListener('click', function () {
         show('rulebook');
+      });
+    }
+    if (btnCornerRulebook) {
+      btnCornerRulebook.addEventListener('click', function () {
+        show('rulebook');
+      });
+    }
+    var btnCornerTutorial = document.getElementById('btn-corner-tutorial');
+    if (btnCornerTutorial) {
+      btnCornerTutorial.addEventListener('click', function () {
+        if (window.EOL.tutorial) {
+          window.EOL.tutorial.reset();
+          window.EOL.tutorial.start();
+        }
       });
     }
     var btnRulebookBack = document.getElementById('btn-rulebook-back');
@@ -1635,6 +1650,11 @@
         window.EOL.campaign.closeRecruiterDialogue();
         return;
       }
+      /* Tutorial owns Escape while active; the tutorial module handles
+         its own dismissal. */
+      if (window.EOL.tutorial && window.EOL.tutorial.isActive && window.EOL.tutorial.isActive()) {
+        return;
+      }
       goBack();
       // the shop and the deck picker modal handle Esc themselves
     });
@@ -1645,5 +1665,14 @@
 
     show('home');
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
+
+    /* Tutorial: runs once on first visit. Starts after the veil lifts so
+       the DOM is painted. The 900ms delay gives the home transition its
+       full moment before the overlay interrupts. */
+    setTimeout(function () {
+      if (window.EOL.tutorial && !window.EOL.tutorial.isDone()) {
+        window.EOL.tutorial.start();
+      }
+    }, 900);
   });
 })();

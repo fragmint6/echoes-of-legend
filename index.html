@@ -41,15 +41,12 @@
     <div class="bg-layer"></div>
     <div class="bg-grid"></div>
 
-    <!-- ==================== MENU PARALLAX ====================
-         Animated pixel-art backdrop for the main menu. Four layers,
-         each a 640x360 tile that repeats horizontally and scrolls at
-         its own speed, so the scene has real depth rather than one
-         flat image. Only rendered while body[data-view='home'].
-         Every layer is aria-hidden and pointer-events:none.
-         ======================================================== -->
+    <!-- ==================== MENU BACKDROP ====================
+         Static 1080p pixel-art backdrop: ancient ruins beneath an
+         open sky. All particle layers (embers, wisps, shooting stars,
+         fog banks, ash, spores, motes) render on top. -->
     <div class="menu-bg" id="menu-bg" aria-hidden="true">
-      <span class="mb-sky"></span>
+      <span class="mb-base"></span>
       <!-- Shooting stars: rare streaks across the upper sky, sitting
            between sky and mountains in depth. Each star is a small
            machine: a bright head with cross-flare, a solid core, a
@@ -132,11 +129,31 @@
       <span class="mb-grade"></span>
     </div>
 
-    <!-- ==================== CHAPTER 1 ATMOSPHERIC WOODS ====================
-         Animated 16-bit woods scene with crackling campfire, floating embers,
-         and twinkling starry night sky. -->
+    <!-- ==================== CHAPTER 1: THE ROAD OF ECHOES ====================
+         A single highly detailed pixel-art backdrop with CSS atmosphere:
+         dark vignette, drifting mist bands, brass-tag glints catching
+         faint light, and pale wandering wisps through the trees. -->
     <div class="chapter-bg" id="chapter-bg" aria-hidden="true">
-      <span class="cw-scene"></span>
+      <span class="cw-bg"></span>
+      <span class="cw-vignette"></span>
+      <span class="cw-haze"></span>
+      <!-- Forest particles: independent from the main menu's system
+           so the Road of Echoes has its own atmosphere. -->
+      <span class="cw-glints">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="cw-wisps">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="cw-motes far">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="cw-motes mid">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i>
+      </span>
     </div>
 
     <!-- ==================== HOME / DASHBOARD ==================== -->
@@ -193,6 +210,19 @@
       </a>
       <span class="art-credit">art by <b>sh4dowmob</b></span>
 
+      <!-- Corner buttons — stacked vertically in the top-right, below
+           the account pill. Same circle spec as the Discord button. -->
+      <div class="home-corner-btns">
+        <button class="corner-btn" id="btn-corner-tutorial" type="button" aria-label="Replay tutorial">
+          <i class="ri-graduation-cap-line" aria-hidden="true"></i>
+          <span class="corner-tip" aria-hidden="true">Tutorial</span>
+        </button>
+        <button class="corner-btn" id="btn-corner-rulebook" type="button" aria-label="Open rulebook">
+          <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+          <span class="corner-tip" aria-hidden="true">Rulebook</span>
+        </button>
+      </div>
+
       <!-- ==================== SETTINGS MODAL ====================
            Account edits (username / password, signed-in only) plus the
            graphics-quality switch. The graphics buttons reuse the exact
@@ -232,10 +262,6 @@
           <button class="btn btn-ghost" id="btn-collection">
             <i class="ra ra-book"></i>
             <span>Collection</span>
-          </button>
-          <button class="btn btn-ghost" id="btn-rulebook">
-            <i class="ra ra-scroll-unfurled"></i>
-            <span>Rulebook</span>
           </button>
         </div>
       </div>
@@ -1254,8 +1280,8 @@
           <span class="ch-art" aria-hidden="true">
             <img
               class="ch-cover-img"
-              src="assets/chapter-1/cover-gilgamesh.png"
-              alt="Gilgamesh"
+              src="assets/chapter-1/cw-bg.png"
+              alt="The Road of Echoes"
               draggable="false"
             />
             <span class="ch-cover-vignette"></span>
@@ -1289,6 +1315,7 @@
         <button class="back-btn" id="btn-chapter-back">
           <i class="ri-arrow-left-line"></i><span>Chapters</span>
         </button>
+        <div class="chapter-head-inner">
         <div class="col-titles">
           <span class="mast-emblem chapter-emblem" aria-hidden="true"
             ><i class="ra ra-compass"></i
@@ -1297,6 +1324,7 @@
           <h2 class="col-title" id="chapter-title">The Road of Echoes</h2>
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">An unfinished story walks between memory and the Quiet</p>
+        </div>
         </div>
       </header>
 
@@ -2350,6 +2378,7 @@
     <script src="js/deck.js"></script>
     <script src="js/play.js"></script>
     <script src="js/campaign.js"></script>
+    <script src="js/tutorial.js"></script>
     <script src="js/shop.js"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects

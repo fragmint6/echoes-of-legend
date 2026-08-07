@@ -148,6 +148,24 @@ nothing to keep running. The table cleans itself as it is used.
 One heartbeat still beating keeps a match open, which is what lets the
 player who dropped come back to it.
 
+## 4c. Migration 03 - persisted match state
+
+If you set the project up before this migration existed, run
+**[`docs/supabase-migration-03.sql`](supabase-migration-03.sql)** now.
+
+It adds `save_match_state()` and `find_my_match()` — the two functions
+that let `mp.js` persist and recover match state (draft progress, ban
+phase, battle board) across page reloads and client reconnects. Without
+them, refreshing mid-draft or mid-battle forfeits the match.
+
+What it adds:
+
+| Object | Purpose |
+| --- | --- |
+| `mp_match_state` | Stores a snapshot of the match at each phase boundary. |
+| `save_match_state()` | Writes the current game state (called by the host after every phase change). |
+| `find_my_match()` | Returns the persisted state so the rejoining client resumes where it left off. |
+
 ## 5. Realtime - nothing to do
 
 **Skip this step.** Realtime Broadcast is on by default for every

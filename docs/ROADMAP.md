@@ -134,10 +134,14 @@ single-tier; decide capstone after meta data exists.
 
 ---
 
-## Phase 3 — LEGENDS GAUNTLET, Chapter 1: "The Nine Thrones"
-Chapter 1 = 10 nodes on the current 63-card pool. Boss: **The First
-Legend** (canon vote pending — see §8).
+## Phase 3 — LEGENDS GAUNTLET, Chapter 1: "The Road of Echoes"
+Chapter 1 = 10 nodes on the current 63-card pool. Boss: **Gilgamesh,
+King of Uruk** — the literal first legend of recorded human story.
 
+- **Status:** Stage 1 (The Recruiter, Gate I) is **playable** with
+  authored dialogue and a full battle launch. Stages 2–10 are designed
+  but not yet built. The Campaign tab on the home screen is live
+  (no longer a placeholder).
 - **Structure:** draft once at node 1 → fight → **2 stash swaps** between
   nodes (swap your pool) + no other run-modifiers → boss at 10 →
   Chronicle. One **Fate Rewoven** revive token earned mid-chapter.
@@ -151,7 +155,8 @@ Legend** (canon vote pending — see §8).
   lives inside the Gauntlet only. Chronicle run-recap screen at run end
   (MVP, kills, rounds, a shareable artifact card) — every run, even a
   dead one, ends with something collectible.
-- The existing "Campaign (placeholder)" tab is replaced for real.
+- The existing Campaign tab is **live** (Chapter 1, Gate I shipped
+  2026-08-06 with dialogue + battle launch).
 - Bots are draftAI + bias knobs (weights, forced roles, spread) + a
   scripted per-node board blessing for the boss. Sims: verify_all stays
   green; boss win-rates get a difficulty curve check (target: node 3
@@ -246,7 +251,7 @@ playtest, since trophies were vetoed globally).
   win rate) and `node sim/ab_draft.js --games 600` (head to head against
   the brain it replaces) — a rating is only better if it drafts better,
   and the harness has a same-brain control for exactly that reason.
-- `node sim/verify_all.js` green (1479 assertions as of 2026-08-05) before
+- `node sim/verify_all.js` green (1,492 assertions as of 2026-08-06) before
   every handoff.
 - Any rule that changes pacing runs the A/B harness at ≥1200 games/side
   with the tolerance gates from Phase 2 §law.

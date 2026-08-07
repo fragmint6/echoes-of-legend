@@ -38,7 +38,7 @@ trying a new Skill.
 node sim/verify_all.js && node sim/verify_preview.js
 ```
 
-About 25 seconds, 1,479 assertions (as of 2026-08-05). That is the only
+About 25 seconds, 1,492 assertions (as of 2026-08-06). That is the only
 test that has to pass while you iterate. It automatically covers **every faction** - it walks
 `EOL.factions`, so a new `data/yourfaction.js` is picked up the moment
 you register it. Nothing to wire up.
@@ -71,7 +71,7 @@ Reads `sim/results.json`, writes `sim/results.md`.
 
 ## What each file is for
 
-### `verify_all.js` - 1,479 assertions, ~25s
+### `verify_all.js` - 1,492 assertions, ~25s
 **The one that matters.** Whole-roster audit in three layers: static
 (schema, bands, icons, keyword legality), dynamic (cast each Skill and
 check the real outcome), soak (AI-vs-AI invariants). Run it constantly.

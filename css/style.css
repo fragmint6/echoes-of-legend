@@ -14346,15 +14346,15 @@ body[data-auth='in'] .acct-avatar {
   position: relative;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid var(--line-2);
   background: linear-gradient(180deg, rgba(14, 17, 28, 0.9), rgba(8, 10, 18, 0.82));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #9aa3c4;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   text-decoration: none;
   cursor: var(--cur-pointer);
@@ -15681,8 +15681,34 @@ body[data-gfx='low'].time-low .time-warn {
   opacity: 0;
   transition: opacity 0.7s var(--ease);
 }
-body[data-view='home'] .menu-bg {
+body[data-view='home'] .menu-bg,
+body[data-view='chapter'] .menu-bg {
   opacity: 1;
+}
+
+/* ---- static 1080p menu backdrop (2026-08-06) ---- */
+.mb-base {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('../assets/menu/menu-bg.png') center center / cover no-repeat;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+/* On the chapter view: hide the menu-bg entirely — the chapter-bg
+   provides its own pixel-art forest backdrop with cw-haze mist. */
+body[data-view='chapter'] .menu-bg {
+  opacity: 0 !important;
+}
+
+/* On the home view: the static mb-base replaces the four parallax
+   landscape planes. Keep the particles and weather layers. */
+body[data-view='home'] .mb-sky,
+body[data-view='home'] .mb-far,
+body[data-view='home'] .mb-mid,
+body[data-view='home'] .mb-near {
+  opacity: 0 !important;
 }
 .menu-bg > span {
   position: absolute;
@@ -15706,7 +15732,7 @@ body[data-view='home'] .menu-bg {
 .menu-bg
   > span:not(.mb-embers):not(.mb-grade):not(.mb-fog):not(.mb-shoot):not(.mb-wisps):not(
     .mb-ultra
-  ):not(.mb-rays):not(.mb-fogbanks):not(.mb-ash):not(.mb-spores) {
+  ):not(.mb-rays):not(.mb-fogbanks):not(.mb-ash):not(.mb-spores):not(.mb-base) {
   /* viewport + more than one max tile period of slack, so no gap can
      open on the right during the travel */
   width: calc(calc(var(--vw1) * 100) + calc(var(--vh1) * 200));
@@ -15777,11 +15803,11 @@ body[data-view='home'] .menu-bg {
 .mb-embers i {
   position: absolute;
   bottom: -6px;
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: #ffb45c;
-  box-shadow: 0 0 5px rgba(255, 170, 80, 0.85);
+  box-shadow: 0 0 8px rgba(255, 170, 80, 0.95), 0 0 16px rgba(255, 140, 50, 0.5);
   opacity: 0;
   animation: mb-ember linear infinite;
 }
@@ -15993,20 +16019,20 @@ body[data-gfx='low'] .mb-shoot {
   will-change: transform;
 }
 .mb-motes.far i {
-  width: 1px;
-  height: 1px;
-  box-shadow: 0 0 2px rgba(200, 220, 255, 0.5);
-}
-.mb-motes.mid i {
   width: 2px;
   height: 2px;
-  box-shadow: 0 0 3px rgba(200, 220, 255, 0.6);
+  box-shadow: 0 0 4px rgba(200, 220, 255, 0.6);
 }
-.mb-motes.near i {
+.mb-motes.mid i {
   width: 3px;
   height: 3px;
+  box-shadow: 0 0 6px rgba(200, 220, 255, 0.7);
+}
+.mb-motes.near i {
+  width: 5px;
+  height: 5px;
   background: #eef4ff;
-  box-shadow: 0 0 5px rgba(220, 235, 255, 0.75);
+  box-shadow: 0 0 8px rgba(220, 235, 255, 0.85);
 }
 /* Sway is applied as a second, faster animation on the same element so
    the fall stays perfectly linear and the drift reads as air movement. */
@@ -17326,11 +17352,11 @@ body[data-gfx='low'] .sc-weather {
 }
 .mb-wisps i {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #c4ffd9;
-  box-shadow: 0 0 7px 1px rgba(122, 255, 190, 0.75);
+  box-shadow: 0 0 10px 2px rgba(122, 255, 190, 0.8), 0 0 20px rgba(122, 255, 190, 0.35);
   opacity: 0;
   animation: mb-wander ease-in-out infinite;
   will-change: transform, opacity;
@@ -17936,6 +17962,12 @@ body[data-gfx='low'] .veil-ward > i {
     transform: translateY(-12px) scale(0.7);
   }
 }
+@keyframes credit-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
 /* on the LEFT edge the label rides out to the right instead */
 .home-discord .discord-tip {
   right: auto;
@@ -17970,7 +18002,75 @@ body[data-gfx='low'] .veil-ward > i {
   font-weight: 700;
   text-shadow: 0 0 12px rgba(255, 200, 90, 0.4);
 }
-@keyframes credit-rise {
+
+/* Corner button stack — top-right, below the account pill.
+   Same glass circle spec as the Discord chip. */
+.home-corner-btns {
+  position: absolute;
+  left: 22px;
+  top: 68px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: corner-drop 0.7s var(--ease) 1.05s backwards;
+}
+.corner-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(12, 14, 22, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: rgba(220, 224, 240, 0.65);
+  font-size: 16px;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+.corner-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 214, 130, 0.55);
+  background: rgba(30, 28, 40, 0.72);
+  transform: scale(1.08);
+}
+.corner-btn:active {
+  transform: scale(0.94);
+}
+.corner-tip {
+  position: absolute;
+  left: calc(100% + 9px);
+  right: auto;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  padding: 5px 11px;
+  border-radius: 7px;
+  background: rgba(8, 10, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d0d4e8;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+.corner-btn:hover .corner-tip,
+.corner-btn:focus-visible .corner-tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -19689,6 +19789,7 @@ body[data-gfx='low'] .ht-line {
 .shop::before,
 .prep::before,
 .deck::before,
+.campaign::before,
 .rulebook::before {
   content: '';
   position: fixed;
@@ -19835,8 +19936,8 @@ body[data-gfx='low'] .deck::before {
 .home-actions {
   width: min(680px, calc(var(--vw1) * 94));
   display: grid;
-  /* Play owns a full row, secondaries form a clean row of 3 below */
-  grid-template-columns: repeat(3, 1fr);
+  /* Play owns a full row, secondaries form a row of 2 below */
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
   justify-content: center;
 }
@@ -20899,11 +21000,11 @@ body[data-gfx='low'] .chapter-card:hover {
    discontinuity is <= 1.67x normal internal pixel change on every layer,
    below the art spec's 2.0 invisibility threshold.
 */
-/* ---------------- chapter 1: animated woods backdrop ---------------- */
+/* ---- chapter 1: static detailed pixel-art backdrop ---- */
 .chapter-bg {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
@@ -20916,16 +21017,206 @@ body[data-view='chapter'] .chapter-bg {
 body[data-view='chapter'] .bg-grid {
   opacity: 0.08;
 }
-.chapter-bg > span {
+
+.cw-bg {
   position: absolute;
   inset: 0;
-  display: block;
+  background: url('../assets/chapter-1/cw-bg.png') center center / cover no-repeat;
+  z-index: 1;
+}
+
+/* subtle dark frame around the edges — doesn't compete with lantern glow */
+.cw-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 65% at 50% 45%, transparent 30%, rgba(2,4,9,0.75) 100%),
+    linear-gradient(to top, rgba(2,4,9,0.58) 0%, transparent 48%),
+    linear-gradient(to bottom, rgba(10,14,34,0.28) 0%, transparent 42%);
+}
+
+/* drifting mist bands — thin horizontal haze strips at different depths */
+.cw-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    /* far mist band */
+    radial-gradient(ellipse 110% 16% at 50% 46%, rgba(175,188,210,0.10), transparent 68%),
+    /* mid mist band */
+    radial-gradient(ellipse 80% 13% at 50% 68%, rgba(165,178,200,0.11), transparent 62%),
+    /* low fog band — thicker near the road */
+    radial-gradient(ellipse 90% 15% at 50% 84%, rgba(155,168,192,0.14), transparent 66%);
+  animation: cw-haze-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes cw-haze-drift {
+  from { transform: translateX(-1.5%) translateY(0); }
+  to   { transform: translateX(1.5%) translateY(-0.8%); }
+}
+
+/* ---- brass-tag glints: tiny gold sparks falling between the trees,
+       catching faint light as they spin. Dense field of 20 hand-placed
+       motes, each on its own lane and timing. ---- */
+.cw-glints {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
   pointer-events: none;
 }
-.cw-scene {
-  background: url('../assets/chapter-1/woods-scene.gif') center bottom / cover no-repeat;
-  image-rendering: pixelated;
-  -ms-interpolation-mode: nearest-neighbor;
+.cw-glints i {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f0d68a;
+  box-shadow: 0 0 8px rgba(240, 214, 138, 0.9), 0 0 16px rgba(220, 170, 60, 0.55);
+  opacity: 0;
+  animation: cw-glint-fall linear infinite;
+}
+@keyframes cw-glint-fall {
+  0%   { opacity: 0;   transform: translate3d(0, 0, 0) rotate(0deg); }
+  8%   { opacity: var(--o, 0.6); }
+  88%  { opacity: var(--o, 0.6); }
+  100% { opacity: 0;   transform: translate3d(var(--dx, 20px), calc(var(--vh1) * 112), 0) rotate(var(--rot, 220deg)); }
+}
+.cw-glints i:nth-child(1)  { left:3%;  --dx:22px; --o:0.7; --rot:240deg; animation-duration:18s; animation-delay:0s; }
+.cw-glints i:nth-child(2)  { left:8%;  --dx:-18px;--o:0.55;--rot:300deg;animation-duration:22s; animation-delay:3s; }
+.cw-glints i:nth-child(3)  { left:13%; --dx:28px; --o:0.65;--rot:190deg;animation-duration:16s; animation-delay:7s; }
+.cw-glints i:nth-child(4)  { left:18%; --dx:-24px;--o:0.5; --rot:260deg;animation-duration:25s; animation-delay:1s; }
+.cw-glints i:nth-child(5)  { left:23%; --dx:16px; --o:0.72;--rot:210deg;animation-duration:19s; animation-delay:9s; }
+.cw-glints i:nth-child(6)  { left:28%; --dx:-20px;--o:0.58;--rot:280deg;animation-duration:21s; animation-delay:4s; }
+.cw-glints i:nth-child(7)  { left:33%; --dx:26px; --o:0.63;--rot:230deg;animation-duration:15s; animation-delay:11s; }
+.cw-glints i:nth-child(8)  { left:38%; --dx:-14px;--o:0.52;--rot:310deg;animation-duration:24s; animation-delay:2s; }
+.cw-glints i:nth-child(9)  { left:43%; --dx:30px; --o:0.75;--rot:180deg;animation-duration:17s; animation-delay:8s; }
+.cw-glints i:nth-child(10) { left:48%; --dx:-22px;--o:0.55;--rot:250deg;animation-duration:23s; animation-delay:5s; }
+.cw-glints i:nth-child(11) { left:53%; --dx:18px; --o:0.68;--rot:290deg;animation-duration:20s; animation-delay:13s; }
+.cw-glints i:nth-child(12) { left:58%; --dx:-26px;--o:0.5; --rot:220deg;animation-duration:14s; animation-delay:6s; }
+.cw-glints i:nth-child(13) { left:63%; --dx:24px; --o:0.7; --rot:270deg;animation-duration:26s; animation-delay:10s; }
+.cw-glints i:nth-child(14) { left:68%; --dx:-16px;--o:0.6; --rot:200deg;animation-duration:18s; animation-delay:0s; }
+.cw-glints i:nth-child(15) { left:73%; --dx:20px; --o:0.56;--rot:240deg;animation-duration:22s; animation-delay:12s; }
+.cw-glints i:nth-child(16) { left:78%; --dx:-28px;--o:0.62;--rot:300deg;animation-duration:16s; animation-delay:3s; }
+.cw-glints i:nth-child(17) { left:83%; --dx:14px; --o:0.72;--rot:190deg;animation-duration:21s; animation-delay:8s; }
+.cw-glints i:nth-child(18) { left:88%; --dx:-24px;--o:0.53;--rot:260deg;animation-duration:19s; animation-delay:14s; }
+.cw-glints i:nth-child(19) { left:93%; --dx:26px; --o:0.66;--rot:230deg;animation-duration:15s; animation-delay:6s; }
+.cw-glints i:nth-child(20) { left:96%; --dx:-12px;--o:0.58;--rot:280deg;animation-duration:24s; animation-delay:11s; }
+
+/* ---- forest wisps: larger soft blue-white spirit lights drifting
+       through the trees on wandering looping paths, like distant
+       WILL-O'-THE-WISPS. Eight of them, no two sharing a route. ---- */
+.cw-wisps {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.cw-wisps i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,240,255,0.95), rgba(150,220,245,0.4) 45%, transparent 70%);
+  box-shadow: 0 0 14px rgba(170,230,255,0.7), 0 0 26px rgba(130,200,240,0.35);
+  opacity: 0;
+  animation: cw-wisp-wander ease-in-out infinite;
+}
+@keyframes cw-wisp-wander {
+  0%   { opacity:0; transform:translate3d(0,0,0); }
+  12%  { opacity:var(--p,0.7); }
+  30%  { transform:translate3d(var(--x1,30px),var(--y1,-22px),0); }
+  52%  { opacity:calc(var(--p,0.7)*0.4); transform:translate3d(var(--x2,12px),var(--y2,-36px),0); }
+  74%  { opacity:var(--p,0.7); transform:translate3d(var(--x3,-18px),var(--y3,-14px),0); }
+  100% { opacity:0; transform:translate3d(0,0,0); }
+}
+.cw-wisps i:nth-child(1){left:5%;top:78%;--x1:26px;--y1:-18px;--x2:38px;--y2:-8px;--x3:14px;--y3:-28px;--p:0.7;animation-duration:16s;animation-delay:0s;}
+.cw-wisps i:nth-child(2){left:15%;top:88%;--x1:-20px;--y1:-24px;--x2:-32px;--y2:-10px;--x3:-12px;--y3:-30px;--p:0.55;animation-duration:22s;animation-delay:4s;}
+.cw-wisps i:nth-child(3){left:25%;top:68%;--x1:28px;--y1:-14px;--x2:10px;--y2:-26px;--x3:-20px;--y3:-16px;--p:0.65;animation-duration:18s;animation-delay:8s;}
+.cw-wisps i:nth-child(4){left:35%;top:92%;--x1:22px;--y1:-28px;--x2:-14px;--y2:-16px;--x3:18px;--y3:-10px;--p:0.5;animation-duration:24s;animation-delay:2s;}
+.cw-wisps i:nth-child(5){left:45%;top:72%;--x1:-26px;--y1:-16px;--x2:-10px;--y2:-28px;--x3:20px;--y3:-24px;--p:0.75;animation-duration:14s;animation-delay:10s;}
+.cw-wisps i:nth-child(6){left:55%;top:82%;--x1:18px;--y1:-22px;--x2:30px;--y2:-6px;--x3:8px;--y3:-26px;--p:0.6;animation-duration:20s;animation-delay:6s;}
+.cw-wisps i:nth-child(7){left:72%;top:74%;--x1:-22px;--y1:-18px;--x2:-34px;--y2:-30px;--x3:-8px;--y3:-12px;--p:0.7;animation-duration:17s;animation-delay:12s;}
+.cw-wisps i:nth-child(8){left:88%;top:86%;--x1:24px;--y1:-24px;--x2:8px;--y2:-12px;--x3:-16px;--y3:-22px;--p:0.52;animation-duration:26s;animation-delay:3s;}
+
+/* ---- forest motes: two depth bands of barely-visible pale dust
+       drifting slowly through the scene. Far band is smaller and
+       dimmer; mid band is slightly larger and closer. ---- */
+.cw-motes {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.cw-motes i {
+  position: absolute;
+  top: -4px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: cw-mote-drift linear infinite;
+}
+@keyframes cw-mote-drift {
+  0%   { opacity:0; transform:translate3d(0,0,0); }
+  10%  { opacity:var(--o,0.3); }
+  85%  { opacity:var(--o,0.3); }
+  100% { opacity:0; transform:translate3d(var(--dx,14px), calc(var(--vh1) * 118), 0); }
+}
+.cw-motes.far i {
+  width: 2px; height: 2px;
+  background: rgba(195,205,218,0.75);
+  box-shadow: 0 0 4px rgba(170,185,200,0.5);
+}
+.cw-motes.mid i {
+  width: 4px; height: 4px;
+  background: rgba(210,218,228,0.65);
+  box-shadow: 0 0 6px rgba(180,195,210,0.55);
+}
+.cw-motes.far i:nth-child(1){left:4%;--dx:12px;--o:0.25;animation-duration:48s;animation-delay:-5s;}
+.cw-motes.far i:nth-child(2){left:9%;--dx:-10px;--o:0.32;animation-duration:52s;animation-delay:-18s;}
+.cw-motes.far i:nth-child(3){left:14%;--dx:16px;--o:0.22;animation-duration:44s;animation-delay:-30s;}
+.cw-motes.far i:nth-child(4){left:19%;--dx:-8px;--o:0.28;animation-duration:56s;animation-delay:-8s;}
+.cw-motes.far i:nth-child(5){left:24%;--dx:14px;--o:0.35;animation-duration:40s;animation-delay:-22s;}
+.cw-motes.far i:nth-child(6){left:29%;--dx:-12px;--o:0.24;animation-duration:50s;animation-delay:-35s;}
+.cw-motes.far i:nth-child(7){left:34%;--dx:10px;--o:0.3;animation-duration:46s;animation-delay:-12s;}
+.cw-motes.far i:nth-child(8){left:39%;--dx:-14px;--o:0.26;animation-duration:54s;animation-delay:-28s;}
+.cw-motes.far i:nth-child(9){left:44%;--dx:18px;--o:0.22;animation-duration:42s;animation-delay:-3s;}
+.cw-motes.far i:nth-child(10){left:49%;--dx:-10px;--o:0.33;animation-duration:58s;animation-delay:-40s;}
+.cw-motes.far i:nth-child(11){left:54%;--dx:12px;--o:0.27;animation-duration:45s;animation-delay:-15s;}
+.cw-motes.far i:nth-child(12){left:59%;--dx:-16px;--o:0.3;animation-duration:49s;animation-delay:-25s;}
+.cw-motes.far i:nth-child(13){left:64%;--dx:8px;--o:0.24;animation-duration:53s;animation-delay:-38s;}
+.cw-motes.far i:nth-child(14){left:69%;--dx:-12px;--o:0.32;animation-duration:41s;animation-delay:-10s;}
+.cw-motes.far i:nth-child(15){left:74%;--dx:14px;--o:0.28;animation-duration:47s;animation-delay:-20s;}
+.cw-motes.far i:nth-child(16){left:79%;--dx:-10px;--o:0.25;animation-duration:55s;animation-delay:-33s;}
+.cw-motes.far i:nth-child(17){left:84%;--dx:16px;--o:0.3;animation-duration:43s;animation-delay:-7s;}
+.cw-motes.far i:nth-child(18){left:89%;--dx:-14px;--o:0.26;animation-duration:51s;animation-delay:-27s;}
+.cw-motes.far i:nth-child(19){left:94%;--dx:10px;--o:0.22;animation-duration:39s;animation-delay:-16s;}
+.cw-motes.far i:nth-child(20){left:97%;--dx:-8px;--o:0.34;animation-duration:57s;animation-delay:-42s;}
+.cw-motes.mid i:nth-child(1){left:6%;--dx:18px;--o:0.28;animation-duration:36s;animation-delay:-3s;}
+.cw-motes.mid i:nth-child(2){left:16%;--dx:-20px;--o:0.32;animation-duration:40s;animation-delay:-12s;}
+.cw-motes.mid i:nth-child(3){left:26%;--dx:22px;--o:0.25;animation-duration:34s;animation-delay:-22s;}
+.cw-motes.mid i:nth-child(4){left:36%;--dx:-16px;--o:0.3;animation-duration:38s;animation-delay:-6s;}
+.cw-motes.mid i:nth-child(5){left:46%;--dx:20px;--o:0.34;animation-duration:32s;animation-delay:-18s;}
+.cw-motes.mid i:nth-child(6){left:56%;--dx:-24px;--o:0.27;animation-duration:42s;animation-delay:-28s;}
+.cw-motes.mid i:nth-child(7){left:66%;--dx:14px;--o:0.3;animation-duration:35s;animation-delay:-9s;}
+.cw-motes.mid i:nth-child(8){left:76%;--dx:-18px;--o:0.33;animation-duration:39s;animation-delay:-24s;}
+.cw-motes.mid i:nth-child(9){left:86%;--dx:24px;--o:0.26;animation-duration:33s;animation-delay:-15s;}
+.cw-motes.mid i:nth-child(10){left:92%;--dx:-22px;--o:0.29;animation-duration:37s;animation-delay:-30s;}
+.cw-motes.mid i:nth-child(11){left:11%;--dx:16px;--o:0.35;animation-duration:41s;animation-delay:-20s;}
+.cw-motes.mid i:nth-child(12){left:21%;--dx:-14px;--o:0.24;animation-duration:35s;animation-delay:-8s;}
+.cw-motes.mid i:nth-child(13){left:31%;--dx:22px;--o:0.31;animation-duration:39s;animation-delay:-26s;}
+.cw-motes.mid i:nth-child(14){left:41%;--dx:-20px;--o:0.28;animation-duration:33s;animation-delay:-14s;}
+.cw-motes.mid i:nth-child(15){left:51%;--dx:18px;--o:0.26;animation-duration:37s;animation-delay:-5s;}
+
+/* Low graphics / reduced motion: chapter particles drop. */
+body[data-gfx='low'] .cw-glints,
+body[data-gfx='low'] .cw-wisps,
+body[data-gfx='low'] .cw-motes {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cw-glints, .cw-wisps, .cw-motes { display: none; }
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -20942,42 +21233,72 @@ body[data-view='chapter'] .bg-grid {
   position: relative;
   margin-top: auto;
   padding: 30px 0 2px;
-  color: rgba(223, 225, 247, 0.48);
+  color: rgba(210, 208, 192, 0.55);
   text-align: center;
 }
 .chapter-head {
   position: relative;
   margin-bottom: 20px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: 12px 18px 18px;
   border-radius: 16px;
-  background: radial-gradient(
-    ellipse at 50% 120%,
-    rgba(255, 214, 130, 0.06),
-    rgba(10, 14, 30, 0.35) 75%
-  );
-  border: 1px solid rgba(189, 174, 231, 0.12);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 .chapter-head .col-titles {
   gap: 0;
 }
 .chapter-emblem {
-  color: #e9c47b;
-  text-shadow: 0 0 20px rgba(236, 192, 104, 0.45);
+  color: #f4d694;
+  text-shadow: 0 0 20px rgba(236, 192, 104, 0.65);
 }
 .chapter-overline {
   margin: 2px 0 6px;
-  color: rgba(244, 210, 139, 0.84);
+  color: #f8e0a8;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.24em;
   line-height: 1;
   text-transform: uppercase;
 }
+/* back button brighter for the dark forest backdrop */
+.chapter-head .back-btn {
+  color: #e8dbbf;
+  border-color: rgba(210, 195, 155, 0.45);
+  background: rgba(20, 16, 8, 0.45);
+}
+.chapter-head .back-btn:hover {
+  color: #fff;
+  border-color: rgba(240, 210, 140, 0.7);
+  background: rgba(50, 35, 12, 0.55);
+}
+.chapter-head .col-title {
+  background: linear-gradient(180deg, #fff 10%, #f2e0b8 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 30px rgba(220, 190, 120, 0.25);
+}
+.chapter-head .col-sub {
+  color: #d8ceaa;
+}
 
-/* Translucent misty glass progress header, blending into the forest atmosphere */
+/* glass backdrop for the masthead body — floats the title, rule, and sub
+   over the dark forest without a hard container edge. The back button
+   stays free of the glass so it reads as a separate control. */
+.chapter-head-inner {
+  padding: 16px 28px 18px;
+  border-radius: 18px;
+  background: rgba(10, 13, 24, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(220, 200, 150, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Subtle progress strip — no glass block, just a quiet rule */
 .chapter-brief {
   position: relative;
   display: flex;
@@ -20989,14 +21310,12 @@ body[data-view='chapter'] .bg-grid {
   padding: 14px 20px;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid rgba(189, 174, 231, 0.14);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(20, 24, 48, 0.32), rgba(10, 12, 28, 0.24));
-  box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .chapter-brief::after {
   position: absolute;
@@ -21005,10 +21324,9 @@ body[data-view='chapter'] .bg-grid {
   bottom: 0;
   left: 0;
   width: 3px;
-  border-radius: 14px 0 0 14px;
+  border-radius: 2px;
   content: '';
-  background: linear-gradient(180deg, #ffd682, #8d6dd0);
-  /* No outer glow: this must read as an in-plate rule, not an overlay. */
+  background: linear-gradient(180deg, rgba(255, 214, 130, 0.7), rgba(141, 109, 208, 0.5));
 }
 .chapter-brief-copy,
 .chapter-progress {
@@ -21022,7 +21340,7 @@ body[data-view='chapter'] .bg-grid {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #e7c678;
+  color: #f2d694;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -21034,7 +21352,7 @@ body[data-view='chapter'] .bg-grid {
 .chapter-brief-copy p {
   max-width: 700px;
   margin: 5px 0 0;
-  color: #b2b6ce;
+  color: #c8c4b4;
   font-size: 12px;
   line-height: 1.45;
 }
@@ -21046,13 +21364,13 @@ body[data-view='chapter'] .bg-grid {
   gap: 2px;
   min-width: 116px;
   padding-left: 18px;
-  border-left: 1px solid rgba(213, 210, 243, 0.14);
+  border-left: 1px solid rgba(213, 210, 243, 0.2);
 }
 .chapter-progress-n {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  color: #e9cf8a;
+  color: #f2dca4;
   font-family: 'Cinzel', serif;
 }
 .chapter-progress-n b {
@@ -21060,12 +21378,12 @@ body[data-view='chapter'] .bg-grid {
   letter-spacing: 0.06em;
 }
 .chapter-progress-n i {
-  color: rgba(214, 215, 234, 0.45);
+  color: rgba(230, 228, 210, 0.55);
   font-size: 13px;
   font-style: normal;
 }
 .chapter-progress-label {
-  color: #8990ac;
+  color: #b0a990;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -21087,7 +21405,6 @@ body[data-view='chapter'] .bg-grid {
   display: flex;
   flex-direction: column;
   width: 100%;
-  overflow: hidden;
   border-radius: 14px;
   border: 1px solid rgba(210, 211, 236, 0.18);
   background:
@@ -21169,7 +21486,7 @@ body[data-view='chapter'] .bg-grid {
 }
 .sc-meta {
   font-size: 11.5px;
-  color: #a4accd;
+  color: #c8c0aa;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -21194,7 +21511,7 @@ body[data-view='chapter'] .bg-grid {
 }
 .sc-chevron {
   font-size: 20px;
-  color: #8990ac;
+  color: #b0a890;
   transition: transform 0.25s var(--ease);
 }
 .stage-card:not(.is-locked):hover .sc-chevron {
@@ -21202,21 +21519,29 @@ body[data-view='chapter'] .bg-grid {
   color: #ffd682;
 }
 .sc-expand {
-  max-height: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: -1;
   overflow: hidden;
+  padding: 0 22px;
   opacity: 0;
+  transform: translateY(-8px);
   transition:
-    max-height 0.35s var(--ease),
     opacity 0.3s var(--ease),
-    padding 0.35s var(--ease);
+    transform 0.35s var(--ease);
   background: rgba(4, 6, 15, 0.55);
   border-top: 1px solid transparent;
+  border-radius: 0 0 14px 14px;
+  pointer-events: none;
 }
 .stage-card:not(.is-locked):hover .sc-expand {
-  max-height: 160px;
   opacity: 1;
-  padding: 14px 22px 18px;
+  transform: translateY(0);
   border-top-color: rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  z-index: 2;
 }
 .sc-lore {
   display: flex;
@@ -21737,18 +22062,10 @@ html.mqh820 .rival-art.has-portrait {
 
 /* The full paint remains in low graphics; only optional scene/card motion
    drops, matching the main menu's accessibility and performance contract. */
-body[data-gfx='low'] .chapter-bg > span,
-body[data-gfx='low'] .view.chapter.active .rival-card {
-  animation: none !important;
-}
 body[data-gfx='low'] .rival-card.is-first:hover {
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .chapter-bg > span,
-  .view.chapter.active .rival-card {
-    animation: none !important;
-  }
   .rival-card,
   .rival-open i {
     transition: none;
@@ -22049,5 +22366,187 @@ html.mqw640 .chapter-dialogue-foot {
   }
   .rule-card {
     padding: 16px 18px;
+  }
+}
+
+/* ======================================================================
+   TUTORIAL OVERLAY
+   ====================================================================== */
+.tut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  background: rgba(2, 3, 10, 0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.3s var(--ease),
+    visibility 0.3s;
+}
+.tut-overlay.on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.tut-highlight {
+  position: fixed;
+  z-index: 8001;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px rgba(2, 3, 10, 0.65),
+    0 0 0 3px rgba(255, 214, 130, 0.8),
+    0 0 24px rgba(255, 200, 90, 0.35);
+  transition:
+    left 0.35s var(--ease),
+    top 0.35s var(--ease),
+    width 0.35s var(--ease),
+    height 0.35s var(--ease);
+}
+
+.tut-pulse {
+  animation: tut-pulse 0.8s ease-in-out 3;
+}
+
+@keyframes tut-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 130, 0); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 214, 130, 0.45); }
+}
+
+.tut-dialog {
+  position: fixed;
+  z-index: 8002;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  width: min(540px, calc(100% - 48px));
+  padding: 22px 26px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 214, 130, 0.35);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 130, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(18, 22, 38, 0.98), rgba(8, 10, 20, 0.99));
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(255, 190, 80, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    left 0.35s var(--ease),
+    bottom 0.35s var(--ease),
+    transform 0.35s var(--ease);
+}
+
+.tut-dialog.tut-center {
+  bottom: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.tut-dialog.tut-below {
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
+.tut-dialog.tut-right {
+  left: auto;
+  right: 24px;
+  bottom: 50%;
+  transform: translateY(50%);
+  width: min(380px, calc(100% - 48px));
+}
+
+.tut-dialog.tut-left {
+  left: 24px;
+  right: auto;
+  bottom: 50%;
+  transform: translateY(50%);
+  width: min(380px, calc(100% - 48px));
+}
+
+.tut-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.tut-close:hover {
+  color: #fff;
+  border-color: rgba(255, 180, 130, 0.6);
+}
+
+.tut-title {
+  margin: 0 0 10px;
+  padding-right: 32px;
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffd682;
+  text-shadow: 0 0 14px rgba(255, 200, 90, 0.3);
+}
+
+.tut-body {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #d0d4e8;
+}
+.tut-body b {
+  color: #ffe9a8;
+}
+
+.tut-step {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.tut-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.tut-prev,
+.tut-next {
+  min-width: 110px;
+}
+
+body.tut-active {
+  overflow: hidden;
+}
+
+body[data-gfx='low'] .tut-overlay {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tut-overlay,
+  .tut-highlight,
+  .tut-dialog {
+    transition: none;
+  }
+  .tut-pulse {
+    animation: none;
   }
 }
