@@ -22404,8 +22404,7 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   height: 100%;
   object-fit: cover;
   object-position: 50% 24%;
-  image-rendering: pixelated;
-  -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: auto;
   filter: saturate(0.88) contrast(1.05);
 }
 .chapter-dialogue-art::after {
@@ -22423,16 +22422,7 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   pointer-events: none;
 }
 .chapter-dialogue-road {
-  position: absolute;
-  z-index: 1;
-  right: -34px;
-  bottom: -48px;
-  width: 148px;
-  height: 148px;
-  border: 1px dashed rgba(235, 207, 135, 0.38);
-  border-radius: 50%;
-  box-shadow: 0 0 0 18px rgba(111, 187, 126, 0.06);
-  transform: rotate(-18deg);
+  display: none; /* removed weird dashed circle reported by player — it read as a stray UI artifact */
 }
 .chapter-dialogue-copy {
   display: flex;
@@ -22675,6 +22665,7 @@ html.mqw640 .chapter-dialogue-foot {
     height 0.34s cubic-bezier(0.22,0.68,0.36,1),
     border-radius 0.34s var(--ease);
 }
+.tut-highlight { display: none !important; }
 .tut-highlight.tut-pulse {
   animation: tut-pulse 0.9s ease-in-out 2;
 }
