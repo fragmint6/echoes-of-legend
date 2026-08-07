@@ -1,9 +1,3 @@
-/* =============================================================
-   Echoes of Legend - Tutorial
-   Player-driven: highlights a target, blocks all other clicks.
-   Steps without a target show a Next button; action steps hide
-   Next and force the player to click the highlighted element.
-   ============================================================= */
 (function () {
   'use strict';
   var KEY = 'eol.tutorial.done';
@@ -27,7 +21,7 @@
       action:{nav:'chapter'} },
     { id:'gate-one', target:'#chapter-stage-1', pos:'right',
       title:'Gate I: The Recruiter',
-      body:'Every gate is a rival you must defeat. <b>Click Gate I</b> to meet The Recruiter. After this tutorial, come back here to start your first fight.',
+      body:'Every gate is a rival you must defeat. <b>Click Gate I</b> to meet The Recruiter.',
       action:{nav:'chapter'} },
     { id:'done', target:null, pos:'center',
       title:'You Are Ready',
@@ -41,21 +35,53 @@
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function build() {
-    overlay = document.createElement('div'); overlay.className = 'tut-overlay'; overlay.setAttribute('aria-hidden','true');
+    overlay = document.createElement('div'); overlay.className = 'tut-overlay';
     highlight = document.createElement('div'); highlight.className = 'tut-highlight';
-    dialog = document.createElement('div'); dialog.className = 'tut-dialog'; dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true'); dialog.setAttribute('aria-labelledby','tut-title');
-    var cb = document.createElement('button'); cb.className = 'tut-close'; cb.type = 'button'; cb.setAttribute('aria-label','Skip tutorial'); cb.innerHTML = '<i class="ri-close-line"></i>';
+    dialog = document.createElement('div'); dialog.className = 'tut-dialog';
+    dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true');
+    dialog.setAttribute('aria-labelledby','tut-title');
+
+    var cb = document.createElement('button'); cb.className = 'tut-close'; cb.type = 'button';
+    cb.setAttribute('aria-label','Skip tutorial'); cb.innerHTML = '<i class="ri-close-line"></i>';
+    cb.addEventListener('click', end);
+
     titleEl = document.createElement('h3'); titleEl.id = 'tut-title'; titleEl.className = 'tut-title';
     bodyEl = document.createElement('p'); bodyEl.className = 'tut-body';
     stepEl = document.createElement('span'); stepEl.className = 'tut-step';
+
     var foot = document.createElement('div'); foot.className = 'tut-foot';
-    prevBtn = document.createElement('button'); prevBtn.className = 'btn btn-ghost btn-slim tut-prev'; prevBtn.type = 'button'; prevBtn.innerHTML = '<i class="ri-arrow-left-line"></i><span>Back</span>';
-    nextBtn = document.createElement('button'); nextBtn.className = 'btn btn-primary btn-slim tut-next'; nextBtn.type = 'button'; nextBtn.innerHTML = '<span>Next</span><i class="ri-arrow-right-line"></i>';
+    prevBtn = document.createElement('button'); prevBtn.className = 'btn btn-ghost btn-slim tut-prev';
+    prevBtn.type = 'button'; prevBtn.innerHTML = '<i class="ri-arrow-left-line"></i><span>Back</span>';
+    prevBtn.addEventListener('click', back);
+    nextBtn = document.createElement('button'); nextBtn.className = 'btn btn-primary btn-slim tut-next';
+    nextBtn.type = 'button'; nextBtn.innerHTML = '<span>Next</span><i class="ri-arrow-right-line"></i>';
+    nextBtn.addEventListener('click', advance);
+
     foot.appendChild(prevBtn); foot.appendChild(nextBtn);
-    dialog.appendChild(cb); dialog.appendChild(titleEl); dialog.appendChild(bodyEl); dialog.appendChild(stepEl); dialog.appendChild(foot);
+    dialog.appendChild(cb); dialog.appendChild(titleEl); dialog.appendChild(bodyEl);
+    dialog.appendChild(stepEl); dialog.appendChild(foot);
     overlay.appendChild(highlight); overlay.appendChild(dialog);
+
+    /* Clicking the dark background (not the dialog) advances if it's a non-action step.
+       Action steps: player must click the highlighted element. */
+    overlay.addEventListener('click', function (e) {
+      if (!active || current < 0) return;
+      if (dialog.contains(e.target)) return; /* dialog buttons handled by their own listeners */
+      var s = STEPS[current];
+      if (s.target) {
+        var tgt = document.querySelector(s.target);
+        if (tgt && (tgt.contains(e.target) || tgt === e.target)) {
+          /* Player clicked the right element — let it through, advance after */
+          setTimeout(function () { if (active) showStep(current + 1); }, 500);
+          return;
+        }
+      }
+      /* Clicked nowhere useful. On non-action steps, allow background-click to advance.
+         On action steps, do nothing — they must click the target. */
+      if (!s.action) advance();
+    });
+
     document.body.appendChild(overlay);
-    cb.addEventListener('click',end); nextBtn.addEventListener('click',advance); prevBtn.addEventListener('click',back);
   }
 
   function positionHighlight(target) {
@@ -90,40 +116,22 @@
 
   function start() {
     if (active) return; if (!overlay) build(); active = true;
-    overlay.setAttribute('aria-hidden','false'); overlay.classList.add('on');
-    document.body.classList.add('tut-active'); showStep(0);
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('click', onGlobalClick, true);
+    overlay.classList.add('on'); document.body.classList.add('tut-active');
+    showStep(0); document.addEventListener('keydown', onKey);
   }
 
   function end() {
     if (!active) return; active = false;
-    overlay.setAttribute('aria-hidden','true'); overlay.classList.remove('on');
-    document.body.classList.remove('tut-active');
+    overlay.classList.remove('on'); document.body.classList.remove('tut-active');
     document.removeEventListener('keydown', onKey);
-    document.removeEventListener('click', onGlobalClick, true);
     try { localStorage.setItem(KEY, '1'); } catch (e) {}
     if (window.EOL.ui && window.EOL.ui.show) window.EOL.ui.show('home');
   }
 
   function onKey(e) {
     if (e.key === 'Escape') { e.preventDefault(); end(); }
-    else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); advance(); }
+    else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); if (!STEPS[current].action) advance(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
-  }
-
-  function onGlobalClick(e) {
-    if (!active || current < 0) return;
-    var s = STEPS[current];
-    if (dialog.contains(e.target)) return;
-    if (s.target) {
-      var tgt = document.querySelector(s.target);
-      if (tgt && (tgt.contains(e.target) || tgt === e.target)) {
-        if (s.action && s.action.nav) setTimeout(function () { if (active) showStep(current + 1); }, 500);
-        return;
-      }
-    }
-    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   }
 
   window.EOL.tutorial = {

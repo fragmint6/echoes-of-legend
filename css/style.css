@@ -15803,11 +15803,11 @@ body[data-view='home'] .mb-near {
 .mb-embers i {
   position: absolute;
   bottom: -6px;
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: #ffb45c;
-  box-shadow: 0 0 5px rgba(255, 170, 80, 0.85);
+  box-shadow: 0 0 8px rgba(255, 170, 80, 0.95), 0 0 16px rgba(255, 140, 50, 0.5);
   opacity: 0;
   animation: mb-ember linear infinite;
 }
@@ -16019,20 +16019,20 @@ body[data-gfx='low'] .mb-shoot {
   will-change: transform;
 }
 .mb-motes.far i {
-  width: 1px;
-  height: 1px;
-  box-shadow: 0 0 2px rgba(200, 220, 255, 0.5);
-}
-.mb-motes.mid i {
   width: 2px;
   height: 2px;
-  box-shadow: 0 0 3px rgba(200, 220, 255, 0.6);
+  box-shadow: 0 0 4px rgba(200, 220, 255, 0.6);
 }
-.mb-motes.near i {
+.mb-motes.mid i {
   width: 3px;
   height: 3px;
+  box-shadow: 0 0 6px rgba(200, 220, 255, 0.7);
+}
+.mb-motes.near i {
+  width: 5px;
+  height: 5px;
   background: #eef4ff;
-  box-shadow: 0 0 5px rgba(220, 235, 255, 0.75);
+  box-shadow: 0 0 8px rgba(220, 235, 255, 0.85);
 }
 /* Sway is applied as a second, faster animation on the same element so
    the fall stays perfectly linear and the drift reads as air movement. */
@@ -17352,11 +17352,11 @@ body[data-gfx='low'] .sc-weather {
 }
 .mb-wisps i {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #c4ffd9;
-  box-shadow: 0 0 7px 1px rgba(122, 255, 190, 0.75);
+  box-shadow: 0 0 10px 2px rgba(122, 255, 190, 0.8), 0 0 20px rgba(122, 255, 190, 0.35);
   opacity: 0;
   animation: mb-wander ease-in-out infinite;
   will-change: transform, opacity;
@@ -18008,7 +18008,7 @@ body[data-gfx='low'] .veil-ward > i {
 .home-corner-btns {
   position: absolute;
   left: 22px;
-  top: 72px;
+  top: 68px;
   z-index: 30;
   display: flex;
   flex-direction: column;
@@ -19936,8 +19936,8 @@ body[data-gfx='low'] .deck::before {
 .home-actions {
   width: min(680px, calc(var(--vw1) * 94));
   display: grid;
-  /* Play owns a full row, secondaries form a clean row of 3 below */
-  grid-template-columns: repeat(3, 1fr);
+  /* Play owns a full row, secondaries form a row of 2 below */
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
   justify-content: center;
 }
@@ -21070,11 +21070,11 @@ body[data-view='chapter'] .bg-grid {
 .cw-glints i {
   position: absolute;
   top: -4px;
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
-  background: #e8c97a;
-  box-shadow: 0 0 5px rgba(232, 201, 122, 0.85), 0 0 10px rgba(200, 160, 60, 0.4);
+  background: #f0d68a;
+  box-shadow: 0 0 8px rgba(240, 214, 138, 0.9), 0 0 16px rgba(220, 170, 60, 0.55);
   opacity: 0;
   animation: cw-glint-fall linear infinite;
 }
@@ -21116,11 +21116,11 @@ body[data-view='chapter'] .bg-grid {
 }
 .cw-wisps i {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(190,230,255,0.9), rgba(140,210,240,0.3) 50%, transparent 72%);
-  box-shadow: 0 0 9px rgba(160,220,255,0.65), 0 0 16px rgba(120,190,230,0.3);
+  background: radial-gradient(circle, rgba(200,240,255,0.95), rgba(150,220,245,0.4) 45%, transparent 70%);
+  box-shadow: 0 0 14px rgba(170,230,255,0.7), 0 0 26px rgba(130,200,240,0.35);
   opacity: 0;
   animation: cw-wisp-wander ease-in-out infinite;
 }
@@ -21164,13 +21164,14 @@ body[data-view='chapter'] .bg-grid {
   100% { opacity:0; transform:translate3d(var(--dx,14px), calc(var(--vh1) * 118), 0); }
 }
 .cw-motes.far i {
-  width: 1.5px; height: 1.5px;
-  background: rgba(185,195,210,0.7);
+  width: 2px; height: 2px;
+  background: rgba(195,205,218,0.75);
+  box-shadow: 0 0 4px rgba(170,185,200,0.5);
 }
 .cw-motes.mid i {
-  width: 2.5px; height: 2.5px;
-  background: rgba(200,210,220,0.6);
-  box-shadow: 0 0 3px rgba(170,185,200,0.4);
+  width: 4px; height: 4px;
+  background: rgba(210,218,228,0.65);
+  box-shadow: 0 0 6px rgba(180,195,210,0.55);
 }
 .cw-motes.far i:nth-child(1){left:4%;--dx:12px;--o:0.25;animation-duration:48s;animation-delay:-5s;}
 .cw-motes.far i:nth-child(2){left:9%;--dx:-10px;--o:0.32;animation-duration:52s;animation-delay:-18s;}
@@ -21404,7 +21405,6 @@ body[data-gfx='low'] .cw-motes {
   display: flex;
   flex-direction: column;
   width: 100%;
-  overflow: hidden;
   border-radius: 14px;
   border: 1px solid rgba(210, 211, 236, 0.18);
   background:
@@ -22389,6 +22389,7 @@ html.mqw640 .chapter-dialogue-foot {
 .tut-overlay.on {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .tut-highlight {
