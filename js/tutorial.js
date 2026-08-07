@@ -306,15 +306,63 @@ var STEPS = [
       try{ boundTarget.removeEventListener('click', boundHandler); }catch(e){}
     }
     if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
-    var elevated=document.querySelectorAll('.tut-elevated');
+    var elevated=document.querySelectorAll('.tut-elevated, .tut-elevated-parent');
     elevated.forEach(function(el){
       el.classList.remove('tut-elevated');
+      el.classList.remove('tut-elevated-parent');
+      el.style.removeProperty('z-index');
       if(el.dataset.tutPosSet){
         el.style.removeProperty('position');
         delete el.dataset.tutPosSet;
       }
     });
     boundTarget=null; boundHandler=null;
+  }
+
+  function elevateWithAncestors(target){
+    if(!target) return;
+    // elevate target itself
+    target.classList.add('tut-elevated');
+    var cs=getComputedStyle(target);
+    if(cs.position==='static'){
+      target.style.position='relative';
+      target.dataset.tutPosSet='1';
+    }
+    target.style.zIndex='8001';
+
+    // walk up and elevate any modal / fixed container that would otherwise trap it below overlay
+    var cur=target.parentElement;
+    var depth=0;
+    while(cur && cur!==document.body && depth<12){
+      var ccs=getComputedStyle(cur);
+      var isModal = cur.matches && (
+        cur.matches('.chapter-dialogue') ||
+        cur.matches('.chapter-dialogue-card') ||
+        cur.matches('.deck-modal') ||
+        cur.matches('.dm-card') ||
+        cur.matches('.setm') ||
+        cur.matches('.setm-card') ||
+        cur.matches('.bf-reveal') ||
+        cur.matches('.bf-card') ||
+        cur.matches('.coach') ||
+        cur.matches('.auth-modal') ||
+        cur.matches('.mm-modal')
+      );
+      var isFixed = ccs.position==='fixed';
+      if(isModal || isFixed){
+        // elevate this ancestor above overlay
+        cur.classList.add('tut-elevated-parent');
+        cur.style.zIndex='8001';
+        // if it was hidden behind veil logic, ensure it stays
+        if(ccs.position==='static'){
+          cur.style.position='relative';
+          cur.dataset.tutPosSet='1';
+        }
+      }
+      // stop at view boundary? Actually we want to elevate up to view as well if needed, but view already z-index auto
+      cur=cur.parentElement;
+      depth++;
+    }
   }
 
   function showDeckReward(cb){
@@ -400,12 +448,7 @@ var STEPS = [
     placeOverlay(target);
 
     if(target){
-      target.classList.add('tut-elevated');
-      var cs=getComputedStyle(target);
-      if(cs.position==='static'){
-        target.style.position='relative';
-        target.dataset.tutPosSet='1';
-      }
+      elevateWithAncestors(target);
 
       if(s.action){
         boundTarget=target;

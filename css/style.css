@@ -22614,7 +22614,7 @@ html.mqw640 .chapter-dialogue-foot {
   background: rgba(2,3,10,0.32);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-  pointer-events: auto;
+  pointer-events: none;
   opacity: 0;
   visibility: hidden;
   transition:
@@ -22624,11 +22624,11 @@ html.mqw640 .chapter-dialogue-foot {
 .tut-overlay.on {
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;
+  pointer-events: none;
 }
 .tut-overlay.no-target,
 .tut-overlay.has-target {
-  pointer-events: auto;
+  pointer-events: none;
   background: rgba(2,3,10,0.32);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
@@ -22641,10 +22641,13 @@ html.mqw640 .chapter-dialogue-foot {
 }
 .tut-highlight.tut-pulse { display: none !important; }
 .tut-elevated {
-  position: relative !important;
   z-index: 8001 !important;
   pointer-events: auto !important;
   isolation: isolate;
+}
+.tut-elevated-parent {
+  z-index: 8001 !important;
+  pointer-events: auto !important;
 }
 
 .tut-dialog {
@@ -22759,12 +22762,14 @@ body.tut-active .time-warn {
 /* re-enable only highlighted element + its children + dialog */
 body.tut-active .tut-elevated,
 body.tut-active .tut-elevated *,
+body.tut-active .tut-elevated-parent,
+body.tut-active .tut-elevated-parent *,
 body.tut-active .tut-dialog,
 body.tut-active .tut-dialog * {
   pointer-events: auto !important;
 }
 body.tut-active .tut-overlay {
-  pointer-events: auto !important;
+  pointer-events: none !important;
 }
 body.tut-active .tut-highlight {
   pointer-events: none !important;
