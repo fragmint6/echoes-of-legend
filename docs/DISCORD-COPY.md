@@ -34,7 +34,7 @@ Placement matters. Front row eats what the back row would have taken, and a Tank
 - **Classic** and **Draft** against the AI
 - **Unabridged** - a best-of-3 war: three arenas, loser picks the next board, mandatory swaps between games
 - **Online Draft** and **Online Classic** against real players
-- Campaign is planned, not built
+- Campaign: **Chapter 1 (The Road of Echoes)** is live with 10 gates — Stage 1 (The Recruiter) is fully playable with dialogue and a battle launch
 
 Free, no install, no download. Runs in the browser on desktop or phone.
 

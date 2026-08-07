@@ -47,7 +47,7 @@ overlap.
 
 Pinning a hero into the twelve is not enough - fielding is also the draft
 AI's judgement, so a card it dislikes gets drafted and benched. Measured on
-a real run, **17 of 57 forced heroes never played a single game**, including
+a real run, **17 of 63 forced heroes never played a single game**, including
 Merlin, the card that prompted this work. A forced hero must be exempt from
 the opponent's bans and guaranteed a slot in the six, or the pass measures
 nothing. Ban rate is still measured honestly by the unforced passes.
