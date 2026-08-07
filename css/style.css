@@ -14346,15 +14346,15 @@ body[data-auth='in'] .acct-avatar {
   position: relative;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid var(--line-2);
   background: linear-gradient(180deg, rgba(14, 17, 28, 0.9), rgba(8, 10, 18, 0.82));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #9aa3c4;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   text-decoration: none;
   cursor: var(--cur-pointer);
@@ -21056,6 +21056,166 @@ body[data-view='chapter'] .bg-grid {
 @keyframes cw-haze-drift {
   from { transform: translateX(-1.5%) translateY(0); }
   to   { transform: translateX(1.5%) translateY(-0.8%); }
+}
+
+/* ---- brass-tag glints: tiny gold sparks falling between the trees,
+       catching faint light as they spin. Dense field of 20 hand-placed
+       motes, each on its own lane and timing. ---- */
+.cw-glints {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.cw-glints i {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #e8c97a;
+  box-shadow: 0 0 5px rgba(232, 201, 122, 0.85), 0 0 10px rgba(200, 160, 60, 0.4);
+  opacity: 0;
+  animation: cw-glint-fall linear infinite;
+}
+@keyframes cw-glint-fall {
+  0%   { opacity: 0;   transform: translate3d(0, 0, 0) rotate(0deg); }
+  8%   { opacity: var(--o, 0.6); }
+  88%  { opacity: var(--o, 0.6); }
+  100% { opacity: 0;   transform: translate3d(var(--dx, 20px), calc(var(--vh1) * 112), 0) rotate(var(--rot, 220deg)); }
+}
+.cw-glints i:nth-child(1)  { left:3%;  --dx:22px; --o:0.7; --rot:240deg; animation-duration:18s; animation-delay:0s; }
+.cw-glints i:nth-child(2)  { left:8%;  --dx:-18px;--o:0.55;--rot:300deg;animation-duration:22s; animation-delay:3s; }
+.cw-glints i:nth-child(3)  { left:13%; --dx:28px; --o:0.65;--rot:190deg;animation-duration:16s; animation-delay:7s; }
+.cw-glints i:nth-child(4)  { left:18%; --dx:-24px;--o:0.5; --rot:260deg;animation-duration:25s; animation-delay:1s; }
+.cw-glints i:nth-child(5)  { left:23%; --dx:16px; --o:0.72;--rot:210deg;animation-duration:19s; animation-delay:9s; }
+.cw-glints i:nth-child(6)  { left:28%; --dx:-20px;--o:0.58;--rot:280deg;animation-duration:21s; animation-delay:4s; }
+.cw-glints i:nth-child(7)  { left:33%; --dx:26px; --o:0.63;--rot:230deg;animation-duration:15s; animation-delay:11s; }
+.cw-glints i:nth-child(8)  { left:38%; --dx:-14px;--o:0.52;--rot:310deg;animation-duration:24s; animation-delay:2s; }
+.cw-glints i:nth-child(9)  { left:43%; --dx:30px; --o:0.75;--rot:180deg;animation-duration:17s; animation-delay:8s; }
+.cw-glints i:nth-child(10) { left:48%; --dx:-22px;--o:0.55;--rot:250deg;animation-duration:23s; animation-delay:5s; }
+.cw-glints i:nth-child(11) { left:53%; --dx:18px; --o:0.68;--rot:290deg;animation-duration:20s; animation-delay:13s; }
+.cw-glints i:nth-child(12) { left:58%; --dx:-26px;--o:0.5; --rot:220deg;animation-duration:14s; animation-delay:6s; }
+.cw-glints i:nth-child(13) { left:63%; --dx:24px; --o:0.7; --rot:270deg;animation-duration:26s; animation-delay:10s; }
+.cw-glints i:nth-child(14) { left:68%; --dx:-16px;--o:0.6; --rot:200deg;animation-duration:18s; animation-delay:0s; }
+.cw-glints i:nth-child(15) { left:73%; --dx:20px; --o:0.56;--rot:240deg;animation-duration:22s; animation-delay:12s; }
+.cw-glints i:nth-child(16) { left:78%; --dx:-28px;--o:0.62;--rot:300deg;animation-duration:16s; animation-delay:3s; }
+.cw-glints i:nth-child(17) { left:83%; --dx:14px; --o:0.72;--rot:190deg;animation-duration:21s; animation-delay:8s; }
+.cw-glints i:nth-child(18) { left:88%; --dx:-24px;--o:0.53;--rot:260deg;animation-duration:19s; animation-delay:14s; }
+.cw-glints i:nth-child(19) { left:93%; --dx:26px; --o:0.66;--rot:230deg;animation-duration:15s; animation-delay:6s; }
+.cw-glints i:nth-child(20) { left:96%; --dx:-12px;--o:0.58;--rot:280deg;animation-duration:24s; animation-delay:11s; }
+
+/* ---- forest wisps: larger soft blue-white spirit lights drifting
+       through the trees on wandering looping paths, like distant
+       WILL-O'-THE-WISPS. Eight of them, no two sharing a route. ---- */
+.cw-wisps {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.cw-wisps i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(190,230,255,0.9), rgba(140,210,240,0.3) 50%, transparent 72%);
+  box-shadow: 0 0 9px rgba(160,220,255,0.65), 0 0 16px rgba(120,190,230,0.3);
+  opacity: 0;
+  animation: cw-wisp-wander ease-in-out infinite;
+}
+@keyframes cw-wisp-wander {
+  0%   { opacity:0; transform:translate3d(0,0,0); }
+  12%  { opacity:var(--p,0.7); }
+  30%  { transform:translate3d(var(--x1,30px),var(--y1,-22px),0); }
+  52%  { opacity:calc(var(--p,0.7)*0.4); transform:translate3d(var(--x2,12px),var(--y2,-36px),0); }
+  74%  { opacity:var(--p,0.7); transform:translate3d(var(--x3,-18px),var(--y3,-14px),0); }
+  100% { opacity:0; transform:translate3d(0,0,0); }
+}
+.cw-wisps i:nth-child(1){left:5%;top:78%;--x1:26px;--y1:-18px;--x2:38px;--y2:-8px;--x3:14px;--y3:-28px;--p:0.7;animation-duration:16s;animation-delay:0s;}
+.cw-wisps i:nth-child(2){left:15%;top:88%;--x1:-20px;--y1:-24px;--x2:-32px;--y2:-10px;--x3:-12px;--y3:-30px;--p:0.55;animation-duration:22s;animation-delay:4s;}
+.cw-wisps i:nth-child(3){left:25%;top:68%;--x1:28px;--y1:-14px;--x2:10px;--y2:-26px;--x3:-20px;--y3:-16px;--p:0.65;animation-duration:18s;animation-delay:8s;}
+.cw-wisps i:nth-child(4){left:35%;top:92%;--x1:22px;--y1:-28px;--x2:-14px;--y2:-16px;--x3:18px;--y3:-10px;--p:0.5;animation-duration:24s;animation-delay:2s;}
+.cw-wisps i:nth-child(5){left:45%;top:72%;--x1:-26px;--y1:-16px;--x2:-10px;--y2:-28px;--x3:20px;--y3:-24px;--p:0.75;animation-duration:14s;animation-delay:10s;}
+.cw-wisps i:nth-child(6){left:55%;top:82%;--x1:18px;--y1:-22px;--x2:30px;--y2:-6px;--x3:8px;--y3:-26px;--p:0.6;animation-duration:20s;animation-delay:6s;}
+.cw-wisps i:nth-child(7){left:72%;top:74%;--x1:-22px;--y1:-18px;--x2:-34px;--y2:-30px;--x3:-8px;--y3:-12px;--p:0.7;animation-duration:17s;animation-delay:12s;}
+.cw-wisps i:nth-child(8){left:88%;top:86%;--x1:24px;--y1:-24px;--x2:8px;--y2:-12px;--x3:-16px;--y3:-22px;--p:0.52;animation-duration:26s;animation-delay:3s;}
+
+/* ---- forest motes: two depth bands of barely-visible pale dust
+       drifting slowly through the scene. Far band is smaller and
+       dimmer; mid band is slightly larger and closer. ---- */
+.cw-motes {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.cw-motes i {
+  position: absolute;
+  top: -4px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: cw-mote-drift linear infinite;
+}
+@keyframes cw-mote-drift {
+  0%   { opacity:0; transform:translate3d(0,0,0); }
+  10%  { opacity:var(--o,0.3); }
+  85%  { opacity:var(--o,0.3); }
+  100% { opacity:0; transform:translate3d(var(--dx,14px), calc(var(--vh1) * 118), 0); }
+}
+.cw-motes.far i {
+  width: 1.5px; height: 1.5px;
+  background: rgba(185,195,210,0.7);
+}
+.cw-motes.mid i {
+  width: 2.5px; height: 2.5px;
+  background: rgba(200,210,220,0.6);
+  box-shadow: 0 0 3px rgba(170,185,200,0.4);
+}
+.cw-motes.far i:nth-child(1){left:4%;--dx:12px;--o:0.25;animation-duration:48s;animation-delay:-5s;}
+.cw-motes.far i:nth-child(2){left:9%;--dx:-10px;--o:0.32;animation-duration:52s;animation-delay:-18s;}
+.cw-motes.far i:nth-child(3){left:14%;--dx:16px;--o:0.22;animation-duration:44s;animation-delay:-30s;}
+.cw-motes.far i:nth-child(4){left:19%;--dx:-8px;--o:0.28;animation-duration:56s;animation-delay:-8s;}
+.cw-motes.far i:nth-child(5){left:24%;--dx:14px;--o:0.35;animation-duration:40s;animation-delay:-22s;}
+.cw-motes.far i:nth-child(6){left:29%;--dx:-12px;--o:0.24;animation-duration:50s;animation-delay:-35s;}
+.cw-motes.far i:nth-child(7){left:34%;--dx:10px;--o:0.3;animation-duration:46s;animation-delay:-12s;}
+.cw-motes.far i:nth-child(8){left:39%;--dx:-14px;--o:0.26;animation-duration:54s;animation-delay:-28s;}
+.cw-motes.far i:nth-child(9){left:44%;--dx:18px;--o:0.22;animation-duration:42s;animation-delay:-3s;}
+.cw-motes.far i:nth-child(10){left:49%;--dx:-10px;--o:0.33;animation-duration:58s;animation-delay:-40s;}
+.cw-motes.far i:nth-child(11){left:54%;--dx:12px;--o:0.27;animation-duration:45s;animation-delay:-15s;}
+.cw-motes.far i:nth-child(12){left:59%;--dx:-16px;--o:0.3;animation-duration:49s;animation-delay:-25s;}
+.cw-motes.far i:nth-child(13){left:64%;--dx:8px;--o:0.24;animation-duration:53s;animation-delay:-38s;}
+.cw-motes.far i:nth-child(14){left:69%;--dx:-12px;--o:0.32;animation-duration:41s;animation-delay:-10s;}
+.cw-motes.far i:nth-child(15){left:74%;--dx:14px;--o:0.28;animation-duration:47s;animation-delay:-20s;}
+.cw-motes.far i:nth-child(16){left:79%;--dx:-10px;--o:0.25;animation-duration:55s;animation-delay:-33s;}
+.cw-motes.far i:nth-child(17){left:84%;--dx:16px;--o:0.3;animation-duration:43s;animation-delay:-7s;}
+.cw-motes.far i:nth-child(18){left:89%;--dx:-14px;--o:0.26;animation-duration:51s;animation-delay:-27s;}
+.cw-motes.far i:nth-child(19){left:94%;--dx:10px;--o:0.22;animation-duration:39s;animation-delay:-16s;}
+.cw-motes.far i:nth-child(20){left:97%;--dx:-8px;--o:0.34;animation-duration:57s;animation-delay:-42s;}
+.cw-motes.mid i:nth-child(1){left:6%;--dx:18px;--o:0.28;animation-duration:36s;animation-delay:-3s;}
+.cw-motes.mid i:nth-child(2){left:16%;--dx:-20px;--o:0.32;animation-duration:40s;animation-delay:-12s;}
+.cw-motes.mid i:nth-child(3){left:26%;--dx:22px;--o:0.25;animation-duration:34s;animation-delay:-22s;}
+.cw-motes.mid i:nth-child(4){left:36%;--dx:-16px;--o:0.3;animation-duration:38s;animation-delay:-6s;}
+.cw-motes.mid i:nth-child(5){left:46%;--dx:20px;--o:0.34;animation-duration:32s;animation-delay:-18s;}
+.cw-motes.mid i:nth-child(6){left:56%;--dx:-24px;--o:0.27;animation-duration:42s;animation-delay:-28s;}
+.cw-motes.mid i:nth-child(7){left:66%;--dx:14px;--o:0.3;animation-duration:35s;animation-delay:-9s;}
+.cw-motes.mid i:nth-child(8){left:76%;--dx:-18px;--o:0.33;animation-duration:39s;animation-delay:-24s;}
+.cw-motes.mid i:nth-child(9){left:86%;--dx:24px;--o:0.26;animation-duration:33s;animation-delay:-15s;}
+.cw-motes.mid i:nth-child(10){left:92%;--dx:-22px;--o:0.29;animation-duration:37s;animation-delay:-30s;}
+.cw-motes.mid i:nth-child(11){left:11%;--dx:16px;--o:0.35;animation-duration:41s;animation-delay:-20s;}
+.cw-motes.mid i:nth-child(12){left:21%;--dx:-14px;--o:0.24;animation-duration:35s;animation-delay:-8s;}
+.cw-motes.mid i:nth-child(13){left:31%;--dx:22px;--o:0.31;animation-duration:39s;animation-delay:-26s;}
+.cw-motes.mid i:nth-child(14){left:41%;--dx:-20px;--o:0.28;animation-duration:33s;animation-delay:-14s;}
+.cw-motes.mid i:nth-child(15){left:51%;--dx:18px;--o:0.26;animation-duration:37s;animation-delay:-5s;}
+
+/* Low graphics / reduced motion: chapter particles drop. */
+body[data-gfx='low'] .cw-glints,
+body[data-gfx='low'] .cw-wisps,
+body[data-gfx='low'] .cw-motes {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cw-glints, .cw-wisps, .cw-motes { display: none; }
 }
 
 /* ---------------- chapter view chrome ---------------- */

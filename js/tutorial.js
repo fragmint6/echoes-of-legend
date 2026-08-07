@@ -1,14 +1,17 @@
-/* Echoes of Legend - Tutorial
-   Player-driven: tells the player what to do, blocks clicks on
-   everything except the one target element. When the player clicks
-   the target, the click passes through and the tutorial advances. */
+/* =============================================================
+   Echoes of Legend - Tutorial
+   Player-driven: highlights a target, blocks all other clicks.
+   Steps without a target show a Next button; action steps hide
+   Next and force the player to click the highlighted element.
+   ============================================================= */
 (function () {
   'use strict';
-  var TUTORIAL_KEY = 'eol.tutorial.done';
+  var KEY = 'eol.tutorial.done';
+
   var STEPS = [
     { id:'welcome', target:null, pos:'center',
       title:'Welcome to Echoes of Legend',
-      body:'A card battler where myth meets tactics. This quick tour will show you the ropes. Click <b>Begin</b> below.',
+      body:'A card battler where myth meets tactics. This quick tour will show you the ropes.',
       nextLabel:'Begin' },
     { id:'play-btn', target:'#btn-play', pos:'below',
       title:'Click Play',
@@ -24,16 +27,19 @@
       action:{nav:'chapter'} },
     { id:'gate-one', target:'#chapter-stage-1', pos:'right',
       title:'Gate I: The Recruiter',
-      body:'Every gate is a rival. <b>Click Gate I</b> to meet The Recruiter. After this tutorial, come back here to start your first fight.',
+      body:'Every gate is a rival you must defeat. <b>Click Gate I</b> to meet The Recruiter. After this tutorial, come back here to start your first fight.',
       action:{nav:'chapter'} },
     { id:'done', target:null, pos:'center',
       title:'You Are Ready',
       body:'The road is yours. Build decks in the <b>Collection</b>, browse the <b>Rulebook</b>. Good luck, Wayfarer.',
       nextLabel:'Finish' },
   ];
+
   var overlay, highlight, dialog, titleEl, bodyEl, stepEl, prevBtn, nextBtn;
   var current = -1, active = false;
+
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
   function build() {
     overlay = document.createElement('div'); overlay.className = 'tut-overlay'; overlay.setAttribute('aria-hidden','true');
     highlight = document.createElement('div'); highlight.className = 'tut-highlight';
@@ -51,67 +57,79 @@
     document.body.appendChild(overlay);
     cb.addEventListener('click',end); nextBtn.addEventListener('click',advance); prevBtn.addEventListener('click',back);
   }
+
   function positionHighlight(target) {
-    if(!target){highlight.style.display='none';return;}
-    highlight.style.display=''; var z=(window.EOL.scale&&window.EOL.scale.factor())||1;
-    var r=target.getBoundingClientRect(),pad=8;
-    highlight.style.left=Math.max(0,r.left/z-pad)+'px'; highlight.style.top=Math.max(0,r.top/z-pad)+'px';
-    highlight.style.width=r.width/z+pad*2+'px'; highlight.style.height=r.height/z+pad*2+'px';
+    if (!target) { highlight.style.display = 'none'; return; }
+    highlight.style.display = '';
+    var z = (window.EOL.scale && window.EOL.scale.factor()) || 1;
+    var r = target.getBoundingClientRect(), pad = 8;
+    highlight.style.left = Math.max(0, r.left / z - pad) + 'px';
+    highlight.style.top = Math.max(0, r.top / z - pad) + 'px';
+    highlight.style.width = r.width / z + pad * 2 + 'px';
+    highlight.style.height = r.height / z + pad * 2 + 'px';
   }
+
   function showStep(i) {
-    if(i<0||i>=STEPS.length)return; current=i; var s=STEPS[i];
-    titleEl.innerHTML=esc(s.title); bodyEl.innerHTML=s.body;
-    stepEl.textContent=(i+1)+' / '+STEPS.length;
-    prevBtn.style.visibility=i===0?'hidden':'';
-    var isLast=i===STEPS.length-1;
-    nextBtn.querySelector('span').textContent=s.nextLabel||(isLast?'Finish':'Next');
-    nextBtn.querySelector('i').className=isLast?'ri-check-line':'ri-arrow-right-line';
-    nextBtn.style.visibility=s.action?'hidden':'';
-    var target=s.target?document.querySelector(s.target):null;
+    if (i < 0 || i >= STEPS.length) return;
+    current = i; var s = STEPS[i];
+    titleEl.innerHTML = esc(s.title); bodyEl.innerHTML = s.body;
+    stepEl.textContent = (i + 1) + ' / ' + STEPS.length;
+    prevBtn.style.visibility = i === 0 ? 'hidden' : '';
+    var isLast = i === STEPS.length - 1;
+    nextBtn.querySelector('span').textContent = s.nextLabel || (isLast ? 'Finish' : 'Next');
+    nextBtn.querySelector('i').className = isLast ? 'ri-check-line' : 'ri-arrow-right-line';
+    nextBtn.style.visibility = s.action ? 'hidden' : '';
+    var target = s.target ? document.querySelector(s.target) : null;
     positionHighlight(target);
     dialog.classList.remove('tut-center','tut-below','tut-right','tut-left','tut-above');
-    dialog.classList.add('tut-'+(s.pos||'center'));
+    dialog.classList.add('tut-' + (s.pos || 'center'));
   }
-  function advance(){if(current>=STEPS.length-1){end();return;}showStep(current+1);}
-  function back(){if(current<=0)return;showStep(current-1);}
-  function start(){
-    if(active)return; if(!overlay)build(); active=true;
+
+  function advance() { if (current >= STEPS.length - 1) { end(); return; } showStep(current + 1); }
+  function back() { if (current <= 0) return; showStep(current - 1); }
+
+  function start() {
+    if (active) return; if (!overlay) build(); active = true;
     overlay.setAttribute('aria-hidden','false'); overlay.classList.add('on');
     document.body.classList.add('tut-active'); showStep(0);
-    document.addEventListener('keydown',onKey);
-    document.addEventListener('click',onGlobalClick,true);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('click', onGlobalClick, true);
   }
-  function end(){
-    if(!active)return; active=false;
+
+  function end() {
+    if (!active) return; active = false;
     overlay.setAttribute('aria-hidden','true'); overlay.classList.remove('on');
     document.body.classList.remove('tut-active');
-    document.removeEventListener('keydown',onKey);
-    document.removeEventListener('click',onGlobalClick,true);
-    try{localStorage.setItem(TUTORIAL_KEY,'1');}catch(e){}
-    if(window.EOL.ui&&window.EOL.ui.show)window.EOL.ui.show('home');
+    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('click', onGlobalClick, true);
+    try { localStorage.setItem(KEY, '1'); } catch (e) {}
+    if (window.EOL.ui && window.EOL.ui.show) window.EOL.ui.show('home');
   }
-  function onKey(e){
-    if(e.key==='Escape'){e.preventDefault();end();}
-    else if(e.key==='ArrowRight'||e.key==='Enter'){e.preventDefault();advance();}
-    else if(e.key==='ArrowLeft'){e.preventDefault();back();}
+
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); end(); }
+    else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); advance(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
   }
-  function onGlobalClick(e){
-    if(!active||current<0)return;
-    var s=STEPS[current];
-    if(dialog.contains(e.target))return;
-    if(s.target){
-      var tgt=document.querySelector(s.target);
-      if(tgt&&(tgt.contains(e.target)||tgt===e.target)){
-        if(s.action&&s.action.nav) setTimeout(function(){if(active)showStep(current+1);},500);
+
+  function onGlobalClick(e) {
+    if (!active || current < 0) return;
+    var s = STEPS[current];
+    if (dialog.contains(e.target)) return;
+    if (s.target) {
+      var tgt = document.querySelector(s.target);
+      if (tgt && (tgt.contains(e.target) || tgt === e.target)) {
+        if (s.action && s.action.nav) setTimeout(function () { if (active) showStep(current + 1); }, 500);
         return;
       }
     }
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   }
-  window.EOL.tutorial={
-    start:start, end:end,
-    isActive:function(){return active;},
-    isDone:function(){try{return localStorage.getItem(TUTORIAL_KEY)==='1';}catch(e){return false;}},
-    reset:function(){try{localStorage.removeItem(TUTORIAL_KEY);}catch(e){}},
+
+  window.EOL.tutorial = {
+    start: start, end: end,
+    isActive: function () { return active; },
+    isDone: function () { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } },
+    reset: function () { try { localStorage.removeItem(KEY); } catch (e) {} }
   };
 })();
