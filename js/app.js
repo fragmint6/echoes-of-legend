@@ -483,9 +483,9 @@
      fast cached swap doesn't strobe the spinner, and a hard MAXIMUM so
      a slow asset can never trap the player behind the veil. */
   var veil = document.getElementById('veil');
-  var VEIL_MIN_MS = 430;
-  var VEIL_MIN_LOW_MS = 180; // low-graphics users traded garnish for speed
-  var VEIL_MAX_MS = 1600;
+  var VEIL_MIN_MS = 720;
+  var VEIL_MIN_LOW_MS = 280; // low-graphics users traded garnish for speed
+  var VEIL_MAX_MS = 1800;
 
   /* Promises for every visible asset the incoming view needs: <img>
      tags that haven't completed, and the painted layers that load via
@@ -599,42 +599,44 @@
 
   function show(view, opts) {
     opts = opts || {};
-    if (veil) veil.classList.add('on');
-    hideTipDot();
-    // any battle tooltip must not survive a view change
-    if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
+    var needsClose = veil && !veil.classList.contains('on');
+    var doSwap = function () {
+      hideTipDot();
+      if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
 
-    if (!opts.isBack && currentView && currentView !== view) {
-      // Loop protection: if navigating to a view already in history, truncate to that point
-      var existingIndex = navHistory.indexOf(view);
-      if (existingIndex >= 0) {
-        navHistory = navHistory.slice(0, existingIndex);
-      } else {
-        navHistory.push(currentView);
-        if (navHistory.length > 30) navHistory.shift();
+      if (!opts.isBack && currentView && currentView !== view) {
+        var existingIndex = navHistory.indexOf(view);
+        if (existingIndex >= 0) {
+          navHistory = navHistory.slice(0, existingIndex);
+        } else {
+          navHistory.push(currentView);
+          if (navHistory.length > 30) navHistory.shift();
+        }
       }
+      currentView = view;
+      document.querySelectorAll('[data-view]').forEach(function (v) {
+        v.classList.toggle('active', v.dataset.view === view);
+      });
+      document.body.dataset.view = view;
+      if (view !== 'battle') {
+        document.body.dataset.busy = '0';
+        document.body.dataset.netwait = '0';
+      }
+      window.scrollTo(0, 0);
+      document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
+      veilSettle();
+    };
+
+    if (needsClose) {
+      // gate close first, then swap behind it
+      veil.classList.add('on');
+      hideTipDot();
+      if (window.EOL.battle && window.EOL.battle.hideTip) window.EOL.battle.hideTip();
+      setTimeout(doSwap, 560);
+    } else {
+      if (veil) veil.classList.add('on');
+      doSwap();
     }
-    currentView = view;
-    document.querySelectorAll('[data-view]').forEach(function (v) {
-      v.classList.toggle('active', v.dataset.view === view);
-    });
-    document.body.dataset.view = view;
-    /* The wait cursor belongs to an animating battle board and nothing
-       else. Leaving the battle for any reason - result screen, forfeit,
-       an opponent disconnecting mid-animation - must release it, or the
-       pointer stays stuck on the hourglass across the whole menu. This
-       is the single place every view change passes through, so clearing
-       it here closes the whole class of bug rather than one path. */
-    if (view !== 'battle') {
-      document.body.dataset.busy = '0';
-      document.body.dataset.netwait = '0';
-    }
-    window.scrollTo(0, 0);
-    /* Anything that has to MEASURE itself cannot do so while its view
-       is hidden (zero width). Announce the change so those modules can
-       re-measure at the first moment they are able to. */
-    document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
-    veilSettle();
   }
 
   function goBack() {
@@ -1604,15 +1606,6 @@
         show('rulebook');
       });
     }
-    var btnCornerTutorial = document.getElementById('btn-corner-tutorial');
-    if (btnCornerTutorial) {
-      btnCornerTutorial.addEventListener('click', function () {
-        if (window.EOL.tutorial) {
-          window.EOL.tutorial.reset();
-          window.EOL.tutorial.start();
-        }
-      });
-    }
     var btnRulebookBack = document.getElementById('btn-rulebook-back');
     if (btnRulebookBack) {
       btnRulebookBack.addEventListener('click', function () {
@@ -1650,12 +1643,7 @@
         window.EOL.campaign.closeRecruiterDialogue();
         return;
       }
-      /* Tutorial owns Escape while active; the tutorial module handles
-         its own dismissal. */
-      if (window.EOL.tutorial && window.EOL.tutorial.isActive && window.EOL.tutorial.isActive()) {
-        return;
-      }
-      goBack();
+goBack();
       // the shop and the deck picker modal handle Esc themselves
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
@@ -1665,14 +1653,5 @@
 
     show('home');
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
-
-    /* Tutorial: runs once on first visit. Starts after the veil lifts so
-       the DOM is painted. The 900ms delay gives the home transition its
-       full moment before the overlay interrupts. */
-    setTimeout(function () {
-      if (window.EOL.tutorial && !window.EOL.tutorial.isDone()) {
-        window.EOL.tutorial.start();
-      }
-    }, 900);
-  });
+});
 })();

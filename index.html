@@ -2337,22 +2337,33 @@
     </div>
 
     <!-- ==================== TRANSITION VEIL ====================
-         Full-page loading screen. It boots ON in the markup so the very
-         first paint is already covered, and js/app.js re-shows it for
-         every view change: heavy screens (battle boards, the collection)
-         used to appear with their art still catching up, which read as
-         flicker. The veil hides once the new view's images and fonts
-         have decoded, bounded by a short minimum (no strobe) and a hard
-         maximum (never traps the player). The spinner is a miniature of
-         the battlefield runic wards: still ring, turning rune band,
-         breathing core. -->
+         Universal page-to-page transition. Boots ON so first paint is
+         covered; js/app.js re-covers every view change and lifts the
+         veil once the new view's assets decode (bounded by min/max).
+         The visual is a gate: two panels slide shut from the sides with
+         a gold seal at the seam, then the emblem + progress bar breathe
+         inside. On exit the panels slide out, revealing the new page
+         beneath. This replaces the old spinner-only loader. -->
     <div id="veil" class="on" aria-hidden="true">
-      <div class="veil-core">
-        <span class="veil-ward"><i></i><b></b></span>
-        <div class="veil-title">Echoes <em>of</em> Legend</div>
-        <div class="veil-note">Summoning the arena</div>
+      <div class="veil-gate">
+        <div class="veil-panel vp-left"></div>
+        <div class="veil-panel vp-right"></div>
+        <div class="veil-edge" aria-hidden="true"></div>
       </div>
+      <div class="veil-core">
+        <div class="veil-ward-wrap">
+          <span class="veil-ward"><i></i><b></b></span>
+          <div class="veil-seal" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
+        </div>
+        <div class="veil-title">Echoes <em>of</em> Legend</div>
+        <div class="veil-bar"><span></span></div>
+        <div class="veil-sub">Crossing the threshold</div>
+      </div>
+      <div class="veil-vignette" aria-hidden="true"></div>
     </div>
+
+    
+
 
     <!-- Card data: one file per faction -->
     <script src="js/text.js"></script>
@@ -2378,7 +2389,6 @@
     <script src="js/deck.js"></script>
     <script src="js/play.js"></script>
     <script src="js/campaign.js"></script>
-    <script src="js/tutorial.js"></script>
     <script src="js/shop.js"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects

@@ -189,13 +189,19 @@
         function (deckId) {
           var deck = deckId ? window.EOL.decks.get(deckId) : null;
           var starter = window.EOL.decks.get('starter-grimmwood');
+          // robust fallback: if starter deck missing (deleted or never seeded) build entries from faction directly
+          function grimmwoodEntries() {
+            var fac = (window.EOL.factions || []).filter(function (f) { return f.id === 'grimmwood'; })[0];
+            if (!fac || !fac.cards) return null;
+            return fac.cards.map(function (c) { return { card: c, faction: fac }; });
+          }
           var player12 = deck
             ? window.EOL.decks.entriesOf(deck)
             : starter
               ? window.EOL.decks.entriesOf(starter)
-              : null;
+              : grimmwoodEntries();
 
-          var recruiter12 = starter ? window.EOL.decks.entriesOf(starter) : player12;
+          var recruiter12 = starter ? window.EOL.decks.entriesOf(starter) : (grimmwoodEntries() || player12);
           var colosseum =
             (window.EOL.battlefieldById && window.EOL.battlefieldById('colosseum')) || null;
 
