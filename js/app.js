@@ -1606,15 +1606,6 @@
         show('rulebook');
       });
     }
-    var btnCornerTutorial = document.getElementById('btn-corner-tutorial');
-    if (btnCornerTutorial) {
-      btnCornerTutorial.addEventListener('click', function () {
-        if (window.EOL.tutorial) {
-          window.EOL.tutorial.reset();
-          window.EOL.tutorial.start();
-        }
-      });
-    }
     var btnRulebookBack = document.getElementById('btn-rulebook-back');
     if (btnRulebookBack) {
       btnRulebookBack.addEventListener('click', function () {
@@ -1652,12 +1643,7 @@
         window.EOL.campaign.closeRecruiterDialogue();
         return;
       }
-      /* Tutorial owns Escape while active; the tutorial module handles
-         its own dismissal. */
-      if (window.EOL.tutorial && window.EOL.tutorial.isActive && window.EOL.tutorial.isActive()) {
-        return;
-      }
-      goBack();
+goBack();
       // the shop and the deck picker modal handle Esc themselves
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
@@ -1667,14 +1653,5 @@
 
     show('home');
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
-
-    /* Tutorial: runs once on first visit. Starts after the veil lifts so
-       the DOM is painted. The 900ms delay gives the home transition its
-       full moment before the overlay interrupts. */
-    setTimeout(function () {
-      if (window.EOL.tutorial && !window.EOL.tutorial.isDone()) {
-        window.EOL.tutorial.start();
-      }
-    }, 900);
-  });
+});
 })();
