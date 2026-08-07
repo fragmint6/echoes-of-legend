@@ -22645,9 +22645,6 @@ html.mqw640 .chapter-dialogue-foot {
   z-index: 8001 !important;
   pointer-events: auto !important;
   isolation: isolate;
-  /* slight pop so it reads as above dim, without a gold ring */
-  box-shadow: 0 12px 36px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,214,130,0.18);
-  border-radius: inherit;
 }
 
 .tut-dialog {

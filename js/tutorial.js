@@ -3,13 +3,13 @@
   var KEY = 'eol.tutorial.done';
 
   /* Tutorial v3: dim overlay (lighter) + elevated target layered OVER dim.
-     - Overlay is full-screen rgba(2,3,10,0.38) + blur 4px (main effect blur)
-     - No hole cutout: target sits above dim via z-index 8001
+     - Overlay is full-screen rgba(2,3,10,0.32) + blur 2px (main effect blur)
+     - No hole: target sits above dim via z-index 8001
      - Dialog has arrow pointing at target
      - Full flow must be completable without hiccups
   */
 
-  var STEPS = [
+var STEPS = [
     { id:'welcome', target:null, pos:'center',
       title:'Welcome to Echoes of Legend',
       body:'I will walk you from menu to your first real gate. The world dims, but only the pointed thing and this box are alive.',
@@ -201,10 +201,21 @@
     overlay.addEventListener('click', function(e){
       if(!active || current<0) return;
       if(dialog.contains(e.target)) return;
-      // clicking dim when no target advances
       var s=STEPS[current];
       if(s && !s.target) advance();
     });
+  }
+
+  function isVeilOn(){
+    var v=document.getElementById('veil');
+    return v && v.classList.contains('on');
+  }
+
+  function waitForVeilOff(cb, tries){
+    tries=tries||0;
+    if(tries>40){ cb(); return; }
+    if(!isVeilOn()){ cb(); return; }
+    retryTimer=setTimeout(function(){ waitForVeilOff(cb, tries+1); }, 120);
   }
 
   function getTarget(sel){
@@ -214,14 +225,14 @@
       for(var i=0;i<list.length;i++){
         var el=list[i];
         if(!el) continue;
-        // ensure in DOM and visible
-        if(el.offsetParent === null && getComputedStyle(el).position !== 'fixed') {
-          // might still be visible via flex, check rect
-          var r=el.getBoundingClientRect();
-          if(r.width<2 || r.height<2) continue;
-        }
+        // must be in DOM and have size
         var r=el.getBoundingClientRect();
-        if(r.width>2 && r.height>2) return el;
+        if(r.width>2 && r.height>2){
+          // also check if hidden by veil or parent hidden?
+          var cs=getComputedStyle(el);
+          if(cs.visibility==='hidden' || cs.display==='none') continue;
+          return el;
+        }
       }
       return document.querySelector(sel);
     }catch(e){ return null; }
@@ -253,7 +264,6 @@
     var z=scale();
     var vw=window.innerWidth / z;
     var vh=window.innerHeight / z;
-    // ensure dialog has size
     var dr=dialog.getBoundingClientRect();
     var dw=(dr.width / z) || 380;
     var dh=(dr.height / z) || 180;
@@ -299,8 +309,6 @@
     var elevated=document.querySelectorAll('.tut-elevated');
     elevated.forEach(function(el){
       el.classList.remove('tut-elevated');
-      el.style.removeProperty('box-shadow');
-      // position may have been set to relative for stacking, remove if we set it
       if(el.dataset.tutPosSet){
         el.style.removeProperty('position');
         delete el.dataset.tutPosSet;
@@ -347,10 +355,12 @@
 
   function waitForTarget(sel, cb, tries){
     tries = tries || 0;
-    if(tries > 40){ cb(null); return; }
+    if(tries > 80){ cb(null); return; }
     var t = getTarget(sel);
-    if(t){ cb(t); return; }
-    retryTimer = setTimeout(function(){ waitForTarget(sel, cb, tries+1); }, 220);
+    if(t && !isVeilOn()){
+      cb(t); return;
+    }
+    retryTimer = setTimeout(function(){ waitForTarget(sel, cb, tries+1); }, 200);
   }
 
   function showStep(i){
@@ -369,25 +379,21 @@
 
     var target = getTarget(s.target);
 
-    if(s.waitFor && s.target && !target){
-      // poll for target (deck list may render late)
+    if(!target && s.target){
+      // wait for target to appear (covers veil + rendering)
       placeOverlay(null);
       waitForTarget(s.target, function(found){
         if(!active || current!==i) return;
-        if(found) showStep(i); // re-enter same step now that target exists
+        if(found) showStep(i);
+        else {
+          // still not found after polling, try on view change
+          var onView=function(){
+            document.removeEventListener('eol:view', onView);
+            setTimeout(function(){ if(active && current===i) showStep(i); }, 600);
+          };
+          document.addEventListener('eol:view', onView);
+        }
       });
-      return;
-    }
-
-    if(!target && s.target){
-      placeOverlay(null);
-      // wait for view change or element
-      var onView = function(){
-        document.removeEventListener('eol:view', onView);
-        setTimeout(function(){ if(active && current===i) showStep(i); }, 500);
-      };
-      document.addEventListener('eol:view', onView);
-      retryTimer = setTimeout(function(){ if(active && current===i) showStep(i); }, 1100);
       return;
     }
 
@@ -404,15 +410,28 @@
       if(s.action){
         boundTarget=target;
         boundHandler=function(){
+          // after action click, wait for veil off and next target to be ready before advancing
+          var nxt=current+1;
+          if(nxt>=STEPS.length){ setTimeout(end, 300); return; }
+          // give view transition time
           setTimeout(function(){
             if(!active) return;
-            var nxt=current+1;
-            if(nxt>=STEPS.length){ end(); return; }
-            // small delay to let veil / modal / navigation settle
-            setTimeout(function(){
-              if(active) showStep(nxt);
-            }, 420);
-          }, 320);
+            waitForVeilOff(function(){
+              // small extra to let DOM settle
+              setTimeout(function(){
+                if(!active) return;
+                var ns=STEPS[nxt];
+                if(ns.target){
+                  waitForTarget(ns.target, function(found){
+                    if(!active) return;
+                    showStep(nxt);
+                  });
+                } else {
+                  showStep(nxt);
+                }
+              }, 300);
+            });
+          }, 500);
         };
         target.addEventListener('click', boundHandler, {once:true});
       }
@@ -431,6 +450,7 @@
       }catch(e){}
     }
   }
+
 
   function advance(){ if(current>=STEPS.length-1){ end(); return; } showStep(current+1); }
   function back(){ if(current<=0) return; showStep(current-1); }
