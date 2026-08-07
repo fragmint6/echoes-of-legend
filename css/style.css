@@ -22730,6 +22730,17 @@ body.tut-active .view.active {
   isolation: auto;
 }
 
+
+/* battle tutorial: allow board interaction while dialog shows */
+body.tut-active.tut-battle .view.battle,
+body.tut-active.tut-battle .view.battle * {
+  pointer-events: auto !important;
+}
+body.tut-active.tut-battle .view.battle .bcard,
+body.tut-active.tut-battle .view.battle .bstats {
+  pointer-events: auto !important;
+}
+
 /* disable everything */
 body.tut-active .view,
 body.tut-active .view *,

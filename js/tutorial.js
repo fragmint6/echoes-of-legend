@@ -2,199 +2,191 @@
   'use strict';
   var KEY = 'eol.tutorial.done';
 
-  /* Tutorial v3: dim overlay (lighter) + elevated target layered OVER dim.
-     - Overlay is full-screen rgba(2,3,10,0.32) + blur 2px (main effect blur)
-     - No hole: target sits above dim via z-index 8001
-     - Dialog has arrow pointing at target
-     - Full flow must be completable without hiccups
+  /* NEW TUTORIAL per user mapping 2026-08-07:
+     Play -> Campaign -> Chapter 1 -> Dialogue (6 beats) -> Claim Deck (ceremony, no collection tour)
+     -> Choose deck popup (unabridged locked) -> Tips (?) -> Bans (help pick 2 best) -> Map -> Field six -> Join game
+     -> Round 1 basics only (let them finish) -> Round 2 signatures + surface combos -> beat recruiter -> done
+
+     Overlay: full-screen dim rgba 0.32 blur 2px, NO HOLE. Targets layered OVER dim via z-index 8001.
   */
 
-var STEPS = [
+  var STEPS = [
     { id:'welcome', target:null, pos:'center',
       title:'Welcome to Echoes of Legend',
-      body:'I will walk you from menu to your first real gate. The world dims, but only the pointed thing and this box are alive.',
+      body:'I will guide you from first click to your first win over The Recruiter. The world dims, but only what you need glows above it.',
       nextLabel:'Begin' },
+
     { id:'play-btn', target:'#btn-play', pos:'auto',
       title:'Play',
-      body:'Every battle starts here. Click the highlighted Play button — it floats above the dim.',
+      body:'Everything starts here. Click Play.',
       action:true },
+
     { id:'campaign-mode', target:'#mode-campaign', pos:'auto',
       title:'Campaign',
-      body:'Ten gates before Gilgamesh judges if your story can last. Click Campaign.',
+      body:'Campaign is the Road of Echoes — 10 gates. This tutorial does Gate I. Click Campaign.',
       action:true },
+
     { id:'chapter-card', target:'#chapter-1', pos:'auto',
-      title:'Chapter 1: The Road of Echoes',
-      body:'This is where unfinished stories learn to continue. Click the chapter plate.',
+      title:'Chapter 1',
+      body:'The Road of Echoes. Click to open its 10 gates.',
       action:true },
+
     { id:'gate-one', target:'#chapter-stage-1', pos:'auto',
       title:'Gate I — The Recruiter',
-      body:'First gate is open. Click it to meet the broker who will give you your first deck.',
+      body:'First gate is open. Click it.',
       action:true },
+
     { id:'recruiter-dialogue', target:'#chapter-dialogue-next', pos:'auto',
-      title:'Listen to The Recruiter',
-      body:'He speaks in 6 beats. Keep clicking Continue. Last beat becomes Fight — click it when it appears. The dialog sits above the dim, never covering the button.',
+      title:'The Recruiter',
+      body:'He speaks 6 beats. Keep clicking Continue. Last becomes Fight. I keep the popup from ever covering the button.',
       action:true },
 
     { id:'deck-unlock', target:null, pos:'center',
       title:'A gift for the road',
-      body:'The Recruiter slides a satchel across the table. You receive the Grimmwood starter — 12 legends from the dark woods.',
-      nextLabel:'Show me',
-      onEnter: function (next) {
-        try {
-          if (window.EOL.decks && window.EOL.decks.seedGrimmwoodStarter) {
-            window.EOL.decks.seedGrimmwoodStarter();
-          }
-        } catch(e){}
+      body:'The Recruiter slides a satchel: Grimmwood starter, 12 legends. This is your first legal deck.',
+      nextLabel:'Claim it',
+      onEnter: function(next){
+        try{ if(window.EOL.decks && window.EOL.decks.seedGrimmwoodStarter) window.EOL.decks.seedGrimmwoodStarter(); }catch(e){}
         showDeckReward(function(){ next(); });
-      }
-    },
+      } },
 
-    { id:'collection-intro', target:null, pos:'center',
-      title:'Your collection',
-      body:'Decks are your squads of 12. I will take you to Collection to see Grimmwood and the builder.',
-      nextLabel:'To Collection',
-      onEnter: function (next) {
-        // navigate with veil-aware delay
-        if (window.EOL.ui && window.EOL.ui.show) window.EOL.ui.show('collection');
-        // wait longer than veil (560+720) to ensure view ready
-        setTimeout(next, 1450);
-      }
-    },
-
-    { id:'collection-decks-tab', target:'#ctab-decks', pos:'auto',
-      title:'Decks tab',
-      body:'Legends are the codex. Decks are your squads. Click the highlighted Decks tab.',
+    { id:'deck-pick', target:'#dm-list .dm-row:not(.disabled)', pos:'auto',
+      title:'Choose your deck',
+      body:'Pick Grimmwood. Note: Unabridged (best of 3) is locked for campaign — this is a Single Battle. Your 6 will be chosen after bans.',
       action:true },
 
-    { id:'collection-deck-row', target:'#decks-list .deck-card', pos:'auto',
-      title:'Grimmwood starter',
-      body:'There it is — 12 Grimmwood legends. Click it to open the builder.',
-      action:true,
-      // wait helper: if deck-cards not yet rendered, poll
-      waitFor: true },
+    { id:'tips', target:'.tipdot', pos:'auto',
+      title:'Helper tips',
+      body:'See those little (?) marks? They are tips scattered everywhere. Hover or tap for law. You can turn them off in Settings > Display > Helper tips.',
+      action:false, nextLabel:'Got it' },
 
-    { id:'deck-builder', target:'#deck-slots-12', pos:'auto',
-      title:'The deck builder',
-      body:'Your Twelve on top — order does not matter. Below is the whole roster. When done, click Done.',
-      action:false,
-      nextLabel:'Got it' },
-
-    { id:'deck-builder-save', target:'#btn-deck-save', pos:'auto',
-      title:'Save and return',
-      body:'Builder autosaves. Click Done to return to Collection.',
-      action:true },
-
-    { id:'back-to-chapter', target:null, pos:'center',
-      title:'Back to the Road',
-      body:'Nice. You now know where decks live. Back to Chapter 1 to face The Recruiter.',
-      nextLabel:'Back to gates',
-      onEnter: function (next) {
-        if (window.EOL.ui && window.EOL.ui.show) window.EOL.ui.show('chapter');
-        setTimeout(next, 1450);
-      }
-    },
-
-    { id:'gate-one-again', target:'#chapter-stage-1', pos:'auto',
-      title:'Gate I again — now you have a deck',
-      body:'Now that you have seen your deck, face The Recruiter again. Click Gate I, then Fight.',
-      action:true },
-
-    { id:'recruiter-dialogue-2', target:'#chapter-dialogue-next', pos:'auto',
-      title:'Second audience',
-      body:'Same 6 beats, but now you know what Six with teeth means. Keep clicking Continue → Fight.',
-      action:true },
-
-    { id:'deck-pick-again', target:'#dm-list .dm-row:not(.disabled)', pos:'auto',
-      title:'Choose Grimmwood',
-      body:'Pick the Grimmwood deck you just saw.',
-      action:true },
-
-    { id:'ban-enemy', target:'#prep-enemy .pcard', pos:'auto',
-      title:'Ban 2 enemies',
-      body:'You and enemy ban 2 each, hidden. Click any 2 enemy cards (they turn red), then click Next in this box.',
-      action:false,
-      nextLabel:'Banned 2' },
+    { id:'ban-help', target:'#prep-enemy .pcard', pos:'auto',
+      title:'Ban 2 — who is scary?',
+      body:'Recruiter also runs Grimmwood. Best bans here: <b>Evil Queen</b> (legendary AoE + Exposed on highest HP) and <b>Rumpelstiltskin</b> (coin-flip: Burn + -15% ATK or -60% healing + Exposed). Both swing games. Click any 2 enemy cards, then Next.',
+      action:false, nextLabel:'Banned' },
 
     { id:'confirm-bans', target:'#prep-confirm-main', pos:'auto',
       title:'Confirm bans',
-      body:'Both sides reveal. Click Confirm bans.',
+      body:'Both sides reveal. Enemy banned Hansel & Gretel + Cinderella from you — his scripted answer to Grimmwood. Click Confirm.',
       action:true },
 
-    { id:'field-pick', target:'#prep-player .pcard', pos:'auto',
+    { id:'battlefield', target:'#bf-card', pos:'auto',
+      title:'The Colosseum',
+      body:'No special rules — pure drafting and play. This is the balance benchmark. Other arenas add +15% back-row damage, energy shifts, echoes, etc. Click Continue to field.',
+      action:false, nextLabel:'Understood',
+      onEnter: function(next){
+        // battlefield reveal modal appears after bans; wait for it
+        var tries=0;
+        var iv=setInterval(function(){
+          var card=document.getElementById('bf-card') || document.getElementById('bf-reveal');
+          if((card && card.offsetParent!==null) || tries>40){ clearInterval(iv); }
+          tries++;
+        },200);
+      } },
+
+    { id:'field-six', target:'#prep-player .pcard', pos:'auto',
       title:'Field 6',
-      body:'Pick 6 of your 10 survivors. Click until 6 fielded, then Next.',
-      action:false,
-      nextLabel:'Fielded 6' },
+      body:'Front row soaks — Tank/Bruiser love it. Back row supports — Sniper/Caster/Medic. Pick any 6 of your 10 survivors, then Next. Row swaps are free later.',
+      action:false, nextLabel:'Fielded 6' },
 
     { id:'field-go', target:'#prep-confirm', pos:'auto',
-      title:'To the Colosseum',
-      body:'Your six vs his. Click To battle.',
+      title:'To battle',
+      body:'Your six vs his six, same Grimmwood. Click To battle.',
       action:true },
 
-    { id:'battle-intro', target:null, pos:'center',
-      title:'Round 1: Basics only',
-      body:'You are in vs The Recruiter — same Grimmwood vs Grimmwood. Signatures unlock Round 2. Energy carries. Hover any card — panel appears.',
-      nextLabel:'Fight!' },
+    { id:'battle-basic', target:null, pos:'center',
+      title:'Round 1 — Basics only',
+      body:'Round 1: Signatures locked. Only Basics + role Basics. Front tanks, back hits. Click a friendly card, pick Basic (blue), pick enemy front. Energy carries to 150. Finish Round 1 — I will stay quiet.',
+      nextLabel:'Fight!',
+      onEnter: function(next){
+        document.body.classList.add('tut-battle');
+        // allow battle board interaction
+        setTimeout(function(){
+          // auto-advance after they close this dialog? No, let them click Next to dismiss and play.
+          // We'll listen for round change to 2 to auto-show next step
+          var poll=setInterval(function(){
+            try{
+              var st=window.EOL.battle && window.EOL.battle.getState && window.EOL.battle.getState();
+              if(st && st.round>=2){
+                clearInterval(poll);
+                showStepById('battle-signature');
+              }
+            }catch(e){}
+          },800);
+        },600);
+      } },
+
+    { id:'battle-signature', target:null, pos:'center',
+      title:'Round 2 — Signatures unlock',
+      body:'Signatures unlock now. They cost more but win games. Gold tag = Signature, Blue = Basic. Cost is top-right. If greyed, check energy or targets.',
+      nextLabel:'Got it',
+      onEnter: function(next){ document.body.classList.add('tut-battle'); } },
+
+    { id:'battle-combos', target:null, pos:'center',
+      title:'A taste of combos',
+      body:'Grimmwood loves debuffs: <b>Marked</b> (lightning) feeds many. <b>Burn</b> ticks 5% Max HP per round, ignores DEF/Shields. <b>Exposed</b> zeroes DEF. Example: Evil Queen Exposes highest HP → Puss pierces for 45% more if 2+ debuffs + refunds 10 energy. Try it.',
+      nextLabel:'Let me try' },
+
+    { id:'battle-finish', target:null, pos:'center',
+      title:'Finish him',
+      body:'Beat The Recruiter. He moderates power in this gate (often uses Basics even with Signature ready) to measure you. When both sides pass back-to-back, round ends. First team to fall loses.',
+      nextLabel:'Finish tutorial',
+      onEnter: function(next){
+        document.body.classList.add('tut-battle');
+        var poll=setInterval(function(){
+          try{
+            var st=window.EOL.battle && window.EOL.battle.getState && window.EOL.battle.getState();
+            if(st && st.over){
+              clearInterval(poll);
+              showStepById('done');
+            }
+          }catch(e){}
+        },900);
+      } },
 
     { id:'done', target:null, pos:'center',
       title:'Road begun',
-      body:'You walked menu → campaign → chapter → got Grimmwood ceremony → toured collection & builder → back to gate → bans → field → battle. Replay from top-left.',
+      body:'You went Play → Campaign → Chapter → Dialogue → Claim Grimmwood → Pick deck (Unabridged locked) → Tips → Bans (Queen + Rumple best) → Colosseum → Field 6 → Battle Basics → Signatures → Combos → Victory. Replay from top-left cap icon.',
       nextLabel:'Finish' },
   ];
 
   var overlay, dialog, titleEl, bodyEl, stepEl, prevBtn, nextBtn;
-  var current = -1, active = false;
-  var boundTarget = null, boundHandler = null;
-  var retryTimer = null;
+  var current=-1, active=false;
+  var boundTarget=null, boundHandler=null;
+  var retryTimer=null;
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function scale(){ return (window.EOL.scale && window.EOL.scale.factor()) || 1; }
 
   function build(){
-    overlay = document.createElement('div');
-    overlay.className = 'tut-overlay';
+    overlay=document.createElement('div');
+    overlay.className='tut-overlay';
     overlay.setAttribute('aria-hidden','true');
 
-    dialog = document.createElement('div');
+    dialog=document.createElement('div');
     dialog.className='tut-dialog tut-center';
     dialog.setAttribute('role','dialog');
     dialog.setAttribute('aria-modal','true');
     dialog.setAttribute('aria-labelledby','tut-title');
 
     var closeBtn=document.createElement('button');
-    closeBtn.className='tut-close';
-    closeBtn.type='button';
+    closeBtn.className='tut-close'; closeBtn.type='button';
     closeBtn.setAttribute('aria-label','Skip tutorial');
     closeBtn.innerHTML='<i class="ri-close-line"></i>';
     closeBtn.addEventListener('click', end);
 
-    titleEl=document.createElement('h3');
-    titleEl.id='tut-title'; titleEl.className='tut-title';
-    bodyEl=document.createElement('p');
-    bodyEl.className='tut-body';
-    stepEl=document.createElement('span');
-    stepEl.className='tut-step';
+    titleEl=document.createElement('h3'); titleEl.id='tut-title'; titleEl.className='tut-title';
+    bodyEl=document.createElement('p'); bodyEl.className='tut-body';
+    stepEl=document.createElement('span'); stepEl.className='tut-step';
 
-    var foot=document.createElement('div');
-    foot.className='tut-foot';
-    prevBtn=document.createElement('button');
-    prevBtn.className='btn btn-ghost btn-slim tut-prev';
-    prevBtn.type='button';
-    prevBtn.innerHTML='<i class="ri-arrow-left-line"></i><span>Back</span>';
-    prevBtn.addEventListener('click', back);
-    nextBtn=document.createElement('button');
-    nextBtn.className='btn btn-primary btn-slim tut-next';
-    nextBtn.type='button';
-    nextBtn.innerHTML='<span>Next</span><i class="ri-arrow-right-line"></i>';
-    nextBtn.addEventListener('click', advance);
+    var foot=document.createElement('div'); foot.className='tut-foot';
+    prevBtn=document.createElement('button'); prevBtn.className='btn btn-ghost btn-slim tut-prev'; prevBtn.type='button';
+    prevBtn.innerHTML='<i class="ri-arrow-left-line"></i><span>Back</span>'; prevBtn.addEventListener('click', back);
+    nextBtn=document.createElement('button'); nextBtn.className='btn btn-primary btn-slim tut-next'; nextBtn.type='button';
+    nextBtn.innerHTML='<span>Next</span><i class="ri-arrow-right-line"></i>'; nextBtn.addEventListener('click', advance);
 
-    foot.appendChild(prevBtn);
-    foot.appendChild(nextBtn);
-    dialog.appendChild(closeBtn);
-    dialog.appendChild(titleEl);
-    dialog.appendChild(bodyEl);
-    dialog.appendChild(stepEl);
-    dialog.appendChild(foot);
+    foot.appendChild(prevBtn); foot.appendChild(nextBtn);
+    dialog.appendChild(closeBtn); dialog.appendChild(titleEl); dialog.appendChild(bodyEl); dialog.appendChild(stepEl); dialog.appendChild(foot);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
@@ -206,17 +198,8 @@ var STEPS = [
     });
   }
 
-  function isVeilOn(){
-    var v=document.getElementById('veil');
-    return v && v.classList.contains('on');
-  }
-
-  function waitForVeilOff(cb, tries){
-    tries=tries||0;
-    if(tries>40){ cb(); return; }
-    if(!isVeilOn()){ cb(); return; }
-    retryTimer=setTimeout(function(){ waitForVeilOff(cb, tries+1); }, 120);
-  }
+  function isVeilOn(){ var v=document.getElementById('veil'); return v && v.classList.contains('on'); }
+  function waitForVeilOff(cb,tries){ tries=tries||0; if(tries>50){cb();return;} if(!isVeilOn()){cb();return;} retryTimer=setTimeout(function(){waitForVeilOff(cb,tries+1);},120); }
 
   function getTarget(sel){
     if(!sel) return null;
@@ -225,10 +208,8 @@ var STEPS = [
       for(var i=0;i<list.length;i++){
         var el=list[i];
         if(!el) continue;
-        // must be in DOM and have size
         var r=el.getBoundingClientRect();
         if(r.width>2 && r.height>2){
-          // also check if hidden by veil or parent hidden?
           var cs=getComputedStyle(el);
           if(cs.visibility==='hidden' || cs.display==='none') continue;
           return el;
@@ -240,128 +221,79 @@ var STEPS = [
 
   function placeOverlay(target){
     if(!target){
-      overlay.classList.remove('has-target');
-      overlay.classList.add('no-target');
-      positionDialog(null, 'center');
-      return;
+      overlay.classList.remove('has-target'); overlay.classList.add('no-target');
+      positionDialog(null,'center'); return;
     }
-    overlay.classList.add('has-target');
-    overlay.classList.remove('no-target');
-    positionDialog(target, STEPS[current] ? STEPS[current].pos : 'auto');
+    overlay.classList.add('has-target'); overlay.classList.remove('no-target');
+    positionDialog(target, STEPS[current]?STEPS[current].pos:'auto');
   }
 
-  function positionDialog(target, pos){
+  function positionDialog(target,pos){
     dialog.style.left=''; dialog.style.top=''; dialog.style.right=''; dialog.style.bottom=''; dialog.style.transform='';
     dialog.classList.remove('tut-below','tut-above','tut-right','tut-left','tut-center','tut-auto');
-
     if(!target || pos==='center'){
       dialog.classList.add('tut-center');
       dialog.style.left='50%'; dialog.style.top='50%'; dialog.style.transform='translate(-50%,-50%)';
       return;
     }
-
-    var gap=18;
-    var z=scale();
-    var vw=window.innerWidth / z;
-    var vh=window.innerHeight / z;
-    var dr=dialog.getBoundingClientRect();
-    var dw=(dr.width / z) || 380;
-    var dh=(dr.height / z) || 180;
-    var tr=target.getBoundingClientRect();
-    var tLeft=tr.left / z, tTop=tr.top / z, tW=tr.width / z, tH=tr.height / z;
-    var tRight=tLeft+tW, tBottom=tTop+tH;
-    var tCX=tLeft+tW/2, tCY=tTop+tH/2;
-
+    var gap=18, z=scale(), vw=window.innerWidth/z, vh=window.innerHeight/z;
+    var dr=dialog.getBoundingClientRect(), dw=(dr.width/z)||380, dh=(dr.height/z)||180;
+    var tr=target.getBoundingClientRect(), tLeft=tr.left/z, tTop=tr.top/z, tW=tr.width/z, tH=tr.height/z;
+    var tRight=tLeft+tW, tBottom=tTop+tH, tCX=tLeft+tW/2, tCY=tTop+tH/2;
     var autoPos=pos;
     if(pos==='auto'){
-      var below=vh - tBottom - gap;
-      var above=tTop - gap;
-      var right=vw - tRight - gap;
-      var left=tLeft - gap;
+      var below=vh - tBottom - gap, above=tTop - gap, right=vw - tRight - gap, left=tLeft - gap;
       if(tCY < vh*0.55 && below>dh+20) autoPos='below';
       else if(above>dh+20) autoPos='above';
       else if(right>dw+20) autoPos='right';
       else if(left>dw+20) autoPos='left';
       else autoPos='below';
     }
-
     var left, top;
     if(autoPos==='below'){ left=tCX - dw/2; top=tBottom+gap; }
     else if(autoPos==='above'){ left=tCX - dw/2; top=tTop - dh - gap; }
     else if(autoPos==='right'){ left=tRight+gap; top=tCY - dh/2; }
     else if(autoPos==='left'){ left=tLeft - dw - gap; top=tCY - dh/2; }
     else { left=tCX - dw/2; top=tBottom+gap; }
-
-    var margin=12;
-    left=Math.max(margin, Math.min(left, vw - dw - margin));
-    top=Math.max(margin, Math.min(top, vh - dh - margin));
-
+    var margin=12; left=Math.max(margin, Math.min(left, vw - dw - margin)); top=Math.max(margin, Math.min(top, vh - dh - margin));
     dialog.classList.add('tut-'+autoPos);
-    dialog.style.left=left+'px';
-    dialog.style.top=top+'px';
+    dialog.style.left=left+'px'; dialog.style.top=top+'px';
   }
 
   function cleanupTarget(){
-    if(boundTarget && boundHandler){
-      try{ boundTarget.removeEventListener('click', boundHandler); }catch(e){}
-    }
+    if(boundTarget && boundHandler){ try{ boundTarget.removeEventListener('click', boundHandler); }catch(e){} }
     if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
-    var elevated=document.querySelectorAll('.tut-elevated, .tut-elevated-parent');
-    elevated.forEach(function(el){
-      el.classList.remove('tut-elevated');
-      el.classList.remove('tut-elevated-parent');
+    document.querySelectorAll('.tut-elevated, .tut-elevated-parent').forEach(function(el){
+      el.classList.remove('tut-elevated'); el.classList.remove('tut-elevated-parent');
       el.style.removeProperty('z-index');
-      if(el.dataset.tutPosSet){
-        el.style.removeProperty('position');
-        delete el.dataset.tutPosSet;
-      }
+      if(el.dataset.tutPosSet){ el.style.removeProperty('position'); delete el.dataset.tutPosSet; }
     });
     boundTarget=null; boundHandler=null;
   }
 
   function elevateWithAncestors(target){
     if(!target) return;
-    // elevate target itself
     target.classList.add('tut-elevated');
     var cs=getComputedStyle(target);
-    if(cs.position==='static'){
-      target.style.position='relative';
-      target.dataset.tutPosSet='1';
-    }
+    if(cs.position==='static'){ target.style.position='relative'; target.dataset.tutPosSet='1'; }
     target.style.zIndex='8001';
-
-    // walk up and elevate any modal / fixed container that would otherwise trap it below overlay
-    var cur=target.parentElement;
-    var depth=0;
-    while(cur && cur!==document.body && depth<12){
+    var cur=target.parentElement, depth=0;
+    while(cur && cur!==document.body && depth<14){
       var ccs=getComputedStyle(cur);
       var isModal = cur.matches && (
-        cur.matches('.chapter-dialogue') ||
-        cur.matches('.chapter-dialogue-card') ||
-        cur.matches('.deck-modal') ||
-        cur.matches('.dm-card') ||
-        cur.matches('.setm') ||
-        cur.matches('.setm-card') ||
-        cur.matches('.bf-reveal') ||
-        cur.matches('.bf-card') ||
-        cur.matches('.coach') ||
-        cur.matches('.auth-modal') ||
-        cur.matches('.mm-modal')
+        cur.matches('.chapter-dialogue') || cur.matches('.chapter-dialogue-card') ||
+        cur.matches('.deck-modal') || cur.matches('.dm-card') ||
+        cur.matches('.setm') || cur.matches('.setm-card') ||
+        cur.matches('.bf-reveal') || cur.matches('.bf-card') ||
+        cur.matches('.coach') || cur.matches('.auth-modal') || cur.matches('.mm-modal') ||
+        cur.matches('.prep') || cur.matches('#bf-reveal')
       );
-      var isFixed = ccs.position==='fixed';
-      if(isModal || isFixed){
-        // elevate this ancestor above overlay
+      if(isModal || ccs.position==='fixed'){
         cur.classList.add('tut-elevated-parent');
         cur.style.zIndex='8001';
-        // if it was hidden behind veil logic, ensure it stays
-        if(ccs.position==='static'){
-          cur.style.position='relative';
-          cur.dataset.tutPosSet='1';
-        }
+        if(ccs.position==='static'){ cur.style.position='relative'; cur.dataset.tutPosSet='1'; }
       }
-      // stop at view boundary? Actually we want to elevate up to view as well if needed, but view already z-index auto
-      cur=cur.parentElement;
-      depth++;
+      cur=cur.parentElement; depth++;
     }
   }
 
@@ -370,29 +302,21 @@ var STEPS = [
     var preview=document.getElementById('dr-preview');
     var cont=document.getElementById('dr-continue');
     var scrim=document.getElementById('dr-scrim');
-    if(!modal) { cb && cb(); return; }
-
+    if(!modal){ cb&&cb(); return; }
     try{
       preview.innerHTML='';
-      var fac = (window.EOL.factions||[]).find(function(f){ return f.id==='grimmwood'; });
+      var fac=(window.EOL.factions||[]).find(function(f){return f.id==='grimmwood';});
       if(fac && fac.cards){
         fac.cards.slice(0,12).forEach(function(c){
-          var s=document.createElement('span');
-          s.innerHTML='<i class="ra '+c.icon+'"></i>';
-          s.title=c.name;
-          preview.appendChild(s);
+          var s=document.createElement('span'); s.innerHTML='<i class="ra '+c.icon+'"></i>'; s.title=c.name; preview.appendChild(s);
         });
       }
     }catch(e){}
-
-    modal.hidden=false;
-    modal.setAttribute('aria-hidden','false');
+    modal.hidden=false; modal.setAttribute('aria-hidden','false');
     var closed=false;
     var close=function(){
-      if(closed) return;
-      closed=true;
-      modal.hidden=true;
-      modal.setAttribute('aria-hidden','true');
+      if(closed) return; closed=true;
+      modal.hidden=true; modal.setAttribute('aria-hidden','true');
       if(cont) cont.removeEventListener('click', close);
       if(scrim) scrim.removeEventListener('click', close);
       if(cb) cb();
@@ -402,13 +326,11 @@ var STEPS = [
   }
 
   function waitForTarget(sel, cb, tries){
-    tries = tries || 0;
-    if(tries > 80){ cb(null); return; }
-    var t = getTarget(sel);
-    if(t && !isVeilOn()){
-      cb(t); return;
-    }
-    retryTimer = setTimeout(function(){ waitForTarget(sel, cb, tries+1); }, 200);
+    tries=tries||0;
+    if(tries>80){ cb(null); return; }
+    var t=getTarget(sel);
+    if(t && !isVeilOn()){ cb(t); return; }
+    retryTimer=setTimeout(function(){ waitForTarget(sel, cb, tries+1); }, 200);
   }
 
   function showStep(i){
@@ -419,26 +341,24 @@ var STEPS = [
     titleEl.innerHTML=esc(s.title);
     bodyEl.innerHTML=s.body;
     stepEl.textContent=(i+1)+' / '+STEPS.length;
-    prevBtn.style.visibility = i===0 ? 'hidden' : '';
-    var isLast = i===STEPS.length-1;
-    nextBtn.querySelector('span').textContent = s.nextLabel || (isLast?'Finish':'Next');
-    nextBtn.querySelector('i').className = isLast ? 'ri-check-line' : (s.action ? 'ri-cursor-line' : 'ri-arrow-right-line');
-    nextBtn.style.visibility = s.action ? 'hidden' : '';
+    prevBtn.style.visibility=i===0?'hidden':'';
+    var isLast=i===STEPS.length-1;
+    nextBtn.querySelector('span').textContent=s.nextLabel||(isLast?'Finish':'Next');
+    nextBtn.querySelector('i').className=isLast?'ri-check-line':(s.action?'ri-cursor-line':'ri-arrow-right-line');
+    nextBtn.style.visibility=s.action?'hidden':'';
 
-    var target = getTarget(s.target);
+    // battle steps allow board interaction
+    if(s.id && s.id.indexOf('battle')===0) document.body.classList.add('tut-battle');
+    else if(s.id && s.id!=='field-go') document.body.classList.remove('tut-battle');
 
+    var target=getTarget(s.target);
     if(!target && s.target){
-      // wait for target to appear (covers veil + rendering)
       placeOverlay(null);
       waitForTarget(s.target, function(found){
         if(!active || current!==i) return;
         if(found) showStep(i);
         else {
-          // still not found after polling, try on view change
-          var onView=function(){
-            document.removeEventListener('eol:view', onView);
-            setTimeout(function(){ if(active && current===i) showStep(i); }, 600);
-          };
+          var onView=function(){ document.removeEventListener('eol:view', onView); setTimeout(function(){ if(active&&current===i) showStep(i); },600); };
           document.addEventListener('eol:view', onView);
         }
       });
@@ -446,97 +366,62 @@ var STEPS = [
     }
 
     placeOverlay(target);
-
     if(target){
       elevateWithAncestors(target);
-
       if(s.action){
         boundTarget=target;
         boundHandler=function(){
-          // after action click, wait for veil off and next target to be ready before advancing
           var nxt=current+1;
-          if(nxt>=STEPS.length){ setTimeout(end, 300); return; }
-          // give view transition time
+          if(nxt>=STEPS.length){ setTimeout(end,300); return; }
           setTimeout(function(){
             if(!active) return;
             waitForVeilOff(function(){
-              // small extra to let DOM settle
               setTimeout(function(){
                 if(!active) return;
                 var ns=STEPS[nxt];
-                if(ns.target){
-                  waitForTarget(ns.target, function(found){
-                    if(!active) return;
-                    showStep(nxt);
-                  });
-                } else {
-                  showStep(nxt);
-                }
-              }, 300);
+                if(ns.target){ waitForTarget(ns.target, function(){ if(active) showStep(nxt); }); }
+                else showStep(nxt);
+              },300);
             });
-          }, 500);
+          },500);
         };
         target.addEventListener('click', boundHandler, {once:true});
       }
     }
-
-    requestAnimationFrame(function(){
-      if(active && current===i) placeOverlay(target);
-    });
-
-    if(s.onEnter){
-      try{
-        s.onEnter(function(){
-          var nxt=i+1;
-          if(nxt<STEPS.length) showStep(nxt);
-        });
-      }catch(e){}
-    }
+    requestAnimationFrame(function(){ if(active&&current===i) placeOverlay(target); });
+    if(s.onEnter){ try{ s.onEnter(function(){ var nxt=i+1; if(nxt<STEPS.length) showStep(nxt); }); }catch(e){} }
   }
 
+  function showStepById(id){
+    for(var i=0;i<STEPS.length;i++) if(STEPS[i].id===id){ showStep(i); return; }
+  }
 
   function advance(){ if(current>=STEPS.length-1){ end(); return; } showStep(current+1); }
   function back(){ if(current<=0) return; showStep(current-1); }
-
-  function onResize(){
-    if(!active || current<0) return;
-    var s=STEPS[current];
-    placeOverlay(getTarget(s.target));
-  }
+  function onResize(){ if(!active||current<0) return; placeOverlay(getTarget(STEPS[current].target)); }
 
   function start(){
     if(active) return;
     if(!overlay) build();
-    active=true;
-    overlay.classList.add('on');
-    document.body.classList.add('tut-active');
+    active=true; overlay.classList.add('on'); document.body.classList.add('tut-active');
     showStep(0);
     document.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
   }
-
   function end(){
-    if(!active) return;
-    active=false;
-    cleanupTarget();
+    if(!active) return; active=false; cleanupTarget();
     overlay.classList.remove('on','has-target','no-target');
-    document.body.classList.remove('tut-active');
+    document.body.classList.remove('tut-active','tut-battle');
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', onResize);
     try{ localStorage.setItem(KEY,'1'); }catch(e){}
-    var dr=document.getElementById('deck-reward');
-    if(dr) { dr.hidden=true; dr.setAttribute('aria-hidden','true'); }
+    var dr=document.getElementById('deck-reward'); if(dr){ dr.hidden=true; dr.setAttribute('aria-hidden','true'); }
   }
-
   function onKey(e){
     if(e.key==='Escape'){ e.preventDefault(); end(); }
-    else if(e.key==='ArrowRight' || e.key==='Enter'){
-      e.preventDefault();
-      var s=STEPS[current];
-      if(s && !s.action) advance();
-    }
+    else if(e.key==='ArrowRight'||e.key==='Enter'){ e.preventDefault(); var s=STEPS[current]; if(s&&!s.action) advance(); }
     else if(e.key==='ArrowLeft'){ e.preventDefault(); back(); }
   }
 
-  window.EOL.tutorial={ start:start, end:end, isActive:function(){return active;}, isDone:function(){try{return localStorage.getItem(KEY)==='1';}catch(e){return false;}}, reset:function(){try{localStorage.removeItem(KEY);}catch(e){}}, _showDeckReward: showDeckReward };
+  window.EOL.tutorial={ start:start, end:end, isActive:function(){return active;}, isDone:function(){try{return localStorage.getItem(KEY)==='1';}catch(e){return false;}}, reset:function(){try{localStorage.removeItem(KEY);}catch(e){}}, _showDeckReward:showDeckReward, _showStepById:showStepById };
 })();
