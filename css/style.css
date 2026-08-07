@@ -22520,6 +22520,16 @@ html.mqw640 .chapter-dialogue-foot {
   visibility: visible;
   pointer-events: none;
 }
+.tut-overlay.no-target {
+  pointer-events: auto;
+  background: rgba(2,3,10,0.32);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.tut-overlay.has-target {
+  pointer-events: none;
+  background: transparent;
+}
 .tut-highlight {
   position: fixed;
   z-index: 8001;
@@ -22586,31 +22596,44 @@ html.mqw640 .chapter-dialogue-foot {
 body.tut-active {
   overflow: hidden;
 }
+/* disable everything */
 body.tut-active .view,
+body.tut-active .view *,
 body.tut-active .acct-corner,
+body.tut-active .acct-corner *,
 body.tut-active .home-corner-btns,
+body.tut-active .home-corner-btns *,
 body.tut-active .discord-btn,
 body.tut-active .art-credit,
 body.tut-active .bg-layer,
 body.tut-active .menu-bg,
 body.tut-active .chapter-bg,
 body.tut-active .auth-modal,
+body.tut-active .auth-modal *,
 body.tut-active .deck-modal,
+body.tut-active .deck-modal *,
 body.tut-active .mm-modal,
+body.tut-active .mm-modal *,
 body.tut-active .coach,
+body.tut-active .coach *,
 body.tut-active .quit-modal,
+body.tut-active .quit-modal *,
 body.tut-active .setm,
+body.tut-active .setm *,
 body.tut-active .bf-reveal,
+body.tut-active .bf-reveal *,
 body.tut-active .time-warn {
   pointer-events: none !important;
 }
+/* re-enable only highlighted element + its children + dialog */
 body.tut-active .tut-elevated,
+body.tut-active .tut-elevated *,
 body.tut-active .tut-dialog,
-body.tut-active .tut-overlay {
-  pointer-events: auto;
-}
-body.tut-active .tut-dialog {
+body.tut-active .tut-dialog * {
   pointer-events: auto !important;
+}
+body.tut-active .tut-overlay {
+  pointer-events: none !important;
 }
 body.tut-active .tut-highlight {
   pointer-events: none !important;
