@@ -22496,142 +22496,133 @@ html.mqw640 .chapter-dialogue-foot {
 }
 
 /* ======================================================================
-   TUTORIAL OVERLAY — no dim, only highlight + blockers
-   Only the highlighted element is interactable (hover, pointer, click).
-   Four transparent blockers surround the hole and swallow events outside.
+   TUTORIAL OVERLAY — clean rebuild
+   No dim, only a gold ring that matches the target's border radius.
+   Only the highlighted element + dialog are interactable — everything else
+   is disabled via body.tut-active pointer-events.
+   Highlight never covers target (pointer-events none) so hover / cursor work.
+   Dialog auto-positions to not overlap target (JS computes best side).
    ====================================================================== */
 .tut-overlay {
   position: fixed;
   inset: 0;
   z-index: 8000;
   background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  pointer-events: none;
   transition:
-    opacity 0.3s var(--ease),
-    visibility 0.3s;
+    opacity 0.26s var(--ease),
+    visibility 0.26s;
 }
 .tut-overlay.on {
   opacity: 1;
   visibility: visible;
   pointer-events: none;
 }
-.tut-overlay.no-target {
-  pointer-events: auto;
-  background: rgba(2,3,10,0.18);
-}
-.tut-overlay.has-target {
-  pointer-events: none;
-  background: transparent;
-}
-.tut-blocker {
-  position: fixed;
-  z-index: 8000;
-  background: transparent;
-  pointer-events: auto;
-}
-.tut-blocker.b-top,
-.tut-blocker.b-bottom {
-  left: 0;
-  width: 100%;
-}
-.tut-blocker.b-left,
-.tut-blocker.b-right {
-  /* height set via JS */
-}
-
 .tut-highlight {
   position: fixed;
   z-index: 8001;
-  border-radius: 14px;
   pointer-events: none;
-  border: 2px solid rgba(255, 214, 130, 0.92);
+  border: 2px solid #ffd682;
+  border-radius: 12px;
   box-shadow:
-    0 0 0 2px rgba(8,10,18,0.9),
-    0 0 0 4px rgba(255,214,130,0.28),
-    0 0 24px rgba(255,200,90,0.45),
-    0 0 48px rgba(255,200,90,0.18);
+    0 0 0 1px rgba(8,10,18,0.9),
+    0 0 0 4px rgba(255,214,130,0.22),
+    0 0 18px rgba(255,200,90,0.38),
+    0 0 42px rgba(255,200,90,0.16);
   transition:
-    left 0.38s cubic-bezier(0.22,0.68,0.36,1),
-    top 0.38s cubic-bezier(0.22,0.68,0.36,1),
-    width 0.38s cubic-bezier(0.22,0.68,0.36,1),
-    height 0.38s cubic-bezier(0.22,0.68,0.36,1),
-    border-radius 0.38s var(--ease);
+    left 0.34s cubic-bezier(0.22,0.68,0.36,1),
+    top 0.34s cubic-bezier(0.22,0.68,0.36,1),
+    width 0.34s cubic-bezier(0.22,0.68,0.36,1),
+    height 0.34s cubic-bezier(0.22,0.68,0.36,1),
+    border-radius 0.34s var(--ease);
 }
-
-.tut-pulse {
-  animation: tut-pulse 0.9s ease-in-out 3;
+.tut-highlight.tut-pulse {
+  animation: tut-pulse 0.9s ease-in-out 2;
 }
 @keyframes tut-pulse {
   0%,100% { box-shadow:
-      0 0 0 2px rgba(8,10,18,0.9),
-      0 0 0 4px rgba(255,214,130,0.28),
-      0 0 24px rgba(255,200,90,0.45); }
+      0 0 0 1px rgba(8,10,18,0.9),
+      0 0 0 4px rgba(255,214,130,0.22),
+      0 0 18px rgba(255,200,90,0.38); }
   50% { box-shadow:
-      0 0 0 2px rgba(8,10,18,0.9),
-      0 0 0 4px rgba(255,214,130,0.45),
-      0 0 0 12px rgba(255,214,130,0.32),
-      0 0 36px rgba(255,200,90,0.6); }
+      0 0 0 1px rgba(8,10,18,0.9),
+      0 0 0 4px rgba(255,214,130,0.42),
+      0 0 0 10px rgba(255,214,130,0.24),
+      0 0 32px rgba(255,200,90,0.58); }
 }
 .tut-elevated {
-  position: relative;
-  z-index: 8001;
-  /* ensure hover/pointer works and it draws above blockers' transparent layer */
+  position: relative !important;
   pointer-events: auto !important;
+  /* raise above siblings inside same stacking context */
+  z-index: 2 !important;
 }
-
 .tut-dialog {
   position: fixed;
   z-index: 8002;
-  left: 50%;
-  bottom: 40px;
-  transform: translateX(-50%);
-  width: min(540px, calc(100% - 48px));
-  padding: 22px 26px 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 214, 130, 0.35);
+  pointer-events: auto;
+  width: min(420px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  padding: 20px 22px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,214,130,0.34);
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 130, 0.08), transparent 55%),
-    linear-gradient(180deg, rgba(18, 22, 38, 0.98), rgba(8, 10, 20, 0.99));
+    radial-gradient(ellipse at 50% 0%, rgba(255,214,130,0.09), transparent 56%),
+    linear-gradient(180deg, rgba(18,22,38,0.98), rgba(8,10,20,0.99));
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.7),
-    0 0 40px rgba(255, 190, 80, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition:
-    left 0.35s var(--ease),
-    bottom 0.35s var(--ease),
-    transform 0.35s var(--ease);
+    0 18px 48px rgba(0,0,0,0.62),
+    0 0 28px rgba(255,190,80,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  /* JS sets left/top, no transform centering by default */
 }
-
 .tut-dialog.tut-center {
-  bottom: 50%;
-  transform: translate(-50%, 50%);
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%,-50%) !important;
 }
 
-.tut-dialog.tut-below {
-  bottom: 24px;
-  transform: translateX(-50%);
+/* body lock: only highlighted + dialog are alive */
+body.tut-active {
+  overflow: hidden;
+}
+body.tut-active .view,
+body.tut-active .acct-corner,
+body.tut-active .home-corner-btns,
+body.tut-active .discord-btn,
+body.tut-active .art-credit,
+body.tut-active .bg-layer,
+body.tut-active .menu-bg,
+body.tut-active .chapter-bg,
+body.tut-active .auth-modal,
+body.tut-active .deck-modal,
+body.tut-active .mm-modal,
+body.tut-active .coach,
+body.tut-active .quit-modal,
+body.tut-active .setm,
+body.tut-active .bf-reveal,
+body.tut-active .time-warn {
+  pointer-events: none !important;
+}
+body.tut-active .tut-elevated,
+body.tut-active .tut-dialog,
+body.tut-active .tut-overlay {
+  pointer-events: auto;
+}
+body.tut-active .tut-dialog {
+  pointer-events: auto !important;
+}
+body.tut-active .tut-highlight {
+  pointer-events: none !important;
 }
 
-.tut-dialog.tut-right {
-  left: auto;
-  right: 24px;
-  bottom: 50%;
-  transform: translateY(50%);
-  width: min(380px, calc(100% - 48px));
+.tut-dialog.tut-below,
+.tut-dialog.tut-above,
+.tut-dialog.tut-right,
+.tut-dialog.tut-left,
+.tut-dialog.tut-auto {
+  /* positioned via JS left/top */
 }
-
-.tut-dialog.tut-left {
-  left: 24px;
-  right: auto;
-  bottom: 50%;
-  transform: translateY(50%);
-  width: min(380px, calc(100% - 48px));
-}
-
 .tut-close {
   position: absolute;
   top: 10px;
@@ -22641,21 +22632,15 @@ html.mqw640 .chapter-dialogue-foot {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.6);
   font-size: 14px;
   cursor: var(--cur-pointer);
-  transition:
-    color 0.2s var(--ease),
-    border-color 0.2s var(--ease);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
 }
-.tut-close:hover {
-  color: #fff;
-  border-color: rgba(255, 180, 130, 0.6);
-}
-
+.tut-close:hover { color:#fff; border-color: rgba(255,180,130,0.6); }
 .tut-title {
   margin: 0 0 10px;
   padding-right: 32px;
@@ -22664,43 +22649,33 @@ html.mqw640 .chapter-dialogue-foot {
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #ffd682;
-  text-shadow: 0 0 14px rgba(255, 200, 90, 0.3);
+  text-shadow: 0 0 14px rgba(255,200,90,0.3);
 }
-
 .tut-body {
   margin: 0 0 14px;
   font-size: 13.5px;
   line-height: 1.6;
   color: #d0d4e8;
 }
-.tut-body b {
-  color: #ffe9a8;
-}
-
+.tut-body b { color:#ffe9a8; }
 .tut-step {
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255,255,255,0.35);
 }
-
 .tut-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
+.tut-prev, .tut-next { min-width:110px; }
 
-.tut-prev,
-.tut-next {
-  min-width: 110px;
-}
 
-body.tut-active {
-  overflow: hidden;
-}
+/* keep dialog controls alive */
 
 body[data-gfx='low'] .tut-overlay {
   backdrop-filter: none;
