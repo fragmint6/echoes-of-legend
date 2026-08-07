@@ -17854,9 +17854,11 @@ body[data-gfx='low'] .sc-weather {
   display: flex;
   z-index: 1;
   pointer-events: none;
+  overflow: hidden;
 }
 .veil-panel {
   flex: 1 1 50%;
+  min-width: 0;
   position: relative;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(255,214,130,0.07), transparent 55%),
@@ -17905,7 +17907,6 @@ body[data-gfx='low'] .sc-weather {
   top: 50%;
   width: 54px;
   height: 54px;
-  margin: -27px 0 0 -27px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -17934,7 +17935,11 @@ body[data-gfx='low'] .sc-weather {
   z-index: 4;
   display: grid;
   justify-items: center;
+  align-content: center;
   gap: 18px;
+  text-align: center;
+  max-width: min(88vw, 420px);
+  margin: 0 auto;
   transform: translateY(18px) scale(0.96);
   opacity: 0;
   transition:
@@ -21508,7 +21513,7 @@ body[data-gfx='low'] .cw-motes {
   display: flex;
   flex-direction: column;
   width: 100%;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid rgba(210, 211, 236, 0.18);
   background:
     radial-gradient(ellipse at 80% 0%, rgba(255, 214, 130, 0.05), transparent 50%),
@@ -21521,18 +21526,23 @@ body[data-gfx='low'] .cw-motes {
   font-family: inherit;
   cursor: var(--cur-pointer);
   padding: 0;
-  transition: all 0.28s var(--ease);
+  transition:
+    transform 0.32s var(--ease),
+    border-color 0.32s var(--ease),
+    box-shadow 0.32s var(--ease);
+  overflow: hidden;
+  isolation: isolate;
 }
 .stage-card:not(.is-locked):hover {
-  transform: translateY(-6px) scale(1.015);
-  border-color: rgba(255, 214, 130, 0.78);
+  transform: translateY(-6px) scale(1.012);
+  border-color: rgba(255, 214, 130, 0.82);
   box-shadow:
-    0 22px 48px rgba(0, 0, 0, 0.52),
-    0 0 36px rgba(255, 205, 100, 0.22);
-  z-index: 5;
+    0 22px 52px rgba(0, 0, 0, 0.56),
+    0 0 40px rgba(255, 205, 100, 0.22);
+  z-index: 12;
 }
 .stage-card:not(.is-locked):active {
-  transform: translateY(-2px) scale(1.005);
+  transform: translateY(-2px) scale(1.004);
 }
 .sc-main {
   display: flex;
@@ -21622,40 +21632,36 @@ body[data-gfx='low'] .cw-motes {
   transform: rotate(180deg);
   color: #ffd682;
 }
+.sc-main {
+  position: relative;
+  z-index: 2;
+}
 .sc-expand {
-  position: absolute;
-  left: -1px;
-  right: -1px;
-  top: calc(100% - 2px);
-  z-index: -1;
+  position: relative;
+  z-index: 1;
   overflow: hidden;
-  padding: 0 22px;
-  opacity: 0;
   max-height: 0;
-  transform: translateY(-14px) scale(0.97);
+  opacity: 0;
+  padding: 0 22px;
+  transform: translateY(-12px);
   transition:
-    opacity 0.34s var(--ease),
+    max-height 0.52s cubic-bezier(0.22,0.68,0.36,1),
+    opacity 0.36s var(--ease),
     transform 0.42s var(--ease),
-    max-height 0.46s var(--ease),
-    padding 0.34s var(--ease),
-    border-color 0.34s var(--ease);
-  background: #0e111e;
-  border: 1px solid rgba(255, 214, 130, 0.2);
-  border-top: 1px solid transparent;
-  border-radius: 0 0 16px 16px;
+    padding 0.36s var(--ease),
+    border-color 0.36s var(--ease);
+  background: #0f1220;
+  border-top: 1px solid rgba(255,255,255,0);
   pointer-events: none;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
 }
 .stage-card:not(.is-locked):hover .sc-expand {
+  max-height: 320px;
   opacity: 1;
-  max-height: 260px;
-  padding: 20px 22px 22px;
-  transform: translateY(0) scale(1);
-  border-top-color: rgba(255, 214, 130, 0.22);
-  border-color: rgba(255, 214, 130, 0.32);
-  background: #0f1220;
+  padding: 20px 22px 24px;
+  transform: translateY(0);
+  border-top-color: rgba(255,214,130,0.18);
   pointer-events: auto;
-  z-index: 10;
+  background: #0f1220;
 }
 .sc-lore {
   display: flex;
@@ -22504,6 +22510,17 @@ html.mqw640 .chapter-dialogue-foot {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+.tut-overlay.has-target {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.tut-overlay.has-target .tut-highlight {
+  box-shadow:
+    0 0 0 9999px rgba(2, 3, 10, 0.78),
+    0 0 0 3px rgba(255, 214, 130, 0.9),
+    0 0 28px rgba(255, 200, 90, 0.45);
 }
 
 .tut-highlight {

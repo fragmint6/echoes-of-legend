@@ -115,6 +115,21 @@
     highlight.style.top = Math.max(0, r.top / z - pad) + 'px';
     highlight.style.width = r.width / z + pad * 2 + 'px';
     highlight.style.height = r.height / z + pad * 2 + 'px';
+    try {
+      var cs = getComputedStyle(target);
+      // copy the target's own radius so the highlight hugs its shape
+      var br = cs.borderRadius;
+      if (br && br !== '0px') {
+        highlight.style.borderRadius = br;
+      } else {
+        highlight.style.borderRadius = '14px';
+      }
+      // if target is heavily pill-shaped (999px), expand radius a touch
+      // to keep the gold border from clipping
+      if (br && br.indexOf('999') > -1) {
+        highlight.style.borderRadius = '999px';
+      }
+    } catch (e) {}
   }
 
   function showStep(i) {
