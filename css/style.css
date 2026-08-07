@@ -15696,22 +15696,9 @@ body[data-view='chapter'] .menu-bg {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-/* On the chapter view: hide the menu's landscape parallax and most
-   particles so the forest backdrop isn't cluttered. Keep the subtle
-   weather layers: drifting fog banks, rising spores, and firefly wisps
-   for atmosphere. */
-body[data-view='chapter'] .mb-base,
-body[data-view='chapter'] .mb-sky,
-body[data-view='chapter'] .mb-far,
-body[data-view='chapter'] .mb-mid,
-body[data-view='chapter'] .mb-near,
-body[data-view='chapter'] .mb-grade,
-body[data-view='chapter'] .mb-shoot,
-body[data-view='chapter'] .mb-rays,
-body[data-view='chapter'] .mb-embers.hot,
-body[data-view='chapter'] .mb-embers,
-body[data-view='chapter'] .mb-ash,
-body[data-view='chapter'] .mb-ultra {
+/* On the chapter view: hide the menu-bg entirely — the chapter-bg
+   provides its own pixel-art forest backdrop with cw-haze mist. */
+body[data-view='chapter'] .menu-bg {
   opacity: 0 !important;
 }
 
@@ -17975,6 +17962,12 @@ body[data-gfx='low'] .veil-ward > i {
     transform: translateY(-12px) scale(0.7);
   }
 }
+@keyframes credit-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
 /* on the LEFT edge the label rides out to the right instead */
 .home-discord .discord-tip {
   right: auto;
@@ -18014,8 +18007,8 @@ body[data-gfx='low'] .veil-ward > i {
    Same glass circle spec as the Discord chip. */
 .home-corner-btns {
   position: absolute;
-  right: 22px;
-  top: 74px;
+  left: 22px;
+  top: 72px;
   z-index: 30;
   display: flex;
   flex-direction: column;
@@ -18054,9 +18047,10 @@ body[data-gfx='low'] .veil-ward > i {
 }
 .corner-tip {
   position: absolute;
-  right: calc(100% + 9px);
+  left: calc(100% + 9px);
+  right: auto;
   top: 50%;
-  transform: translateY(-50%) translateX(4px);
+  transform: translateY(-50%) translateX(-4px);
   padding: 5px 11px;
   border-radius: 7px;
   background: rgba(8, 10, 18, 0.94);
@@ -18077,7 +18071,6 @@ body[data-gfx='low'] .veil-ward > i {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
-@keyframes credit-rise {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -22236,7 +22229,6 @@ html.mqw640 .chapter-dialogue-foot {
 .tut-overlay.on {
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;
 }
 
 .tut-highlight {
