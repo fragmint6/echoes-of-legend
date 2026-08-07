@@ -22611,9 +22611,9 @@ html.mqw640 .chapter-dialogue-foot {
   position: fixed;
   inset: 0;
   z-index: 8000;
-  background: rgba(2,3,10,0.38);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(2,3,10,0.32);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   pointer-events: auto;
   opacity: 0;
   visibility: hidden;
@@ -22629,9 +22629,9 @@ html.mqw640 .chapter-dialogue-foot {
 .tut-overlay.no-target,
 .tut-overlay.has-target {
   pointer-events: auto;
-  background: rgba(2,3,10,0.38);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(2,3,10,0.32);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 .tut-blocker {
   display: none !important;
