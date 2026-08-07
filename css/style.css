@@ -18052,7 +18052,121 @@ body[data-gfx='low'] .sc-weather {
 body[data-gfx='low'] .veil-ward { box-shadow: none; }
 body[data-gfx='low'] .veil-ward > i { animation-timing-function: linear; }
 body[data-gfx='low'] .veil-panel { transition: none; }
+
 body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ease); }
+
+/* =============================================================
+   DECK REWARD — tutorial unlock for Grimmwood starter
+   ============================================================= */
+.deck-reward {
+  position: fixed;
+  inset: 0;
+  z-index: 8200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.deck-reward[hidden] { display: none; }
+.dr-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(20,24,42,0.88), rgba(4,5,12,0.96));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dr-card {
+  position: relative;
+  width: min(520px, 100%);
+  padding: 28px 26px 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,214,130,0.32);
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255,214,130,0.11), transparent 56%),
+    linear-gradient(180deg, rgba(18,22,38,0.98), rgba(8,10,20,0.99));
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.68),
+    0 0 0 1px rgba(255,214,130,0.18),
+    0 0 40px rgba(255,200,90,0.16);
+  text-align: center;
+  overflow: hidden;
+  animation: dr-in 0.42s var(--ease);
+}
+@keyframes dr-in {
+  from { transform: translateY(18px) scale(0.96); opacity:0; }
+  to { transform: none; opacity:1; }
+}
+.dr-rays {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  opacity: 0.22;
+  background:
+    conic-gradient(from 0deg at 50% 50%, transparent 0 18deg, rgba(255,214,130,0.22) 18deg 20deg, transparent 20deg 40deg, rgba(255,214,130,0.14) 40deg 42deg, transparent 42deg 360deg);
+  animation: dr-rays 18s linear infinite;
+}
+@keyframes dr-rays { to { transform: rotate(360deg); } }
+.dr-emblem {
+  width: 64px; height: 64px;
+  margin: 0 auto 14px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  font-size: 28px;
+  color: #ffd682;
+  background: radial-gradient(circle at 38% 28%, rgba(255,220,140,0.18), rgba(10,12,22,0.6));
+  border: 1px solid rgba(255,214,130,0.38);
+  box-shadow: 0 0 18px rgba(255,200,90,0.22);
+}
+.dr-kicker {
+  margin: 0 0 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ffd682;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dr-title {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(255,200,90,0.22);
+}
+.dr-sub {
+  margin: 10px auto 16px;
+  max-width: 380px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #c8cbd8;
+}
+.dr-preview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px auto 18px;
+  min-height: 42px;
+}
+.dr-preview span {
+  display: inline-grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 16px;
+  color: #d0d4e8;
+}
+.dr-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
 
 /* =============================================================
    2026-08 HOME CORNERS + ACCOUNT MENU + SETTINGS MODAL
@@ -22530,6 +22644,19 @@ html.mqw640 .chapter-dialogue-foot {
   pointer-events: none;
   background: transparent;
 }
+.tut-blocker {
+  position: fixed;
+  z-index: 8000;
+  background: rgba(2,3,10,0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: auto;
+}
+.tut-blocker.b-top,
+.tut-blocker.b-bottom {
+  left: 0;
+  width: 100%;
+}
 .tut-highlight {
   position: fixed;
   z-index: 8001;
@@ -22591,6 +22718,49 @@ html.mqw640 .chapter-dialogue-foot {
   top: 50% !important;
   transform: translate(-50%,-50%) !important;
 }
+.tut-dialog::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, rgba(18,22,38,0.98), rgba(8,10,20,0.99));
+  border-left: 1px solid rgba(255,214,130,0.34);
+  border-top: 1px solid rgba(255,214,130,0.34);
+  transform: rotate(45deg);
+  z-index: -1;
+  opacity: 0;
+}
+.tut-dialog.tut-below::before {
+  top: -7px;
+  left: 50%;
+  margin-left: -7px;
+  opacity: 1;
+}
+.tut-dialog.tut-above::before {
+  bottom: -7px;
+  top: auto;
+  left: 50%;
+  margin-left: -7px;
+  transform: rotate(225deg);
+  opacity: 1;
+}
+.tut-dialog.tut-right::before {
+  left: -7px;
+  top: 50%;
+  margin-top: -7px;
+  transform: rotate(-45deg);
+  opacity: 1;
+}
+.tut-dialog.tut-left::before {
+  right: -7px;
+  left: auto;
+  top: 50%;
+  margin-top: -7px;
+  transform: rotate(135deg);
+  opacity: 1;
+}
+.tut-dialog.tut-center::before { display: none; }
+
 
 /* body lock: only highlighted + dialog are alive */
 body.tut-active {
