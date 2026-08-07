@@ -1593,9 +1593,24 @@
       show('collection');
     });
     var btnRulebook = document.getElementById('btn-rulebook');
+    var btnCornerRulebook = document.getElementById('btn-corner-rulebook');
     if (btnRulebook) {
       btnRulebook.addEventListener('click', function () {
         show('rulebook');
+      });
+    }
+    if (btnCornerRulebook) {
+      btnCornerRulebook.addEventListener('click', function () {
+        show('rulebook');
+      });
+    }
+    var btnCornerTutorial = document.getElementById('btn-corner-tutorial');
+    if (btnCornerTutorial) {
+      btnCornerTutorial.addEventListener('click', function () {
+        if (window.EOL.tutorial) {
+          window.EOL.tutorial.reset();
+          window.EOL.tutorial.start();
+        }
       });
     }
     var btnRulebookBack = document.getElementById('btn-rulebook-back');
@@ -1633,6 +1648,11 @@
         window.EOL.campaign.dialogueOpen()
       ) {
         window.EOL.campaign.closeRecruiterDialogue();
+        return;
+      }
+      /* Tutorial owns Escape while active; the tutorial module handles
+         its own dismissal. */
+      if (window.EOL.tutorial && window.EOL.tutorial.isActive && window.EOL.tutorial.isActive()) {
         return;
       }
       goBack();

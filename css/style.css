@@ -15696,9 +15696,10 @@ body[data-view='chapter'] .menu-bg {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-/* On the chapter view: hide the menu's landscape parallax planes and
-   any effects that don't fit the forest atmosphere. Still allowed are
-   the subtle motes (far/mid/near) for ambient depth. */
+/* On the chapter view: hide the menu's landscape parallax and most
+   particles so the forest backdrop isn't cluttered. Keep the subtle
+   weather layers: drifting fog banks, rising spores, and firefly wisps
+   for atmosphere. */
 body[data-view='chapter'] .mb-base,
 body[data-view='chapter'] .mb-sky,
 body[data-view='chapter'] .mb-far,
@@ -15709,11 +15710,7 @@ body[data-view='chapter'] .mb-shoot,
 body[data-view='chapter'] .mb-rays,
 body[data-view='chapter'] .mb-embers.hot,
 body[data-view='chapter'] .mb-embers,
-body[data-view='chapter'] .mb-wisps,
-body[data-view='chapter'] .mb-fog,
-body[data-view='chapter'] .mb-fogbanks,
 body[data-view='chapter'] .mb-ash,
-body[data-view='chapter'] .mb-spores,
 body[data-view='chapter'] .mb-ultra {
   opacity: 0 !important;
 }
@@ -18011,6 +18008,74 @@ body[data-gfx='low'] .veil-ward > i {
   color: var(--r-legendary-1);
   font-weight: 700;
   text-shadow: 0 0 12px rgba(255, 200, 90, 0.4);
+}
+
+/* Corner button stack — top-right, below the account pill.
+   Same glass circle spec as the Discord chip. */
+.home-corner-btns {
+  position: absolute;
+  right: 22px;
+  top: 74px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: corner-drop 0.7s var(--ease) 1.05s backwards;
+}
+.corner-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(12, 14, 22, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: rgba(220, 224, 240, 0.65);
+  font-size: 16px;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+.corner-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 214, 130, 0.55);
+  background: rgba(30, 28, 40, 0.72);
+  transform: scale(1.08);
+}
+.corner-btn:active {
+  transform: scale(0.94);
+}
+.corner-tip {
+  position: absolute;
+  right: calc(100% + 9px);
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  padding: 5px 11px;
+  border-radius: 7px;
+  background: rgba(8, 10, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d0d4e8;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+.corner-btn:hover .corner-tip,
+.corner-btn:focus-visible .corner-tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 @keyframes credit-rise {
   from {
@@ -21301,21 +21366,29 @@ body[data-view='chapter'] .bg-grid {
   color: #ffd682;
 }
 .sc-expand {
-  max-height: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: -1;
   overflow: hidden;
+  padding: 0 22px;
   opacity: 0;
+  transform: translateY(-8px);
   transition:
-    max-height 0.35s var(--ease),
     opacity 0.3s var(--ease),
-    padding 0.35s var(--ease);
+    transform 0.35s var(--ease);
   background: rgba(4, 6, 15, 0.55);
   border-top: 1px solid transparent;
+  border-radius: 0 0 14px 14px;
+  pointer-events: none;
 }
 .stage-card:not(.is-locked):hover .sc-expand {
-  max-height: 160px;
   opacity: 1;
-  padding: 14px 22px 18px;
+  transform: translateY(0);
   border-top-color: rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  z-index: 2;
 }
 .sc-lore {
   display: flex;
