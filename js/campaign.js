@@ -1,8 +1,20 @@
 /* =============================================================
    Echoes of Legend — Campaign Chapter 1 System
    -------------------------------------------------------------
-   Tier 1 narrative dialogue, stage progression state, and the
-   full playable battle for Stage 1 (The Recruiter).
+   The glue between the content layer (data/campaign-ch1.js) and
+   the game: stage progression + persistence, the dialogue BAR
+   (bottom-anchored - it must never cover the board or the map),
+   stage launching for all three formats (classic / Unabridged set
+   / draft), rival behaviour hooks, IN-BATTLE rival barks, grants,
+   and the result-screen framing.
+
+   Laws honoured here:
+     R1  every rival twelve is authored data, nothing is rolled
+     R3  no leaving mid-set; progress commits on stage completion
+     R5  the boss is pinned + unbannable by hardcode (js/play.js)
+     §6  mid-fight lore is NON-BLOCKING (the bark widget is
+         pointer-transparent and self-expiring; blocking overlays
+         are for pre-fight and post-fight only)
    ============================================================= */
 (function () {
   'use strict';
@@ -10,58 +22,757 @@
   window.EOL = window.EOL || {};
   var STORY = window.EOL.campaignCh1 || {};
   var PROGRESS_KEY = 'eol.campaign.ch1.progress';
-  var dialogueIndex = 0;
-  var currentStage = 1;
-  var currentLines = [];
-  var isOpen = false;
-  var activeCampaignStage = null;
 
   function $(id) {
     return document.getElementById(id);
   }
-
   function setText(node, text) {
     if (node) node.textContent = text || '';
   }
-
-  function stageLabel(stage) {
-    return 'Stage ' + stage.id + ' · ' + stage.format;
-  }
-
   function two(n) {
     return n < 10 ? '0' + n : String(n);
   }
+  var ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
+  function stageById(id) {
+    var list = STORY.stages || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function stageLabel(stage) {
+    return 'Stage ' + stage.id + ' · ' + stage.format;
+  }
+  function fieldById(id) {
+    return (id && window.EOL.battlefieldById && window.EOL.battlefieldById(id)) || null;
+  }
+  function rivalOf(stage) {
+    return { name: stage.rival, img: stage.portrait || null };
+  }
+
+  /* ---------------------------------------------------------
+     Roster resolution - campaign decks are card-id lists; the
+     boss card lives OUTSIDE EOL.factions (never draftable, never
+     in a balance pool) and resolves through the story data.
+     --------------------------------------------------------- */
+  var CARD_DICT = null;
+  function cardDict() {
+    if (CARD_DICT) return CARD_DICT;
+    CARD_DICT = {};
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        CARD_DICT[c.id] = { card: c, faction: f };
+      });
+    });
+    if (STORY.bossCard && STORY.bossFaction) {
+      CARD_DICT[STORY.bossCard.id] = { card: STORY.bossCard, faction: STORY.bossFaction };
+    }
+    return CARD_DICT;
+  }
+  function entriesFor(ids) {
+    var dict = cardDict();
+    return (ids || [])
+      .map(function (id) {
+        return dict[id];
+      })
+      .filter(Boolean);
+  }
+  function starterEntries() {
+    var starter = window.EOL.decks && window.EOL.decks.get('starter-grimmwood');
+    if (starter) return window.EOL.decks.entriesOf(starter);
+    var fac = (window.EOL.factions || []).filter(function (f) {
+      return f.id === 'grimmwood';
+    })[0];
+    if (!fac) return [];
+    return fac.cards.map(function (c) {
+      return { card: c, faction: fac };
+    });
+  }
+
+  /* ---------------------------------------------------------
+     Curated draft pools (stages 6-8).
+     -------------------------------------------------------------
+     The featured faction's full six is GUARANTEED into the pool;
+     the rest fills to 6-per-role so both sides can always build a
+     legal 12 under max-4 (the role-cap lesson stays true). Huaxia
+     is held for Chapter 2 and Duat is the boss reveal, so neither
+     enters a Chapter 1 draft.
+     --------------------------------------------------------- */
+  function buildPool(featuredId) {
+    var byRole = {};
+    (window.EOL.factions || []).forEach(function (f) {
+      if (f.id === 'huaxia' || f.id === 'duat') return;
+      f.cards.forEach(function (c) {
+        (byRole[c.role] = byRole[c.role] || []).push({ card: c, faction: f });
+      });
+    });
+    var pool = [];
+    Object.keys(byRole).forEach(function (role) {
+      var featured = byRole[role].filter(function (e) {
+        return e.faction.id === featuredId;
+      });
+      var rest = byRole[role].filter(function (e) {
+        return e.faction.id !== featuredId;
+      });
+      for (var i = rest.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = rest[i];
+        rest[i] = rest[j];
+        rest[j] = t;
+      }
+      pool = pool.concat(featured.concat(rest).slice(0, 6));
+    });
+    return pool;
+  }
+
+  /* ---------------------------------------------------------
+     Progress + the collection/currency store (§9.14).
+     eol.campaign.ch1.progress:
+       cleared   [stageIds]       unlocked  [stageIds]
+       clears    {stageId: n}     per-stage clear counts (replay taper)
+       grants    [cardIds]        tier-1 curriculum, applied on FIRST
+                                  clear only (idempotent)
+       coins     n                tier-2 currency, inert until the
+                                  economy pass lands
+       choices   {stageId:[ids]}  resolved exam choices (R9)
+       pendingChoice stageId|null an unclaimed exam choice
+     --------------------------------------------------------- */
   function getProgress() {
     try {
       var raw = localStorage.getItem(PROGRESS_KEY);
       if (raw) {
         var parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.unlocked)) return parsed;
+        if (parsed && Array.isArray(parsed.unlocked)) {
+          parsed.cleared = parsed.cleared || [];
+          parsed.clears = parsed.clears || {};
+          parsed.grants = parsed.grants || [];
+          parsed.coins = parsed.coins || 0;
+          parsed.choices = parsed.choices || {};
+          return parsed;
+        }
       }
     } catch (e) {
       /* private mode fallback */
     }
-    return { cleared: [], unlocked: [1] };
+    return {
+      cleared: [],
+      unlocked: [1],
+      clears: {},
+      grants: [],
+      coins: 0,
+      choices: {},
+      pendingChoice: null,
+    };
   }
-
   function saveProgress(prog) {
     try {
       localStorage.setItem(PROGRESS_KEY, JSON.stringify(prog));
-    } catch (e) {}
+    } catch (e) {
+      /* private mode: the session still works, it just forgets */
+    }
   }
 
-  function findCard(id) {
-    var factions = window.EOL.factions || [];
-    for (var i = 0; i < factions.length; i++) {
-      var f = factions[i];
-      for (var j = 0; j < f.cards.length; j++) {
-        if (f.cards[j].id === id) return { card: f.cards[j], faction: f };
+  function recordClear(stage, prog) {
+    prog = prog || getProgress();
+    var first = prog.cleared.indexOf(stage.id) < 0;
+    if (first) prog.cleared.push(stage.id);
+    if (stage.id < 10 && prog.unlocked.indexOf(stage.id + 1) < 0) prog.unlocked.push(stage.id + 1);
+    prog.clears[stage.id] = (prog.clears[stage.id] || 0) + 1;
+    var g = stage.grants || {};
+    if (first) {
+      (g.cards || []).forEach(function (id) {
+        if (prog.grants.indexOf(id) < 0) prog.grants.push(id);
+      });
+      prog.coins += g.coins || 0;
+      if (g.choice) prog.pendingChoice = stage.id;
+    } else {
+      /* Replays pay a reduced, capped tier 2 only (§7.2). */
+      prog.coins += Math.round((g.coins || 0) * 0.25);
+    }
+    saveProgress(prog);
+    updateStageCards();
+    return first;
+  }
+
+  /* ---------------------------------------------------------
+     THE DIALOGUE BAR
+     -------------------------------------------------------------
+     Bottom-anchored, visual-novel style: the scene stays visible,
+     the words live in a strip along the bottom edge. Clicking
+     anywhere (bar or scrim) advances; X or Esc skips the scene.
+     One widget serves pre-fight scenes and victory epilogues.
+     --------------------------------------------------------- */
+  var dlg = null; // { stage, lines, index, kind:'pre'|'epilogue', onDone }
+
+  function portraitFor(speaker, stage) {
+    var list = STORY.stages || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].rival === speaker) return list[i].portrait || null;
+    }
+    if (stage && speaker === stage.rival) return stage.portrait || null;
+    return null; // the Wayfarer has no face yet - that is the story
+  }
+
+  function renderDialogue() {
+    if (!dlg) return;
+    var line = dlg.lines[dlg.index];
+    if (!line) return;
+    setText($('chapter-dialogue-speaker'), line.speaker);
+    var textEl = $('chapter-dialogue-text');
+    if (textEl) {
+      textEl.textContent = line.text || '';
+      /* restart the per-line fade so each beat visibly lands */
+      textEl.classList.remove('line-in');
+      void textEl.offsetWidth;
+      textEl.classList.add('line-in');
+    }
+    var kicker = $('chapter-dialogue-kicker');
+    if (kicker) {
+      kicker.innerHTML =
+        '<i class="ri-book-open-line"></i> Chapter 1 · Gate ' +
+        (ROMAN[dlg.stage ? dlg.stage.id : 1] || '') +
+        (dlg.kind === 'epilogue' ? ' · Cleared' : '');
+    }
+    var img = $('chapter-dialogue-portrait');
+    var glyph = $('chapter-dialogue-glyph');
+    var src = portraitFor(line.speaker, dlg.stage);
+    if (img && glyph) {
+      if (src) {
+        img.src = src;
+        img.hidden = false;
+        glyph.hidden = true;
+      } else {
+        img.hidden = true;
+        glyph.hidden = false;
       }
     }
-    return null;
+    setText($('chapter-dialogue-step'), two(dlg.index + 1) + ' / ' + two(dlg.lines.length));
+    var next = $('chapter-dialogue-next');
+    if (next) {
+      if (line.battle) {
+        next.innerHTML =
+          '<i class="ra ra-crossed-swords"></i><span>Fight ' +
+          (dlg.stage ? dlg.stage.rival : '') +
+          '</span>';
+      } else if (dlg.index >= dlg.lines.length - 1) {
+        next.innerHTML = '<span>' + (dlg.kind === 'epilogue' ? 'Walk on' : 'Close') + '</span><i class="ri-check-line"></i>';
+      } else {
+        next.innerHTML = '<span>Continue</span><i class="ri-arrow-right-line"></i>';
+      }
+    }
   }
 
+  function openDialogue(stage, lines, kind, onDone) {
+    if (!lines || !lines.length) {
+      if (onDone) onDone();
+      return;
+    }
+    var modal = $('chapter-dialogue');
+    if (!modal) {
+      if (onDone) onDone();
+      return;
+    }
+    dlg = { stage: stage, lines: lines, index: 0, kind: kind || 'pre', onDone: onDone || null };
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.dataset.campaignDialogue = '1';
+    renderDialogue();
+    window.setTimeout(function () {
+      var next = $('chapter-dialogue-next');
+      if (next) next.focus();
+    }, 0);
+  }
+
+  function closeDialogue() {
+    var modal = $('chapter-dialogue');
+    if (!modal || !dlg) return;
+    var done = dlg.onDone;
+    var kind = dlg.kind;
+    var stage = dlg.stage;
+    dlg = null;
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.dataset.campaignDialogue = '0';
+    if (kind === 'epilogue') {
+      /* The epilogue is an overlay on the settled battle screen; closing
+         it by ANY route (X, scrim-skip, Esc) must continue the flow, not
+         strand the player on an ended board. */
+      if (done) done();
+      return;
+    }
+    var opener = stage && document.querySelector('[data-campaign-stage="' + stage.id + '"]');
+    if (opener && opener.focus) opener.focus();
+  }
+
+  function advanceDialogue() {
+    if (!dlg) return;
+    var line = dlg.lines[dlg.index];
+    if (dlg.index < dlg.lines.length - 1) {
+      dlg.index++;
+      renderDialogue();
+      return;
+    }
+    var stage = dlg.stage;
+    var launch = !!(line && line.battle && dlg.kind === 'pre');
+    closeDialogue();
+    if (launch && stage) launchStage(stage);
+  }
+
+  function openStageDialogue(stageId) {
+    var stage = stageById(stageId || 1);
+    if (!stage) return;
+    var lines = (STORY.dialogues || {})[stage.id] || [];
+    openDialogue(stage, lines, 'pre', null);
+  }
+
+  /* ---------------------------------------------------------
+     STAGE LAUNCH - one recipe per format.
+     --------------------------------------------------------- */
+  var activeCampaignStage = null;
+
+  function hideDeckModal() {
+    var modal = document.getElementById('deck-modal');
+    if (modal) {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function launchStage(stage) {
+    activeCampaignStage = stage.id;
+    if (stage.mode === 'draft') {
+      launchDraft(stage);
+      return;
+    }
+    if (!window.EOL.play || !window.EOL.play.openClassicModal) return;
+    window.EOL.play.openClassicModal(
+      function (deckId) {
+        var deck = deckId && window.EOL.decks ? window.EOL.decks.get(deckId) : null;
+        var player12 = deck ? window.EOL.decks.entriesOf(deck) : starterEntries();
+        if (!player12 || player12.length !== 12) player12 = starterEntries();
+        var enemy12 = entriesFor(stage.enemy12);
+        hideDeckModal();
+        var cfg = {
+          mode: 'classic',
+          deckId: deckId,
+          player12: player12,
+          enemy12: enemy12,
+          campaignStage: stage.id,
+          war: stage.mode === 'set' ? 'set' : 'single',
+          botSix: stage.botSix || null,
+          botBanProfile: stage.banProfile || null,
+          pinnedEnemy: stage.pinned || null,
+          unbannable: stage.unbannable || null,
+          rival: rivalOf(stage),
+          /* stage 1 keeps the gentle opener; later gates use the
+             engine's normal alternation */
+          oddFirst: stage.id === 1 ? 'player' : null,
+        };
+        if (stage.mode === 'set') {
+          cfg.fightCard = (stage.fightCard || []).map(fieldById).filter(Boolean);
+        } else {
+          cfg.field = fieldById(stage.field);
+        }
+        window.EOL.play.startPrep(cfg);
+      },
+      {
+        isCampaign: true,
+        hideRandom: true,
+        title: 'Choose your deck to face ' + stage.rival,
+        sub:
+          stage.mode === 'set'
+            ? 'Unabridged: best of three on ' + stage.terrain + '. Substitutions are law — no retreat once it begins.'
+            : 'Select your squad of 12 for the battle on ' + stage.terrain + '.',
+      }
+    );
+  }
+
+  function launchDraft(stage) {
+    if (!window.EOL.play || !window.EOL.play.startDraft) return;
+    window.EOL.play.startDraft({
+      pool: buildPool(stage.pool && stage.pool.featured),
+      persona: stage.persona || null,
+      campaign: {
+        stage: stage.id,
+        field: fieldById(stage.field),
+        banProfile: stage.banProfile || null,
+        rival: rivalOf(stage),
+      },
+    });
+  }
+
+  /* ---------------------------------------------------------
+     IN-BATTLE RIVAL DIALOGUE (barks)
+     -------------------------------------------------------------
+     A small, pointer-transparent speech card beside the enemy
+     commander plate. It rides the engine's observational event
+     hook - never gameplay logic - and self-expires, so it cannot
+     fight the animation queue, the busy gate or the auto-end-turn
+     timer (§6's standing rule against blocking mid-battle lore).
+
+     Triggers: battle open (per set game), first blood either way,
+     fallen heroes on both sides, the rival's last stand, the
+     player cornered, and a revive on the rival's side (stage 10's
+     telegraphed Isis twist). Each key fires at most once per
+     battle, with a minimum gap so the fight never reads as a
+     chat log.
+     --------------------------------------------------------- */
+  var BARK_MS = 4600;
+  var BARK_GAP = 5200;
+  var barkTimer = null;
+
+  function hideBark() {
+    var el = $('rival-bark');
+    if (el) {
+      el.classList.remove('show');
+      window.clearTimeout(barkTimer);
+    }
+  }
+
+  function showBark(stage, text) {
+    if (!text) return;
+    if (document.body.dataset.view !== 'battle') return;
+    var el = $('rival-bark');
+    if (!el) return;
+    var face = $('rival-bark-face');
+    if (face) {
+      if (stage.portrait) {
+        face.src = stage.portrait;
+        face.hidden = false;
+      } else {
+        face.hidden = true;
+      }
+    }
+    setText($('rival-bark-name'), stage.rival);
+    setText($('rival-bark-text'), text);
+    el.hidden = false;
+    el.classList.remove('show');
+    void el.offsetWidth; // restart the slide-in
+    el.classList.add('show');
+    window.clearTimeout(barkTimer);
+    barkTimer = window.setTimeout(function () {
+      el.classList.remove('show');
+    }, BARK_MS);
+  }
+
+  function barkLine(stage, key) {
+    var b = stage.barks || {};
+    var v = b[key];
+    if (Array.isArray(v)) return v[Math.floor(Math.random() * v.length)] || null;
+    return v || null;
+  }
+
+  var battleWatch = null;
+
+  function clearBattleWatch() {
+    if (!battleWatch) return;
+    window.EOL.onBattleEvent = battleWatch.prevHook || null;
+    battleWatch = null;
+  }
+
+  function fireBark(key, opts) {
+    if (!battleWatch) return;
+    opts = opts || {};
+    if (battleWatch.fired[key]) return;
+    if (opts.chance != null && Math.random() > opts.chance) return;
+    var now = Date.now();
+    if (!opts.force && now - battleWatch.lastAt < BARK_GAP) return;
+    var text = barkLine(battleWatch.stage, key);
+    if (!text) return;
+    battleWatch.fired[key] = true;
+    battleWatch.lastAt = now;
+    showBark(battleWatch.stage, text);
+  }
+
+  function aliveCount(B, side) {
+    return (B.units || []).filter(function (u) {
+      return u.side === side && u.alive;
+    }).length;
+  }
+
+  function watchEvent(B, ev) {
+    if (!battleWatch || !ev) return;
+    if (ev.t === 'death') {
+      var u = (B.units || []).filter(function (x) {
+        return x.uid === ev.uid;
+      })[0];
+      if (!u) return;
+      battleWatch.deaths[u.side] = (battleWatch.deaths[u.side] || 0) + 1;
+      var total = battleWatch.deaths.player + battleWatch.deaths.enemy;
+      if (total === 1) {
+        fireBark(u.side === 'enemy' ? 'firstBloodYou' : 'firstBloodFoe', { force: true });
+        return;
+      }
+      if (u.side === 'player') {
+        if (aliveCount(B, 'player') <= 2) fireBark('playerLow');
+        else fireBark('allyDown', { chance: 0.65 });
+      } else {
+        var left = aliveCount(B, 'enemy');
+        if (left === 1) fireBark('foeLast', { force: true });
+        else if (left <= 3) fireBark('foeHalf');
+        else fireBark('foeDown', { chance: 0.4 });
+      }
+    } else if (ev.t === 'revive') {
+      var r = (B.units || []).filter(function (x) {
+        return x.uid === ev.uid;
+      })[0];
+      if (r && r.side === 'enemy') fireBark('rivalRevive', { force: true });
+    }
+  }
+
+  /* Called by battle.js start() whenever a campaign battle opens. */
+  function onBattleStart(B) {
+    clearBattleWatch();
+    var stage = stageById(B.campaignStage);
+    if (!stage) return;
+    activeCampaignStage = stage.id;
+    battleWatch = {
+      stage: stage,
+      fired: {},
+      deaths: { player: 0, enemy: 0 },
+      lastAt: 0,
+      prevHook: window.EOL.onBattleEvent || null,
+    };
+    window.EOL.onBattleEvent = function (BB, ev) {
+      if (battleWatch && battleWatch.prevHook) {
+        try {
+          battleWatch.prevHook(BB, ev);
+        } catch (e) {
+          /* an external listener must not break the road */
+        }
+      }
+      try {
+        watchEvent(BB, ev);
+      } catch (e) {
+        /* barks are flavour; they never break a fight */
+      }
+    };
+    /* The opening line waits for the view swap + round banner. Set
+       stages greet each game differently. */
+    var key = 'start';
+    try {
+      var ss = window.EOL.play && window.EOL.play._setState ? window.EOL.play._setState() : null;
+      if (ss && ss.game === 2) key = 'start2';
+      else if (ss && ss.game >= 3) key = 'start3';
+    } catch (e) {
+      /* fall back to the game-1 line */
+    }
+    var stageRef = stage;
+    var openKey = key;
+    window.setTimeout(function () {
+      if (!battleWatch || battleWatch.stage !== stageRef) return;
+      var text = barkLine(stageRef, openKey) || barkLine(stageRef, 'start');
+      if (text && !battleWatch.fired.start) {
+        battleWatch.fired.start = true;
+        battleWatch.lastAt = Date.now();
+        showBark(stageRef, text);
+      }
+    }, 2100);
+  }
+
+  /* ---------------------------------------------------------
+     RESULTS - one pending campaign result, consumed by the result
+     screen. battle.js frames the buttons from what we return here;
+     the campaign never reaches into the result DOM itself.
+     --------------------------------------------------------- */
+  var resultInfo = null;
+
+  function onBattleResult(win, info) {
+    clearBattleWatch();
+    hideBark();
+    info = info || {};
+    if (!activeCampaignStage) return null;
+    /* Guard against a STALE stage: a campaign battle abandoned mid-fight
+       leaves activeCampaignStage set, and the next ordinary Classic win
+       must not be scored as a gate clear. The battle itself knows what
+       it is - trust it over our own memory. */
+    try {
+      var live = window.EOL.battle && window.EOL.battle.getState ? window.EOL.battle.getState() : null;
+      if (live && live.campaignStage !== activeCampaignStage) {
+        activeCampaignStage = null;
+        return null;
+      }
+    } catch (e) {
+      /* no battle state readable - fall through on our own record */
+    }
+    /* Mid-set: the war is undecided, the sideboard framing stands,
+       and NOTHING commits (R3: progress commits on stage completion
+       only). The stage stays active for the next game. */
+    if (info.midSet) return null;
+    var stage = stageById(activeCampaignStage);
+    if (!stage) {
+      activeCampaignStage = null;
+      return null;
+    }
+    resultInfo = { stage: stage.id, won: win };
+    if (win) recordClear(stage);
+    return {
+      campaign: true,
+      sub: win ? stage.resultWin : stage.resultLose,
+      rematchLabel: 'Retry',
+      homeLabel: win ? 'Continue' : 'Map',
+    };
+  }
+
+  /* The result screen's primary action: fight the gate again. Skips
+     the scene (the player has read it) and goes straight back to the
+     deck picker / draft table. */
+  function retry(stageId) {
+    resultInfo = null;
+    var stage = stageById(stageId || activeCampaignStage || 1);
+    if (!stage) return;
+    hideBark();
+    launchStage(stage);
+  }
+
+  /* The result screen's secondary action. Returns true when the
+     campaign consumed the click (epilogue / choice / map routing) so
+     the generic home handler stands down. */
+  function consumeResult() {
+    if (!resultInfo) return false;
+    var r = resultInfo;
+    resultInfo = null;
+    activeCampaignStage = null;
+    var stage = stageById(r.stage);
+    if (r.won && stage) {
+      var lines = (STORY.epilogues || {})[stage.id] || [];
+      openDialogue(stage, lines, 'epilogue', function () {
+        maybeOfferChoice(stage, function () {
+          window.EOL.ui.show('chapter');
+        });
+      });
+    } else {
+      window.EOL.ui.show('chapter');
+    }
+    return true;
+  }
+
+  /* ---------------------------------------------------------
+     THE CHOICE GRANT (R9) - exams pay out as a choice, resolved at
+     claim time against the live roster, never as hardcoded ids.
+     --------------------------------------------------------- */
+  function choiceCandidates(stage, prog) {
+    var g = stage.grants && stage.grants.choice;
+    if (!g) return [];
+    var dict = cardDict();
+    var taken = {};
+    (prog.grants || []).forEach(function (id) {
+      taken[id] = true;
+    });
+    var out = [];
+    (window.EOL.factions || []).forEach(function (f) {
+      if ((g.factions || []).indexOf(f.id) < 0) return;
+      f.cards.forEach(function (c) {
+        if (!taken[c.id]) out.push(dict[c.id]);
+      });
+    });
+    return out;
+  }
+
+  function maybeOfferChoice(stage, done) {
+    var prog = getProgress();
+    if (
+      !stage.grants ||
+      !stage.grants.choice ||
+      prog.choices[stage.id] ||
+      prog.pendingChoice !== stage.id
+    ) {
+      done();
+      return;
+    }
+    openGrantChoice(stage, done);
+  }
+
+  function openGrantChoice(stage, done) {
+    var modal = $('grant-choice');
+    if (!modal) {
+      done();
+      return;
+    }
+    var g = stage.grants.choice;
+    var prog = getProgress();
+    var candidates = choiceCandidates(stage, prog);
+    if (!candidates.length) {
+      prog.pendingChoice = null;
+      saveProgress(prog);
+      done();
+      return;
+    }
+    var picked = [];
+    setText(
+      $('grant-choice-sub'),
+      stage.rival +
+        ' offers a choice: take ' +
+        g.count +
+        ' echoes from the factions the road has taught. They will walk with you.'
+    );
+    var grid = $('grant-choice-grid');
+    grid.innerHTML = '';
+    var go = $('grant-choice-go');
+    var sync = function () {
+      go.disabled = picked.length !== g.count;
+      go.querySelector('span').textContent =
+        picked.length === g.count ? 'Carry them' : 'Choose ' + (g.count - picked.length) + ' more';
+    };
+    candidates.forEach(function (e) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gc-tile rarity-' + e.card.rarity;
+      b.style.setProperty('--fc', e.faction.colors.primary);
+      b.innerHTML =
+        '<i class="ra ' +
+        e.card.icon +
+        '"></i><span class="gc-name">' +
+        (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
+        '</span><span class="gc-role">' +
+        e.card.role +
+        ' · ' +
+        e.faction.name +
+        '</span>';
+      b.addEventListener('click', function () {
+        var i = picked.indexOf(e.card.id);
+        if (i >= 0) {
+          picked.splice(i, 1);
+          b.classList.remove('sel');
+        } else {
+          if (picked.length >= g.count) return;
+          picked.push(e.card.id);
+          b.classList.add('sel');
+        }
+        sync();
+      });
+      grid.appendChild(b);
+    });
+    sync();
+    go.onclick = function () {
+      if (picked.length !== g.count) return;
+      var p2 = getProgress();
+      picked.forEach(function (id) {
+        if (p2.grants.indexOf(id) < 0) p2.grants.push(id);
+      });
+      p2.choices[stage.id] = picked.slice();
+      if (p2.pendingChoice === stage.id) p2.pendingChoice = null;
+      saveProgress(p2);
+      modal.hidden = true;
+      done();
+    };
+    modal.hidden = false;
+  }
+
+  /* An unclaimed exam choice (the tab closed mid-reward) re-offers
+     itself the next time the chapter map opens. */
+  function reofferPendingChoice() {
+    var prog = getProgress();
+    if (!prog.pendingChoice) return;
+    var stage = stageById(prog.pendingChoice);
+    if (!stage) return;
+    openGrantChoice(stage, function () {
+      updateStageCards();
+    });
+  }
+
+  /* ---------------------------------------------------------
+     CHAPTER MAP - stage card states and copy.
+     --------------------------------------------------------- */
   function updateStageCards() {
     var prog = getProgress();
     var unlocked = prog.unlocked || [1];
@@ -87,21 +798,22 @@
             '<i class="ri-checkbox-circle-fill" style="color:#8fe3b0"></i> Gate Cleared';
         }
         if (prompt) {
-          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to replay dialogue';
+          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to walk the gate again';
         }
       } else if (isUnlocked) {
         if (state) {
           state.innerHTML = '<i class="ri-lock-unlock-line" style="color:#ffd98a"></i> Open Gate';
         }
         if (prompt) {
-          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to enter dialogue';
+          prompt.innerHTML =
+            '<i class="ra ra-speech-bubble"></i> Click to speak with ' + stage.rival;
         }
       } else {
         if (state) {
           state.innerHTML = '<i class="ri-lock-2-fill"></i> Locked';
         }
         if (prompt) {
-          prompt.innerHTML = '<i class="ri-lock-2-line"></i> Gate Locked';
+          prompt.innerHTML = '<i class="ri-lock-2-line"></i> ' + (stage.lock || 'Gate Locked');
         }
       }
     });
@@ -132,203 +844,6 @@
     updateStageCards();
   }
 
-  function renderDialogue() {
-    var line = currentLines[dialogueIndex];
-    if (!line) return;
-    setText($('chapter-dialogue-speaker'), line.speaker);
-    setText($('chapter-dialogue-text'), line.text);
-    setText($('chapter-dialogue-step'), two(dialogueIndex + 1) + ' / ' + two(currentLines.length));
-    var next = $('chapter-dialogue-next');
-    if (next) {
-      if (line.battle) {
-        next.innerHTML = '<i class="ra ra-crossed-swords"></i><span>Fight The Recruiter</span>';
-      } else if (line.final) {
-        next.innerHTML = '<span>Close</span><i class="ri-check-line"></i>';
-      } else {
-        next.innerHTML = '<span>Continue</span><i class="ri-arrow-right-line"></i>';
-      }
-    }
-  }
-
-  function closeDialogue() {
-    var modal = $('chapter-dialogue');
-    if (!modal) return;
-    modal.hidden = true;
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.dataset.campaignDialogue = '0';
-    isOpen = false;
-    /* The epilogue is an overlay on the settled battle screen; closing it
-       by any route (X, scrim, Esc) must land on the chapter map, not
-       strand the player on an ended board. */
-    if (currentStage === -1) {
-      activeCampaignStage = null;
-      currentStage = 1;
-      window.EOL.ui.show('chapter');
-      return;
-    }
-    var opener = document.querySelector('[data-campaign-stage="' + currentStage + '"]');
-    if (opener) opener.focus();
-  }
-
-  function openStageDialogue(stageId) {
-    currentStage = stageId || 1;
-    var dialogues = STORY.dialogues || {};
-    currentLines = dialogues[currentStage] || STORY.recruiterDialogue || [];
-    if (!currentLines.length) return;
-
-    var modal = $('chapter-dialogue');
-    if (!modal) return;
-
-    dialogueIndex = 0;
-    isOpen = true;
-    modal.hidden = false;
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.dataset.campaignDialogue = '1';
-    renderDialogue();
-    window.setTimeout(function () {
-      var next = $('chapter-dialogue-next');
-      if (next) next.focus();
-    }, 0);
-  }
-
-  /* The post-battle epilogue (a stage-1 victory). Runs through the same
-     dialogue modal; on its final line the road returns to the chapter
-     map so the player can see Gate II open. */
-  function openEpilogue() {
-    currentStage = -1; // sentinel: not a playable stage
-    currentLines = STORY.epilogue || [];
-    if (!currentLines.length) return;
-    var modal = $('chapter-dialogue');
-    if (!modal) return;
-    dialogueIndex = 0;
-    isOpen = true;
-    modal.hidden = false;
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.dataset.campaignDialogue = '1';
-    renderDialogue();
-    window.setTimeout(function () {
-      var next = $('chapter-dialogue-next');
-      if (next) next.focus();
-    }, 0);
-  }
-
-  function startRecruiterFight() {
-    activeCampaignStage = 1;
-    if (window.EOL.play && window.EOL.play.openClassicModal) {
-      window.EOL.play.openClassicModal(
-        function (deckId) {
-          var deck = deckId ? window.EOL.decks.get(deckId) : null;
-          var starter = window.EOL.decks.get('starter-grimmwood');
-          // robust fallback: if starter deck missing (deleted or never seeded) build entries from faction directly
-          function grimmwoodEntries() {
-            var fac = (window.EOL.factions || []).filter(function (f) { return f.id === 'grimmwood'; })[0];
-            if (!fac || !fac.cards) return null;
-            return fac.cards.map(function (c) { return { card: c, faction: fac }; });
-          }
-          var player12 = deck
-            ? window.EOL.decks.entriesOf(deck)
-            : starter
-              ? window.EOL.decks.entriesOf(starter)
-              : grimmwoodEntries();
-
-          var recruiter12 = starter ? window.EOL.decks.entriesOf(starter) : (grimmwoodEntries() || player12);
-          var colosseum =
-            (window.EOL.battlefieldById && window.EOL.battlefieldById('colosseum')) || null;
-
-          var modal = document.getElementById('deck-modal');
-          if (modal) {
-            modal.classList.remove('show');
-            modal.setAttribute('aria-hidden', 'true');
-          }
-
-          window.EOL.play.startPrep({
-            mode: 'classic',
-            deckId: deckId,
-            player12: player12,
-            enemy12: recruiter12,
-            field: colosseum,
-            campaignStage: 1,
-            warLength: 'single',
-            oddFirst: 'player',
-          });
-        },
-        { isCampaign: true, hideRandom: true }
-      );
-    }
-  }
-
-  function advanceDialogue() {
-    if (!currentLines.length) return;
-    var line = currentLines[dialogueIndex];
-    if (dialogueIndex < currentLines.length - 1) {
-      dialogueIndex++;
-      renderDialogue();
-      return;
-    }
-
-    closeDialogue();
-
-    if (line && line.battle && currentStage === 1) {
-      startRecruiterFight();
-      return;
-    }
-  }
-
-  /* One pending campaign result, consumed by the result screen. Kept as
-     state so battle.js/app.js can frame the buttons without campaign.js
-     needing to reach into the result DOM itself. */
-  var resultInfo = null;
-
-  function onBattleResult(win) {
-    resultInfo = null;
-    if (activeCampaignStage === 1) {
-      var prog = getProgress();
-      var cleared = prog.cleared || [];
-      var unlocked = prog.unlocked || [1];
-
-      if (win) {
-        if (cleared.indexOf(1) === -1) cleared.push(1);
-        if (unlocked.indexOf(2) === -1) unlocked.push(2);
-        saveProgress({ cleared: cleared, unlocked: unlocked });
-        updateStageCards();
-      }
-
-      resultInfo = { stage: 1, won: win };
-      return { campaign: true, won: win };
-    }
-    activeCampaignStage = null;
-    return null;
-  }
-
-  /* The result screen's primary action: fight the gate again. Re-enters
-     the Recruiter's flow (dialogue -> deck -> prep) fresh. */
-  function retry(stageId) {
-    resultInfo = null;
-    activeCampaignStage = stageId || 1;
-    currentStage = stageId || 1;
-    window.EOL.ui.show('chapter');
-    window.setTimeout(function () {
-      openStageDialogue(currentStage);
-    }, 60);
-  }
-
-  /* The result screen's secondary action. Returns true when the campaign
-     consumed the click (opened the epilogue or routed to the map) so the
-     generic home handler should stand down. */
-  function consumeResult() {
-    if (!resultInfo) return false;
-    var r = resultInfo;
-    resultInfo = null;
-    activeCampaignStage = null;
-    if (r.won) {
-      openEpilogue();
-    } else {
-      currentStage = 1;
-      window.EOL.ui.show('chapter');
-    }
-    return true;
-  }
-
   function bindStageClicks() {
     for (var i = 1; i <= 10; i++) {
       (function (stageId) {
@@ -346,6 +861,9 @@
     }
   }
 
+  /* ---------------------------------------------------------
+     wiring
+     --------------------------------------------------------- */
   function mount() {
     renderStageCopy();
     bindStageClicks();
@@ -353,12 +871,25 @@
     var close = $('chapter-dialogue-close');
     var scrim = $('chapter-dialogue-scrim');
     var next = $('chapter-dialogue-next');
-    if (close) close.addEventListener('click', closeDialogue);
-    if (scrim) scrim.addEventListener('click', closeDialogue);
+    var bar = document.querySelector('.chapter-dialogue-bar');
+    if (close)
+      close.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        closeDialogue();
+      });
+    /* VN convention: a click anywhere in the scene advances. The X (or
+       Esc) is the skip. */
+    if (scrim) scrim.addEventListener('click', advanceDialogue);
+    if (bar)
+      bar.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('#chapter-dialogue-close')) return;
+        if (ev.target.closest && ev.target.closest('#chapter-dialogue-next')) return;
+        advanceDialogue();
+      });
     if (next) next.addEventListener('click', advanceDialogue);
 
     document.addEventListener('keydown', function (event) {
-      if (!isOpen) return;
+      if (!dlg) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -372,6 +903,13 @@
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'chapter') {
         updateStageCards();
+        window.setTimeout(reofferPendingChoice, 400);
+      }
+      /* Leaving the battle view mid-fight (forfeit routing, home) must
+         tear the bark watch down - the hook is a shared global slot. */
+      if (ev.detail !== 'battle') {
+        clearBattleWatch();
+        hideBark();
       }
     });
   }
@@ -382,14 +920,26 @@
       openStageDialogue(1);
     },
     closeRecruiterDialogue: closeDialogue,
+    closeDialogue: closeDialogue,
     dialogueOpen: function () {
-      return isOpen;
+      return !!dlg;
     },
+    onBattleStart: onBattleStart,
     onBattleResult: onBattleResult,
     retry: retry,
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,
+    getProgress: getProgress,
     story: STORY,
+    /* test hooks */
+    _entriesFor: entriesFor,
+    _buildPool: buildPool,
+    _launchStage: launchStage,
+    _stageById: stageById,
+    _watchEvent: watchEvent,
+    _battleWatch: function () {
+      return battleWatch;
+    },
   };
 
   document.addEventListener('DOMContentLoaded', mount);

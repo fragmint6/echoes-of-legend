@@ -164,14 +164,75 @@
     });
   }
 
+  /* CAMPAIGN BAN PERSONALITIES (design §9.11).
+     -------------------------------------------------------------
+     A rival's characterisation is fiction until its bans differ from
+     the stock chooseBans. A profile bends the same denyValue scoring
+     toward the rival's obsession instead of replacing it:
+
+       ids:[..]    always-ban list, first priority (the Recruiter's
+                   scripted strikes)
+       roles:[..]  prefers striking these roles (the Oathkeeper takes
+                   your back line; the Outlaw takes your protectors)
+       stat:'atk'  prefers your hardest hitters
+       power:true  prefers your highest-rated cards (Gilgamesh bans
+                   what the scales weigh heaviest) */
+  function personaBans(profile, deckEntries, myPool) {
+    var ai = DAI();
+    var out = [];
+    (profile.ids || []).forEach(function (id) {
+      if (out.length >= RULES().BANS || out.indexOf(id) >= 0) return;
+      var owns = deckEntries.some(function (e) {
+        return e.card.id === id;
+      });
+      if (owns) out.push(id);
+    });
+    if (out.length < RULES().BANS) {
+      var atkMax = 1;
+      deckEntries.forEach(function (e) {
+        atkMax = Math.max(atkMax, e.card.stats.atk);
+      });
+      var scored = deckEntries
+        .filter(function (e) {
+          return out.indexOf(e.card.id) < 0;
+        })
+        .map(function (e) {
+          var v = ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.9;
+          if (profile.roles && profile.roles.indexOf(e.card.role) >= 0) v += 3.5;
+          if (profile.stat === 'atk') v += (e.card.stats.atk / atkMax) * 2.5;
+          if (profile.power) v += ai.powerOf(e.card) * 3.0;
+          return { id: e.card.id, v: v };
+        });
+      scored.sort(function (a, b) {
+        return b.v - a.v;
+      });
+      scored.forEach(function (s) {
+        if (out.length < RULES().BANS) out.push(s.id);
+      });
+    }
+    return out.slice(0, RULES().BANS);
+  }
+
   /* Greedy best battle six from the surviving pool, with hard rails so a
      six is never fielded without a Tank or Medic when one was available.
-     The field carries NO role cap: the deck's max-4 is the only rule. */
-  function chooseSix(pool, enemyPool) {
+     The field carries NO role cap: the deck's max-4 is the only rule.
+     `preSeed` (ids or entries) are MUST-KEEPS taken from the pool before
+     the greedy walk fills the rest - the campaign's scripted sixes
+     (stages 1-4) and Gilgamesh's `pinned` hardcode (R5) both ride it. */
+  function chooseSix(pool, enemyPool, preSeed) {
     var ai = DAI();
     var team = [],
       rest = pool.slice();
     var FIELD = RULES().FIELD_SIZE;
+    (preSeed || []).forEach(function (p) {
+      var pid = p && p.card ? p.card.id : p;
+      for (var s = 0; s < rest.length; s++) {
+        if (rest[s].card.id === pid) {
+          if (team.length < FIELD) team.push(rest.splice(s, 1)[0]);
+          break;
+        }
+      }
+    });
 
     while (team.length < FIELD && rest.length) {
       var counts = {};
@@ -280,7 +341,16 @@
 
   /* Bot's draft pick from the on-table cards. Balances building its own
      squad against denying the strongest card to the opponent - a hate-pick
-     is taken only when the card is far better for them than for us. */
+     is taken only when the card is far better for them than for us.
+
+     CAMPAIGN PERSONAS (stages 6-8) bend the same scoring in character
+     rather than replacing it:
+       trickster    steals your synergy pieces and snipes energy payoffs
+       strategist   counter-drafts your LIVE picks (the honest signal -
+                    §4's correction) and values the cold, strong card
+       chronicler   drafts the curve and hoards answers: burn, cleanse,
+                    Silence and cost-denial. */
+  var draftPersona = null;
   function draftPick(team, offered, foeTeam) {
     var ai = DAI();
     var legal = offered.filter(function (e) {
@@ -296,6 +366,22 @@
       var theirs = foeTeam ? ai.value(foeTeam, e, { size: RULES().DECK_SIZE }) : 0;
       /* take it for us, but weigh denial when it is a bomb for them */
       var v = mine + Math.max(0, theirs - mine) * 0.35 + ai.powerOf(e.card) * 0.8;
+      if (draftPersona) {
+        var T = ai.tags(e);
+        if (draftPersona === 'trickster') {
+          v += Math.max(0, theirs - mine) * 0.75;
+          if (T.gives.energy || T.wants.energy) v += 1.1;
+        } else if (draftPersona === 'strategist') {
+          if (foeTeam) {
+            for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.6;
+          }
+          v += ai.powerOf(e.card) * 0.4;
+        } else if (draftPersona === 'chronicler') {
+          if (T.gives.burn) v += 1.2;
+          if (T.gives.cleanse) v += 1.0;
+          if (T.gives.denial) v += 0.9;
+        }
+      }
       v += Math.random() * 1.5;
       if (v > bestScore) {
         bestScore = v;
@@ -1012,16 +1098,31 @@
        never leak state. The kill is UNCONDITIONAL - it used to skip
        multiplayer, which left a live solo set attached to an online
        match and let setGameResult() reframe that match's result as
-       war progress. */
+       war progress.
+
+       `cfg.war` is the POSITIVE format control (design §9.1): the
+       campaign forces 'single' on its lesson stages and 'set' on its
+       exam stages regardless of the player's global Unabridged
+       toggle. Without it, a toggled-on player would get stage 2 as a
+       best-of-3 and a toggled-off player would get Gilgamesh as one
+       game. Note the assignment is UNCONDITIONAL when a war begins -
+       a pinned cfg.field must never short-circuit setBegin (§9.2),
+       because a set with a pre-set field silently degrades into a
+       single game. Set stages pin boards via cfg.fightCard instead. */
     if (!cfg.setContinues) {
       setKill();
-      if (canBeSet(cfg)) cfg.field = cfg.field || setBegin(cfg);
+      var wantSet = cfg.war ? cfg.war === 'set' && !isMp : canBeSet(cfg);
+      if (wantSet) cfg.field = setBegin(cfg);
     }
     var foeBans;
     if (isMp) {
       foeBans = null;
+    } else if (cfg.botBanProfile) {
+      /* CAMPAIGN: the rival bans in character (§9.11). */
+      foeBans = personaBans(cfg.botBanProfile, cfg.player12, cfg.enemy12);
     } else if (cfg.campaignStage === 1) {
-      // Stage 1: The Recruiter specifically bans Hansel & Gretel and Cinderella
+      // Legacy fallback: The Recruiter bans Hansel & Gretel and Cinderella
+      // (the data-driven profile normally covers this path).
       var hg = cfg.player12.find(function (e) {
         return e.card.id === 'grimmwood-hansel-gretel';
       });
@@ -1048,6 +1149,16 @@
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
       campaignStage: cfg.campaignStage || null,
+      /* CAMPAIGN rival behaviour hooks (all optional, all inert
+         outside the campaign):
+           botSix       scripted fielded six (stages 1-4, §8 dial 2)
+           pinnedEnemy  must-keep ids seeded into every enemy six (R5)
+           unbannable   ids the ban grid refuses (R5)
+           rival        {name, img} for the battle HUD + barks */
+      botSix: cfg.botSix || null,
+      pinnedEnemy: cfg.pinnedEnemy || null,
+      unbannable: cfg.unbannable || null,
+      rival: cfg.rival || null,
       oddFirst: cfg.oddFirst || null,
       /* The battlefield is rolled NOW but not revealed until bans are
          locked, so neither side can ban around the terrain. */
@@ -1206,8 +1317,17 @@
       p.enemy12.forEach(function (e, i) {
         var el = boardCard(e, i, 'foe');
         var banned = p.youBans.indexOf(e.card.id) >= 0;
+        var noBan = p.unbannable && p.unbannable.indexOf(e.card.id) >= 0;
         el.classList.toggle('banpick', banned);
+        if (noBan) el.classList.add('unbannable');
         el.addEventListener('click', function () {
+          /* R5 hardcode: the boss cannot be banned. The grid says so
+             instead of silently ignoring the click. */
+          if (noBan) {
+            toast(e.card.name + ' cannot be banned - the judgement stands', 'ra-crown');
+            flashNode('prep-enemy-note');
+            return;
+          }
           var i2 = p.youBans.indexOf(e.card.id);
           if (i2 >= 0) p.youBans.splice(i2, 1);
           else {
@@ -1541,12 +1661,23 @@
       return (prep.botBans || []).indexOf(e.card.id) < 0;
     });
     var predictedSix = predictSix(yourSurvivors);
+    /* CAMPAIGN must-keeps for the enemy six:
+         - a SCRIPTED six (stages 1-4) seeds every surviving member of
+           the authored list; if the player banned into it, chooseSix
+           fills the holes from the rest of the deck;
+         - the `pinned` boss (R5) is seeded ahead of the greedy walk so
+           the AI can never bench him as "weakest". */
+    var mustKeep = null;
+    if (!setState && prep.botSix && prep.botSix.length) mustKeep = prep.botSix;
+    else if (prep.pinnedEnemy && prep.pinnedEnemy.length) mustKeep = prep.pinnedEnemy;
+    else if (setState && setState.pinnedEnemy && setState.pinnedEnemy.length)
+      mustKeep = setState.pinnedEnemy;
     /* THE SET: the bot sideboards against your PUBLIC six (last game is
        fair information for both sides) and obeys the same swap law */
     var enemySix =
       setState && setState.lastBotIds.length
         ? setBotSix(survive, predictedSix)
-        : chooseSix(survive, predictedSix);
+        : chooseSix(survive, predictedSix, mustKeep);
     if (setState) {
       /* heroes leaving the six become locked out for the rest of the
          set (BEFORE lastSix is overwritten with the new six) */
@@ -1579,6 +1710,7 @@
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
       campaignStage: cfg.campaignStage,
+      rival: cfg.rival || null,
       oddFirst: cfg.oddFirst || null,
     });
     lastConfig =
@@ -1589,7 +1721,7 @@
             random: !cfg.deckId,
             campaignStage: cfg.campaignStage || null,
           }
-        : { mode: 'draft' };
+        : { mode: 'draft', campaignStage: cfg.campaignStage || null };
   }
 
   /* Their six arrived. Both formations are known, so the battle starts.
@@ -1916,8 +2048,9 @@
     var titleEl = document.querySelector('.dm-title');
     var subEl = document.querySelector('.dm-sub');
     if (isCampaign) {
-      if (titleEl) titleEl.textContent = 'Choose your deck to face The Recruiter';
-      if (subEl) subEl.textContent = 'Select your squad of 12 for the battle on The Colosseum.';
+      if (titleEl) titleEl.textContent = opts.title || 'Choose your deck';
+      if (subEl)
+        subEl.textContent = opts.sub || 'Select your squad of 12 for the battle ahead.';
     } else {
       if (titleEl) titleEl.textContent = 'Choose your deck';
       if (subEl)
@@ -2024,6 +2157,9 @@
      `mpState` is null in singleplayer and everything behaves as before.
      --------------------------------------------------------- */
   var mpState = null;
+  /* Campaign draft launch config (stages 6-8): carried from startDraft
+     to the startPrep that follows the final pack. */
+  var draftCampaign = null;
   /* What we are queueing for, and (Classic only) with which deck. */
   var mpQueueMode = 'draft';
   var mpDeckId = null;
@@ -2037,12 +2173,19 @@
        before building a new draft. */
     opts = opts || {};
     clearDraftMarks();
+    /* CAMPAIGN (stages 6-8): a curated pool, a rival persona for the
+       picks, and a launch config that advancePack hands to startPrep so
+       the fight lands on the stage's pinned board with the stage's ban
+       profile. All null outside the campaign. */
+    draftPersona = opts.persona || null;
+    draftCampaign = opts.campaign || null;
     /* A multiplayer draft is driven by the match seed so both clients
        shuffle to the identical pack order. Singleplayer keeps using
        Math.random. */
     var rnd = opts.seed != null ? window.EOL.mp.rngFrom(opts.seed) : Math.random;
     mpState = opts.seed != null ? { host: !!opts.host, seed: opts.seed, waiting: false } : null;
-    var pool = RULES().draftPool(flatten(), rnd);
+    var pool =
+      opts.pool && opts.pool.length ? opts.pool.slice() : RULES().draftPool(flatten(), rnd);
     var shuffled = pool.slice();
     for (var i = shuffled.length - 1; i > 0; i--) {
       var j = Math.floor(rnd() * (i + 1));
@@ -2342,6 +2485,9 @@
       var wasMp = !!mpState;
       var seed = mpState ? mpState.seed : null;
       mpState = null;
+      var camp = draftCampaign;
+      draftCampaign = null;
+      draftPersona = null;
       startPrep({
         mode: 'draft',
         player12: you12,
@@ -2349,10 +2495,17 @@
         mp: wasMp,
         seed: seed,
         /* Both machines must fight on the SAME terrain, so it is
-           derived from the shared seed rather than rolled twice. */
+           derived from the shared seed rather than rolled twice. A
+           campaign draft instead lands on the stage's PINNED board. */
         field: wasMp
           ? window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((seed | 0) + 0x1b7))
-          : null,
+          : camp
+            ? camp.field || null
+            : null,
+        campaignStage: camp ? camp.stage : null,
+        botBanProfile: camp ? camp.banProfile : null,
+        rival: camp ? camp.rival : null,
+        war: camp ? 'single' : null,
       });
       return;
     }
@@ -2430,15 +2583,23 @@
   var setState = null; /* see setBegin */
   function setBegin(cfg) {
     var card = [];
-    var guard = 0;
-    while (card.length < 3 && guard++ < 50) {
-      var f = window.EOL.rollBattlefield();
-      if (
-        !card.some(function (x) {
-          return x.id === f.id;
-        })
-      )
-        card.push(f);
+    /* CAMPAIGN: exam stages pin an AUTHORED fight card (three named
+       boards - §2's terrain table) instead of rolling one. L1 holds:
+       these are existing, symmetric battlefields, only the selection
+       is authored. */
+    if (cfg && cfg.fightCard && cfg.fightCard.length === 3) {
+      card = cfg.fightCard.slice();
+    } else {
+      var guard = 0;
+      while (card.length < 3 && guard++ < 50) {
+        var f = window.EOL.rollBattlefield();
+        if (
+          !card.some(function (x) {
+            return x.id === f.id;
+          })
+        )
+          card.push(f);
+      }
     }
     /* WHICH arena hosts game 1 is itself the first roulette of the
        war: rolled here (so prep can be built around the board) but
@@ -2462,6 +2623,12 @@
       botBans: [], // bans issued AGAINST the player
       player12: cfg.player12,
       enemy12: cfg.enemy12,
+      /* CAMPAIGN carry: the set spans three preps, so everything the
+         later games need survives here. */
+      campaignStage: cfg.campaignStage || null,
+      rival: cfg.rival || null,
+      pinnedEnemy: cfg.pinnedEnemy ? cfg.pinnedEnemy.slice() : [],
+      unbannable: cfg.unbannable ? cfg.unbannable.slice() : [],
       pending: null, // 'sideboard' | 'over' after a game ends
       lastWinner: null, // 'you' | 'foe'
     };
@@ -2819,9 +2986,17 @@
 
   /* The bot's sideboard: it re-runs chooseSix against your PUBLIC six
      (last game is fair information), then enforces the same 1-2 swap
-     law it holds you to. */
+     law it holds you to. The `pinned` boss (R5) is untouchable in the
+     swap path: he is seeded first, never counted droppable, and since
+     he was in last game's public six keeping him never costs a swap. */
   function setBotSix(survive, forecast) {
-    var chosen = chooseSix(survive, forecast);
+    var pinnedIds = (setState && setState.pinnedEnemy) || [];
+    var pinnedIn = function (list) {
+      return list.filter(function (e) {
+        return pinnedIds.indexOf(e.card.id) >= 0;
+      });
+    };
+    var chosen = chooseSix(survive, forecast, pinnedIds);
     var old = setState.lastBotIds || [];
     if (!old.length) return chosen;
     var fresh = chosen.filter(function (e) {
@@ -2852,15 +3027,21 @@
     });
     /* drop the weakest old-timers until `need` bench heroes fit with
        role caps respected: chooseSix over the reduced pool keeps the
-       rails (Tank/Medic forces) identical to side one */
-    var half = base
-      .slice()
-      .sort(function (a, b) {
-        return ai.value(base, a, { size: 6 }) - ai.value(base, b, { size: 6 });
-      })
-      .slice(need);
+       rails (Tank/Medic forces) identical to side one. The pinned boss
+       is exempt from the drop by construction. */
+    var droppable = base.filter(function (e) {
+      return pinnedIds.indexOf(e.card.id) < 0;
+    });
+    var half = pinnedIn(base).concat(
+      droppable
+        .slice()
+        .sort(function (a, b) {
+          return ai.value(base, a, { size: 6 }) - ai.value(base, b, { size: 6 });
+        })
+        .slice(need)
+    );
     var pool = half.concat(bench.slice(0, need * 2));
-    oldKeep = chooseSix(pool, forecast);
+    oldKeep = chooseSix(pool, forecast, pinnedIds);
     return oldKeep;
   }
 
@@ -2972,6 +3153,12 @@
       field: field,
       player12: setState.player12,
       enemy12: setState.enemy12,
+      /* CAMPAIGN carry-through: games 2 and 3 keep the rival's face on
+         the HUD, the boss pinned, and the stage id on the battle. */
+      campaignStage: setState.campaignStage || null,
+      rival: setState.rival || null,
+      pinnedEnemy: setState.pinnedEnemy && setState.pinnedEnemy.length ? setState.pinnedEnemy : null,
+      unbannable: setState.unbannable && setState.unbannable.length ? setState.unbannable : null,
       botBans: setState.botBans.slice(),
       youBans: setState.youBans.slice(),
       revealed: true,
@@ -3340,15 +3527,8 @@
         if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
         else window.EOL.ui.show('campaign');
       });
-    var stage1 = $('chapter-stage-1');
-    if (stage1)
-      stage1.addEventListener('click', function () {
-        if (window.EOL.campaign && window.EOL.campaign.openRecruiterDialogue) {
-          window.EOL.campaign.openRecruiterDialogue();
-        } else {
-          toast('The Recruiter is opening his ledger', 'ra-compass');
-        }
-      });
+    /* Stage cards are bound by js/campaign.js, which owns the whole
+       gate flow (dialogue -> deck/draft -> battle -> grants). */
 
     var bp = $('btn-play-back');
     if (bp)

@@ -1254,10 +1254,9 @@
     </div>
 
     <!-- ==================== CAMPAIGN (chapter select) ====================
-         The campaign route remains a nonfunctional presentation slice:
-         no stage writes progress, grants cards, or opens a battle. The
-         chapter plate is now an honest doorway into its ten-rival map so
-         the complete Chapter 1 route can be judged before implementation. -->
+         The campaign route is LIVE (2026-08-08): the chapter plate opens
+         the ten-rival map, every gate launches a real battle through
+         js/campaign.js, and progress/grants persist in localStorage. -->
     <section class="view campaign" data-view="campaign">
       <header class="col-header mast">
         <button class="back-btn" id="btn-campaign-back">
@@ -1308,9 +1307,11 @@
     </section>
 
     <!-- ==================== CHAPTER 1 (rival route) ====================
-         PRESENTATION ONLY (2026-08-06). Stage 1 is visibly first in the
-         road but still only acknowledges a click; stages 2-10 are locked
-         as a progression promise, not a save-state implementation. -->
+         FUNCTIONAL (2026-08-08). Every gate is playable: stages 1-4 are
+         Classic lessons with scripted rival sixes, 5/9/10 are Unabridged
+         sets on authored fight cards, 6-8 are drafts from curated pools
+         against personality bots. Card states/copy are painted by
+         js/campaign.js from data/campaign-ch1.js. -->
     <section class="view chapter" data-view="chapter" aria-labelledby="chapter-title">
       <header class="col-header mast chapter-head">
         <button class="back-btn" id="btn-chapter-back">
@@ -1761,37 +1762,47 @@
     </section>
 
     <!-- ==================== CHAPTER 1 DIALOGUE ====================
-         Recruiter scene only for now. It is a narrative encounter, not a
-         battle launch: the Classic fight will arrive once campaign state and
-         authored rival teams exist. -->
+         Bottom-anchored dialogue BAR (2026-08-08). The old centred modal
+         covered the middle of the screen and read as intrusive; scenes
+         now play along the bottom edge, visual-novel style, so the map
+         (or the settled battle board, for epilogues) stays visible.
+         Clicking anywhere advances; the X (or Esc) skips the scene. -->
     <div
       class="chapter-dialogue"
       id="chapter-dialogue"
       hidden
       aria-hidden="true"
       role="dialog"
-      aria-modal="true"
       aria-labelledby="chapter-dialogue-speaker"
     >
       <div class="chapter-dialogue-scrim" id="chapter-dialogue-scrim"></div>
-      <section class="chapter-dialogue-card">
+      <section class="chapter-dialogue-bar">
         <button
           class="chapter-dialogue-close"
           id="chapter-dialogue-close"
           type="button"
-          aria-label="Close dialogue"
+          aria-label="Skip dialogue"
         >
           <i class="ri-close-line"></i>
         </button>
-        <div class="chapter-dialogue-art" aria-hidden="true">
-          <img src="assets/rivals/the-recruiter.png" alt="" draggable="false" />
-          <span class="chapter-dialogue-road"></span>
+        <div class="chapter-dialogue-bust" aria-hidden="true">
+          <img
+            id="chapter-dialogue-portrait"
+            src="assets/rivals/the-recruiter.png"
+            alt=""
+            draggable="false"
+          />
+          <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph" hidden
+            ><i class="ra ra-hood"></i
+          ></span>
         </div>
         <div class="chapter-dialogue-copy">
-          <span class="chapter-dialogue-kicker"
-            ><i class="ri-book-open-line"></i> Chapter 1 · Gate I</span
-          >
-          <h3 id="chapter-dialogue-speaker">The Recruiter</h3>
+          <div class="chapter-dialogue-head">
+            <h3 id="chapter-dialogue-speaker">The Recruiter</h3>
+            <span class="chapter-dialogue-kicker" id="chapter-dialogue-kicker"
+              ><i class="ri-book-open-line"></i> Chapter 1 · Gate I</span
+            >
+          </div>
           <p id="chapter-dialogue-text"></p>
         </div>
         <footer class="chapter-dialogue-foot">
@@ -1805,6 +1816,30 @@
           </button>
         </footer>
       </section>
+    </div>
+
+    <!-- ==================== CAMPAIGN: EXAM CHOICE GRANT ====================
+         The exam stages (5 and 9) pay out as a CHOICE, resolved at claim
+         time against the live roster (design R9) - never a hardcoded id. -->
+    <div
+      class="grant-choice"
+      id="grant-choice"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="grant-choice-title"
+    >
+      <div class="grant-choice-scrim"></div>
+      <div class="grant-choice-card">
+        <h2 id="grant-choice-title"><i class="ra ra-locked-fortress"></i> Choose your echoes</h2>
+        <p class="grant-choice-sub" id="grant-choice-sub"></p>
+        <div class="grant-choice-grid" id="grant-choice-grid"></div>
+        <footer class="grant-choice-foot">
+          <button class="btn btn-primary" id="grant-choice-go" type="button" disabled>
+            <span>Carry them</span><i class="ri-check-line"></i>
+          </button>
+        </footer>
+      </div>
     </div>
 
     <!-- ==================== PREPARATION (bans + field six) ==================== -->
@@ -2252,6 +2287,18 @@
       <div class="cine" id="cine" role="status" aria-live="polite">
         <div class="cine-title" id="cine-title"></div>
         <div class="cine-sub" id="cine-sub"></div>
+      </div>
+
+      <!-- CAMPAIGN: rival dialogue during the match. A small speech card
+           under the enemy commander plate - pointer-transparent and
+           self-expiring, so mid-fight lore never blocks the board
+           (design §6: blocking overlays are for pre/post-fight only). -->
+      <div class="rival-bark" id="rival-bark" role="status" aria-live="polite" hidden>
+        <img class="rival-bark-face" id="rival-bark-face" src="" alt="" draggable="false" />
+        <div class="rival-bark-body">
+          <span class="rival-bark-name" id="rival-bark-name"></span>
+          <p class="rival-bark-text" id="rival-bark-text"></p>
+        </div>
       </div>
 
       <div class="toast" id="toast"></div>

@@ -30,6 +30,10 @@
      multiplayer battle is the same battle, with a different source of
      enemy decisions. No second engine, no second loop. */
   var netCtl = null;
+  /* CAMPAIGN rival identity for this battle ({name, img} or null).
+     Set fresh on every start(); paints the enemy commander plate and
+     anchors the in-battle rival dialogue (js/campaign.js). */
+  var rivalInfo = null;
   var playerDone = false; // has the player taken their turn this round?
   var enemyDone = false; // has the bot taken its turn this round?
   var ROLE_ICON = {
@@ -4127,19 +4131,20 @@
     }
     /* CAMPAIGN: the road frames its own result - Retry (fight the gate
        again) on the primary button, and a chapter-map exit on the home
-       button that plays the stage epilogue after a win. */
+       button that plays the stage epilogue after a win. Mid-set the
+       campaign stands down (`midSet`): the sideboard framing above is
+       the correct chrome between games, and stage progress must only
+       commit when the WAR is decided, never on game 1 of 3. */
     var cam =
       window.EOL.campaign && window.EOL.campaign.onBattleResult
-        ? window.EOL.campaign.onBattleResult(win)
+        ? window.EOL.campaign.onBattleResult(win, { midSet: !!(sr && !sr.over) })
         : null;
     if (cam && cam.campaign) {
-      ov.querySelector('.result-sub').textContent = win
-        ? 'The Recruiter closes his ledger - Gate I is yours.'
-        : 'The Recruiter sets down his quill. "The road will still be here."';
+      if (cam.sub) ov.querySelector('.result-sub').textContent = cam.sub;
       var rm2 = $('btn-rematch');
-      if (rm2) rm2.querySelector('span').textContent = 'Retry';
+      if (rm2) rm2.querySelector('span').textContent = cam.rematchLabel || 'Retry';
       var home2 = $('btn-result-home');
-      if (home2) home2.querySelector('span').textContent = 'Map';
+      if (home2) home2.querySelector('span').textContent = cam.homeLabel || 'Map';
     }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
@@ -4307,12 +4312,18 @@
        skull and "Enemy Bot" stay - they are correct, not a placeholder.
        The `matches` table carries p1_name/p2_name but no avatar column,
        so a real opponent gets their handle and the generic player glyph
-       rather than a broken image. */
-    var foeName = netCtl && netCtl.label ? netCtl.label : 'Enemy Bot';
+       rather than a broken image. A CAMPAIGN battle shows the rival:
+       the character is the opponent, and the plate should say so. */
+    var foeName =
+      netCtl && netCtl.label ? netCtl.label : rivalInfo && rivalInfo.name ? rivalInfo.name : 'Enemy Bot';
     var en = $('pf-name-enemy');
     if (en) en.textContent = foeName;
     var ei = $('pf-enemy');
-    if (ei) ei.innerHTML = avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
+    if (ei)
+      ei.innerHTML =
+        rivalInfo && rivalInfo.img
+          ? avatarHtml(rivalInfo.img, 'ra-skull')
+          : avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
   }
 
   function start(opts) {
@@ -4323,6 +4334,7 @@
        a shared rng seed. Both clients run the identical engine over the
        identical action stream, so they only have to agree on luck. */
     netCtl = opts.net || null;
+    rivalInfo = opts.rival || null;
     setNetWait(false);
     stopClock();
     disarmForfeit();
@@ -4466,6 +4478,16 @@
 
     render();
     if (opts.campaignStage) B.campaignStage = opts.campaignStage;
+    /* CAMPAIGN: hand the settled battle to the road so the rival can
+       speak during the match (non-blocking barks - a blocking overlay
+       mid-battle is wrong, design §6). No-op outside the campaign. */
+    if (B.campaignStage && window.EOL.campaign && window.EOL.campaign.onBattleStart) {
+      try {
+        window.EOL.campaign.onBattleStart(B);
+      } catch (e) {
+        /* lore must never break a fight */
+      }
+    }
 
     /* Round 1 opens on whoever the engine says it does. Singleplayer is
        always the player; in a match the guest opens the even rounds, so

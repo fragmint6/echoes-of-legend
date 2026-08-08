@@ -1,5 +1,31 @@
 # Campaign Mode - Chapter 1: "The Road of Echoes"
-### Rev 6 - 2026-08-05. Supersedes rev 5, 4, 3, 2 and 1 (same path; see git history) and the archived `DESIGN-Campaign.md`.
+### Rev 7 - 2026-08-08. Supersedes rev 6 (same path; see git history).
+
+> **REV 7 - every gate is playable.**
+>
+> - **All ten stages are implemented end-to-end** in `data/campaign-ch1.js`
+>   (content) + `js/campaign.js` (glue): authored rival twelves everywhere
+>   (R1), scripted sixes on stages 1-4 (§8 dial 2), personality ban
+>   profiles (§9.11), draft personas + curated 36-card pools on 6-8,
+>   authored fight cards on 5/9/10, pair grants + choice-shaped exam
+>   grants (R8/R9), and Gilgamesh pinned + unbannable by hardcode (R5).
+> - **The enablers landed in `js/play.js`:** `cfg.war` (positive format
+>   control, §9.1), `cfg.fightCard` (the pinned-field/set short-circuit of
+>   §9.2 is fixed - a war now ALWAYS runs `setBegin`), `cfg.botSix`
+>   (§9.10), `cfg.botBanProfile` (§9.11), `pinned`/`unbannable` honoured in
+>   `chooseSix`/`setBotSix`/the ban grid (§9.3), and `opts.pool` +
+>   `opts.persona` on `startDraft` (§9.4).
+> - **Dialogue moved to a bottom-anchored bar** (the centred modal covered
+>   the screen and was rejected). Rivals also **speak during the match**
+>   via a pointer-transparent, self-expiring bark widget riding
+>   `EOL.onBattleEvent` - honouring §6's law that blocking overlays are
+>   for pre/post-fight only.
+> - **Coverage:** `sim/verify_campaign.js` (deck legality per §9.8, grant
+>   curriculum, terrain wiring, pool constraints, boss flags + an engine
+>   smoke with the boss on the board). `sim/verify_all.js` stays green.
+> - Still open: difficulty soak against §8's curve targets (the `--teams
+>   fixed` harness), codex/chronicle screens, and the economy pass that
+>   makes tier-2 coin spendable.
 
 > **REV 6 - the shell is on screen, and D1 is closed.**
 >
