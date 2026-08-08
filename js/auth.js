@@ -5,8 +5,8 @@
  *
  *   An account exists here for exactly one reason: matchmaking needs
  *   two stable identities to pair. It does NOT sync your collection.
- *   Decks, graphics settings and dismissed tutorials all stay on the
- *   device, on purpose - see the note above pushDeck().
+ *   Decks and graphics settings all stay on the device, on purpose -
+ *   see the note above pushDeck().
  *
  * Design rules this module follows:
  *

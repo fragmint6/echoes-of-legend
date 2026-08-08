@@ -1,4 +1,4 @@
-/* =============================================================
+﻿/* =============================================================
    Echoes of Legend - Core Theme
    ============================================================= */
 
@@ -1745,7 +1745,7 @@ html.mqw640 .search-wrap input {
 
 /* =============================================================
    BATTLE VIEW  -  horizontal layout
-   HUD on top · teams face each other left/right · actions bottom
+   HUD on top Â· teams face each other left/right Â· actions bottom
    ============================================================= */
 .view.battle.active {
   display: flex;
@@ -1770,7 +1770,7 @@ html.mqw640 .search-wrap input {
   gap: 14px;
   flex: 0 0 auto;
   /* Fixed height, sized to exactly fit the tallest possible centre
-     column (round block + status pill + ATK ramp tag ≈ 96 px content).
+     column (round block + status pill + ATK ramp tag â‰ˆ 96 px content).
      Before this the bar grew ~20px when the ramp tag appeared in round
      6, which shoved the whole battle board down mid-fight; and at 140 px
      it dwarfed what the two pills ever need. */
@@ -11452,7 +11452,7 @@ html.mqw640 .draft-pack {
   line-height: 1.4;
 }
 .bf-rules li::before {
-  content: '◆';
+  content: 'â—†';
   color: var(--bf-3);
   margin-right: 8px;
   font-size: 9px;
@@ -15696,7 +15696,7 @@ body[data-view='chapter'] .menu-bg {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-/* On the chapter view: hide the menu-bg entirely — the chapter-bg
+/* On the chapter view: hide the menu-bg entirely â€” the chapter-bg
    provides its own pixel-art forest backdrop with cw-haze mist. */
 body[data-view='chapter'] .menu-bg {
   opacity: 0 !important;
@@ -17290,8 +17290,8 @@ body[data-gfx='low'] .sc-weather {
     transform: translate3d(46px, 8px, 0);
   }
 }
-/* Flight: vw on BOTH axes keeps the descent at atan(10/46) ≈ 12.3° at
-   every viewport shape, and the streak is rotated by the same -12.3°,
+/* Flight: vw on BOTH axes keeps the descent at atan(10/46) â‰ˆ 12.3Â° at
+   every viewport shape, and the streak is rotated by the same -12.3Â°,
    so the head points exactly down the velocity vector. Translation is
    one constant-speed run; opacity ramps are clipped to its ends. */
 @keyframes mb-shoot {
@@ -17817,7 +17817,7 @@ body[data-gfx='low'] .sc-weather {
    breathing core.
    ============================================================= */
 /* =============================================================
-   UNIVERSAL PAGE TRANSITION — The Gate
+   UNIVERSAL PAGE TRANSITION â€” The Gate
    -------------------------------------------------------------
    Replaces the old spinner-only loader. The gate is two solid panels
    that slide shut from the sides (gold seal where they meet), with a
@@ -17860,6 +17860,7 @@ body[data-gfx='low'] .sc-weather {
   flex: 1 1 50%;
   min-width: 0;
   position: relative;
+  z-index: 1;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(255,214,130,0.07), transparent 55%),
     linear-gradient(180deg, #12162a, #070a14 70%, #05070e);
@@ -17895,7 +17896,9 @@ body[data-gfx='low'] .sc-weather {
   transition:
     opacity 0.35s var(--ease) 0.22s,
     transform 0.42s var(--ease) 0.22s;
-  z-index: 2;
+  /* sits BEHIND the gate panels, so its glow reads as light leaking
+     through the closing gap instead of a line painted over the gates */
+  z-index: 0;
 }
 #veil.on .veil-edge {
   opacity: 1;
@@ -18123,7 +18126,7 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   text-shadow: 0 0 12px rgba(255, 200, 90, 0.4);
 }
 
-/* Corner button stack — top-right, below the account pill.
+/* Corner button stack â€” top-right, below the account pill.
    Same glass circle spec as the Discord chip. */
 .home-corner-btns {
   position: absolute;
@@ -18729,7 +18732,7 @@ body[data-gfx='low'] .fx-blast-mini {
 }
 
 /* =============================================================
-   THE SET (Bo3)  (2026-08) — roadmap Phase 1
+   THE SET (Bo3)  (2026-08) â€” roadmap Phase 1
    -------------------------------------------------------------
    war-length segmented toggle (inside the solo mode-grid, spans its
    full width), the fight card + board-call modals, and the in-battle
@@ -19059,7 +19062,7 @@ body[data-gfx='low'] .fx-blast-mini {
   color: var(--txt-dim);
 }
 .setm-rules li::before {
-  content: '◆';
+  content: 'â—†';
   color: color-mix(in srgb, var(--r-legendary-1) 70%, transparent);
   margin-right: 7px;
   font-size: 7.5px;
@@ -21085,7 +21088,7 @@ body[data-gfx='low'] .chapter-card:hover {
 }
 
 /* ======================================================================
-   CAMPAIGN — CHAPTER 1 RIVAL ROUTE (2026-08-06)
+   CAMPAIGN â€” CHAPTER 1 RIVAL ROUTE (2026-08-06)
    ----------------------------------------------------------------------
    The chapter plate is intentionally only a doorway. This screen is the
    first real look down The Road of Echoes: ten portrait-oriented rival
@@ -21108,7 +21111,7 @@ body[data-gfx='low'] .chapter-card:hover {
      keyed silhouette can never reveal an empty or black pocket;
    - `repeat-x` and an exact one-tile translate make the moving loops invisible;
    - speed and travel distance are the home menu's exact depth ratios
-     (sky 420s → foreground 90s), not blur or scaling.
+     (sky 420s â†’ foreground 90s), not blur or scaling.
 
    Each source was looped against a 100px continuation before export: its
    final edge was cross-faded into the opening edge. The resulting wrap
@@ -21140,7 +21143,7 @@ body[data-view='chapter'] .bg-grid {
   z-index: 1;
 }
 
-/* subtle dark frame around the edges — doesn't compete with lantern glow */
+/* subtle dark frame around the edges â€” doesn't compete with lantern glow */
 .cw-vignette {
   position: absolute;
   inset: 0;
@@ -21152,7 +21155,7 @@ body[data-view='chapter'] .bg-grid {
     linear-gradient(to bottom, rgba(10,14,34,0.28) 0%, transparent 42%);
 }
 
-/* drifting mist bands — thin horizontal haze strips at different depths */
+/* drifting mist bands â€” thin horizontal haze strips at different depths */
 .cw-haze {
   position: absolute;
   inset: 0;
@@ -21163,7 +21166,7 @@ body[data-view='chapter'] .bg-grid {
     radial-gradient(ellipse 110% 16% at 50% 46%, rgba(175,188,210,0.10), transparent 68%),
     /* mid mist band */
     radial-gradient(ellipse 80% 13% at 50% 68%, rgba(165,178,200,0.11), transparent 62%),
-    /* low fog band — thicker near the road */
+    /* low fog band â€” thicker near the road */
     radial-gradient(ellipse 90% 15% at 50% 84%, rgba(155,168,192,0.14), transparent 66%);
   animation: cw-haze-drift 26s ease-in-out infinite alternate;
 }
@@ -21398,7 +21401,7 @@ body[data-gfx='low'] .cw-motes {
   color: #d8ceaa;
 }
 
-/* glass backdrop for the masthead body — floats the title, rule, and sub
+/* glass backdrop for the masthead body â€” floats the title, rule, and sub
    over the dark forest without a hard container edge. The back button
    stays free of the glass so it reads as a separate control. */
 .chapter-head-inner {
@@ -21413,7 +21416,7 @@ body[data-gfx='low'] .cw-motes {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-/* Subtle progress strip — no glass block, just a quiet rule */
+/* Subtle progress strip â€” no glass block, just a quiet rule */
 .chapter-brief {
   position: relative;
   display: flex;
@@ -22309,7 +22312,7 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   pointer-events: none;
 }
 .chapter-dialogue-road {
-  display: none; /* removed weird dashed circle reported by player — it read as a stray UI artifact */
+  display: none; /* removed weird dashed circle reported by player â€” it read as a stray UI artifact */
 }
 .chapter-dialogue-copy {
   display: flex;

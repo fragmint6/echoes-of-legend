@@ -157,6 +157,15 @@
     modal.setAttribute('aria-hidden', 'true');
     document.body.dataset.campaignDialogue = '0';
     isOpen = false;
+    /* The epilogue is an overlay on the settled battle screen; closing it
+       by any route (X, scrim, Esc) must land on the chapter map, not
+       strand the player on an ended board. */
+    if (currentStage === -1) {
+      activeCampaignStage = null;
+      currentStage = 1;
+      window.EOL.ui.show('chapter');
+      return;
+    }
     var opener = document.querySelector('[data-campaign-stage="' + currentStage + '"]');
     if (opener) opener.focus();
   }
@@ -170,6 +179,27 @@
     var modal = $('chapter-dialogue');
     if (!modal) return;
 
+    dialogueIndex = 0;
+    isOpen = true;
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.dataset.campaignDialogue = '1';
+    renderDialogue();
+    window.setTimeout(function () {
+      var next = $('chapter-dialogue-next');
+      if (next) next.focus();
+    }, 0);
+  }
+
+  /* The post-battle epilogue (a stage-1 victory). Runs through the same
+     dialogue modal; on its final line the road returns to the chapter
+     map so the player can see Gate II open. */
+  function openEpilogue() {
+    currentStage = -1; // sentinel: not a playable stage
+    currentLines = STORY.epilogue || [];
+    if (!currentLines.length) return;
+    var modal = $('chapter-dialogue');
+    if (!modal) return;
     dialogueIndex = 0;
     isOpen = true;
     modal.hidden = false;
@@ -219,6 +249,7 @@
             field: colosseum,
             campaignStage: 1,
             warLength: 'single',
+            oddFirst: 'player',
           });
         },
         { isCampaign: true, hideRandom: true }
@@ -239,22 +270,63 @@
 
     if (line && line.battle && currentStage === 1) {
       startRecruiterFight();
+      return;
     }
   }
 
+  /* One pending campaign result, consumed by the result screen. Kept as
+     state so battle.js/app.js can frame the buttons without campaign.js
+     needing to reach into the result DOM itself. */
+  var resultInfo = null;
+
   function onBattleResult(win) {
-    if (activeCampaignStage === 1 && win) {
+    resultInfo = null;
+    if (activeCampaignStage === 1) {
       var prog = getProgress();
       var cleared = prog.cleared || [];
       var unlocked = prog.unlocked || [1];
 
-      if (cleared.indexOf(1) === -1) cleared.push(1);
-      if (unlocked.indexOf(2) === -1) unlocked.push(2);
+      if (win) {
+        if (cleared.indexOf(1) === -1) cleared.push(1);
+        if (unlocked.indexOf(2) === -1) unlocked.push(2);
+        saveProgress({ cleared: cleared, unlocked: unlocked });
+        updateStageCards();
+      }
 
-      saveProgress({ cleared: cleared, unlocked: unlocked });
-      updateStageCards();
+      resultInfo = { stage: 1, won: win };
+      return { campaign: true, won: win };
     }
     activeCampaignStage = null;
+    return null;
+  }
+
+  /* The result screen's primary action: fight the gate again. Re-enters
+     the Recruiter's flow (dialogue -> deck -> prep) fresh. */
+  function retry(stageId) {
+    resultInfo = null;
+    activeCampaignStage = stageId || 1;
+    currentStage = stageId || 1;
+    window.EOL.ui.show('chapter');
+    window.setTimeout(function () {
+      openStageDialogue(currentStage);
+    }, 60);
+  }
+
+  /* The result screen's secondary action. Returns true when the campaign
+     consumed the click (opened the epilogue or routed to the map) so the
+     generic home handler should stand down. */
+  function consumeResult() {
+    if (!resultInfo) return false;
+    var r = resultInfo;
+    resultInfo = null;
+    activeCampaignStage = null;
+    if (r.won) {
+      openEpilogue();
+    } else {
+      currentStage = 1;
+      window.EOL.ui.show('chapter');
+    }
+    return true;
   }
 
   function bindStageClicks() {
@@ -314,6 +386,8 @@
       return isOpen;
     },
     onBattleResult: onBattleResult,
+    retry: retry,
+    consumeResult: consumeResult,
     updateStageCards: updateStageCards,
     story: STORY,
   };

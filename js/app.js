@@ -1648,6 +1648,11 @@ goBack();
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
       document.getElementById('result').className = 'result';
+      /* Campaign owns its secondary result button: after Gate I the road
+         either plays the victory epilogue or returns to the chapter map. */
+      if (window.EOL.campaign && window.EOL.campaign.consumeResult) {
+        if (window.EOL.campaign.consumeResult()) return;
+      }
       show('home');
     });
 

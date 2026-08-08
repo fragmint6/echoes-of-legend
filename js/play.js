@@ -105,9 +105,13 @@
     var c = $('coach');
     return !!(c && c.classList.contains('show'));
   }
-  /* Shows the overlay unless this context was already explained once. */
-  function coachShow(key, icon, title, body) {
-    if (coachSeen().indexOf(key) >= 0) return false;
+  /* Shows the overlay unless this context was already explained once.
+     opts.force re-shows it anyway while still recording the key so a
+     later normal match does not double-explain. */
+  function coachShow(key, icon, title, body, opts) {
+    opts = opts || {};
+    var forcing = !!opts.force;
+    if (!forcing && coachSeen().indexOf(key) >= 0) return false;
     var c = $('coach');
     if (!c) return true;
     $('coach-ico').className = 'ra ' + icon;
@@ -117,7 +121,7 @@
     c.setAttribute('aria-hidden', 'false');
     try {
       var seen = coachSeen();
-      seen.push(key);
+      if (seen.indexOf(key) < 0) seen.push(key);
       localStorage.setItem(COACH_KEY, JSON.stringify(seen));
     } catch (e) {
       /* private mode */
@@ -1044,6 +1048,7 @@
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
       campaignStage: cfg.campaignStage || null,
+      oddFirst: cfg.oddFirst || null,
       /* The battlefield is rolled NOW but not revealed until bans are
          locked, so neither side can ban around the terrain. */
       field: cfg.field || window.EOL.rollBattlefield(),
@@ -1574,10 +1579,16 @@
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
       campaignStage: cfg.campaignStage,
+      oddFirst: cfg.oddFirst || null,
     });
     lastConfig =
       cfg.mode === 'classic'
-        ? { mode: 'classic', deckId: cfg.deckId, random: !cfg.deckId }
+        ? {
+            mode: 'classic',
+            deckId: cfg.deckId,
+            random: !cfg.deckId,
+            campaignStage: cfg.campaignStage || null,
+          }
         : { mode: 'draft' };
   }
 
@@ -2878,6 +2889,14 @@
       BATTLE().start();
       return;
     }
+    /* CAMPAIGN: the fight card leads back into the same gate, not into a
+       generic classic battle. §9.7 - the campaign owns the retry so the
+       Recruiter's dialogue + starter flow run again. */
+    if (lastConfig.campaignStage) {
+      if (window.EOL.campaign && window.EOL.campaign.retry)
+        window.EOL.campaign.retry(lastConfig.campaignStage);
+      return;
+    }
     if (lastConfig.mode === 'classic') {
       var d = lastConfig.deckId ? window.EOL.decks.get(lastConfig.deckId) : null;
       if (lastConfig.random || !d || !window.EOL.decks.isComplete(d)) {
@@ -3459,5 +3478,15 @@
       return lastConfig;
     },
     _packStarter: packStarter,
+  };
+
+  /* The coach overlay is shared across every module that teaches a step
+     of the game (battle.js for the in-fight beats). design §9.5
+     explicitly wants this exported. */
+  window.EOL.coach = {
+    show: coachShow,
+    hide: coachHide,
+    open: coachOpen,
+    seen: coachSeen,
   };
 })();

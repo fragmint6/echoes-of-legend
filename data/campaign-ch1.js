@@ -177,4 +177,21 @@ window.EOL.campaignCh1 = {
       final: true,
     },
   ],
+  /* Spoken after Gate I is cleared, before the road lets you continue
+     to Gate II. */
+  epilogue: [
+    {
+      speaker: 'The Recruiter',
+      text: 'The old man closes his ledger, then thinks better of it and writes a line. “Hansel & Gretel. Cinderella. It is always the ones who promise a happy ending who fight the hardest.”',
+    },
+    {
+      speaker: 'The Wayfarer',
+      text: 'The brass coin in your palm grows warm, and a second gate shimmers into being further up the road.',
+    },
+    {
+      speaker: 'The Recruiter',
+      text: '“You asked the road a question and it answered: your story can continue. The Oathkeeper waits at the Narrow Pass. Survive him, and the road will show you what strength is for.”',
+      final: true,
+    },
+  ],
 };

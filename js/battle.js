@@ -1820,6 +1820,18 @@
         stopClock();
         return;
       }
+      /* A coach overlay freezes the player's dial: reading an
+         explanation must never cost your action. The deadline is
+         re-armed each frame it is open, so closing the overlay hands
+         back a full window. */
+      if (side === 'player' && window.EOL.coach && window.EOL.coach.open()) {
+        clockEnd = performance.now() + TURN_MS;
+        if (num) num.textContent = Math.ceil(TURN_MS / 1000);
+        clockRaf = requestAnimationFrame(function (t) {
+          frame(t);
+        });
+        return;
+      }
       var left = Math.max(0, clockEnd - now);
       var secs = Math.ceil(left / 1000);
       if (num) num.textContent = secs;
@@ -4113,8 +4125,21 @@
       var rm = $('btn-rematch');
       if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
     }
-    if (window.EOL.campaign && window.EOL.campaign.onBattleResult) {
-      window.EOL.campaign.onBattleResult(win);
+    /* CAMPAIGN: the road frames its own result - Retry (fight the gate
+       again) on the primary button, and a chapter-map exit on the home
+       button that plays the stage epilogue after a win. */
+    var cam =
+      window.EOL.campaign && window.EOL.campaign.onBattleResult
+        ? window.EOL.campaign.onBattleResult(win)
+        : null;
+    if (cam && cam.campaign) {
+      ov.querySelector('.result-sub').textContent = win
+        ? 'The Recruiter closes his ledger - Gate I is yours.'
+        : 'The Recruiter sets down his quill. "The road will still be here."';
+      var rm2 = $('btn-rematch');
+      if (rm2) rm2.querySelector('span').textContent = 'Retry';
+      var home2 = $('btn-result-home');
+      if (home2) home2.querySelector('span').textContent = 'Map';
     }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
@@ -4458,6 +4483,15 @@
        announce+ponder and skip maybeAutoEndTurn, so round 1 was the
        one turn a stalling opponent could sit on forever. */
     startClock('player');
+    if (window.EOL.coach && window.EOL.coach.show) {
+      window.EOL.coach.show(
+        'battle',
+        'ra-crossed-swords',
+        'Your first battle',
+        'The tall bar is your Energy - every Skill costs some. The round counter above '
+          + 'shows whose turn it is, and Pass ends your move. Tap a legend to fight.'
+      );
+    }
   }
 
   window.EOL.battle = {
@@ -4501,6 +4535,20 @@
     if (B) {
       sizeBoard();
       sizeFieldChip(); // wrap count changes with the box, so re-measure
+    }
+  });
+
+  /* The gate closes before the view swap (app.js defers the swap ~560ms),
+     so the FIRST render()/sizeBoard() runs while the battle view is still
+     hidden - a hidden .view is not flex-laid-out, its grid rows collapse
+     to 0 and --cardw floors to ~28px ("tiny cards"). Re-measure once the
+     view is actually active so the board opens at full size. */
+  document.addEventListener('eol:view', function (ev) {
+    if (B && ev.detail === 'battle') {
+      requestAnimationFrame(function () {
+        sizeBoard();
+        sizeFieldChip();
+      });
     }
   });
 
