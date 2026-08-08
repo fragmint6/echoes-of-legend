@@ -198,8 +198,6 @@ window.EOL.campaignCh1 = {
         final: true,
       },
     ],
-  },
-,
   3: [
     { speaker: 'The Outlaw', text: '"Your brightest echo is already in my sights. Let us see if you leave anything behind."' },
     { speaker: 'The Wayfarer', text: '"You came for what I carry?"' },
@@ -239,7 +237,7 @@ window.EOL.campaignCh1 = {
     { speaker: 'Gilgamesh', text: '"He who saw the Deep does not forgive — but he remembers."' },
     { speaker: 'The Wayfarer', text: '"I came to continue, not to become a prison."' },
     { speaker: 'Gilgamesh', text: '"Then let the scales speak. Judgment is the last truth."', battle: true, final: true },
-  ]
+  ],
   },
   recruiterDialogue: [
     {
