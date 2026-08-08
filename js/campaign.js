@@ -107,6 +107,20 @@
     if (!host) return; text($('campaign-rival-banter-name'), s.rival); text($('campaign-rival-banter-text'), '“' + line + '”'); host.classList.remove('show'); void host.offsetWidth; host.classList.add('show'); clearTimeout(host._timer); host._timer = setTimeout(function () { host.classList.remove('show'); }, 4200);
   }
   function mount() {
+    /* Capture at the document level as a last-mile bridge. The chapter
+       map is assembled alongside view transitions, and another menu
+       listener can otherwise swallow a button click before the campaign
+       module sees it. */
+    document.addEventListener('click', function (event) {
+      var node = event.target;
+      while (node && node !== document && !(node.getAttribute && node.getAttribute('data-campaign-stage'))) node = node.parentNode;
+      if (!node || node === document) return;
+      var id = Number(node.getAttribute('data-campaign-stage'));
+      if (!id || node.disabled || (progress().unlocked || [1]).indexOf(id) < 0) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showDialogue(id);
+    }, true);
     renderCopy();
     for (var i = 1; i <= 10; i++) (function (id) {
       var el = document.querySelector('[data-campaign-stage="' + id + '"]');
@@ -125,5 +139,6 @@
     document.addEventListener('eol:view', function (e) { if (e.detail === 'chapter') update(); });
   }
   window.EOL.campaign = { openStageDialogue: showDialogue, openRecruiterDialogue: function () { showDialogue(1); }, closeRecruiterDialogue: close, dialogueOpen: function () { return open; }, onBattleResult: onResult, retry: retry, consumeResult: consumeResult, updateStageCards: update, banter: banter, story: STORY };
-  document.addEventListener('DOMContentLoaded', mount);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+  else mount();
 })();
