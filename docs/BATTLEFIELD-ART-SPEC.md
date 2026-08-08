@@ -4,7 +4,17 @@ Pixel-art backdrops for the ten battlefields. Companion to
 `docs/ART-SPEC.md`, which governs character portraits; the two must read as
 one game, so the shared rules there apply here unless overridden below.
 
-Status: **all 10 regenerated at 2560×1440 PNG** (2026-08-06 refresh).
+Status: **all 10 regenerated at 2560x1440 PNG** (2026-08-08 unification pass).
+
+> **2026-08-08 unification.** The 2026-08-06 boards mixed several art
+> styles. All ten were regenerated in ONE style, anchored on the two
+> canonical backdrops - `assets/menu/menu-bg.png` and
+> `assets/chapter-1/cw-bg.png` (hard 1px outlines, dithered sky bands,
+> flat fills with blocky shading, dark muted palette, one restrained
+> light source) - using both as style references, then centre-cropped
+> to 16:9 and nearest-neighbour resized to 2560x1440 opaque PNG. Each
+> board keeps its in-game accent palette (`data/battlefields.js`
+> colors) so the CSS glows still match the art.
 
 > **2026-08-06 refresh.** The 2026-08-03 boards were 512×284 JPEGs.
 > They have been replaced with AI-generated 16-bit pixel-art scenes at
