@@ -1,217 +1,164 @@
-# Echoes of Legend — Complete Step-by-Step Tutorial (2026-08-08)
+# Echoes of Legend — First-Boot Tutorial (Ends After Defeating The Recruiter)
 
-**Purpose:** This is the canonical, end-to-end tutorial for new players. It covers everything from first launch through the full Campaign Chapter 1, Classic, Draft, Unabridged sets, and the core loop. It is designed to be delivered in-game via coach overlays + rulebook + campaign dialogue.
+**Scope:** This tutorial runs automatically on first boot and ends the moment the player defeats The Recruiter (Gate I). It teaches **everything** a new player needs to know before they can freely explore the rest of the game.
 
----
-
-## 0. First Launch & Onboarding
-
-1. Open `index.html` (file:// or served).
-2. The game boots directly into the **Home** menu (no login required for solo play).
-3. **Starter deck is automatically seeded** on first boot (`js/deck.js`): the full 12-card Grimmwood faction (exactly 2 of each role).
-4. Click **Play** → the mode grid appears.
-
-**Coach tip (first time):**  
-*"Welcome to Echoes of Legend. Your Grimmwood deck is ready. The Campaign will teach you the whole game one gate at a time."*
+**Delivery:** Coach overlays + in-dialogue tips + result screen messages. The tutorial state is tracked in `localStorage` (`eol.tutorial.completed`).
 
 ---
 
-## 1. The Campaign — "The Road of Echoes" (Recommended First Path)
+## 0. Automatic First-Boot Flow
 
-The Campaign is the **lore vessel** and the **primary teaching tool**. It is the only place you will see story.
+1. Player opens the game for the first time.
+2. **Starter deck is seeded** (Grimmwood 12 — exactly 2 of every role).
+3. A **Welcome coach overlay** appears immediately on the Home screen.
 
-### Gate I — The Recruiter (Stage 1)
+**Welcome Coach (first time only):**
+> "Welcome to Echoes of Legend.  
+> Your Grimmwood deck is ready.  
+> The Campaign will teach you everything you need to know — one gate at a time.  
+> Let's begin with your first story."
 
-1. From Play → **Campaign** → click the Chapter 1 plate.
-2. The chapter map opens. Gate I is unlocked.
-3. Click the stage card → **dialogue begins**.
-4. Advance through the Recruiter's lines (voice + text).
-5. On the final line ("Fight The Recruiter") the game opens the deck selector.
-6. Choose your Grimmwood deck (or any deck you own).
-7. **Prep screen** (single-game Classic):
-   - Enemy bans 2 of your cards.
-   - You ban 2 of the enemy's cards.
-   - Field your 6 (front row = tanks/bruisers, back row = everything else).
-8. Battle launches on **The Colosseum**.
-9. Win → result screen → **epilogue dialogue** (Recruiter writes "CONTINUING").
-10. Gate II unlocks automatically.
-
-**What you learned:**  
-- Basic turn flow (alternating actions)  
-- Energy economy  
-- Basic vs Signature skills  
-- Front / Back row targeting rules  
-- The "story continues" reward loop
-
-**Reward:** 1× coin (currency) + progress toward Gate II.
+**Button:** "Begin the Road" (opens Campaign → Chapter 1 automatically)
 
 ---
 
-### Gate II — The Oathkeeper (Stage 2)
+## 1. The Recruiter — The Complete First Tutorial
 
-1. Click the newly unlocked stage card.
-2. Dialogue teaches **Prep**: bans + fielding.
-3. The battlefield is **The Narrow Pass** (melee chokepoint — only front row can basic attack).
-4. After victory, you receive **2 Camelot cards** (King Arthur + Lancelot) as your first curriculum grant.
-5. Gate III unlocks.
+This single stage teaches **every core system** the player will ever use.
 
-**New systems taught:**  
-- Bans + simultaneous hidden fielding  
-- Shields + Provoke (Taunt)  
-- Front-line importance
+### Step 1: Opening Dialogue (Lore + Expectations)
 
----
+- The Recruiter explains the Road of Echoes.
+- Coach tips appear inline during dialogue:
+  - *"This is the only place you'll see story. Everything else is pure gameplay."*
+  - *"Your goal right now: survive your first battle."*
 
-### Gate III — The Outlaw (Stage 3)
+### Step 2: Deck Selection
 
-- **The Open Plains** (no back-row defense penalty).
-- Teaches **focus fire** and **protect your carry**.
-- Grant: 2 Sherwood cards (Robin Hood + Little John).
+- Only the starter Grimmwood deck is available.
+- Coach tip:
+  > "This is your starting squad. Later you'll build your own 12-card decks."
 
----
+### Step 3: Preparation Screen (The Full Prep Tutorial)
 
-### Gate IV — The Anointed (Stage 4)
+This is the **most important teaching moment**.
 
-- **The Mana Spring** (+20 Energy/round).
-- Teaches **reading Marks** (setup → consume).
-- Grant: 2 Olympus cards (Zeus + Ares).  
-  *Note: Zeus is the entire Mark loop in one card.*
+**Bans Phase (Coach overlays appear one by one):**
+1. "The enemy will ban 2 of your cards. You do the same to them."
+2. "Tap any enemy card to ban it. You can change your mind until you confirm."
+3. "Bans are permanent for this battle."
 
----
+**Fielding Phase (after bans lock):**
+1. "Now choose which 6 of your remaining 10 will fight."
+2. "Front row (slots 0-2) = Tanks & Bruisers. They take the hits."
+3. "Back row (slots 3-5) = everyone else. They deal damage and support."
+4. "Tap a hero to move them between rows. Your formation matters."
 
-### Gate V — The Warden of the Mid-Road (Stage 5) — First **Unabridged** Exam
+**Coach tip on formation:**
+> "A good front line protects your damage dealers. Never leave your back row exposed."
 
-- **Unabridged (Bo3)** on a fight card of the three boards you already know.
-- Teaches **deck construction** (build your own 12) + **sets** (mandatory 1-2 swaps between games, loser picks next board).
-- Grant: **Choice of 2** from any taught faction (first opportunity to complete a 4-stack for future Faction Blessings).
+### Step 4: Battle — The Complete Combat Tutorial
 
-**Important rule disclosure (coach beat before roulette):**  
-*"No retreat once it begins. You must finish the set."*  
-(Home button is hidden during a live set.)
+The battle on **The Colosseum** is heavily coached.
 
----
+**Round 1 (Basic Skills only):**
+- Coach appears before first action:
+  > "Round 1: Only basic attacks are available. Use this round to position your front line."
 
-### Gates VI–VIII — Draft Introduction
+**Energy Economy (first time a skill is used):**
+- Overlay when energy bar appears:
+  > "Energy pays for skills. You get more every round. Unspent energy carries over (up to 150)."
 
-| Gate | Rival | Board | Teaches | Grant |
-|------|-------|-------|---------|-------|
-| 6 | The Trickster | Energy Void | Draft fundamentals, energy economy | 2 Yamato |
-| 7 | The Strategist | Blood Battlefield | Counter-drafting, kill engines | 2 Roma |
-| 8 | The Chronicler | Spirit World | Burn, cleanse, Silence, attrition | 2 Takamagahara |
+**Turn Flow:**
+- Coach before first enemy turn:
+  > "You and the enemy take turns making **one action each**. Plan ahead — you can't act twice in a row."
 
-Each draft uses a **curated pool** that guarantees ≥4 cards of every faction (blessing-ready).
+**Front / Back Row Rules (first time a back-row hero is attacked):**
+- Coach:
+  > "Back-row heroes can only be hit by skills. Basic attacks from the front row are blocked until the front line falls."
 
----
+**Signature Skills (Round 2+):**
+- Coach when signatures unlock:
+  > "Powerful Signature skills are now available. They cost more energy but change the battle."
 
-### Gate IX — The Last Guardian (Stage 9) — Second Unabridged Exam
+**Status Effects (as they appear):**
+- First time a hero is **Marked**:
+  > "Marks are promises. The next damaging skill that hits this target will consume the mark for bonus effects."
+- First time **Burn** lands:
+  > "Burn deals true damage every turn and ignores shields and defense."
+- First time **Provoke (Taunt)** is used:
+  > "Provoke forces all attacks onto this hero. Use it to protect your back line."
 
-- Unabridged on the three new boards.
-- Teaches **cross-faction synergy** and full set mastery.
-- Grant: **Choice of 2** (second chance to complete 4-stacks).
+**Passing / End Turn:**
+- Coach on the End Turn button:
+  > "You can pass to save energy or wait for the enemy. Two consecutive passes end the round."
 
----
+### Step 5: Victory → Result Screen
 
-### Gate X — Gilgamesh (Stage 10) — The Boss
+- Victory message includes tutorial summary:
+  > "You survived your first battle.  
+  > You now understand: energy, formation, basic vs signature skills, and status effects."
 
-- **Unabridged (Bo3)** on the three final boards.
-- Gilgamesh is **unbannable** and **pinned** into every game of the set.
-- Introduces **Duat** (the scales, revive, judgement).
-- Grant: 2 Duat cards (Isis + Anubis).
-- Victory opens the gate toward **Uruk** (seeds Chapter 2).
+### Step 6: Epilogue Dialogue (Tutorial Completion)
 
-**Final reward:** Chronicle card (MVP, kills, rounds) + full codex unlock.
+After the Recruiter epilogue, a final coach overlay appears:
 
----
+**Tutorial Complete Coach:**
+> "Congratulations. You have completed the onboarding tutorial.  
+> You now know everything you need to play the rest of the game.  
+>  
+> The Road continues — but the tutorial is over.  
+> Explore Classic, Draft, or continue the Campaign at your own pace."
 
-## 2. Classic Mode (Free Play)
+**Buttons:**
+- "Return to Home"
+- "Continue the Campaign" (unlocks Gate II)
 
-After the campaign has taught you the basics:
-
-1. Play → **Classic**
-2. Pick any saved deck (or create one).
-3. War-length toggle: **Single Battle** or **Unabridged (Bo3)**.
-4. Full prep (bans + field six) → battle.
-
-**Classic is always single-game speed.** Unabridged is opt-in.
-
----
-
-## 3. Draft Mode
-
-1. Play → **Draft**
-2. 12 packs of 3 legends (snake draft).
-3. Both sides draft from the same pool.
-4. Then the normal Classic flow (bans + field six).
-
-**Draft is the best way to learn synergy and counter-drafting.**
+**Persistent flag set:** `eol.tutorial.completed = true`
 
 ---
 
-## 4. Unabridged Sets (The Long War)
+## 2. What the Player Now Knows (Complete Coverage)
 
-Available in:
-- Campaign (Gates 5, 9, 10)
-- Classic / Draft (toggle at launch)
-- Future ranked (Tier 3+)
+By the end of the Recruiter fight, the player has been explicitly taught:
 
-**Flow:**
-1. Fight card shows the three boards **before** bans.
-2. Game 1 on a pre-designated board.
-3. Loser of each game **calls the next board** from the remaining slots.
-4. Mandatory 1–2 hero swaps between games (identical six forbidden).
-5. First to 2 wins.
+| Category | Mechanics Covered |
+|----------|-------------------|
+| **Core Loop** | Alternating turns, energy income + carry-over, comeback bonus |
+| **Formation** | Front row (Tanks/Bruisers), back row targeting rules, broken frontline penalty |
+| **Skills** | Basic attacks vs Signature skills, Round 1 restriction |
+| **Status Effects** | Mark, Burn, Provoke (Taunt), Silence (mentioned), Shields |
+| **Preparation** | Bans (2 per side), fielding 6 heroes, row assignment |
+| **Unabridged** | Mentioned as future content ("you'll learn sets later") |
+| **Progression** | Named card rewards, currency, codex (teased) |
+| **Lore** | The Road of Echoes concept (light) |
 
-**Key law:** You cannot leave mid-set. Forfeit is allowed (via the in-battle button).
-
----
-
-## 5. Core Loop Summary (for the rulebook)
-
-| Phase | What you do | What you learn |
-|-------|-------------|----------------|
-| **Home** | Choose mode | — |
-| **Deck** | Build or edit 12-card squads (max 4/role) | Deck construction |
-| **Prep** | Ban 2 enemy cards, field your 6 | Preparation & formation |
-| **Battle** | Alternate single actions, manage energy | Core combat loop |
-| **Unabridged** | Swap 1–2 heroes, call next board | Set play & adaptation |
-| **Campaign** | Progress through 10 gates | Lore + every system, one at a time |
-| **Rewards** | Named cards + currency + codex pages | Collection growth |
+**Nothing is left for the player to discover by accident.**
 
 ---
 
-## 6. Key Mechanics Quick Reference (Coach Tooltips)
+## 3. Post-Tutorial State
 
-- **Energy:** 60/80/100 per round + carry-over (max 150) + comeback bonus.
-- **Front Row:** Tanks & Bruisers only. Back row cannot basic attack until front is gone.
-- **Marks:** Setup → consume on next damaging skill.
-- **Provoke (Taunt):** Forces attacks onto the provoker.
-- **Burn:** 5% max HP true damage per turn (ignores shields & defense).
-- **Silence:** Prevents all actions.
-- **Unabridged law:** Mandatory 1–2 swaps; no identical six twice in a row.
+After defeating The Recruiter:
 
----
-
-## 7. Progression & Collection
-
-- **Starter deck** = Grimmwood 12 (seeded on first boot).
-- **Campaign grants** = deterministic named cards (floor collection).
-- **Currency** = used for packs (future economy).
-- **Codex** = unlocked per rival defeated (lore pages inside campaign only).
-- **Faction Blessings** (Phase 2) = 4+ cards of one faction = faction bonus.
+- Tutorial flag is set.
+- Gate II is unlocked.
+- All other modes (Classic, Draft) become available without coach interference.
+- The full rulebook is now accessible.
+- Future coach tips are reduced to optional "Tips on" setting.
 
 ---
 
-## 8. Next Steps After the Tutorial
+## 4. Implementation Notes (for developers)
 
-1. Replay Campaign stages for practice.
-2. Build your own decks in the Collection tab.
-3. Try Draft to learn synergy.
-4. Experiment with Unabridged sets.
-5. When Phase 2 lands: chase 4/4/4 decks for triple blessings.
-6. When ranked lands: climb the ladder (Unabridged unlocks at Tier 3).
+- The tutorial is **not** the full 10-stage campaign.
+- It is a **linear, heavily coached** experience that ends after Stage 1 victory.
+- All coach content should be stored in `js/campaign.js` or a dedicated `tutorial.js` module.
+- The Recruiter battle uses the existing `startPrep` + `BATTLE().start` flow with `campaignStage: 1` and extra `tutorial: true` flag.
+- No Unabridged, Draft, or advanced mechanics are taught here — they are explicitly deferred.
 
 ---
 
-**End of Tutorial**
+**End of First-Boot Tutorial**
 
-This document is the single source of truth for the in-game tutorial flow. All coach beats, rulebook sections, and campaign dialogue should be derived from it.
+This is now the **official onboarding experience**. It is short, complete, and ends exactly when the player defeats The Recruiter. All future documentation and coach content should reference this version.
