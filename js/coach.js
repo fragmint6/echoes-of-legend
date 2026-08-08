@@ -185,12 +185,37 @@
     });
   }
 
+  // Allow replaying the tutorial from the corner button
+  function replayTutorial() {
+    // Temporarily allow replay even if completed
+    var wasCompleted = localStorage.getItem('eol.tutorial.completed') === 'true';
+    if (wasCompleted) {
+      localStorage.removeItem('eol.tutorial.completed');
+    }
+    tutorialActive = true;
+    startFirstBootTutorial();
+  }
+
   window.EOL.coach = {
     show: showCoach,
     hide: hideCoach,
     startTutorial: startFirstBootTutorial,
+    replayTutorial: replayTutorial,
     completeAfterVictory: completeTutorialAfterVictory,
     isActive: () => tutorialActive
   };
+
+  // Wire up the top-left Tutorial button
+  document.addEventListener('DOMContentLoaded', function () {
+    var tutorialBtn = document.getElementById('btn-corner-tutorial');
+    if (tutorialBtn) {
+      tutorialBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (window.EOL.coach && window.EOL.coach.replayTutorial) {
+          window.EOL.coach.replayTutorial();
+        }
+      });
+    }
+  });
 
 })();
