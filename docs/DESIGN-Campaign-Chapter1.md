@@ -16,10 +16,17 @@
 >   `chooseSix`/`setBotSix`/the ban grid (§9.3), and `opts.pool` +
 >   `opts.persona` on `startDraft` (§9.4).
 > - **Dialogue moved to a bottom-anchored bar** (the centred modal covered
->   the screen and was rejected). Rivals also **speak during the match**
->   via a pointer-transparent, self-expiring bark widget riding
->   `EOL.onBattleEvent` - honouring §6's law that blocking overlays are
->   for pre/post-fight only.
+>   the screen and was rejected). Busts render the full 128x176 hero-art
+>   frame at native scale, `image-rendering: pixelated`, fully inside the
+>   bar. Rivals also **speak during the match** via a pointer-transparent,
+>   self-expiring bark card front-and-centre under the HUD - lines queue,
+>   honouring §6's law that blocking overlays are for pre/post-fight only.
+> - **Gate I is fully scripted** (owner ruling 2026-08-08): no deck
+>   picker (the starter twelve is the deck), the bans and the six are the
+>   ledger's marked picks - enforced in `js/play.js` (`cfg.script`),
+>   narrated by the tutor bubble (`js/campaign.js`), with round-boundary
+>   lessons (basics, energy income, signatures, the round-4 ramp) riding
+>   the bark queue via a `campaign.onBattleRound` hook.
 > - **Coverage:** `sim/verify_campaign.js` (deck legality per §9.8, grant
 >   curriculum, terrain wiring, pool constraints, boss flags + an engine
 >   smoke with the boss on the board). `sim/verify_all.js` stays green.

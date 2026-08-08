@@ -97,6 +97,33 @@ S.stages.forEach(function (st) {
   });
 });
 
+console.log('B2. the fully scripted first gate');
+(function () {
+  var st1 = S.stages[0];
+  var sc = st1.script;
+  ok(!!sc, 'stage 1 carries a script');
+  ok(sc.bans && sc.bans.length === 2, 'script bans exactly two');
+  sc.bans.forEach(function (id) {
+    ok(st1.enemy12.indexOf(id) >= 0, 'scripted ban ' + id + ' exists in the rival twelve');
+  });
+  ok(sc.six && sc.six.length === 6, 'script fields exactly six');
+  var hisBans = (st1.banProfile && st1.banProfile.ids) || [];
+  sc.six.forEach(function (id) {
+    ok(!!dict[id] && dict[id].faction.id === 'grimmwood', 'scripted six ' + id + ' is a starter card');
+    ok(hisBans.indexOf(id) < 0, 'scripted six ' + id + ' survives the Recruiter\'s bans');
+  });
+  var T = st1.tutorial;
+  ok(!!T, 'stage 1 carries tutorial copy');
+  ok(T.intro && T.intro.length >= 2, 'tutorial: prep intro beats');
+  ['ban0', 'ban1', 'ban2', 'reveal', 'field', 'rows', 'toBattle'].forEach(function (k) {
+    ok(typeof T[k] === 'string' && T[k].length > 20, 'tutorial: ' + k + ' authored');
+  });
+  ok(T.field.indexOf('{n}') >= 0, 'tutorial: field prompt counts down');
+  ok(T.rounds && T.rounds[1] && T.rounds[1].length >= 3, 'tutorial: round-1 lessons (basics/energy/pass)');
+  ok(T.rounds[2] && T.rounds[2].length >= 1, 'tutorial: round-2 signature lesson');
+  ok(T.rounds[4] && T.rounds[4].length >= 1, 'tutorial: round-4 ramp lesson (RAMP_FROM=4)');
+})();
+
 console.log('C. terrain wiring');
 S.stages.forEach(function (st) {
   if (st.mode === 'set') {

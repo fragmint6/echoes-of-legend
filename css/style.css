@@ -22241,10 +22241,10 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   pointer-events: auto;
   cursor: var(--cur-pointer);
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: stretch;
   width: min(100%, 1010px);
-  min-height: 148px;
+  min-height: 196px;
   border: 1px solid rgba(230, 195, 114, 0.42);
   border-radius: 16px;
   background:
@@ -22293,26 +22293,32 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* The bust rides taller than the bar - a figure standing in front of
-   the scene, not a thumbnail inside a box. */
+/* The bust renders the FULL 128x176 hero-art frame, pixel-crisp at its
+   native 1x scale (the same art contract as the legend cards - see
+   .art-portrait), fully inside the bar. No crop, no overhang. */
 .chapter-dialogue-bust {
   position: relative;
-  align-self: end;
-  width: 148px;
-  height: 186px;
-  margin-top: -38px;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 176px;
+  margin: 10px 0 10px 12px;
   overflow: hidden;
-  border-radius: 14px 0 0 14px;
-  background: linear-gradient(180deg, rgba(16, 24, 39, 0.4), rgba(8, 11, 22, 0.9));
+  border-radius: 10px;
+  border: 1px solid rgba(230, 195, 114, 0.28);
+  background: linear-gradient(180deg, rgba(16, 24, 39, 0.55), rgba(8, 11, 22, 0.92));
 }
 .chapter-dialogue-bust img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 18%;
-  filter: saturate(0.9) contrast(1.05);
-  -webkit-mask-image: linear-gradient(180deg, #000 78%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 78%, transparent 100%);
+  display: block;
+  width: 128px;
+  height: 176px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+.chapter-dialogue-bust img[hidden] {
+  display: none;
 }
 .chapter-dialogue-glyph {
   position: absolute;
@@ -22321,6 +22327,11 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   place-items: center;
   color: rgba(222, 198, 130, 0.7);
   font-size: 54px;
+}
+/* the `hidden` attribute must always win over the class display -
+   without this the fallback glyph floated over every portrait */
+.chapter-dialogue-glyph[hidden] {
+  display: none;
 }
 .chapter-dialogue-copy {
   display: flex;
@@ -22400,13 +22411,21 @@ html.mqw640 .chapter-dialogue {
   padding: 0 8px 10px;
 }
 html.mqw640 .chapter-dialogue-bar {
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 0;
 }
+/* half-scale (64x88) keeps the pixel grid even on small screens */
 html.mqw640 .chapter-dialogue-bust {
-  width: 84px;
-  height: 118px;
-  margin-top: -18px;
+  width: 64px;
+  height: 88px;
+  margin: 8px 0 8px 8px;
+}
+html.mqw640 .chapter-dialogue-bust img {
+  width: 64px;
+  height: 88px;
+}
+html.mqw640 .chapter-dialogue-glyph {
+  font-size: 30px;
 }
 html.mqw640 .chapter-dialogue-copy {
   padding: 12px 12px 4px;
@@ -22429,70 +22448,96 @@ html.mqw640 .chapter-dialogue-foot {
 }
 
 /* ---------------- Campaign: rival dialogue during the match ----------------
-   A small speech card pinned top-right of the battle view, under the
-   enemy commander plate. Pointer-transparent and self-expiring: it can
-   never block the board, the busy gate or the auto-end-turn timer. */
+   A speech card front and centre, just under the HUD, where the eye
+   already lives between turns. Still pointer-transparent and
+   self-expiring: it can never block the board, the busy gate or the
+   auto-end-turn timer. Lines queue (js/campaign.js) so a burst of
+   dialogue plays in sequence instead of stomping itself. */
 .rival-bark {
   position: fixed;
-  z-index: 46; /* above the board, below result/cine overlays */
-  top: 86px;
-  right: 16px;
+  z-index: 60; /* above the board, below the cine dim (290) */
+  top: 82px;
+  left: 50%;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  width: min(320px, 42vw);
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 130, 120, 0.35);
-  border-radius: 12px;
-  background: linear-gradient(160deg, rgba(34, 18, 24, 0.94), rgba(12, 8, 18, 0.96));
+  align-items: center;
+  gap: 13px;
+  width: min(520px, 72vw);
+  padding: 12px 18px 12px 12px;
+  border: 1px solid rgba(255, 176, 120, 0.55);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 140, 90, 0.14), transparent 55%),
+    linear-gradient(160deg, rgba(41, 21, 26, 0.97), rgba(14, 9, 20, 0.97));
   box-shadow:
-    0 10px 34px rgba(0, 0, 0, 0.5),
-    inset 0 1px rgba(255, 255, 255, 0.07);
+    0 14px 44px rgba(0, 0, 0, 0.62),
+    0 0 34px rgba(255, 150, 90, 0.16),
+    inset 0 1px rgba(255, 255, 255, 0.09);
   opacity: 0;
-  transform: translateX(18px);
+  transform: translate(-50%, -14px) scale(0.96);
   transition:
-    opacity 0.28s var(--ease),
-    transform 0.28s var(--ease);
+    opacity 0.3s var(--ease),
+    transform 0.3s var(--ease);
   pointer-events: none;
+}
+.rival-bark[hidden] {
+  display: none;
 }
 .rival-bark.show {
   opacity: 1;
-  transform: none;
+  transform: translate(-50%, 0) scale(1);
+}
+/* a speaking tick along the left edge, so it reads as a voice, not a toast */
+.rival-bark::before {
+  content: '';
+  position: absolute;
+  inset: 6px auto 6px 0;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffb27a, rgba(255, 120, 90, 0.25));
 }
 .rival-bark-face {
   flex: 0 0 auto;
-  width: 44px;
-  height: 56px;
-  object-fit: cover;
-  object-position: 50% 14%;
+  width: 64px;
+  height: 88px; /* half of the 128x176 art frame - even pixel grid */
+  object-fit: contain;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
   border-radius: 8px;
-  border: 1px solid rgba(255, 160, 140, 0.3);
-  background: #171021;
+  border: 1px solid rgba(255, 176, 120, 0.4);
+  background: linear-gradient(180deg, rgba(30, 18, 26, 0.7), rgba(12, 8, 18, 0.95));
 }
 .rival-bark-body {
   min-width: 0;
 }
 .rival-bark-name {
   display: block;
-  margin-bottom: 3px;
-  color: #ffb9a6;
+  margin-bottom: 4px;
+  color: #ffc296;
   font-family: 'Cinzel', serif;
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(255, 150, 90, 0.45);
 }
 .rival-bark-text {
   margin: 0;
-  color: #e7dfe4;
-  font-size: 12.5px;
-  line-height: 1.5;
+  color: #f2e9e6;
+  font-size: 14px;
+  line-height: 1.55;
 }
 html.mqw640 .rival-bark {
   top: auto;
   bottom: 118px;
-  right: 8px;
-  width: min(280px, 72vw);
+  width: min(340px, 88vw);
+  gap: 9px;
+}
+html.mqw640 .rival-bark-face {
+  width: 32px;
+  height: 44px;
+}
+html.mqw640 .rival-bark-text {
+  font-size: 12.5px;
 }
 
 /* ---------------- Campaign: exam choice grant (stages 5 & 9) ---------------- */
@@ -22616,6 +22661,130 @@ html.mqw640 .rival-bark {
   font-weight: 800;
   letter-spacing: 0.12em;
   pointer-events: none;
+}
+
+/* ---------------- Campaign: the scripted first gate ----------------
+   Gate I is a guided lesson: the Recruiter narrates from a corner
+   bubble while the prep screen highlights exactly what the script
+   asks for. The bubble never covers the grids or the confirm dock. */
+.tutor {
+  position: fixed;
+  z-index: 70;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(430px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid rgba(230, 195, 114, 0.5);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(89, 170, 112, 0.12), transparent 50%),
+    linear-gradient(150deg, rgba(21, 27, 36, 0.97), rgba(10, 12, 24, 0.98));
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(140, 199, 141, 0.1),
+    inset 0 1px rgba(255, 255, 255, 0.08);
+  animation: tutor-rise 0.3s var(--ease) both;
+}
+.tutor[hidden] {
+  display: none;
+}
+@keyframes tutor-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tutor-face {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 88px; /* half-scale of the 128x176 frame - even pixel grid */
+  object-fit: contain;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  border-radius: 8px;
+  border: 1px solid rgba(230, 195, 114, 0.35);
+  background: linear-gradient(180deg, rgba(16, 24, 39, 0.6), rgba(8, 11, 22, 0.95));
+}
+.tutor-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tutor-name {
+  color: #dec682;
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.tutor-text {
+  margin: 0;
+  color: #d6dae8;
+  font-size: 13px;
+  line-height: 1.58;
+}
+.tutor-next {
+  align-self: flex-end;
+  margin-top: 2px;
+  padding: 6px 16px;
+  font-size: 12px;
+}
+.tutor-next[hidden] {
+  display: none;
+}
+html.mqw640 .tutor {
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: auto;
+}
+html.mqw640 .tutor-face {
+  width: 32px;
+  height: 44px;
+}
+
+/* The script's marked choices: a slow golden pulse says "these, next".
+   Applied to prep tiles AND to the confirm buttons when it is their turn. */
+.prep-c.tutor-pick,
+.btn.tutor-pick {
+  animation: tutor-pulse 1.5s ease-in-out infinite;
+}
+.prep-c.tutor-pick {
+  z-index: 2;
+}
+@keyframes tutor-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 217, 138, 0.75),
+      0 0 16px rgba(255, 190, 80, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 227, 160, 0.95),
+      0 0 28px rgba(255, 190, 80, 0.65);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prep-c.tutor-pick,
+  .btn.tutor-pick {
+    animation: none;
+    box-shadow:
+      0 0 0 3px rgba(255, 227, 160, 0.95),
+      0 0 28px rgba(255, 190, 80, 0.65);
+  }
+  .tutor {
+    animation: none;
+  }
 }
 
 /* ======================================================================

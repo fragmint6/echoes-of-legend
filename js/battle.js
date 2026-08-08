@@ -2661,6 +2661,16 @@
 
   function announceRound() {
     turnBannerSide = null; // a fresh round re-announces its opener
+    /* CAMPAIGN: let the road speak on round boundaries (the Recruiter's
+       guided gate teaches basics/signatures/the ramp as they happen).
+       Observational only - a bark can never touch the battle. */
+    if (B && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onBattleRound) {
+      try {
+        window.EOL.campaign.onBattleRound(B);
+      } catch (e) {
+        /* lore must never break a fight */
+      }
+    }
     var sub =
       B.round === 1
         ? 'Phase 1 - Basic Skills only'

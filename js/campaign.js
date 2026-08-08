@@ -343,7 +343,31 @@
       launchDraft(stage);
       return;
     }
-    if (!window.EOL.play || !window.EOL.play.openClassicModal) return;
+    if (!window.EOL.play || !window.EOL.play.startPrep) return;
+    /* THE SCRIPTED GATE (stage 1): no deck picker - the ledger brings
+       the starter twelve, the script marks the bans and the six, and
+       the tutor narrates every phase. */
+    if (stage.script) {
+      var scripted12 = starterEntries();
+      if (!scripted12 || scripted12.length !== 12) return;
+      window.EOL.play.startPrep({
+        mode: 'classic',
+        deckId: null,
+        player12: scripted12,
+        enemy12: entriesFor(stage.enemy12),
+        campaignStage: stage.id,
+        war: 'single',
+        botSix: stage.botSix || null,
+        botBanProfile: stage.banProfile || null,
+        rival: rivalOf(stage),
+        script: stage.script,
+        field: fieldById(stage.field),
+        oddFirst: 'player',
+      });
+      startPrepTutor(stage);
+      return;
+    }
+    if (!window.EOL.play.openClassicModal) return;
     window.EOL.play.openClassicModal(
       function (deckId) {
         var deck = deckId && window.EOL.decks ? window.EOL.decks.get(deckId) : null;
@@ -403,55 +427,85 @@
   /* ---------------------------------------------------------
      IN-BATTLE RIVAL DIALOGUE (barks)
      -------------------------------------------------------------
-     A small, pointer-transparent speech card beside the enemy
-     commander plate. It rides the engine's observational event
-     hook - never gameplay logic - and self-expires, so it cannot
-     fight the animation queue, the busy gate or the auto-end-turn
-     timer (§6's standing rule against blocking mid-battle lore).
+     A speech card front and centre under the HUD. It rides the
+     engine's observational event hook - never gameplay logic - and
+     self-expires, so it cannot fight the animation queue, the busy
+     gate or the auto-end-turn timer (§6's standing rule against
+     blocking mid-battle lore).
 
-     Triggers: battle open (per set game), first blood either way,
-     fallen heroes on both sides, the rival's last stand, the
-     player cornered, and a revive on the rival's side (stage 10's
-     telegraphed Isis twist). Each key fires at most once per
-     battle, with a minimum gap so the fight never reads as a
-     chat log.
+     Lines QUEUE: a burst of dialogue (the Recruiter's guided gate,
+     a round beat landing on a death beat) plays in sequence rather
+     than stomping itself. The queue drains only while the battle
+     view is up, and dies with it.
      --------------------------------------------------------- */
-  var BARK_MS = 4600;
   var BARK_GAP = 5200;
+  var barkQ = [];
+  var barkActive = false;
   var barkTimer = null;
+  var barkWaits = 0;
 
-  function hideBark() {
-    var el = $('rival-bark');
-    if (el) {
-      el.classList.remove('show');
-      window.clearTimeout(barkTimer);
-    }
+  function barkMs(text) {
+    /* reading time scales with the line; clamped so short quips snap
+       and long lessons linger */
+    return Math.max(3200, Math.min(8000, 2400 + text.length * 32));
   }
 
-  function showBark(stage, text) {
-    if (!text) return;
-    if (document.body.dataset.view !== 'battle') return;
+  function hideBark() {
+    barkQ.length = 0;
+    barkActive = false;
+    barkWaits = 0;
+    window.clearTimeout(barkTimer);
+    var el = $('rival-bark');
+    if (el) el.classList.remove('show');
+  }
+
+  function pumpBark() {
+    if (barkActive || !barkQ.length) return;
+    /* The battle view swaps in behind the gate veil (~560ms); a line
+       queued at battle start simply waits for it instead of dying. */
+    if (document.body.dataset.view !== 'battle') {
+      if (barkWaits++ > 12) {
+        barkQ.length = 0;
+        barkWaits = 0;
+        return;
+      }
+      window.clearTimeout(barkTimer);
+      barkTimer = window.setTimeout(pumpBark, 420);
+      return;
+    }
+    barkWaits = 0;
+    var b = barkQ.shift();
     var el = $('rival-bark');
     if (!el) return;
     var face = $('rival-bark-face');
     if (face) {
-      if (stage.portrait) {
-        face.src = stage.portrait;
+      if (b.stage.portrait) {
+        face.src = b.stage.portrait;
         face.hidden = false;
       } else {
         face.hidden = true;
       }
     }
-    setText($('rival-bark-name'), stage.rival);
-    setText($('rival-bark-text'), text);
+    setText($('rival-bark-name'), b.stage.rival);
+    setText($('rival-bark-text'), b.text);
     el.hidden = false;
     el.classList.remove('show');
     void el.offsetWidth; // restart the slide-in
     el.classList.add('show');
+    barkActive = true;
     window.clearTimeout(barkTimer);
     barkTimer = window.setTimeout(function () {
       el.classList.remove('show');
-    }, BARK_MS);
+      barkActive = false;
+      barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
+    }, b.ms || barkMs(b.text));
+  }
+
+  function queueBark(stage, text, ms) {
+    if (!text) return;
+    if (barkQ.length > 5) return; // dialogue never piles into a backlog
+    barkQ.push({ stage: stage, text: text, ms: ms || null });
+    pumpBark();
   }
 
   function barkLine(stage, key) {
@@ -480,7 +534,7 @@
     if (!text) return;
     battleWatch.fired[key] = true;
     battleWatch.lastAt = now;
-    showBark(battleWatch.stage, text);
+    queueBark(battleWatch.stage, text);
   }
 
   function aliveCount(B, side) {
@@ -547,7 +601,13 @@
       }
     };
     /* The opening line waits for the view swap + round banner. Set
-       stages greet each game differently. */
+       stages greet each game differently. The Recruiter's guided gate
+       skips its generic opener - the round-1 lesson lines ARE its
+       opening dialogue (see onBattleRound). */
+    if (stage.tutorial && stage.tutorial.rounds && stage.tutorial.rounds[1]) {
+      battleWatch.fired.start = true;
+      return;
+    }
     var key = 'start';
     try {
       var ss = window.EOL.play && window.EOL.play._setState ? window.EOL.play._setState() : null;
@@ -564,9 +624,131 @@
       if (text && !battleWatch.fired.start) {
         battleWatch.fired.start = true;
         battleWatch.lastAt = Date.now();
-        showBark(stageRef, text);
+        queueBark(stageRef, text);
       }
     }, 2100);
+  }
+
+  /* Called by battle.js on every round boundary of a campaign battle.
+     Carries the guided gate's round lessons (basics, energy, the
+     signature unlock, the ramp) - and nothing outside a tutorial. */
+  function onBattleRound(B) {
+    if (!battleWatch) return;
+    var stage = battleWatch.stage;
+    var T = stage.tutorial;
+    if (!T || !T.rounds) return;
+    var lines = T.rounds[B.round];
+    if (!lines || battleWatch.fired['round' + B.round]) return;
+    battleWatch.fired['round' + B.round] = true;
+    battleWatch.lastAt = Date.now();
+    lines.forEach(function (line) {
+      queueBark(stage, line);
+    });
+  }
+
+  /* ---------------------------------------------------------
+     THE TUTOR - the Recruiter's guided-lesson bubble (gate I).
+     -------------------------------------------------------------
+     A corner narrator for the scripted prep: informational beats
+     carry a Continue button; action beats stay up and re-word
+     themselves as the player follows the marks. It polls the prep
+     state (cheap, 4x/sec) instead of threading callbacks through
+     play.js - the script enforcement already lives there, so the
+     tutor only has to SAY things, never gate them. In battle the
+     bark queue takes over.
+     --------------------------------------------------------- */
+  var tut = null; // { stage, flags, seq, timer }
+
+  function hideTutor() {
+    var el = $('tutor');
+    if (el) el.hidden = true;
+  }
+
+  function showTutor(stage, text, withNext, onNext) {
+    var el = $('tutor');
+    if (!el || !text) return;
+    var face = $('tutor-face');
+    if (face && stage.portrait) face.src = stage.portrait;
+    setText($('tutor-name'), stage.rival);
+    var body = $('tutor-text');
+    if (body && body.textContent !== text) body.textContent = text;
+    var btn = $('tutor-next');
+    if (btn) {
+      btn.hidden = !withNext;
+      btn.onclick = withNext
+        ? function () {
+            if (onNext) onNext();
+          }
+        : null;
+    }
+    el.hidden = false;
+  }
+
+  function startPrepTutor(stage) {
+    stopPrepTutor();
+    if (!stage.tutorial) return;
+    tut = { stage: stage, flags: {}, seq: null, timer: window.setInterval(tutorTick, 260) };
+    tutorTick();
+  }
+
+  function stopPrepTutor() {
+    if (!tut) return;
+    window.clearInterval(tut.timer);
+    tut = null;
+    hideTutor();
+  }
+
+  /* A gated info sequence: each line waits for Continue. Returns true
+     while the sequence still owns the bubble. */
+  function runTutorSeq(lines, key) {
+    if (!lines || !lines.length || tut.flags[key]) return false;
+    if (!tut.seq || tut.seq.key !== key) tut.seq = { key: key, i: 0 };
+    var i = tut.seq.i;
+    if (i >= lines.length) {
+      tut.flags[key] = true;
+      tut.seq = null;
+      return false;
+    }
+    showTutor(tut.stage, lines[i], true, function () {
+      if (!tut || !tut.seq || tut.seq.key !== key) return;
+      tut.seq.i++;
+      tutorTick();
+    });
+    return true;
+  }
+
+  function tutorTick() {
+    if (!tut) return;
+    var view = document.body.dataset.view;
+    if (view === 'battle') {
+      stopPrepTutor(); // the bark queue narrates the fight
+      return;
+    }
+    var p = window.EOL.play && window.EOL.play._prepState ? window.EOL.play._prepState() : null;
+    if (!p || p.campaignStage !== tut.stage.id) {
+      if (view !== 'prep') stopPrepTutor(); // the player walked away
+      return;
+    }
+    var T = tut.stage.tutorial;
+    if (p.phase === 'ban') {
+      if (runTutorSeq(T.intro, 'intro')) return;
+      if (p.waiting || p.revealed) {
+        hideTutor(); // the reveal stamping owns the moment
+        return;
+      }
+      var n = (p.youBans || []).length;
+      showTutor(tut.stage, n === 0 ? T.ban0 : n === 1 ? T.ban1 : T.ban2, false);
+    } else if (p.phase === 'pick') {
+      if (runTutorSeq([T.reveal], 'reveal')) return;
+      var fielded = p.front.length + p.back.length;
+      if (fielded < 6) {
+        showTutor(tut.stage, String(T.field || '').replace('{n}', String(6 - fielded)), false);
+      } else if (runTutorSeq([T.rows], 'rows')) {
+        return;
+      } else {
+        showTutor(tut.stage, T.toBattle, false);
+      }
+    }
   }
 
   /* ---------------------------------------------------------
@@ -911,6 +1093,10 @@
         clearBattleWatch();
         hideBark();
       }
+      /* And the tutor dies with the gate it narrates. */
+      if (ev.detail !== 'prep' && ev.detail !== 'battle') {
+        stopPrepTutor();
+      }
     });
   }
 
@@ -925,6 +1111,7 @@
       return !!dlg;
     },
     onBattleStart: onBattleStart,
+    onBattleRound: onBattleRound,
     onBattleResult: onBattleResult,
     retry: retry,
     consumeResult: consumeResult,

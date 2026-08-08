@@ -1159,6 +1159,10 @@
       pinnedEnemy: cfg.pinnedEnemy || null,
       unbannable: cfg.unbannable || null,
       rival: cfg.rival || null,
+      /* GATE I SCRIPT (campaign): when present, the marked ban/six ids
+         are the ONLY legal clicks - the tutorial narrates, this
+         enforces. { bans:[ids], six:[ids], hintBan, hintSix } */
+      script: cfg.script || null,
       oddFirst: cfg.oddFirst || null,
       /* The battlefield is rolled NOW but not revealed until bans are
          locked, so neither side can ban around the terrain. */
@@ -1197,6 +1201,39 @@
       "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
         'yours at the same time - their picks stay hidden until you lock yours in.'
     );
+  }
+
+  /* THE SCRIPT's golden marks: highlight exactly what the gate asks
+     for next - the scripted bans, then the scripted six, then the
+     confirm button once the asked-for set is complete. Pure paint;
+     the enforcement lives in the click handlers. */
+  function syncTutorMarks() {
+    var p = prep;
+    if (!p || !p.script) return;
+    var mark = function (el, on) {
+      if (el) el.classList.toggle('tutor-pick', !!on);
+    };
+    if (p.phase === 'ban' && p.script.bans) {
+      document.querySelectorAll('#prep-enemy .prep-c').forEach(function (el) {
+        var id = el.dataset.cid;
+        mark(el, !p.revealed && p.script.bans.indexOf(id) >= 0 && p.youBans.indexOf(id) < 0);
+      });
+      mark($('prep-confirm-main'), !p.revealed && p.youBans.length === RULES().BANS);
+    }
+    if (p.phase === 'pick' && p.script.six) {
+      var fielded = p.front.concat(p.back);
+      var foeBanList = p.botBans || [];
+      document.querySelectorAll('#prep-player .prep-c').forEach(function (el) {
+        var id = el.dataset.cid;
+        mark(
+          el,
+          foeBanList.indexOf(id) < 0 &&
+            p.script.six.indexOf(id) >= 0 &&
+            fielded.indexOf(id) < 0
+        );
+      });
+      mark($('prep-confirm'), fielded.length === RULES().FIELD_SIZE);
+    }
   }
 
   /* Light-touch refresh of everything AROUND the card grids - notes,
@@ -1238,6 +1275,7 @@
           : needSubs && swaps > 2
             ? 'Too many swaps (max 2)'
             : 'To battle';
+    syncTutorMarks();
   }
 
   function renderPrep() {
@@ -1325,6 +1363,19 @@
              instead of silently ignoring the click. */
           if (noBan) {
             toast(e.card.name + ' cannot be banned - the judgement stands', 'ra-crown');
+            flashNode('prep-enemy-note');
+            return;
+          }
+          /* THE SCRIPT (gate I): only the marked bans may be added.
+             Removing a placed ban stays legal, so a mis-click is
+             always recoverable. */
+          if (
+            p.script &&
+            p.script.bans &&
+            p.youBans.indexOf(e.card.id) < 0 &&
+            p.script.bans.indexOf(e.card.id) < 0
+          ) {
+            toast(p.script.hintBan || 'Follow the marked cards - this gate is scripted', 'ra-quill-ink');
             flashNode('prep-enemy-note');
             return;
           }
@@ -1420,6 +1471,13 @@
     if (prep.lockouts && prep.lockouts.indexOf(id) >= 0) return;
     var all = prep.front.concat(prep.back);
     var idx = all.indexOf(id);
+    /* THE SCRIPT (gate I): only the marked six may be ADDED. Removing
+       a slotted hero stays legal so the player can shuffle rows. */
+    if (idx < 0 && prep.script && prep.script.six && prep.script.six.indexOf(id) < 0) {
+      toast(prep.script.hintSix || 'Field the marked six - this gate is scripted', 'ra-quill-ink');
+      flashNode('prep-player-note');
+      return;
+    }
     if (idx >= 0) {
       var fi = prep.front.indexOf(id);
       if (fi >= 0) prep.front.splice(fi, 1);
