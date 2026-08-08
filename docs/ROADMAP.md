@@ -1,19 +1,17 @@
 # Echoes of Legend — Development Roadmap
-### Locked 2026-08-04, status updated 2026-08-05. Source: GAMEPLAY-S-TIER.md + user design rulings (this document is the law; the memo is history)
+### Locked 2026-08-04, status updated 2026-08-08. Source: GAMEPLAY-S-TIER.md + user design rulings (this document is the law; the memo is history)
 
-> **STATUS 2026-08-05.** Phase 1 (Unabridged) is **IMPLEMENTED and live
-> in the client** for solo play — see the Phase 1 section for exactly
-> what shipped. The roster has also grown **57 → 63 heroes** (Grimmwood
-> expansion: Gingerbread Man, Evil Queen, Puss in Boots, Rapunzel,
-> Goldilocks, Cinderella), so every "57-card" figure below reads as 63
-> unless it is quoting a historical measurement.
+> **STATUS 2026-08-08.** Phase 1 (Unabridged) is **IMPLEMENTED and live
+> in the client** for solo play. The roster is 63 heroes. Campaign
+> Stage 1 is fully playable end-to-end. The full Chapter 1 design is
+> locked in `DESIGN-Campaign-Chapter1.md`.
 
 User rulings that shape everything below:
 
 1. **Unabridged (Bo3 + sideboard + loser-picks-board) ships — but never in
    Classic.** Classic stays single-game speed. In ranked, Unabridged only
    unlocks at a mid-ladder rank (new players play Bo1).
-   (2026-08-05 rebrand: the system once called "The Set" is now
+   (2026-08-05 rebrand: the system once called \"The Set\" is now
    **Unabridged**; it is still played in sets of games.)
 2. **Trophy Forge is REJECTED.** Its replacement is **Faction Blessings**:
    ≥4 cards of one faction in your deck grants a faction-wide bonus.
@@ -65,8 +63,8 @@ seeded-board compatible and nothing in it is solo-engine-tied.
   with full knowledge of all three boards. The loser of each game picks
   the next board from the remaining slots (they saw their options from
   the start); the last unpicked slot is the decider's board.
-- **Substitution law: exactly ≥1 and ≤2 per between-games window —
-  MANDATORY.** You may never field the identical six twice in a row;
+- **Substitution law: exactly ≥1 and ≤2 per between-games window —**
+  **MANDATORY.** You may never field the identical six twice in a row;
   this is the combo-rotation rule. Swap heroes between your six and
   your bench (surviving 10 minus fielded six); formation is re-picked
   hidden each game.
@@ -84,7 +82,7 @@ seeded-board compatible and nothing in it is solo-engine-tied.
   **SUPERSEDED 2026-08-05 (owner ruling R8).** **Blessings STACK.** A
   4/4/4 tri-faction deck invokes **three** blessings and is the efficient
   shape; a mono-12 deck invokes one and is the worst rate in the game.
-  This is deliberate - it makes "which throne do I pledge?" a real
+  This is deliberate - it makes \"which throne do I pledge?\" a real
   three-way build decision rather than a single pick chip. Consequences
   for the campaign's grant curriculum are worked out in
   `docs/DESIGN-Campaign-Chapter1.md` §2 and §7.3. **The draft AI needs
@@ -112,7 +110,7 @@ spread across roles and sighting 4 of one faction in a single draft is
 still a coin flip you then must win picks for.
 With blessings, the pool must guarantee **every faction puts ≥4 cards
 into every draft** (e.g., 9×4 = 36 exactly, plus 2 featured factions at
-5). This turns pack 1 into "which throne do I pledge?" — the intended
+5). This turns pack 1 into \"which throne do I pledge?\" — the intended
 feeling. Tuning knob lives in `data/_schema.js draftPool()`.
 
 **Seed designs** (Phase-2 kick-off material, identity-first):
@@ -134,35 +132,18 @@ single-tier; decide capstone after meta data exists.
 
 ---
 
-## Phase 3 — LEGENDS GAUNTLET, Chapter 1: "The Road of Echoes"
-Chapter 1 = 10 nodes on the current 63-card pool. Boss: **Gilgamesh,
-King of Uruk** — the literal first legend of recorded human story.
+## Phase 3 — LEGENDS GAUNTLET, Chapter 1: \"The Road of Echoes\"
+**Authoritative design lives in `docs/DESIGN-Campaign-Chapter1.md` (Rev 6, 2026-08-05).**  
+Chapter 1 is a **10-stage teaching campaign** (not a roguelite). It uses the current 63-card pool and ends at **Gilgamesh, King of Uruk** — the literal first legend of recorded human story.
 
-- **Status:** Stage 1 (The Recruiter, Gate I) is **playable** with
-  authored dialogue and a full battle launch. Stages 2–10 are designed
-  but not yet built. The Campaign tab on the home screen is live
-  (no longer a placeholder).
-- **Structure:** draft once at node 1 → fight → **2 stash swaps** between
-  nodes (swap your pool) + no other run-modifiers → boss at 10 →
-  Chronicle. One **Fate Rewoven** revive token earned mid-chapter.
-- **Rivals have names, plates, taunts, and ONE readable gimmick**
-  written on their node card. Gimmicks are biases a player can scout and
-  exploit (Lady of Bans / The Swarm / The Mirror Sage / The Purist
-  [no sigs either side] / The Undertaker / The Accountant / The Twins /
-  etc. — seed list in memo §III).
-- **Lore-as-loot:** each rival defeat unlocks their codex page (3–6
-  lines, one relic illustration slot using existing plate art). Codex
-  lives inside the Gauntlet only. Chronicle run-recap screen at run end
-  (MVP, kills, rounds, a shareable artifact card) — every run, even a
-  dead one, ends with something collectible.
-- The existing Campaign tab is **live** (Chapter 1, Gate I shipped
-  2026-08-06 with dialogue + battle launch).
-- Bots are draftAI + bias knobs (weights, forced roles, spread) + a
-  scripted per-node board blessing for the boss. Sims: verify_all stays
-  green; boss win-rates get a difficulty curve check (target: node 3
-  ≈ 85% for median player, node 9 ≈ 40%, boss ≈ 20–30%).
+- **Status (2026-08-08):** Stage 1 (The Recruiter, Gate I) is **fully playable** (dialogue → deck selection → battle launch → result screen → epilogue that unlocks Gate II). The Campaign tab and full chapter map UI are live. Stages 2–10 have complete narrative data and stage cards but are not yet wired to battles. Progress, grants, and codex are partially implemented.
+- **Structure:** 10 sequential gates. Each stage teaches one new system (battle loop → prep → Unabridged sets → draft). Rewards are deterministic named cards + currency (floor rule). Rivals are personalities with authored 12-card decks. Gilgamesh is a bespoke Unabridged boss (unbannable + pinned).
+- **Law:** One new system per stage; terrain is always symmetric; difficulty comes from decks, not AI depth; bespoke cards get hard guarantees.
+- **Current implementation:** `data/campaign-ch1.js` + `js/campaign.js` handle Stage 1 end-to-end. The rest of the chapter map, dialogue system, and result routing are ready for the remaining stages.
 
-**Effort:** ~2–3 sessions once this is unblocked.
+**See `DESIGN-Campaign-Chapter1.md` for the complete stage table, grant curriculum, difficulty curve, enablers, build order, and open items.** The old roguelite description (draft-once + stash swaps + Fate Rewoven) has been superseded.
+
+**Effort for full Chapter 1:** ~2–4 sessions after the remaining enablers in DESIGN §9.
 
 ---
 
@@ -171,8 +152,8 @@ Unabridged enters ranked here, gated.
 
 - 6 tiers, placements = 5 provisional games, MMR-lite (Elo-k on Bo1 sets:
   Bo3 counts double weight).
-- **Unabridged unlocks at Tier 3 ("Gold" equivalent)** with an unlock
-  ceremony: *"You have earned the Long War."* Below Tier 3: Bo1 ranked —
+- **Unabridged unlocks at Tier 3 (\"Gold\" equivalent)** with an unlock
+  ceremony: *\"You have earned the Long War.\"* Below Tier 3: Bo1 ranked —
   new players learn single matches; veterans get the full war.
 - Unranked MP keeps its Set opt-in from Phase 1. Classic never changes.
 - The parked **Wager** merges here as the ranked stakes lever if wanted.
@@ -197,7 +178,7 @@ playtest, since trophies were vetoed globally).
 ## 8. OPEN CANON VOTES (pending user)
 1. **Chapter-1 boss identity.** Proposal: **Gilgamesh, King of Uruk** —
    the literal first legend of recorded human story (Epic of Gilgamesh,
-   ~2100 BC). He *is* "The First Legend"; Chapter 2 then introduces the
+   ~2100 BC). He *is* \"The First Legend\"; Chapter 2 then introduces the
    Mesopotamian faction his chapter foreshadows.
 2. Faction-blessing tiers: single-tier at 4+ (default) vs two-tier
    (4+ blessing, 6-of capstone).
