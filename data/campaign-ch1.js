@@ -200,7 +200,6 @@ window.EOL.campaignCh1 = {
         final: true,
       },
     ],
-  },
     3: [{ speaker: 'The Outlaw', text: '“You carry twelve stories and still walk like you have nothing to lose.”' }, { speaker: 'The Wayfarer', text: 'The open plains offer no cover. Every bright echo becomes a target.' }, { speaker: 'The Outlaw', text: '“Then protect what matters. I will aim for it.”', battle: true, final: true }],
     4: [{ speaker: 'The Anointed', text: '“The spring gives power freely, but never without a memory attached.”' }, { speaker: 'The Wayfarer', text: 'Runes wake beneath your feet. The first Mark waits to be read.' }, { speaker: 'The Anointed', text: '“Spend your certainty carefully.”', battle: true, final: true }],
     5: [{ speaker: 'The Warden of the Mid-Road', text: '“You have learned to fight. Now learn to build a road from the fights you chose.”' }, { speaker: 'The Warden of the Mid-Road', text: '“Three gates. Three boards. No borrowed excuse.”', battle: true, final: true }],
@@ -209,6 +208,7 @@ window.EOL.campaignCh1 = {
     8: [{ speaker: 'The Chronicler', text: '“Every wound is a sentence. Every silence is an edit.”' }, { speaker: 'The Chronicler', text: '“Let us see what survives the final draft.”', battle: true, final: true }],
     9: [{ speaker: 'The Last Guardian', text: '“Behind me is oblivion. Before me is a road that has never forgiven anyone.”' }, { speaker: 'The Last Guardian', text: '“Cross the threshold if you can.”', battle: true, final: true }],
     10: [{ speaker: 'Gilgamesh', text: '“You have carried ten gates to my scales. Tell me what your story is worth.”' }, { speaker: 'Gilgamesh', text: '“Do not mistake survival for a verdict.”', battle: true, final: true }],
+  },
   recruiterDialogue: [
     {
       speaker: 'The Recruiter',

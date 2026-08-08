@@ -8,8 +8,19 @@
   function $(id) { return document.getElementById(id); }
   function text(n, v) { if (n) n.textContent = v || ''; }
   function progress() {
-    try { var p = JSON.parse(localStorage.getItem(KEY)); if (p && Array.isArray(p.unlocked)) return p; } catch (e) {}
-    return { cleared: [], unlocked: [1] };
+    var p = null;
+    try { p = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    if (!p || !Array.isArray(p.unlocked)) p = { cleared: [], unlocked: [1] };
+    p.cleared = Array.isArray(p.cleared) ? p.cleared : [];
+    /* Repair saves from the earlier placeholder build. Gate I is always
+       the entry point, and every cleared gate necessarily opens the next
+       one. This also prevents an interrupted write from making the map
+       appear completely dead. */
+    if (p.unlocked.indexOf(1) < 0) p.unlocked.unshift(1);
+    p.cleared.forEach(function (id) {
+      if (id >= 1 && id < 10 && p.unlocked.indexOf(id + 1) < 0) p.unlocked.push(id + 1);
+    });
+    return p;
   }
   function save(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) {} }
   function card(id) {
@@ -97,7 +108,18 @@
   }
   function mount() {
     renderCopy();
-    for (var i = 1; i <= 10; i++) (function (id) { var el = document.querySelector('[data-campaign-stage="' + id + '"]'); if (el) el.addEventListener('click', function () { if ((progress().unlocked || [1]).indexOf(id) >= 0) showDialogue(id); }); })(i);
+    for (var i = 1; i <= 10; i++) (function (id) {
+      var el = document.querySelector('[data-campaign-stage="' + id + '"]');
+      if (!el) return;
+      /* Use both a direct handler and delegation-friendly listener. The
+         chapter cards are buttons, and other menu code may rebind their
+         listeners while views are swapped; the property assignment keeps
+         the gate itself authoritative. */
+      var openGate = function () {
+        if ((progress().unlocked || [1]).indexOf(id) >= 0) showDialogue(id);
+      };
+      el.onclick = openGate;
+    })(i);
     var x = $('chapter-dialogue-close'), sc = $('chapter-dialogue-scrim'), n = $('chapter-dialogue-next'); if (x) x.addEventListener('click', close); if (sc) sc.addEventListener('click', close); if (n) n.addEventListener('click', advance);
     document.addEventListener('keydown', function (e) { if (!open) return; if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(); } });
     document.addEventListener('eol:view', function (e) { if (e.detail === 'chapter') update(); });
