@@ -2042,7 +2042,7 @@
        Math.random. */
     var rnd = opts.seed != null ? window.EOL.mp.rngFrom(opts.seed) : Math.random;
     mpState = opts.seed != null ? { host: !!opts.host, seed: opts.seed, waiting: false } : null;
-    var pool = RULES().draftPool(flatten(), rnd);
+    var pool = opts.pool ? opts.pool.slice() : RULES().draftPool(flatten(), rnd);
     var shuffled = pool.slice();
     for (var i = shuffled.length - 1; i > 0; i--) {
       var j = Math.floor(rnd() * (i + 1));

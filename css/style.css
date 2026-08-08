@@ -1,4 +1,4 @@
-﻿/* =============================================================
+/* =============================================================
    Echoes of Legend - Core Theme
    ============================================================= */
 
@@ -15603,6 +15603,29 @@ body[data-gfx='low'] .scene .sc-art {
    cover the centre - the pulse lives in the frame edges where
    peripheral vision picks it up without hiding the cards.
    ============================================================= */
+.rival-taunt {
+  position: fixed;
+  z-index: 55;
+  bottom: 90px;
+  right: 22px;
+  max-width: 340px;
+  background: linear-gradient(135deg, rgba(19,25,34,0.96), rgba(10,11,25,0.98));
+  border: 1px solid rgba(230,195,114,0.45);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 30px rgba(112,199,141,0.08);
+  animation: rt-enter 0.35s ease both;
+}
+@keyframes rt-enter {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.rt-inner { display: flex; gap: 12px; align-items: flex-start; }
+.rt-portrait { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(230,195,114,0.35); flex-shrink: 0; }
+.rt-body { min-width: 0; }
+.rt-name { color: #f4e4b9; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.03em; display: block; margin-bottom: 3px; }
+.rt-text { color: #c4c9db; font-size: 13px; margin: 0; line-height: 1.45; }
+
 .time-warn {
   position: fixed;
   inset: 0;
@@ -22209,10 +22232,11 @@ body[data-gfx='low'] .rival-card.is-first:hover {
 .chapter-dialogue {
   position: fixed;
   z-index: 80;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  inset: auto 0 24px 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 24px;
 }
 .chapter-dialogue[hidden] {
   display: none;
@@ -22221,30 +22245,31 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 62% 66% at 50% 48%, rgba(33, 41, 53, 0.3), rgba(3, 5, 12, 0.9)),
-    rgba(2, 3, 10, 0.78);
+    radial-gradient(ellipse 62% 66% at 50% 80%, rgba(33, 41, 53, 0.35), rgba(3, 5, 12, 0.82)),
+    rgba(2, 3, 10, 0.68);
   backdrop-filter: blur(6px);
 }
 .chapter-dialogue-card {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(176px, 0.58fr) minmax(0, 1fr);
+  grid-template-columns: 120px 1fr;
   grid-template-rows: 1fr auto;
-  width: min(100%, 790px);
-  min-height: 340px;
+  width: min(100%, 760px);
+  min-height: 220px;
+  max-height: 40vh;
   overflow: hidden;
   border: 1px solid rgba(230, 195, 114, 0.46);
-  border-radius: 20px;
+  border-radius: 16px;
   background:
     radial-gradient(circle at 14% 18%, rgba(89, 170, 112, 0.12), transparent 38%),
     radial-gradient(circle at 92% 2%, rgba(147, 103, 202, 0.14), transparent 42%),
     linear-gradient(135deg, rgba(19, 25, 34, 0.98), rgba(10, 11, 25, 0.99));
   box-shadow:
-    0 26px 78px rgba(0, 0, 0, 0.65),
-    0 0 50px rgba(112, 199, 141, 0.1),
+    0 18px 60px rgba(0, 0, 0, 0.55),
+    0 0 40px rgba(112, 199, 141, 0.1),
     inset 0 1px rgba(255, 255, 255, 0.12);
-  animation: chapter-dialogue-enter 0.35s var(--ease) both;
+  animation: chapter-dialogue-enter 0.3s var(--ease) both;
 }
 @keyframes chapter-dialogue-enter {
   from {
@@ -22284,7 +22309,7 @@ body[data-gfx='low'] .rival-card.is-first:hover {
 }
 .chapter-dialogue-art {
   position: relative;
-  min-height: 270px;
+  min-height: 160px;
   overflow: hidden;
   border-right: 1px solid rgba(235, 238, 252, 0.11);
   background: #101827;
@@ -22319,13 +22344,13 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  padding: 38px 48px 28px 32px;
+  padding: 22px 28px 18px 22px;
 }
 .chapter-dialogue-kicker {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #dec682;
   font-size: 9px;
   font-weight: 800;
@@ -22355,8 +22380,8 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  min-height: 66px;
-  padding: 12px 18px 12px 22px;
+  min-height: 52px;
+  padding: 10px 14px 10px 18px;
   border-top: 1px solid rgba(234, 237, 252, 0.1);
   background: rgba(3, 5, 14, 0.48);
 }
@@ -22377,7 +22402,7 @@ html.mqw640 .chapter-dialogue {
 }
 html.mqw640 .chapter-dialogue-card {
   grid-template-columns: 1fr;
-  grid-template-rows: 170px auto auto;
+  grid-template-rows: 120px auto auto;
   min-height: 0;
 }
 html.mqw640 .chapter-dialogue-art {
@@ -22389,8 +22414,8 @@ html.mqw640 .chapter-dialogue-art img {
   object-position: 50% 28%;
 }
 html.mqw640 .chapter-dialogue-copy {
-  min-height: 205px;
-  padding: 29px 25px 24px;
+  min-height: 160px;
+  padding: 22px 22px 18px;
 }
 html.mqw640 .chapter-dialogue-copy p {
   font-size: 13px;

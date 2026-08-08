@@ -141,7 +141,8 @@
     var next = $('chapter-dialogue-next');
     if (next) {
       if (line.battle) {
-        next.innerHTML = '<i class="ra ra-crossed-swords"></i><span>Fight The Recruiter</span>';
+        var rivalName = (STORY.stages || []).filter(function(s){ return s.id === currentStage; })[0];
+        next.innerHTML = '<i class="ra ra-crossed-swords"></i><span>Fight ' + (rivalName ? rivalName.rival : 'The Rival') + '</span>';
       } else if (line.final) {
         next.innerHTML = '<span>Close</span><i class="ri-check-line"></i>';
       } else {
@@ -212,49 +213,101 @@
     }, 0);
   }
 
-  function startRecruiterFight() {
-    activeCampaignStage = 1;
+  function showRivalTaunt(stageId, text) {
+    var taunt = $('rival-taunt');
+    if (!taunt) return;
+    var stage = (STORY.stages || []).filter(function (s) { return s.id === stageId; })[0];
+    var portrait = $('rt-portrait');
+    var nameEl = $('rt-name');
+    var textEl = $('rt-text');
+    if (portrait && stage) {
+      var key = (stage.rival || '').toLowerCase().replace(/\s+/g, '-');
+      portrait.src = 'assets/rivals/' + key + '.png';
+      portrait.alt = stage.rival || '';
+    }
+    if (nameEl) nameEl.textContent = stage ? stage.rival : 'Rival';
+    if (textEl) textEl.textContent = text || '';
+    taunt.hidden = false;
+    window.setTimeout(function () { if (taunt) taunt.hidden = true; }, 5000);
+  }
+
+  function hideRivalTaunt() {
+    var taunt = $('rival-taunt');
+    if (taunt) taunt.hidden = true;
+  }
+
+  function getStage(stageId) {
+    var s = STORY.stages || [];
+    for (var i = 0; i < s.length; i++) if (s[i].id === stageId) return s[i];
+    return null;
+  }
+
+  function startStageBattle(stageId) {
+    activeCampaignStage = stageId;
+    var stage = getStage(stageId);
+    if (!stage) return;
     if (window.EOL.play && window.EOL.play.openClassicModal) {
       window.EOL.play.openClassicModal(
         function (deckId) {
           var deck = deckId ? window.EOL.decks.get(deckId) : null;
           var starter = window.EOL.decks.get('starter-grimmwood');
-          // robust fallback: if starter deck missing (deleted or never seeded) build entries from faction directly
           function grimmwoodEntries() {
             var fac = (window.EOL.factions || []).filter(function (f) { return f.id === 'grimmwood'; })[0];
             if (!fac || !fac.cards) return null;
             return fac.cards.map(function (c) { return { card: c, faction: fac }; });
           }
-          var player12 = deck
-            ? window.EOL.decks.entriesOf(deck)
-            : starter
-              ? window.EOL.decks.entriesOf(starter)
-              : grimmwoodEntries();
-
-          var recruiter12 = starter ? window.EOL.decks.entriesOf(starter) : (grimmwoodEntries() || player12);
-          var colosseum =
-            (window.EOL.battlefieldById && window.EOL.battlefieldById('colosseum')) || null;
-
-          var modal = document.getElementById('deck-modal');
-          if (modal) {
-            modal.classList.remove('show');
-            modal.setAttribute('aria-hidden', 'true');
+          var player12 = deck ? window.EOL.decks.entriesOf(deck) : (starter ? window.EOL.decks.entriesOf(starter) : grimmwoodEntries());
+          var enemy12 = player12;
+          if (stage && Array.isArray(stage.enemy12)) {
+            enemy12 = [];
+            stage.enemy12.forEach(function (id) {
+              for (var f = 0; f < (window.EOL.factions || []).length; f++) {
+                var fac = window.EOL.factions[f];
+                for (var c = 0; c < (fac.cards || []).length; c++) {
+                  if (fac.cards[c].id === id) { enemy12.push({ card: fac.cards[c], faction: fac }); break; }
+                }
+              }
+            });
+          } else if (starter && (stage.id === 1 || stage.id === 2 || stage.id === 3 || stage.id === 4)) {
+            enemy12 = window.EOL.decks.entriesOf(starter);
           }
-
+          var field = null;
+          if (stage && stage.terrain) {
+            var idMap = { 'colosseum':'colosseum','narrow-pass':'narrow-pass','open-plains':'open-plains','mana-spring':'mana-spring','energy-void':'energy-void','blood-battlefield':'blood-battlefield','spirit-world':'spirit-world',"the legend's trial":"legend's-trial","ancient-ruins":"ancient-ruins","mirror-realm":"mirror-realm" };
+            var key = Object.keys(idMap).find(function (k) { return stage.terrain.toLowerCase().indexOf(k) !== -1 || stage.terrain.toLowerCase().indexOf(k.replace('-',' ')) !== -1; });
+            if (key) field = (window.EOL.battlefieldById && window.EOL.battlefieldById(idMap[key])) || null;
+          }
+          var modal = document.getElementById('deck-modal');
+          if (modal) { modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
+          var mode = stage.mode || 'classic';
+          var war = (mode === 'unabridged') ? 'set' : 'single';
+          if (mode === 'draft') {
+            if (window.EOL.play.startDraft) {
+              window.EOL.play.startDraft({ seed: Math.random(), pool: stage.curatedPool ? stage.curatedPool.slice() : null });
+            }
+            showRivalTaunt(stageId, stage.talk || 'Every choice is a door.');
+            return;
+          }
           window.EOL.play.startPrep({
-            mode: 'classic',
+            mode: mode,
             deckId: deckId,
             player12: player12,
-            enemy12: recruiter12,
-            field: colosseum,
-            campaignStage: 1,
-            warLength: 'single',
+            enemy12: enemy12,
+            field: field,
+            campaignStage: stageId,
+            warLength: war,
             oddFirst: 'player',
+            botSix: stage.botSix ? stage.botSix.map(function (id) { var e = null; for (var f = 0; f < (window.EOL.factions || []).length; f++) { var fac = window.EOL.factions[f]; for (var c = 0; c < (fac.cards || []).length; c++) { if (fac.cards[c].id === id) { e = { card: fac.cards[c], faction: fac }; break; } } if (e) break; } return e; }) : null,
           });
+          showRivalTaunt(stageId, stage.talk || 'Let us see what you bring this time.');
         },
         { isCampaign: true, hideRandom: true }
       );
     }
+  }
+
+  function startRecruiterFight() {
+    startStageBattle(1);
   }
 
   function advanceDialogue() {
@@ -268,8 +321,8 @@
 
     closeDialogue();
 
-    if (line && line.battle && currentStage === 1) {
-      startRecruiterFight();
+    if (line && line.battle) {
+      startStageBattle(currentStage);
       return;
     }
   }
@@ -281,19 +334,17 @@
 
   function onBattleResult(win) {
     resultInfo = null;
-    if (activeCampaignStage === 1) {
+    if (activeCampaignStage) {
       var prog = getProgress();
       var cleared = prog.cleared || [];
       var unlocked = prog.unlocked || [1];
-
       if (win) {
-        if (cleared.indexOf(1) === -1) cleared.push(1);
-        if (unlocked.indexOf(2) === -1) unlocked.push(2);
+        if (cleared.indexOf(activeCampaignStage) === -1) cleared.push(activeCampaignStage);
+        if (unlocked.indexOf(activeCampaignStage + 1) === -1 && activeCampaignStage < 10) unlocked.push(activeCampaignStage + 1);
         saveProgress({ cleared: cleared, unlocked: unlocked });
         updateStageCards();
       }
-
-      resultInfo = { stage: 1, won: win };
+      resultInfo = { stage: activeCampaignStage, won: win };
       return { campaign: true, won: win };
     }
     activeCampaignStage = null;
@@ -320,10 +371,10 @@
     var r = resultInfo;
     resultInfo = null;
     activeCampaignStage = null;
-    if (r.won) {
+    if (r.won && r.stage === 10) {
       openEpilogue();
     } else {
-      currentStage = 1;
+      currentStage = r.stage || 1;
       window.EOL.ui.show('chapter');
     }
     return true;
@@ -390,6 +441,10 @@
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,
     story: STORY,
+    showRivalTaunt: showRivalTaunt,
+    hideRivalTaunt: hideRivalTaunt,
+    startStageBattle: startStageBattle,
+    getStage: getStage,
   };
 
   document.addEventListener('DOMContentLoaded', mount);
