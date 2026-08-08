@@ -390,35 +390,9 @@
 
   function startFirstBootTutorial() {
     if (isTutorialCompleted()) return;
-
-    // Use the universal dialogue system with the Recruiter as the teacher
-    if (!window.EOL.dialogue || !window.EOL.dialogue.open) {
-      console.warn('[Tutorial] Universal dialogue system not available');
-      return;
+    if (window.EOL.coach && window.EOL.coach.startTutorial) {
+      window.EOL.coach.startTutorial();
     }
-
-    var tutorialLines = [
-      { speaker: "The Recruiter", text: "Welcome to Echoes of Legend. Your Grimmwood deck is ready." },
-      { speaker: "The Recruiter", text: "I will teach you everything you need to know — one gate at a time." },
-      { speaker: "The Recruiter", text: "Your goal right now: survive your first battle." },
-      { speaker: "The Recruiter", text: "Click the chapter to begin.", coach: true }
-    ];
-
-    window.EOL.dialogue.open({
-      lines: tutorialLines,
-      onComplete: function () {
-        // After welcome, open the chapter map and start Gate I dialogue
-        if (window.EOL.ui && window.EOL.ui.show) {
-          window.EOL.ui.show('chapter');
-        }
-        // Small delay then open the Recruiter dialogue (which now uses the universal system)
-        setTimeout(function () {
-          if (window.EOL.campaign && window.EOL.campaign.openStageDialogue) {
-            window.EOL.campaign.openStageDialogue(1);
-          }
-        }, 300);
-      }
-    });
   }
 
   // Expose tutorial API
@@ -450,12 +424,11 @@
 
     // Auto-start tutorial on first boot (only if not completed)
     if (!isTutorialCompleted()) {
-      // Give the UI a moment to settle
       setTimeout(function () {
         if (window.EOL.tutorial && window.EOL.tutorial.start) {
           window.EOL.tutorial.start();
         }
-      }, 1200);
+      }, 1800);
     }
   });
 })();
