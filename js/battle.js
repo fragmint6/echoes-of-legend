@@ -2130,7 +2130,7 @@
   function ponderOnce(br, d) {
     try {
       AI.setDepth(d);
-      var act = AI.bestAction(br.C, 'enemy');
+      var act = AI.bestAction(br.C, 'enemy', B.campaignPersonality);
       AI.resetDepth();
       return act || true; // a null (pass) result needs no deeper passes
     } catch (e) {
@@ -2497,7 +2497,7 @@
       } else if (decision) {
         act = decision; // pondered move (depth 4-8)
       } else {
-        act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+        act = AI.bestAction(B, 'enemy', B.campaignPersonality); // campaign rivals keep their authored style
       }
     }
     render();
@@ -2526,6 +2526,7 @@
         }
       }
       announceTurn('enemy');
+      if (B.campaignStage && window.EOL.campaign && window.EOL.campaign.banter) window.EOL.campaign.banter();
       // brief highlight so the player can follow what the bot is doing
       var el = document.querySelector('.bcard[data-uid="' + act.unit.uid + '"]');
       if (el) el.classList.add('ai-acting');
@@ -4466,6 +4467,8 @@
 
     render();
     if (opts.campaignStage) B.campaignStage = opts.campaignStage;
+    if (opts.campaignPersonality) B.campaignPersonality = opts.campaignPersonality;
+    if (opts.campaignRival) B.campaignRival = opts.campaignRival;
 
     /* Round 1 opens on whoever the engine says it does. Singleplayer is
        always the player; in a match the guest opens the even rounds, so

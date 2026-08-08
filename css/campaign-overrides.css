@@ -1,0 +1,18 @@
+/* Campaign UX pass: dialogue is a quiet lower-corner conversation, not a modal wall. */
+.chapter-dialogue { z-index: 80; inset: auto auto 24px 24px; display: block; padding: 0; pointer-events: none; }
+.chapter-dialogue-scrim { display: none; }
+.chapter-dialogue-card { pointer-events: auto; display: grid; grid-template-columns: 104px minmax(260px, 430px); grid-template-rows: auto auto; width: min(590px, calc(100vw - 48px)); min-height: 0; border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.1); }
+.chapter-dialogue-art { min-height: 150px; border-right: 1px solid rgba(235,238,252,.11); }
+.chapter-dialogue-art img { object-position: 50% 24%; }
+.chapter-dialogue-copy { justify-content: flex-start; padding: 20px 34px 13px 20px; }
+.chapter-dialogue-kicker { margin-bottom: 6px; font-size: 8px; }
+.chapter-dialogue-copy h3 { margin-bottom: 7px; font-size: 20px; }
+.chapter-dialogue-copy p { font-size: 13px; line-height: 1.5; }
+.chapter-dialogue-foot { min-height: 46px; padding: 7px 12px 7px 124px; }
+.chapter-dialogue-next { min-width: 120px; padding: 8px 12px; font-size: 11px; }
+.campaign-rival-banter { position: fixed; z-index: 35; right: 22px; bottom: 22px; display: flex; flex-direction: column; gap: 4px; max-width: min(340px, calc(100vw - 44px)); padding: 11px 14px 12px; border-left: 2px solid #e4ba68; border-radius: 4px 10px 10px 4px; background: rgba(7,10,20,.88); box-shadow: 0 9px 28px rgba(0,0,0,.4); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .24s ease, transform .24s ease; }
+.campaign-rival-banter.show { opacity: 1; transform: none; }
+.campaign-rival-banter-name { color: #f0d48d; font: 700 10px 'Cinzel', Georgia, serif; letter-spacing: .14em; text-transform: uppercase; }
+.campaign-rival-banter-text { color: #d9dced; font-size: 12px; line-height: 1.45; }
+@media (max-width: 640px) { .chapter-dialogue { left: 12px; bottom: 12px; } .chapter-dialogue-card { grid-template-columns: 74px minmax(0, 1fr); width: calc(100vw - 24px); } .chapter-dialogue-art { min-height: 130px; } .chapter-dialogue-copy { padding: 15px 28px 10px 14px; } .chapter-dialogue-copy p { font-size: 12px; } .chapter-dialogue-foot { padding-left: 88px; } }
+@media (prefers-reduced-motion: reduce) { .campaign-rival-banter { transition: none; } }

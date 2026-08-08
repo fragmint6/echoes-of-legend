@@ -1048,6 +1048,8 @@
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
       campaignStage: cfg.campaignStage || null,
+      campaignPersonality: cfg.campaignPersonality || null,
+      campaignRival: cfg.campaignRival || null,
       oddFirst: cfg.oddFirst || null,
       /* The battlefield is rolled NOW but not revealed until bans are
          locked, so neither side can ban around the terrain. */
@@ -1579,6 +1581,8 @@
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
       campaignStage: cfg.campaignStage,
+      campaignPersonality: cfg.campaignPersonality || null,
+      campaignRival: cfg.campaignRival || null,
       oddFirst: cfg.oddFirst || null,
     });
     lastConfig =

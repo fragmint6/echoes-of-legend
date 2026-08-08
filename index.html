@@ -36,6 +36,7 @@
     <link rel="icon" href="assets/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png" />
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/campaign-overrides.css" />
   </head>
   <body>
     <div class="bg-layer"></div>
@@ -1254,10 +1255,9 @@
     </div>
 
     <!-- ==================== CAMPAIGN (chapter select) ====================
-         The campaign route remains a nonfunctional presentation slice:
-         no stage writes progress, grants cards, or opens a battle. The
-         chapter plate is now an honest doorway into its ten-rival map so
-         the complete Chapter 1 route can be judged before implementation. -->
+         Campaign opens the chapter map; progress, rival encounters and
+         battles are owned by js/campaign.js. The map remains data-driven
+         so every gate can share the same accessible flow. -->
     <section class="view campaign" data-view="campaign">
       <header class="col-header mast">
         <button class="back-btn" id="btn-campaign-back">
@@ -1308,9 +1308,8 @@
     </section>
 
     <!-- ==================== CHAPTER 1 (rival route) ====================
-         PRESENTATION ONLY (2026-08-06). Stage 1 is visibly first in the
-         road but still only acknowledges a click; stages 2-10 are locked
-         as a progression promise, not a save-state implementation. -->
+         Chapter 1 is a sequential campaign route. Gate state is hydrated
+         from localStorage and each unlocked gate opens its authored scene. -->
     <section class="view chapter" data-view="chapter" aria-labelledby="chapter-title">
       <header class="col-header mast chapter-head">
         <button class="back-btn" id="btn-chapter-back">
@@ -1761,9 +1760,8 @@
     </section>
 
     <!-- ==================== CHAPTER 1 DIALOGUE ====================
-         Recruiter scene only for now. It is a narrative encounter, not a
-         battle launch: the Classic fight will arrive once campaign state and
-         authored rival teams exist. -->
+         Reusable gate dialogue. The final line can hand off directly to
+         the authored rival battle.
     <div
       class="chapter-dialogue"
       id="chapter-dialogue"
@@ -2249,6 +2247,11 @@
 
       <!-- cinematic announcements: rounds, phases and turn handovers.
        Fixed overlay, pointer-transparent - never blocks the board. -->
+      <div class="campaign-rival-banter" id="campaign-rival-banter" role="status" aria-live="polite">
+        <span class="campaign-rival-banter-name" id="campaign-rival-banter-name"></span>
+        <span class="campaign-rival-banter-text" id="campaign-rival-banter-text"></span>
+      </div>
+
       <div class="cine" id="cine" role="status" aria-live="polite">
         <div class="cine-title" id="cine-title"></div>
         <div class="cine-sub" id="cine-sub"></div>

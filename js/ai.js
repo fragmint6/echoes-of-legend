@@ -746,7 +746,26 @@
 
   var lastSearch = null; // diagnostics for the UI / tests
 
-  function bestAction(B, side) {
+  /* Campaign rivals are not difficulty sliders: they use the same search
+     budget, but their authored preference changes which legal lines enter
+     the beam. This keeps identity in the cards and never gives a rival
+     extra stats or turns. */
+  function personalityBias(act, style) {
+    if (!style || !act || !act.ability) return 0;
+    var spec = act.ability.spec || {}, effects = spec.effects || [];
+    var b = act.ability.basic ? 0 : 1;
+    effects.forEach(function (e) {
+      if (e.k === 'dmg') b += style === 'marksman' || style === 'executioner' || style === 'boss' ? 16 : 4;
+      if (e.k === 'heal' || e.k === 'shield' || e.k === 'cleanse' || e.k === 'taunt') b += style === 'guardian' || style === 'attrition' ? 20 : 2;
+      if (e.k === 'mark' || e.k === 'burn' || e.k === 'silence' || e.k === 'exposed') b += style === 'ritualist' || style === 'attrition' || style === 'trickster' ? 18 : 3;
+      if (e.k === 'stat' || e.k === 'energy') b += style === 'commander' || style === 'adaptive' ? 12 : 1;
+    });
+    if (style === 'trickster' && !act.ability.basic) b += 14;
+    if (style === 'balanced') b += act.ability.basic ? 4 : 5;
+    return b;
+  }
+
+  function bestAction(B, side, personality) {
     var budget = activeBudget();
     var list = candidates(B, side);
     if (!list.length) {
@@ -761,6 +780,7 @@
     }
 
     // ---- beam: keep the most promising openings ----
+    list.forEach(function (a) { a.score += personalityBias(a, personality); });
     list.sort(function (a, b) {
       return b.score - a.score;
     });
