@@ -1745,7 +1745,7 @@ html.mqw640 .search-wrap input {
 
 /* =============================================================
    BATTLE VIEW  -  horizontal layout
-   HUD on top Â· teams face each other left/right Â· actions bottom
+   HUD on top - teams face each other left/right - actions bottom
    ============================================================= */
 .view.battle.active {
   display: flex;
@@ -15696,7 +15696,7 @@ body[data-view='chapter'] .menu-bg {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-/* On the chapter view: hide the menu-bg entirely â€” the chapter-bg
+/* On the chapter view: hide the menu-bg entirely -- the chapter-bg
    provides its own pixel-art forest backdrop with cw-haze mist. */
 body[data-view='chapter'] .menu-bg {
   opacity: 0 !important;
@@ -17817,7 +17817,7 @@ body[data-gfx='low'] .sc-weather {
    breathing core.
    ============================================================= */
 /* =============================================================
-   UNIVERSAL PAGE TRANSITION â€” The Gate
+   UNIVERSAL PAGE TRANSITION -- The Gate
    -------------------------------------------------------------
    Replaces the old spinner-only loader. The gate is two solid panels
    that slide shut from the sides (gold seal where they meet), with a
@@ -18126,7 +18126,7 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   text-shadow: 0 0 12px rgba(255, 200, 90, 0.4);
 }
 
-/* Corner button stack â€” top-right, below the account pill.
+/* Corner button stack -- top-right, below the account pill.
    Same glass circle spec as the Discord chip. */
 .home-corner-btns {
   position: absolute;
@@ -18732,7 +18732,7 @@ body[data-gfx='low'] .fx-blast-mini {
 }
 
 /* =============================================================
-   THE SET (Bo3)  (2026-08) â€” roadmap Phase 1
+   THE SET (Bo3)  (2026-08) -- roadmap Phase 1
    -------------------------------------------------------------
    war-length segmented toggle (inside the solo mode-grid, spans its
    full width), the fight card + board-call modals, and the in-battle
@@ -21088,7 +21088,7 @@ body[data-gfx='low'] .chapter-card:hover {
 }
 
 /* ======================================================================
-   CAMPAIGN â€” CHAPTER 1 RIVAL ROUTE (2026-08-06)
+   CAMPAIGN -- CHAPTER 1 RIVAL ROUTE (2026-08-06)
    ----------------------------------------------------------------------
    The chapter plate is intentionally only a doorway. This screen is the
    first real look down The Road of Echoes: ten portrait-oriented rival
@@ -21143,7 +21143,7 @@ body[data-view='chapter'] .bg-grid {
   z-index: 1;
 }
 
-/* subtle dark frame around the edges â€” doesn't compete with lantern glow */
+/* subtle dark frame around the edges -- doesn't compete with lantern glow */
 .cw-vignette {
   position: absolute;
   inset: 0;
@@ -21155,7 +21155,7 @@ body[data-view='chapter'] .bg-grid {
     linear-gradient(to bottom, rgba(10,14,34,0.28) 0%, transparent 42%);
 }
 
-/* drifting mist bands â€” thin horizontal haze strips at different depths */
+/* drifting mist bands -- thin horizontal haze strips at different depths */
 .cw-haze {
   position: absolute;
   inset: 0;
@@ -21166,7 +21166,7 @@ body[data-view='chapter'] .bg-grid {
     radial-gradient(ellipse 110% 16% at 50% 46%, rgba(175,188,210,0.10), transparent 68%),
     /* mid mist band */
     radial-gradient(ellipse 80% 13% at 50% 68%, rgba(165,178,200,0.11), transparent 62%),
-    /* low fog band â€” thicker near the road */
+    /* low fog band -- thicker near the road */
     radial-gradient(ellipse 90% 15% at 50% 84%, rgba(155,168,192,0.14), transparent 66%);
   animation: cw-haze-drift 26s ease-in-out infinite alternate;
 }
@@ -21401,7 +21401,7 @@ body[data-gfx='low'] .cw-motes {
   color: #d8ceaa;
 }
 
-/* glass backdrop for the masthead body â€” floats the title, rule, and sub
+/* glass backdrop for the masthead body -- floats the title, rule, and sub
    over the dark forest without a hard container edge. The back button
    stays free of the glass so it reads as a separate control. */
 .chapter-head-inner {
@@ -21416,7 +21416,7 @@ body[data-gfx='low'] .cw-motes {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-/* Subtle progress strip â€” no glass block, just a quiet rule */
+/* Subtle progress strip -- no glass block, just a quiet rule */
 .chapter-brief {
   position: relative;
   display: flex;
@@ -22230,9 +22230,9 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   cursor: var(--cur-pointer);
   background: linear-gradient(
     180deg,
-    rgba(2, 3, 10, 0) 30%,
-    rgba(2, 3, 10, 0.28) 62%,
-    rgba(2, 3, 10, 0.78) 100%
+    rgba(2, 3, 10, 0.2) 0%,
+    rgba(2, 3, 10, 0.38) 62%,
+    rgba(2, 3, 10, 0.82) 100%
   );
 }
 .chapter-dialogue-bar {
@@ -22367,6 +22367,11 @@ body[data-gfx='low'] .rival-card.is-first:hover {
 .chapter-dialogue-kicker i {
   font-size: 12px;
 }
+.chapter-dialogue-kicker .kick-sep {
+  font-size: 9px;
+  opacity: 0.55;
+  margin: 0 2px;
+}
 .chapter-dialogue-copy p {
   margin: 0;
   color: #c9cee0;
@@ -22486,11 +22491,12 @@ html.mqw640 .chapter-dialogue-foot {
   opacity: 1;
   transform: translate(-50%, 0) scale(1);
 }
-/* a speaking tick along the left edge, so it reads as a voice, not a toast */
+/* a speaking tick along the left edge, so it reads as a voice, not a
+   toast - inset from the rounded corner so it stays contained */
 .rival-bark::before {
   content: '';
   position: absolute;
-  inset: 6px auto 6px 0;
+  inset: 10px auto 10px 5px;
   width: 3px;
   border-radius: 3px;
   background: linear-gradient(180deg, #ffb27a, rgba(255, 120, 90, 0.25));
@@ -22666,7 +22672,30 @@ html.mqw640 .rival-bark-text {
 /* ---------------- Campaign: the scripted first gate ----------------
    Gate I is a guided lesson: the Recruiter narrates from a corner
    bubble while the prep screen highlights exactly what the script
-   asks for. The bubble never covers the grids or the confirm dock. */
+   asks for. The bubble never covers the grids or the confirm dock.
+   While an INFORMATIONAL beat is up (Continue button showing), the
+   shield below dims the screen and swallows every click - the
+   player reads first, acts second. */
+.tutor-shield {
+  position: fixed;
+  z-index: 69; /* directly under the tutor bubble */
+  inset: 0;
+  background: rgba(2, 3, 10, 0.55);
+  backdrop-filter: blur(1.5px);
+  animation: tutor-shield-in 0.25s ease both;
+  cursor: var(--cur-default);
+}
+.tutor-shield[hidden] {
+  display: none;
+}
+@keyframes tutor-shield-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .tutor {
   position: fixed;
   z-index: 70;

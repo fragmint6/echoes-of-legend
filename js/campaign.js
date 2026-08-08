@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Campaign Chapter 1 System
+   Echoes of Legend - Campaign Chapter 1 System
    -------------------------------------------------------------
    The glue between the content layer (data/campaign-ch1.js) and
    the game: stage progression + persistence, the dialogue BAR
@@ -40,7 +40,7 @@
     return null;
   }
   function stageLabel(stage) {
-    return 'Stage ' + stage.id + ' · ' + stage.format;
+    return 'Stage ' + stage.id + ' - ' + stage.format;
   }
   function fieldById(id) {
     return (id && window.EOL.battlefieldById && window.EOL.battlefieldById(id)) || null;
@@ -227,10 +227,11 @@
     }
     var kicker = $('chapter-dialogue-kicker');
     if (kicker) {
+      /* icon separators, never raw glyph punctuation - encoding-proof */
       kicker.innerHTML =
-        '<i class="ri-book-open-line"></i> Chapter 1 · Gate ' +
+        '<i class="ri-book-open-line"></i> Chapter 1 <i class="ri-sword-line kick-sep"></i> Gate ' +
         (ROMAN[dlg.stage ? dlg.stage.id : 1] || '') +
-        (dlg.kind === 'epilogue' ? ' · Cleared' : '');
+        (dlg.kind === 'epilogue' ? ' <i class="ri-checkbox-circle-line kick-sep"></i> Cleared' : '');
     }
     var img = $('chapter-dialogue-portrait');
     var glyph = $('chapter-dialogue-glyph');
@@ -404,7 +405,7 @@
         title: 'Choose your deck to face ' + stage.rival,
         sub:
           stage.mode === 'set'
-            ? 'Unabridged: best of three on ' + stage.terrain + '. Substitutions are law — no retreat once it begins.'
+            ? 'Unabridged: best of three on ' + stage.terrain + '. Substitutions are law - no retreat once it begins.'
             : 'Select your squad of 12 for the battle on ' + stage.terrain + '.',
       }
     );
@@ -503,7 +504,7 @@
 
   function queueBark(stage, text, ms) {
     if (!text) return;
-    if (barkQ.length > 5) return; // dialogue never piles into a backlog
+    if (barkQ.length > 7) return; // dialogue never piles into a backlog
     barkQ.push({ stage: stage, text: text, ms: ms || null });
     pumpBark();
   }
@@ -646,6 +647,30 @@
     });
   }
 
+  /* THE SCRIPTED MATCH narration (battle.js's move-script layer).
+     onScriptMove fires when a move becomes current - the Recruiter
+     issues the instruction before the hand moves. onScriptSay fires
+     as a scripted ENEMY move executes. */
+  function onScriptMove(B, mv) {
+    if (!battleWatch || !mv) return;
+    if (mv.side === 'player' && mv.say) queueBark(battleWatch.stage, mv.say);
+  }
+  function onScriptSay(B, mv) {
+    if (!battleWatch || !mv || !mv.say) return;
+    queueBark(battleWatch.stage, mv.say);
+  }
+  function onScriptEnd(B, reason) {
+    if (!battleWatch) return;
+    if (reason === 'desync') {
+      /* the line broke (a balance patch moved a number) - the fight
+         gracefully becomes a normal battle, and says so in character */
+      queueBark(
+        battleWatch.stage,
+        'The Recruiter squints at his ledger. "The ink has moved. Fight it your own way, Blank - I will watch."'
+      );
+    }
+  }
+
   /* ---------------------------------------------------------
      THE TUTOR - the Recruiter's guided-lesson bubble (gate I).
      -------------------------------------------------------------
@@ -662,6 +687,8 @@
   function hideTutor() {
     var el = $('tutor');
     if (el) el.hidden = true;
+    var shield = $('tutor-shield');
+    if (shield) shield.hidden = true;
   }
 
   function showTutor(stage, text, withNext, onNext) {
@@ -681,6 +708,12 @@
           }
         : null;
     }
+    /* Informational beats OWN the screen: a dim shield swallows every
+       click until Continue is pressed, so the lesson cannot be walked
+       past by accident. Action beats drop the shield - the marked
+       cards are the interaction. */
+    var shield = $('tutor-shield');
+    if (shield) shield.hidden = !withNext;
     el.hidden = false;
   }
 
@@ -740,9 +773,35 @@
       showTutor(tut.stage, n === 0 ? T.ban0 : n === 1 ? T.ban1 : T.ban2, false);
     } else if (p.phase === 'pick') {
       if (runTutorSeq([T.reveal], 'reveal')) return;
-      var fielded = p.front.length + p.back.length;
-      if (fielded < 6) {
-        showTutor(tut.stage, String(T.field || '').replace('{n}', String(6 - fielded)), false);
+      /* the arena and the tip-dots get their word in before the
+         fielding starts (the battlefield card was just on screen) */
+      if (T.arena && runTutorSeq([T.arena], 'arena')) return;
+      if (T.tips && runTutorSeq([T.tips], 'tips')) return;
+      var six = (tut.stage.script && tut.stage.script.six) || [];
+      var fielded = p.front.concat(p.back);
+      /* every fielded legend earns its role lesson, in the ledger's order */
+      for (var k = 0; k < six.length; k++) {
+        var cid = six[k];
+        if (fielded.indexOf(cid) >= 0 && T.roles && T.roles[cid]) {
+          if (runTutorSeq([T.roles[cid]], 'role-' + cid)) return;
+        }
+      }
+      if (fielded.length < 6) {
+        var nextId = null;
+        for (k = 0; k < six.length; k++) {
+          if (fielded.indexOf(six[k]) < 0) {
+            nextId = six[k];
+            break;
+          }
+        }
+        var entry = nextId ? cardDict()[nextId] : null;
+        showTutor(
+          tut.stage,
+          String(T.field || '')
+            .replace('{name}', entry ? entry.card.name : '')
+            .replace('{n}', String(6 - fielded.length)),
+          false
+        );
       } else if (runTutorSeq([T.rows], 'rows')) {
         return;
       } else {
@@ -907,7 +966,7 @@
         (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
         '</span><span class="gc-role">' +
         e.card.role +
-        ' · ' +
+        ' - ' +
         e.faction.name +
         '</span>';
       b.addEventListener('click', function () {
@@ -1112,6 +1171,9 @@
     },
     onBattleStart: onBattleStart,
     onBattleRound: onBattleRound,
+    onScriptMove: onScriptMove,
+    onScriptSay: onScriptSay,
+    onScriptEnd: onScriptEnd,
     onBattleResult: onBattleResult,
     retry: retry,
     consumeResult: consumeResult,

@@ -108,20 +108,122 @@ console.log('B2. the fully scripted first gate');
   });
   ok(sc.six && sc.six.length === 6, 'script fields exactly six');
   var hisBans = (st1.banProfile && st1.banProfile.ids) || [];
+  var roles = {};
   sc.six.forEach(function (id) {
     ok(!!dict[id] && dict[id].faction.id === 'grimmwood', 'scripted six ' + id + ' is a starter card');
     ok(hisBans.indexOf(id) < 0, 'scripted six ' + id + ' survives the Recruiter\'s bans');
+    roles[dict[id].card.role] = true;
   });
+  ok(Object.keys(roles).length === 6, 'the lesson six covers ALL SIX ROLES (controller included)');
   var T = st1.tutorial;
   ok(!!T, 'stage 1 carries tutorial copy');
   ok(T.intro && T.intro.length >= 2, 'tutorial: prep intro beats');
-  ['ban0', 'ban1', 'ban2', 'reveal', 'field', 'rows', 'toBattle'].forEach(function (k) {
+  ['ban0', 'ban1', 'ban2', 'reveal', 'arena', 'tips', 'field', 'rows', 'toBattle'].forEach(function (k) {
     ok(typeof T[k] === 'string' && T[k].length > 20, 'tutorial: ' + k + ' authored');
   });
-  ok(T.field.indexOf('{n}') >= 0, 'tutorial: field prompt counts down');
-  ok(T.rounds && T.rounds[1] && T.rounds[1].length >= 3, 'tutorial: round-1 lessons (basics/energy/pass)');
+  ok(T.field.indexOf('{name}') >= 0, 'tutorial: field prompt names the next card');
+  sc.six.forEach(function (id) {
+    ok(T.roles && typeof T.roles[id] === 'string' && T.roles[id].length > 30, 'tutorial: role lesson for ' + id);
+  });
+  ok(T.rounds && T.rounds[1] && T.rounds[1].length >= 2, 'tutorial: round-1 lessons');
   ok(T.rounds[2] && T.rounds[2].length >= 1, 'tutorial: round-2 signature lesson');
   ok(T.rounds[4] && T.rounds[4].length >= 1, 'tutorial: round-4 ramp lesson (RAMP_FROM=4)');
+})();
+
+console.log('B3. the frozen match line REPLAYS to a clean win');
+(function () {
+  var st1 = S.stages[0];
+  var match = st1.script.match;
+  ok(!!match && match.moves && match.moves.length > 20, 'a frozen line exists');
+  if (!match) return;
+  function mulberry(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  /* exactly the browser's setup: script click order -> formation
+     click order [T,B,M,C,S,Ctrl] -> front [T,B,Ctrl], back [M,C,S] */
+  var player = [
+    st1.script.six[0],
+    st1.script.six[1],
+    st1.script.six[5],
+    st1.script.six[2],
+    st1.script.six[3],
+    st1.script.six[4],
+  ].map(function (id) {
+    return dict[id];
+  });
+  var enemy = E.optimizeFormation(
+    st1.botSix.map(function (id) {
+      return dict[id];
+    })
+  );
+  var B = E.createBattle(player, enemy, {
+    roleAware: false,
+    field: EOL.battlefieldById('colosseum'),
+    rng: mulberry(match.seed),
+    oddFirst: 'player',
+  });
+  var sigs = {};
+  var i = 0;
+  var okSeq = true;
+  var steps = 0;
+  while (!B.over && i < match.moves.length && steps++ < 500) {
+    var side = E.advanceAction(B);
+    if (!side) {
+      if (!B.over) E.nextRound(B);
+      continue;
+    }
+    var mv = match.moves[i++];
+    if (!mv || mv.side !== side) {
+      okSeq = false;
+      break;
+    }
+    if (mv.pass) {
+      E.passTurn(B, side);
+      continue;
+    }
+    var u = B.units.filter(function (x) {
+      return x.side === side && x.card.id === mv.unit && x.alive;
+    })[0];
+    if (!u) {
+      okSeq = false;
+      break;
+    }
+    var ab = mv.ability === 'sig' ? u.card.ability : E.roleAbility(u);
+    var chosen = (mv.targets || []).map(function (t) {
+      return B.units.filter(function (x) {
+        return x.side === t.side && x.card.id === t.id && x.alive;
+      })[0];
+    });
+    if (chosen.some(function (c) { return !c; })) {
+      okSeq = false;
+      break;
+    }
+    var res = E.useAbility(B, u, ab, chosen, 0);
+    if (!res.ok) {
+      okSeq = false;
+      break;
+    }
+    if (side === 'player' && mv.ability === 'sig') sigs[mv.unit] = true;
+  }
+  ok(okSeq, 'every move of the line applies cleanly (side order, units, targets, costs)');
+  ok(B.over && B.winner === 'player', 'the line ends in a player VICTORY');
+  ok(Object.keys(sigs).length === 6, 'the line casts all SIX signatures (' + Object.keys(sigs).length + ')');
+  var alive = B.units.filter(function (x) {
+    return x.side === 'player' && x.alive;
+  }).length;
+  ok(alive === 6, 'no player hero dies on the line (' + alive + '/6 stand)');
+  ok(i === match.moves.length, 'the line is consumed exactly (' + i + '/' + match.moves.length + ')');
+  var says = match.moves.filter(function (m) {
+    return m.say;
+  }).length;
+  ok(says >= 10, 'the Recruiter narrates the line (' + says + ' teaching beats)');
 })();
 
 console.log('C. terrain wiring');

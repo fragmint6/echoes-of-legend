@@ -34,6 +34,140 @@
      Set fresh on every start(); paints the enemy commander plate and
      anchors the in-battle rival dialogue (js/campaign.js). */
   var rivalInfo = null;
+
+  /* =============================================================
+     THE SCRIPTED MATCH (campaign gate I)
+     -------------------------------------------------------------
+     Gate I plays a PRE-COMPUTED line: every move on both sides is
+     authored data (data/campaign-ch1.js, generated against the real
+     engine under the same seeded rng - see sim/gen_gate1_line.js).
+     The player performs their side of the line by hand; the UI
+     simply refuses everything else, the same way the prep script
+     does. The rng is seeded and the AI never rolls (bestAction
+     draws from B.rng, and ponder is parked), so the board replays
+     the generated line exactly.
+
+     A move: { side:'player'|'enemy', unit:cardId, ability:
+     'sig'|'basic', targets:[{side,id}], say? } or { side, pass:
+     true, say? }. If reality ever disagrees with the script (it
+     cannot, unless a future balance patch moves a number), the
+     script ABORTS gracefully and the fight continues as a normal
+     battle - a stuck tutorial is worse than an unscripted one.
+     ============================================================= */
+  var moveScript = null; // { moves: [...], i: 0 }
+
+  function scriptActive() {
+    return !!(moveScript && B && !B.over && moveScript.i < moveScript.moves.length);
+  }
+  function scriptMove() {
+    return scriptActive() ? moveScript.moves[moveScript.i] : null;
+  }
+  function scriptUnit(side, cardId) {
+    return (
+      B.units.filter(function (u) {
+        return u.side === side && u.card.id === cardId && u.alive;
+      })[0] || null
+    );
+  }
+  function scriptAbilityOf(mv, u) {
+    return mv.ability === 'sig' ? u.card.ability : E.roleAbility(u);
+  }
+  function scriptEnd(reason) {
+    if (!moveScript) return;
+    moveScript = null;
+    if (window.EOL.campaign && window.EOL.campaign.onScriptEnd) {
+      try {
+        window.EOL.campaign.onScriptEnd(B, reason);
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
+    }
+    paintScriptMarks();
+  }
+  function scriptAdvance() {
+    if (!moveScript) return;
+    moveScript.i++;
+    if (moveScript.i >= moveScript.moves.length) {
+      scriptEnd('done');
+      return;
+    }
+    scriptNotify();
+  }
+  function scriptNotify() {
+    var mv = scriptMove();
+    if (!mv) return;
+    if (window.EOL.campaign && window.EOL.campaign.onScriptMove) {
+      try {
+        window.EOL.campaign.onScriptMove(B, mv);
+      } catch (e) {
+        /* narration is optional */
+      }
+    }
+    requestAnimationFrame(paintScriptMarks);
+  }
+  /* The golden pulse rides the current player instruction: the unit to
+     act, then the remaining targets, or the Pass button. Re-applied on
+     every paintSelection (which every render runs). */
+  function paintScriptMarks() {
+    document.querySelectorAll('.bcard.tutor-pick').forEach(function (el) {
+      el.classList.remove('tutor-pick');
+    });
+    var et = $('btn-endturn');
+    if (et) et.classList.remove('tutor-pick');
+    var mv = scriptMove();
+    if (!mv || mv.side !== 'player' || !B || B.turn !== 'player') return;
+    var markUid = function (uid) {
+      var el = document.querySelector('.bcard[data-uid="' + uid + '"]');
+      if (el) el.classList.add('tutor-pick');
+    };
+    if (mv.pass) {
+      if (et) et.classList.add('tutor-pick');
+      return;
+    }
+    if (sel && sel.ability) {
+      (mv.targets || []).forEach(function (t) {
+        var tu = scriptUnit(t.side, t.id);
+        if (
+          tu &&
+          !sel.chosen.some(function (c) {
+            return c.uid === tu.uid;
+          })
+        )
+          markUid(tu.uid);
+      });
+      return;
+    }
+    var u = scriptUnit('player', mv.unit);
+    if (u) markUid(u.uid);
+  }
+  /* The scripted enemy turn: build the act straight from the line.
+     Returns {act} on success, {pass:true} for a scripted pass, or
+     null when the line no longer matches the board (abort). */
+  function scriptEnemyAct(mv) {
+    if (mv.pass) {
+      scriptAdvance();
+      return { pass: true };
+    }
+    var u = scriptUnit('enemy', mv.unit);
+    if (!u) return null;
+    var ab = scriptAbilityOf(mv, u);
+    if (!ab || !E.canUse(B, u, ab)) return null;
+    var pool = E.legalTargets(B, u, ab);
+    var chosen = [];
+    var okay = (mv.targets || []).every(function (t) {
+      var tu = scriptUnit(t.side, t.id);
+      if (!tu) return false;
+      var legal = pool.some(function (x) {
+        return x.uid === tu.uid;
+      });
+      if (!legal) return false;
+      chosen.push(tu);
+      return true;
+    });
+    if (!okay || chosen.length !== E.pickCount(ab)) return null;
+    scriptAdvance();
+    return { act: { unit: u, ability: ab, chosen: chosen, targets: chosen, choose: 0 } };
+  }
   var playerDone = false; // has the player taken their turn this round?
   var enemyDone = false; // has the bot taken its turn this round?
   var ROLE_ICON = {
@@ -694,7 +828,7 @@
         sp.innerHTML =
           '<i class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
           setInfo.game +
-          '/3 · </span><b>' +
+          '/3 - </span><b>' +
           setInfo.you +
           ' - ' +
           setInfo.foe +
@@ -948,6 +1082,7 @@
       c.classList.remove('selected', 'targetable', 'chosen', 'viewing');
     });
     clearPreview();
+    paintScriptMarks(); // the scripted-match pulse survives every repaint
     if (!sel || !sel.unit) return;
 
     var selEl = document.querySelector('.bcard[data-uid="' + sel.unit.uid + '"]');
@@ -1029,6 +1164,16 @@
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
+    /* THE SCRIPTED MATCH: only the line's ability on the line's unit
+       stays live; everything else greys out, and the asked-for row
+       carries the golden pulse. */
+    var mvS = scriptMove();
+    var scriptRow = false;
+    if (mvS && mvS.side === 'player' && !mvS.pass && interactive && isActive) {
+      var wantedKind = mvS.ability === 'sig' ? isSig : !isSig;
+      if (u.card.id !== mvS.unit || !wantedKind) dis = true;
+      else scriptRow = true;
+    }
     var tag = a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role';
     /* Short tags. The row is only ~219px wide and "SIGNATURE SKILL" ate
        87px of it, squeezing long Skill names. The colour already says
@@ -1073,6 +1218,7 @@
       (interactive && isActive ? ' act' : '') +
       (dis ? ' dis' : '') +
       (isSel ? ' sel' : '') +
+      (scriptRow && !isSel ? ' tutor-pick' : '') +
       '"' +
       (interactive && isActive && !dis ? ' data-ab="' + idx + '"' : '') +
       (lockTooltip ? ' title="' + esc(lockTooltip) + '"' : '') +
@@ -1537,6 +1683,18 @@
   }
 
   function chooseAbility(u, ability) {
+    /* THE SCRIPTED MATCH: refuse anything but the line's cast. */
+    var mvA = scriptMove();
+    if (mvA && mvA.side === 'player' && !mvA.pass) {
+      var wanted = scriptAbilityOf(mvA, u);
+      var same =
+        u.card.id === mvA.unit &&
+        (ability === wanted || (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
+      if (!same) {
+        toast('The Recruiter shakes his head - follow the marked move');
+        return;
+      }
+    }
     sel = { unit: u, ability: ability, needed: E.pickCount(ability), chosen: [], choose: 0 };
 
     // Robin Hood auto-locks his target
@@ -1574,6 +1732,23 @@
       var pool = E.legalTargets(B, sel.unit, sel.ability);
       var forced = E.forcedTarget(B, sel.unit, sel.ability);
       if (forced) pool = [forced];
+      /* THE SCRIPTED MATCH: the line names the victims. */
+      var mvT = scriptMove();
+      if (mvT && mvT.side === 'player' && !mvT.pass && mvT.targets) {
+        pool = pool.filter(function (x) {
+          return mvT.targets.some(function (t) {
+            return t.side === x.side && t.id === x.card.id;
+          });
+        });
+        if (
+          !pool.some(function (x) {
+            return x.uid === u.uid;
+          }) &&
+          u.side === 'enemy'
+        ) {
+          toast('The Recruiter taps the marked target');
+        }
+      }
       if (
         pool.some(function (x) {
           return x.uid === u.uid;
@@ -1614,6 +1789,18 @@
     }
 
     var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
+    /* THE SCRIPTED MATCH: other heroes stay inspectable, but only the
+       line's unit may take the action. */
+    var mvU = scriptMove();
+    if (!viewOnly && mvU && mvU.side === 'player') {
+      if (mvU.pass) {
+        viewOnly = true;
+        toast('The Recruiter points at the Pass button - hoarding is also a move');
+      } else if (u.card.id !== mvU.unit) {
+        viewOnly = true;
+        toast('The Recruiter points at the marked legend');
+      }
+    }
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
     paintDock();
     paintSelection();
@@ -1628,6 +1815,17 @@
     if (!res.ok) {
       toast('Cannot use that: ' + res.reason);
       return;
+    }
+    /* THE SCRIPTED MATCH: the line's player move just resolved. Read
+       the RAW script here - on the killing blow B.over is already
+       true and scriptMove() would refuse, stranding the final index
+       unconsumed. */
+    var mvC =
+      moveScript && moveScript.i < moveScript.moves.length
+        ? moveScript.moves[moveScript.i]
+        : null;
+    if (mvC && mvC.side === 'player' && !mvC.pass && s.unit.card.id === mvC.unit) {
+      scriptAdvance();
     }
     /* Put the move on the wire BEFORE the animations play. The other
        client needs the whole action-time to render it, and the engine
@@ -1827,8 +2025,13 @@
       /* A coach overlay freezes the player's dial: reading an
          explanation must never cost your action. The deadline is
          re-armed each frame it is open, so closing the overlay hands
-         back a full window. */
-      if (side === 'player' && window.EOL.coach && window.EOL.coach.open()) {
+         back a full window. The SCRIPTED MATCH freezes it too - a
+         lesson read slowly must never auto-pass the line off its
+         rails. */
+      if (
+        side === 'player' &&
+        ((window.EOL.coach && window.EOL.coach.open()) || scriptActive())
+      ) {
         clockEnd = performance.now() + TURN_MS;
         if (num) num.textContent = Math.ceil(TURN_MS / 1000);
         clockRaf = requestAnimationFrame(function (t) {
@@ -2074,6 +2277,10 @@
   function ponderKick() {
     ponderCancel();
     if (!B || B.over || B.turn !== 'player') return;
+    /* THE SCRIPTED MATCH: pondering is parked entirely. bestAction()
+       draws a seed from B.rng, and one background search would knock
+       the pre-computed line off its dice. */
+    if (scriptActive()) return;
     /* Nothing to ponder in a match: the opponent is a person, and
        burning two cores guessing their move would only make the local
        board stutter while they type. */
@@ -2405,6 +2612,15 @@
      The round only ends when both sides pass back-to-back. */
   function endTurn() {
     if (busy || B.over) return;
+    /* THE SCRIPTED MATCH: pass only when the line passes. */
+    var mvP = scriptMove();
+    if (mvP && mvP.side === 'player') {
+      if (!mvP.pass) {
+        toast('The Recruiter shakes his head - the marked move first');
+        return;
+      }
+      scriptAdvance();
+    }
     stopClock();
     cancelAuto();
     clearSel();
@@ -2490,18 +2706,44 @@
         return;
       }
     } else {
-      /* Settle the decision while the position still exactly matches what
-         pondering saw. A pondered move is depth 4-8; the live fallback is
-         the usual depth 4. A pondered PASS is trusted outright. */
-      ponderStats.decisions++;
-      var decision = ponderAction(); // act | { pass: true } | null
-      ponderCancel();
-      if (decision && decision.pass) {
-        act = null; // pondering's verdict: pass
-      } else if (decision) {
-        act = decision; // pondered move (depth 4-8)
+      /* THE SCRIPTED MATCH: the line drives the enemy, not the search.
+         A mismatch aborts the script and falls through to the AI. */
+      var mvE = scriptMove();
+      if (mvE && mvE.side === 'enemy') {
+        var scripted = scriptEnemyAct(mvE);
+        if (!scripted) {
+          scriptEnd('desync');
+          act = AI.bestAction(B, 'enemy');
+        } else if (scripted.pass) {
+          act = null;
+        } else {
+          act = scripted.act;
+          if (mvE.say && window.EOL.campaign && window.EOL.campaign.onScriptSay) {
+            try {
+              window.EOL.campaign.onScriptSay(B, mvE);
+            } catch (e) {
+              /* narration is optional */
+            }
+          }
+        }
+      } else if (mvE && mvE.side === 'player') {
+        /* the line expected the player to act - reality disagrees */
+        scriptEnd('desync');
+        act = AI.bestAction(B, 'enemy');
       } else {
-        act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+        /* Settle the decision while the position still exactly matches what
+           pondering saw. A pondered move is depth 4-8; the live fallback is
+           the usual depth 4. A pondered PASS is trusted outright. */
+        ponderStats.decisions++;
+        var decision = ponderAction(); // act | { pass: true } | null
+        ponderCancel();
+        if (decision && decision.pass) {
+          act = null; // pondering's verdict: pass
+        } else if (decision) {
+          act = decision; // pondered move (depth 4-8)
+        } else {
+          act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+        }
       }
     }
     render();
@@ -2515,7 +2757,9 @@
       await sleep(cineMs(700));
     } else {
       // Stage 1 (The Recruiter): moderates power to measure rather than overwhelm
-      if (act && act.ability && !act.ability.basic && B.campaignStage === 1) {
+      // - only when the scripted line is NOT driving him (it authors his
+      // restraint move-by-move already).
+      if (act && act.ability && !act.ability.basic && B.campaignStage === 1 && !moveScript) {
         var usedSig = B._recruiterSigUsed === B.round;
         if (usedSig || Math.random() < 0.65) {
           var basic = E.roleAbility(act.unit);
@@ -4345,6 +4589,10 @@
        identical action stream, so they only have to agree on luck. */
     netCtl = opts.net || null;
     rivalInfo = opts.rival || null;
+    /* THE SCRIPTED MATCH (campaign gate I): the whole line, both
+       sides, pre-computed against this exact seed. */
+    moveScript =
+      opts.moveScript && opts.moveScript.length ? { moves: opts.moveScript.slice(), i: 0 } : null;
     setNetWait(false);
     stopClock();
     disarmForfeit();
@@ -4498,6 +4746,7 @@
         /* lore must never break a fight */
       }
     }
+    if (moveScript) scriptNotify();
 
     /* Round 1 opens on whoever the engine says it does. Singleplayer is
        always the player; in a match the guest opens the even rounds, so
@@ -4561,6 +4810,10 @@
     _draft: draftBotTeam,
     _draftValue: draftValue,
     _markSets: markSets,
+    /* test hook: the scripted-match line state (harness only) */
+    _scriptState: function () {
+      return moveScript;
+    },
   };
 
   window.addEventListener('resize', function () {

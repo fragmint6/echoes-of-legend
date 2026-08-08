@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend — Campaign Chapter 1 Data: "The Road of Echoes"
+   Echoes of Legend - Campaign Chapter 1 Data: "The Road of Echoes"
    -------------------------------------------------------------
    The campaign is where the game's lore lives (standing ROADMAP
    law). This file is the whole CONTENT layer for Chapter 1:
@@ -72,7 +72,7 @@ window.EOL = window.EOL || {};
       cost: 50,
       text:
         'Deal <b>150% ATK Light Damage</b>. If the target is below <b>30% HP</b>, ' +
-        'instead deal <b>300% ATK</b> — the scales have already decided. Each cast, ' +
+        'instead deal <b>300% ATK</b> - the scales have already decided. Each cast, ' +
         'Gilgamesh permanently gains <b>10% ATK</b>: kingship that outlasts.',
       note: 'Max: 5 growth stacks.',
       spec: {
@@ -136,10 +136,10 @@ window.EOL = window.EOL || {};
       rival: 'The Recruiter',
       portrait: 'assets/rivals/the-recruiter.png',
       mode: 'classic',
-      format: 'Classic · Guided gate',
+      format: 'Classic - Guided gate',
       terrain: 'The Colosseum',
       field: 'colosseum',
-      line: 'An old memory broker opens a weathered ledger and writes a blank line. He fights to measure you, not to beat you — and he walks you through every law of the war himself: the bans, the ranks, the first blood. Plays it straight. Nothing hidden.',
+      line: 'An old memory broker opens a weathered ledger and writes a blank line. He fights to measure you, not to beat you - and he walks you through every law of the war himself: the bans, the ranks, the first blood. Plays it straight. Nothing hidden.',
       lock: 'The first question',
       enemy12: [
         'grimmwood-hansel-gretel',
@@ -176,57 +176,85 @@ window.EOL = window.EOL || {};
       script: {
         deck: 'starter-grimmwood',
         bans: ['grimmwood-rumpelstiltskin', 'grimmwood-evil-queen'],
+        /* click order matters: the back row seats first, so the Piper
+           takes the third front slot beside the wall and the wolf -
+           one of every role on the field, exactly as the ledger drew it */
         six: [
           'grimmwood-gingerbread-man',
           'grimmwood-big-bad-wolf',
-          'grimmwood-red-riding-hood',
           'grimmwood-snow-white',
           'grimmwood-evil-queen',
           'grimmwood-goldilocks',
+          'grimmwood-pied-piper',
         ],
-        hintBan: 'The Recruiter taps the ledger — “Those two. Take my crown pieces.”',
-        hintSix: 'The Recruiter shakes his head — “The marked six. Trust the ledger this once.”',
+        hintBan: 'The Recruiter taps the ledger - "Those two. Take my crown pieces."',
+        hintSix: 'The Recruiter shakes his head - "The marked card. Trust the ledger this once."',
+        /* THE WHOLE MATCH IS SCRIPTED: a pre-computed line generated
+           against the real engine under this exact seed
+           (sim/gen_gate1_line.js). The player wins, casts all six
+           signatures, and loses nobody - if they follow the marks.
+           sim/verify_campaign.js replays it after every balance
+           patch. */
+        match: {
+          seed: 2,
+          moves: [{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Open with the marked legend - a Basic. Cheap, honest work. Tap the legend, tap the skill, tap the marked victim."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}],"say":"My wall raises his shield and PROVOKES - watch your teeth get pulled toward him. Walls work both ways, Blank."},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","unit":"grimmwood-pied-piper","ability":"basic","targets":[{"side":"player","id":"grimmwood-snow-white"}]},{"side":"player","pass":true,"say":"Now PASS - yes, on purpose. Unspent Energy carries over, and round two has expensive plans. Hoarding is a move."},{"side":"enemy","pass":true},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-pied-piper","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"},{"side":"enemy","id":"grimmwood-gingerbread-man"}],"say":"Now the Piper. His melody takes TWO victims at once - pick both marked. It carves their ATK down, and anyone already wounded by a debuff is torn EXPOSED. Controllers do not kill; they decide who dies."},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-gingerbread-man","ability":"sig","targets":[],"say":"The Gingerbread Man now: Run, Run, Run. A shield, a Provoke, and he HEALS every time they strike him. That is a wall - danger now has an address."},{"side":"enemy","unit":"grimmwood-pied-piper","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-snow-white","ability":"sig","targets":[],"say":"Snow White: Forest Blessing. The whole line healed, a debuff wiped from every ally. A Medic buys back the mistakes your courage keeps making."},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Unchain the Wolf: Savage Hunger. Two hundred percent, and he eats a share of what he deals - more if the victim is debuffed. The Piper seasons, the Wolf dines."},{"side":"enemy","unit":"grimmwood-snow-white","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"My healer stitches the damage back. Remember the shape of that annoyance - and cure it at the source."},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Goldilocks: Just Right. Targets in the middle of their health take her FULL wrath. Snipers do not open wars - they end arguments."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"enemy","unit":"grimmwood-snow-white","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"sig","targets":[],"say":"And the Queen: The Mirror Never Lies. Every enemy pays at once, and the proudest is stripped EXPOSED for two rounds. Casters are how you punish a crowd."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-goldilocks"}]},{"side":"enemy","unit":"grimmwood-snow-white","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-goldilocks"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-snow-white"}]},{"side":"enemy","pass":true},{"side":"enemy","unit":"grimmwood-snow-white","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-goldilocks"}]},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"}]},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}]},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-snow-white"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-pied-piper","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-snow-white"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-snow-white"}],"say":"Their healer stands in your sights. End her. Wars shorten when nobody argues with your arithmetic."},{"side":"enemy","unit":"grimmwood-rapunzel","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}]},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-goldilocks"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-rapunzel"}]},{"side":"enemy","unit":"grimmwood-rapunzel","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-rapunzel"}],"say":"Finish it. The ledger is waiting on my signature."}],
+        },
       },
       tutorial: {
         intro: [
-          'Preparation. Two ledgers of twelve — mine on the right, yours on the left. Nobody fights with all twelve; wars are won by what you agree to leave out.',
-          'First law: the bans. You strike two of MY legends out of the fight, and I strike two of yours. Simultaneous. Sealed. No peeking. Honest politics — the only kind left.',
+          'Preparation. Two ledgers of twelve - mine on the right, yours on the left. Nobody fights with all twelve; wars are won by what you agree to leave out.',
+          'First law: the bans. You strike two of MY legends out of the fight, and I strike two of yours. Simultaneous. Sealed. No peeking. Honest politics - the only kind left.',
         ],
-        ban0: 'Strike my two crown pieces — Rumpelstiltskin and the Evil Queen. Never leave a legendary standing out of politeness. They are marked; tap them.',
+        ban0: 'Strike my two crown pieces - Rumpelstiltskin and the Evil Queen. Never leave a legendary standing out of politeness. They are marked; tap them.',
         ban1: 'One down. The Evil Queen has noticed, and she is not flattered. Cross her out too.',
-        ban2: 'Ruthless. I approve. Now press CONFIRM BANS — mine were written before you sat down.',
+        ban2: 'Ruthless. I approve. Now press CONFIRM BANS - mine were written before you sat down.',
         reveal: 'There. I took your candle-children and your midnight girl. A ban is a question: what can you not live without? Remember how this feels, and do it to everyone after me.',
-        field: 'Field six of your surviving ten — the ledger marks the lesson six: a wall, two sets of teeth, a healer, a witch, a rifle. Tap each marked card. {n} to go.',
-        rows: 'Study the rows. FRONT soaks the blows — your Gingerbread Man and both wolves’ teeth. BACK works in peace — healer, witch, dead-eye. Tap a fielded legend to swap its row. A naked back line is how snipers get famous.',
-        toBattle: 'Press TO BATTLE when your hand stops shaking. Mine did too, eventually. About a century in.',
+        arena: 'One more thing about the ground: that card you just saw is the ARENA. The Colosseum is the one honest board - no special laws. Every other arena on this road bends the rules, and its card tells you exactly how. In battle, the badge in the top-left corner names the ground; hover it whenever you forget.',
+        tips: 'And see the little question-mark dots scattered across every screen? Hover one. They explain whatever they sit beside. I wrote most of them myself, and I do not write for my health.',
+        field: 'Now field the six the ledger marked - one at a time, in order. Tap the marked card: {name}.',
+        roles: {
+          'grimmwood-gingerbread-man':
+            'A TANK. High health, real armor, and abilities that PROVOKE - forcing enemies to hit him instead of the people worth protecting. Every wall you will ever love is one of these.',
+          'grimmwood-big-bad-wolf':
+            'A BRUISER. Front-row muscle: hits hard, heals off the wounds he causes. Where the Tank is a promise, the Bruiser is a threat.',
+          'grimmwood-snow-white':
+            'A MEDIC. She undoes damage, strips debuffs, keeps six stories from becoming five. Kill theirs first; guard yours to the last breath.',
+          'grimmwood-evil-queen':
+            'A CASTER. Magic damage in wide, cruel shapes - whole enemy lines at once. Fragile as glass and worth every shard.',
+          'grimmwood-goldilocks':
+            'A SNIPER. She reaches the BACK ROW where the soft targets hide, and her signature executes anyone foolish enough to be half-dead in the open.',
+          'grimmwood-pied-piper':
+            'A CONTROLLER. He does not deal the damage - he decides where damage MATTERS: carving attack down, tearing defence open, bending the fight. He takes the last front slot; his song does not care where he stands.',
+        },
+        rows: 'Study the rows. FRONT soaks the blows - the wall, the wolf, and the piper holding the third gap. BACK works in peace - healer, witch, dead-eye. Snipers exist to punish a naked back line; rows are why yours is not naked.',
+        toBattle: 'Press TO BATTLE when your hand stops shaking. Mine did too, eventually. About a century in. From here, every move is the ledger\'s: follow the golden marks and I will explain the war as we fight it.',
         rounds: {
           1: [
-            'Round one: BASICS only. Every legend knows one plain trick — the signatures wake in round two. Even legends stretch first.',
-            'The tall bar by your crest is ENERGY. Every skill spends it, and what you save carries over. Income grows each round: 60, then 80, then 100.',
-            'Tap one of your six, choose a skill, choose a victim. And when nothing is worth doing — PASS. Hoarding Energy is also a move. Often the best one.',
+            'Round one: BASICS only - signatures wake in round two. Even legends stretch first.',
+            'The tall bar by your crest is ENERGY: every skill spends it, savings carry over, and income grows each round - 60, then 80, then 100.',
           ],
           2: [
-            'Round two — SIGNATURES unlock. The theatrical ones. Watch my Energy bar: when it runs fat, assume I am saving for something impolite.',
+            'Round two - SIGNATURES unlock. The expensive, theatrical ones. Time to spend what you hoarded.',
           ],
           4: [
-            'Round four. From here the Road sharpens every blade — attacks grow crueller each round. It despises stalemates. Finish what you started.',
+            'Round four. From here the Road sharpens every blade a little more each round - it despises stalemates. Finish what you started.',
           ],
         },
       },
       grants: { coins: 100 },
-      resultWin: 'The Recruiter closes his ledger — Gate I is yours.',
-      resultLose: 'The Recruiter sets down his quill. “The road will still be here. So, unfortunately, will I.”',
+      resultWin: 'The Recruiter closes his ledger - Gate I is yours.',
+      resultLose: 'The Recruiter sets down his quill. "The road will still be here. So, unfortunately, will I."',
       barks: {
-        start: '“I will not trick you. The Road has enough of that ahead.”',
+        start: '"I will not trick you. The Road has enough of that ahead."',
         firstBloodYou:
-          '“First blood to you. Do not smile yet — the outnumbered side earns bonus Energy every round. The Road pays its wounded.”',
+          '"First blood to you. Do not smile yet - the outnumbered side earns bonus Energy every round. The Road pays its wounded."',
         firstBloodFoe:
-          '“First blood to me. Steady. Fewer heroes means fewer turns — but the Road pays YOU bonus Energy now. Spend it angrily.”',
-        allyDown: '“Another of yours gone. Each body lost is a turn lost every round. Guard the rest.”',
-        foeHalf: '“Half my side, gone. When you outnumber a foe, PRESS — turns are the true currency.”',
-        foeLast: '“One of mine left. Focus your fire, Blank. Mercy is for stories with endings.”',
+          '"First blood to me. Steady. Fewer heroes means fewer turns - but the Road pays YOU bonus Energy now. Spend it angrily."',
+        allyDown: '"Another of yours gone. Each body lost is a turn lost every round. Guard the rest."',
+        foeHalf: '"Half my side, gone. When you outnumber a foe, PRESS - turns are the true currency."',
+        foeLast: '"One of mine left. Focus your fire, Blank. Mercy is for stories with endings."',
         playerLow:
-          '“Two standing. The comeback Energy is yours every round now — spend it like your last sentence. It may be.”',
+          '"Two standing. The comeback Energy is yours every round now - spend it like your last sentence. It may be."',
       },
     },
     {
@@ -238,7 +266,7 @@ window.EOL = window.EOL || {};
       format: 'Classic',
       terrain: 'The Narrow Pass',
       field: 'narrow-pass',
-      line: 'A scarred veteran mends his shield with iron wire and asks who your strength protects. Nothing reaches your back line while he stands — go through him.',
+      line: 'A scarred veteran mends his shield with iron wire and asks who your strength protects. Nothing reaches your back line while he stands - go through him.',
       lock: 'Clear The Recruiter',
       /* Camelot's whole hall plus a second wall: the pass narrows and
          he intends to BE the reason it matters. */
@@ -269,17 +297,17 @@ window.EOL = window.EOL || {};
          threat is taken at the gate. */
       banProfile: { roles: ['Sniper', 'Caster'], stat: 'atk' },
       grants: { cards: ['camelot-king-arthur', 'camelot-lancelot'], coins: 120 },
-      resultWin: 'The Oathkeeper lowers his shield. “You saw the promise. Not the opening.”',
-      resultLose: '“A wall is not cruelty,” the Oathkeeper says. “Come back and learn its shape.”',
+      resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
+      resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
-        start: '“The pass narrows here. So do excuses.”',
-        firstBloodYou: '“Through the shield. Good. That is the only honest road.”',
-        firstBloodFoe: '“I told danger where it must stop. You crossed the line.”',
-        allyDown: '“Who was protecting them? Think. Answer with your hands.”',
-        foeDown: '“He held exactly as long as he was asked to. That is all a wall may promise.”',
-        foeHalf: '“Forty-three. Twelve. I count everything, Wayfarer.”',
-        foeLast: '“One shield left. It is enough. It has to be.”',
-        playerLow: '“Your wall is breaking because it does not know what it defends.”',
+        start: '"The pass narrows here. So do excuses."',
+        firstBloodYou: '"Through the shield. Good. That is the only honest road."',
+        firstBloodFoe: '"I told danger where it must stop. You crossed the line."',
+        allyDown: '"Who was protecting them? Think. Answer with your hands."',
+        foeDown: '"He held exactly as long as he was asked to. That is all a wall may promise."',
+        foeHalf: '"Forty-three. Twelve. I count everything, Wayfarer."',
+        foeLast: '"One shield left. It is enough. It has to be."',
+        playerLow: '"Your wall is breaking because it does not know what it defends."',
       },
     },
     {
@@ -291,7 +319,7 @@ window.EOL = window.EOL || {};
       format: 'Classic',
       terrain: 'The Open Plains',
       field: 'open-plains',
-      line: 'A rifle cracks from the watchtree. She always shoots your strongest legend — bait or bury them. Protect your brightest echo, or learn who you leave behind.',
+      line: 'A rifle cracks from the watchtree. She always shoots your strongest legend - bait or bury them. Protect your brightest echo, or learn who you leave behind.',
       lock: 'Clear The Oathkeeper',
       enemy12: [
         'sherwood-robin-hood',
@@ -319,17 +347,17 @@ window.EOL = window.EOL || {};
       /* She bans your protectors, so the favourite stands in the open. */
       banProfile: { roles: ['Tank', 'Medic'] },
       grants: { cards: ['sherwood-robin-hood', 'sherwood-little-john'], coins: 120 },
-      resultWin: '“Oh,” she says softly. “You protect the strong so they can protect the rest.”',
-      resultLose: 'The Outlaw reloads without hurry. “The favorite ate the whole supper. Again?”',
+      resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
+      resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
       barks: {
-        start: '“Every company has a favorite. Point them out or I will.”',
-        firstBloodYou: '“Quick hands. My father would have sold you a book about them.”',
-        firstBloodFoe: '“There is the large type. Now watch the scenery notice.”',
-        allyDown: '“That one carried too much of your hope. I could tell from here.”',
-        foeDown: '“Down. Watch how fast a company reorganizes its love.”',
-        foeHalf: '“You are spending my arrows faster than I like.”',
-        foeLast: '“Last shot in the tree. Make it interesting.”',
-        playerLow: '“See? The favorite eats the whole supper.”',
+        start: '"Every company has a favorite. Point them out or I will."',
+        firstBloodYou: '"Quick hands. My father would have sold you a book about them."',
+        firstBloodFoe: '"There is the large type. Now watch the scenery notice."',
+        allyDown: '"That one carried too much of your hope. I could tell from here."',
+        foeDown: '"Down. Watch how fast a company reorganizes its love."',
+        foeHalf: '"You are spending my arrows faster than I like."',
+        foeLast: '"Last shot in the tree. Make it interesting."',
+        playerLow: '"See? The favorite eats the whole supper."',
       },
     },
     {
@@ -372,17 +400,17 @@ window.EOL = window.EOL || {};
       /* Marks must land and stick: your cleansers are anointed first. */
       banProfile: { roles: ['Medic'], stat: 'atk' },
       grants: { cards: ['olympus-zeus', 'olympus-hercules'], coins: 140 },
-      resultWin: 'The Anointed marks herself, and the circle goes dark. “You read the promise.”',
-      resultLose: '“A warning can be mercy,” she says. “You treated it as noise.”',
+      resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
+      resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
       barks: {
-        start: '“A mark. Not a curse. Not yet.”',
-        firstBloodYou: '“You strike before the promise ripens. Interesting.”',
-        firstBloodFoe: '“I see you. I am coming. Prepare — I did say so.”',
-        allyDown: '“The circle closed. It always closes on the unprepared.”',
-        foeDown: '“The circle closes where it pleases. Even on mine.”',
-        foeHalf: '“Even a priestess can be weighed. Continue.”',
-        foeLast: '“One vow left to keep.”',
-        playerLow: '“A blade held very politely is still a blade.”',
+        start: '"A mark. Not a curse. Not yet."',
+        firstBloodYou: '"You strike before the promise ripens. Interesting."',
+        firstBloodFoe: '"I see you. I am coming. Prepare - I did say so."',
+        allyDown: '"The circle closed. It always closes on the unprepared."',
+        foeDown: '"The circle closes where it pleases. Even on mine."',
+        foeHalf: '"Even a priestess can be weighed. Continue."',
+        foeLast: '"One vow left to keep."',
+        playerLow: '"A blade held very politely is still a blade."',
       },
     },
     {
@@ -391,8 +419,8 @@ window.EOL = window.EOL || {};
       rival: 'The Warden of the Mid-Road',
       portrait: 'assets/rivals/the-warden-of-the-mid-road.png',
       mode: 'set',
-      format: 'Unabridged · Three gates',
-      terrain: 'Colosseum · Pass · Plains',
+      format: 'Unabridged - Three gates',
+      terrain: 'Colosseum - Pass - Plains',
       fightCard: ['colosseum', 'narrow-pass', 'open-plains'],
       line: 'Three toll arches, one Warden. Bring a deck you built yourself: best of three, mandatory substitutions, and NO RETREAT once it begins. Adapt or fall.',
       lock: 'Clear The Anointed',
@@ -417,19 +445,19 @@ window.EOL = window.EOL || {};
          not a set. The Warden fields adaptively and swaps in answers. */
       banProfile: {},
       grants: { choice: { count: 2, factions: ['camelot', 'sherwood', 'olympus'] }, coins: 220 },
-      resultWin: 'The Warden lays the iron key on the table. “You changed after winning. Go on.”',
-      resultLose: '“The Mid-Road keeps what does not adapt,” the Warden says. “Return ready.”',
+      resultWin: 'The Warden lays the iron key on the table. "You changed after winning. Go on."',
+      resultLose: '"The Mid-Road keeps what does not adapt," the Warden says. "Return ready."',
       barks: {
-        start: '“Three gates. Three battles. No retreat between them.”',
-        start2: '“The second gate knows what you did at the first.”',
-        start3: '“The last gate. Show me what you have unlearned.”',
-        firstBloodYou: '“Recorded. The Road remembers openings.”',
-        firstBloodFoe: '“Old answers become new problems. Adjust.”',
-        allyDown: '“You carried that one too far on habit alone.”',
-        foeDown: '“Noted. The next gate will not offer that trade twice.”',
-        foeHalf: '“Good. Winning once was never the lesson.”',
-        foeLast: '“Finish it properly. Sloppiness is a toll I collect.”',
-        playerLow: '“This is where people stop pretending they are passing through.”',
+        start: '"Three gates. Three battles. No retreat between them."',
+        start2: '"The second gate knows what you did at the first."',
+        start3: '"The last gate. Show me what you have unlearned."',
+        firstBloodYou: '"Recorded. The Road remembers openings."',
+        firstBloodFoe: '"Old answers become new problems. Adjust."',
+        allyDown: '"You carried that one too far on habit alone."',
+        foeDown: '"Noted. The next gate will not offer that trade twice."',
+        foeHalf: '"Good. Winning once was never the lesson."',
+        foeLast: '"Finish it properly. Sloppiness is a toll I collect."',
+        playerLow: '"This is where people stop pretending they are passing through."',
       },
     },
     {
@@ -443,21 +471,21 @@ window.EOL = window.EOL || {};
       field: 'energy-void',
       persona: 'trickster',
       pool: { featured: 'yamato' },
-      line: 'She deals twelve cards onto black stone. “You take one. Then I take one. The only cheating is pretending you did not want what you picked.” She will steal the pieces your plan needs.',
+      line: 'She deals twelve cards onto black stone. "You take one. Then I take one. The only cheating is pretending you did not want what you picked." She will steal the pieces your plan needs.',
       lock: 'Clear the Mid-Road',
       banProfile: {},
       grants: { cards: ['yamato-kaguya', 'yamato-benkei'], coins: 160 },
-      resultWin: 'The Trickster laughs until she nearly falls off her chair. “You picked for the future. Expensive.”',
-      resultLose: '“Every choice leaves another possible self across the table,” she grins. “Mine was better.”',
+      resultWin: 'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
+      resultLose: '"Every choice leaves another possible self across the table," she grins. "Mine was better."',
       barks: {
-        start: '“New rules! I will explain them after they stop helping me.”',
-        firstBloodYou: '“Rude. I had plans for that one.”',
-        firstBloodFoe: '“See, THIS is why you read the table before you sit at it.”',
-        allyDown: '“You handed me that one three picks ago.”',
-        foeDown: '“Ugh. I LIKED that card.”',
-        foeHalf: '“Okay. Okay! I am adjusting the rules again.”',
-        foeLast: '“One card left in my hand. Care to guess it?”',
-        playerLow: '“The Void keeps what you cannot pay for.”',
+        start: '"New rules! I will explain them after they stop helping me."',
+        firstBloodYou: '"Rude. I had plans for that one."',
+        firstBloodFoe: '"See, THIS is why you read the table before you sit at it."',
+        allyDown: '"You handed me that one three picks ago."',
+        foeDown: '"Ugh. I LIKED that card."',
+        foeHalf: '"Okay. Okay! I am adjusting the rules again."',
+        foeLast: '"One card left in my hand. Care to guess it?"',
+        playerLow: '"The Void keeps what you cannot pay for."',
       },
     },
     {
@@ -475,17 +503,17 @@ window.EOL = window.EOL || {};
       lock: 'Clear The Trickster',
       banProfile: {},
       grants: { cards: ['roma-julius-caesar', 'roma-brutus'], coins: 160 },
-      resultWin: 'He wipes the violet board clean with his sleeve. “Good. I hated being right.”',
-      resultLose: '“Every decision casts a shadow,” he says, not unkindly. “I only walked along yours.”',
+      resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
+      resultLose: '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
       barks: {
-        start: '“You will protect the center first. Then you will overcorrect.”',
-        firstBloodYou: '“An unpriced move. How irritating.”',
-        firstBloodFoe: '“That line was drawn four turns ago. You walked it anyway.”',
-        allyDown: '“A defeated echo is a path to another defeat. Watch.”',
-        foeDown: '“Acceptable loss. That phrase once cost me a city district.”',
-        foeHalf: '“The geometry is... shifting. Noted.”',
-        foeLast: '“One piece. Sufficient, if the pattern holds.”',
-        playerLow: '“Mercy is also a formation. You have chosen not to use it.”',
+        start: '"You will protect the center first. Then you will overcorrect."',
+        firstBloodYou: '"An unpriced move. How irritating."',
+        firstBloodFoe: '"That line was drawn four turns ago. You walked it anyway."',
+        allyDown: '"A defeated echo is a path to another defeat. Watch."',
+        foeDown: '"Acceptable loss. That phrase once cost me a city district."',
+        foeHalf: '"The geometry is... shifting. Noted."',
+        foeLast: '"One piece. Sufficient, if the pattern holds."',
+        playerLow: '"Mercy is also a formation. You have chosen not to use it."',
       },
     },
     {
@@ -503,17 +531,17 @@ window.EOL = window.EOL || {};
       lock: 'Clear The Strategist',
       banProfile: {},
       grants: { cards: ['takamagahara-amaterasu', 'takamagahara-izanami'], coins: 160 },
-      resultWin: 'The Chronicler closes the book on a page that refuses to stay blank. “Continuing,” they write.',
-      resultLose: '“I have shelved this outcome before,” the Chronicler sighs. “Try a different edition.”',
+      resultWin: 'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
+      resultLose: '"I have shelved this outcome before," the Chronicler sighs. "Try a different edition."',
       barks: {
-        start: '“You took your time. The Road is patient. I am a schedule.”',
-        firstBloodYou: '“Noted. Margin, red ink.”',
-        firstBloodFoe: '“That name goes in the ledger of the briefly promising.”',
-        allyDown: '“Every life leaves clutter. That one left less than most.”',
-        foeDown: '“Deceased. Filed. Next.”',
-        foeHalf: '“You are editing my collection. Stop it.”',
-        foeLast: '“The last witness. Be careful what you make them watch.”',
-        playerLow: '“When does preserving something become changing it? Look at your line and answer.”',
+        start: '"You took your time. The Road is patient. I am a schedule."',
+        firstBloodYou: '"Noted. Margin, red ink."',
+        firstBloodFoe: '"That name goes in the ledger of the briefly promising."',
+        allyDown: '"Every life leaves clutter. That one left less than most."',
+        foeDown: '"Deceased. Filed. Next."',
+        foeHalf: '"You are editing my collection. Stop it."',
+        foeLast: '"The last witness. Be careful what you make them watch."',
+        playerLow: '"When does preserving something become changing it? Look at your line and answer."',
       },
     },
     {
@@ -522,8 +550,8 @@ window.EOL = window.EOL || {};
       rival: 'The Last Guardian',
       portrait: 'assets/rivals/the-last-guardian.png',
       mode: 'set',
-      format: 'Unabridged · Three gates',
-      terrain: 'Void · Battlefield · Spirit World',
+      format: 'Unabridged - Three gates',
+      terrain: 'Void - Battlefield - Spirit World',
       fightCard: ['energy-void', 'blood-battlefield', 'spirit-world'],
       line: 'Before the bronze threshold stands a guardian who does not speak. Best of three across the ground you have already walked. Every road has one gate that does not speak.',
       lock: 'Clear The Chronicler',
@@ -549,14 +577,14 @@ window.EOL = window.EOL || {};
         choice: { count: 2, factions: ['camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'takamagahara'] },
         coins: 220,
       },
-      resultWin: 'The Guardian speaks, voice rough with disuse: “Then carry it.” The gate opens.',
+      resultWin: 'The Guardian speaks, voice rough with disuse: "Then carry it." The gate opens.',
       resultLose: 'The Guardian shakes her head once, and the gate stays shut. She will be here.',
       barks: {
         /* she does not speak - her barks are stage direction, not lines */
         start: 'The Guardian makes a sign with two fingers: I knew you would come.',
         start2: 'The Guardian resets her stance exactly. The door has not moved either.',
         start3: 'The Guardian tightens her grip on the wooden key. Last gate.',
-        firstBloodYou: 'The Guardian nods once — approval, or a warning.',
+        firstBloodYou: 'The Guardian nods once - approval, or a warning.',
         firstBloodFoe: 'The Guardian points to the dark wound in the gate, then makes a fist.',
         allyDown: 'The Guardian watches the echo fade. She has watched worse, for longer.',
         foeDown: 'The Guardian does not glance at her fallen. The door is all there is.',
@@ -571,10 +599,10 @@ window.EOL = window.EOL || {};
       rival: 'Gilgamesh',
       portrait: 'assets/rivals/gilgamesh.png',
       mode: 'set',
-      format: 'Unabridged · Final judgment',
-      terrain: "The Legend's Trial · Ruins · Mirror Realm",
+      format: 'Unabridged - Final judgment',
+      terrain: "The Legend's Trial - Ruins - Mirror Realm",
       fightCard: ['heros-trial', 'ancient-ruins', 'mirror-realm'],
-      line: 'The First King stands beside the great scales. He cannot be banned and he will not be benched — and the scales give life back: Isis walks with him. Beat the set, not one deck.',
+      line: 'The First King stands beside the great scales. He cannot be banned and he will not be benched - and the scales give life back: Isis walks with him. Beat the set, not one deck.',
       lock: 'Clear The Last Guardian',
       /* Duat's whole court + the wall Duat cannot field itself (§5
          trap 2) + the boss. Isis IS in the twelve - the chapter's only
@@ -598,20 +626,20 @@ window.EOL = window.EOL || {};
       unbannable: ['campaign-gilgamesh'],
       banProfile: { power: true },
       grants: { cards: ['duat-isis', 'duat-anubis'], coins: 400 },
-      resultWin: 'The scales balance. Gilgamesh bows his head. “Your story deserves to last.”',
-      resultLose: '“Death is not a mistake,” Gilgamesh says. “Neither is losing. Come back when you know the difference.”',
+      resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
+      resultLose: '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
       barks: {
-        start: '“Power. What you can do. Show me.”',
-        start2: '“Memory. What remains after you are gone. Show me.”',
-        start3: '“Self. What you become when no one is watching. Show me.”',
-        firstBloodYou: '“So the blank line has teeth. Enkidu would have liked you.”',
-        firstBloodFoe: '“The scales tip early. They usually correct themselves.”',
-        allyDown: '“Everything I loved, I outlived. Do not make my collection larger.”',
-        foeDown: '“Another witness gone. The hall remembers every one.”',
-        foeHalf: '“I crossed deserts, seas, graves and gods. You will need more than momentum.”',
-        foeLast: '“Now it is only me. It has been only me for a very long time.”',
-        playerLow: '“A story held too tightly becomes a prison. Loosen your grip and fight.”',
-        rivalRevive: '“The scales give life back. I told you they would.”',
+        start: '"Power. What you can do. Show me."',
+        start2: '"Memory. What remains after you are gone. Show me."',
+        start3: '"Self. What you become when no one is watching. Show me."',
+        firstBloodYou: '"So the blank line has teeth. Enkidu would have liked you."',
+        firstBloodFoe: '"The scales tip early. They usually correct themselves."',
+        allyDown: '"Everything I loved, I outlived. Do not make my collection larger."',
+        foeDown: '"Another witness gone. The hall remembers every one."',
+        foeHalf: '"I crossed deserts, seas, graves and gods. You will need more than momentum."',
+        foeLast: '"Now it is only me. It has been only me for a very long time."',
+        playerLow: '"A story held too tightly becomes a prison. Loosen your grip and fight."',
+        rivalRevive: '"The scales give life back. I told you they would."',
       },
     },
   ];
@@ -626,30 +654,30 @@ window.EOL = window.EOL || {};
      --------------------------------------------------------- */
   var DIALOGUES = {
     1: [
-      { speaker: 'The Recruiter', text: '\u201cName?\u201d' },
+      { speaker: 'The Recruiter', text: '"Name?"' },
       {
         speaker: 'The Wayfarer',
-        text: 'Nothing comes. You remember hands. A road. The precise ache of losing something important. The name itself is simply\u2026 gone.',
+        text: 'Nothing comes. You remember hands. A road. The precise ache of losing something important. The name itself is simply... gone.',
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cAh. That kind.\u201d He writes a blank line in the ledger, unhurried. \u201cHundreds of names in this book. Crossed out in red \u2014 devoured. Underlined in gold \u2014 continuing. Yours is the first blank I have written in a very long age.\u201d',
+        text: '"Ah. That kind." He writes a blank line in the ledger, unhurried. "Hundreds of names in this book. Crossed out in red - devoured. Underlined in gold - continuing. Yours is the first blank I have written in a very long age."',
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cYou are not exactly dead. You are not exactly alive either, which is why we must be quick \u2014 the thorns out there eat the undecided.\u201d',
+        text: '"You are not exactly dead. You are not exactly alive either, which is why we must be quick - the thorns out there eat the undecided."',
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cEvery Echo believes this road ends in immortality. Wrong. The Road is a question asked ten different ways: does your story deserve to last \u2014 and do you know the difference between lasting and refusing to end?\u201d',
+        text: '"Every Echo believes this road ends in immortality. Wrong. The Road is a question asked ten different ways: does your story deserve to last - and do you know the difference between lasting and refusing to end?"',
       },
       {
         speaker: 'The Recruiter',
-        text: 'He presses a brass coin into your palm. A road on one face; an empty chair on the other. \u201cWhat does it buy?\u201d you ask. \u201cPossibilities, if you are lucky. Regrets, if you are not.\u201d',
+        text: 'He presses a brass coin into your palm. A road on one face; an empty chair on the other. "What does it buy?" you ask. "Possibilities, if you are lucky. Regrets, if you are not."',
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cThe first gate is mine, and I do not trick the new \u2014 I will walk you through the war myself. Every ban, every rank, every drop of first blood. All the gate asks is that you survive yourself.\u201d',
+        text: '"The first gate is mine, and I do not trick the new - I will walk you through the war myself. Every ban, every rank, every drop of first blood. All the gate asks is that you survive yourself."',
         battle: true,
         final: true,
       },
@@ -661,20 +689,20 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Oathkeeper',
-        text: '\u201cDo not read those too long,\u201d says the old soldier, not looking up from the strap he is mending. \u201cEvery one of them was kept too late. Including mine.\u201d',
+        text: '"Do not read those too long," says the old soldier, not looking up from the strap he is mending. "Every one of them was kept too late. Including mine."',
       },
       {
         speaker: 'The Oathkeeper',
-        text: '\u201cThe Road says you have no name. A dangerous freedom, that. No name means no one has made a promise about you yet. No promise means none broken. I almost envy you.\u201d',
+        text: '"The Road says you have no name. A dangerous freedom, that. No name means no one has made a promise about you yet. No promise means none broken. I almost envy you."',
       },
-      { speaker: 'The Wayfarer', text: '\u201cWhat did they call you, before?\u201d' },
+      { speaker: 'The Wayfarer', text: '"What did they call you, before?"' },
       {
         speaker: 'The Oathkeeper',
-        text: '\u201cToo Late.\u201d He lets that sit. \u201cI promised forty-three people I would bring them home. I brought twelve. For years I told myself the oath died with the others \u2014 then this road taught me an oath does not die just because everyone who heard it did.\u201d',
+        text: '"Too Late." He lets that sit. "I promised forty-three people I would bring them home. I brought twelve. For years I told myself the oath died with the others - then this road taught me an oath does not die just because everyone who heard it did."',
       },
       {
         speaker: 'The Oathkeeper',
-        text: 'He stands \u2014 slowly, not from weakness but from economy \u2014 and lifts the shield. \u201cA wall is not built to keep danger out, child. It is built to tell danger where it must stop. Nothing touches your back line while I stand. So do the arithmetic: go through me.\u201d',
+        text: 'He stands - slowly, not from weakness but from economy - and lifts the shield. "A wall is not built to keep danger out, child. It is built to tell danger where it must stop. Nothing touches your back line while I stand. So do the arithmetic: go through me."',
         battle: true,
         final: true,
       },
@@ -682,24 +710,24 @@ window.EOL = window.EOL || {};
     3: [
       {
         speaker: 'The Wayfarer',
-        text: 'A rifle cracks. The stone at your feet splits clean in two. \u201cToo slow,\u201d calls a cheerful voice from the watchtree.',
+        text: 'A rifle cracks. The stone at your feet splits clean in two. "Too slow," calls a cheerful voice from the watchtree.',
       },
       {
         speaker: 'The Outlaw',
-        text: '\u201cRelax, Blank. If I wanted you dead you would have been a footnote back at the pass. The Recruiter walks slow and I get bored.\u201d She swings down, rifle across her shoulders like a yoke.',
+        text: '"Relax, Blank. If I wanted you dead you would have been a footnote back at the pass. The Recruiter walks slow and I get bored." She swings down, rifle across her shoulders like a yoke.',
       },
       {
         speaker: 'The Outlaw',
-        text: '\u201cHere is my science. Every warband has a favorite \u2014 a king, a bright one, a loud one. Everyone swears they love the whole company. Then I put a sight on the centre of their pride, and we find out what the love is made of.\u201d',
+        text: '"Here is my science. Every warband has a favorite - a king, a bright one, a loud one. Everyone swears they love the whole company. Then I put a sight on the centre of their pride, and we find out what the love is made of."',
       },
-      { speaker: 'The Wayfarer', text: '\u201cWhy?\u201d' },
+      { speaker: 'The Wayfarer', text: '"Why?"' },
       {
         speaker: 'The Outlaw',
-        text: '\u201cMy father kept a bookshop. When the soldiers came they did not burn the books first \u2014 they burned the RECORDS. The pages that said which books belonged to whom. Names in large type survived. The rest of us were scenery.\u201d Her smile thins. \u201cSo I shoot the large type, and the scenery remembers it has hands.\u201d',
+        text: '"My father kept a bookshop. When the soldiers came they did not burn the books first - they burned the RECORDS. The pages that said which books belonged to whom. Names in large type survived. The rest of us were scenery." Her smile thins. "So I shoot the large type, and the scenery remembers it has hands."',
       },
       {
         speaker: 'The Outlaw',
-        text: 'She taps the brass tube sight. \u201cProtect your brightest echo, or dangle it as bait \u2014 either answer tells me something true. Ready when you are. You are my favorite this season, and I always shoot my favorites first.\u201d',
+        text: 'She taps the brass tube sight. "Protect your brightest echo, or dangle it as bait - either answer tells me something true. Ready when you are. You are my favorite this season, and I always shoot my favorites first."',
         battle: true,
         final: true,
       },
@@ -707,24 +735,24 @@ window.EOL = window.EOL || {};
     4: [
       {
         speaker: 'The Wayfarer',
-        text: 'The spring turns the cave ceiling into a second, wavering sky. Light moves through the rings of a bronze astrolabe \u2014 and a gold circle blooms beneath your wolf. It snarls.',
+        text: 'The spring turns the cave ceiling into a second, wavering sky. Light moves through the rings of a bronze astrolabe - and a gold circle blooms beneath your wolf. It snarls.',
       },
-      { speaker: 'The Anointed', text: '\u201cA mark. Not a curse. Not yet.\u201d' },
+      { speaker: 'The Anointed', text: '"A mark. Not a curse. Not yet."' },
       {
         speaker: 'The Anointed',
-        text: 'You reach for the wolf. \u201cDo not,\u201d she says \u2014 and you stop, because her voice holds no threat at all. Only certainty. \u201cWatch.\u201d',
-      },
-      {
-        speaker: 'The Anointed',
-        text: '\u201cIn my first life I was taught that warning is mercy. A physician marks the wound before she cuts. A judge marks the guilty before the sentence. A mark is a promise: I see you. I am coming. Prepare.\u201d',
+        text: 'You reach for the wolf. "Do not," she says - and you stop, because her voice holds no threat at all. Only certainty. "Watch."',
       },
       {
         speaker: 'The Anointed',
-        text: '\u201cThen I learned that people who love power also love deciding who wears the circle. My city called me too useful to be allowed to doubt.\u201d The circle under the wolf brightens. \u201cSo now I doubt professionally.\u201d',
+        text: '"In my first life I was taught that warning is mercy. A physician marks the wound before she cuts. A judge marks the guilty before the sentence. A mark is a promise: I see you. I am coming. Prepare."',
       },
       {
         speaker: 'The Anointed',
-        text: '\u201cRead my promises, Wayfarer. Every one will be kept \u2014 on schedule, politely. Whether a promise becomes a prophecy is the only part that belongs to you.\u201d',
+        text: '"Then I learned that people who love power also love deciding who wears the circle. My city called me too useful to be allowed to doubt." The circle under the wolf brightens. "So now I doubt professionally."',
+      },
+      {
+        speaker: 'The Anointed',
+        text: '"Read my promises, Wayfarer. Every one will be kept - on schedule, politely. Whether a promise becomes a prophecy is the only part that belongs to you."',
         battle: true,
         final: true,
       },
@@ -736,28 +764,28 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: 'The Warden pours tea into four cups, though only three of you are present. You look at the extra cup. \u201cFor whom?\u201d \u2014 \u201cFor the person you were before you arrived.\u201d Her voice holds no cruelty. That makes it worse.',
+        text: 'The Warden pours tea into four cups, though only three of you are present. You look at the extra cup. "For whom?" - "For the person you were before you arrived." Her voice holds no cruelty. That makes it worse.',
       },
-      { speaker: 'The Wayfarer', text: '\u201cWhat is the Road? Truly.\u201d' },
+      { speaker: 'The Wayfarer', text: '"What is the Road? Truly."' },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: '\u201cNot a ladder. Not a tournament. Not even a judgement, though the First Legend enjoys the word. It is what was built because too many echoes did not know what to do after their stories ended.\u201d',
-      },
-      {
-        speaker: 'The Warden of the Mid-Road',
-        text: '\u201cSome become tyrants of their own old victories. Some become ghosts wearing their greatest wound like a crown. Some grow hungry enough to erase other stories just to make room. The Road teaches carrying instead. The guardians are not gatekeepers \u2014 we reached a door and chose to stay, because someone had to, once the Road began to break.\u201d',
+        text: '"Not a ladder. Not a tournament. Not even a judgement, though the First Legend enjoys the word. It is what was built because too many echoes did not know what to do after their stories ended."',
       },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: '\u201cAnd you should know: you are not an Echo in the ordinary sense. Echoes arrive carrying an ending. You arrived carrying an absence. Gilgamesh has waited for a blank line longer than I have stood this watch.\u201d',
+        text: '"Some become tyrants of their own old victories. Some become ghosts wearing their greatest wound like a crown. Some grow hungry enough to erase other stories just to make room. The Road teaches carrying instead. The guardians are not gatekeepers - we reached a door and chose to stay, because someone had to, once the Road began to break."',
       },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: 'She takes up the unlit signal lantern. \u201cNow bring twelve you chose yourself \u2014 the Road stops lending its hand at my table. Three gates. Best of three. Substitutions are law, and there is NO RETREAT once it begins.\u201d',
+        text: '"And you should know: you are not an Echo in the ordinary sense. Echoes arrive carrying an ending. You arrived carrying an absence. Gilgamesh has waited for a blank line longer than I have stood this watch."',
       },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: '\u201cThe lesson is not whether you can win once. It is whether you can change after winning. Most cannot. Prove me wrong and I will pour the fourth cup out myself.\u201d',
+        text: 'She takes up the unlit signal lantern. "Now bring twelve you chose yourself - the Road stops lending its hand at my table. Three gates. Best of three. Substitutions are law, and there is NO RETREAT once it begins."',
+      },
+      {
+        speaker: 'The Warden of the Mid-Road',
+        text: '"The lesson is not whether you can win once. It is whether you can change after winning. Most cannot. Prove me wrong and I will pour the fourth cup out myself."',
         battle: true,
         final: true,
       },
@@ -765,24 +793,24 @@ window.EOL = window.EOL || {};
     6: [
       {
         speaker: 'The Trickster',
-        text: '\u201cFINALLY. A blank person!\u201d The gambler kicks her boots off the table. \u201cI was starting to think the Road had become a retirement home with better lighting.\u201d',
+        text: '"FINALLY. A blank person!" The gambler kicks her boots off the table. "I was starting to think the Road had become a retirement home with better lighting."',
       },
       {
         speaker: 'The Wayfarer',
-        text: 'Cards drift through the violet dark around her table \u2014 swords never drawn, promises never spoken, names never chosen for children never born. She fans a hand of them onto the black stone.',
+        text: 'Cards drift through the violet dark around her table - swords never drawn, promises never spoken, names never chosen for children never born. She fans a hand of them onto the black stone.',
       },
       {
         speaker: 'The Trickster',
-        text: '\u201cHouse rules. The Road deals possible selves. You take one. Then I take one. Then you take one. The only cheating on this table is pretending you did not want what you picked.\u201d',
+        text: '"House rules. The Road deals possible selves. You take one. Then I take one. Then you take one. The only cheating on this table is pretending you did not want what you picked."',
       },
-      { speaker: 'The Wayfarer', text: '\u201cWhat happened to you?\u201d' },
+      { speaker: 'The Wayfarer', text: '"What happened to you?"' },
       {
         speaker: 'The Trickster',
-        text: '\u201cRude.\u201d A pause. \u201cFine. In my first story I was the hero\u2019s sister. I had three lines. \u2018Brother, be careful.\u2019 \u2018Brother, come home.\u2019 The third was never printed.\u201d She shuffles without looking. \u201cSo I learned to deal myself into other stories. Now I have ALL the lines.\u201d',
+        text: '"Rude." A pause. "Fine. In my first story I was the hero\'s sister. I had three lines. \'Brother, be careful.\' \'Brother, come home.\' The third was never printed." She shuffles without looking. "So I learned to deal myself into other stories. Now I have ALL the lines."',
       },
       {
         speaker: 'The Trickster',
-        text: '\u201cFair warning, Blank: whatever your pretty plan needs, I intend to be holding it. Draft like someone is robbing you.\u201d She grins. \u201cSomeone is.\u201d',
+        text: '"Fair warning, Blank: whatever your pretty plan needs, I intend to be holding it. Draft like someone is robbing you." She grins. "Someone is."',
         battle: true,
         final: true,
       },
@@ -790,20 +818,20 @@ window.EOL = window.EOL || {};
     7: [
       {
         speaker: 'The Strategist',
-        text: 'The old man does not look up from his wax board. \u201cYou will protect the centre first. Then you will overcorrect. Then you will discover that mercy is also a formation.\u201d',
+        text: 'The old man does not look up from his wax board. "You will protect the centre first. Then you will overcorrect. Then you will discover that mercy is also a formation."',
       },
-      { speaker: 'The Wayfarer', text: '\u201cHow do you know that?\u201d' },
+      { speaker: 'The Wayfarer', text: '"How do you know that?"' },
       {
         speaker: 'The Strategist',
-        text: '\u201cBecause every decision casts a shadow. You call it choice, since you can only see the hand that makes it. I call it geometry \u2014 I can see the lines afterward.\u201d He tilts the board: violet paths cross and recross. Some end in small circles. Some end in ash.',
-      },
-      {
-        speaker: 'The Strategist',
-        text: '\u201cIn my life I advised a city at war. I was very good. I saved it \u2014 by choosing which villages burned first. They minted coins with my face on them.\u201d The wind tugs his purple mantle. \u201cPraise is not acquittal. That is why I am here.\u201d',
+        text: '"Because every decision casts a shadow. You call it choice, since you can only see the hand that makes it. I call it geometry - I can see the lines afterward." He tilts the board: violet paths cross and recross. Some end in small circles. Some end in ash.',
       },
       {
         speaker: 'The Strategist',
-        text: '\u201cWe will draft now. Understand me: I will not be drafting cards. I will be drafting your habits.\u201d He wipes a corner of the board clean, making room for you. \u201cProve the pattern is not destiny. I would love to be wrong twice in one century.\u201d',
+        text: '"In my life I advised a city at war. I was very good. I saved it - by choosing which villages burned first. They minted coins with my face on them." The wind tugs his purple mantle. "Praise is not acquittal. That is why I am here."',
+      },
+      {
+        speaker: 'The Strategist',
+        text: '"We will draft now. Understand me: I will not be drafting cards. I will be drafting your habits." He wipes a corner of the board clean, making room for you. "Prove the pattern is not destiny. I would love to be wrong twice in one century."',
         battle: true,
         final: true,
       },
@@ -811,27 +839,27 @@ window.EOL = window.EOL || {};
     8: [
       {
         speaker: 'The Chronicler',
-        text: '\u201cYou took your time.\u201d \u2014 \u201cThe Road is long,\u201d you say. \u201cNo. The Road is patient. You are the one taking time.\u201d',
+        text: '"You took your time." - "The Road is long," you say. "No. The Road is patient. You are the one taking time."',
       },
       {
         speaker: 'The Chronicler',
-        text: 'They turn a book toward you. Its pages are blank. \u201cThis is you. There should be an origin. An ending. Witnesses, revisions, contradictions \u2014 every life leaves clutter. You have none. I wrote on your page once, in my own ink.\u201d A pause. \u201cThe ink vanished.\u201d',
+        text: 'They turn a book toward you. Its pages are blank. "This is you. There should be an origin. An ending. Witnesses, revisions, contradictions - every life leaves clutter. You have none. I wrote on your page once, in my own ink." A pause. "The ink vanished."',
       },
       {
         speaker: 'The Chronicler',
-        text: '\u201cThere is a hunger outside the Road. We call it the Quiet. It does not kill stories \u2014 killing would be simpler. It removes the part that makes anyone CARE the story existed.\u201d',
+        text: '"There is a hunger outside the Road. We call it the Quiet. It does not kill stories - killing would be simpler. It removes the part that makes anyone CARE the story existed."',
       },
       {
         speaker: 'The Chronicler',
-        text: '\u201cA town remembers it had a king, but not his name. A woman remembers loving someone, but not whom. A song keeps its melody and loses every word. Emptiness is greedy \u2014 and you, Blank, smell like its favorite meal.\u201d',
+        text: '"A town remembers it had a king, but not his name. A woman remembers loving someone, but not whom. A song keeps its melody and loses every word. Emptiness is greedy - and you, Blank, smell like its favorite meal."',
       },
       {
         speaker: 'The Chronicler',
-        text: 'They set the pen down with terrible care. \u201cI have seen a page like yours exactly once before. A guardian. Before she became the Last.\u201d',
+        text: 'They set the pen down with terrible care. "I have seen a page like yours exactly once before. A guardian. Before she became the Last."',
       },
       {
         speaker: 'The Chronicler',
-        text: '\u201cSo. I will burn what is already hurt. I will cleanse what has been poisoned. I will silence what might become dangerous. If you are worth the shelf space, prove it against the full catalogue.\u201d',
+        text: '"So. I will burn what is already hurt. I will cleanse what has been poisoned. I will silence what might become dangerous. If you are worth the shelf space, prove it against the full catalogue."',
         battle: true,
         final: true,
       },
@@ -839,23 +867,23 @@ window.EOL = window.EOL || {};
     9: [
       {
         speaker: 'The Wayfarer',
-        text: 'The final gate stands at the end of every road at once. Behind you the ground remembers everywhere you have walked \u2014 colosseum, pass, plains. Before the gate waits a woman in scarred armor, a wooden key taller than her shoulder strapped across her back. She does not speak.',
+        text: 'The final gate stands at the end of every road at once. Behind you the ground remembers everywhere you have walked - colosseum, pass, plains. Before the gate waits a woman in scarred armor, a wooden key taller than her shoulder strapped across her back. She does not speak.',
       },
       {
         speaker: 'The Recruiter',
-        text: 'The Guardian signs with two fingers, then two more. The Recruiter translates softly. \u201cShe says: I knew you would come.\u201d',
+        text: 'The Guardian signs with two fingers, then two more. The Recruiter translates softly. "She says: I knew you would come."',
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cShe was like you, once. A living story. The Quiet found her world before her ending could be written \u2014 the Road took what it could save.\u201d',
+        text: '"She was like you, once. A living story. The Quiet found her world before her ending could be written - the Road took what it could save."',
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cShe reached this gate and learned her name was the last thread tying the Quiet to her old life. She cut it. Not to be forgotten \u2014 to keep the forgetting from crossing after her. Do not ask her for your name. Ask her what she gave up to keep hers, and she will show you the answer holding a door shut.\u201d',
+        text: '"She reached this gate and learned her name was the last thread tying the Quiet to her old life. She cut it. Not to be forgotten - to keep the forgetting from crossing after her. Do not ask her for your name. Ask her what she gave up to keep hers, and she will show you the answer holding a door shut."',
       },
       {
         speaker: 'The Recruiter',
-        text: 'The Guardian points at you. Then at the thin dark wound running down the centre of the gate. Then she makes a fist. \u201cShe says the Quiet followed you. Not because you are weak \u2014 because an unfinished story is a door.\u201d',
+        text: 'The Guardian points at you. Then at the thin dark wound running down the centre of the gate. Then she makes a fist. "She says the Quiet followed you. Not because you are weak - because an unfinished story is a door."',
       },
       {
         speaker: 'The Recruiter',
@@ -867,29 +895,29 @@ window.EOL = window.EOL || {};
     10: [
       {
         speaker: 'The Wayfarer',
-        text: 'He is not sitting on the throne. He stands beside it, like a man long tired of ceremonies he himself invented. At the centre of the hall: scales large enough to weigh a city. On one pan, a cedar tablet. On the other \u2014 nothing.',
+        text: 'He is not sitting on the throne. He stands beside it, like a man long tired of ceremonies he himself invented. At the centre of the hall: scales large enough to weigh a city. On one pan, a cedar tablet. On the other - nothing.',
       },
       {
         speaker: 'Gilgamesh',
-        text: '\u201cWayfarer.\u201d The name is not a name. It is an acknowledgement of the space where one should be. \u201cI know what you are not. That is often the beginning.\u201d',
+        text: '"Wayfarer." The name is not a name. It is an acknowledgement of the space where one should be. "I know what you are not. That is often the beginning."',
       },
       {
         speaker: 'Gilgamesh',
-        text: '\u201cI loved a man named Enkidu. When he died I decided the world had made an error, and I crossed deserts, seas, graves and gods to file my complaint. The answer was no. Death is not a mistake. I hated the answer \u2014 so I asked a different question.\u201d',
+        text: '"I loved a man named Enkidu. When he died I decided the world had made an error, and I crossed deserts, seas, graves and gods to file my complaint. The answer was no. Death is not a mistake. I hated the answer - so I asked a different question."',
       },
-      { speaker: 'Gilgamesh', text: '\u201cWhat if nothing were ever forgotten?\u201d' },
-      { speaker: 'The Wayfarer', text: '\u201cThe Quiet.\u201d' },
+      { speaker: 'Gilgamesh', text: '"What if nothing were ever forgotten?"' },
+      { speaker: 'The Wayfarer', text: '"The Quiet."' },
       {
         speaker: 'Gilgamesh',
-        text: '\u201cMy question, grown teeth.\u201d He does not flinch from it. \u201cMemory without mercy becomes hunger. A story held too tightly becomes a prison. I built the Road to teach legends to be carried by the living \u2014 not to devour them. You are the first blank line ever to reach the tenth gate.\u201d',
-      },
-      {
-        speaker: 'Gilgamesh',
-        text: 'Three doors open in the hall. \u201cPower \u2014 what you can do. Memory \u2014 what remains when you are gone. Self \u2014 what you become when no one is watching. I fight in all three. I cannot be banned from my own judgement, and the scales walk with me. They give life back. That is not a threat; it is a schedule.\u201d',
+        text: '"My question, grown teeth." He does not flinch from it. "Memory without mercy becomes hunger. A story held too tightly becomes a prison. I built the Road to teach legends to be carried by the living - not to devour them. You are the first blank line ever to reach the tenth gate."',
       },
       {
         speaker: 'Gilgamesh',
-        text: '\u201cYou want your name. I know. If I hand it to you, you will wear it because a king said it was yours \u2014 and that is not a name, that is a chain. Take it from my hands the only way that means anything.\u201d He steps away from the throne. \u201cThe trial remains.\u201d',
+        text: 'Three doors open in the hall. "Power - what you can do. Memory - what remains when you are gone. Self - what you become when no one is watching. I fight in all three. I cannot be banned from my own judgement, and the scales walk with me. They give life back. That is not a threat; it is a schedule."',
+      },
+      {
+        speaker: 'Gilgamesh',
+        text: '"You want your name. I know. If I hand it to you, you will wear it because a king said it was yours - and that is not a name, that is a chain. Take it from my hands the only way that means anything." He steps away from the throne. "The trial remains."',
         battle: true,
         final: true,
       },
@@ -905,7 +933,7 @@ window.EOL = window.EOL || {};
     1: [
       {
         speaker: 'The Recruiter',
-        text: 'The old man closes the ledger \u2014 then thinks better of it and opens it again. \u201cHansel and Gretel: banned, and furious about it. Cinderella: banned, and gracious about it. It is always the ones who promise happy endings who fight hardest when someone tries to delete them.\u201d',
+        text: 'The old man closes the ledger - then thinks better of it and opens it again. "Hansel and Gretel: banned, and furious about it. Cinderella: banned, and gracious about it. It is always the ones who promise happy endings who fight hardest when someone tries to delete them."',
       },
       {
         speaker: 'The Wayfarer',
@@ -913,93 +941,93 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Recruiter',
-        text: '\u201cI did not write that,\u201d he says quietly. \u201cThe Road did.\u201d He packs the lantern. \u201cThe Oathkeeper holds the pass ahead. He has been arguing with a wall for two hundred years \u2014 go lose the argument politely, and mind the shields. They read back.\u201d',
+        text: '"I did not write that," he says quietly. "The Road did." He packs the lantern. "The Oathkeeper holds the pass ahead. He has been arguing with a wall for two hundred years - go lose the argument politely, and mind the shields. They read back."',
         final: true,
       },
     ],
     2: [
       {
         speaker: 'The Oathkeeper',
-        text: 'He unwinds the white oath sash from beneath his armor \u2014 repaired so many times that no original thread remains \u2014 and cuts it in two without hesitating. He has clearly rehearsed letting go.',
+        text: 'He unwinds the white oath sash from beneath his armor - repaired so many times that no original thread remains - and cuts it in two without hesitating. He has clearly rehearsed letting go.',
       },
       {
         speaker: 'The Oathkeeper',
-        text: '\u201cTwo of mine walk with you now. The king who holds. The knight who answers. Do not spend them on doors that open politely.\u201d King Arthur and Lancelot join your echoes.',
+        text: '"Two of mine walk with you now. The king who holds. The knight who answers. Do not spend them on doors that open politely." King Arthur and Lancelot join your echoes.',
       },
       {
         speaker: 'The Oathkeeper',
-        text: '\u201cStrength is the cheapest thing on this road \u2014 every dead man had some. Deciding what it is FOR: that is the toll.\u201d He sits back down to his mending. \u201cThe Outlaw is next. She will test your convictions from four hundred paces. Walk in zigzags.\u201d',
+        text: '"Strength is the cheapest thing on this road - every dead man had some. Deciding what it is FOR: that is the toll." He sits back down to his mending. "The Outlaw is next. She will test your convictions from four hundred paces. Walk in zigzags."',
         final: true,
       },
     ],
     3: [
       {
         speaker: 'The Outlaw',
-        text: 'She cleans the rifle with a strip of blue cloth and does not look at you. \u201cA street of bookshop records burns in about a minute. Did you know that? A whole neighborhood of WHO OWNS WHAT. One minute.\u201d',
+        text: 'She cleans the rifle with a strip of blue cloth and does not look at you. "A street of bookshop records burns in about a minute. Did you know that? A whole neighborhood of WHO OWNS WHAT. One minute."',
       },
       {
         speaker: 'The Outlaw',
-        text: '\u201cTake the archer and the big man. One knows how to aim. One knows how to stand beside an aim without becoming its shadow.\u201d Robin Hood and Little John walk with you now.',
+        text: '"Take the archer and the big man. One knows how to aim. One knows how to stand beside an aim without becoming its shadow." Robin Hood and Little John walk with you now.',
       },
       {
         speaker: 'The Outlaw',
-        text: '\u201cThe Anointed is next \u2014 and her marks are worse than my bullets. Bullets are honest. A mark tells you exactly what will happen, then waits to see if you are fool enough to allow it.\u201d She reloads with exaggerated care. \u201cDon\u2019t be. I want a rematch someday.\u201d',
+        text: '"The Anointed is next - and her marks are worse than my bullets. Bullets are honest. A mark tells you exactly what will happen, then waits to see if you are fool enough to allow it." She reloads with exaggerated care. "Don\'t be. I want a rematch someday."',
         final: true,
       },
     ],
     4: [
       {
         speaker: 'The Anointed',
-        text: 'At the end, the Anointed turns the astrolabe on herself. The circle at her feet glows gold \u2014 then goes dark, unanswered. \u201cI was marked once. My city said I had become too useful to be allowed to doubt. The Road let me keep the difference between usefulness and obedience. It is the only thing I carried out.\u201d',
+        text: 'At the end, the Anointed turns the astrolabe on herself. The circle at her feet glows gold - then goes dark, unanswered. "I was marked once. My city said I had become too useful to be allowed to doubt. The Road let me keep the difference between usefulness and obedience. It is the only thing I carried out."',
       },
       {
         speaker: 'The Anointed',
-        text: '\u201cTake the stormfather and the strong one. Zeus sets the promise and keeps it in the same breath \u2014 study that until it stops impressing you.\u201d Zeus and Hercules join your echoes.',
+        text: '"Take the stormfather and the strong one. Zeus sets the promise and keeps it in the same breath - study that until it stops impressing you." Zeus and Hercules join your echoes.',
       },
       {
         speaker: 'The Anointed',
-        text: 'The pool drains from the centre platform, revealing a stair. At its base wait three doors, and on the middle one a brass plaque with no name \u2014 only a question. WHAT DO YOU WANT TO OUTLIVE? \u201cAnswer carefully,\u201d she says. \u201cThe Warden collects answers the way I collect promises.\u201d',
+        text: 'The pool drains from the centre platform, revealing a stair. At its base wait three doors, and on the middle one a brass plaque with no name - only a question. WHAT DO YOU WANT TO OUTLIVE? "Answer carefully," she says. "The Warden collects answers the way I collect promises."',
         final: true,
       },
     ],
     5: [
       {
         speaker: 'The Warden of the Mid-Road',
-        text: '\u201cYou changed between the gates. Most arrive with one answer and beat it against all three doors until something breaks.\u201d She lays the iron key on the table like a verdict. \u201cYou do not want immortality yet. Good. Wanting it too early ruins people \u2014 I keep the graves that prove it.\u201d',
+        text: '"You changed between the gates. Most arrive with one answer and beat it against all three doors until something breaks." She lays the iron key on the table like a verdict. "You do not want immortality yet. Good. Wanting it too early ruins people - I keep the graves that prove it."',
       },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: 'She offers two choice-echoes, their shapes flickering in your palm \u2014 a knight, an archer, a healer, a stormbearer. \u201cChoose what you will carry. Not because it is strongest. Because it will change what you become.\u201d',
+        text: 'She offers two choice-echoes, their shapes flickering in your palm - a knight, an archer, a healer, a stormbearer. "Choose what you will carry. Not because it is strongest. Because it will change what you become."',
       },
       {
         speaker: 'The Warden of the Mid-Road',
-        text: 'The fourth gate opens without being touched. From somewhere beyond it comes laughter \u2014 bright, young, entirely unafraid. The Warden closes her eyes briefly. \u201cThe Trickster has decided the Road is getting serious. My condolences to you both.\u201d',
+        text: 'The fourth gate opens without being touched. From somewhere beyond it comes laughter - bright, young, entirely unafraid. The Warden closes her eyes briefly. "The Trickster has decided the Road is getting serious. My condolences to you both."',
         final: true,
       },
     ],
     6: [
       {
         speaker: 'The Trickster',
-        text: 'She pays up without sulking: two Yamato echoes, and a small lacquered tile with no image on either side. \u201cWhat is it?\u201d \u2014 \u201cA reminder that every road forks before you can see it. And that someone keeps records of which fork you chose.\u201d',
+        text: 'She pays up without sulking: two Yamato echoes, and a small lacquered tile with no image on either side. "What is it?" - "A reminder that every road forks before you can see it. And that someone keeps records of which fork you chose."',
       },
       {
         speaker: 'The Trickster',
-        text: 'For one moment the grin goes out entirely. \u201cThe Strategist will tell you choice is a pattern. Charming man. He buried a hundred thousand people inside his arithmetic and it BALANCED.\u201d The grin returns, sharpened. \u201cDo not let him convince you the pattern is destiny. I bet him you wouldn\u2019t.\u201d',
+        text: 'For one moment the grin goes out entirely. "The Strategist will tell you choice is a pattern. Charming man. He buried a hundred thousand people inside his arithmetic and it BALANCED." The grin returns, sharpened. "Do not let him convince you the pattern is destiny. I bet him you wouldn\'t."',
         final: true,
       },
     ],
     7: [
       {
         speaker: 'The Strategist',
-        text: 'He wipes the violet board clean with his sleeve \u2014 a century of predicted futures, gone in one motion. \u201cGood,\u201d he says. \u201cI hated being right.\u201d',
+        text: 'He wipes the violet board clean with his sleeve - a century of predicted futures, gone in one motion. "Good," he says. "I hated being right."',
       },
       {
         speaker: 'The Strategist',
-        text: '\u201cTake Caesar and Brutus. Caesar ends what he starts. Brutus ends what Caesar starts. Between them you will learn what a kill is worth BEFORE you pay for it, which is the only time the price can be argued.\u201d',
+        text: '"Take Caesar and Brutus. Caesar ends what he starts. Brutus ends what Caesar starts. Between them you will learn what a kill is worth BEFORE you pay for it, which is the only time the price can be argued."',
       },
       {
         speaker: 'The Strategist',
-        text: 'He presses a small brass measuring pin into your hand. \u201cTake this to the Chronicler. She will know why your line does not begin where it should.\u201d \u2014 \u201cWill she tell me?\u201d \u2014 \u201cShe will tell you far too much. It is her only kindness.\u201d',
+        text: 'He presses a small brass measuring pin into your hand. "Take this to the Chronicler. She will know why your line does not begin where it should." - "Will she tell me?" - "She will tell you far too much. It is her only kindness."',
         final: true,
       },
     ],
@@ -1010,11 +1038,11 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Chronicler',
-        text: 'The Chronicler goes pale beneath the ash tone of their skin. \u201cThat page was sealed.\u201d \u2014 \u201cBy whom?\u201d \u2014 \u201cGilgamesh.\u201d The rootless trees shiver without wind. Somewhere very far away, something notices that it has been named.',
+        text: 'The Chronicler goes pale beneath the ash tone of their skin. "That page was sealed." - "By whom?" - "Gilgamesh." The rootless trees shiver without wind. Somewhere very far away, something notices that it has been named.',
       },
       {
         speaker: 'The Chronicler',
-        text: 'They tear the page free, far too late, and press two Takamagahara echoes into your hands \u2014 the dawn and the dusk. \u201cGo to the Last Guardian. Do not ask her for your name. Ask her what she gave up to keep hers.\u201d',
+        text: 'They tear the page free, far too late, and press two Takamagahara echoes into your hands - the dawn and the dusk. "Go to the Last Guardian. Do not ask her for your name. Ask her what she gave up to keep hers."',
         final: true,
       },
     ],
@@ -1025,11 +1053,11 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Wayfarer',
-        text: '\u201cI do not know my name,\u201d you said. \u201cBut I know what it is for now.\u201d',
+        text: '"I do not know my name," you said. "But I know what it is for now."',
       },
       {
         speaker: 'The Last Guardian',
-        text: 'She put her hand over yours on the key. And for the first time in centuries she spoke, her voice rough as a rusted hinge. \u201cThen carry it.\u201d The gate opened \u2014 and the Quiet recoiled from the sound of a name she did not say.',
+        text: 'She put her hand over yours on the key. And for the first time in centuries she spoke, her voice rough as a rusted hinge. "Then carry it." The gate opened - and the Quiet recoiled from the sound of a name she did not say.',
       },
       {
         speaker: 'The Wayfarer',
@@ -1040,19 +1068,19 @@ window.EOL = window.EOL || {};
     10: [
       {
         speaker: 'The Wayfarer',
-        text: 'On one pan of the great scales rests the cedar tablet. Onto the other, the road lays itself down: a brass coin, a torn sash, a strip of blue cloth, an astrolabe ring, an iron key, a blank tile, a measuring pin, a torn page \u2014 and an unspoken silence. The scales balance.',
+        text: 'On one pan of the great scales rests the cedar tablet. Onto the other, the road lays itself down: a brass coin, a torn sash, a strip of blue cloth, an astrolabe ring, an iron key, a blank tile, a measuring pin, a torn page - and an unspoken silence. The scales balance.',
       },
       {
         speaker: 'Gilgamesh',
-        text: 'Gilgamesh bows his head. \u201cYour story deserves to last.\u201d From him it does not sound like a verdict. It sounds like an apology, accepted at last.',
+        text: 'Gilgamesh bows his head. "Your story deserves to last." From him it does not sound like a verdict. It sounds like an apology, accepted at last.',
       },
       {
         speaker: 'Gilgamesh',
-        text: '\u201cTwo witnesses go with you. The scale that gives life back. The jackal that closes accounts.\u201d Isis and Anubis join your echoes. \u201cNot rewards, Wayfarer. Witnesses.\u201d',
+        text: '"Two witnesses go with you. The scale that gives life back. The jackal that closes accounts." Isis and Anubis join your echoes. "Not rewards, Wayfarer. Witnesses."',
       },
       {
         speaker: 'Gilgamesh',
-        text: 'A final gate opens behind the throne: mud brick, bronze, river light, impossible age. \u201cUruk,\u201d he says. And far back down the Road, at a folding table by the first bend, an old man in a moss-green coat watches the blank line in his ledger fill at last \u2014 not with a name. With a sentence.',
+        text: 'A final gate opens behind the throne: mud brick, bronze, river light, impossible age. "Uruk," he says. And far back down the Road, at a folding table by the first bend, an old man in a moss-green coat watches the blank line in his ledger fill at last - not with a name. With a sentence.',
       },
       { speaker: 'The Wayfarer', text: 'THE STORY CONTINUES.', final: true },
     ],

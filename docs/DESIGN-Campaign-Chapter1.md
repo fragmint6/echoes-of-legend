@@ -21,12 +21,20 @@
 >   bar. Rivals also **speak during the match** via a pointer-transparent,
 >   self-expiring bark card front-and-centre under the HUD - lines queue,
 >   honouring §6's law that blocking overlays are for pre/post-fight only.
-> - **Gate I is fully scripted** (owner ruling 2026-08-08): no deck
->   picker (the starter twelve is the deck), the bans and the six are the
->   ledger's marked picks - enforced in `js/play.js` (`cfg.script`),
->   narrated by the tutor bubble (`js/campaign.js`), with round-boundary
->   lessons (basics, energy income, signatures, the round-4 ramp) riding
->   the bark queue via a `campaign.onBattleRound` hook.
+> - **Gate I is fully scripted end-to-end** (owner rulings 2026-08-08):
+>   no deck picker (the starter twelve is the deck), the bans and the
+>   ordered six are the ledger's marked picks (each fielded legend earns
+>   a role lesson; the six covers all six roles, Controller included),
+>   the arena and the tip-dots get taught, informational beats raise a
+>   dim click-shield until Continue - and **the whole match is a
+>   pre-computed line**: every move on both sides is authored data,
+>   generated against the real engine under a seeded rng
+>   (`sim/gen_gate1_line.js`), replayed by hand in the browser with the
+>   UI refusing everything off-script. The frozen line wins, casts all
+>   six signatures, loses nobody - and `sim/verify_campaign.js` replays
+>   it after every balance patch so a nerf can never silently derail
+>   the tutorial. If the line ever desyncs at runtime the script aborts
+>   gracefully into a normal fight, in character.
 > - **Coverage:** `sim/verify_campaign.js` (deck legality per §9.8, grant
 >   curriculum, terrain wiring, pool constraints, boss flags + an engine
 >   smoke with the boss on the board). `sim/verify_all.js` stays green.

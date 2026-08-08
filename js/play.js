@@ -1222,15 +1222,16 @@
     }
     if (p.phase === 'pick' && p.script.six) {
       var fielded = p.front.concat(p.back);
-      var foeBanList = p.botBans || [];
+      /* one at a time, in the ledger's order: only the NEXT card pulses */
+      var nextId = null;
+      for (var si = 0; si < p.script.six.length; si++) {
+        if (fielded.indexOf(p.script.six[si]) < 0) {
+          nextId = p.script.six[si];
+          break;
+        }
+      }
       document.querySelectorAll('#prep-player .prep-c').forEach(function (el) {
-        var id = el.dataset.cid;
-        mark(
-          el,
-          foeBanList.indexOf(id) < 0 &&
-            p.script.six.indexOf(id) >= 0 &&
-            fielded.indexOf(id) < 0
-        );
+        mark(el, el.dataset.cid === nextId);
       });
       mark($('prep-confirm'), fielded.length === RULES().FIELD_SIZE);
     }
@@ -1471,12 +1472,27 @@
     if (prep.lockouts && prep.lockouts.indexOf(id) >= 0) return;
     var all = prep.front.concat(prep.back);
     var idx = all.indexOf(id);
-    /* THE SCRIPT (gate I): only the marked six may be ADDED. Removing
-       a slotted hero stays legal so the player can shuffle rows. */
-    if (idx < 0 && prep.script && prep.script.six && prep.script.six.indexOf(id) < 0) {
-      toast(prep.script.hintSix || 'Field the marked six - this gate is scripted', 'ra-quill-ink');
-      flashNode('prep-player-note');
-      return;
+    /* THE SCRIPT (gate I): the six is fielded ONE AT A TIME, in the
+       ledger's order - the whole match line depends on the exact
+       formation, so removals and shuffles are refused too. */
+    if (prep.script && prep.script.six) {
+      if (idx >= 0) {
+        toast('The ledger placed that one - the formation stands', 'ra-quill-ink');
+        flashNode('prep-player-note');
+        return;
+      }
+      var nextId = null;
+      for (var si = 0; si < prep.script.six.length; si++) {
+        if (all.indexOf(prep.script.six[si]) < 0) {
+          nextId = prep.script.six[si];
+          break;
+        }
+      }
+      if (id !== nextId) {
+        toast(prep.script.hintSix || 'Field the marked card - this gate is scripted', 'ra-quill-ink');
+        flashNode('prep-player-note');
+        return;
+      }
     }
     if (idx >= 0) {
       var fi = prep.front.indexOf(id);
@@ -1565,6 +1581,13 @@
   }
 
   function swapRow(id, from) {
+    /* THE SCRIPT (gate I): the ledger set the rows; the match line
+       depends on them. */
+    if (prep && prep.script && prep.script.six) {
+      toast('The ledger set the rows - they stand', 'ra-quill-ink');
+      flashNode('prep-sub');
+      return;
+    }
     var src = from === 'front' ? prep.front : prep.back;
     var dst = from === 'front' ? prep.back : prep.front;
     if (dst.length >= 3) {
@@ -1764,11 +1787,28 @@
     var cfg = prep;
     prep = null;
     window.EOL.ui.show('battle');
+    /* THE SCRIPTED MATCH (gate I): the pre-computed line replays only
+       on its own dice, so the battle takes the script's seeded rng.
+       Same mulberry32 as mp.rngFrom - inlined so the campaign never
+       depends on the multiplayer module being healthy. */
+    var mulberry = function (seed) {
+      var a = seed >>> 0;
+      return function () {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        var t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+    var match = cfg.script && cfg.script.match ? cfg.script.match : null;
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
       campaignStage: cfg.campaignStage,
       rival: cfg.rival || null,
+      rng: match ? mulberry(match.seed | 0) : null,
+      moveScript: match ? match.moves : null,
       oddFirst: cfg.oddFirst || null,
     });
     lastConfig =
@@ -2112,7 +2152,7 @@
     } else {
       if (titleEl) titleEl.textContent = 'Choose your deck';
       if (subEl)
-        subEl.textContent = 'The enemy builds a squad of 12 — max 4 of a role, like yours.';
+        subEl.textContent = 'The enemy builds a squad of 12 - max 4 of a role, like yours.';
     }
 
     var host = $('dm-list');
@@ -2826,7 +2866,7 @@
     if (!m || !setState) return cb && cb();
     fightTitle(
       'ra-scroll-unfurled',
-      'UNABRIDGED — FIGHT CARD',
+      'UNABRIDGED - FIGHT CARD',
       'All three arenas are open information right away. The spin decides which one hosts game 1 - after that, the loser of each game picks the next arena.'
     );
     /* every plate starts an open slot - WHICH one hosts game 1 is the
@@ -2970,7 +3010,7 @@
     if (!m || !setState) return false;
     fightTitle(
       'ra-scroll-unfurled',
-      'UNABRIDGED — FIGHT CARD',
+      'UNABRIDGED - FIGHT CARD',
       'All three arenas are open information. The loser of each game calls the next arena.'
     );
     $('set-fightcard-plates').innerHTML = setState.card
@@ -3010,13 +3050,13 @@
   function setScoreLine() {
     var w = setState.wins;
     return (
-      'Unabridged · Game ' +
+      'Unabridged - Game ' +
       setState.game +
-      ' of 3 · You ' +
+      ' of 3 - You ' +
       w.you +
       ' - ' +
       w.foe +
-      (w.you > w.foe ? ' · you lead' : w.you < w.foe ? ' · you trail' : ' · level')
+      (w.you > w.foe ? ' - you lead' : w.you < w.foe ? ' - you trail' : ' - level')
     );
   }
   /* The in-battle war score. battle.js's render() asks for this on
@@ -3172,11 +3212,11 @@
         : 'Game ' +
           setState.game +
           (playerWon ? ' to you' : ' to the enemy') +
-          '  ·  ' +
+          '  -  ' +
           w.you +
           ' - ' +
           w.foe +
-          '  ·  next stop: the sideboard',
+          '  -  next stop: the sideboard',
       rematchLabel: over ? 'New Unabridged' : 'Sideboard',
     };
   }
