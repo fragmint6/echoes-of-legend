@@ -3,6 +3,7 @@
    -------------------------------------------------------------
    Tier 1 narrative dialogue, stage progression state, and the
    full playable battle for Stage 1 (The Recruiter).
+   Uses the universal EOL.dialogue system.
    ============================================================= */
 (function () {
   'use strict';
@@ -10,10 +11,8 @@
   window.EOL = window.EOL || {};
   var STORY = window.EOL.campaignCh1 || {};
   var PROGRESS_KEY = 'eol.campaign.ch1.progress';
-  var dialogueIndex = 0;
+  var TUTORIAL_KEY = 'eol.tutorial.completed';
   var currentStage = 1;
-  var currentLines = [];
-  var isOpen = false;
   var activeCampaignStage = null;
 
   function $(id) {
@@ -173,22 +172,22 @@
   function openStageDialogue(stageId) {
     currentStage = stageId || 1;
     var dialogues = STORY.dialogues || {};
-    currentLines = dialogues[currentStage] || STORY.recruiterDialogue || [];
-    if (!currentLines.length) return;
+    var lines = dialogues[currentStage] || STORY.recruiterDialogue || [];
+    if (!lines.length) return;
 
-    var modal = $('chapter-dialogue');
-    if (!modal) return;
-
-    dialogueIndex = 0;
-    isOpen = true;
-    modal.hidden = false;
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.dataset.campaignDialogue = '1';
-    renderDialogue();
-    window.setTimeout(function () {
-      var next = $('chapter-dialogue-next');
-      if (next) next.focus();
-    }, 0);
+    if (window.EOL.dialogue && window.EOL.dialogue.open) {
+      window.EOL.dialogue.open({
+        lines: lines,
+        onComplete: function () {
+          // optional post-dialogue hook
+        },
+        onBattle: function () {
+          if (currentStage === 1) startRecruiterFight();
+        }
+      });
+    } else {
+      console.warn('[Campaign] Universal dialogue system not found — using legacy modal');
+    }
   }
 
   /* The post-battle epilogue (a stage-1 victory). Runs through the same
@@ -376,6 +375,59 @@
     });
   }
 
+  // ==================== FIRST-BOOT TUTORIAL (Recruiter as Teacher) ====================
+  function isTutorialCompleted() {
+    try {
+      return localStorage.getItem(TUTORIAL_KEY) === 'true';
+    } catch (e) { return false; }
+  }
+
+  function markTutorialComplete() {
+    try {
+      localStorage.setItem(TUTORIAL_KEY, 'true');
+    } catch (e) {}
+  }
+
+  function startFirstBootTutorial() {
+    if (isTutorialCompleted()) return;
+
+    // Use the universal dialogue system with the Recruiter as the teacher
+    if (!window.EOL.dialogue || !window.EOL.dialogue.open) {
+      console.warn('[Tutorial] Universal dialogue system not available');
+      return;
+    }
+
+    var tutorialLines = [
+      { speaker: "The Recruiter", text: "Welcome to Echoes of Legend. Your Grimmwood deck is ready." },
+      { speaker: "The Recruiter", text: "I will teach you everything you need to know — one gate at a time." },
+      { speaker: "The Recruiter", text: "Your goal right now: survive your first battle." },
+      { speaker: "The Recruiter", text: "Click the chapter to begin.", coach: true }
+    ];
+
+    window.EOL.dialogue.open({
+      lines: tutorialLines,
+      onComplete: function () {
+        // After welcome, open the chapter map and start Gate I dialogue
+        if (window.EOL.ui && window.EOL.ui.show) {
+          window.EOL.ui.show('chapter');
+        }
+        // Small delay then open the Recruiter dialogue (which now uses the universal system)
+        setTimeout(function () {
+          if (window.EOL.campaign && window.EOL.campaign.openStageDialogue) {
+            window.EOL.campaign.openStageDialogue(1);
+          }
+        }, 300);
+      }
+    });
+  }
+
+  // Expose tutorial API
+  window.EOL.tutorial = {
+    start: startFirstBootTutorial,
+    isCompleted: isTutorialCompleted,
+    markComplete: markTutorialComplete
+  };
+
   window.EOL.campaign = {
     openStageDialogue: openStageDialogue,
     openRecruiterDialogue: function () {
@@ -383,14 +435,27 @@
     },
     closeRecruiterDialogue: closeDialogue,
     dialogueOpen: function () {
-      return isOpen;
+      return window.EOL.dialogue && window.EOL.dialogue.isOpen ? window.EOL.dialogue.isOpen() : false;
     },
     onBattleResult: onBattleResult,
     retry: retry,
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,
     story: STORY,
+    startTutorial: startFirstBootTutorial
   };
 
-  document.addEventListener('DOMContentLoaded', mount);
+  document.addEventListener('DOMContentLoaded', function () {
+    mount();
+
+    // Auto-start tutorial on first boot (only if not completed)
+    if (!isTutorialCompleted()) {
+      // Give the UI a moment to settle
+      setTimeout(function () {
+        if (window.EOL.tutorial && window.EOL.tutorial.start) {
+          window.EOL.tutorial.start();
+        }
+      }, 1200);
+    }
+  });
 })();
