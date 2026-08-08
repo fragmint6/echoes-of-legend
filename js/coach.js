@@ -1,13 +1,11 @@
 /* =============================================================
-   Echoes of Legend — Non-Intrusive Coach / Tutorial System
+   Echoes of Legend — Recruiter Coach / Tutorial System
    -------------------------------------------------------------
-   Lightweight, non-blocking coach bubbles for step-by-step
-   tutorials. The Recruiter teaches the player without hiding
-   the UI.
+   Large, beautiful, non-intrusive coach panel used for the
+   first-boot tutorial. The Recruiter has a big portrait area
+   and the panel is prominent but does not block the whole screen.
 
-   Usage:
-   EOL.coach.startTutorial();           // first-boot guided experience
-   EOL.coach.show({ text: "...", target: "#btn-play" });
+   The tutorial properly leads the player into Gate I battle.
 ============================================================= */
 (function () {
   'use strict';
@@ -15,7 +13,6 @@
   window.EOL = window.EOL || {};
 
   var container;
-  var currentStep = 0;
   var tutorialActive = false;
 
   function createContainer() {
@@ -25,10 +22,11 @@
     container.id = 'coach-container';
     container.style.cssText = `
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 9999;
-      max-width: 380px;
+      bottom: 32px;
+      right: 32px;
+      z-index: 10000;
+      width: 420px;
+      max-width: 92vw;
       font-family: var(--font-ui, system-ui);
     `;
     document.body.appendChild(container);
@@ -38,7 +36,7 @@
   function showCoach(config) {
     createContainer();
 
-    // Remove any existing coach
+    // Remove existing
     var existing = document.getElementById('coach-bubble');
     if (existing) existing.remove();
 
@@ -47,39 +45,50 @@
     bubble.style.cssText = `
       background: #1a140f;
       color: #f4e9d8;
-      border: 2px solid #c9a26e;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-      position: relative;
-      margin-bottom: 12px;
+      border: 4px solid #c9a26e;
+      border-radius: 18px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.8);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      font-size: 17px;
     `;
 
     var speaker = config.speaker || "The Recruiter";
     var text = config.text || "";
 
     bubble.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-        <div style="width:32px; height:32px; background:#3a2a1f; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;">
-          <i class="ra ra-player" style="color:#c9a26e;"></i>
+      <div style="display:flex; background:#2a2118; padding:14px 18px; align-items:center; gap:14px; border-bottom:3px solid #c9a26e;">
+        <!-- Recruiter Portrait -->
+        <div style="width:86px; height:86px; border-radius:14px; overflow:hidden; border:3px solid #c9a26e; flex-shrink:0; background:#3a2a1f; box-shadow: 0 0 0 4px #1a140f;">
+          <img src="assets/rivals/the-recruiter.png" 
+               style="width:100%; height:100%; object-fit:cover; display:block;" 
+               alt="The Recruiter">
         </div>
-        <div style="font-weight:600; color:#c9a26e; font-size:15px;">${speaker}</div>
+        
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:800; color:#c9a26e; font-size:21px; line-height:1;">${speaker}</div>
+          <div style="font-size:13px; opacity:0.75; margin-top:4px;">Your guide on the Road of Echoes</div>
+        </div>
       </div>
-      <div style="line-height:1.45; font-size:15px;">${text}</div>
-      <div style="margin-top:14px; display:flex; gap:8px; justify-content:flex-end;">
+
+      <div style="padding:22px 26px; font-size:17.5px; line-height:1.55;">
+        ${text}
+      </div>
+
+      <div style="padding:16px 20px; background:#2a2118; display:flex; gap:12px; justify-content:flex-end; border-top:2px solid #5c4630;">
         ${config.showNext !== false ? 
-          `<button id="coach-next" style="background:#c9a26e; color:#1a140f; border:none; padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer;">Continue</button>` : ''}
+          `<button id="coach-next" style="background:#c9a26e; color:#1a140f; border:none; padding:10px 26px; border-radius:9px; font-weight:800; font-size:16px; cursor:pointer;">Continue</button>` : ''}
         ${config.showGotIt ? 
-          `<button id="coach-gotit" style="background:transparent; color:#c9a26e; border:1px solid #c9a26e; padding:6px 14px; border-radius:6px; cursor:pointer;">Got it</button>` : ''}
+          `<button id="coach-gotit" style="background:transparent; color:#c9a26e; border:3px solid #c9a26e; padding:10px 24px; border-radius:9px; font-weight:700; cursor:pointer;">Got it</button>` : ''}
       </div>
     `;
 
     container.appendChild(bubble);
 
-    // Button handlers
     var nextBtn = bubble.querySelector('#coach-next');
     if (nextBtn && config.onNext) {
-      nextBtn.onclick = function () {
+      nextBtn.onclick = () => {
         bubble.remove();
         config.onNext();
       };
@@ -87,7 +96,7 @@
 
     var gotItBtn = bubble.querySelector('#coach-gotit');
     if (gotItBtn && config.onGotIt) {
-      gotItBtn.onclick = function () {
+      gotItBtn.onclick = () => {
         bubble.remove();
         config.onGotIt();
       };
@@ -97,8 +106,8 @@
   }
 
   function hideCoach() {
-    var bubble = document.getElementById('coach-bubble');
-    if (bubble) bubble.remove();
+    var b = document.getElementById('coach-bubble');
+    if (b) b.remove();
   }
 
   // ==================== FIRST-BOOT TUTORIAL ====================
@@ -106,22 +115,38 @@
     if (localStorage.getItem('eol.tutorial.completed') === 'true') return;
 
     tutorialActive = true;
-    currentStep = 0;
 
-    // Step 0: Welcome
     showCoach({
       speaker: "The Recruiter",
       text: "Welcome to Echoes of Legend. Your Grimmwood deck is ready. I will teach you everything you need — step by step.",
-      onNext: function () {
-        // Step 1: Go to Play
+      onNext: () => {
         showCoach({
           speaker: "The Recruiter",
-          text: "Click the big <b>Play</b> button to begin.",
-          target: "#btn-play",
-          onNext: function () {
-            // Wait for the player to actually click Play
-            waitForClick('#btn-play', function () {
-              proceedToCampaignStep();
+          text: "Click the big <b>Play</b> button.",
+          onNext: () => {
+            waitForClick('#btn-play', () => {
+              showCoach({
+                speaker: "The Recruiter",
+                text: "Now click <b>Campaign</b>.",
+                onNext: () => {
+                  waitForClick('#mode-campaign, button[id*="campaign"]', () => {
+                    showCoach({
+                      speaker: "The Recruiter",
+                      text: "Click <b>Gate I — The Recruiter</b> to begin your first story.",
+                      onNext: () => {
+                        waitForClick('[data-campaign-stage="1"]', () => {
+                          // Open the real campaign dialogue
+                          if (window.EOL.campaign && window.EOL.campaign.openStageDialogue) {
+                            window.EOL.campaign.openStageDialogue(1);
+                          }
+                          // The tutorial will finish after the player wins the battle
+                          // (handled in campaign.js via onBattleResult)
+                        });
+                      }
+                    });
+                  });
+                }
+              });
             });
           }
         });
@@ -129,41 +154,30 @@
     });
   }
 
-  function proceedToCampaignStep() {
-    showCoach({
-      speaker: "The Recruiter",
-      text: "Now click <b>Campaign</b> — this is where your story begins.",
-      onNext: function () {
-        waitForClick('#mode-campaign, [data-view="campaign"]', function () {
-          startRecruiterDialogue();
-        });
+  function waitForClick(selector, callback) {
+    function tryAttach() {
+      const el = document.querySelector(selector);
+      if (!el) {
+        setTimeout(tryAttach, 250);
+        return;
       }
-    });
+      el.addEventListener('click', function handler() {
+        el.removeEventListener('click', handler);
+        callback();
+      }, { once: true });
+    }
+    tryAttach();
   }
 
-  function startRecruiterDialogue() {
-    showCoach({
-      speaker: "The Recruiter",
-      text: "Click on <b>Gate I — The Recruiter</b> to speak with me.",
-      onNext: function () {
-        waitForClick('[data-campaign-stage="1"]', function () {
-          // Now open the actual dialogue (we'll keep using the existing modal for story, but the tutorial is non-blocking)
-          if (window.EOL.campaign && window.EOL.campaign.openStageDialogue) {
-            window.EOL.campaign.openStageDialogue(1);
-          }
-          finishTutorialAfterBattle();
-        });
-      }
-    });
-  }
+  // Called from campaign.js after winning Stage 1
+  function completeTutorialAfterVictory() {
+    if (!tutorialActive) return;
 
-  function finishTutorialAfterBattle() {
-    // This gets called from campaign.js after winning Stage 1
     showCoach({
       speaker: "The Recruiter",
-      text: "You survived your first battle. You now understand energy, formation, and the basics. The tutorial is complete.",
+      text: "You survived your first battle. You now understand energy, formation, and the core rules. The tutorial is complete.",
       showGotIt: true,
-      onGotIt: function () {
+      onGotIt: () => {
         localStorage.setItem('eol.tutorial.completed', 'true');
         tutorialActive = false;
         hideCoach();
@@ -171,48 +185,12 @@
     });
   }
 
-  function waitForClick(selector, callback) {
-    var el = document.querySelector(selector);
-    if (!el) {
-      // If element doesn't exist yet, poll for it
-      var interval = setInterval(function () {
-        var found = document.querySelector(selector);
-        if (found) {
-          clearInterval(interval);
-          found.addEventListener('click', function handler() {
-            found.removeEventListener('click', handler);
-            callback();
-          }, { once: true });
-        }
-      }, 300);
-      return;
-    }
-
-    el.addEventListener('click', function handler() {
-      el.removeEventListener('click', handler);
-      callback();
-    }, { once: true });
-  }
-
-  // Public API
   window.EOL.coach = {
     show: showCoach,
     hide: hideCoach,
     startTutorial: startFirstBootTutorial,
-    isActive: function () { return tutorialActive; }
+    completeAfterVictory: completeTutorialAfterVictory,
+    isActive: () => tutorialActive
   };
-
-  // Auto-start on first boot (only if not completed)
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      if (localStorage.getItem('eol.tutorial.completed') !== 'true') {
-        // Only start if we're on the home screen
-        if (document.querySelector('[data-view="home"]') && !document.body.dataset.view) {
-          // Don't auto-start immediately — wait for user to be ready
-          // For now we expose the function so app.js can call it
-        }
-      }
-    }, 1500);
-  });
 
 })();

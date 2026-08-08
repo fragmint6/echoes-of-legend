@@ -290,6 +290,11 @@
         if (unlocked.indexOf(2) === -1) unlocked.push(2);
         saveProgress({ cleared: cleared, unlocked: unlocked });
         updateStageCards();
+
+        // Complete the first-boot tutorial after winning Gate I
+        if (window.EOL.coach && window.EOL.coach.completeAfterVictory) {
+          window.EOL.coach.completeAfterVictory();
+        }
       }
 
       resultInfo = { stage: 1, won: win };
