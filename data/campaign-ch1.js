@@ -232,6 +232,7 @@ window.EOL = window.EOL || {};
           1: [
             'Round one: BASICS only - signatures wake in round two. Even legends stretch first.',
             'The tall bar by your crest is ENERGY: every skill spends it, savings carry over, and income grows each round - 60, then 80, then 100.',
+            'See the dial by the Pass button? The TURN CLOCK - thirty seconds a move, out in the real wars. On my road it ticks for show only: the Road has waited centuries. Take your time.',
           ],
           2: [
             'Round two - SIGNATURES unlock. The expensive, theatrical ones. Time to spend what you hoarded.',

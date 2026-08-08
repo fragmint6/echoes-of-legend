@@ -2025,12 +2025,15 @@
       /* A coach overlay freezes the player's dial: reading an
          explanation must never cost your action. The deadline is
          re-armed each frame it is open, so closing the overlay hands
-         back a full window. The SCRIPTED MATCH freezes it too - a
-         lesson read slowly must never auto-pass the line off its
-         rails. */
+         back a full window. CAMPAIGN battles freeze it entirely - the
+         Road is a school, and the tutorial SAYS the clock is for show
+         there (data/campaign-ch1.js round-1 lesson), so it must be. It
+         still ticks visually in ranked/solo wars as before. */
       if (
         side === 'player' &&
-        ((window.EOL.coach && window.EOL.coach.open()) || scriptActive())
+        ((window.EOL.coach && window.EOL.coach.open()) ||
+          scriptActive() ||
+          (B && B.campaignStage))
       ) {
         clockEnd = performance.now() + TURN_MS;
         if (num) num.textContent = Math.ceil(TURN_MS / 1000);
