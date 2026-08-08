@@ -363,44 +363,42 @@ function playLine(seed, opt) {
   };
 }
 
-/* search: a clean line = win, all six sigs, zero player deaths, 4-7 rounds */
-var capLate = function (r) {
-  return r <= 2 ? 3 : 2;
-};
-var VARIANTS = [
-  { enemyCap: capLate, r1Acts: 3, healAt: 0.8, spread: true },
-  { enemyCap: 3, r1Acts: 3, healAt: 0.8, spread: true },
-  { enemyCap: capLate, r1Acts: 2, healAt: 0.85, spread: true },
-  { enemyCap: 3, r1Acts: 3, healAt: 0.75 },
-  { enemyCap: 3, r1Acts: 2, healAt: 0.8 },
-  { enemyCap: 4, r1Acts: 3, healAt: 0.8 },
-  {
-    enemyCap: 3,
-    r1Acts: 3,
-    healAt: 0.8,
-    sigOrder: [
-      'grimmwood-pied-piper',
-      'grimmwood-gingerbread-man',
-      'grimmwood-big-bad-wolf',
-      'grimmwood-snow-white',
-      'grimmwood-goldilocks',
-      'grimmwood-evil-queen',
-    ],
-  },
+/* search: the FASTEST clean line - win, all six sigs, zero player
+   deaths, minimum total moves (owner note 2026-08-08: speed over
+   sig-in-succession ceremony). */
+var SPEED_ORDERS = [
+  /* damage first, utility slotted where the energy allows */
+  ['grimmwood-pied-piper', 'grimmwood-big-bad-wolf', 'grimmwood-evil-queen', 'grimmwood-goldilocks', 'grimmwood-gingerbread-man', 'grimmwood-snow-white'],
+  ['grimmwood-pied-piper', 'grimmwood-evil-queen', 'grimmwood-big-bad-wolf', 'grimmwood-goldilocks', 'grimmwood-snow-white', 'grimmwood-gingerbread-man'],
+  ['grimmwood-pied-piper', 'grimmwood-big-bad-wolf', 'grimmwood-goldilocks', 'grimmwood-evil-queen', 'grimmwood-snow-white', 'grimmwood-gingerbread-man'],
+  SIG_ORDER,
 ];
+var VARIANTS = [];
+SPEED_ORDERS.forEach(function (ord) {
+  VARIANTS.push({ enemyCap: 2, r1Acts: 3, healAt: 0.5, spread: true, sigOrder: ord });
+  VARIANTS.push({ enemyCap: 2, r1Acts: 2, healAt: 0.5, spread: true, sigOrder: ord });
+  VARIANTS.push({
+    enemyCap: function (r) {
+      return r <= 2 ? 3 : 2;
+    },
+    r1Acts: 3,
+    healAt: 0.6,
+    spread: true,
+    sigOrder: ord,
+  });
+});
 var best = null;
 var score = function (r) {
-  if (!r.win) return -1000;
-  return r.sigs * 10 - r.playerDeaths * 30 - Math.abs(5.5 - r.rounds) - r.moves.length * 0.05;
+  if (!r.win || r.sigs !== 6 || r.playerDeaths !== 0) {
+    /* not clean: heavily penalised, kept only as a fallback */
+    return -1000 + (r.win ? 100 : 0) + r.sigs * 5 - r.playerDeaths * 20;
+  }
+  return 1000 - r.moves.length * 10 - r.rounds;
 };
-outer: for (var v = 0; v < VARIANTS.length; v++) {
-  for (var s = 1; s <= 300; s++) {
+for (var v = 0; v < VARIANTS.length; v++) {
+  for (var s = 1; s <= 250; s++) {
     var r = playLine(s, VARIANTS[v]);
     r.variant = v;
-    if (r.win && r.sigs === 6 && r.playerDeaths === 0 && r.rounds >= 4 && r.rounds <= 7) {
-      best = r;
-      break outer;
-    }
     if (!best || score(r) > score(best)) best = r;
   }
 }

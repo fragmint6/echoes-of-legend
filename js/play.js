@@ -1646,8 +1646,11 @@
       renderPrep();
       $('prep-sub').textContent = 'Bans locked - both sides revealed';
       toast('Bans locked - both sides revealed', 'ri-eye-line');
-      // stamped, seen, then their side folds away for the fielding
-      await sleep(1150);
+      // stamped, seen, then their side folds away for the fielding.
+      // The scripted gate holds the stamps LONGER: the Recruiter is
+      // narrating whose names just got struck out, and a split-second
+      // glimpse taught nothing (user note 2026-08-08).
+      await sleep(prep.script ? 3400 : 1150);
       if (!prep) return;
       prep.phase = 'pick';
       prepAnim = true;

@@ -691,7 +691,8 @@
     if (shield) shield.hidden = true;
   }
 
-  function showTutor(stage, text, withNext, onNext) {
+  function showTutor(stage, text, withNext, onNext, opts) {
+    opts = opts || {};
     var el = $('tutor');
     if (!el || !text) return;
     var face = $('tutor-face');
@@ -708,12 +709,12 @@
           }
         : null;
     }
-    /* Informational beats OWN the screen: a dim shield swallows every
-       click until Continue is pressed, so the lesson cannot be walked
-       past by accident. Action beats drop the shield - the marked
-       cards are the interaction. */
+    /* Informational beats OWN the screen: a soft dim shield swallows
+       every click until Continue is pressed. Beats that POINT AT live
+       UI (the arena card, the tip dots) skip the shield so the thing
+       being described stays visible and hoverable. */
     var shield = $('tutor-shield');
-    if (shield) shield.hidden = !withNext;
+    if (shield) shield.hidden = !withNext || opts.shield === false;
     el.hidden = false;
   }
 
@@ -733,7 +734,7 @@
 
   /* A gated info sequence: each line waits for Continue. Returns true
      while the sequence still owns the bubble. */
-  function runTutorSeq(lines, key) {
+  function runTutorSeq(lines, key, opts) {
     if (!lines || !lines.length || tut.flags[key]) return false;
     if (!tut.seq || tut.seq.key !== key) tut.seq = { key: key, i: 0 };
     var i = tut.seq.i;
@@ -742,11 +743,17 @@
       tut.seq = null;
       return false;
     }
-    showTutor(tut.stage, lines[i], true, function () {
-      if (!tut || !tut.seq || tut.seq.key !== key) return;
-      tut.seq.i++;
-      tutorTick();
-    });
+    showTutor(
+      tut.stage,
+      lines[i],
+      true,
+      function () {
+        if (!tut || !tut.seq || tut.seq.key !== key) return;
+        tut.seq.i++;
+        tutorTick();
+      },
+      opts
+    );
     return true;
   }
 
@@ -765,18 +772,25 @@
     var T = tut.stage.tutorial;
     if (p.phase === 'ban') {
       if (runTutorSeq(T.intro, 'intro')) return;
-      if (p.waiting || p.revealed) {
-        hideTutor(); // the reveal stamping owns the moment
+      if (p.waiting) {
+        hideTutor();
+        return;
+      }
+      if (p.revealed) {
+        /* the stamps are ON SCREEN right now - narrate them, ungated,
+           while play.js holds the reveal a little longer for the
+           scripted gate */
+        showTutor(tut.stage, T.reveal, false);
         return;
       }
       var n = (p.youBans || []).length;
       showTutor(tut.stage, n === 0 ? T.ban0 : n === 1 ? T.ban1 : T.ban2, false);
     } else if (p.phase === 'pick') {
-      if (runTutorSeq([T.reveal], 'reveal')) return;
-      /* the arena and the tip-dots get their word in before the
-         fielding starts (the battlefield card was just on screen) */
-      if (T.arena && runTutorSeq([T.arena], 'arena')) return;
-      if (T.tips && runTutorSeq([T.tips], 'tips')) return;
+      /* the ARENA lesson plays while the battlefield card is still up
+         (the tutor floats above it) and the TIPS beat leaves the dots
+         hoverable - no shield on either */
+      if (T.arena && runTutorSeq([T.arena], 'arena', { shield: false })) return;
+      if (T.tips && runTutorSeq([T.tips], 'tips', { shield: false })) return;
       var six = (tut.stage.script && tut.stage.script.six) || [];
       var fielded = p.front.concat(p.back);
       /* every fielded legend earns its role lesson, in the ledger's order */
