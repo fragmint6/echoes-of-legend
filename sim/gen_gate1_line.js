@@ -411,17 +411,17 @@ console.log(
 /* ---- attach the Recruiter's teaching lines to the key moves ---- */
 var SIG_SAY = {
   'grimmwood-pied-piper':
-    "Now the Piper. His melody takes TWO victims at once - pick both marked. It carves their ATK down, and anyone already wounded by a debuff is torn EXPOSED. Controllers do not kill; they decide who dies.",
+    "Now the Piper - pick both marked victims. CONTROLLERS do not win fights; they decide where fights are winnable: attack carved down, defences torn open, plans bent sideways.",
   'grimmwood-gingerbread-man':
-    'The Gingerbread Man now: Run, Run, Run. A shield, a Provoke, and he HEALS every time they strike him. That is a wall - danger now has an address.',
+    "The Gingerbread Man now. This is what TANKS are for: he plants himself, shouts the loudest, and danger forgets your soft targets exist.",
   'grimmwood-snow-white':
-    'Snow White: Forest Blessing. The whole line healed, a debuff wiped from every ally. A Medic buys back the mistakes your courage keeps making.',
+    "Snow White. MEDICS buy back the mistakes your courage keeps making - wounds undone, poisons wiped. Wars are lost the round the healer dies.",
   'grimmwood-big-bad-wolf':
-    'Unchain the Wolf: Savage Hunger. Two hundred percent, and he eats a share of what he deals - more if the victim is debuffed. The Piper seasons, the Wolf dines.',
+    "Unchain the Wolf. BRUISERS are the front line's teeth - they tear down whatever the wall holds still, and they grow stronger doing it.",
   'grimmwood-goldilocks':
-    "Goldilocks: Just Right. Targets in the middle of their health take her FULL wrath. Snipers do not open wars - they end arguments.",
+    "Goldilocks. SNIPERS reach past every wall into the soft back row. They do not open wars - they end arguments.",
   'grimmwood-evil-queen':
-    'And the Queen: The Mirror Never Lies. Every enemy pays at once, and the proudest is stripped EXPOSED for two rounds. Casters are how you punish a crowd.',
+    "And the Queen. CASTERS punish crowds: one incantation and the whole enemy line pays for standing together. Fragile as glass, worth every shard.",
 };
 var firstSig = {};
 var saidPass = false;

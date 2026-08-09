@@ -84,15 +84,20 @@ const server = http.createServer((req, res) => {
   w.localStorage.setItem('eol.coach.v1', JSON.stringify(['draft', 'prep-ban', 'prep-pick', 'battle']));
   d.body.dataset.gfx = 'low';
 
-  /* ---------- STAGE 1: the fully scripted gate ---------- */
-  w.EOL.ui.show('campaign');
-  await sleep(700);
-  $('chapter-1').click();
-  await sleep(700);
-  t(d.body.dataset.view === 'chapter', 'chapter map opens');
-  d.querySelector('[data-campaign-stage="1"]').click();
-  await sleep(150);
-  t(!$('chapter-dialogue').hidden, 'stage 1 dialogue opens');
+  /* ---------- FIRST BOOT: the Recruiter interrupts the menu ---------- */
+  t(d.body.dataset.view === 'home', 'boot lands on home');
+  // the intro fires 2.1s after campaign.js runs, and jsdom loads the
+  // script chain slowly - poll for it instead of guessing the moment
+  for (let g = 0; g < 40 && $('chapter-dialogue').hidden; g++) await sleep(300);
+  t(!$('chapter-dialogue').hidden, 'first-boot intro auto-opens on a fresh save');
+  t($('chapter-dialogue-speaker').textContent === 'The Recruiter', 'the Recruiter does the interrupting');
+  t(w.localStorage.getItem('eol.tutorial.intro.v1') === '1', 'intro marked seen the moment it runs');
+  // skipping with X still walks you to the Road - it is a flow, not a scene
+  $('chapter-dialogue-close').click();
+  await sleep(1600);
+  t(d.body.dataset.view === 'chapter', 'skipping the intro STILL lands on the chapter map');
+  t(!$('chapter-dialogue').hidden, 'and Gate I opens its dialogue unprompted');
+  t($('chapter-dialogue-step').textContent.indexOf('01') === 0, 'gate 1 scene starts at line one');
   t(!$('chapter-dialogue-portrait').hidden && $('chapter-dialogue-glyph').hidden, 'portrait clean (no glyph overlay)');
   for (let i = 0; i < 8 && !$('chapter-dialogue').hidden; i++) {
     $('chapter-dialogue-next').click();
@@ -129,12 +134,15 @@ const server = http.createServer((req, res) => {
   t(!$('tutor').hidden && !$('tutor-next').hidden, 'arena lesson shows while the card is up');
   t($('tutor-text').textContent.indexOf('ARENA') >= 0, 'arena beat text');
   t($('tutor-shield').hidden, 'arena beat has NO dim (the card stays visible)');
+  t($('bf-go').disabled, 'Field-your-six is HELD while the arena lesson is unread');
   $('tutor-next').click();
   await sleep(320);
   t($('tutor-text').textContent.indexOf('question-mark dots') >= 0, 'tips beat follows');
   t($('tutor-shield').hidden, 'tips beat has NO dim (dots hoverable)');
+  t($('bf-go').disabled, 'Field-your-six still held through the tips beat');
   $('tutor-next').click();
   await sleep(320);
+  t(!$('bf-go').disabled, 'Field-your-six releases once both beats are read');
   if ($('bf-reveal').classList.contains('show')) {
     $('bf-go').disabled = false;
     $('bf-go').click();
@@ -178,7 +186,8 @@ const server = http.createServer((req, res) => {
   }
   let sawTargetMark = false,
     sawPassMark = false,
-    sawAbilityMark = false;
+    sawAbilityMark = false,
+    sawRoleSay = false;
   const guard = Date.now() + 420000;
   while (Date.now() < guard) {
     const B = w.EOL.battle.getState();
@@ -187,6 +196,8 @@ const server = http.createServer((req, res) => {
     if (!ms) break;
     const mv = ms.moves[ms.i];
     if (!mv) break;
+    if (/CONTROLLERS|BRUISERS|SNIPERS|CASTERS|MEDICS|TANKS are/.test($('rival-bark-text').textContent))
+      sawRoleSay = true;
     if (mv.side !== 'player' || B.turn !== 'player' || d.body.dataset.busy === '1') {
       await sleep(220);
       continue;
@@ -238,6 +249,7 @@ const server = http.createServer((req, res) => {
   t(sawAbilityMark, 'ability rows were marked during the match');
   t(sawTargetMark, 'targets were marked during the match');
   t(sawPassMark, 'the Pass dial was marked on scripted passes');
+  t(sawRoleSay, 'signature narration teaches ROLES, not damage numbers');
   let shown = false;
   for (let g = 0; g < 30 && !shown; g++) {
     await sleep(400);
@@ -284,6 +296,23 @@ const server = http.createServer((req, res) => {
   const frozen = w.EOL.campaign._stageById(6).pool.cards.slice().sort();
   t(JSON.stringify(poolCards) === JSON.stringify(frozen), 'draft pool is EXACTLY the frozen 36');
   t(poolCards.every((id) => id.indexOf('huaxia-') !== 0 && id.indexOf('duat-') !== 0), 'no Huaxia/Duat in the pool');
+
+  /* ---------- Tutorial corner button replays the intro ---------- */
+  w.EOL.ui.show('chapter');
+  await sleep(700);
+  $('btn-corner-tutorial').click();
+  await sleep(200);
+  t(!$('chapter-dialogue').hidden, 'Tutorial button replays the intro');
+  t($('chapter-dialogue-speaker').textContent === 'The Recruiter', 'replay is voiced by the Recruiter');
+  for (let i = 0; i < 3 && !$('chapter-dialogue').hidden; i++) {
+    $('chapter-dialogue-next').click();
+    await sleep(120);
+  }
+  await sleep(1600);
+  t(d.body.dataset.view === 'chapter', 'replayed intro also walks to the map');
+  t(!$('chapter-dialogue').hidden, 'and reopens Gate I');
+  $('chapter-dialogue-close').click();
+  await sleep(200);
 
   /* ---------- mojibake sweep ---------- */
   {

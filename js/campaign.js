@@ -262,7 +262,14 @@
           (dlg.stage ? dlg.stage.rival : '') +
           '</span>';
       } else if (dlg.index >= dlg.lines.length - 1) {
-        next.innerHTML = '<span>' + (dlg.kind === 'epilogue' ? 'Walk on' : 'Close') + '</span><i class="ri-check-line"></i>';
+        next.innerHTML =
+          '<span>' +
+          (dlg.kind === 'epilogue'
+            ? 'Walk on'
+            : dlg.kind === 'intro'
+              ? 'To the Road'
+              : 'Close') +
+          '</span><i class="ri-check-line"></i>';
       } else {
         next.innerHTML = '<span>Continue</span><i class="ri-arrow-right-line"></i>';
       }
@@ -300,10 +307,11 @@
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     document.body.dataset.campaignDialogue = '0';
-    if (kind === 'epilogue') {
-      /* The epilogue is an overlay on the settled battle screen; closing
-         it by ANY route (X, scrim-skip, Esc) must continue the flow, not
-         strand the player on an ended board. */
+    if (kind !== 'pre') {
+      /* Epilogues and the intro tutorial are FLOWS, not scenes: closing
+         them by ANY route (X, scrim-skip, Esc) must continue to their
+         destination - the reward path, or the Road itself - never
+         strand the player where the overlay happened to be. */
       if (done) done();
       return;
     }
@@ -330,6 +338,58 @@
     if (!stage) return;
     var lines = (STORY.dialogues || {})[stage.id] || [];
     openDialogue(stage, lines, 'pre', null);
+  }
+
+  /* ---------------------------------------------------------
+     THE FIRST-BOOT TUTORIAL
+     -------------------------------------------------------------
+     The Recruiter interrupts the main menu exactly once (a fresh
+     save, nothing cleared) and whenever the Tutorial corner button
+     asks. It is a FLOW, not a scene: however it ends - read through,
+     skipped with X, Escaped - it walks the player to the chapter map
+     and opens Gate I's dialogue. The gate itself stays refusable;
+     the road to it does not.
+     --------------------------------------------------------- */
+  var INTRO_KEY = 'eol.tutorial.intro.v1';
+  function introSeen() {
+    try {
+      return localStorage.getItem(INTRO_KEY) === '1';
+    } catch (e) {
+      return true; // private mode: never nag a session we cannot remember
+    }
+  }
+  function markIntroSeen() {
+    try {
+      localStorage.setItem(INTRO_KEY, '1');
+    } catch (e) {
+      /* private mode */
+    }
+  }
+
+  function runIntroTutorial() {
+    var stage = stageById(1);
+    var lines = STORY.intro || [];
+    if (!stage || !lines.length) return;
+    markIntroSeen();
+    openDialogue(stage, lines, 'intro', function () {
+      window.EOL.ui.show('chapter');
+      window.setTimeout(function () {
+        openStageDialogue(1);
+      }, 750);
+    });
+  }
+
+  function maybeRunFirstBoot() {
+    if (introSeen()) return;
+    var prog = getProgress();
+    if (prog.cleared.length) {
+      /* an existing road-walker predates the intro - never interrupt */
+      markIntroSeen();
+      return;
+    }
+    if (document.body.dataset.view !== 'home') return;
+    if (dlg) return; // something else owns the bar
+    runIntroTutorial();
   }
 
   /* ---------------------------------------------------------
@@ -796,7 +856,22 @@
     } else if (p.phase === 'pick') {
       /* the ARENA lesson plays while the battlefield card is still up
          (the tutor floats above it) and the TIPS beat leaves the dots
-         hoverable - no shield on either */
+         hoverable - no shield on either. But the card's own "Field
+         your six" button is HELD until both beats are read: without
+         this the popup could be dismissed straight past the lesson
+         that points at it (user note 2026-08-09). */
+      var gatedBeats =
+        (T.arena && !tut.flags.arena) || (T.tips && !tut.flags.tips);
+      var bfGo = $('bf-go');
+      if (bfGo) {
+        if (gatedBeats) {
+          bfGo.disabled = true;
+          tut.heldGo = true;
+        } else if (tut.heldGo) {
+          bfGo.disabled = false;
+          tut.heldGo = false;
+        }
+      }
       if (T.arena && runTutorSeq([T.arena], 'arena', { shield: false })) return;
       if (T.tips && runTutorSeq([T.tips], 'tips', { shield: false })) return;
       var six = (tut.stage.script && tut.stage.script.six) || [];
@@ -1179,6 +1254,13 @@
         stopPrepTutor();
       }
     });
+
+    /* The Tutorial corner button on the main menu replays the intro
+       flow on demand; a fresh save gets it unprompted, once the boot
+       veil has settled. */
+    var tbtn = $('btn-corner-tutorial');
+    if (tbtn) tbtn.addEventListener('click', runIntroTutorial);
+    window.setTimeout(maybeRunFirstBoot, 2100);
   }
 
   window.EOL.campaign = {
@@ -1197,6 +1279,7 @@
     onScriptSay: onScriptSay,
     onScriptEnd: onScriptEnd,
     onBattleResult: onBattleResult,
+    startTutorial: runIntroTutorial,
     retry: retry,
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,
@@ -1213,5 +1296,14 @@
     },
   };
 
-  document.addEventListener('DOMContentLoaded', mount);
+  /* The DCL race guard: with enough data files ahead of this one, the
+     document can already be interactive by the time this script runs -
+     a listener registered after the fact never fires, and the whole
+     campaign UI silently fails to bind (found via the jsdom harness,
+     but just as real on a slow network). */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mount);
+  } else {
+    mount();
+  }
 })();

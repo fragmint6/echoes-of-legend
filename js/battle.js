@@ -1839,11 +1839,13 @@
         choose: s.choose,
       });
     clearSel();
-    render();
     hideTip();
 
-    // A coin flip has to be watched before anything else resolves, so
-    // block input, play it, then release the rest of the log.
+    /* NO SPOILERS ON THE BARGAIN (user note 2026-08-09): a coin flip
+       must land BEFORE the board repaints - render() used to run
+       first, so the HP bars and status chips announced heads or tails
+       while the coin was still in the air. The flip now plays over the
+       pre-cast board; the reveal happens when it settles. */
     var coin = B.log.slice(mark).filter(function (l) {
       return l.type === 'coin';
     })[0];
@@ -1852,6 +1854,7 @@
       document.body.dataset.busy = '1';
       var coinHold = playCoinFlip(coin.meta.coin);
       setTimeout(function () {
+        render();
         var h2 = flashRecent();
         setTimeout(function () {
           busy = false;
@@ -1862,6 +1865,7 @@
       }, coinHold);
       return;
     }
+    render();
 
     /* Wait for the board to finish animating before control moves on.
        flashRecent() now returns the FULL length of everything it just
@@ -2792,12 +2796,16 @@
 
       var mark = B.log.length;
       E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
-      render();
 
+      /* NO SPOILERS: the enemy's bargain flips over the PRE-cast board
+         too - render() waits for the landing, exactly like the player
+         path in commit(). This is also what makes the coin VISIBLE on
+         enemy casts: it used to share the frame with the repaint. */
       var coin = B.log.slice(mark).filter(function (l) {
         return l.type === 'coin';
       })[0];
       if (coin) await sleep(playCoinFlip(coin.meta.coin));
+      render();
 
       await sleep(flashRecent() || 0);
       await sleep(cineMs(350));
@@ -3899,6 +3907,10 @@
     wrap.className = 'fx-coin-wrap';
     wrap.style.left = lr.width / 2 / z + 'px';
     wrap.style.top = (lr.height * 0.34) / z + 'px';
+    var sparks = '';
+    for (var i = 0; i < 8; i++) {
+      sparks += '<span class="fx-coin-spark" style="--a:' + i * 45 + '"></span>';
+    }
     wrap.innerHTML =
       '<div class="fx-coin ' +
       face +
@@ -3906,21 +3918,24 @@
       '<div class="coin-face heads"><i class="ra ra-crown"></i></div>' +
       '<div class="coin-face tails"><i class="ra ra-moon-sun"></i></div>' +
       '</div>' +
-      '<div class="fx-coin-label"></div>';
+      sparks +
+      '<div class="fx-coin-label' +
+      (face === 'tails' ? ' tails' : '') +
+      '"></div>';
     layer.appendChild(wrap);
-    // reveal the result text once the coin settles
+    // reveal the result text once the coin settles (spin runs 1.45s)
     setTimeout(function () {
       var t = wrap.querySelector('.fx-coin-label');
       t.textContent = face === 'heads' ? 'HEADS' : 'TAILS';
       t.classList.add('show');
-    }, 1150);
+    }, 1480);
     setTimeout(function () {
       wrap.classList.add('out');
-    }, 1900);
+    }, 2320);
     setTimeout(function () {
       wrap.remove();
-    }, 2300);
-    return 2100;
+    }, 2720);
+    return 2450;
   }
 
   /* --------------------------------------------------------

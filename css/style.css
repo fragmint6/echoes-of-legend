@@ -5289,23 +5289,58 @@ body[data-turn='player'] .turn-label {
   }
 }
 
-/* ---- coin flip ---- */
+/* ---- coin flip ----
+   Rumpelstiltskin's Cruel Bargain (and any future coinFlip effect).
+   Restyled 2026-08-09: a heavy minted disc with an engraved rim, a
+   real 3D toss with hang-time, a fate-ring that tightens as it
+   falls, sparks on the landing, and NO SPOILERS - battle.js holds
+   the board's repaint until the coin has landed. */
 .fx-coin-wrap::before {
   content: '';
   position: absolute;
   left: 50%;
   top: 46%;
-  width: 260px;
-  height: 260px;
-  margin: -130px 0 0 -130px;
+  width: 320px;
+  height: 320px;
+  margin: -160px 0 0 -160px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(6, 8, 14, 0.86),
-    rgba(6, 8, 14, 0.5) 46%,
+    rgba(4, 5, 12, 0.92),
+    rgba(4, 5, 12, 0.55) 46%,
     transparent 72%
   );
   z-index: -1;
+}
+/* the fate ring: a thin gold circle that contracts onto the landing */
+.fx-coin-wrap::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 52px;
+  width: 210px;
+  height: 210px;
+  margin: -105px 0 0 -105px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 130, 0.55);
+  box-shadow:
+    0 0 24px rgba(255, 200, 90, 0.25),
+    inset 0 0 24px rgba(255, 200, 90, 0.12);
+  animation: coin-ring 1.45s cubic-bezier(0.3, 0.6, 0.25, 1) forwards;
+  pointer-events: none;
+}
+@keyframes coin-ring {
+  0% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.62);
+    opacity: 0.9;
+  }
 }
 .fx-coin-wrap {
   position: absolute;
@@ -5313,8 +5348,8 @@ body[data-turn='player'] .turn-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  perspective: 700px;
+  gap: 16px;
+  perspective: 820px;
   z-index: 70;
   transition:
     opacity 0.34s var(--ease),
@@ -5326,34 +5361,47 @@ body[data-turn='player'] .turn-label {
 }
 .fx-coin {
   position: relative;
-  width: 76px;
-  height: 76px;
+  width: 104px;
+  height: 104px;
   transform-style: preserve-3d;
-  animation: coin-spin 1.15s cubic-bezier(0.24, 0.7, 0.3, 1) forwards;
+  animation: coin-spin 1.45s cubic-bezier(0.22, 0.68, 0.3, 1) forwards;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.65));
 }
 .fx-coin.tails {
   animation-name: coin-spin-tails;
 }
 @keyframes coin-spin {
   0% {
-    transform: translateY(0) rotateY(0deg) scale(0.5);
+    transform: translateY(30px) rotateY(0deg) rotateZ(-8deg) scale(0.42);
   }
-  35% {
-    transform: translateY(-70px) rotateY(1080deg) scale(1.08);
+  38% {
+    transform: translateY(-96px) rotateY(1260deg) rotateZ(5deg) scale(1.12);
+  }
+  72% {
+    transform: translateY(-18px) rotateY(2000deg) rotateZ(-2deg) scale(1.02);
+  }
+  86% {
+    transform: translateY(6px) rotateY(2140deg) rotateZ(0deg) scale(0.98);
   }
   100% {
-    transform: translateY(0) rotateY(1800deg) scale(1);
+    transform: translateY(0) rotateY(2160deg) scale(1);
   }
 }
 @keyframes coin-spin-tails {
   0% {
-    transform: translateY(0) rotateY(0deg) scale(0.5);
+    transform: translateY(30px) rotateY(0deg) rotateZ(-8deg) scale(0.42);
   }
-  35% {
-    transform: translateY(-70px) rotateY(1080deg) scale(1.08);
+  38% {
+    transform: translateY(-96px) rotateY(1260deg) rotateZ(5deg) scale(1.12);
+  }
+  72% {
+    transform: translateY(-18px) rotateY(2180deg) rotateZ(-2deg) scale(1.02);
+  }
+  86% {
+    transform: translateY(6px) rotateY(2320deg) rotateZ(0deg) scale(0.98);
   }
   100% {
-    transform: translateY(0) rotateY(1980deg) scale(1);
+    transform: translateY(0) rotateY(2340deg) scale(1);
   }
 }
 .coin-face {
@@ -5363,35 +5411,100 @@ body[data-turn='player'] .turn-label {
   place-items: center;
   border-radius: 50%;
   backface-visibility: hidden;
-  font-size: 32px;
-  border: 3px solid rgba(255, 225, 150, 0.9);
+  font-size: 42px;
+  border: 4px solid rgba(255, 228, 158, 0.95);
   box-shadow:
-    0 0 30px rgba(255, 200, 90, 0.6),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+    0 0 44px rgba(255, 200, 90, 0.55),
+    inset 0 3px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.35);
+}
+/* engraved inner rim + minting notches */
+.coin-face::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 2px solid rgba(120, 82, 20, 0.45);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.25);
+}
+.coin-face::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.16) 0deg 4deg,
+    transparent 4deg 12deg
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent 62%, #000 66%, #000 74%, transparent 78%);
+  mask-image: radial-gradient(circle, transparent 62%, #000 66%, #000 74%, transparent 78%);
 }
 .coin-face.heads {
   color: #4a3410;
-  background: radial-gradient(circle at 38% 30%, #ffeab0, #f0c05a 55%, #c9922e);
+  text-shadow: 0 1px 0 rgba(255, 240, 190, 0.8);
+  background: radial-gradient(circle at 36% 28%, #fff2c4, #f4c65e 48%, #cf9832 78%, #9c6d1c);
 }
 .coin-face.tails {
-  color: #10203a;
-  background: radial-gradient(circle at 38% 30%, #dfe9ff, #9fb4dd 55%, #6c81ab);
+  color: #101f38;
+  text-shadow: 0 1px 0 rgba(230, 240, 255, 0.8);
+  border-color: rgba(206, 224, 255, 0.95);
+  box-shadow:
+    0 0 44px rgba(140, 180, 255, 0.5),
+    inset 0 3px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.35);
+  background: radial-gradient(circle at 36% 28%, #eef4ff, #aabfe4 48%, #7186b2 78%, #4a5c85);
   transform: rotateY(180deg);
+}
+.coin-face.tails::before {
+  border-color: rgba(40, 58, 96, 0.5);
+}
+/* landing sparks: eight slivers thrown from the rim the moment the
+   coin settles (delay = the spin's length) */
+.fx-coin-spark {
+  position: absolute;
+  left: 50%;
+  top: 52px;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff3c8, rgba(255, 190, 80, 0));
+  opacity: 0;
+  transform-origin: 50% 0;
+  transform: rotate(calc(var(--a) * 1deg)) translateY(26px);
+  animation: coin-spark 0.55s ease-out 1.42s forwards;
+  pointer-events: none;
+}
+@keyframes coin-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(calc(var(--a) * 1deg)) translateY(26px) scaleY(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--a) * 1deg)) translateY(74px) scaleY(1.15);
+  }
 }
 .fx-coin-label {
   font-family: 'Cinzel', serif;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
   color: #ffd98a;
   text-shadow:
-    0 0 16px rgba(255, 200, 90, 0.8),
+    0 0 18px rgba(255, 200, 90, 0.85),
     0 2px 8px rgba(0, 0, 0, 0.9);
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(8px) scale(0.9);
   transition:
-    opacity 0.3s var(--ease),
-    transform 0.3s var(--ease);
+    opacity 0.28s var(--ease),
+    transform 0.28s var(--ease);
+}
+.fx-coin-label.tails {
+  color: #cfe0ff;
+  text-shadow:
+    0 0 18px rgba(140, 180, 255, 0.85),
+    0 2px 8px rgba(0, 0, 0, 0.9);
 }
 .fx-coin-label.show {
   opacity: 1;
@@ -22791,10 +22904,12 @@ html.mqw640 .tutor-face {
 
 /* The script's marked choices: a slow golden pulse says "these, next".
    Applied to prep tiles, the confirm buttons, and IN BATTLE to the
-   line's unit, its targets, the ability row and the Pass dial. */
+   line's unit, its targets, the ability row and the Pass dial. On
+   battle cards the pulse rides .bcard-inner - the VISIBLE card face
+   (5:6, radius 12) - because .bcard itself is a taller hit-area
+   wrapper and a glow on it reads as a wrong-shaped rectangle. */
 .prep-c.tutor-pick,
 .btn.tutor-pick,
-.bcard.tutor-pick,
 .endturn-btn.tutor-pick {
   animation: tutor-pulse 1.5s ease-in-out infinite;
 }
@@ -22803,7 +22918,9 @@ html.mqw640 .tutor-face {
 }
 .bcard.tutor-pick {
   z-index: 3;
-  border-radius: 12px;
+}
+.bcard.tutor-pick .bcard-inner {
+  animation: tutor-pulse 1.5s ease-in-out infinite;
 }
 .dk-ab.tutor-pick {
   animation: tutor-pulse-soft 1.5s ease-in-out infinite;
@@ -22838,8 +22955,8 @@ html.mqw640 .tutor-face {
 @media (prefers-reduced-motion: reduce) {
   .prep-c.tutor-pick,
   .btn.tutor-pick,
-  .bcard.tutor-pick,
   .endturn-btn.tutor-pick,
+  .bcard.tutor-pick .bcard-inner,
   .dk-ab.tutor-pick {
     animation: none;
     box-shadow:
