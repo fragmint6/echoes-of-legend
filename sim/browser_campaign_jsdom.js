@@ -91,6 +91,7 @@ const server = http.createServer((req, res) => {
   for (let g = 0; g < 40 && $('chapter-dialogue').hidden; g++) await sleep(300);
   t(!$('chapter-dialogue').hidden, 'first-boot intro auto-opens on a fresh save');
   t($('chapter-dialogue-speaker').textContent === 'The Recruiter', 'the Recruiter does the interrupting');
+  t(!$('chapter-dialogue-skiptut').hidden, 'Skip tutorial offered on the intro scene');
   t(w.localStorage.getItem('eol.tutorial.intro.v1') === '1', 'intro marked seen the moment it runs');
   // skipping with X hands over to the WAYFINDER - no teleport, the
   // player walks the path themselves with the Recruiter pointing
@@ -136,6 +137,7 @@ const server = http.createServer((req, res) => {
   d.querySelector('[data-campaign-stage="1"]').click();
   await sleep(400);
   t(!$('chapter-dialogue').hidden, 'Gate I opens its dialogue when the player knocks');
+  t($('chapter-dialogue-skiptut').hidden, 'no Skip-tutorial on a gate scene - Gate I is content');
   t(!w.EOL.campaign._navGuide(), 'the wayfinder retires the moment a gate answers');
   t($('nav-guide').hidden, 'guide bubble is gone');
   t(w.localStorage.getItem('eol.tutorial.guide.v1') !== '1', 'pending flag cleared - no ghost pointer next boot');
@@ -369,6 +371,35 @@ const server = http.createServer((req, res) => {
   t(!w.EOL.campaign._navGuide(), 'and retires the replayed wayfinder');
   $('chapter-dialogue-close').click();
   await sleep(200);
+
+  /* ---------- Skip tutorial: one click out, but never past Gate I ---------- */
+  // skip from inside the intro scene
+  $('btn-corner-tutorial').click();
+  await sleep(250);
+  t(!$('chapter-dialogue').hidden && !$('chapter-dialogue-skiptut').hidden, 'skip test: intro up with the skip pill');
+  $('chapter-dialogue-skiptut').click();
+  await sleep(900);
+  t($('chapter-dialogue').hidden, 'skip closes the intro scene');
+  t(!w.EOL.campaign._navGuide(), 'skip does NOT hand over to the wayfinder');
+  t(d.body.dataset.view === 'chapter', 'skip lands on the Road, gates in view');
+  t(w.localStorage.getItem('eol.tutorial.guide.v1') !== '1', 'no ghost pointer left pending');
+  t(!d.querySelector('.guide-mark'), 'no stray pulse after the skip');
+  // skip from the wayfinder bubble mid-walk
+  $('btn-corner-tutorial').click();
+  await sleep(250);
+  for (let i = 0; i < 3 && !$('chapter-dialogue').hidden; i++) {
+    $('chapter-dialogue-next').click();
+    await sleep(120);
+  }
+  await sleep(700);
+  t(!!w.EOL.campaign._navGuide(), 'wayfinder running for the bubble-skip test');
+  t(!$('nav-guide').hidden, 'bubble up (with its skip pill riding along)');
+  $('nav-guide-skip').click();
+  await sleep(500);
+  t(!w.EOL.campaign._navGuide(), 'bubble skip retires the wayfinder');
+  t(d.body.dataset.view === 'chapter', 'and stays on the Road');
+  t($('chapter-dialogue').hidden, 'without auto-opening Gate I - the gate is not tutorial');
+  t($('nav-guide').hidden, 'bubble gone after the skip');
 
   /* ---------- mojibake sweep ---------- */
   {

@@ -109,7 +109,11 @@ guardian gets exactly one knife hidden in the warmth.
   phase) and the bubble shakes its head, so the walk cannot wander
   off the rails; a pending flag lets it survive a mid-walk refresh.
   It retires the
-  moment any gate dialogue opens.
+  moment any gate dialogue opens. A quiet **Skip tutorial** pill (on
+  the intro scene's footer and riding the wayfinder bubble) ends the
+  flow in one click and lands the player on the Road with the gates
+  in view — but only the *tutorial* is skippable: from the moment
+  Gate I is clicked, everything is content and walks at full length.
 - **Teaches:** the entire battle loop — bans, roles, rows, energy,
   basics vs signatures, targeting, passing, the turn clock (which he
   notes ticks *for show only* on the Road — campaign battles never

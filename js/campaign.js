@@ -254,6 +254,10 @@
       }
     }
     setText($('chapter-dialogue-step'), two(dlg.index + 1) + ' / ' + two(dlg.lines.length));
+    /* Skip tutorial is offered ONLY on the intro scene - gate scenes
+       and epilogues are content, and content is walked, not skipped */
+    var skipT = $('chapter-dialogue-skiptut');
+    if (skipT) skipT.hidden = dlg.kind !== 'intro';
     var next = $('chapter-dialogue-next');
     if (next) {
       if (line.battle) {
@@ -569,6 +573,26 @@
     }
   }
 
+  /* The way out: a tutorial must be refusable in ONE click. Skipping
+     ends the intro scene + the wayfinder walk only, and lands the
+     player on the Road with the gates in view. Gate I itself is
+     CONTENT, not tutorial (owner ruling 2026-08-09): from the moment
+     a gate is clicked, nothing more can be skipped by this route. */
+  function skipTutorial() {
+    if (dlg && dlg.kind === 'intro') {
+      dlg.onDone = null; // do NOT hand over to the wayfinder
+      closeDialogue();
+    }
+    stopNavGuide(); // also clears the pending flag
+    if (
+      window.EOL.ui &&
+      window.EOL.ui.show &&
+      document.body.dataset.view !== 'chapter'
+    ) {
+      window.EOL.ui.show('chapter');
+    }
+  }
+
   /* While the wayfinder points, the OTHER doors are locked: a
      capture-phase trap swallows any click outside the marked button
      (the tutorial is on rails, exactly like the scripted gate it leads
@@ -579,6 +603,8 @@
   function guideClickTrap(ev) {
     if (!navGuide || !navGuide.lastEl) return;
     if (navGuide.lastEl.contains(ev.target)) return; // the one true click
+    var skip = document.getElementById('nav-guide-skip');
+    if (skip && skip.contains(ev.target)) return; // the way out is always open
     var bar = document.getElementById('chapter-dialogue');
     if (bar && !bar.hidden && bar.contains(ev.target)) return; // a scene owns the screen
     ev.preventDefault();
@@ -1442,9 +1468,25 @@
       bar.addEventListener('click', function (ev) {
         if (ev.target.closest && ev.target.closest('#chapter-dialogue-close')) return;
         if (ev.target.closest && ev.target.closest('#chapter-dialogue-next')) return;
+        if (ev.target.closest && ev.target.closest('#chapter-dialogue-skiptut')) return;
         advanceDialogue();
       });
     if (next) next.addEventListener('click', advanceDialogue);
+
+    /* Skip tutorial - one in the intro scene's footer, one riding the
+       wayfinder bubble. Both end the SAME flow the same way. */
+    var skipT = $('chapter-dialogue-skiptut');
+    if (skipT)
+      skipT.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        skipTutorial();
+      });
+    var gSkip = $('nav-guide-skip');
+    if (gSkip)
+      gSkip.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        skipTutorial();
+      });
 
     document.addEventListener('keydown', function (event) {
       if (!dlg) return;
@@ -1508,6 +1550,7 @@
     onScriptEnd: onScriptEnd,
     onBattleResult: onBattleResult,
     startTutorial: runIntroTutorial,
+    skipTutorial: skipTutorial,
     retry: retry,
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,

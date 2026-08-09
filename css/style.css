@@ -22530,6 +22530,34 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   justify-content: center;
   gap: 8px;
 }
+/* Skip tutorial - intro scene only (gate scenes are content). A quiet
+   pill: refusable should never mean LOUD. */
+.chapter-dialogue-skiptut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid rgba(226, 228, 242, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(226, 228, 242, 0.55);
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.chapter-dialogue-skiptut:hover {
+  color: #fff;
+  border-color: rgba(226, 228, 242, 0.5);
+}
+.chapter-dialogue-skiptut[hidden] {
+  display: none;
+}
 html.mqw640 .chapter-dialogue {
   padding: 0 8px 10px;
 }
@@ -22767,6 +22795,36 @@ html.mqw640 .rival-bark-text {
   color: #f2ece6;
   font-size: 13.5px;
   line-height: 1.5;
+}
+/* the way out rides the bubble - the ONE interactive island inside a
+   pointer-transparent element */
+.nav-guide-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 205, 130, 0.28);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 206, 150, 0.6);
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: var(--cur-pointer);
+  pointer-events: auto;
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.nav-guide-skip:hover {
+  color: #ffd9a8;
+  border-color: rgba(255, 205, 130, 0.6);
+}
+.nav-guide-skip[hidden] {
+  display: none;
 }
 html.mqw640 .nav-guide {
   width: min(330px, 90vw);
