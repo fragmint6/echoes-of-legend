@@ -18218,12 +18218,6 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
     transform: translateY(-12px) scale(0.7);
   }
 }
-@keyframes credit-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
 /* on the LEFT edge the label rides out to the right instead */
 .home-discord .discord-tip {
   right: auto;
@@ -18233,30 +18227,6 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
 .home-discord:hover .discord-tip,
 .home-discord:focus-visible .discord-tip {
   transform: translateY(-50%) translateX(0);
-}
-
-/* art credit, bottom-right */
-.art-credit {
-  position: absolute;
-  right: 22px;
-  bottom: 21px;
-  z-index: 30;
-  color: #ffffff;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: lowercase;
-  opacity: 0.78;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
-  pointer-events: none;
-  user-select: none;
-  animation: credit-rise 0.8s var(--ease) 1.15s backwards;
-  transition: opacity 0.2s var(--ease);
-}
-.art-credit b {
-  color: var(--r-legendary-1);
-  font-weight: 700;
-  text-shadow: 0 0 12px rgba(255, 200, 90, 0.4);
 }
 
 /* Corner button stack -- top-right, below the account pill.
