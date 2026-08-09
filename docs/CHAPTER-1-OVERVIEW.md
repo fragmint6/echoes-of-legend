@@ -293,18 +293,33 @@ enemy made players win *more*) and turn order (~0-10pp since the
 comeback-energy patch). The campaign never cheats; the campaign never
 needs to.
 
-**The intended curve** (win rate for a player on the *floor
-collection* — starter Grimmwood + grants only, no purchases):
+**The intended curve vs. the measured curve.** Soaked 2026-08-09 with
+`sim/campaign_soak.js` (the design doc's `--teams fixed` harness):
+every gate replayed with its exact shipped config, the player's side
+driven by the game's own AI over the floor collection, n = 40-60
+trials per gate. The soak numbers are BOT-vs-bot; a median human runs
+below the bot on early gates and above it on gates whose counterplay
+is knowledge (protect-the-carry, kill-the-healer).
 
 | Gate | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Floor | ~95%* | ~90% | ~85% | ~75% | ~70% | ~65% | ~60% | ~55% | ~40% | ~20-30% |
-| Stocked | ~95%* | ~95% | ~90% | ~85% | ~80% | — | — | — | ~55% | ~35-45% |
+| Target (floor) | ~95%* | ~90% | ~85% | ~75% | ~70% | ~65% | ~60% | ~55% | ~40% | ~20-30% |
+| Measured (bot) | 100%* | 100% | 95% | 92% | 85% | 68% | 58% | 58% | 30% | 20% |
 
 \* Gate I is scripted: following the marks is a guaranteed clean sweep
-(all six signatures cast, no losses); the number describes a player
-who deviates after a desync. Gates 6-8 are drafts, so the player's
-collection does not enter and the two columns converge.
+(all six signatures cast, no losses). Gates 6-8 are drafts, so the
+player's collection does not enter the fight.
+
+The tuning pass behind those numbers (all deck-side, per the law):
+the Outlaw's gate was rebuilt after the soak found bans into a
+scripted six were REFILLED with the best of her bench (banning Little
+John summoned Guy of Gisborne) - scripted sixes now refill
+deterministically from the deck list, benches are ordered
+weakest-first, and her bans hunt walls instead of stripping a 14-card
+floor of all healing. Gilgamesh's card grew into its role (8600 HP /
+2050 ATK / +15% ramp x6) after the set measured 70% player wins.
+The exam decks and draft personas were tuned around the same runs;
+a full-road playthrough (`--run`) clears in ~20 attempts total.
 
 **The safety rails:** progress saves per gate (a loss retries, no run
 resets — frustration is the enemy of a teaching campaign), the floor

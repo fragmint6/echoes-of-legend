@@ -295,52 +295,37 @@ S.stages.forEach(function (st) {
     ok(!!st.barks.start2 && !!st.barks.start3, 'stage ' + st.id + ': per-game set barks');
 });
 
-console.log('F. curated draft pools');
-function buildPool(featuredId) {
-  var byRole = {};
-  EOL.factions.forEach(function (f) {
-    if (f.id === 'huaxia' || f.id === 'duat') return;
-    f.cards.forEach(function (c) {
-      (byRole[c.role] = byRole[c.role] || []).push({ card: c, faction: f });
-    });
-  });
-  var pool = [];
-  Object.keys(byRole).forEach(function (role) {
-    var featured = byRole[role].filter(function (e) {
-      return e.faction.id === featuredId;
-    });
-    var rest = byRole[role].filter(function (e) {
-      return e.faction.id !== featuredId;
-    });
-    pool = pool.concat(featured.concat(rest).slice(0, 6));
-  });
-  return pool;
-}
+console.log('F. curated draft pools (FROZEN - owner ruling 2026-08-09)');
 S.stages.forEach(function (st) {
   if (st.mode !== 'draft') return;
   var fid = st.pool.featured;
-  var pool = buildPool(fid);
-  ok(pool.length === 36, 'stage ' + st.id + ': pool is 36 cards');
+  var P = st.pool.cards || [];
+  ok(P.length === 36, 'stage ' + st.id + ': frozen pool is 36 cards');
+  ok(new Set(P).size === 36, 'stage ' + st.id + ': pool ids distinct');
   var roles = {};
-  pool.forEach(function (e) {
-    roles[e.card.role] = (roles[e.card.role] || 0) + 1;
+  var okIds = true;
+  P.forEach(function (id) {
+    if (!dict[id]) okIds = false;
+    else roles[dict[id].card.role] = (roles[dict[id].card.role] || 0) + 1;
   });
+  ok(okIds, 'stage ' + st.id + ': every pool id resolves');
   ok(
-    Object.keys(roles).every(function (r) {
-      return roles[r] === 6;
-    }),
+    Object.keys(roles).length === 6 &&
+      Object.keys(roles).every(function (r) {
+        return roles[r] === 6;
+      }),
     'stage ' + st.id + ': pool is 6-per-role'
   );
-  var featN = pool.filter(function (e) {
-    return e.faction.id === fid;
+  var featN = P.filter(function (id) {
+    return dict[id] && dict[id].faction.id === fid;
   }).length;
   var featTotal = EOL.factions.filter(function (f) {
     return f.id === fid;
   })[0].cards.length;
   ok(featN === featTotal, 'stage ' + st.id + ': featured faction complete in the pool');
   ok(
-    pool.every(function (e) {
-      return e.faction.id !== 'huaxia' && e.faction.id !== 'duat';
+    P.every(function (id) {
+      return dict[id] && dict[id].faction.id !== 'huaxia' && dict[id].faction.id !== 'duat';
     }),
     'stage ' + st.id + ': no Huaxia/Duat in the pool'
   );

@@ -91,13 +91,20 @@
   /* ---------------------------------------------------------
      Curated draft pools (stages 6-8).
      -------------------------------------------------------------
-     The featured faction's full six is GUARANTEED into the pool;
-     the rest fills to 6-per-role so both sides can always build a
-     legal 12 under max-4 (the role-cap lesson stays true). Huaxia
-     is held for Chapter 2 and Duat is the boss reveal, so neither
-     enters a Chapter 1 draft.
+     The 36 cards of every draft gate are FIXED, authored data
+     (owner ruling 2026-08-09): `stage.pool.cards` in
+     data/campaign-ch1.js - 6 per role, the featured faction's full
+     six guaranteed, no Huaxia (Chapter 2) and no Duat (the boss
+     reveal). Only the deal order varies between runs, like a
+     shuffled deck. The procedural builder below survives purely as
+     a fallback for a stage that ships without a frozen list.
      --------------------------------------------------------- */
-  function buildPool(featuredId) {
+  function buildPool(spec) {
+    var featuredId = spec && spec.featured ? spec.featured : spec;
+    if (spec && spec.cards && spec.cards.length) {
+      var frozen = entriesFor(spec.cards);
+      if (frozen.length === spec.cards.length) return frozen;
+    }
     var byRole = {};
     (window.EOL.factions || []).forEach(function (f) {
       if (f.id === 'huaxia' || f.id === 'duat') return;
@@ -414,8 +421,9 @@
   function launchDraft(stage) {
     if (!window.EOL.play || !window.EOL.play.startDraft) return;
     window.EOL.play.startDraft({
-      pool: buildPool(stage.pool && stage.pool.featured),
+      pool: buildPool(stage.pool),
       persona: stage.persona || null,
+      personaJitter: stage.personaJitter || 0,
       campaign: {
         stage: stage.id,
         field: fieldById(stage.field),

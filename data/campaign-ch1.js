@@ -61,7 +61,10 @@ window.EOL = window.EOL || {};
     rarity: 'legendary',
     role: 'Bruiser',
     element: 'Light',
-    stats: { hp: 6650, atk: 1690, def: 25 },
+    /* Soak-tuned 2026-08-09: at hp 6650 / atk 1690 / +10%x5 the set was
+       won 70% at the floor vs the ~20-30% design target. The First
+       Legend now hits like the end of a road should. */
+    stats: { hp: 8600, atk: 2050, def: 34 },
     unbannable: true,
     pinned: true,
     icon: 'ra-crown',
@@ -71,27 +74,27 @@ window.EOL = window.EOL || {};
       name: 'He Who Saw the Deep',
       cost: 50,
       text:
-        'Deal <b>150% ATK Light Damage</b>. If the target is below <b>30% HP</b>, ' +
-        'instead deal <b>300% ATK</b> - the scales have already decided. Each cast, ' +
-        'Gilgamesh permanently gains <b>10% ATK</b>: kingship that outlasts.',
-      note: 'Max: 5 growth stacks.',
+        'Deal <b>180% ATK Light Damage</b>. If the target is below <b>40% HP</b>, ' +
+        'instead deal <b>360% ATK</b> - the scales have already decided. Each cast, ' +
+        'Gilgamesh permanently gains <b>15% ATK</b>: kingship that outlasts.',
+      note: 'Max: 6 growth stacks.',
       spec: {
         target: { side: 'enemy', pick: 'single', row: 'any' },
         effects: [
           {
             k: 'branch',
-            cond: { targetHpBelow: 0.3 },
-            then: [{ k: 'dmg', power: 3.0, element: 'Light' }],
-            other: [{ k: 'dmg', power: 1.5, element: 'Light' }],
+            cond: { targetHpBelow: 0.4 },
+            then: [{ k: 'dmg', power: 3.6, element: 'Light' }],
+            other: [{ k: 'dmg', power: 1.8, element: 'Light' }],
           },
           {
             k: 'stat',
             stat: 'atk',
-            amt: 10,
+            amt: 15,
             turns: 99,
             to: 'self',
             stackTag: 'saw-the-deep',
-            maxStacks: 5,
+            maxStacks: 6,
           },
         ],
       },
@@ -271,27 +274,32 @@ window.EOL = window.EOL || {};
       lock: 'Clear The Recruiter',
       /* Camelot's whole hall plus a second wall: the pass narrows and
          he intends to BE the reason it matters. */
+      /* ORDERED: the scripted six first, then the bench weakest-first -
+         a ban into the six pulls the NEXT NAME on this list (the
+         deterministic-refill law in js/play.js). */
       enemy12: [
         'camelot-king-arthur',
-        'camelot-lancelot',
-        'camelot-merlin',
-        'camelot-morgan-le-fay',
-        'camelot-guinevere',
-        'camelot-mordred',
         'yamato-benkei',
         'grimmwood-gingerbread-man',
-        'yamato-momotaro',
-        'sherwood-maid-marian',
+        'camelot-guinevere',
         'sherwood-will-scarlet',
+        'camelot-merlin',
+        'sherwood-maid-marian',
         'sherwood-friar-tuck',
+        'yamato-momotaro',
+        'camelot-morgan-le-fay',
+        'camelot-mordred',
+        'camelot-lancelot',
       ],
       factionMix: { camelot: 6, yamato: 2, grimmwood: 1, sherwood: 3 },
+      /* Soak-tuned 2026-08-09: the wall holds, the teeth behind it are
+         modest - the lesson is going THROUGH him, not surviving Mordred. */
       botSix: [
         'camelot-king-arthur',
         'yamato-benkei',
         'grimmwood-gingerbread-man',
         'camelot-guinevere',
-        'camelot-mordred',
+        'sherwood-will-scarlet',
         'camelot-merlin',
       ],
       /* He tells you his oath before he swears it: your best back-line
@@ -322,31 +330,44 @@ window.EOL = window.EOL || {};
       field: 'open-plains',
       line: 'A rifle cracks from the watchtree. She always shoots your strongest legend - bait or bury them. Protect your brightest echo, or learn who you leave behind.',
       lock: 'Clear The Oathkeeper',
+      /* Soak-tuned 2026-08-09: the original bench (Tomoe, Puss, Guy on
+         call) meant banning Robin UPGRADED her six. The bench is now
+         honest support - the lesson stays Robin's rifle, not the
+         replacements. */
       enemy12: [
         'sherwood-robin-hood',
-        'sherwood-guy-of-gisborne',
-        'sherwood-will-scarlet',
         'sherwood-little-john',
-        'sherwood-maid-marian',
-        'sherwood-friar-tuck',
-        'grimmwood-goldilocks',
-        'yamato-tomoe-gozen',
-        'grimmwood-puss-in-boots',
         'grimmwood-gingerbread-man',
+        'sherwood-maid-marian',
         'grimmwood-snow-white',
-        'grimmwood-red-riding-hood',
+        'sherwood-friar-tuck',
+        'grimmwood-cinderella',
+        'grimmwood-pied-piper',
+        'sherwood-will-scarlet',
+        'grimmwood-goldilocks',
+        'grimmwood-rapunzel',
+        'sherwood-guy-of-gisborne',
       ],
-      factionMix: { sherwood: 6, grimmwood: 5, yamato: 1 },
+      factionMix: { sherwood: 6, grimmwood: 6 },
+      /* Soak-tuned 2026-08-09: triple snipers on the +15% back-row board
+         measured 13% player WR - a wall, not a lesson. Robin + Goldilocks
+         still teach the focus-fire read. */
+      /* Soak-tuned: Goldilocks' execute alone is worth ~40pp on the
+         Plains - Robin's rifle carries the focus-fire lesson solo. */
       botSix: [
         'sherwood-robin-hood',
-        'grimmwood-goldilocks',
-        'yamato-tomoe-gozen',
         'sherwood-little-john',
+        'grimmwood-gingerbread-man',
         'sherwood-maid-marian',
-        'sherwood-guy-of-gisborne',
+        'grimmwood-snow-white',
+        'sherwood-friar-tuck',
       ],
-      /* She bans your protectors, so the favourite stands in the open. */
-      banProfile: { roles: ['Tank', 'Medic'] },
+      /* She bans your protectors, so the favourite stands in the open.
+         Soak-tuned 2026-08-09: taking BOTH walls AND healers off a
+         14-card floor was the gate's real cruelty (+24pp measured when
+         softened) - she now hunts the healers only. The flavour holds:
+         the healer is the protector. */
+      banProfile: { roles: ['Tank'] },
       grants: { cards: ['sherwood-robin-hood', 'sherwood-little-john'], coins: 120 },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
@@ -376,18 +397,18 @@ window.EOL = window.EOL || {};
          deck of stages 1-4, because Olympus is the chapter's only Mark
          teacher and cannot be swapped (§4 balance flag). */
       enemy12: [
-        'olympus-zeus',
-        'olympus-athena',
-        'olympus-hercules',
-        'olympus-apollo',
-        'olympus-medusa',
-        'olympus-ares',
         'roma-spartacus',
-        'grimmwood-evil-queen',
-        'grimmwood-big-bad-wolf',
-        'yamato-kaguya',
-        'camelot-mordred',
+        'olympus-hercules',
+        'olympus-ares',
+        'olympus-zeus',
+        'olympus-medusa',
+        'olympus-apollo',
         'camelot-guinevere',
+        'camelot-mordred',
+        'olympus-athena',
+        'yamato-kaguya',
+        'grimmwood-big-bad-wolf',
+        'grimmwood-evil-queen',
       ],
       factionMix: { olympus: 6, roma: 1, grimmwood: 2, yamato: 1, camelot: 2 },
       botSix: [
@@ -435,7 +456,7 @@ window.EOL = window.EOL || {};
         'sherwood-robin-hood',
         'sherwood-little-john',
         'sherwood-guy-of-gisborne',
-        'sherwood-friar-tuck',
+        'sherwood-will-scarlet',
         'olympus-zeus',
         'olympus-hercules',
         'olympus-medusa',
@@ -471,7 +492,29 @@ window.EOL = window.EOL || {};
       terrain: 'The Energy Void',
       field: 'energy-void',
       persona: 'trickster',
-      pool: { featured: 'yamato' },
+      personaJitter: 4.5,
+      pool: {
+        featured: 'yamato',
+        /* FROZEN POOL (owner ruling 2026-08-09): the 36 cards of every
+           draft gate are fixed, authored data - 6 per role, the whole
+           featured faction guaranteed, no Huaxia (Chapter 2) and no
+           Duat (the boss reveal). This is the Trickster's table:
+           energy payoffs and steal-bait on purpose. */
+        cards: [
+          'yamato-benkei', 'yamato-momotaro', 'camelot-king-arthur',
+          'roma-spartacus', 'grimmwood-gingerbread-man', 'takamagahara-susanoo',
+          'yamato-minamoto-no-yoshitsune', 'grimmwood-big-bad-wolf', 'camelot-lancelot',
+          'roma-julius-caesar', 'sherwood-guy-of-gisborne', 'olympus-ares',
+          'yamato-tomoe-gozen', 'grimmwood-puss-in-boots', 'grimmwood-goldilocks',
+          'camelot-mordred', 'roma-brutus', 'sherwood-robin-hood',
+          'yamato-kaguya', 'grimmwood-evil-queen', 'olympus-zeus',
+          'takamagahara-amaterasu', 'takamagahara-tsukuyomi', 'grimmwood-rapunzel',
+          'yamato-abe-no-seimei', 'takamagahara-inari', 'takamagahara-izanami',
+          'camelot-merlin', 'olympus-medusa', 'grimmwood-rumpelstiltskin',
+          'grimmwood-snow-white', 'camelot-guinevere', 'olympus-apollo',
+          'roma-augustus', 'takamagahara-izanagi', 'sherwood-maid-marian',
+        ],
+      },
       line: 'She deals twelve cards onto black stone. "You take one. Then I take one. The only cheating is pretending you did not want what you picked." She will steal the pieces your plan needs.',
       lock: 'Clear the Mid-Road',
       banProfile: {},
@@ -499,7 +542,26 @@ window.EOL = window.EOL || {};
       terrain: 'The Blood Battlefield',
       field: 'blood-battlefield',
       persona: 'strategist',
-      pool: { featured: 'roma' },
+      personaJitter: 0.6,
+      pool: {
+        featured: 'roma',
+        /* FROZEN POOL: the Strategist's table - kill chains, execute
+           payoffs, and the walls that deny them. */
+        cards: [
+          'roma-spartacus', 'camelot-king-arthur', 'olympus-hercules',
+          'sherwood-little-john', 'yamato-benkei', 'grimmwood-hansel-gretel',
+          'roma-julius-caesar', 'camelot-lancelot', 'grimmwood-big-bad-wolf',
+          'sherwood-guy-of-gisborne', 'sherwood-will-scarlet', 'yamato-minamoto-no-yoshitsune',
+          'roma-brutus', 'sherwood-robin-hood', 'grimmwood-goldilocks',
+          'grimmwood-puss-in-boots', 'camelot-mordred', 'yamato-tomoe-gozen',
+          'roma-constantine-the-great', 'olympus-zeus', 'grimmwood-evil-queen',
+          'takamagahara-amaterasu', 'yamato-kaguya', 'grimmwood-rapunzel',
+          'roma-cicero', 'olympus-medusa', 'camelot-morgan-le-fay',
+          'takamagahara-izanami', 'grimmwood-pied-piper', 'olympus-athena',
+          'roma-augustus', 'grimmwood-snow-white', 'camelot-guinevere',
+          'olympus-apollo', 'takamagahara-izanagi', 'grimmwood-cinderella',
+        ],
+      },
       line: 'An old man plots your habits on a wax board of violet lines. He drafts against what you are drafting, and every careless victory becomes a path to your next defeat.',
       lock: 'Clear The Trickster',
       banProfile: {},
@@ -527,7 +589,26 @@ window.EOL = window.EOL || {};
       terrain: 'The Spirit World',
       field: 'spirit-world',
       persona: 'chronicler',
-      pool: { featured: 'takamagahara' },
+      personaJitter: 3.2,
+      pool: {
+        featured: 'takamagahara',
+        /* FROZEN POOL: the Chronicler's catalogue - burn, cleanse,
+           Silence, and the bodies that must outlast them. */
+        cards: [
+          'takamagahara-susanoo', 'grimmwood-gingerbread-man', 'olympus-hercules',
+          'yamato-benkei', 'yamato-momotaro', 'grimmwood-hansel-gretel',
+          'grimmwood-big-bad-wolf', 'grimmwood-red-riding-hood', 'camelot-lancelot',
+          'olympus-ares', 'roma-julius-caesar', 'sherwood-will-scarlet',
+          'sherwood-robin-hood', 'grimmwood-goldilocks', 'grimmwood-puss-in-boots',
+          'camelot-mordred', 'roma-brutus', 'yamato-tomoe-gozen',
+          'takamagahara-amaterasu', 'takamagahara-tsukuyomi', 'grimmwood-evil-queen',
+          'olympus-zeus', 'grimmwood-rapunzel', 'yamato-kaguya',
+          'takamagahara-izanami', 'takamagahara-inari', 'grimmwood-rumpelstiltskin',
+          'sherwood-friar-tuck', 'camelot-merlin', 'grimmwood-pied-piper',
+          'takamagahara-izanagi', 'grimmwood-snow-white', 'grimmwood-cinderella',
+          'camelot-guinevere', 'olympus-apollo', 'sherwood-maid-marian',
+        ],
+      },
       line: 'In a wall-less library beneath cold stars, an archivist drafts the curve and hoards answers. They burn you out, cleanse themselves clean, and write down everyone who disappoints them.',
       lock: 'Clear The Strategist',
       banProfile: {},
@@ -558,8 +639,10 @@ window.EOL = window.EOL || {};
       lock: 'Clear The Chronicler',
       /* 4/4/4 across the late-taught factions (R8). She holds the door;
          the deck is a wall with two executioners behind it. */
+      /* Soak-tuned 2026-08-09: 23% vs the ~40% target with Abe no Seimei
+         anchoring - the legendary diviner sits out; the door still holds. */
       enemy12: [
-        'yamato-abe-no-seimei',
+        'yamato-minamoto-no-yoshitsune',
         'yamato-benkei',
         'yamato-tomoe-gozen',
         'yamato-momotaro',
@@ -567,7 +650,7 @@ window.EOL = window.EOL || {};
         'roma-spartacus',
         'roma-brutus',
         'roma-augustus',
-        'takamagahara-amaterasu',
+        'takamagahara-tsukuyomi',
         'takamagahara-izanami',
         'takamagahara-susanoo',
         'takamagahara-izanagi',

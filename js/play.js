@@ -351,6 +351,12 @@
        chronicler   drafts the curve and hoards answers: burn, cleanse,
                     Silence and cost-denial. */
   var draftPersona = null;
+  /* Campaign persona SLOPPINESS (soak-tuned, per stage): extra noise on
+     the rival's pick scores. The personality keeps its shape - the
+     Trickster still steals, the Chronicler still hoards - but the hand
+     wobbles, which is the honest draft-difficulty dial when both sides
+     draft from the same fixed pool. */
+  var draftPersonaJitter = 0;
   function draftPick(team, offered, foeTeam) {
     var ai = DAI();
     var legal = offered.filter(function (e) {
@@ -381,6 +387,7 @@
           if (T.gives.cleanse) v += 1.0;
           if (T.gives.denial) v += 0.9;
         }
+        v += Math.random() * draftPersonaJitter;
       }
       v += Math.random() * 1.5;
       if (v > bestScore) {
@@ -1758,10 +1765,43 @@
       mustKeep = setState.pinnedEnemy;
     /* THE SET: the bot sideboards against your PUBLIC six (last game is
        fair information for both sides) and obeys the same swap law */
-    var enemySix =
-      setState && setState.lastBotIds.length
-        ? setBotSix(survive, predictedSix)
-        : chooseSix(survive, predictedSix, mustKeep);
+    var enemySix = null;
+    if (!setState && prep.botSix && prep.botSix.length) {
+      /* SCRIPTED SIX (§8 dial 2): authored AND deterministic, including
+         its refills. When the player bans into the script, the hole is
+         filled from the deck list IN ORDER - never by chooseSix's "best
+         of bench", which quietly UPGRADED the six (soak-found 2026-08-09:
+         banning the Outlaw's Little John summoned Guy of Gisborne). The
+         enemy12 arrays are therefore ordered six-first, bench
+         weakest-first. */
+      enemySix = [];
+      var takeScripted = function (id) {
+        if (enemySix.length >= RULES().FIELD_SIZE) return;
+        if (
+          enemySix.some(function (e) {
+            return e.card.id === id;
+          })
+        )
+          return;
+        for (var s2 = 0; s2 < survive.length; s2++) {
+          if (survive[s2].card.id === id) {
+            enemySix.push(survive[s2]);
+            return;
+          }
+        }
+      };
+      prep.botSix.forEach(takeScripted);
+      prep.enemy12.forEach(function (e) {
+        takeScripted(e.card.id);
+      });
+      if (enemySix.length < RULES().FIELD_SIZE) enemySix = null; // degenerate deck: fall back
+    }
+    if (!enemySix) {
+      enemySix =
+        setState && setState.lastBotIds.length
+          ? setBotSix(survive, predictedSix)
+          : chooseSix(survive, predictedSix, mustKeep);
+    }
     if (setState) {
       /* heroes leaving the six become locked out for the rest of the
          set (BEFORE lastSix is overwritten with the new six) */
@@ -2279,6 +2319,7 @@
        the fight lands on the stage's pinned board with the stage's ban
        profile. All null outside the campaign. */
     draftPersona = opts.persona || null;
+    draftPersonaJitter = opts.personaJitter || 0;
     draftCampaign = opts.campaign || null;
     /* A multiplayer draft is driven by the match seed so both clients
        shuffle to the identical pack order. Singleplayer keeps using

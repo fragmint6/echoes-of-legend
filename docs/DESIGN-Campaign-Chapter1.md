@@ -38,9 +38,19 @@
 > - **Coverage:** `sim/verify_campaign.js` (deck legality per §9.8, grant
 >   curriculum, terrain wiring, pool constraints, boss flags + an engine
 >   smoke with the boss on the board). `sim/verify_all.js` stays green.
-> - Still open: difficulty soak against §8's curve targets (the `--teams
->   fixed` harness), codex/chronicle screens, and the economy pass that
->   makes tier-2 coin spendable.
+> - **The soak exists and has been run** (2026-08-09):
+>   `sim/campaign_soak.js` replays every gate with its shipped config
+>   (bot-vs-bot at the floor). Measured curve after tuning:
+>   100/100/95/92/85/68/58/58/30/20 against targets
+>   95/90/85/75/70/65/60/55/40/25. Tuning stayed inside the law - decks,
+>   scripted sixes, ban profiles, persona pick-noise, boss card numbers.
+>   Two structural findings: (a) bans into a scripted six were refilled
+>   by chooseSix's best-of-bench, silently UPGRADING the six - refills
+>   are now deterministic from the deck list, with benches ordered
+>   weakest-first; (b) the three draft pools are now FROZEN 36-card
+>   authored lists (`stage.pool.cards`), settling §9's open item with
+>   option (a)+(c). Still open: codex/chronicle screens and the economy
+>   pass that makes tier-2 coin spendable.
 
 > **REV 6 - the shell is on screen, and D1 is closed.**
 >
