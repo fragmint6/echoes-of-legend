@@ -402,11 +402,13 @@
      starts pointing: a pointer-transparent bubble beside the NEXT
      button on the road (home's Play, the Campaign mode card, the
      Chapter 1 plate, the Gate I node) plus a golden pulse on the
-     button itself. The player performs every click. The guide ends
+     button itself. The player performs every click - but ONLY that
+     click: while the guide points, a capture-phase trap (below)
+     swallows clicks on every other button and the bubble shakes its
+     head, so the walk cannot wander off the rails. The guide ends
      the moment any gate dialogue opens - the road has been found -
-     and it simply hides on unrelated screens (Shop, Collection),
-     re-pointing when the player wanders back. A pending flag in
-     localStorage lets the pointer survive a mid-walk refresh.
+     and a pending flag in localStorage lets the pointer survive a
+     mid-walk refresh.
      --------------------------------------------------------- */
   var GUIDE_KEY = 'eol.tutorial.guide.v1';
   var navGuide = null;
@@ -562,8 +564,30 @@
     navGuide = null;
     var box = $('nav-guide');
     if (box) {
-      box.classList.remove('show');
+      box.classList.remove('show', 'deny');
       box.hidden = true;
+    }
+  }
+
+  /* While the wayfinder points, the OTHER doors are locked: a
+     capture-phase trap swallows any click outside the marked button
+     (the tutorial is on rails, exactly like the scripted gate it leads
+     to). The bubble shakes its head at refused clicks. The trap only
+     bites while a target is actually marked - on screens the guide
+     does not know (reached before the lock existed, e.g. a resumed
+     save) every button still works so nobody can be walled in. */
+  function guideClickTrap(ev) {
+    if (!navGuide || !navGuide.lastEl) return;
+    if (navGuide.lastEl.contains(ev.target)) return; // the one true click
+    var bar = document.getElementById('chapter-dialogue');
+    if (bar && !bar.hidden && bar.contains(ev.target)) return; // a scene owns the screen
+    ev.preventDefault();
+    ev.stopPropagation();
+    var box = $('nav-guide');
+    if (box && !box.hidden) {
+      box.classList.remove('deny');
+      void box.offsetWidth;
+      box.classList.add('deny');
     }
   }
 
@@ -966,6 +990,17 @@
     stopPrepTutor();
     if (!stage.tutorial) return;
     tut = { stage: stage, flags: {}, seq: null, timer: window.setInterval(tutorTick, 260) };
+    /* claim the battlefield popup's button BEFORE the popup opens:
+       play.js's entrance unlock (animationend / 900ms fallback) checks
+       this flag, so the button can never flash enabled in the gap
+       between our polls while the arena + tips beats are unread */
+    var T = stage.tutorial;
+    var bfGo = $('bf-go');
+    if (bfGo && (T.arena || T.tips)) {
+      bfGo.dataset.campaignHold = '1';
+      bfGo.disabled = true;
+      tut.heldGo = true;
+    }
     tutorTick();
   }
 
@@ -974,6 +1009,13 @@
     window.clearInterval(tut.timer);
     tut = null;
     hideTutor();
+    /* never leave the popup button held for a future non-campaign
+       game - play.js re-disables it on every popup open anyway */
+    var bfGo = $('bf-go');
+    if (bfGo && bfGo.dataset.campaignHold === '1') {
+      delete bfGo.dataset.campaignHold;
+      bfGo.disabled = false;
+    }
   }
 
   /* A gated info sequence: each line waits for Continue. Returns true
@@ -1041,9 +1083,11 @@
       var bfGo = $('bf-go');
       if (bfGo) {
         if (gatedBeats) {
+          bfGo.dataset.campaignHold = '1';
           bfGo.disabled = true;
           tut.heldGo = true;
         } else if (tut.heldGo) {
+          delete bfGo.dataset.campaignHold;
           bfGo.disabled = false;
           tut.heldGo = false;
         }
@@ -1413,6 +1457,11 @@
         advanceDialogue();
       }
     });
+
+    /* the wayfinder's lock: swallow clicks on anything but the marked
+       button while the guide is pointing (capture phase, so it wins
+       against every button's own listener) */
+    document.addEventListener('click', guideClickTrap, true);
 
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'chapter') {

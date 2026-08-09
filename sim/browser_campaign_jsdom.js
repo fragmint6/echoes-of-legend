@@ -102,6 +102,14 @@ const server = http.createServer((req, res) => {
   t(!$('nav-guide').hidden, 'guide bubble is up on home');
   t($('nav-guide-text').textContent.indexOf('PLAY') >= 0, 'it asks for the Play button');
   t($('btn-play').classList.contains('guide-mark'), 'Play button carries the golden pulse');
+  // every OTHER door is locked while the wayfinder points
+  $('btn-shop').click();
+  await sleep(700);
+  t(d.body.dataset.view === 'home', 'Shop refuses while the wayfinder points');
+  $('btn-collection').click();
+  await sleep(700);
+  t(d.body.dataset.view === 'home', 'Collection refuses too');
+  t(!!w.EOL.campaign._navGuide(), 'guide survives the refused clicks');
   // step 1: the player presses Play
   $('btn-play').click();
   await sleep(1100);
@@ -109,6 +117,11 @@ const server = http.createServer((req, res) => {
   t($('mode-campaign').classList.contains('guide-mark'), 'guide re-points at the Campaign card');
   t(!$('btn-play').classList.contains('guide-mark'), 'the old mark is lifted');
   t($('nav-guide-text').textContent.indexOf('CAMPAIGN') >= 0, 'the bubble names the Campaign card');
+  // the sibling mode cards are locked as well
+  $('mode-classic').click();
+  await sleep(500);
+  t(!$('deck-modal').classList.contains('show'), 'Classic stays shut - only the Campaign card answers');
+  t(d.body.dataset.view === 'play', 'no view drift from the refused Classic click');
   // step 2: the player takes the Campaign card
   $('mode-campaign').click();
   await sleep(1100);
@@ -165,6 +178,13 @@ const server = http.createServer((req, res) => {
   t($('tutor-text').textContent.indexOf('ARENA') >= 0, 'arena beat text');
   t($('tutor-shield').hidden, 'arena beat has NO dim (the card stays visible)');
   t($('bf-go').disabled, 'Field-your-six is HELD while the arena lesson is unread');
+  // the flash bug (user note 2026-08-09): play.js's entrance unlock
+  // fires ~900ms after the popup opens and used to re-enable the
+  // button until the tutor's next poll caught it. Outwait the unlock
+  // and make sure the hold is authoritative now.
+  await sleep(1200);
+  t($('bf-go').disabled, 'the entrance unlock cannot flash the button past the hold');
+  t($('bf-go').dataset.campaignHold === '1', 'the hold flag is on the button itself');
   $('tutor-next').click();
   await sleep(320);
   t($('tutor-text').textContent.indexOf('question-mark dots') >= 0, 'tips beat follows');
@@ -173,6 +193,7 @@ const server = http.createServer((req, res) => {
   $('tutor-next').click();
   await sleep(320);
   t(!$('bf-go').disabled, 'Field-your-six releases once both beats are read');
+  t($('bf-go').dataset.campaignHold !== '1', 'and the hold flag is lifted with it');
   if ($('bf-reveal').classList.contains('show')) {
     $('bf-go').disabled = false;
     $('bf-go').click();

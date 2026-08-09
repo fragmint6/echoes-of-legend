@@ -104,9 +104,11 @@ guardian gets exactly one knife hidden in the warmth.
   player to the Road — he *points*. A click-transparent bubble follows
   the next button on the real path (Play → Campaign → Chapter 1 → the
   Gate I plate) with a golden pulse on the button itself, and the
-  player performs every click. The pointer hides on unrelated screens
-  (Shop, Collection) and re-points when the player wanders back; a
-  pending flag lets it survive a mid-walk refresh. It retires the
+  player performs every click. While the pointer is up the *other*
+  doors are locked — clicks anywhere else are swallowed (capture
+  phase) and the bubble shakes its head, so the walk cannot wander
+  off the rails; a pending flag lets it survive a mid-walk refresh.
+  It retires the
   moment any gate dialogue opens.
 - **Teaches:** the entire battle loop — bans, roles, rows, energy,
   basics vs signatures, targeting, passing, the turn clock (which he

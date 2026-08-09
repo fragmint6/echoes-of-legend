@@ -22695,6 +22695,23 @@ html.mqw640 .rival-bark-text {
 .nav-guide.show {
   opacity: 1;
 }
+/* a refused click: the bubble shakes its head (the wayfinder locks
+   every button except the one it points at) */
+.nav-guide.deny {
+  animation: guideDeny 0.32s var(--ease);
+}
+@keyframes guideDeny {
+  0%,
+  100% {
+    margin-left: 0;
+  }
+  30% {
+    margin-left: -8px;
+  }
+  60% {
+    margin-left: 7px;
+  }
+}
 /* the pointer tick toward the marked button */
 .nav-guide::after {
   content: '';

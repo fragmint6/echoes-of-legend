@@ -1019,9 +1019,14 @@
          us. */
       go.disabled = true;
       var unlock = function () {
-        go.disabled = false;
         card.removeEventListener('animationend', unlock);
         clearTimeout(unlockT);
+        /* the campaign tutor may be HOLDING this button through its
+           arena + tips lessons (Gate I). Releasing it here would flash
+           it enabled until the tutor's next 260ms poll re-held it -
+           the flag makes the hold authoritative (user note 2026-08-09). */
+        if (go.dataset.campaignHold === '1') return;
+        go.disabled = false;
       };
       var unlockT = setTimeout(unlock, 900);
       card.addEventListener('animationend', unlock);
