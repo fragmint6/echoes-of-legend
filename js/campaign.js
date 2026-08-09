@@ -336,6 +336,8 @@
   function openStageDialogue(stageId) {
     var stage = stageById(stageId || 1);
     if (!stage) return;
+    /* any gate answering the door means the wayfinder's work is done */
+    stopNavGuide();
     var lines = (STORY.dialogues || {})[stage.id] || [];
     openDialogue(stage, lines, 'pre', null);
   }
@@ -346,9 +348,11 @@
      The Recruiter interrupts the main menu exactly once (a fresh
      save, nothing cleared) and whenever the Tutorial corner button
      asks. It is a FLOW, not a scene: however it ends - read through,
-     skipped with X, Escaped - it walks the player to the chapter map
-     and opens Gate I's dialogue. The gate itself stays refusable;
-     the road to it does not.
+     skipped with X, Escaped - it hands over to the WAYFINDER below,
+     which points the player down the real path to Gate I (Play,
+     Campaign, Chapter 1, the gate plate) and lets them do every
+     click themselves. The gate stays refusable; the road to it is
+     merely lit, never forced.
      --------------------------------------------------------- */
   var INTRO_KEY = 'eol.tutorial.intro.v1';
   function introSeen() {
@@ -371,16 +375,15 @@
     var lines = STORY.intro || [];
     if (!stage || !lines.length) return;
     markIntroSeen();
-    openDialogue(stage, lines, 'intro', function () {
-      window.EOL.ui.show('chapter');
-      window.setTimeout(function () {
-        openStageDialogue(1);
-      }, 750);
-    });
+    openDialogue(stage, lines, 'intro', startNavGuide);
   }
 
   function maybeRunFirstBoot() {
-    if (introSeen()) return;
+    if (introSeen()) {
+      /* a refresh mid-walk: the pointer survives the reload */
+      if (guidePending() && !getProgress().cleared.length && !dlg) startNavGuide();
+      return;
+    }
     var prog = getProgress();
     if (prog.cleared.length) {
       /* an existing road-walker predates the intro - never interrupt */
@@ -390,6 +393,178 @@
     if (document.body.dataset.view !== 'home') return;
     if (dlg) return; // something else owns the bar
     runIntroTutorial();
+  }
+
+  /* ---------------------------------------------------------
+     THE WAYFINDER
+     -------------------------------------------------------------
+     The Recruiter does not teleport anyone. When the intro closes he
+     starts pointing: a pointer-transparent bubble beside the NEXT
+     button on the road (home's Play, the Campaign mode card, the
+     Chapter 1 plate, the Gate I node) plus a golden pulse on the
+     button itself. The player performs every click. The guide ends
+     the moment any gate dialogue opens - the road has been found -
+     and it simply hides on unrelated screens (Shop, Collection),
+     re-pointing when the player wanders back. A pending flag in
+     localStorage lets the pointer survive a mid-walk refresh.
+     --------------------------------------------------------- */
+  var GUIDE_KEY = 'eol.tutorial.guide.v1';
+  var navGuide = null;
+
+  function guidePending() {
+    try {
+      return localStorage.getItem(GUIDE_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+  function setGuidePending(on) {
+    try {
+      if (on) localStorage.setItem(GUIDE_KEY, '1');
+      else localStorage.removeItem(GUIDE_KEY);
+    } catch (e) {
+      /* private mode */
+    }
+  }
+
+  var GUIDE_FALLBACK = {
+    home: 'Press the Play button - the road starts there.',
+    solo: 'Switch to the Singleplayer tab - the Road is walked alone.',
+    play: 'Take the Campaign card - that is the Road of Echoes.',
+    campaign: 'Open Chapter 1: The Road of Echoes.',
+    chapter: 'Click Gate I and we will talk terms.',
+  };
+  function guideText(key) {
+    return (STORY.guide || {})[key] || GUIDE_FALLBACK[key] || '';
+  }
+
+  /* Which button does the current screen owe the player? */
+  function guideTargetFor(view) {
+    if (view === 'home') {
+      return { el: document.getElementById('btn-play'), key: 'home' };
+    }
+    if (view === 'play') {
+      var soloGrid = document.getElementById('mode-grid-solo');
+      if (soloGrid && soloGrid.hidden) {
+        /* they flipped to Multiplayer - point back at the solo tab */
+        return { el: document.querySelector('.play-tab[data-arena="solo"]'), key: 'solo' };
+      }
+      return { el: document.getElementById('mode-campaign'), key: 'play' };
+    }
+    if (view === 'campaign') {
+      return { el: document.getElementById('chapter-1'), key: 'campaign' };
+    }
+    if (view === 'chapter') {
+      return { el: document.querySelector('[data-campaign-stage="1"]'), key: 'chapter' };
+    }
+    return null; // Shop, Collection, Rulebook... hide, keep watching
+  }
+
+  function positionGuide(box, el) {
+    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    if (!r || (!r.width && !r.height)) {
+      /* not laid out (headless tests, mid-transition): park bottom-center */
+      box.style.top = 'auto';
+      box.style.bottom = '84px';
+      box.style.left = '50%';
+      box.style.transform = 'translateX(-50%)';
+      box.classList.remove('point-up', 'point-down');
+      box.classList.add('point-none');
+      return;
+    }
+    box.style.bottom = 'auto';
+    box.style.transform = 'none';
+    var vw = window.innerWidth || 1280;
+    var vh = window.innerHeight || 720;
+    var bw = box.offsetWidth || 380;
+    var bh = box.offsetHeight || 100;
+    var below = r.bottom + 16 + bh <= vh - 10;
+    var top = below ? r.bottom + 14 : r.top - 14 - bh;
+    /* a target scrolled half out of view must not drag the bubble
+       offscreen with it */
+    top = Math.min(Math.max(10, top), Math.max(10, vh - bh - 10));
+    var left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), Math.max(12, vw - bw - 12));
+    box.style.top = Math.round(top) + 'px';
+    box.style.left = Math.round(left) + 'px';
+    box.classList.toggle('point-up', below);
+    box.classList.toggle('point-down', !below);
+    box.classList.remove('point-none');
+    /* keep the tick aligned with the button it points at */
+    var ax = Math.round(r.left + r.width / 2 - left);
+    box.style.setProperty('--guide-arrow-x', Math.min(Math.max(20, ax), bw - 20) + 'px');
+  }
+
+  function setGuide(tgt) {
+    var box = $('nav-guide');
+    if (!box || !navGuide) return;
+    var el = tgt && tgt.el;
+    if (!el) {
+      if (navGuide.lastEl) {
+        navGuide.lastEl.classList.remove('guide-mark');
+        navGuide.lastEl = null;
+      }
+      navGuide.lastKey = null;
+      box.classList.remove('show');
+      box.hidden = true;
+      return;
+    }
+    if (navGuide.lastEl !== el) {
+      if (navGuide.lastEl) navGuide.lastEl.classList.remove('guide-mark');
+      el.classList.add('guide-mark');
+      navGuide.lastEl = el;
+    }
+    if (navGuide.lastKey !== tgt.key) {
+      navGuide.lastKey = tgt.key;
+      setText($('nav-guide-text'), guideText(tgt.key));
+      box.hidden = false;
+      box.classList.remove('show');
+      void box.offsetWidth; /* restart the fade so each step visibly lands */
+      box.classList.add('show');
+    } else if (box.hidden) {
+      box.hidden = false;
+      box.classList.add('show');
+    }
+    positionGuide(box, el);
+  }
+
+  function guideTick() {
+    if (!navGuide) return;
+    var view = document.body.dataset.view;
+    if (view === 'prep' || view === 'battle' || view === 'draft') {
+      /* they are already in a war - the road has clearly been found */
+      stopNavGuide();
+      return;
+    }
+    if (dlg) {
+      /* a dialogue owns the screen (intro replay, a gate scene) */
+      setGuide(null);
+      return;
+    }
+    setGuide(guideTargetFor(view));
+  }
+
+  function startNavGuide() {
+    if (navGuide) return;
+    setGuidePending(true);
+    navGuide = {
+      timer: window.setInterval(guideTick, 280),
+      lastEl: null,
+      lastKey: null,
+    };
+    guideTick();
+  }
+
+  function stopNavGuide() {
+    setGuidePending(false);
+    if (!navGuide) return;
+    window.clearInterval(navGuide.timer);
+    if (navGuide.lastEl) navGuide.lastEl.classList.remove('guide-mark');
+    navGuide = null;
+    var box = $('nav-guide');
+    if (box) {
+      box.classList.remove('show');
+      box.hidden = true;
+    }
   }
 
   /* ---------------------------------------------------------
@@ -406,6 +581,7 @@
   }
 
   function launchStage(stage) {
+    stopNavGuide();
     activeCampaignStage = stage.id;
     if (stage.mode === 'draft') {
       launchDraft(stage);
@@ -1243,6 +1419,9 @@
         updateStageCards();
         window.setTimeout(reofferPendingChoice, 400);
       }
+      /* the wayfinder re-points the moment the screen changes - the
+         interval alone would lag a beat behind the veil */
+      if (navGuide) guideTick();
       /* Leaving the battle view mid-fight (forfeit routing, home) must
          tear the bark watch down - the hook is a shared global slot. */
       if (ev.detail !== 'battle') {
@@ -1293,6 +1472,9 @@
     _watchEvent: watchEvent,
     _battleWatch: function () {
       return battleWatch;
+    },
+    _navGuide: function () {
+      return navGuide;
     },
   };
 

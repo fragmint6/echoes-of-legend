@@ -1181,9 +1181,9 @@ window.EOL = window.EOL || {};
     dialogues: DIALOGUES,
     epilogues: EPILOGUES,
     /* THE FIRST-BOOT TUTORIAL - the Recruiter interrupts the main menu
-       once (and whenever the Tutorial button asks), then walks the
-       player to Gate I. A flow, not a scene: skipping it still lands
-       on the Road. */
+       once (and whenever the Tutorial button asks), then POINTS the
+       player down the road to Gate I instead of teleporting them:
+       skipping the scene still starts the wayfinder below. */
     intro: [
       {
         speaker: 'The Recruiter',
@@ -1199,6 +1199,18 @@ window.EOL = window.EOL || {};
         final: true,
       },
     ],
+    /* THE WAYFINDER - one line per screen on the road to Gate I.
+       The orchestrator (js/campaign.js) shows whichever line matches
+       the player's current view and pulses the button it points at;
+       the player does every click themselves. Keyed by view, plus
+       'solo' for the odd case where the Multiplayer tab is selected. */
+    guide: {
+      home: 'No teleporting on my road - you walk it. See the big PLAY button by the crest? Press it.',
+      solo: 'Wrong side of the hall, friend - the Road is walked alone. Step back to the Singleplayer tab.',
+      play: 'The compass card - CAMPAIGN. Ten gates, ten teachers, and the first one is mine. Take the road.',
+      campaign: 'There it is: Chapter 1, The Road of Echoes. Open the chapter and count the gates yourself.',
+      chapter: 'Gate I - the plate with my face on it. Knock, and we will talk terms in the Colosseum.',
+    },
     /* Back-compat aliases (older callers referenced these names). */
     recruiterDialogue: DIALOGUES[1],
     epilogue: EPILOGUES[1],

@@ -1842,6 +1842,25 @@
       </div>
     </div>
 
+    <!-- ==================== CAMPAIGN: THE WAYFINDER ====================
+         After the intro the Recruiter no longer teleports the player to
+         the Road - he POINTS. This bubble floats beside the next button
+         on the path (Play, then Campaign, then Chapter 1, then Gate I)
+         while the button itself gets a golden pulse. Pointer-transparent,
+         so it can never block the very click it asks for. -->
+    <div class="nav-guide" id="nav-guide" hidden role="status" aria-live="polite">
+      <img
+        class="nav-guide-face"
+        src="assets/rivals/the-recruiter.png"
+        alt=""
+        draggable="false"
+      />
+      <div class="nav-guide-body">
+        <span class="nav-guide-name">The Recruiter</span>
+        <p class="nav-guide-text" id="nav-guide-text"></p>
+      </div>
+    </div>
+
     <!-- ==================== CAMPAIGN: GATE I TUTOR ====================
          The Recruiter's guided-lesson bubble for the scripted first gate.
          Bottom-left so it never covers the prep grids or the confirm

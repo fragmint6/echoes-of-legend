@@ -98,6 +98,16 @@ guardian gets exactly one knife hidden in the warmth.
 
 ### Gate I — The Recruiter
 - **Format:** Guided Classic (fully scripted) · **Board:** The Colosseum
+- **Before the gate — the wayfinder:** on a fresh save the Recruiter
+  interrupts the main menu once (and again whenever the Tutorial corner
+  button asks). When his intro closes he does **not** teleport the
+  player to the Road — he *points*. A click-transparent bubble follows
+  the next button on the real path (Play → Campaign → Chapter 1 → the
+  Gate I plate) with a golden pulse on the button itself, and the
+  player performs every click. The pointer hides on unrelated screens
+  (Shop, Collection) and re-points when the player wanders back; a
+  pending flag lets it survive a mid-walk refresh. It retires the
+  moment any gate dialogue opens.
 - **Teaches:** the entire battle loop — bans, roles, rows, energy,
   basics vs signatures, targeting, passing, the turn clock (which he
   notes ticks *for show only* on the Road — campaign battles never

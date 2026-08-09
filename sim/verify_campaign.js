@@ -370,10 +370,32 @@ var heroSix = [
 });
 var threw = null;
 var stacks = 0;
+/* the growth cap comes from the DATA, not a hardcoded guess - and the
+   probe battle is seeded, so the check cannot flake with the dice */
+var growthCap = (function () {
+  var sig = (S.bossCard.abilities || []).filter(function (a) {
+    return a.sig;
+  })[0];
+  var fx = ((sig && sig.effects) || []).filter(function (e) {
+    return e.stackTag === 'saw-the-deep';
+  })[0];
+  return (fx && fx.maxStacks) || 6;
+})();
+function mulberryBoss(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 try {
   var B = E.createBattle(heroSix, E.optimizeFormation(bossSix), {
     roleAware: false,
     field: EOL.battlefieldById('heros-trial'),
+    rng: mulberryBoss(7),
   });
   var steps = 0;
   while (!B.over && B.round <= 30 && steps++ < 5000) {
@@ -398,7 +420,7 @@ try {
   threw = e;
 }
 ok(!threw, 'boss game never throws' + (threw ? ' (' + threw.message + ')' : ''));
-ok(stacks <= 5, 'growth stack cap holds (' + stacks + ' <= 5)');
+ok(stacks <= growthCap, 'growth stack cap holds (' + stacks + ' <= ' + growthCap + ')');
 
 console.log('');
 if (fails) {

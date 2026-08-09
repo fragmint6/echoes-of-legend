@@ -92,11 +92,41 @@ const server = http.createServer((req, res) => {
   t(!$('chapter-dialogue').hidden, 'first-boot intro auto-opens on a fresh save');
   t($('chapter-dialogue-speaker').textContent === 'The Recruiter', 'the Recruiter does the interrupting');
   t(w.localStorage.getItem('eol.tutorial.intro.v1') === '1', 'intro marked seen the moment it runs');
-  // skipping with X still walks you to the Road - it is a flow, not a scene
+  // skipping with X hands over to the WAYFINDER - no teleport, the
+  // player walks the path themselves with the Recruiter pointing
   $('chapter-dialogue-close').click();
-  await sleep(1600);
-  t(d.body.dataset.view === 'chapter', 'skipping the intro STILL lands on the chapter map');
-  t(!$('chapter-dialogue').hidden, 'and Gate I opens its dialogue unprompted');
+  await sleep(700);
+  t(d.body.dataset.view === 'home', 'skipping the intro does NOT teleport - still home');
+  t(!!w.EOL.campaign._navGuide(), 'the wayfinder starts when the intro closes');
+  t(w.localStorage.getItem('eol.tutorial.guide.v1') === '1', 'wayfinder pending flag persists for refreshes');
+  t(!$('nav-guide').hidden, 'guide bubble is up on home');
+  t($('nav-guide-text').textContent.indexOf('PLAY') >= 0, 'it asks for the Play button');
+  t($('btn-play').classList.contains('guide-mark'), 'Play button carries the golden pulse');
+  // step 1: the player presses Play
+  $('btn-play').click();
+  await sleep(1100);
+  t(d.body.dataset.view === 'play', 'player walked to the play screen');
+  t($('mode-campaign').classList.contains('guide-mark'), 'guide re-points at the Campaign card');
+  t(!$('btn-play').classList.contains('guide-mark'), 'the old mark is lifted');
+  t($('nav-guide-text').textContent.indexOf('CAMPAIGN') >= 0, 'the bubble names the Campaign card');
+  // step 2: the player takes the Campaign card
+  $('mode-campaign').click();
+  await sleep(1100);
+  t(d.body.dataset.view === 'campaign', 'player walked to the chapter select');
+  t($('chapter-1').classList.contains('guide-mark'), 'guide re-points at the Chapter 1 plate');
+  // step 3: open the chapter
+  $('chapter-1').click();
+  await sleep(1100);
+  t(d.body.dataset.view === 'chapter', 'player walked onto the Road of Echoes');
+  t(d.querySelector('[data-campaign-stage="1"]').classList.contains('guide-mark'), 'guide re-points at Gate I');
+  // step 4: knock on Gate I - the wayfinder's work ends here
+  d.querySelector('[data-campaign-stage="1"]').click();
+  await sleep(400);
+  t(!$('chapter-dialogue').hidden, 'Gate I opens its dialogue when the player knocks');
+  t(!w.EOL.campaign._navGuide(), 'the wayfinder retires the moment a gate answers');
+  t($('nav-guide').hidden, 'guide bubble is gone');
+  t(w.localStorage.getItem('eol.tutorial.guide.v1') !== '1', 'pending flag cleared - no ghost pointer next boot');
+  t(!d.querySelector('.guide-mark'), 'no stray golden pulse anywhere');
   t($('chapter-dialogue-step').textContent.indexOf('01') === 0, 'gate 1 scene starts at line one');
   t(!$('chapter-dialogue-portrait').hidden && $('chapter-dialogue-glyph').hidden, 'portrait clean (no glyph overlay)');
   for (let i = 0; i < 8 && !$('chapter-dialogue').hidden; i++) {
@@ -308,9 +338,14 @@ const server = http.createServer((req, res) => {
     $('chapter-dialogue-next').click();
     await sleep(120);
   }
-  await sleep(1600);
-  t(d.body.dataset.view === 'chapter', 'replayed intro also walks to the map');
-  t(!$('chapter-dialogue').hidden, 'and reopens Gate I');
+  await sleep(700);
+  t(!!w.EOL.campaign._navGuide(), 'replayed intro also hands over to the wayfinder');
+  t(d.body.dataset.view === 'chapter', 'no teleport on replay either - view unchanged');
+  t(d.querySelector('[data-campaign-stage="1"]').classList.contains('guide-mark'), 'wayfinder points at Gate I from the map');
+  d.querySelector('[data-campaign-stage="1"]').click();
+  await sleep(300);
+  t(!$('chapter-dialogue').hidden, 'knocking reopens Gate I');
+  t(!w.EOL.campaign._navGuide(), 'and retires the replayed wayfinder');
   $('chapter-dialogue-close').click();
   await sleep(200);
 
