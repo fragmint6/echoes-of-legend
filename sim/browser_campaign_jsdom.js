@@ -372,8 +372,10 @@ const server = http.createServer((req, res) => {
   $('chapter-dialogue-close').click();
   await sleep(200);
 
-  /* ---------- Skip tutorial: one click out, but never past Gate I ---------- */
-  // skip from inside the intro scene
+  /* ---------- Skip tutorial: one click out, no forced navigation ---------- */
+  // skip from inside the intro scene - the player stays where they were
+  w.EOL.ui.show('home');
+  await sleep(700);
   $('btn-corner-tutorial').click();
   await sleep(250);
   t(!$('chapter-dialogue').hidden && !$('chapter-dialogue-skiptut').hidden, 'skip test: intro up with the skip pill');
@@ -381,9 +383,15 @@ const server = http.createServer((req, res) => {
   await sleep(900);
   t($('chapter-dialogue').hidden, 'skip closes the intro scene');
   t(!w.EOL.campaign._navGuide(), 'skip does NOT hand over to the wayfinder');
-  t(d.body.dataset.view === 'chapter', 'skip lands on the Road, gates in view');
+  t(d.body.dataset.view === 'home', 'skip forces NO navigation - the player stays put');
   t(w.localStorage.getItem('eol.tutorial.guide.v1') !== '1', 'no ghost pointer left pending');
   t(!d.querySelector('.guide-mark'), 'no stray pulse after the skip');
+  // and the menus belong to the player again - Shop opens freely
+  $('btn-shop').click();
+  await sleep(900);
+  t(d.body.dataset.view === 'shop', 'after the skip every door opens again');
+  w.EOL.ui.show('home');
+  await sleep(700);
   // skip from the wayfinder bubble mid-walk
   $('btn-corner-tutorial').click();
   await sleep(250);
@@ -397,9 +405,11 @@ const server = http.createServer((req, res) => {
   $('nav-guide-skip').click();
   await sleep(500);
   t(!w.EOL.campaign._navGuide(), 'bubble skip retires the wayfinder');
-  t(d.body.dataset.view === 'chapter', 'and stays on the Road');
-  t($('chapter-dialogue').hidden, 'without auto-opening Gate I - the gate is not tutorial');
+  t(d.body.dataset.view === 'home', 'and leaves the player exactly where they stood');
+  t($('chapter-dialogue').hidden, 'without opening anything on their behalf');
   t($('nav-guide').hidden, 'bubble gone after the skip');
+  w.EOL.ui.show('chapter');
+  await sleep(700);
 
   /* ---------- mojibake sweep ---------- */
   {

@@ -111,8 +111,9 @@ guardian gets exactly one knife hidden in the warmth.
   It retires the
   moment any gate dialogue opens. A quiet **Skip tutorial** pill (on
   the intro scene's footer and riding the wayfinder bubble) ends the
-  flow in one click and lands the player on the Road with the gates
-  in view — but only the *tutorial* is skippable: from the moment
+  flow in one click and simply hands the menus back — no forced
+  navigation, the player stays exactly where they stood. And only the
+  *tutorial* is skippable: from the moment
   Gate I is clicked, everything is content and walks at full length.
 - **Teaches:** the entire battle loop — bans, roles, rows, energy,
   basics vs signatures, targeting, passing, the turn clock (which he

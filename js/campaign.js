@@ -574,23 +574,18 @@
   }
 
   /* The way out: a tutorial must be refusable in ONE click. Skipping
-     ends the intro scene + the wayfinder walk only, and lands the
-     player on the Road with the gates in view. Gate I itself is
-     CONTENT, not tutorial (owner ruling 2026-08-09): from the moment
-     a gate is clicked, nothing more can be skipped by this route. */
+     closes the intro scene and retires the wayfinder - and that is
+     ALL it does. No forced navigation: the player stays exactly where
+     they stand and the menus simply belong to them again (owner
+     ruling 2026-08-09). Gate I itself is CONTENT, not tutorial: from
+     the moment a gate is clicked, nothing more can be skipped by
+     this route. */
   function skipTutorial() {
     if (dlg && dlg.kind === 'intro') {
       dlg.onDone = null; // do NOT hand over to the wayfinder
       closeDialogue();
     }
     stopNavGuide(); // also clears the pending flag
-    if (
-      window.EOL.ui &&
-      window.EOL.ui.show &&
-      document.body.dataset.view !== 'chapter'
-    ) {
-      window.EOL.ui.show('chapter');
-    }
   }
 
   /* While the wayfinder points, the OTHER doors are locked: a
