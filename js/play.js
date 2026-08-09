@@ -1248,6 +1248,9 @@
       mark($('prep-confirm-main'), !p.revealed && p.youBans.length === RULES().BANS);
     }
     if (p.phase === 'pick' && p.script.six) {
+      /* the quiet window after a scripted fielding click - see the
+         flash fix in onSixClick */
+      var quiet = p.markQuiet && Date.now() < p.markQuiet;
       var fielded = p.front.concat(p.back);
       /* one at a time, in the ledger's order: only the NEXT card pulses */
       var nextId = null;
@@ -1258,9 +1261,9 @@
         }
       }
       document.querySelectorAll('#prep-player .prep-c').forEach(function (el) {
-        mark(el, el.dataset.cid === nextId);
+        mark(el, !quiet && el.dataset.cid === nextId);
       });
-      mark($('prep-confirm'), fielded.length === RULES().FIELD_SIZE);
+      mark($('prep-confirm'), !quiet && fielded.length === RULES().FIELD_SIZE);
     }
   }
 
@@ -1522,6 +1525,17 @@
         flashNode('prep-player-note');
         return;
       }
+      /* THE FLASH FIX (user report 2026-08-09): the role lesson for
+         this card arrives on the tutor's next poll (up to 260ms away),
+         and its shield will park the marks. Painting the NEXT card's
+         gold outline inside that gap made it blink for a split second
+         and vanish. Quiet the marks for a beat: either the lesson's
+         hold takes over seamlessly, or the scheduled repaint below
+         restores them for a card with no lesson to give. */
+      prep.markQuiet = Date.now() + 600;
+      window.setTimeout(function () {
+        if (prep) updatePrepChrome();
+      }, 640);
     }
     if (idx >= 0) {
       var fi = prep.front.indexOf(id);

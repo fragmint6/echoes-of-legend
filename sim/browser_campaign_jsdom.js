@@ -251,6 +251,7 @@ const server = http.createServer((req, res) => {
   let sawTargetMark = false,
     sawPassMark = false,
     sawAbilityMark = false,
+    sawBannerCut = false,
     sawRoleSay = false;
   const guard = Date.now() + 420000;
   while (Date.now() < guard) {
@@ -284,7 +285,15 @@ const server = http.createServer((req, res) => {
       await sleep(200);
       continue;
     }
+    // the stale-caption fix: acting while the slim YOUR TURN banner is
+    // up must cut it short in the same click
+    const cineEl = $('cine');
+    const turnBannerUp =
+      cineEl.classList.contains('show') &&
+      /\bslim\b/.test(cineEl.className) &&
+      /tone-player/.test(cineEl.className);
     cardEl.click();
+    if (turnBannerUp && !cineEl.classList.contains('show')) sawBannerCut = true;
     await sleep(140);
     const abBtn = d.querySelector('#flyout .dk-ab.act[data-ab="' + (mv.ability === 'sig' ? 0 : 1) + '"]');
     if (!abBtn) {
@@ -313,6 +322,7 @@ const server = http.createServer((req, res) => {
   t(sawAbilityMark, 'ability rows were marked during the match');
   t(sawTargetMark, 'targets were marked during the match');
   t(sawPassMark, 'the Pass dial was marked on scripted passes');
+  t(sawBannerCut, 'acting cuts a lingering YOUR TURN banner in the same click');
   t(sawRoleSay, 'signature narration teaches ROLES, not damage numbers');
   let shown = false;
   for (let g = 0; g < 30 && !shown; g++) {

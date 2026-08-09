@@ -1747,6 +1747,8 @@
     if (busy) return;
 
     var myTurn = !B.over && B.turn === 'player';
+    /* doing things dismisses a lingering YOUR TURN caption */
+    if (myTurn) cineCutTurn();
     var targeting = myTurn && !!(sel && sel.ability && sel.needed > 0);
 
     // picking a target for a pending ability
@@ -2645,6 +2647,7 @@
      The round only ends when both sides pass back-to-back. */
   function endTurn() {
     if (busy || B.over) return;
+    cineCutTurn(); // passing is also "doing stuff"
     /* THE SCRIPTED MATCH: pass only when the line passes. */
     var mvP = scriptMove();
     if (mvP && mvP.side === 'player') {
@@ -2885,6 +2888,7 @@
   var cineQ = [];
   var cineLive = false;
   var cineTimer = null;
+  var cineCur = null;
   var turnBannerSide = null;
 
   /* Low-graphics mode shortens every cinematic to ~55%. These holds are
@@ -2919,6 +2923,7 @@
     }
     var it = cineQ.shift();
     cineLive = true;
+    cineCur = it;
     $('cine-title').textContent = it.title;
     $('cine-sub').textContent = it.sub;
     c.className = 'cine tone-' + it.tone + (it.slim ? ' slim' : '');
@@ -2928,13 +2933,33 @@
     cineTimer = setTimeout(function () {
       c.classList.remove('show');
       cineLive = false;
+      cineCur = null;
       cineDrain();
     }, it.ms);
+  }
+
+  /* The player acting IS the announcement: a YOUR TURN banner still on
+     screen while the action plays out reads as a stale caption (user
+     note 2026-08-09). The moment the player starts doing things, the
+     slim turn banner is cut short and any queued one is dropped.
+     Round cinematics are left alone - they carry phase information. */
+  function cineCutTurn() {
+    for (var i = cineQ.length - 1; i >= 0; i--) {
+      if (cineQ[i].slim && cineQ[i].tone === 'player') cineQ.splice(i, 1);
+    }
+    if (!cineLive || !cineCur || !cineCur.slim || cineCur.tone !== 'player') return;
+    clearTimeout(cineTimer);
+    var c = $('cine');
+    if (c) c.classList.remove('show');
+    cineLive = false;
+    cineCur = null;
+    cineDrain();
   }
 
   function cineReset() {
     cineQ.length = 0;
     cineLive = false;
+    cineCur = null;
     clearTimeout(cineTimer);
     var c = $('cine');
     if (c) c.classList.remove('show');
