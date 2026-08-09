@@ -23052,6 +23052,11 @@ html.mqw640 .nav-guide-text {
 .tutor[hidden] {
   display: none;
 }
+/* a tap swallowed by the shield: the bubble shakes its head, pointing
+   the eye at Continue (margin shake - tutor-rise owns the transform) */
+.tutor.deny {
+  animation: guideDeny 0.32s var(--ease);
+}
 @keyframes tutor-rise {
   from {
     opacity: 0;

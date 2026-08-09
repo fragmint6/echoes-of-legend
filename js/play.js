@@ -1225,6 +1225,21 @@
     var mark = function (el, on) {
       if (el) el.classList.toggle('tutor-pick', !!on);
     };
+    /* While a shielded tutor beat owns the screen, the shield swallows
+       every tap - so the marks must not ASK for one. They park here
+       and return the instant the Recruiter yields (campaign.js flips
+       body[data-tutor-hold] and repaints). First outside playtest
+       report, 2026-08-09: gold marks + a dead board read as a bug. */
+    if (document.body.dataset.tutorHold === '1') {
+      document
+        .querySelectorAll('#prep-enemy .prep-c.tutor-pick, #prep-player .prep-c.tutor-pick')
+        .forEach(function (el) {
+          el.classList.remove('tutor-pick');
+        });
+      mark($('prep-confirm-main'), false);
+      mark($('prep-confirm'), false);
+      return;
+    }
     if (p.phase === 'ban' && p.script.bans) {
       document.querySelectorAll('#prep-enemy .prep-c').forEach(function (el) {
         var id = el.dataset.cid;
@@ -1264,7 +1279,9 @@
     if (en)
       en.textContent = p.revealed
         ? 'struck out - the enemy fields 6 of its remaining 10'
-        : 'tap 2 to ban (' + p.youBans.length + '/' + RULES().BANS + ')';
+        : p.script && document.body.dataset.tutorHold === '1'
+          ? 'the Recruiter is speaking - read his lesson first'
+          : 'tap 2 to ban (' + p.youBans.length + '/' + RULES().BANS + ')';
     var cm = $('prep-confirm-main');
     cm.disabled = p.waiting || p.youBans.length !== RULES().BANS;
     cm.classList.toggle('ready', !cm.disabled);
@@ -3790,6 +3807,10 @@
     /* test hook: re-bind multiplayer handlers (harness only) */
     _initMp: initMultiplayer,
     startPrep: startPrep,
+    /* campaign.js repaints the prep chrome the instant the tutor's
+       shield goes up or down, so the golden marks never invite a tap
+       the shield would swallow */
+    repaintPrep: updatePrepChrome,
     /* test hooks */
     _chooseBans: chooseBans,
     _chooseSix: chooseSix,

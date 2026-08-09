@@ -978,6 +978,23 @@
     if (el) el.hidden = true;
     var shield = $('tutor-shield');
     if (shield) shield.hidden = true;
+    setTutorHold(false);
+  }
+
+  /* THE HOLD FLAG. While a shielded (informational) beat owns the
+     screen, the prep UI must not INVITE what the shield refuses: the
+     first outside playtest report (2026-08-09) was exactly this -
+     header reading 'tap 2 to ban', two cards gold-marked, and every
+     tap silently swallowed by the shield until Continue. play.js
+     reads this flag to park the golden marks and swap the prompt
+     while the Recruiter is talking. */
+  function setTutorHold(on) {
+    var was = document.body.dataset.tutorHold === '1';
+    if (was === !!on) return;
+    document.body.dataset.tutorHold = on ? '1' : '0';
+    /* repaint the prep chrome NOW - the next poll tick is 260ms away
+       and the marks must never linger under a fresh shield */
+    if (window.EOL.play && window.EOL.play.repaintPrep) window.EOL.play.repaintPrep();
   }
 
   function showTutor(stage, text, withNext, onNext, opts) {
@@ -1003,7 +1020,9 @@
        UI (the arena card, the tip dots) skip the shield so the thing
        being described stays visible and hoverable. */
     var shield = $('tutor-shield');
-    if (shield) shield.hidden = !withNext || opts.shield === false;
+    var shieldOn = withNext && opts.shield !== false;
+    if (shield) shield.hidden = !shieldOn;
+    setTutorHold(shieldOn);
     el.hidden = false;
   }
 
@@ -1499,6 +1518,24 @@
        button while the guide is pointing (capture phase, so it wins
        against every button's own listener) */
     document.addEventListener('click', guideClickTrap, true);
+
+    /* A tap on the tutor's shield used to vanish without a trace -
+       the first outside playtest stalled exactly there. Now the
+       bubble shakes its head, pointing the eye at Continue. */
+    var tshield = $('tutor-shield');
+    if (tshield)
+      tshield.addEventListener('click', function () {
+        var box = $('tutor');
+        if (!box || box.hidden) return;
+        box.classList.remove('deny');
+        void box.offsetWidth;
+        box.classList.add('deny');
+        /* drop the class after it plays so a later re-show gets its
+           normal rise animation back, not a replayed head-shake */
+        window.setTimeout(function () {
+          box.classList.remove('deny');
+        }, 400);
+      });
 
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'chapter') {

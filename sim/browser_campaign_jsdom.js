@@ -156,11 +156,20 @@ const server = http.createServer((req, res) => {
   await sleep(400);
   t(!$('tutor').hidden && !$('tutor-next').hidden, 'tutor intro with Continue');
   t(!$('tutor-shield').hidden, 'info beat raises the soft dim shield');
+  // the playtest stall (2026-08-09): while the shield swallows taps, the
+  // UI must not invite them - no gold marks, and the header says WHY
+  t(d.body.dataset.tutorHold === '1', 'shielded beat raises the hold flag');
+  t(!d.querySelector('#prep-enemy .prep-c.tutor-pick'), 'ban marks are PARKED while the Recruiter talks');
+  t($('prep-enemy-note').textContent.indexOf('Recruiter') >= 0, 'header explains the hold instead of asking for bans');
   $('tutor-next').click();
   await sleep(320);
+  t(!d.querySelector('#prep-enemy .prep-c.tutor-pick'), 'marks still parked on the second shielded beat');
   $('tutor-next').click();
-  await sleep(320);
+  await sleep(500);
   t($('tutor-shield').hidden, 'action beat drops the shield');
+  t(d.body.dataset.tutorHold !== '1', 'the hold lifts with the shield');
+  t(d.querySelectorAll('#prep-enemy .prep-c.tutor-pick').length === 2, 'both ban marks appear the moment the board is truly live');
+  t($('prep-enemy-note').textContent.indexOf('tap 2 to ban') === 0, 'header asks for bans again');
   d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-rumpelstiltskin"]').click();
   await sleep(280);
   d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-evil-queen"]').click();
@@ -210,8 +219,10 @@ const server = http.createServer((req, res) => {
     await sleep(320);
     if (!$('tutor-next').hidden) {
       roleBeats++;
+      // shielded role lesson: the NEXT card's mark waits until Continue
+      t(!d.querySelector('#prep-player .prep-c.tutor-pick'), 'next mark parked during the ' + id + ' lesson');
       $('tutor-next').click();
-      await sleep(280);
+      await sleep(450);
     }
   }
   t(roleBeats === 6, 'six role lessons delivered (' + roleBeats + ')');
