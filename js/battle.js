@@ -447,8 +447,12 @@
       var hit = sts.filter(function (o) {
         return o.key === key;
       })[0];
-      if (hit) hit.count += 1;
-      else
+      if (hit) {
+        hit.count += 1;
+        /* same honesty rule as statusesOf: the chip shows its longest clock */
+        if (typeof m.turns === 'number' && typeof hit.turns === 'number')
+          hit.turns = Math.max(hit.turns, m.turns);
+      } else
         sts.push({
           key: key,
           icon: def.icon,
@@ -470,13 +474,9 @@
       .map(function (st) {
         var sdef = window.EOL.STATUS[st.key] || {};
         var big = st.key === 'burn' || st.key === 'exposed' ? ' big-status' : '';
-        var dur = st.turns
-          ? '<span class="stp-dur">' +
-            st.turns +
-            ' round' +
-            (st.turns > 1 ? 's' : '') +
-            ' left</span>'
-          : '';
+        var durT = durText(st.turns);
+        var dur = durT ? '<span class="stp-dur">' + durT + '</span>' : '';
+        var brk = statusBreakdown(st);
         var pop =
           '<span class="st-pop">' +
           '<span class="stp-head">' +
@@ -489,6 +489,7 @@
           (st.count > 1 ? '<span class="stp-n">x' + st.count + '</span>' : '') +
           dur +
           '</span>' +
+          (brk ? '<span class="stp-brk">' + brk + '</span>' : '') +
           (statusDesc(u, st) ? '<span class="stp-body">' + statusDesc(u, st) + '</span>' : '') +
           '</span>';
         return (
@@ -1254,6 +1255,31 @@
     );
   }
 
+  /* Engine "rest of battle" buffs are written as 99 rounds, and the
+     chip used to print that literally - "99 rounds left" is a lie
+     with extra steps. Anything this long reads as permanent. */
+  var PERM_TURNS = 90;
+  function durText(turns) {
+    if (!turns) return '';
+    if (turns >= PERM_TURNS) return 'for the battle';
+    return turns + ' round' + (turns > 1 ? 's' : '') + ' left';
+  }
+  /* One chip can hold several same-stat buffs on DIFFERENT clocks
+     (Lancelot: his permanent +10% ATK stacks + an ally's 2-round
+     +25%). Itemize them so the temporary part never looks permanent. */
+  function statusBreakdown(st) {
+    if (!st.parts || st.parts.length < 2) return '';
+    var mixed = st.parts.some(function (p) {
+      return p.turns !== st.parts[0].turns;
+    });
+    if (!mixed) return '';
+    return st.parts
+      .map(function (p) {
+        return (p.amt > 0 ? '+' : '') + p.amt + '% ' + (durText(p.turns) || 'now');
+      })
+      .join(' &middot; ');
+  }
+
   /* Live value for THIS hero, then the rule from window.EOL.STATUS if
      there is one worth printing. Most stat buffs need no rule at all -
      "+15% Attack" says everything, and nobody needs DEF explained. */
@@ -1318,11 +1344,14 @@
     (B.costMods[u.side] || []).forEach(function (m) {
       var up = (m.flat || 0) > 0 || (m.pct || 0) > 0;
       var key = up ? 'costup' : 'costdown';
-      if (
-        !sts.some(function (o) {
-          return o.key === key;
-        })
-      ) {
+      var hit = sts.filter(function (o) {
+        return o.key === key;
+      })[0];
+      if (hit) {
+        /* same honesty rule as statusesOf: the chip shows its longest clock */
+        if (typeof m.turns === 'number' && typeof hit.turns === 'number')
+          hit.turns = Math.max(hit.turns, m.turns);
+      } else {
         var d = window.EOL.STATUS[key];
         sts.push({
           key: key,
@@ -1353,13 +1382,9 @@
       sts
         .map(function (st) {
           var sdef = window.EOL.STATUS[st.key] || {};
-          var dur = st.turns
-            ? '<span class="dsp-dur">' +
-              st.turns +
-              ' round' +
-              (st.turns > 1 ? 's' : '') +
-              ' left</span>'
-            : '';
+          var durT = durText(st.turns);
+          var dur = durT ? '<span class="dsp-dur">' + durT + '</span>' : '';
+          var brk = statusBreakdown(st);
           return (
             '<span class="dk-sicon ' +
             st.kind +
@@ -1379,6 +1404,7 @@
             (st.count > 1 ? '<span class="dsp-n">x' + st.count + '</span>' : '') +
             dur +
             '</span>' +
+            (brk ? '<span class="dsp-brk">' + brk + '</span>' : '') +
             /* statusDesc returns trusted authored markup (<b> around the
                live value); the only interpolated values are numbers. */
             '<span class="dsp-body">' +

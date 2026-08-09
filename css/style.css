@@ -2610,6 +2610,16 @@ body[data-turn='player'] .turn-label {
   color: #8fe3b0;
   white-space: nowrap;
 }
+/* per-buff itemization when one chip holds mixed clocks (Lancelot's
+   permanent stacks + a 2-round ally buff) */
+.dsp-brk {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffd682;
+}
 .dsp-body {
   display: block;
   font-size: 9.5px;
@@ -13183,6 +13193,16 @@ body[data-gfx='low'] .scene .sc-emblem {
   letter-spacing: 0.04em;
   color: var(--txt-faint);
   white-space: nowrap;
+}
+/* per-buff itemization when one chip holds mixed clocks (Lancelot's
+   permanent stacks + a 2-round ally buff) */
+.stp-brk {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffd682;
 }
 .stp-body {
   display: block;

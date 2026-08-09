@@ -1651,6 +1651,62 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
 }
 
 {
+  /* THE LANCELOT CHIP BUG (2026-08-09). One stat chip can hold buffs on
+     different clocks - his permanent (99-round) ATK stacks plus an
+     ally's 2-round ATK buff. The merged chip kept only the FIRST
+     member's timer, so the temporary buff read as permanent (or, in
+     the other order, the permanent one read as expiring). The engine
+     was always right; the chip lied. */
+  const B = board(['camelot-lancelot', ...CLEAN_FOES.slice(0, 5)]);
+  const u = U(B, 'camelot-lancelot');
+  u.buffs.push({ stat: 'atk', amt: 10, turns: 99, tag: 'finest-knight-atk' });
+  u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
+
+  /* 1. engine truth: the temp part expires on schedule, the permanent stays */
+  const atkPct = () => u.buffs.reduce((t, b) => t + (b.stat === 'atk' ? b.amt : 0), 0);
+  ok(atkPct() === 35, `both buffs live before rollover (+${atkPct()}%)`);
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(
+    atkPct() === 10,
+    `the 2-round ally buff expired on schedule, the permanent stayed (+${atkPct()}%)`
+  );
+
+  /* 2. chip truth: longest clock wins, and every member is itemized */
+  u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
+  let chip = EOL.statusesOf(u, E).find((o) => o.key === 'atk+');
+  ok(chip && chip.turns >= 90, `merged chip wears the LONGEST clock (${chip && chip.turns})`);
+  ok(chip && chip.count === 2, 'merged chip counts both buffs');
+  ok(
+    chip && chip.parts && chip.parts.length === 2,
+    'chip itemizes each member for the popup breakdown'
+  );
+  ok(
+    chip && chip.parts.some((p) => p.turns === 2) && chip.parts.some((p) => p.turns >= 90),
+    'the breakdown keeps each member on its OWN clock'
+  );
+
+  /* 3. order independence: temp applied first must not shorten the chip */
+  u.buffs.length = 0;
+  u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
+  u.buffs.push({ stat: 'atk', amt: 10, turns: 97, tag: 'finest-knight-atk' });
+  chip = EOL.statusesOf(u, E).find((o) => o.key === 'atk+');
+  ok(
+    chip && chip.turns === 97,
+    `temp-first order still shows the longest clock (${chip && chip.turns})`
+  );
+
+  /* 4. the same rule holds for merged team cost modifiers */
+  u.buffs.length = 0;
+  u.costMods = [
+    { pct: 15, turns: 1 },
+    { pct: 15, turns: 3 },
+  ];
+  chip = EOL.statusesOf(u, E).find((o) => o.key === 'costup');
+  ok(chip && chip.turns === 3, `merged cost chip wears the longest clock (${chip && chip.turns})`);
+}
+
+{
   /* Sun Wukong (72 Transformations): the rebirth must CLEAR everything he
      was carrying when he died - otherwise he returns still Burning and
      Exposed, i.e. straight back into the death that just happened - while
