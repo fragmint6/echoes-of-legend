@@ -23213,6 +23213,13 @@ html.mqw640 .tutor-face {
   letter-spacing: 0.05em;
   color: var(--txt);
 }
+/* every card body stacks mixed blocks (steps, diagrams, examples) -
+   the flex gap owns the vertical rhythm so nothing ever touches */
+.rc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .rc-body ul {
   margin: 0;
   padding-left: 18px;
@@ -23255,7 +23262,7 @@ html.mqw640 .tutor-face {
   align-items: center;
   gap: 14px;
   width: 100%;
-  margin: 6px auto 20px;
+  margin: 6px auto 14px;
   padding: 14px 18px;
   border: 1px solid rgba(255, 214, 130, 0.3);
   border-radius: 14px;
@@ -23266,11 +23273,14 @@ html.mqw640 .tutor-face {
   font-size: 13.5px;
   line-height: 1.55;
 }
-.rb-hello i {
+.rb-hello > i {
   flex: 0 0 auto;
   font-size: 26px;
   color: #ffd682;
   text-shadow: 0 0 14px rgba(255, 200, 90, 0.5);
+}
+.rb-hello > span {
+  min-width: 0;
 }
 .rb-hello b {
   color: #ffd682;
@@ -23297,7 +23307,7 @@ html.mqw640 .tutor-face {
   content: counter(rbstep);
   position: absolute;
   left: 0;
-  top: 0;
+  top: -1px; /* optically centred on the first text line */
   width: 22px;
   height: 22px;
   display: grid;
@@ -23313,12 +23323,13 @@ html.mqw640 .tutor-face {
 .rb-steps li b {
   color: #ffd682;
 }
-/* the "for example" callout */
+/* the "for example" callout: icon + ONE text span, so inline <b>/<i>
+   inside the sentence never become stray flex items */
 .rb-example {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin: 2px 0 0;
+  margin: 0;
   padding: 10px 13px;
   border-left: 3px solid rgba(255, 214, 130, 0.55);
   border-radius: 0 10px 10px 0;
@@ -23327,21 +23338,21 @@ html.mqw640 .tutor-face {
   font-size: 12.5px;
   line-height: 1.55;
 }
-.rb-example i {
+.rb-example > i {
   flex: 0 0 auto;
   margin-top: 1px;
   font-size: 15px;
   color: #ffd682;
 }
+.rb-example > span {
+  min-width: 0;
+}
 .rb-example b {
   color: #ffd682;
 }
-.rb-math span {
-  min-width: 0;
-}
 /* small print - true but not the point */
 .rb-fine {
-  margin: 2px 0 0;
+  margin: 0;
   padding-top: 10px;
   border-top: 1px dashed rgba(255, 255, 255, 0.1);
   color: var(--txt-faint);
@@ -23424,7 +23435,7 @@ html.mqw640 .tutor-face {
 }
 .rb-brow {
   display: grid;
-  grid-template-columns: 44px repeat(3, 40px) 1fr;
+  grid-template-columns: 50px repeat(3, 40px) 1fr;
   align-items: center;
   gap: 8px;
 }
@@ -23471,11 +23482,14 @@ html.mqw640 .tutor-face {
   font-size: 12.5px;
   line-height: 1.55;
 }
-.rb-law i {
+.rb-law > i {
   flex: 0 0 auto;
   margin-top: 1px;
   color: #ffd682;
   font-size: 15px;
+}
+.rb-law > span {
+  min-width: 0;
 }
 .rb-law b {
   color: #ffd682;
@@ -23503,12 +23517,18 @@ html.mqw640 .tutor-face {
   font-size: 12px;
   line-height: 1.45;
 }
-.rb-role i,
-.rb-chip i {
+/* only the LEADING icon is an icon - semantic <i> inside the copy
+   stays ordinary italics */
+.rb-role > i,
+.rb-chip > i {
   flex: 0 0 auto;
   margin-top: 1px;
   font-size: 16px;
   color: #ffd682;
+}
+.rb-role > span,
+.rb-chip > span {
+  min-width: 0;
 }
 .rb-role b,
 .rb-chip b {
