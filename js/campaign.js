@@ -673,6 +673,10 @@
           war: stage.mode === 'set' ? 'set' : 'single',
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
+          /* the Recruiter's ledger: HOW this rival bans, told BEFORE
+             the player commits their own (playtest note 2026-08-09:
+             the least-informed call must not stay the blindest one) */
+          banTell: stage.banTell || null,
           pinnedEnemy: stage.pinned || null,
           unbannable: stage.unbannable || null,
           rival: rivalOf(stage),
@@ -709,6 +713,7 @@
         stage: stage.id,
         field: fieldById(stage.field),
         banProfile: stage.banProfile || null,
+        banTell: stage.banTell || null,
         rival: rivalOf(stage),
       },
     });

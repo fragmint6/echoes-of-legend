@@ -161,6 +161,7 @@ const server = http.createServer((req, res) => {
   t(d.body.dataset.tutorHold === '1', 'shielded beat raises the hold flag');
   t(!d.querySelector('#prep-enemy .prep-c.tutor-pick'), 'ban marks are PARKED while the Recruiter talks');
   t($('prep-enemy-note').textContent.indexOf('Recruiter') >= 0, 'header explains the hold instead of asking for bans');
+  t($('prep-ledger-tell').hidden, 'no ledger tell on the scripted gate - the script narrates the bans');
   $('tutor-next').click();
   await sleep(320);
   t(!d.querySelector('#prep-enemy .prep-c.tutor-pick'), 'marks still parked on the second shielded beat');
@@ -358,6 +359,13 @@ const server = http.createServer((req, res) => {
   await sleep(900);
   const ss = w.EOL.play._setState();
   t(!!ss && ss.campaignStage === 5, 'stage 5 forces the set');
+  // the Recruiter's ledger: the rival's banning reputation is READ
+  // before the player's own bans are committed (playtest ruling)
+  t(!$('prep-ledger-tell').hidden, "the ledger reads the Warden's bans BEFORE you commit yours");
+  t(
+    $('prep-ledger-tell-text').textContent.indexOf('single point of failure') >= 0,
+    'and the tell is the authored one'
+  );
   w.EOL.ui.show('chapter');
   await sleep(700);
 

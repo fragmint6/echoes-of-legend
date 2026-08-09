@@ -95,6 +95,22 @@ S.stages.forEach(function (st) {
   (bp.ids || []).forEach(function (id) {
     ok(!!dict[id], 'stage ' + st.id + ': ban-profile id ' + id + ' exists');
   });
+  /* the Recruiter's ledger (playtest ruling 2026-08-09): every gate
+     after the scripted first one TELLS the player how its rival bans
+     before they commit their own - the first call of a gate must not
+     also be the blindest one. */
+  if (st.id === 1) {
+    ok(!st.banTell, 'stage 1: no ledger tell - the script narrates the bans itself');
+  } else {
+    ok(
+      typeof st.banTell === 'string' && st.banTell.length > 20 && st.banTell.length < 200,
+      'stage ' + st.id + ': ledger tell present and sized'
+    );
+    ok(
+      /^[\x20-\x7E]+$/.test(st.banTell || ''),
+      'stage ' + st.id + ': ledger tell is pure ASCII'
+    );
+  }
 });
 
 console.log('B2. the fully scripted first gate');

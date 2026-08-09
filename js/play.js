@@ -1171,6 +1171,10 @@
       pinnedEnemy: cfg.pinnedEnemy || null,
       unbannable: cfg.unbannable || null,
       rival: cfg.rival || null,
+      /* CAMPAIGN: the Recruiter's ledger note on how this rival bans,
+         surfaced during the ban phase so the first decision of the
+         gate is played with open eyes (playtest note 2026-08-09). */
+      banTell: cfg.banTell || null,
       /* GATE I SCRIPT (campaign): when present, the marked ban/six ids
          are the ONLY legal clicks - the tutorial narrates, this
          enforces. { bans:[ids], six:[ids], hintBan, hintSix } */
@@ -1285,6 +1289,18 @@
         : p.script && document.body.dataset.tutorHold === '1'
           ? 'the Recruiter is speaking - read his lesson first'
           : 'tap 2 to ban (' + p.youBans.length + '/' + RULES().BANS + ')';
+    /* the Recruiter's ledger: the rival's banning reputation, read
+       BEFORE committing your own bans. Ban phase only - once the
+       stamps are down the truth outranks the rumor. */
+    var tell = $('prep-ledger-tell');
+    if (tell) {
+      var showTell = !!(p.banTell && p.phase === 'ban' && !p.revealed);
+      tell.hidden = !showTell;
+      if (showTell) {
+        var tt = $('prep-ledger-tell-text');
+        if (tt && tt.textContent !== p.banTell) tt.textContent = p.banTell;
+      }
+    }
     var cm = $('prep-confirm-main');
     cm.disabled = p.waiting || p.youBans.length !== RULES().BANS;
     cm.classList.toggle('ready', !cm.disabled);
@@ -2682,6 +2698,7 @@
             : null,
         campaignStage: camp ? camp.stage : null,
         botBanProfile: camp ? camp.banProfile : null,
+        banTell: camp ? camp.banTell || null : null,
         rival: camp ? camp.rival : null,
         war: camp ? 'single' : null,
       });

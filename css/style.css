@@ -9306,6 +9306,51 @@ body[data-gfx='low'] .col-thumb {
 .prep-side.you .prep-side-tag > i {
   color: #8fe3b0;
 }
+
+/* ---- the Recruiter's ledger: the rival's banning reputation ----
+   Shown in the ban phase only, above the enemy grid. Icon + ONE text
+   span (the flex law), pointer-transparent - it informs, never asks. */
+.ledger-tell {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: -2px 0 10px;
+  padding: 8px 12px;
+  border-left: 3px solid rgba(255, 214, 130, 0.5);
+  border-radius: 0 10px 10px 0;
+  background: rgba(255, 214, 130, 0.05);
+  pointer-events: none;
+}
+.ledger-tell[hidden] {
+  display: none;
+}
+.ledger-tell > i {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  font-size: 15px;
+  color: #ffd682;
+  text-shadow: 0 0 10px rgba(255, 200, 90, 0.4);
+}
+.ledger-tell-body {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--txt-dim);
+}
+.ledger-tell-body b {
+  display: block;
+  margin-bottom: 1px;
+  color: #ffd682;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ledger-tell-body span {
+  font-style: italic;
+}
+
 .prep-side.foe .prep-side-tag > i {
   color: #ff8f8f;
 }

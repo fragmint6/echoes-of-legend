@@ -123,6 +123,11 @@ window.EOL = window.EOL || {};
                      roles:[..]   prefers striking these roles
                      stat:'atk'   prefers your hardest hitters
                      power:true   prefers your highest-rated cards
+       banTell     the Recruiter's ledger note on that habit, shown
+                   during the ban phase BEFORE the player commits
+                   (playtest ruling 2026-08-09: the first call of a
+                   gate must not also be the blindest one). Stage 1
+                   has none - the script narrates its bans itself.
        persona     draft-pick personality (stages 6-8):
                      'trickster' | 'strategist' | 'chronicler'
        pool        curated draft pool spec: { featured: factionId }
@@ -305,6 +310,7 @@ window.EOL = window.EOL || {};
       /* He tells you his oath before he swears it: your best back-line
          threat is taken at the gate. */
       banProfile: { roles: ['Sniper', 'Caster'], stat: 'atk' },
+      banTell: 'He strikes the killers-at-a-distance first: your archers, your mages, whatever hits hardest from safety.',
       grants: { cards: ['camelot-king-arthur', 'camelot-lancelot'], coins: 120 },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
@@ -368,6 +374,7 @@ window.EOL = window.EOL || {};
          softened) - she now hunts the healers only. The flavour holds:
          the healer is the protector. */
       banProfile: { roles: ['Tank'] },
+      banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
       grants: { cards: ['sherwood-robin-hood', 'sherwood-little-john'], coins: 120 },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
@@ -421,6 +428,7 @@ window.EOL = window.EOL || {};
       ],
       /* Marks must land and stick: your cleansers are anointed first. */
       banProfile: { roles: ['Medic'], stat: 'atk' },
+      banTell: 'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
       grants: { cards: ['olympus-zeus', 'olympus-hercules'], coins: 140 },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
@@ -466,6 +474,7 @@ window.EOL = window.EOL || {};
       /* No scripted six from here up: a set without sideboarding is
          not a set. The Warden fields adaptively and swaps in answers. */
       banProfile: {},
+      banTell: 'She reads your twelve like a ledger and strikes what the rest of it leans on. Bring no single point of failure.',
       grants: { choice: { count: 2, factions: ['camelot', 'sherwood', 'olympus'] }, coins: 220 },
       resultWin: 'The Warden lays the iron key on the table. "You changed after winning. Go on."',
       resultLose: '"The Mid-Road keeps what does not adapt," the Warden says. "Return ready."',
@@ -518,6 +527,7 @@ window.EOL = window.EOL || {};
       line: 'She deals twelve cards onto black stone. "You take one. Then I take one. The only cheating is pretending you did not want what you picked." She will steal the pieces your plan needs.',
       lock: 'Clear the Mid-Road',
       banProfile: {},
+      banTell: 'She bans on whim as much as wisdom. No pattern on record - and she knows the ledger looks.',
       grants: { cards: ['yamato-kaguya', 'yamato-benkei'], coins: 160 },
       resultWin: 'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
       resultLose: '"Every choice leaves another possible self across the table," she grins. "Mine was better."',
@@ -565,6 +575,7 @@ window.EOL = window.EOL || {};
       line: 'An old man plots your habits on a wax board of violet lines. He drafts against what you are drafting, and every careless victory becomes a path to your next defeat.',
       lock: 'Clear The Trickster',
       banProfile: {},
+      banTell: 'He finds the card your plan cannot live without and removes it. Have a second plan.',
       grants: { cards: ['roma-julius-caesar', 'roma-brutus'], coins: 160 },
       resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
       resultLose: '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
@@ -612,6 +623,7 @@ window.EOL = window.EOL || {};
       line: 'In a wall-less library beneath cold stars, an archivist drafts the curve and hoards answers. They burn you out, cleanse themselves clean, and write down everyone who disappoints them.',
       lock: 'Clear The Strategist',
       banProfile: {},
+      banTell: 'The Chronicler strikes what your story leans on - enough endings read to know a load-bearing hero on sight.',
       grants: { cards: ['takamagahara-amaterasu', 'takamagahara-izanami'], coins: 160 },
       resultWin: 'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
       resultLose: '"I have shelved this outcome before," the Chronicler sighs. "Try a different edition."',
@@ -657,6 +669,7 @@ window.EOL = window.EOL || {};
       ],
       factionMix: { yamato: 4, roma: 4, takamagahara: 4 },
       banProfile: { stat: 'atk' },
+      banTell: 'She bans your heaviest hitters, every time. Power draws her eye; bring subtlety.',
       grants: {
         choice: { count: 2, factions: ['camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'takamagahara'] },
         coins: 220,
@@ -709,6 +722,7 @@ window.EOL = window.EOL || {};
       pinned: ['campaign-gilgamesh'],
       unbannable: ['campaign-gilgamesh'],
       banProfile: { power: true },
+      banTell: 'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
       grants: { cards: ['duat-isis', 'duat-anubis'], coins: 400 },
       resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
       resultLose: '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
