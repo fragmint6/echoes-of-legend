@@ -72,6 +72,22 @@
   function scriptAbilityOf(mv, u) {
     return mv.ability === 'sig' ? u.card.ability : E.roleAbility(u);
   }
+  /* An off-script click re-speaks the INSTRUCTION instead of a toast
+     chip (playtest 2026-08-10: the chip at the bottom went unread -
+     the dialogue is where the player's eyes already live). Falls back
+     to the toast outside the campaign. */
+  function scriptDeny(fallback) {
+    var mv = scriptMove();
+    if (mv && B && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onScriptDeny) {
+      try {
+        window.EOL.campaign.onScriptDeny(B, mv);
+        return;
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
+    }
+    toast(fallback);
+  }
   function scriptEnd(reason) {
     if (!moveScript) return;
     moveScript = null;
@@ -592,9 +608,7 @@
           '"><i class="ri-check-line"></i></div>'
         : '') +
       (!deadView && !acted && unitLockMsg(u)
-        ? '<div class="bcard-lockmsg"><i class="ri-lock-2-line"></i><span>' +
-          esc(unitLockMsg(u)) +
-          '</span></div>'
+        ? '<span class="bcard-lockdot" title="No legal action - hover for why"><i class="ri-lock-2-line"></i></span>'
         : '') +
       '<div class="bcard-ring"></div>' +
       '</div>' +
@@ -1153,7 +1167,37 @@
       if (forced) pool = [forced];
       pool.forEach(function (u) {
         var el = document.querySelector('.bcard[data-uid="' + u.uid + '"]');
-        if (el) el.classList.add('targetable');
+        if (el) {
+          el.classList.add('targetable');
+          /* THE DAMAGE PREVIEW (playtest 2026-08-10: 'attacking and
+             hoping they die'): every legal enemy target wears the
+             number this cast would deal it - engine math, no dice.
+             Allies/heals show nothing; the chip is the answer to
+             'will this kill?', not a second HUD. */
+          if (u.side !== sel.unit.side) {
+            var pv = E.previewDamage(B, sel.unit, sel.ability, u, sel.choose);
+            if (pv) {
+              var chip = el.querySelector('.dmg-preview');
+              if (!chip) {
+                chip = document.createElement('span');
+                chip.className = 'dmg-preview';
+                el.appendChild(chip);
+              }
+              var lethal = pv.dmg >= u.hp + u.shield;
+              chip.classList.toggle('lethal', lethal);
+              chip.innerHTML =
+                '<i class="ra ra-sword"></i>' +
+                pv.dmg.toLocaleString() +
+                (lethal ? '<i class="ra ra-skull dp-skull"></i>' : '');
+              chip.title =
+                'Estimated damage (before crits). Crit chance ' +
+                pv.critChance +
+                '%: ' +
+                pv.crit.toLocaleString() +
+                (lethal ? '. Lethal.' : '.');
+            }
+          }
+        }
       });
       sel.chosen.forEach(function (u) {
         var el = document.querySelector('.bcard[data-uid="' + u.uid + '"]');
@@ -1191,12 +1235,31 @@
 
     pool.forEach(function (t) {
       var el = document.querySelector('.bcard[data-uid="' + t.uid + '"]');
-      if (el) el.classList.add('preview-target');
+      if (el) {
+        el.classList.add('preview-target');
+        /* hovering an ability row previews its numbers too */
+        if (t.side !== u.side) {
+          var pv = E.previewDamage(B, u, ability, t, choose || 0);
+          if (pv) {
+            var chip = document.createElement('span');
+            chip.className = 'dmg-preview' + (pv.dmg >= t.hp + t.shield ? ' lethal' : '');
+            chip.innerHTML =
+              '<i class="ra ra-sword"></i>' +
+              pv.dmg.toLocaleString() +
+              (pv.dmg >= t.hp + t.shield ? '<i class="ra ra-skull dp-skull"></i>' : '');
+            el.appendChild(chip);
+          }
+        }
+      }
     });
   }
   function clearPreview() {
     document.querySelectorAll('.bcard.preview-target').forEach(function (el) {
       el.classList.remove('preview-target');
+    });
+    /* damage chips die with the selection that asked for them */
+    document.querySelectorAll('.dmg-preview').forEach(function (el) {
+      el.parentNode.removeChild(el);
     });
   }
 
@@ -1651,6 +1714,14 @@
       '</div>' +
       statusListHTML(u) +
       choices +
+      /* THE LOCKOUT NOTE moved off the card (playtest 2026-08-10: the
+         on-card strip covered the art). It now sits at the FOOT of the
+         hover panel, under everything else it explains. */
+      (u.side === 'player' && unitLockMsg(u)
+        ? '<div class="dk-lock"><i class="ri-lock-2-line"></i><span>' +
+          esc(unitLockMsg(u)) +
+          '</span></div>'
+        : '') +
       (hint ? '<div class="dk-hint">' + hint + '</div>' : '');
 
     /* allies dock left, enemies dock right - the panel sits on the
@@ -1775,7 +1846,7 @@
         u.card.id === mvA.unit &&
         (ability === wanted || (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
       if (!same) {
-        toast('The Recruiter shakes his head - follow the marked move');
+        scriptDeny('The Recruiter shakes his head - follow the marked move');
         return;
       }
     }
@@ -2733,7 +2804,7 @@
     var mvP = scriptMove();
     if (mvP && mvP.side === 'player') {
       if (!mvP.pass) {
-        toast('The Recruiter shakes his head - the marked move first');
+        scriptDeny('The Recruiter shakes his head - the marked move first');
         return;
       }
       scriptAdvance();
@@ -4516,6 +4587,126 @@
   }
   var RESULT_DELAY_MS = 620;
 
+  /* THE BATTLE REPORT (playtest 2026-08-10: 'this would help people
+     learn which cards are good'). Per-legend lifetime numbers from the
+     engine's own tally - damage dealt (shield soak included), healing,
+     damage taken, kills. Shown at the end of single games and drafts;
+     Unabridged holds it for the END OF THE SET and merges all games. */
+  function gameTallySnapshot() {
+    var out = { you: {}, foe: {} };
+    (B.units || []).forEach(function (u) {
+      var t = (B.tally || {})[u.uid];
+      var side = u.side === 'player' ? 'you' : 'foe';
+      var row =
+        out[side][u.card.id] ||
+        (out[side][u.card.id] = {
+          name: u.name,
+          role: u.role,
+          dealt: 0,
+          healed: 0,
+          taken: 0,
+          kills: 0,
+        });
+      if (!t) return;
+      row.dealt += t.dealt;
+      row.healed += t.healed;
+      row.taken += t.taken;
+      row.kills += t.kills;
+    });
+    return out;
+  }
+
+  function mergeReports(games) {
+    var out = { you: {}, foe: {} };
+    games.forEach(function (g) {
+      ['you', 'foe'].forEach(function (side) {
+        Object.keys(g[side] || {}).forEach(function (cid) {
+          var s = g[side][cid];
+          var row =
+            out[side][cid] ||
+            (out[side][cid] = { name: s.name, role: s.role, dealt: 0, healed: 0, taken: 0, kills: 0 });
+          row.dealt += s.dealt;
+          row.healed += s.healed;
+          row.taken += s.taken;
+          row.kills += s.kills;
+        });
+      });
+    });
+    return out;
+  }
+
+  function reportColHTML(label, cls, rows) {
+    rows.sort(function (a, b) {
+      return b.dealt + b.healed - (a.dealt + a.healed);
+    });
+    return (
+      '<div class="rs-col"><b class="rs-side ' +
+      cls +
+      '">' +
+      esc(label) +
+      '</b>' +
+      rows
+        .map(function (r) {
+          return (
+            '<div class="rs-row">' +
+            '<i class="ra ' +
+            (ROLE_ICON[r.role] || 'ra-player') +
+            '"></i>' +
+            '<span class="rs-name">' +
+            esc(r.name) +
+            '</span>' +
+            '<span class="rs-n" title="Damage dealt"><i class="ra ra-sword"></i>' +
+            r.dealt.toLocaleString() +
+            '</span>' +
+            '<span class="rs-n heal" title="Healing done"><i class="ra ra-health"></i>' +
+            r.healed.toLocaleString() +
+            '</span>' +
+            '<span class="rs-n taken" title="Damage taken"><i class="ra ra-broken-shield"></i>' +
+            r.taken.toLocaleString() +
+            '</span>' +
+            '<span class="rs-n ko" title="Kills">' +
+            (r.kills ? '<i class="ra ra-skull"></i>' + r.kills : '') +
+            '</span>' +
+            '</div>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+
+  function paintBattleReport(sr) {
+    var rs = $('result-stats');
+    if (!rs) return;
+    /* mid-set: the sideboard is next, the report waits for the war */
+    if (sr && !sr.over) {
+      rs.hidden = true;
+      rs.innerHTML = '';
+      return;
+    }
+    var agg = gameTallySnapshot();
+    if (sr && sr.over && window.EOL.play && window.EOL.play._setReport) {
+      var games = window.EOL.play._setReport();
+      if (games && games.length) agg = mergeReports(games);
+    }
+    var toRows = function (side) {
+      return Object.keys(agg[side]).map(function (cid) {
+        return agg[side][cid];
+      });
+    };
+    var foeName =
+      rivalInfo && rivalInfo.name ? rivalInfo.name + "'s legends" : 'Enemy legends';
+    rs.innerHTML =
+      '<div class="rs-head"><i class="ri-bar-chart-2-line"></i><span>Battle report' +
+      (sr && sr.over ? ' - full set' : '') +
+      '</span><span class="rs-key"><i class="ra ra-sword"></i> dealt &middot; <i class="ra ra-health"></i> healed &middot; <i class="ra ra-broken-shield"></i> taken &middot; <i class="ra ra-skull"></i> kills</span></div>' +
+      '<div class="rs-cols">' +
+      reportColHTML('Your legends', 'you', toRows('you')) +
+      reportColHTML(foeName, 'foe', toRows('foe')) +
+      '</div>';
+    rs.hidden = false;
+  }
+
   function showResult() {
     var win = B.winner === 'player';
     var ov = $('result');
@@ -4535,7 +4726,10 @@
        "Rematch") and returns null when no set is live - a non-set
        match is untouched. */
     var sr =
-      window.EOL.play && window.EOL.play.setGameResult ? window.EOL.play.setGameResult(win) : null;
+      window.EOL.play && window.EOL.play.setGameResult
+        ? window.EOL.play.setGameResult(win, gameTallySnapshot())
+        : null;
+    paintBattleReport(sr);
     if (sr) {
       ov.querySelector('.result-sub').textContent = sr.sub;
       var rm = $('btn-rematch');

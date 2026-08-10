@@ -819,6 +819,12 @@
     }
     barkBusyWaits = 0;
     var b = barkQ.shift();
+    displayBark(b);
+  }
+
+  /* the shared display path: pumpBark's quiet-queue and sayNow's
+     queue-jump both land here */
+  function displayBark(b) {
     var el = $('rival-bark');
     if (!el) return;
     var face = $('rival-bark-face');
@@ -843,6 +849,31 @@
       barkActive = false;
       barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
     }, b.ms || barkMs(b.text));
+  }
+
+  /* THE QUEUE-JUMP: an off-script click needs its correction NOW, not
+     after the lesson backlog. If the same line is already up it shakes
+     instead of restarting - rapid clicking reads as insistence, not
+     flicker. */
+  function sayNow(stage, text) {
+    if (!text) return;
+    var el = $('rival-bark');
+    if (!el) return;
+    var txtEl = $('rival-bark-text');
+    if (el.classList.contains('show') && txtEl && txtEl.textContent === text) {
+      el.classList.remove('deny');
+      void el.offsetWidth;
+      el.classList.add('deny');
+      /* and give the reader their full time again */
+      window.clearTimeout(barkTimer);
+      barkTimer = window.setTimeout(function () {
+        el.classList.remove('show');
+        barkActive = false;
+        barkTimer = window.setTimeout(pumpBark, 380);
+      }, barkMs(text));
+      return;
+    }
+    displayBark({ stage: stage, text: text, ms: null });
   }
 
   function queueBark(stage, text, ms) {
@@ -1032,6 +1063,17 @@
     if (!battleWatch || !mv || !mv.say) return;
     queueBark(battleWatch.stage, mv.say);
   }
+  /* An off-script click during the guided opening: repeat the current
+     INSTRUCTION where the player's eyes already live, instead of the
+     toast chip nobody read (playtest 2026-08-10). */
+  function onScriptDeny(B, mv) {
+    if (!battleWatch) return;
+    var text =
+      (mv && mv.say) ||
+      'The Recruiter taps the ledger. "The marked move, Blank - the gold is not a suggestion."';
+    sayNow(battleWatch.stage, text);
+  }
+
   function onScriptEnd(B, reason) {
     if (!battleWatch) return;
     battleWatch.rxFree = true; // the Recruiter stops steering either way
@@ -2087,6 +2129,7 @@
     onScriptMove: onScriptMove,
     onScriptSay: onScriptSay,
     onScriptEnd: onScriptEnd,
+    onScriptDeny: onScriptDeny,
     onPlayerAction: onPlayerAction,
     onBattleResult: onBattleResult,
     startTutorial: runIntroTutorial,

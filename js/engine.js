@@ -384,6 +384,78 @@
     return frontline.concat(backline);
   }
 
+  /* WHAT WILL THIS BLOW DO?
+     -------------------------------------------------------------
+     Playtest 2026-08-10: 'he is just attacking and hoping they die
+     because he doesn't know how much damage his guy will deal.' The
+     preview mirrors the dmg-case math EXACTLY - power, conditional
+     multipliers, per-stack scaling, the provoke tax, outgoing and
+     incoming multipliers, castable resist, defence - and leaves out
+     only the dice: no crit (reported separately), shields shown as
+     part of the number the target absorbs. Read-only: guaranteed to
+     touch nothing. */
+  function previewDamage(B, unit, ability, tgt, chooseIndex) {
+    try {
+      var spec = ability && ability.spec;
+      if (!B || !unit || !spec || !tgt || !tgt.alive || ability.type !== 'Active') return null;
+      var effects = spec.effects || [];
+      if (spec.choose && spec.choose[chooseIndex || 0]) {
+        effects = spec.choose[chooseIndex || 0].effects;
+      }
+      var ctx = { signature: !ability.basic, scale: 1, self: unit };
+      /* the provoke tax, mirrored from useAbility */
+      if (
+        isAttack(ability) &&
+        provokeLive(B, opposite(unit.side)) &&
+        !((spec.target || {}).noPierceTax) &&
+        (piercesTaunt(unit, ability) || isMultiTarget(ability)) &&
+        !(tgt.flags.taunt > 0)
+      ) {
+        ctx.provokeTax = PROVOKE_TAX;
+      }
+      var total = 0;
+      var found = false;
+      effects.forEach(function (e) {
+        if (e.k !== 'dmg') return;
+        if (e.to) return; // redirected effects never hit the picked target
+        if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
+        var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
+        var raw = atkOf(unit) * e.power * provokeM;
+        if (e.ifMult) {
+          e.ifMult.forEach(function (m) {
+            if (condMet(B, m.when, condCtx(ctx, tgt))) raw *= m.mult;
+          });
+        }
+        if (e.perDebuff) {
+          var dn = debuffCount(tgt);
+          if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
+          raw += atkOf(unit) * e.perDebuff * dn * provokeM;
+        }
+        if (e.perBuff) {
+          var bn = buffCount(tgt);
+          if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
+          raw += atkOf(unit) * e.perBuff * bn * provokeM;
+        }
+        var outM = outgoingMult(B, unit, tgt);
+        B._multTrail = null;
+        var inM = incomingMult(B, unit, tgt, ctx.signature === true);
+        B._multTrail = null;
+        var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
+        var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
+        total += Math.max(1, Math.round(afterDef));
+        found = true;
+      });
+      if (!found) return null;
+      return {
+        dmg: total,
+        crit: Math.round(total * CRIT_MULT),
+        critChance: Math.max(0, Math.round(critOf(unit))),
+      };
+    } catch (e) {
+      return null; // a broken preview must never break a fight
+    }
+  }
+
   function createBattle(playerCards, enemyCards, opts) {
     opts = opts || {};
     // Smart role-based formation (Tanks/Bruisers front, rest back) when
@@ -437,6 +509,11 @@
       log: [],
       simulation: !!opts.simulation,
       deferred: [], // buffs/debuffs waiting for the turn to end
+      /* THE BATTLE REPORT (2026-08-10): per-unit lifetime totals,
+         accumulated at the damage/heal sites so every caller - UI,
+         sims, tests - reads the same truth. uid -> {dealt, taken,
+         healed, absorbed, kills}. */
+      tally: {},
       over: false,
       winner: null,
       acted: { player: {}, enemy: {} }, // uid -> true for this round
@@ -1529,6 +1606,16 @@
   /* ---------------------------------------------------------
      Core damage / heal
      --------------------------------------------------------- */
+  /* the battle report's ledger line for one unit. AI lookahead clones
+     (cloneBattle) do not carry a tally - they get a throwaway one so
+     the simulation math never notices the bookkeeping. */
+  function tallyOf(B, uid) {
+    if (!B.tally) B.tally = {};
+    var t = B.tally[uid];
+    if (!t) t = B.tally[uid] = { dealt: 0, taken: 0, healed: 0, absorbed: 0, kills: 0 };
+    return t;
+  }
+
   function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders) {
     if (!tgt.alive) return 0;
     /* Guan Yu: whether the target was Shielded at the moment the attack
@@ -1659,6 +1746,14 @@
       xd = clamp(xd, 0, 75);
       if (xd > 0) exposedBonus = Math.round(raw * mult * (xd / 100) * (crit ? CRIT_MULT : 1));
     }
+    /* the battle report: dealt counts shield-soak too (the blow was
+       thrown); taken counts only HP actually lost */
+    var tS = tallyOf(B, src.uid);
+    var tT = tallyOf(B, tgt.uid);
+    tS.dealt += dmg + absorbed;
+    tT.taken += dmg;
+    tT.absorbed += absorbed;
+    if (tgt.hp <= 0 && hpBefore > 0) tS.kills += 1;
     emit(B, {
       t: 'dmg',
       src: src.uid,
@@ -2034,6 +2129,7 @@
     tgt.hp = Math.min(tgt.maxHp, tgt.hp + amt);
     var real = tgt.hp - before;
     if (real > 0) {
+      tallyOf(B, src.uid).healed += real;
       logMsg(B, 'heal', src.name + ' heals ' + tgt.name + ' for ' + real + '.', {
         uid: tgt.uid,
         amount: real,
@@ -3593,6 +3689,13 @@
         element: 'Fire',
         status: 'burn',
       });
+      /* the battle report: burn credits its arsonist when known */
+      tallyOf(B, u.uid).taken += Math.min(dmg, hpBefore);
+      if (u.flags.burnSrc) {
+        var burnT = tallyOf(B, u.flags.burnSrc);
+        burnT.dealt += Math.min(dmg, hpBefore);
+        if (u.hp <= 0) burnT.kills += 1;
+      }
       emit(B, {
         t: 'burnTick',
         uid: u.uid,
@@ -3958,6 +4061,7 @@
     canUse: canUse,
     usableNow: usableNow,
     whyCantAct: whyCantAct,
+    previewDamage: previewDamage,
     legalTargets: legalTargets,
     pickCount: pickCount,
     resolveTargets: resolveTargets,

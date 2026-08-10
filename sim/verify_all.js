@@ -1707,6 +1707,45 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
 }
 
 {
+  /* THE BATTLE REPORT + DAMAGE PREVIEW (2026-08-10). The tally is
+     engine truth, and the preview must equal the dice-free hit. */
+  const B = board(['grimmwood-goldilocks', ...CLEAN_FOES.slice(0, 5)]);
+  const g = U(B, 'grimmwood-goldilocks');
+  const f = foesOf(B)[0];
+  B.rng = () => 0.999; // no crits: the preview's exact regime
+  const basic = E.roleAbility(g);
+  const pv = E.previewDamage(B, g, basic, f);
+  ok(!!pv && pv.dmg > 0, 'previewDamage prices a basic attack');
+  ok(pv.crit === Math.round(pv.dmg * 1.5), 'crit projection is exactly 1.5x');
+  const before = f.hp + f.shield;
+  E.useAbility(B, g, basic, [f]);
+  const lost = before - (f.hp + f.shield);
+  ok(
+    pv.dmg === lost,
+    `preview equals the dice-free hit (preview ${pv.dmg} vs dealt ${lost})`
+  );
+  ok(
+    B.tally[g.uid] && B.tally[g.uid].dealt === lost,
+    'the tally credits the attacker with the blow'
+  );
+  ok(
+    B.tally[f.uid] && B.tally[f.uid].taken + B.tally[f.uid].absorbed === lost,
+    'and debits the victim'
+  );
+  /* healing credits the healer */
+  const B2 = board(['grimmwood-snow-white', ...CLEAN_FOES.slice(0, 5)]);
+  const sw = U(B2, 'grimmwood-snow-white');
+  const ally = alliesOf(B2).find((x) => x.uid !== sw.uid) || sw;
+  ally.hp = Math.max(1, ally.hp - 2000);
+  B2.rng = () => 0.999;
+  E.useAbility(B2, sw, E.roleAbility(sw), [ally]);
+  ok(
+    B2.tally[sw.uid] && B2.tally[sw.uid].healed > 0,
+    'the tally credits the healer with the mending'
+  );
+}
+
+{
   /* Sun Wukong (72 Transformations): the rebirth must CLEAR everything he
      was carrying when he died - otherwise he returns still Burning and
      Exposed, i.e. straight back into the death that just happened - while

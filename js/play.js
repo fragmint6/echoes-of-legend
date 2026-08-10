@@ -2907,6 +2907,9 @@
       card: card,
       game1Slot: g1,
       usedSlots: [g1],
+      /* per-game battle-report snapshots (side -> cid -> totals),
+         merged into one set-wide report on the final result screen */
+      report: [],
       lastSix: null, // {front:[ids], back:[ids]} - the player's public six
       lastBotIds: [], // the bot's public six
       /* ROTATION law, extended: a hero subbed OUT of a six sits out the
@@ -3392,8 +3395,9 @@
      ===================================================== */
   /* battle.js's showResult asks us for set framing every game; null
      from a non-set match means "behave exactly as before". */
-  function setGameResult(playerWon) {
+  function setGameResult(playerWon, tallySnap) {
     if (!setState) return null;
+    if (tallySnap) setState.report.push(tallySnap);
     setState.lastWinner = playerWon ? 'you' : 'foe';
     if (playerWon) setState.wins.you++;
     else setState.wins.foe++;
@@ -3934,6 +3938,10 @@
     setPillInfo: setPillInfo, // battle.js paints the war score pill from this
     _setState: function () {
       return setState;
+    },
+    /* the set-wide battle report (per-game snapshots, merged by battle.js) */
+    _setReport: function () {
+      return setState ? setState.report : null;
     },
     /* test hook: re-bind multiplayer handlers (harness only) */
     _initMp: initMultiplayer,

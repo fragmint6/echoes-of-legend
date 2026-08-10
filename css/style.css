@@ -3541,40 +3541,6 @@ body[data-turn='player'] .turn-label {
   backdrop-filter: grayscale(0.7);
   animation: veil-in 0.3s var(--ease);
 }
-/* THE LOCKOUT STRIP: a living, unacted hero of yours with NO legal
-   action says why on the card itself (playtest 2026-08-09: terrain
-   row-lock + the round-1 signature lock intersected into a silent
-   full lockout with a full energy bar). */
-.bcard-lockmsg {
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  bottom: 26px;
-  z-index: 5;
-  display: flex;
-  align-items: flex-start;
-  gap: 5px;
-  padding: 4px 7px;
-  border-radius: 7px;
-  border: 1px solid rgba(255, 120, 120, 0.45);
-  background: rgba(24, 8, 12, 0.92);
-  color: #ffb9b9;
-  font-size: 8.5px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  pointer-events: none;
-  animation: veil-in 0.3s var(--ease);
-}
-.bcard-lockmsg i {
-  flex: 0 0 auto;
-  font-size: 10px;
-  margin-top: 1px;
-}
-.bcard-lockmsg span {
-  min-width: 0;
-}
 /* already-veiled units re-render WITHOUT the fade: render() rebuilds
    the grid every action, and re-playing veil-in made the whole board
    strobe whenever a mid/late-round heal landed */
@@ -24185,5 +24151,203 @@ html.mqw640 .tutor-face {
   }
   .lg-board {
     width: 100%;
+  }
+}
+
+/* =============================================================
+   Playtest batch 2026-08-10: the lock DOT (full reason lives in
+   the hover panel now), the damage preview chips, the queue-jump
+   bark shake, and the battle report on the result screen.
+   ============================================================= */
+/* a locked hero wears only a small corner cue - hover for the why */
+.bcard-lockdot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 120, 120, 0.55);
+  background: rgba(24, 8, 12, 0.92);
+  color: #ffb9b9;
+  font-size: 10px;
+  pointer-events: none;
+  animation: veil-in 0.3s var(--ease);
+}
+/* the why, at the FOOT of the hover panel */
+.dk-lock {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 120, 120, 0.4);
+  border-radius: 9px;
+  background: rgba(60, 16, 22, 0.5);
+  color: #ffb9b9;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.dk-lock i {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  font-size: 12px;
+}
+.dk-lock span {
+  min-width: 0;
+}
+/* the damage preview chip on targetable enemies */
+.dmg-preview {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 179, 71, 0.65);
+  background: rgba(16, 10, 8, 0.95);
+  color: #ffb347;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: veil-in 0.18s var(--ease);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+.dmg-preview i {
+  font-size: 10px;
+}
+.dmg-preview.lethal {
+  border-color: rgba(255, 95, 126, 0.8);
+  color: #ff5f7e;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.55),
+    0 0 14px rgba(255, 95, 126, 0.35);
+}
+.dp-skull {
+  margin-left: 2px;
+}
+/* an insisted (repeated) instruction shakes instead of flickering */
+.rival-bark.deny {
+  animation: guideDeny 0.32s var(--ease);
+}
+/* ---- the battle report ---- */
+.result-stats {
+  width: 100%;
+  max-height: 38vh;
+  overflow-y: auto;
+  margin: 4px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  text-align: left;
+}
+.result-stats[hidden] {
+  display: none;
+}
+.rs-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #ffd682;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rs-key {
+  margin-left: auto;
+  color: var(--txt-faint);
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.rs-key i {
+  font-size: 10px;
+  color: var(--txt-dim);
+}
+.rs-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rs-side {
+  display: block;
+  margin-bottom: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rs-side.you {
+  color: #8fe3b0;
+}
+.rs-side.foe {
+  color: #ff9d9d;
+}
+.rs-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 62px 54px 62px 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  color: var(--txt-dim);
+}
+.rs-row > i {
+  color: #ffd682;
+  font-size: 11px;
+}
+.rs-name {
+  color: var(--txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-n {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+.rs-n i {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.rs-n.heal {
+  color: #8fe3b0;
+}
+.rs-n.taken {
+  color: #ff9d9d;
+}
+.rs-n.ko {
+  color: #ffd050;
+}
+@media (max-width: 700px) {
+  .rs-cols {
+    grid-template-columns: 1fr;
+  }
+  .result-stats {
+    max-height: 30vh;
   }
 }

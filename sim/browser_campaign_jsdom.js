@@ -249,6 +249,19 @@ const server = http.createServer((req, res) => {
     const marked = d.querySelector('.bcard.tutor-pick');
     t(!!marked && marked.dataset.uid === String(u.uid), "the line's unit is MARKED on the board");
   }
+  {
+    // off-script attempt: the INSTRUCTION re-speaks as dialogue, no toast chip
+    const say0 = ms0.moves[ms0.i].say;
+    let resaid = false;
+    for (let g = 0; g < 12 && !resaid; g++) {
+      if (!$('btn-endturn').disabled) $('btn-endturn').click();
+      await sleep(300);
+      resaid = $('rival-bark-text').textContent === say0;
+    }
+    t(resaid, 'an off-script pass re-speaks the current instruction as dialogue');
+    t(w.EOL.battle._scriptState().i === ms0.i, 'and the refused pass consumes nothing');
+    t(!$('toast').classList.contains('show'), 'no toast chip for the denial');
+  }
   let sawTargetMark = false,
     sawPassMark = false,
     sawAbilityMark = false,
@@ -333,7 +346,8 @@ const server = http.createServer((req, res) => {
      handoff bark must land and at least one role-lesson REACTION must
      fire on a signature the player chose to cast. */
   let sawHandoffBark = false,
-    sawReaction = false;
+    sawReaction = false,
+    sawDmgPreview = false;
   const guard2 = Date.now() + 420000;
   while (Date.now() < guard2) {
     const B = w.EOL.battle.getState();
@@ -383,6 +397,8 @@ const server = http.createServer((req, res) => {
     if (abBtn) {
       abBtn.click();
       await sleep(140);
+      // the damage preview: targetable enemies wear the number
+      if (d.querySelector('.bcard.targetable .dmg-preview')) sawDmgPreview = true;
     }
     /* prefer the AI's own victims when they are lit */
     for (const tu of act.chosen || act.targets || []) {
@@ -399,6 +415,7 @@ const server = http.createServer((req, res) => {
   t(sawHandoffBark, 'the Recruiter announces the handoff ("the ledger ends here")');
   t(sawReaction, 'a role-signature REACTION fired on a move the player chose');
   t(sawRoleSay, 'signature narration teaches ROLES, not damage numbers');
+  t(sawDmgPreview, 'targetable enemies wore a damage preview during free play');
   t(sawBannerCut, 'acting cuts a lingering YOUR TURN banner in the same click');
   let shown = false;
   for (let g = 0; g < 30 && !shown; g++) {
@@ -406,6 +423,9 @@ const server = http.createServer((req, res) => {
     shown = $('result').className.indexOf('show') >= 0;
   }
   t(shown, 'result screen shows');
+  t(!$('result-stats').hidden, 'the battle report is on the result screen');
+  t(d.querySelectorAll('#result-stats .rs-row').length === 12, 'a report line for every legend in the fight');
+  t($('result-stats').textContent.indexOf("The Recruiter's legends") >= 0, "the enemy column carries the rival's name");
   await sleep(300);
   let prog = w.EOL.campaign.getProgress();
   t(prog.cleared.indexOf(1) >= 0 && prog.unlocked.indexOf(2) >= 0, 'stage 1 cleared, gate 2 unlocked');
