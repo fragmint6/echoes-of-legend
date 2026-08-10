@@ -8663,11 +8663,25 @@ html.mqw900 .pk-wordmark {
   animation: none;
 } /* the flipper brings it in, not the card */
 
-/* rarity auras once revealed */
-.po-flip.r-legendary .po-flip-inner {
+/* rarity auras once revealed.
+   THE FLAT LAW (bug found by the owner 2026-08-10): these filters
+   MUST live on the OUTER .po-flip, never on .po-flip-inner. `filter`
+   is a CSS grouping property - it forces the element's used
+   transform-style to FLAT, and the inner is the 3D flipper: with its
+   3D collapsed, the absolutely-positioned card back (z-index 2)
+   simply stays on top and every 'flipped' card still showed the gray
+   back. The outer only supplies perspective, which filters do not
+   break. verify_campaign enforces this. */
+.po-flip.r-legendary {
   filter: drop-shadow(0 0 26px rgba(255, 205, 92, 0.55))
     drop-shadow(0 0 70px rgba(255, 138, 61, 0.34));
   animation: legend-pulse 2.2s ease-in-out 0.6s infinite;
+}
+/* a flipping legendary runs the lift AND the pulse together */
+.po-flip.r-legendary.flipped:not(.no-anim) {
+  animation:
+    po-flip-lift 0.58s var(--ease),
+    legend-pulse 2.2s ease-in-out 0.6s infinite;
 }
 @keyframes legend-pulse {
   0%,
@@ -8680,13 +8694,13 @@ html.mqw900 .pk-wordmark {
       drop-shadow(0 0 96px rgba(255, 150, 60, 0.5));
   }
 }
-.po-flip.r-epic .po-flip-inner {
+.po-flip.r-epic {
   filter: drop-shadow(0 0 22px rgba(192, 124, 255, 0.5));
 }
-.po-flip.r-rare .po-flip-inner {
+.po-flip.r-rare {
   filter: drop-shadow(0 0 16px rgba(92, 200, 255, 0.42));
 }
-.po-flip.r-common .po-flip-inner {
+.po-flip.r-common {
   filter: drop-shadow(0 0 9px rgba(185, 195, 214, 0.28));
 }
 .po-cards.settled .po-flip {

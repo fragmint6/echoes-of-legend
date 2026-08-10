@@ -755,6 +755,8 @@ const server = http.createServer((req, res) => {
       await sleep(150);
     }
     t(w.EOL.shop.state() === 'summary', 'the pack opens to its summary');
+    t($('po-summary').textContent.indexOf('Preview only') < 0, "the demo-era 'Preview only' note is DEAD");
+    t($('po-summary').textContent.indexOf('Yours now') >= 0, 'the summary tells the truth: the cards are owned');
     t(w.EOL.econ.coins() === coinsBefore - 120, 'the Trio pack cost 120 coins');
     t(w.EOL.econ.unownedEntries().length === before - 3, 'three NEW legends joined the collection');
     t(w.EOL.shop.results().every((e) => e.faction.id !== 'huaxia'), 'no Huaxia in the pull');
@@ -844,6 +846,8 @@ const server = http.createServer((req, res) => {
       if (/[\u00c2\ufffd]|\u00e2\u20ac/.test(n.textContent)) bad.push(n.textContent.trim().slice(0, 60));
     }
     t(bad.length === 0, 'no mojibake anywhere in the rendered DOM' + (bad.length ? ' (' + bad[0] + ')' : ''));
+    // stale-copy sweep: demo-era language must never resurface
+    t(d.body.textContent.indexOf('Preview only') < 0 && d.body.textContent.indexOf('nothing was added') < 0, 'no demo-era copy anywhere in the DOM');
   }
 
   console.log('');

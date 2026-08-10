@@ -265,6 +265,28 @@ EOL.factions.forEach(function (f) {
   );
 })();
 
+/* THE FLAT LAW (owner-found bug 2026-08-10): `filter` is a CSS
+   grouping property - on .po-flip-inner (the 3D flipper) it forces
+   transform-style to FLAT and every revealed card kept showing the
+   gray back. Auras belong on the outer .po-flip. Enforce it. */
+(function () {
+  var fs = require('fs');
+  var css = fs.readFileSync(require('path').join(__dirname, '..', 'css', 'style.css'), 'utf8');
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  var bad = [];
+  var re = /([^{}]+)\{([^}]*)\}/g;
+  var m;
+  while ((m = re.exec(css))) {
+    if (m[1].indexOf('po-flip-inner') >= 0 && /(?:^|[^-])filter\s*:/.test(m[2]))
+      bad.push(m[1].trim().slice(0, 60));
+  }
+  ok(
+    bad.length === 0,
+    'no filter ever lands on .po-flip-inner - the 3D flipper stays 3D' +
+      (bad.length ? ' (' + bad[0] + ')' : '')
+  );
+})();
+
 console.log('B2. the fully scripted first gate');
 (function () {
   var st1 = S.stages[0];
