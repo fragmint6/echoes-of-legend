@@ -111,6 +111,22 @@ S.stages.forEach(function (st) {
       'stage ' + st.id + ': ledger tell is pure ASCII'
     );
   }
+  /* THE BROKEN CLAIM: only the role-claim tells (2-4) make a
+     falsifiable promise, so only they carry a correction line */
+  if (st.id >= 2 && st.id <= 4) {
+    ok(
+      typeof st.banTellBroken === 'string' &&
+        st.banTellBroken.length > 20 &&
+        /^[\x20-\x7E]+$/.test(st.banTellBroken),
+      'stage ' + st.id + ': the broken-claim correction is authored (ASCII)'
+    );
+    ok(
+      !!(st.banProfile && (st.banProfile.roles || []).length),
+      'stage ' + st.id + ': a correction only where a role CLAIM exists'
+    );
+  } else {
+    ok(!st.banTellBroken, 'stage ' + st.id + ': hedged/absent tells never made a breakable promise');
+  }
 });
 
 console.log('B2. the fully scripted first gate');

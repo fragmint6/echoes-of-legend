@@ -449,6 +449,28 @@ const server = http.createServer((req, res) => {
     // reveal hold (non-scripted) then the pick phase - poll, not guess
     for (let g = 0; g < 25 && w.EOL.play._prepState().phase !== 'pick'; g++) await sleep(300);
     t(w.EOL.play._prepState().phase === 'pick', 'pick phase opens');
+    // THE BROKEN CLAIM: deterministic per-run - read what he ACTUALLY
+    // banned, then demand the strip tells the matching truth
+    {
+      const p2r = w.EOL.play._prepState();
+      const roleOf = (id) => {
+        let r = null;
+        w.EOL.factions.forEach((f) => f.cards.forEach((c) => { if (c.id === id) r = c.role; }));
+        return r;
+      };
+      const claim = ['Sniper', 'Caster'];
+      const struck = (p2r.botBans || []).some((id) => claim.indexOf(roleOf(id)) >= 0);
+      if (struck) {
+        t($('prep-ledger-tell').hidden, 'claim held - the ledger yields to the truth and hides');
+      } else {
+        t(!$('prep-ledger-tell').hidden, 'claim BROKEN - the ledger corrects itself out loud');
+        t(
+          $('prep-ledger-tell-text').textContent.indexOf('corrected') >= 0,
+          'and says so in the authored words'
+        );
+        t($('prep-ledger-tell').classList.contains('broken'), 'wearing the correction style');
+      }
+    }
     await sleep(400);
     const p2b = w.EOL.play._prepState();
     t(!!p2b.adviceSix && p2b.adviceSix.length === 6, 'a silver SIX is counseled from what survived');

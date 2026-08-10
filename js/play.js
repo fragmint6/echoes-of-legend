@@ -1175,6 +1175,12 @@
          surfaced during the ban phase so the first decision of the
          gate is played with open eyes (playtest note 2026-08-09). */
       banTell: cfg.banTell || null,
+      /* the reveal can FALSIFY a role-claim tell - the ledger then
+         corrects itself instead of hiding (playtester ruling
+         2026-08-10: an absolute claim broken by one match is the
+         match you remember) */
+      banTellBroken: cfg.banTellBroken || null,
+      botBanProfile: cfg.botBanProfile || null,
       /* THE ADVISED GATE (stage 2): silver counsel - suggested bans
          and a suggested six, computed from the real deny/greedy math,
          marked but never enforced. Gate 1 scripts, gate 2 advises,
@@ -1349,15 +1355,35 @@
           ? 'the Recruiter is speaking - read his lesson first'
           : 'tap 2 to ban (' + p.youBans.length + '/' + RULES().BANS + ')';
     /* the Recruiter's ledger: the rival's banning reputation, read
-       BEFORE committing your own bans. Ban phase only - once the
-       stamps are down the truth outranks the rumor. */
+       BEFORE committing your own bans. After the reveal the strip
+       normally yields to the truth - UNLESS the truth broke the
+       claim, in which case the ledger corrects itself out loud
+       (playtester ruling 2026-08-10: 'never once' can be broken by
+       one match, and that is the match you remember). */
     var tell = $('prep-ledger-tell');
     if (tell) {
-      var showTell = !!(p.banTell && p.phase === 'ban' && !p.revealed);
-      tell.hidden = !showTell;
-      if (showTell) {
+      if (p.revealed && p.tellBreak === undefined) {
+        p.tellBreak = null;
+        var claim = (p.botBanProfile && p.botBanProfile.roles) || [];
+        if (claim.length && p.banTellBroken) {
+          var offeredClaim = p.player12.some(function (e) {
+            return claim.indexOf(e.card.role) >= 0;
+          });
+          var struckClaim = (p.botBans || []).some(function (id) {
+            var ce = dict[id];
+            return ce && claim.indexOf(ce.card.role) >= 0;
+          });
+          if (offeredClaim && !struckClaim) p.tellBreak = p.banTellBroken;
+        }
+      }
+      var tellTxt = null;
+      if (p.banTell && p.phase === 'ban' && !p.revealed) tellTxt = p.banTell;
+      else if (p.tellBreak) tellTxt = p.tellBreak;
+      tell.hidden = !tellTxt;
+      tell.classList.toggle('broken', !!(tellTxt && tellTxt === p.tellBreak));
+      if (tellTxt) {
         var tt = $('prep-ledger-tell-text');
-        if (tt && tt.textContent !== p.banTell) tt.textContent = p.banTell;
+        if (tt && tt.textContent !== tellTxt) tt.textContent = tellTxt;
       }
     }
     var cm = $('prep-confirm-main');

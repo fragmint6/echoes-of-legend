@@ -677,6 +677,7 @@
              the player commits their own (playtest note 2026-08-09:
              the least-informed call must not stay the blindest one) */
           banTell: stage.banTell || null,
+          banTellBroken: stage.banTellBroken || null,
           advisor: stage.advisor || null,
           pinnedEnemy: stage.pinned || null,
           unbannable: stage.unbannable || null,

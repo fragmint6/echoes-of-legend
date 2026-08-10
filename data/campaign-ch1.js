@@ -345,6 +345,13 @@ window.EOL = window.EOL || {};
          threat is taken at the gate. */
       banProfile: { roles: ['Sniper', 'Caster'], stat: 'atk' },
       banTell: 'He strikes the killers-at-a-distance first: your archers, your mages, whatever hits hardest from safety.',
+      /* THE BROKEN CLAIM (playtester ruling 2026-08-10: 'never once' can
+         be broken by one match, and that is the match I would remember).
+         When the reveal contradicts a role-claim tell, the ledger says
+         so instead of hiding. Only the absolute claims (gates 2-4) can
+         break; the hedged ones never made a falsifiable promise. */
+      banTellBroken:
+        'The ledger stands corrected: your far-killers went unstruck. Even an oath misreads a hand now and then.',
       /* THE ADVISED GATE (2026-08-10): gate 1 scripts, gate 2 ADVISES,
          gate 3+ releases. The Recruiter walks one more gate offering
          silver-marked counsel - computed live from the real deny math,
@@ -417,6 +424,8 @@ window.EOL = window.EOL || {};
          the healer is the protector. */
       banProfile: { roles: ['Tank'] },
       banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
+      banTellBroken:
+        'Correction entered: today she let a Tank stand. You will remember this match. So, now, will the ledger.',
       grants: { cards: ['sherwood-robin-hood', 'sherwood-little-john'], coins: 120 },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
@@ -471,6 +480,8 @@ window.EOL = window.EOL || {};
       /* Marks must land and stick: your cleansers are anointed first. */
       banProfile: { roles: ['Medic'], stat: 'atk' },
       banTell: 'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
+      banTellBroken:
+        'The ledger stands corrected: your healer went unstruck. Mercy, or a mistake - it records both the same way.',
       grants: { cards: ['olympus-zeus', 'olympus-hercules'], coins: 140 },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
