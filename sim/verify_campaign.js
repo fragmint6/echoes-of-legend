@@ -414,7 +414,7 @@ S.stages.forEach(function (st) {
     ok(!!st.barks.start2 && !!st.barks.start3, 'stage ' + st.id + ': per-game set barks');
 });
 
-console.log('F. curated draft pools (FROZEN - owner ruling 2026-08-09)');
+console.log('F. curated draft pools (progression-law rebuild, owner ruling 2026-08-10)');
 S.stages.forEach(function (st) {
   if (st.mode !== 'draft') return;
   var fid = st.pool.featured;
@@ -428,12 +428,17 @@ S.stages.forEach(function (st) {
     else roles[dict[id].card.role] = (roles[dict[id].card.role] || 0) + 1;
   });
   ok(okIds, 'stage ' + st.id + ': every pool id resolves');
+  /* Under the progression law the pool draws only from introduced
+     factions, so a strict 6-per-role is no longer possible (gate VI's
+     five factions hold exactly 5 snipers and 4 casters). The real
+     requirements: every role present, and enough breadth that both
+     drafters can build legal twelves. */
   ok(
     Object.keys(roles).length === 6 &&
       Object.keys(roles).every(function (r) {
-        return roles[r] === 6;
+        return roles[r] >= 4;
       }),
-    'stage ' + st.id + ': pool is 6-per-role'
+    'stage ' + st.id + ': every role present in playable depth (4+)'
   );
   var featN = P.filter(function (id) {
     return dict[id] && dict[id].faction.id === fid;
@@ -450,6 +455,58 @@ S.stages.forEach(function (st) {
   );
   ok(!!st.persona, 'stage ' + st.id + ': draft persona set');
 });
+
+console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
+/* Factions enter the Road one gate at a time - Grimmwood at I,
+   Camelot II, Sherwood III, Olympus IV, Yamato VI, Roma VII,
+   Takamagahara VIII, Duat only at X. A gate may not field, pool or
+   grant a card from a faction the player has not been shown. */
+(function () {
+  var INTRO = {
+    1: 'grimmwood',
+    2: 'camelot',
+    3: 'sherwood',
+    4: 'olympus',
+    6: 'yamato',
+    7: 'roma',
+    8: 'takamagahara',
+    10: 'duat',
+  };
+  var facOf = {};
+  EOL.factions.forEach(function (f) {
+    f.cards.forEach(function (c) {
+      facOf[c.id] = f.id;
+    });
+  });
+  facOf[S.bossCard.id] = 'first-legend';
+  var allowed = [];
+  S.stages.forEach(function (st) {
+    if (INTRO[st.id]) allowed.push(INTRO[st.id]);
+    var okSet = {};
+    allowed.forEach(function (f) {
+      okSet[f] = true;
+    });
+    if (st.id === 10) okSet['first-legend'] = true;
+    [
+      ['enemy12', st.enemy12 || []],
+      ['pool', (st.pool && st.pool.cards) || []],
+      ['grants', (st.grants || {}).cards || []],
+    ].forEach(function (pair) {
+      var badIds = pair[1].filter(function (id) {
+        return !okSet[facOf[id]];
+      });
+      ok(
+        badIds.length === 0,
+        'stage ' +
+          st.id +
+          ' ' +
+          pair[0] +
+          ': only introduced factions' +
+          (badIds.length ? ' (LEAK: ' + badIds.join(', ') + ')' : '')
+      );
+    });
+  });
+})();
 
 console.log('G. the boss');
 ok(S.bossCard.unbannable === true, 'Gilgamesh declares unbannable (R5)');

@@ -320,30 +320,39 @@ window.EOL = window.EOL || {};
       /* ORDERED: the scripted six first, then the bench weakest-first -
          a ban into the six pulls the NEXT NAME on this list (the
          deterministic-refill law in js/play.js). */
+      /* THE PROGRESSION LAW (owner ruling 2026-08-10): a gate may only
+         field factions the Road has introduced. Gate II = Grimmwood +
+         Camelot, nothing else - and the twelve EXPRESSES his habit:
+         three walls, three blades behind them, one begrudged sniper
+         (Mordred, the traitor he keeps where he can see him). Order:
+         the six first, then the bench weakest-first (the scripted
+         refill law). */
       enemy12: [
         'camelot-king-arthur',
-        'yamato-benkei',
         'grimmwood-gingerbread-man',
+        'grimmwood-hansel-gretel',
         'camelot-guinevere',
-        'sherwood-will-scarlet',
         'camelot-merlin',
-        'sherwood-maid-marian',
-        'sherwood-friar-tuck',
-        'yamato-momotaro',
+        'grimmwood-red-riding-hood',
+        'grimmwood-snow-white',
         'camelot-morgan-le-fay',
         'camelot-mordred',
         'camelot-lancelot',
+        'grimmwood-rapunzel',
+        'grimmwood-big-bad-wolf',
       ],
-      factionMix: { camelot: 6, yamato: 2, grimmwood: 1, sherwood: 3 },
-      /* Soak-tuned 2026-08-09: the wall holds, the teeth behind it are
-         modest - the lesson is going THROUGH him, not surviving Mordred. */
+      factionMix: { camelot: 6, grimmwood: 6 },
+      /* Soak-tuned 2026-08-10 (progression rebuild): the wall holds,
+         the teeth behind it are modest - the lesson is going THROUGH
+         him. He will not even FIELD a ranged killer unless your bans
+         force his hand - Mordred waits on the bench, watched. */
       botSix: [
         'camelot-king-arthur',
-        'yamato-benkei',
         'grimmwood-gingerbread-man',
+        'grimmwood-hansel-gretel',
         'camelot-guinevere',
-        'sherwood-will-scarlet',
         'camelot-merlin',
+        'grimmwood-red-riding-hood',
       ],
       /* He tells you his oath before he swears it: your best back-line
          threat is taken at the gate. */
@@ -463,24 +472,24 @@ window.EOL = window.EOL || {};
          deck of stages 1-4, because Olympus is the chapter's only Mark
          teacher and cannot be swapped (§4 balance flag). */
       enemy12: [
-        'roma-spartacus',
+        'sherwood-little-john',
         'olympus-hercules',
-        'olympus-ares',
+        'grimmwood-big-bad-wolf',
         'olympus-zeus',
         'olympus-medusa',
         'olympus-apollo',
         'camelot-guinevere',
         'camelot-mordred',
         'olympus-athena',
-        'yamato-kaguya',
-        'grimmwood-big-bad-wolf',
+        'grimmwood-rapunzel',
+        'olympus-ares',
         'grimmwood-evil-queen',
       ],
-      factionMix: { olympus: 6, roma: 1, grimmwood: 2, yamato: 1, camelot: 2 },
+      factionMix: { olympus: 6, sherwood: 1, grimmwood: 3, camelot: 2 },
       botSix: [
-        'roma-spartacus',
+        'sherwood-little-john',
         'olympus-hercules',
-        'olympus-ares',
+        'grimmwood-big-bad-wolf',
         'olympus-zeus',
         'olympus-medusa',
         'olympus-apollo',
@@ -575,18 +584,42 @@ window.EOL = window.EOL || {};
            Duat (the boss reveal). This is the Trickster's table:
            energy payoffs and steal-bait on purpose. */
         cards: [
-          'yamato-benkei', 'yamato-momotaro', 'camelot-king-arthur',
-          'roma-spartacus', 'grimmwood-gingerbread-man', 'takamagahara-susanoo',
-          'yamato-minamoto-no-yoshitsune', 'grimmwood-big-bad-wolf', 'camelot-lancelot',
-          'roma-julius-caesar', 'sherwood-guy-of-gisborne', 'olympus-ares',
-          'yamato-tomoe-gozen', 'grimmwood-puss-in-boots', 'grimmwood-goldilocks',
-          'camelot-mordred', 'roma-brutus', 'sherwood-robin-hood',
-          'yamato-kaguya', 'grimmwood-evil-queen', 'olympus-zeus',
-          'takamagahara-amaterasu', 'takamagahara-tsukuyomi', 'grimmwood-rapunzel',
-          'yamato-abe-no-seimei', 'takamagahara-inari', 'takamagahara-izanami',
-          'camelot-merlin', 'olympus-medusa', 'grimmwood-rumpelstiltskin',
-          'grimmwood-snow-white', 'camelot-guinevere', 'olympus-apollo',
-          'roma-augustus', 'takamagahara-izanagi', 'sherwood-maid-marian',
+          'yamato-minamoto-no-yoshitsune',
+          'yamato-tomoe-gozen',
+          'yamato-benkei',
+          'yamato-abe-no-seimei',
+          'yamato-momotaro',
+          'yamato-kaguya',
+          'grimmwood-hansel-gretel',
+          'grimmwood-rumpelstiltskin',
+          'grimmwood-big-bad-wolf',
+          'grimmwood-snow-white',
+          'grimmwood-red-riding-hood',
+          'grimmwood-pied-piper',
+          'grimmwood-gingerbread-man',
+          'grimmwood-evil-queen',
+          'grimmwood-puss-in-boots',
+          'grimmwood-rapunzel',
+          'grimmwood-goldilocks',
+          'grimmwood-cinderella',
+          'camelot-king-arthur',
+          'camelot-merlin',
+          'camelot-lancelot',
+          'camelot-morgan-le-fay',
+          'camelot-guinevere',
+          'camelot-mordred',
+          'sherwood-guy-of-gisborne',
+          'sherwood-robin-hood',
+          'sherwood-will-scarlet',
+          'sherwood-little-john',
+          'sherwood-maid-marian',
+          'sherwood-friar-tuck',
+          'olympus-zeus',
+          'olympus-athena',
+          'olympus-hercules',
+          'olympus-apollo',
+          'olympus-medusa',
+          'olympus-ares',
         ],
       },
       line: 'She deals twelve cards onto black stone. "You take one. Then I take one. The only cheating is pretending you did not want what you picked." She will steal the pieces your plan needs.',
@@ -632,11 +665,11 @@ window.EOL = window.EOL || {};
           'roma-brutus', 'sherwood-robin-hood', 'grimmwood-goldilocks',
           'grimmwood-puss-in-boots', 'camelot-mordred', 'yamato-tomoe-gozen',
           'roma-constantine-the-great', 'olympus-zeus', 'grimmwood-evil-queen',
-          'takamagahara-amaterasu', 'yamato-kaguya', 'grimmwood-rapunzel',
+          'grimmwood-rumpelstiltskin', 'yamato-kaguya', 'grimmwood-rapunzel',
           'roma-cicero', 'olympus-medusa', 'camelot-morgan-le-fay',
-          'takamagahara-izanami', 'grimmwood-pied-piper', 'olympus-athena',
+          'yamato-abe-no-seimei', 'grimmwood-pied-piper', 'olympus-athena',
           'roma-augustus', 'grimmwood-snow-white', 'camelot-guinevere',
-          'olympus-apollo', 'takamagahara-izanagi', 'grimmwood-cinderella',
+          'olympus-apollo', 'sherwood-maid-marian', 'grimmwood-cinderella',
         ],
       },
       line: 'An old man plots your habits on a wax board of violet lines. He drafts against what you are drafting, and every careless victory becomes a path to your next defeat.',

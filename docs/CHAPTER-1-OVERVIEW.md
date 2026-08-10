@@ -325,10 +325,11 @@ enemy made players win *more*) and turn order (~0-10pp since the
 comeback-energy patch). The campaign never cheats; the campaign never
 needs to.
 
-**The intended curve vs. the measured curve.** Soaked 2026-08-09 with
-`sim/campaign_soak.js` (the design doc's `--teams fixed` harness):
+**The intended curve vs. the measured curve.** Soaked 2026-08-09, and
+re-soaked 2026-08-10 after the **progression-law rebuild** (see below)
+with `sim/campaign_soak.js` (the design doc's `--teams fixed` harness):
 every gate replayed with its exact shipped config, the player's side
-driven by the game's own AI over the floor collection, n = 40-60
+driven by the game's own AI over the floor collection, n = 30-60
 trials per gate. The soak numbers are BOT-vs-bot; a median human runs
 below the bot on early gates and above it on gates whose counterplay
 is knowledge (protect-the-carry, kill-the-healer).
@@ -336,11 +337,24 @@ is knowledge (protect-the-carry, kill-the-healer).
 | Gate | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Target (floor) | ~95%* | ~90% | ~85% | ~75% | ~70% | ~65% | ~60% | ~55% | ~40% | ~20-30% |
-| Measured (bot) | 100%* | 100% | 95% | 92% | 85% | 68% | 58% | 58% | 30% | 20% |
+| Measured (bot) | 100%* | 100% | 95% | 73% | 85% | 63% | 60% | 58% | 30% | 20% |
 
-\* Gate I is scripted: following the marks is a guaranteed clean sweep
-(all six signatures cast, no losses). Gates 6-8 are drafts, so the
-player's collection does not enter the fight.
+\* Gate I scripts rounds 1-2, then hands over; the handoff position
+soaked 30/30. Gates 6-8 are drafts, so the player's collection does
+not enter the fight.
+
+**The progression law (owner ruling 2026-08-10).** Factions enter the
+Road one gate at a time — Grimmwood at I, Camelot II, Sherwood III,
+Olympus IV, Yamato VI, Roma VII, Takamagahara VIII, Duat only at X —
+and a gate may not field, pool, or grant a card from a faction the
+player has not been shown. Every rival twelve is fixed and built to
+*express its owner's habit*: the Oathkeeper fields three walls and
+keeps his only sniper benched (he distrusts ranged killers even on his
+own side); the Anointed runs an Olympus core. Gate VI's pool is,
+elegantly, *every card the Road has shown so far* — the five
+introduced factions total exactly 36. The law is enforced by
+`sim/verify_campaign.js` section H, so a future deck tweak cannot leak
+an unintroduced faction.
 
 The tuning pass behind those numbers (all deck-side, per the law):
 the Outlaw's gate was rebuilt after the soak found bans into a
