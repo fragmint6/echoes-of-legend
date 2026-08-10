@@ -8571,7 +8571,7 @@ html.mqw900 .pk-wordmark {
   max-width: calc(var(--vw1) * 96);
 }
 .po-flip {
-  width: clamp(120px, calc(var(--vw1) * 17), 188px);
+  width: var(--card-w);
   perspective: 1200px;
 }
 /* THE DEAL (2026-08-10): every slot exists before anything moves, so
@@ -8850,7 +8850,7 @@ html.mqw900 .po-cards {
   top: 46%;
 }
 html.mqw900 .po-flip {
-  width: clamp(104px, calc(var(--vw1) * 28), 150px);
+  width: var(--card-w);
 }
 html.mqw900 .po-summary {
   bottom: 2.5%;
