@@ -1576,27 +1576,23 @@
   }
 
   /* ---------------------------------------------------------
-     THE LEDGER (2026-08-10)
+     THE LEDGER (2026-08-10, revised same day per owner notes)
      -------------------------------------------------------------
      The Recruiter's book, made openable from the chapter header.
      Everything on these pages is the same story data the gates run
-     on - zero duplicated prose. Two indexes:
+     on - zero duplicated prose. Ten rival pages under fog of war:
 
-       RIVALS - ten pages under fog of war:
-         sealed   (gate locked)   name withheld, page unwritten
-         intel    (gate unlocked) what the Recruiter would share:
-                  the ground, the habit (banTell), his counsel
-         full     (gate cleared)  the twelve, the record, the
-                  post-fight word - and, forever, any correction
-                  the player forced onto a ban-claim.
-
-       LEGENDS - a cross-index of every card the Road has SHOWN
-         (starter, granted, or in an unlocked rival's twelve): who
-         runs it, where it came from. Locked gates leak nothing -
-         the Duat reveal stays sealed until Gate X opens.
+       sealed   (gate locked)   name withheld, page unwritten
+       intel    (gate unlocked) what the Recruiter would share:
+                the GROUND (full arena laws, not just the name),
+                the HABIT (the tell + what they prefer to strike),
+                and his COUNSEL
+       full     (gate cleared)  adds the twelve as real battle
+                tiles with the prep hover panel, the record, the
+                post-fight word - and, forever, any correction the
+                player forced onto a ban-claim.
      --------------------------------------------------------- */
   var ledgerSel = 1;
-  var ledgerTab = 'rivals';
 
   function ledgerStateOf(stage, prog) {
     if (prog.cleared.indexOf(stage.id) >= 0) return 'full';
@@ -1604,9 +1600,39 @@
     return 'sealed';
   }
 
-  function ledgerBoardThumb(stage) {
-    var id = stage.field || (stage.fightCard || [])[0];
-    return id ? 'assets/boards/thumbs/' + id + '.png' : null;
+  function ledgerFieldIds(stage) {
+    return stage.field ? [stage.field] : (stage.fightCard || []).slice();
+  }
+
+  /* what the profile actually reaches for, in plain words - the tell
+     is the reputation, this is the mechanism (owner note 2026-08-10:
+     'include what they like to ban') */
+  function habitPrefs(stage) {
+    var bp = stage.banProfile || {};
+    var parts = [];
+    if (bp.ids && bp.ids.length) {
+      var dict = cardDict();
+      parts.push(
+        bp.ids
+          .map(function (id) {
+            return dict[id] ? dict[id].card.name : id;
+          })
+          .join(' and ') + ' - always'
+      );
+    }
+    if (bp.roles && bp.roles.length) {
+      parts.push(
+        bp.roles
+          .map(function (r) {
+            return r + 's';
+          })
+          .join(' and ')
+      );
+    }
+    if (bp.stat === 'atk') parts.push('your hardest hitters');
+    if (bp.power) parts.push('your strongest legends');
+    if (!parts.length) parts.push('whatever your twelve leans on - the load-bearing pieces');
+    return parts.join(', then ');
   }
 
   function renderLedgerList() {
@@ -1665,7 +1691,6 @@
         '<p>The Road has not taken you there. The ledger keeps its pages in order, Blank.</p></div>';
       return;
     }
-    var thumb = ledgerBoardThumb(stage);
     var broke = prog.tellsBroken.indexOf(stage.id) >= 0;
     var clears = prog.clears[stage.id] || 0;
     var html =
@@ -1686,24 +1711,62 @@
       stage.line +
       '</p>' +
       '</div></div>';
+    /* GROUND: the full arena card(s), not just the name - tagline,
+       every law in force, and the drafting note */
+    var grounds = ledgerFieldIds(stage)
+      .map(function (fid) {
+        var f = fieldById(fid);
+        if (!f) return '';
+        return (
+          '<div class="lg-ground">' +
+          '<img class="lg-board" src="assets/boards/thumbs/' +
+          fid +
+          '.png" alt="" loading="lazy" draggable="false" />' +
+          '<div class="lg-ground-body"><b>' +
+          f.name +
+          '</b><span class="lg-tagline">' +
+          (f.tagline || '') +
+          '</span>' +
+          '<ul class="lg-rules">' +
+          (f.rules || [])
+            .map(function (r) {
+              return '<li>' + r + '</li>';
+            })
+            .join('') +
+          '</ul>' +
+          (f.draft ? '<span class="lg-draftnote">' + f.draft + '</span>' : '') +
+          '</div></div>'
+        );
+      })
+      .join('');
     html +=
       '<div class="lg-fact"><span class="lg-label"><i class="ri-map-pin-line"></i> Ground</span>' +
-      (thumb
-        ? '<img class="lg-board" src="' + thumb + '" alt="" loading="lazy" draggable="false" />'
-        : '') +
-      '<p>' +
-      stage.terrain +
-      '</p></div>';
-    if (stage.banTell) {
+      grounds +
+      '</div>';
+    /* HABIT: the reputation, the mechanism, and any correction the
+       player forced onto the claim */
+    var bp = stage.banProfile || {};
+    var hasProfile = !!(
+      (bp.ids && bp.ids.length) ||
+      (bp.roles && bp.roles.length) ||
+      bp.stat ||
+      bp.power
+    );
+    if (stage.banTell || hasProfile) {
       html +=
         '<div class="lg-fact"><span class="lg-label"><i class="ri-scissors-cut-line"></i> Habit</span>' +
-        (broke && stage.banTellBroken
-          ? '<p class="lg-struck">' +
-            stage.banTell +
-            '</p><p class="lg-correct">' +
-            stage.banTellBroken +
-            '</p>'
-          : '<p>' + stage.banTell + '</p>') +
+        (stage.banTell
+          ? broke && stage.banTellBroken
+            ? '<p class="lg-struck">' +
+              stage.banTell +
+              '</p><p class="lg-correct">' +
+              stage.banTellBroken +
+              '</p>'
+            : '<p>' + stage.banTell + '</p>'
+          : '') +
+        '<p class="lg-prefs"><b>Likes to strike:</b> ' +
+        habitPrefs(stage) +
+        '</p>' +
         '</div>';
     }
     if (stage.counsel && (stage.id !== 1 || st === 'full')) {
@@ -1713,25 +1776,9 @@
         '</p></div>';
     }
     if (st === 'full') {
-      var dict = cardDict();
-      var twelve = (stage.enemy12 || [])
-        .map(function (id) {
-          var e = dict[id];
-          if (!e) return '';
-          return (
-            '<span class="lg-chip"><i class="ra ' +
-            ((window.EOL.ROLE_ICON || {})[e.card.role] || 'ra-player') +
-            '"></i>' +
-            e.card.name +
-            '</span>'
-          );
-        })
-        .join('');
       html +=
-        '<div class="lg-fact"><span class="lg-label"><i class="ra ra-cards"></i> The Twelve</span>' +
-        '<div class="lg-chips">' +
-        twelve +
-        '</div></div>';
+        '<div class="lg-fact"><span class="lg-label"><i class="ri-stack-line"></i> The Twelve</span>' +
+        '<div class="prep-cards lg-twelve" id="lg-twelve"></div></div>';
       html +=
         '<div class="lg-fact lg-record"><span class="lg-label"><i class="ri-flag-line"></i> Record</span>' +
         '<p>Gate cleared' +
@@ -1741,96 +1788,29 @@
         '</span></p></div>';
     } else {
       html +=
-        '<div class="lg-fact lg-unwritten"><span class="lg-label"><i class="ra ra-cards"></i> The Twelve</span>' +
+        '<div class="lg-fact lg-unwritten"><span class="lg-label"><i class="ri-stack-line"></i> The Twelve</span>' +
         '<p>Unwritten until the gate is walked.</p></div>';
     }
     host.innerHTML = html;
-  }
-
-  /* LEGENDS: derived, never authored. A card earns a line once the
-     Road has shown it - owned (starter or granted) or fielded by an
-     UNLOCKED rival. Locked pages leak nothing. */
-  function renderLedgerLegends() {
-    var host = $('ledger-legends');
-    if (!host) return;
-    var prog = getProgress();
-    var dict = cardDict();
-    var seen = {}; // id -> { owned: 'starter'|'Gate N'|null, gates: [] }
-    (starterEntries() || []).forEach(function (e) {
-      seen[e.card.id] = { owned: 'starter', gates: [] };
-    });
-    (STORY.stages || []).forEach(function (stage) {
-      var g = stage.grants || {};
-      (g.cards || []).forEach(function (id) {
-        if (prog.grants.indexOf(id) < 0) return;
-        seen[id] = seen[id] || { owned: null, gates: [] };
-        seen[id].owned = seen[id].owned || 'Gate ' + ROMAN[stage.id];
-      });
-      if (prog.unlocked.indexOf(stage.id) < 0) return;
-      (stage.enemy12 || []).forEach(function (id) {
-        seen[id] = seen[id] || { owned: null, gates: [] };
-        seen[id].gates.push(ROMAN[stage.id]);
-      });
-    });
-    var ids = Object.keys(seen);
-    ids.sort(function (a, b) {
-      var ea = dict[a],
-        eb = dict[b];
-      if (!ea || !eb) return 0;
-      var fa = ea.faction.name,
-        fb = eb.faction.name;
-      return fa === fb ? (ea.card.name < eb.card.name ? -1 : 1) : fa < fb ? -1 : 1;
-    });
-    host.innerHTML =
-      '<p class="lg-legends-note">Every legend the Road has shown you. Pages still sealed keep their names.</p>' +
-      '<div class="lg-legends-grid">' +
-      ids
-        .map(function (id) {
+    /* the twelve are REAL battle tiles with the prep hover panel,
+       bound to the ledger's own flyout instance */
+    if (st === 'full' && window.EOL.play && window.EOL.play.tileFor) {
+      var grid = $('lg-twelve');
+      var tip = $('ledger-tip');
+      var dict = cardDict();
+      if (grid) {
+        (stage.enemy12 || []).forEach(function (id) {
           var e = dict[id];
-          if (!e) return '';
-          var s = seen[id];
-          var notes = [];
-          if (s.owned)
-            notes.push(s.owned === 'starter' ? 'yours - starter twelve' : 'granted at ' + s.owned);
-          if (s.gates.length) notes.push('fields with Gate ' + s.gates.join(', '));
-          return (
-            '<div class="lg-legend" style="--fc:' +
-            (e.faction.colors ? e.faction.colors.primary : '#888') +
-            '">' +
-            '<i class="ra ' +
-            ((window.EOL.ROLE_ICON || {})[e.card.role] || 'ra-player') +
-            '"></i>' +
-            '<span class="lg-legend-body"><b>' +
-            e.card.name +
-            '</b><span>' +
-            e.faction.name +
-            ' - ' +
-            e.card.role +
-            '</span><i class="lg-notes">' +
-            notes.join(' &middot; ') +
-            '</i></span>' +
-            '</div>'
-          );
-        })
-        .join('') +
-      '</div>';
+          if (e) grid.appendChild(window.EOL.play.tileFor(e, tip));
+        });
+        if (window.EOL.play.fitTileNames) window.EOL.play.fitTileNames();
+      }
+    }
   }
 
   function renderLedger() {
-    var rv = $('ledger-rivals');
-    var lg = $('ledger-legends');
-    var tr = $('ledger-tab-rivals');
-    var tl = $('ledger-tab-legends');
-    if (rv) rv.hidden = ledgerTab !== 'rivals';
-    if (lg) lg.hidden = ledgerTab !== 'legends';
-    if (tr) tr.classList.toggle('sel', ledgerTab === 'rivals');
-    if (tl) tl.classList.toggle('sel', ledgerTab === 'legends');
-    if (ledgerTab === 'rivals') {
-      renderLedgerList();
-      renderLedgerPage();
-    } else {
-      renderLedgerLegends();
-    }
+    renderLedgerList();
+    renderLedgerPage();
   }
 
   function openLedger() {
@@ -1844,7 +1824,6 @@
       if (prog.unlocked.indexOf(s.id) >= 0) best = s.id;
     });
     ledgerSel = best;
-    ledgerTab = 'rivals';
     renderLedger();
     box.hidden = false;
     box.setAttribute('aria-hidden', 'false');
@@ -1855,6 +1834,11 @@
     if (!box || box.hidden) return;
     box.hidden = true;
     box.setAttribute('aria-hidden', 'true');
+    var tip = $('ledger-tip');
+    if (tip) {
+      tip.classList.remove('show');
+      tip.setAttribute('aria-hidden', 'true');
+    }
   }
 
   /* THE INTRODUCTION - once, right after Gate I falls: the button
@@ -2040,18 +2024,6 @@
     if (lclose) lclose.addEventListener('click', closeLedger);
     var lscrim = $('ledger-scrim');
     if (lscrim) lscrim.addEventListener('click', closeLedger);
-    var ltr = $('ledger-tab-rivals');
-    if (ltr)
-      ltr.addEventListener('click', function () {
-        ledgerTab = 'rivals';
-        renderLedger();
-      });
-    var ltl = $('ledger-tab-legends');
-    if (ltl)
-      ltl.addEventListener('click', function () {
-        ledgerTab = 'legends';
-        renderLedger();
-      });
     var llist = $('ledger-list');
     if (llist)
       llist.addEventListener('click', function (ev) {

@@ -430,28 +430,32 @@ const server = http.createServer((req, res) => {
   t(d.querySelectorAll('#ledger-list .lg-row').length === 10, 'ten pages, one per gate');
   // opens on the furthest readable page: gate 2 (unlocked, intel state)
   t($('ledger-page').textContent.indexOf('killers-at-a-distance') >= 0, 'gate 2 intel: the habit is readable BEFORE the fight');
+  t($('ledger-page').textContent.indexOf('Likes to strike:') >= 0, 'the habit names the MECHANISM, not just the reputation');
+  t($('ledger-page').textContent.indexOf('your hardest hitters') >= 0, 'derived truthfully from the ban profile');
+  t($('ledger-page').textContent.indexOf('Only front-row legends') >= 0, 'the Ground carries the full arena laws, not just a name');
   t($('ledger-page').textContent.indexOf('lazy back row') >= 0, 'and the counsel (recommended bans/decks) is there');
   t($('ledger-page').textContent.indexOf('Unwritten until the gate is walked') >= 0, 'but his twelve stays unwritten');
-  // gate 1: cleared - the full page
+  // gate 1: cleared - the full page with REAL battle tiles
   d.querySelector('#ledger-list .lg-row[data-lg="1"]').click();
-  await sleep(150);
-  t(d.querySelectorAll('#ledger-page .lg-chip').length === 12, "the Recruiter's twelve is written out (cleared page)");
+  await sleep(200);
+  t(d.querySelectorAll('#ledger-page .prep-c').length === 12, "the Recruiter's twelve is written out as real battle tiles");
   t($('ledger-page').textContent.indexOf('Gate cleared') >= 0, 'with the record stamped');
+  {
+    // hovering a tile opens the ledger's own flyout - the same panel prep uses
+    const tile = d.querySelector('#ledger-page .prep-c');
+    tile.dispatchEvent(new w.Event('mouseenter'));
+    await sleep(120);
+    t($('ledger-tip').classList.contains('show'), 'hovering a tile opens the hover card');
+    t($('ledger-tip').textContent.indexOf('HP') >= 0, 'and it is the full stat panel');
+    tile.dispatchEvent(new w.Event('mouseleave'));
+    await sleep(120);
+    t(!$('ledger-tip').classList.contains('show'), 'and it closes on leave');
+  }
   // gate 3: locked - sealed page, no leaks
   d.querySelector('#ledger-list .lg-row[data-lg="3"]').click();
   await sleep(150);
   t($('ledger-page').textContent.indexOf('The Road has not taken you there') >= 0, 'locked gates keep sealed pages');
   t($('ledger-page').textContent.indexOf('Outlaw') < 0, 'and leak no names');
-  // the legends cross-index
-  $('ledger-tab-legends').click();
-  await sleep(200);
-  {
-    const lgTxt = $('ledger-legends').textContent;
-    t(lgTxt.indexOf('Gingerbread Man') >= 0, 'legends index lists the starter twelve');
-    t(lgTxt.indexOf('starter twelve') >= 0, 'with ownership notes');
-    t(lgTxt.indexOf('Camelot') >= 0, "gate 2 is unlocked, so the Oathkeeper's legends are indexed");
-    t(lgTxt.indexOf('Duat') < 0, 'the Duat reveal stays SEALED until Gate X opens');
-  }
   // broken claims persist to the store the ledger reads
   w.EOL.campaign.onTellBreak(3);
   t(w.EOL.campaign.getProgress().tellsBroken.indexOf(3) >= 0, 'a broken ban-claim is recorded forever');

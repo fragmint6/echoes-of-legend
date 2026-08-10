@@ -567,9 +567,12 @@
     tip.classList.toggle('from-right', placeLeft);
   }
 
-  function showPrepTip(e, side, anchor) {
-    var tip = $('prep-tip');
-    if (!tip || !prep) return;
+  function showPrepTip(e, side, anchor, tipEl) {
+    /* tipEl: an alternate flyout instance - the LEDGER carries its own
+       so rival pages get the exact prep hover card (2026-08-10) */
+    var tip = tipEl || $('prep-tip');
+    if (!tip) return;
+    if (!tipEl && !prep) return;
     var c = e.card,
       m = statMax();
     var sig = c.ability;
@@ -655,8 +658,9 @@
       }, 280);
     }
   }
-  function hidePrepTip() {
-    var tip = $('prep-tip');
+  function hidePrepTip(tipEl) {
+    /* also serves as a bare event handler, where the arg is an Event */
+    var tip = tipEl && tipEl.nodeType === 1 ? tipEl : $('prep-tip');
     lastTipId = null;
     if (tip) {
       tip.classList.remove('show');
@@ -3938,6 +3942,23 @@
        shield goes up or down, so the golden marks never invite a tap
        the shield would swallow */
     repaintPrep: updatePrepChrome,
+    /* THE LEDGER borrows the prep tile + hover flyout wholesale: the
+       same little battle card, the same hover panel, rebound onto the
+       ledger's own flyout instance (cloning drops the prep-tip hover). */
+    tileFor: function (entry, tipEl) {
+      var wrap = boardCard(entry, 0, 'foe');
+      if (!tipEl) return wrap;
+      var tile = wrap.cloneNode(true);
+      tile.style.animationDelay = '';
+      tile.addEventListener('mouseenter', function () {
+        showPrepTip(entry, 'foe', tile, tipEl);
+      });
+      tile.addEventListener('mouseleave', function () {
+        hidePrepTip(tipEl);
+      });
+      return tile;
+    },
+    fitTileNames: fitPrepNames,
     /* test hooks */
     _chooseBans: chooseBans,
     _chooseSix: chooseSix,

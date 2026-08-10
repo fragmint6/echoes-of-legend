@@ -595,7 +595,7 @@
         <!-- 8. decks & formats -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-cards"></i>
+            <i class="ri-stack-line"></i>
             <h3>Decks, Drafts &amp; Sets</h3>
           </div>
           <div class="rc-body">
@@ -1839,12 +1839,12 @@
     </div>
 
     <!-- ==================== CAMPAIGN: THE LEDGER ====================
-         The Recruiter's book made openable (2026-08-10). Two indexes:
-         RIVALS (ten pages under fog of war - sealed until a gate is
-         unlocked, intel while it stands, the full page once it falls)
-         and LEGENDS (a cross-index of every card the Road has shown:
-         who runs it, where it was granted). js/campaign.js renders
-         everything from the same story data the gates use. -->
+         The Recruiter's book made openable (2026-08-10). Ten rival
+         pages under fog of war - sealed until a gate is unlocked,
+         intel while it stands, the full page once it falls. Carries
+         its OWN flyout instance so hovering a rival's card shows the
+         same panel preparation uses. js/campaign.js renders everything
+         from the same story data the gates run on. -->
     <div
       class="ledger"
       id="ledger"
@@ -1860,22 +1860,14 @@
         </button>
         <header class="ledger-head">
           <h2 id="ledger-title"><i class="ra ra-quill-ink"></i> The Recruiter's Ledger</h2>
-          <div class="ledger-tabs" role="tablist">
-            <button class="ledger-tab sel" id="ledger-tab-rivals" type="button" role="tab">
-              Rivals
-            </button>
-            <button class="ledger-tab" id="ledger-tab-legends" type="button" role="tab">
-              Legends
-            </button>
-          </div>
         </header>
         <div class="ledger-body">
           <div class="ledger-rivals" id="ledger-rivals">
             <div class="ledger-list" id="ledger-list"></div>
             <div class="ledger-page" id="ledger-page"></div>
           </div>
-          <div class="ledger-legends" id="ledger-legends" hidden></div>
         </div>
+        <aside class="flyout ledger-flyout" id="ledger-tip" data-rarity="common" aria-hidden="true"></aside>
       </div>
     </div>
 
