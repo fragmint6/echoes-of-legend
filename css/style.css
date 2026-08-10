@@ -8573,22 +8573,34 @@ html.mqw900 .pk-wordmark {
 .po-flip {
   width: clamp(120px, calc(var(--vw1) * 17), 188px);
   perspective: 1200px;
-  animation: po-flip-in 0.62s cubic-bezier(0.2, 0.75, 0.3, 1.08) backwards;
+}
+/* THE DEAL (2026-08-10): every slot exists before anything moves, so
+   the row NEVER reflows mid-reveal (the old append-as-you-go shoved
+   the whole fan sideways five times - 'too sporadic'). Undealt cards
+   hold their space invisibly; the deal slides each back in FROM THE
+   PACK'S SPOT at the row's center - --i is the signed slot offset,
+   so -108% per slot walks the start point home to the middle. */
+.po-flip.undealt {
+  opacity: 0;
+}
+.po-flip.dealt {
+  animation: po-deal 0.34s cubic-bezier(0.22, 0.75, 0.3, 1) backwards;
 }
 .po-flip.no-anim {
   animation: none;
 }
-@keyframes po-flip-in {
+@keyframes po-deal {
   0% {
     opacity: 0;
-    transform: translateY(calc(var(--vh1) * 30)) scale(0.42) rotate(-16deg);
+    transform: translateX(calc(var(--i) * -108%)) translateY(calc(var(--vh1) * -3))
+      rotate(calc(var(--i) * -3deg)) scale(0.6);
   }
-  60% {
+  55% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1) rotate(0);
+    transform: none;
   }
 }
 .po-flip-inner {
@@ -8599,6 +8611,20 @@ html.mqw900 .pk-wordmark {
 }
 .po-flip.flipped .po-flip-inner {
   transform: rotateY(180deg);
+}
+/* the flip is THE event: a small lift while the card turns, so the
+   eye is led one slot at a time down the row */
+.po-flip.flipped:not(.no-anim) {
+  animation: po-flip-lift 0.58s var(--ease);
+}
+@keyframes po-flip-lift {
+  0%,
+  100% {
+    transform: none;
+  }
+  45% {
+    transform: translateY(-10px) scale(1.045);
+  }
 }
 .po-flip.no-anim .po-flip-inner {
   transition: none;

@@ -9,6 +9,8 @@
        EOL.dev.coins(5000)     grant coins (negative takes them)
        EOL.dev.grantAll()      own every obtainable card
        EOL.dev.openRoad()      unlock every campaign gate
+       EOL.dev.resetRoad()     blank the campaign + tutorial ONLY
+                               (cards and coins kept) and reload
        EOL.dev.reset()         wipe the LOCAL save and reload
        EOL.dev.save()          push the vault right now (signed in)
 
@@ -60,6 +62,37 @@
       }
       vaultNudge();
       return 'all ten gates unlocked (reload to repaint the map)';
+    },
+    resetRoad: function () {
+      /* Campaign + tutorial only: the collection and wallet stay.
+         OWNER TOOL, not a player feature - a fresh Road re-pays every
+         gate's 150 and re-runs the Legend Pack ceremonies (grants are
+         idempotent, coins are not), so a player-facing reset needs a
+         no-re-pay design first. */
+      try {
+        [
+          'eol.campaign.ch1.progress',
+          'eol.tutorial.intro.v1',
+          'eol.tutorial.guide.v1',
+          'eol.tutorial.ledger.v1',
+        ].forEach(function (k) {
+          localStorage.removeItem(k);
+        });
+      } catch (e) {
+        return 'private mode - nothing saved';
+      }
+      /* the vault must hold the blank Road BEFORE the reload, or the
+         boot pull restores the account save right over the reset */
+      var landed =
+        window.EOL.cloud && window.EOL.cloud.status() === 'on'
+          ? window.EOL.cloud.push()
+          : Promise.resolve();
+      landed
+        .catch(function () {})
+        .then(function () {
+          window.location.reload();
+        });
+      return 'blanking the Road...';
     },
     reset: function () {
       /* local only - the vault is NOT touched here on purpose. A

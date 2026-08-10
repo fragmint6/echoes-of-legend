@@ -797,6 +797,7 @@ const server = http.createServer((req, res) => {
   /* ---------- THE WORKBENCH + the readable vault document ---------- */
   {
     t(!!w.EOL.dev && typeof w.EOL.dev.coins === 'function', 'the owner workbench is loaded');
+    t(typeof w.EOL.dev.resetRoad === 'function', 'resetRoad answers the campaign-reset question');
     const before = w.EOL.econ.coins();
     w.EOL.dev.coins(500);
     t(w.EOL.econ.coins() === before + 500, 'EOL.dev.coins(500) is the one-line test-coin answer');

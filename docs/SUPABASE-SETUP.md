@@ -426,7 +426,9 @@ Two ways, pick by mood:
    `EOL.dev.coins(5000)`. Done - the wallet updates live and, if
    signed in, the vault syncs it within seconds. The whole workbench:
    `EOL.dev.coins(n)`, `EOL.dev.grantAll()`, `EOL.dev.openRoad()`,
-   `EOL.dev.reset()`, `EOL.dev.save()` (js/dev.js documents each).
+   `EOL.dev.resetRoad()` (blank the campaign + tutorial, keep cards
+   and coins), `EOL.dev.reset()`, `EOL.dev.save()` (js/dev.js
+   documents each).
 2. **The dashboard.** Table Editor -> `saves` -> your row -> edit
    `data` -> change the `wallet` number -> save -> reload the game.
    On boot the vault wins over the device, so the edit lands.

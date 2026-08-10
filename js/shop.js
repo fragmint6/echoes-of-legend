@@ -74,14 +74,24 @@
     },
   };
 
-  /* Sequence timings (ms) - cinematic pacing; tests set FAST mode. */
+  /* Sequence timings (ms) - cinematic pacing; tests set FAST mode.
+     THE DEAL (reworked 2026-08-10, owner: 'too sporadic'): the old
+     reveal appended cards one by one into a CENTERED flex row, so
+     every arrival shoved the whole fan sideways while the previous
+     card was still flipping - three animations fighting. Now it is
+     two calm phases: all slots reserved at burst (the row never
+     reflows), backs DEALT from the pack's spot left to right on a
+     fixed rhythm, then FLIPPED one at a time. */
   var DUR = {
     introDrop: 950, // pack falls in
     hintDelay: 650, // "click to open" fades up after the drop
     charge: 700, // shake + glow build-up
     burst: 620, // flash + halves + particles
-    cardStagger: 300, // delay between reveals
-    cardFlipLag: 230, // back shown, then flip
+    dealStagger: 110, // the dealer's rhythm: flick, flick, flick
+    dealDur: 340, // one card's flight from the deck to its slot
+    dealBeat: 220, // breath between the deal and the first flip
+    flipStagger: 430, // one flip fully lands before the next begins
+    legendBeat: 900, // a legendary holds the table a moment longer
     settle: 550, // pause before summary
     legendHold: 1700, // legendary banner on screen
   };
@@ -303,28 +313,53 @@
       el('po-flash').classList.remove('on');
       el('po-packwrap').classList.add('gone');
       overlay.classList.remove('shake');
-      revealNext();
+      dealAll();
     }, dur('burst'));
   }
 
-  /* 3 - cards fly out and flip over one by one */
-  function revealNext() {
+  /* 3 - THE DEAL: every slot exists before anything moves (the row
+     is measured once and never reflows), then the backs deal out on
+     the dealer's rhythm, then the flips walk left to right. */
+  function dealAll() {
     state = 'reveal';
-    if (revealed >= results.length) {
+    var host = el('po-cards');
+    var flips = results.map(function (entry, i) {
+      var flip = buildFlip(entry, i);
+      flip.classList.add('undealt');
+      host.appendChild(flip);
+      return flip;
+    });
+    flips.forEach(function (flip, i) {
+      later(function () {
+        flip.classList.remove('undealt');
+        flip.classList.add('dealt');
+      }, i * DUR.dealStagger);
+    });
+    later(
+      function () {
+        flipNext(flips);
+      },
+      results.length * DUR.dealStagger + DUR.dealDur + DUR.dealBeat
+    );
+  }
+
+  function flipNext(flips) {
+    if (revealed >= flips.length) {
       later(summary, dur('settle'));
       return;
     }
     var entry = results[revealed];
-    var i = revealed;
+    var flip = flips[revealed];
     revealed++;
-    var flip = buildFlip(entry, i);
-    el('po-cards').appendChild(flip);
-    later(function () {
-      flip.classList.add('flipped');
-      flip.classList.add('r-' + entry.card.rarity);
-      if (entry.card.rarity === 'legendary') legendBanner(entry.card.name);
-      later(revealNext, dur('cardStagger'));
-    }, dur('cardFlipLag'));
+    flip.classList.add('flipped', 'r-' + entry.card.rarity);
+    var isLegend = entry.card.rarity === 'legendary';
+    if (isLegend) legendBanner(entry.card.name);
+    later(
+      function () {
+        flipNext(flips);
+      },
+      DUR.flipStagger + (isLegend ? DUR.legendBeat : 0)
+    );
   }
 
   function buildFlip(entry, i) {
@@ -393,12 +428,16 @@
     el('po-legend-banner').className = 'po-legend-banner';
     el('pack-opening').classList.remove('shake');
     el('po-hint').classList.remove('show');
-    for (var i = revealed; i < results.length; i++) {
-      var flip = buildFlip(results[i], i);
-      flip.classList.add('flipped', 'no-anim');
-      flip.classList.add('r-' + results[i].card.rarity);
-      el('po-cards').appendChild(flip);
+    /* the deal may not have started (skip during intro/charge): make
+       sure every slot exists, then jump them all to their end state */
+    var host = el('po-cards');
+    while (host.children.length < results.length) {
+      host.appendChild(buildFlip(results[host.children.length], host.children.length));
     }
+    Array.prototype.forEach.call(host.children, function (flip, i) {
+      flip.classList.remove('undealt');
+      flip.classList.add('dealt', 'flipped', 'no-anim', 'r-' + results[i].card.rarity);
+    });
     revealed = results.length;
     summary();
   }
