@@ -18453,7 +18453,7 @@ body[data-gfx='low'] .sc-weather {
   align-content: center;
   gap: 18px;
   text-align: center;
-  max-width: min(88vw, 420px);
+  max-width: min(calc(var(--vw1) * 88), 420px);
   margin: 0 auto;
   transform: translateY(18px) scale(0.96);
   opacity: 0;
@@ -22990,7 +22990,7 @@ html.mqw640 .chapter-dialogue-foot {
   display: flex;
   align-items: center;
   gap: 13px;
-  width: min(520px, 72vw);
+  width: min(520px, calc(var(--vw1) * 72));
   padding: 12px 18px 12px 12px;
   border: 1px solid rgba(255, 176, 120, 0.55);
   border-radius: 14px;
@@ -23059,7 +23059,7 @@ html.mqw640 .chapter-dialogue-foot {
 html.mqw640 .rival-bark {
   top: auto;
   bottom: 118px;
-  width: min(340px, 88vw);
+  width: min(340px, calc(var(--vw1) * 88));
   gap: 9px;
 }
 html.mqw640 .rival-bark-face {
@@ -23080,7 +23080,7 @@ html.mqw640 .rival-bark-text {
   display: flex;
   align-items: center;
   gap: 11px;
-  width: min(400px, 84vw);
+  width: min(400px, calc(var(--vw1) * 84));
   padding: 11px 16px 11px 11px;
   border: 1px solid rgba(255, 205, 130, 0.55);
   border-radius: 13px;
@@ -23205,7 +23205,7 @@ html.mqw640 .rival-bark-text {
   display: none;
 }
 html.mqw640 .nav-guide {
-  width: min(330px, 90vw);
+  width: min(330px, calc(var(--vw1) * 90));
   gap: 9px;
 }
 html.mqw640 .nav-guide-face {
@@ -23258,7 +23258,7 @@ html.mqw640 .nav-guide-text {
   flex-direction: column;
   gap: 12px;
   width: min(100%, 720px);
-  max-height: min(82vh, 640px);
+  max-height: min(calc(var(--vh1) * 82), 640px);
   padding: 22px 24px 18px;
   border: 1px solid rgba(230, 195, 114, 0.46);
   border-radius: 18px;
@@ -23394,7 +23394,7 @@ html.mqw640 .nav-guide-text {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  width: min(430px, calc(100vw - 32px));
+  width: min(430px, calc(var(--vw1) * 100 - 32px));
   padding: 12px 14px;
   border: 1px solid rgba(230, 195, 114, 0.5);
   border-radius: 14px;
@@ -24063,7 +24063,7 @@ html.mqw640 .tutor-face {
   display: flex;
   flex-direction: column;
   width: min(100%, 860px);
-  height: min(86vh, 700px);
+  height: min(calc(var(--vh1) * 86), 700px);
   border: 1px solid rgba(230, 195, 114, 0.46);
   border-radius: 18px;
   background:
@@ -24535,7 +24535,7 @@ html.mqw640 .tutor-face {
 /* ---- the battle report ---- */
 .result-stats {
   width: 100%;
-  max-height: 38vh;
+  max-height: calc(var(--vh1) * 38);
   overflow-y: auto;
   margin: 4px 0 2px;
   padding: 10px 12px;
@@ -24638,7 +24638,7 @@ html.mqw640 .tutor-face {
     grid-template-columns: 1fr;
   }
   .result-stats {
-    max-height: 30vh;
+    max-height: calc(var(--vh1) * 30);
   }
 }
 

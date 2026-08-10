@@ -504,25 +504,38 @@
       box.classList.add('point-none');
       return;
     }
+    /* THE SCALE LAW (js/app.js paintViewport): rects report ZOOMED px,
+       style writes land in LAYOUT px. Every rect-derived number must
+       divide by the scale factor - this function skipped that, so the
+       bubble drifted off its button the moment the UI scale left 100%
+       (outside report 2026-08-10: 'tutorial elements are shifted
+       around weirdly when you change your UI scale'). innerWidth is
+       device px (root zoom does not change it), so it converts too;
+       offsetWidth/Height are already layout px and pass through. */
+    var z = window.EOL.scale && window.EOL.scale.factor ? window.EOL.scale.factor() : 1;
+    var rTop = r.top / z;
+    var rBottom = r.bottom / z;
+    var rLeft = r.left / z;
+    var rWidth = r.width / z;
     box.style.bottom = 'auto';
     box.style.transform = 'none';
-    var vw = window.innerWidth || 1280;
-    var vh = window.innerHeight || 720;
+    var vw = (window.innerWidth || 1280) / z;
+    var vh = (window.innerHeight || 720) / z;
     var bw = box.offsetWidth || 380;
     var bh = box.offsetHeight || 100;
-    var below = r.bottom + 16 + bh <= vh - 10;
-    var top = below ? r.bottom + 14 : r.top - 14 - bh;
+    var below = rBottom + 16 + bh <= vh - 10;
+    var top = below ? rBottom + 14 : rTop - 14 - bh;
     /* a target scrolled half out of view must not drag the bubble
        offscreen with it */
     top = Math.min(Math.max(10, top), Math.max(10, vh - bh - 10));
-    var left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), Math.max(12, vw - bw - 12));
+    var left = Math.min(Math.max(12, rLeft + rWidth / 2 - bw / 2), Math.max(12, vw - bw - 12));
     box.style.top = Math.round(top) + 'px';
     box.style.left = Math.round(left) + 'px';
     box.classList.toggle('point-up', below);
     box.classList.toggle('point-down', !below);
     box.classList.remove('point-none');
     /* keep the tick aligned with the button it points at */
-    var ax = Math.round(r.left + r.width / 2 - left);
+    var ax = Math.round(rLeft + rWidth / 2 - left);
     box.style.setProperty('--guide-arrow-x', Math.min(Math.max(20, ax), bw - 20) + 'px');
   }
 
@@ -1930,6 +1943,10 @@
      spotlight, never a lock: dismissed by any click, or by time. */
   var LEDGER_SPOT_KEY = 'eol.tutorial.ledger.v1';
   var ledgerSpotTimer = null;
+  /* the spotlight's anchor, remembered so a UI-rescale or window
+     resize can re-seat the bubble (it is placed once, not ticked
+     like the wayfinder) */
+  var ledgerSpotEl = null;
 
   function ledgerSpotSeen() {
     try {
@@ -1942,6 +1959,7 @@
   function dismissLedgerSpot() {
     var btn = $('btn-ledger');
     if (btn) btn.classList.remove('guide-mark');
+    ledgerSpotEl = null;
     if (ledgerSpotTimer) {
       window.clearTimeout(ledgerSpotTimer);
       ledgerSpotTimer = null;
@@ -1988,6 +2006,7 @@
     box.classList.remove('deny');
     void box.offsetWidth;
     box.classList.add('show');
+    ledgerSpotEl = btn;
     positionGuide(box, btn);
     window.setTimeout(function () {
       document.addEventListener('click', ledgerSpotClick, true);
@@ -2054,6 +2073,19 @@
        button while the guide is pointing (capture phase, so it wins
        against every button's own listener) */
     document.addEventListener('click', guideClickTrap, true);
+
+    /* A rescale or window resize moves every anchor; re-seat whichever
+       bubble is up. The wayfinder would self-heal on its 280ms tick,
+       but a visible beat of drift reads as broken; the ledger
+       spotlight has no tick at all and NEVER healed. applyScale()
+       dispatches a synthetic resize after re-zooming, so this covers
+       the in-game UI scale slider and real window changes alike. */
+    window.addEventListener('resize', function () {
+      var box = $('nav-guide');
+      if (!box || box.hidden) return;
+      var el = navGuide ? navGuide.lastEl : ledgerSpotEl;
+      if (el) positionGuide(box, el);
+    });
 
     /* A tap on the tutor's shield used to vanish without a trace -
        the first outside playtest stalled exactly there. Now the

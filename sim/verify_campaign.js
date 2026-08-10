@@ -158,6 +158,29 @@ ok(
   'every gate pays the same flat 150'
 );
 
+/* THE SCALE LAW (js/app.js paintViewport): style.css must never name
+   a raw viewport unit - under the root-zoom UI scale they resolve
+   against the DEVICE window and get zoom-scaled on top, which is how
+   the tutorial bubble family drifted at any scale but 100% (outside
+   report 2026-08-10). Everything goes through var(--vw1)/--vh1/
+   --dvh1/--vmax1; the only legal raw units are those four :root
+   definitions themselves. */
+(function () {
+  var fs = require('fs');
+  var css = fs.readFileSync(require('path').join(__dirname, '..', 'css', 'style.css'), 'utf8');
+  css = css.replace(/\/\*[\s\S]*?\*\//g, ''); // comments may SAY 100vh
+  var hits = css.match(/[\d.]+(vw|vh|dvh|vmax|vmin)\b/g) || [];
+  var legal = { '1vh': 1, '1dvh': 1, '1vw': 1, '1vmax': 1 };
+  var rogue = hits.filter(function (h) {
+    return !legal[h];
+  });
+  ok(
+    rogue.length === 0,
+    'style.css names no raw viewport units beyond the four :root vars' +
+      (rogue.length ? ' (found ' + rogue.slice(0, 4).join(', ') + ')' : '')
+  );
+})();
+
 console.log('B2. the fully scripted first gate');
 (function () {
   var st1 = S.stages[0];
