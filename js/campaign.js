@@ -758,20 +758,41 @@
   var barkActive = false;
   var barkTimer = null;
   var barkWaits = 0;
+  var barkBusyWaits = 0;
 
   function barkMs(text) {
-    /* reading time scales with the line; clamped so short quips snap
-       and long lessons linger */
-    return Math.max(3200, Math.min(8000, 2400 + text.length * 32));
+    /* Reading time. Playtest note (2026-08-10, watched live): a player
+       who is reading AND playing needs far more than the old ~300wpm
+       ceiling - lines kept dying mid-sentence. ~45ms/char with a
+       taller floor and ceiling; under queue pressure the line trims
+       toward pace instead of lingering at the maximum. */
+    var ms = Math.max(3800, Math.min(12000, 2600 + text.length * 45));
+    if (barkQ.length) ms = Math.min(ms, 8500);
+    return ms;
   }
 
   function hideBark() {
     barkQ.length = 0;
     barkActive = false;
     barkWaits = 0;
+    barkBusyWaits = 0;
     window.clearTimeout(barkTimer);
     var el = $('rival-bark');
     if (el) el.classList.remove('show');
+  }
+
+  /* A bark must land AFTER what it talks about is visible. Events fire
+     the instant the ENGINE resolves - 'their healer falls' used to
+     appear while she was still standing on screen, and round lessons
+     spoke underneath the ROUND banner (playtest 2026-08-10). The board
+     is 'loud' while an action's animations play (body busy) or while a
+     tier-1 announcement owns the centre; the queue waits for quiet.
+     The slim turn strip does not count - it is up half the fight. */
+  function boardLoud() {
+    if (document.body.dataset.busy === '1') return true;
+    var c = document.getElementById('cine');
+    if (c && c.classList.contains('show') && c.className.indexOf('slim') < 0) return true;
+    return false;
   }
 
   function pumpBark() {
@@ -789,6 +810,14 @@
       return;
     }
     barkWaits = 0;
+    /* wait for the moment to land - but a board that never goes quiet
+       (12s cap) gets spoken over rather than silencing the road */
+    if (boardLoud() && barkBusyWaits++ < 40) {
+      window.clearTimeout(barkTimer);
+      barkTimer = window.setTimeout(pumpBark, 300);
+      return;
+    }
+    barkBusyWaits = 0;
     var b = barkQ.shift();
     var el = $('rival-bark');
     if (!el) return;
