@@ -1,5 +1,56 @@
 # Campaign Mode - Chapter 1: "The Road of Echoes"
-### Rev 6 - 2026-08-05. Supersedes rev 5, 4, 3, 2 and 1 (same path; see git history) and the archived `DESIGN-Campaign.md`.
+### Rev 7 - 2026-08-08. Supersedes rev 6 (same path; see git history).
+
+> **REV 7 - every gate is playable.**
+>
+> - **All ten stages are implemented end-to-end** in `data/campaign-ch1.js`
+>   (content) + `js/campaign.js` (glue): authored rival twelves everywhere
+>   (R1), scripted sixes on stages 1-4 (§8 dial 2), personality ban
+>   profiles (§9.11), draft personas + curated 36-card pools on 6-8,
+>   authored fight cards on 5/9/10, pair grants + choice-shaped exam
+>   grants (R8/R9), and Gilgamesh pinned + unbannable by hardcode (R5).
+> - **The enablers landed in `js/play.js`:** `cfg.war` (positive format
+>   control, §9.1), `cfg.fightCard` (the pinned-field/set short-circuit of
+>   §9.2 is fixed - a war now ALWAYS runs `setBegin`), `cfg.botSix`
+>   (§9.10), `cfg.botBanProfile` (§9.11), `pinned`/`unbannable` honoured in
+>   `chooseSix`/`setBotSix`/the ban grid (§9.3), and `opts.pool` +
+>   `opts.persona` on `startDraft` (§9.4).
+> - **Dialogue moved to a bottom-anchored bar** (the centred modal covered
+>   the screen and was rejected). Busts render the full 128x176 hero-art
+>   frame at native scale, `image-rendering: pixelated`, fully inside the
+>   bar. Rivals also **speak during the match** via a pointer-transparent,
+>   self-expiring bark card front-and-centre under the HUD - lines queue,
+>   honouring §6's law that blocking overlays are for pre/post-fight only.
+> - **Gate I is fully scripted end-to-end** (owner rulings 2026-08-08):
+>   no deck picker (the starter twelve is the deck), the bans and the
+>   ordered six are the ledger's marked picks (each fielded legend earns
+>   a role lesson; the six covers all six roles, Controller included),
+>   the arena and the tip-dots get taught, informational beats raise a
+>   dim click-shield until Continue - and **the whole match is a
+>   pre-computed line**: every move on both sides is authored data,
+>   generated against the real engine under a seeded rng
+>   (`sim/gen_gate1_line.js`), replayed by hand in the browser with the
+>   UI refusing everything off-script. The frozen line wins, casts all
+>   six signatures, loses nobody - and `sim/verify_campaign.js` replays
+>   it after every balance patch so a nerf can never silently derail
+>   the tutorial. If the line ever desyncs at runtime the script aborts
+>   gracefully into a normal fight, in character.
+> - **Coverage:** `sim/verify_campaign.js` (deck legality per §9.8, grant
+>   curriculum, terrain wiring, pool constraints, boss flags + an engine
+>   smoke with the boss on the board). `sim/verify_all.js` stays green.
+> - **The soak exists and has been run** (2026-08-09):
+>   `sim/campaign_soak.js` replays every gate with its shipped config
+>   (bot-vs-bot at the floor). Measured curve after tuning:
+>   100/100/95/92/85/68/58/58/30/20 against targets
+>   95/90/85/75/70/65/60/55/40/25. Tuning stayed inside the law - decks,
+>   scripted sixes, ban profiles, persona pick-noise, boss card numbers.
+>   Two structural findings: (a) bans into a scripted six were refilled
+>   by chooseSix's best-of-bench, silently UPGRADING the six - refills
+>   are now deterministic from the deck list, with benches ordered
+>   weakest-first; (b) the three draft pools are now FROZEN 36-card
+>   authored lists (`stage.pool.cards`), settling §9's open item with
+>   option (a)+(c). Still open: codex/chronicle screens and the economy
+>   pass that makes tier-2 coin spendable.
 
 > **REV 6 - the shell is on screen, and D1 is closed.**
 >

@@ -30,6 +30,160 @@
      multiplayer battle is the same battle, with a different source of
      enemy decisions. No second engine, no second loop. */
   var netCtl = null;
+  /* CAMPAIGN rival identity for this battle ({name, img} or null).
+     Set fresh on every start(); paints the enemy commander plate and
+     anchors the in-battle rival dialogue (js/campaign.js). */
+  var rivalInfo = null;
+
+  /* =============================================================
+     THE SCRIPTED MATCH (campaign gate I)
+     -------------------------------------------------------------
+     Gate I plays a PRE-COMPUTED line: every move on both sides is
+     authored data (data/campaign-ch1.js, generated against the real
+     engine under the same seeded rng - see sim/gen_gate1_line.js).
+     The player performs their side of the line by hand; the UI
+     simply refuses everything else, the same way the prep script
+     does. The rng is seeded and the AI never rolls (bestAction
+     draws from B.rng, and ponder is parked), so the board replays
+     the generated line exactly.
+
+     A move: { side:'player'|'enemy', unit:cardId, ability:
+     'sig'|'basic', targets:[{side,id}], say? } or { side, pass:
+     true, say? }. If reality ever disagrees with the script (it
+     cannot, unless a future balance patch moves a number), the
+     script ABORTS gracefully and the fight continues as a normal
+     battle - a stuck tutorial is worse than an unscripted one.
+     ============================================================= */
+  var moveScript = null; // { moves: [...], i: 0 }
+
+  function scriptActive() {
+    return !!(moveScript && B && !B.over && moveScript.i < moveScript.moves.length);
+  }
+  function scriptMove() {
+    return scriptActive() ? moveScript.moves[moveScript.i] : null;
+  }
+  function scriptUnit(side, cardId) {
+    return (
+      B.units.filter(function (u) {
+        return u.side === side && u.card.id === cardId && u.alive;
+      })[0] || null
+    );
+  }
+  function scriptAbilityOf(mv, u) {
+    return mv.ability === 'sig' ? u.card.ability : E.roleAbility(u);
+  }
+  /* An off-script click re-speaks the INSTRUCTION instead of a toast
+     chip (playtest 2026-08-10: the chip at the bottom went unread -
+     the dialogue is where the player's eyes already live). Falls back
+     to the toast outside the campaign. */
+  function scriptDeny(fallback) {
+    var mv = scriptMove();
+    if (mv && B && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onScriptDeny) {
+      try {
+        window.EOL.campaign.onScriptDeny(B, mv);
+        return;
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
+    }
+    toast(fallback);
+  }
+  function scriptEnd(reason) {
+    if (!moveScript) return;
+    moveScript = null;
+    if (window.EOL.campaign && window.EOL.campaign.onScriptEnd) {
+      try {
+        window.EOL.campaign.onScriptEnd(B, reason);
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
+    }
+    paintScriptMarks();
+  }
+  function scriptAdvance() {
+    if (!moveScript) return;
+    moveScript.i++;
+    if (moveScript.i >= moveScript.moves.length) {
+      scriptEnd('done');
+      return;
+    }
+    scriptNotify();
+  }
+  function scriptNotify() {
+    var mv = scriptMove();
+    if (!mv) return;
+    if (window.EOL.campaign && window.EOL.campaign.onScriptMove) {
+      try {
+        window.EOL.campaign.onScriptMove(B, mv);
+      } catch (e) {
+        /* narration is optional */
+      }
+    }
+    requestAnimationFrame(paintScriptMarks);
+  }
+  /* The golden pulse rides the current player instruction: the unit to
+     act, then the remaining targets, or the Pass button. Re-applied on
+     every paintSelection (which every render runs). */
+  function paintScriptMarks() {
+    document.querySelectorAll('.bcard.tutor-pick').forEach(function (el) {
+      el.classList.remove('tutor-pick');
+    });
+    var et = $('btn-endturn');
+    if (et) et.classList.remove('tutor-pick');
+    var mv = scriptMove();
+    if (!mv || mv.side !== 'player' || !B || B.turn !== 'player') return;
+    var markUid = function (uid) {
+      var el = document.querySelector('.bcard[data-uid="' + uid + '"]');
+      if (el) el.classList.add('tutor-pick');
+    };
+    if (mv.pass) {
+      if (et) et.classList.add('tutor-pick');
+      return;
+    }
+    if (sel && sel.ability) {
+      (mv.targets || []).forEach(function (t) {
+        var tu = scriptUnit(t.side, t.id);
+        if (
+          tu &&
+          !sel.chosen.some(function (c) {
+            return c.uid === tu.uid;
+          })
+        )
+          markUid(tu.uid);
+      });
+      return;
+    }
+    var u = scriptUnit('player', mv.unit);
+    if (u) markUid(u.uid);
+  }
+  /* The scripted enemy turn: build the act straight from the line.
+     Returns {act} on success, {pass:true} for a scripted pass, or
+     null when the line no longer matches the board (abort). */
+  function scriptEnemyAct(mv) {
+    if (mv.pass) {
+      scriptAdvance();
+      return { pass: true };
+    }
+    var u = scriptUnit('enemy', mv.unit);
+    if (!u) return null;
+    var ab = scriptAbilityOf(mv, u);
+    if (!ab || !E.canUse(B, u, ab)) return null;
+    var pool = E.legalTargets(B, u, ab);
+    var chosen = [];
+    var okay = (mv.targets || []).every(function (t) {
+      var tu = scriptUnit(t.side, t.id);
+      if (!tu) return false;
+      var legal = pool.some(function (x) {
+        return x.uid === tu.uid;
+      });
+      if (!legal) return false;
+      chosen.push(tu);
+      return true;
+    });
+    if (!okay || chosen.length !== E.pickCount(ab)) return null;
+    scriptAdvance();
+    return { act: { unit: u, ability: ab, chosen: chosen, targets: chosen, choose: 0 } };
+  }
   var playerDone = false; // has the player taken their turn this round?
   var enemyDone = false; // has the bot taken its turn this round?
   var ROLE_ICON = {
@@ -309,8 +463,12 @@
       var hit = sts.filter(function (o) {
         return o.key === key;
       })[0];
-      if (hit) hit.count += 1;
-      else
+      if (hit) {
+        hit.count += 1;
+        /* same honesty rule as statusesOf: the chip shows its longest clock */
+        if (typeof m.turns === 'number' && typeof hit.turns === 'number')
+          hit.turns = Math.max(hit.turns, m.turns);
+      } else
         sts.push({
           key: key,
           icon: def.icon,
@@ -332,13 +490,9 @@
       .map(function (st) {
         var sdef = window.EOL.STATUS[st.key] || {};
         var big = st.key === 'burn' || st.key === 'exposed' ? ' big-status' : '';
-        var dur = st.turns
-          ? '<span class="stp-dur">' +
-            st.turns +
-            ' round' +
-            (st.turns > 1 ? 's' : '') +
-            ' left</span>'
-          : '';
+        var durT = durText(st.turns);
+        var dur = durT ? '<span class="stp-dur">' + durT + '</span>' : '';
+        var brk = statusBreakdown(st);
         var pop =
           '<span class="st-pop">' +
           '<span class="stp-head">' +
@@ -351,6 +505,7 @@
           (st.count > 1 ? '<span class="stp-n">x' + st.count + '</span>' : '') +
           dur +
           '</span>' +
+          (brk ? '<span class="stp-brk">' + brk + '</span>' : '') +
           (statusDesc(u, st) ? '<span class="stp-body">' + statusDesc(u, st) + '</span>' : '') +
           '</span>';
         return (
@@ -452,10 +607,54 @@
           (settledActed ? ' settled' : '') +
           '"><i class="ri-check-line"></i></div>'
         : '') +
+      (!deadView && !acted && unitLockMsg(u)
+        ? '<span class="bcard-lockdot" title="No legal action - hover for why"><i class="ri-lock-2-line"></i></span>'
+        : '') +
       '<div class="bcard-ring"></div>' +
       '</div>' +
       '</div>'
     );
+  }
+
+  /* WHY IS THIS CARD DEAD IN THE WATER?
+     -------------------------------------------------------------
+     Outside playtest (2026-08-09): on the Narrow Pass, a back-row
+     hero in round 1 had its Basic blocked by the terrain AND its
+     signature blocked by the phase - a full lockout with a full
+     energy bar, and nothing said why. Two rules, both taught, whose
+     INTERSECTION nobody taught. When a living, unacted hero of yours
+     has no legal action on your turn, the card itself now says why -
+     shortest true words, worst offender first. */
+  function unitLockMsg(u) {
+    if (!B || B.over || B.turn !== 'player' || u.side !== 'player' || !u.alive) return '';
+    if (B.acted.player[u.uid]) return '';
+    if (scriptActive()) return ''; // the golden line owns the greying
+    var basic = E.roleAbility(u);
+    var sig = u.card.ability && u.card.ability.type === 'Active' ? u.card.ability : null;
+    var abs = [basic, sig].filter(Boolean);
+    if (!abs.length) return '';
+    var usable = abs.some(function (a) {
+      var n = E.pickCount(a);
+      return E.canUse(B, u, a) && (n === 0 || E.legalTargets(B, u, a).length >= n);
+    });
+    if (usable) return '';
+    if (u.flags.silence > 0) return 'Silenced - loses this turn';
+    var why = function (a) {
+      if (!a) return null;
+      if (!a.basic && E.signatureBlocked(B, u, a)) return 'signature locked until round 2';
+      if (!a.basic && a.oncePerBattle && u.usedOnce['ab:' + a.name]) return 'signature spent';
+      if (B.field && B.field.basicsFrontRowOnly && a.basic && !E.isFront(u))
+        return 'back row: no Basics on this arena';
+      if (B.energy.player < E.costOf(B, u, a)) return 'not enough Energy';
+      var n = E.pickCount(a);
+      if (n > 0 && E.legalTargets(B, u, a).length < n) return 'no legal targets';
+      return null;
+    };
+    var rb = why(basic);
+    var rs = sig ? why(sig) : null;
+    if (rb && rs && rb !== rs) return 'Locked: ' + rb + ' + ' + rs;
+    var one = rb || rs;
+    return one ? 'Locked: ' + one : '';
   }
 
   function abilityTip(u) {
@@ -658,7 +857,19 @@
     var rt = $('ramp-tag');
     if (rt) {
       rt.classList.toggle('on', ramp > 0);
-      $('ramp-val').textContent = '+' + ramp + '%';
+      /* the ramp is persistent STATE, and a playtest proved the quiet
+         pill reads as scenery ('I started doing ridiculous damage -
+         why?'). Every time the number grows, the pill physically
+         announces itself. */
+      var rv = $('ramp-val');
+      if (rv.textContent !== '+' + ramp + '%') {
+        rv.textContent = '+' + ramp + '%';
+        if (ramp > 0) {
+          rt.classList.remove('bump');
+          void rt.offsetWidth;
+          rt.classList.add('bump');
+        }
+      }
       var next = Math.round((E.rampMult(B.round + 1) - 1) * 100);
       rt.title =
         ramp > 0
@@ -690,7 +901,7 @@
         sp.innerHTML =
           '<i class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
           setInfo.game +
-          '/3 · </span><b>' +
+          '/3 - </span><b>' +
           setInfo.you +
           ' - ' +
           setInfo.foe +
@@ -944,6 +1155,7 @@
       c.classList.remove('selected', 'targetable', 'chosen', 'viewing');
     });
     clearPreview();
+    paintScriptMarks(); // the scripted-match pulse survives every repaint
     if (!sel || !sel.unit) return;
 
     var selEl = document.querySelector('.bcard[data-uid="' + sel.unit.uid + '"]');
@@ -955,7 +1167,37 @@
       if (forced) pool = [forced];
       pool.forEach(function (u) {
         var el = document.querySelector('.bcard[data-uid="' + u.uid + '"]');
-        if (el) el.classList.add('targetable');
+        if (el) {
+          el.classList.add('targetable');
+          /* THE DAMAGE PREVIEW (playtest 2026-08-10: 'attacking and
+             hoping they die'): every legal enemy target wears the
+             number this cast would deal it - engine math, no dice.
+             Allies/heals show nothing; the chip is the answer to
+             'will this kill?', not a second HUD. */
+          if (u.side !== sel.unit.side) {
+            var pv = E.previewDamage(B, sel.unit, sel.ability, u, sel.choose);
+            if (pv) {
+              var chip = el.querySelector('.dmg-preview');
+              if (!chip) {
+                chip = document.createElement('span');
+                chip.className = 'dmg-preview';
+                el.appendChild(chip);
+              }
+              var lethal = pv.dmg >= u.hp + u.shield;
+              chip.classList.toggle('lethal', lethal);
+              chip.innerHTML =
+                '<i class="ra ra-sword"></i>' +
+                pv.dmg.toLocaleString() +
+                (lethal ? '<i class="ra ra-skull dp-skull"></i>' : '');
+              chip.title =
+                'Estimated damage (before crits). Crit chance ' +
+                pv.critChance +
+                '%: ' +
+                pv.crit.toLocaleString() +
+                (lethal ? '. Lethal.' : '.');
+            }
+          }
+        }
       });
       sel.chosen.forEach(function (u) {
         var el = document.querySelector('.bcard[data-uid="' + u.uid + '"]');
@@ -993,12 +1235,31 @@
 
     pool.forEach(function (t) {
       var el = document.querySelector('.bcard[data-uid="' + t.uid + '"]');
-      if (el) el.classList.add('preview-target');
+      if (el) {
+        el.classList.add('preview-target');
+        /* hovering an ability row previews its numbers too */
+        if (t.side !== u.side) {
+          var pv = E.previewDamage(B, u, ability, t, choose || 0);
+          if (pv) {
+            var chip = document.createElement('span');
+            chip.className = 'dmg-preview' + (pv.dmg >= t.hp + t.shield ? ' lethal' : '');
+            chip.innerHTML =
+              '<i class="ra ra-sword"></i>' +
+              pv.dmg.toLocaleString() +
+              (pv.dmg >= t.hp + t.shield ? '<i class="ra ra-skull dp-skull"></i>' : '');
+            el.appendChild(chip);
+          }
+        }
+      }
     });
   }
   function clearPreview() {
     document.querySelectorAll('.bcard.preview-target').forEach(function (el) {
       el.classList.remove('preview-target');
+    });
+    /* damage chips die with the selection that asked for them */
+    document.querySelectorAll('.dmg-preview').forEach(function (el) {
+      el.parentNode.removeChild(el);
     });
   }
 
@@ -1025,6 +1286,16 @@
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
+    /* THE SCRIPTED MATCH: only the line's ability on the line's unit
+       stays live; everything else greys out, and the asked-for row
+       carries the golden pulse. */
+    var mvS = scriptMove();
+    var scriptRow = false;
+    if (mvS && mvS.side === 'player' && !mvS.pass && interactive && isActive) {
+      var wantedKind = mvS.ability === 'sig' ? isSig : !isSig;
+      if (u.card.id !== mvS.unit || !wantedKind) dis = true;
+      else scriptRow = true;
+    }
     var tag = a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role';
     /* Short tags. The row is only ~219px wide and "SIGNATURE SKILL" ate
        87px of it, squeezing long Skill names. The colour already says
@@ -1069,6 +1340,7 @@
       (interactive && isActive ? ' act' : '') +
       (dis ? ' dis' : '') +
       (isSel ? ' sel' : '') +
+      (scriptRow && !isSel ? ' tutor-pick' : '') +
       '"' +
       (interactive && isActive && !dis ? ' data-ab="' + idx + '"' : '') +
       (lockTooltip ? ' title="' + esc(lockTooltip) + '"' : '') +
@@ -1102,6 +1374,31 @@
       el +
       '>'
     );
+  }
+
+  /* Engine "rest of battle" buffs are written as 99 rounds, and the
+     chip used to print that literally - "99 rounds left" is a lie
+     with extra steps. Anything this long reads as permanent. */
+  var PERM_TURNS = 90;
+  function durText(turns) {
+    if (!turns) return '';
+    if (turns >= PERM_TURNS) return 'for the battle';
+    return turns + ' round' + (turns > 1 ? 's' : '') + ' left';
+  }
+  /* One chip can hold several same-stat buffs on DIFFERENT clocks
+     (Lancelot: his permanent +10% ATK stacks + an ally's 2-round
+     +25%). Itemize them so the temporary part never looks permanent. */
+  function statusBreakdown(st) {
+    if (!st.parts || st.parts.length < 2) return '';
+    var mixed = st.parts.some(function (p) {
+      return p.turns !== st.parts[0].turns;
+    });
+    if (!mixed) return '';
+    return st.parts
+      .map(function (p) {
+        return (p.amt > 0 ? '+' : '') + p.amt + '% ' + (durText(p.turns) || 'now');
+      })
+      .join(' &middot; ');
   }
 
   /* Live value for THIS hero, then the rule from window.EOL.STATUS if
@@ -1168,11 +1465,14 @@
     (B.costMods[u.side] || []).forEach(function (m) {
       var up = (m.flat || 0) > 0 || (m.pct || 0) > 0;
       var key = up ? 'costup' : 'costdown';
-      if (
-        !sts.some(function (o) {
-          return o.key === key;
-        })
-      ) {
+      var hit = sts.filter(function (o) {
+        return o.key === key;
+      })[0];
+      if (hit) {
+        /* same honesty rule as statusesOf: the chip shows its longest clock */
+        if (typeof m.turns === 'number' && typeof hit.turns === 'number')
+          hit.turns = Math.max(hit.turns, m.turns);
+      } else {
         var d = window.EOL.STATUS[key];
         sts.push({
           key: key,
@@ -1203,13 +1503,9 @@
       sts
         .map(function (st) {
           var sdef = window.EOL.STATUS[st.key] || {};
-          var dur = st.turns
-            ? '<span class="dsp-dur">' +
-              st.turns +
-              ' round' +
-              (st.turns > 1 ? 's' : '') +
-              ' left</span>'
-            : '';
+          var durT = durText(st.turns);
+          var dur = durT ? '<span class="dsp-dur">' + durT + '</span>' : '';
+          var brk = statusBreakdown(st);
           return (
             '<span class="dk-sicon ' +
             st.kind +
@@ -1229,6 +1525,7 @@
             (st.count > 1 ? '<span class="dsp-n">x' + st.count + '</span>' : '') +
             dur +
             '</span>' +
+            (brk ? '<span class="dsp-brk">' + brk + '</span>' : '') +
             /* statusDesc returns trusted authored markup (<b> around the
                live value); the only interpolated values are numbers. */
             '<span class="dsp-body">' +
@@ -1417,6 +1714,14 @@
       '</div>' +
       statusListHTML(u) +
       choices +
+      /* THE LOCKOUT NOTE moved off the card (playtest 2026-08-10: the
+         on-card strip covered the art). It now sits at the FOOT of the
+         hover panel, under everything else it explains. */
+      (u.side === 'player' && unitLockMsg(u)
+        ? '<div class="dk-lock"><i class="ri-lock-2-line"></i><span>' +
+          esc(unitLockMsg(u)) +
+          '</span></div>'
+        : '') +
       (hint ? '<div class="dk-hint">' + hint + '</div>' : '');
 
     /* allies dock left, enemies dock right - the panel sits on the
@@ -1533,6 +1838,18 @@
   }
 
   function chooseAbility(u, ability) {
+    /* THE SCRIPTED MATCH: refuse anything but the line's cast. */
+    var mvA = scriptMove();
+    if (mvA && mvA.side === 'player' && !mvA.pass) {
+      var wanted = scriptAbilityOf(mvA, u);
+      var same =
+        u.card.id === mvA.unit &&
+        (ability === wanted || (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
+      if (!same) {
+        scriptDeny('The Recruiter shakes his head - follow the marked move');
+        return;
+      }
+    }
     sel = { unit: u, ability: ability, needed: E.pickCount(ability), chosen: [], choose: 0 };
 
     // Robin Hood auto-locks his target
@@ -1559,6 +1876,8 @@
     if (busy) return;
 
     var myTurn = !B.over && B.turn === 'player';
+    /* doing things dismisses a lingering YOUR TURN caption */
+    if (myTurn) cineCutTurn();
     var targeting = myTurn && !!(sel && sel.ability && sel.needed > 0);
 
     // picking a target for a pending ability
@@ -1570,6 +1889,23 @@
       var pool = E.legalTargets(B, sel.unit, sel.ability);
       var forced = E.forcedTarget(B, sel.unit, sel.ability);
       if (forced) pool = [forced];
+      /* THE SCRIPTED MATCH: the line names the victims. */
+      var mvT = scriptMove();
+      if (mvT && mvT.side === 'player' && !mvT.pass && mvT.targets) {
+        pool = pool.filter(function (x) {
+          return mvT.targets.some(function (t) {
+            return t.side === x.side && t.id === x.card.id;
+          });
+        });
+        if (
+          !pool.some(function (x) {
+            return x.uid === u.uid;
+          }) &&
+          u.side === 'enemy'
+        ) {
+          toast('The Recruiter taps the marked target');
+        }
+      }
       if (
         pool.some(function (x) {
           return x.uid === u.uid;
@@ -1610,6 +1946,18 @@
     }
 
     var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
+    /* THE SCRIPTED MATCH: other heroes stay inspectable, but only the
+       line's unit may take the action. */
+    var mvU = scriptMove();
+    if (!viewOnly && mvU && mvU.side === 'player') {
+      if (mvU.pass) {
+        viewOnly = true;
+        toast('The Recruiter points at the Pass button - hoarding is also a move');
+      } else if (u.card.id !== mvU.unit) {
+        viewOnly = true;
+        toast('The Recruiter points at the marked legend');
+      }
+    }
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
     paintDock();
     paintSelection();
@@ -1620,10 +1968,44 @@
     if (!s || !s.ability) return;
     stopClock();
     var mark = B.log.length;
+    /* pre-cast facts for the campaign's reaction layer */
+    var foesPre = B.units.filter(function (u) {
+      return u.side === 'enemy' && u.alive;
+    });
     var res = E.useAbility(B, s.unit, s.ability, s.chosen, s.choose);
     if (!res.ok) {
       toast('Cannot use that: ' + res.reason);
       return;
+    }
+    /* THE SCRIPTED MATCH: the line's player move just resolved. Read
+       the RAW script here - on the killing blow B.over is already
+       true and scriptMove() would refuse, stranding the final index
+       unconsumed. */
+    var mvC =
+      moveScript && moveScript.i < moveScript.moves.length
+        ? moveScript.moves[moveScript.i]
+        : null;
+    if (mvC && mvC.side === 'player' && !mvC.pass && s.unit.card.id === mvC.unit) {
+      scriptAdvance();
+    }
+    /* CAMPAIGN: the Recruiter REACTS to free play (post-handoff gate 1).
+       Observational only - the campaign can bark, never touch the board. */
+    if (B.campaignStage && window.EOL.campaign && window.EOL.campaign.onPlayerAction) {
+      try {
+        window.EOL.campaign.onPlayerAction(B, {
+          sig: !s.ability.basic,
+          role: s.unit.role,
+          killedRoles: foesPre
+            .filter(function (u) {
+              return !u.alive;
+            })
+            .map(function (u) {
+              return u.role;
+            }),
+        });
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
     }
     /* Put the move on the wire BEFORE the animations play. The other
        client needs the whole action-time to render it, and the engine
@@ -1637,11 +2019,13 @@
         choose: s.choose,
       });
     clearSel();
-    render();
     hideTip();
 
-    // A coin flip has to be watched before anything else resolves, so
-    // block input, play it, then release the rest of the log.
+    /* NO SPOILERS ON THE BARGAIN (user note 2026-08-09): a coin flip
+       must land BEFORE the board repaints - render() used to run
+       first, so the HP bars and status chips announced heads or tails
+       while the coin was still in the air. The flip now plays over the
+       pre-cast board; the reveal happens when it settles. */
     var coin = B.log.slice(mark).filter(function (l) {
       return l.type === 'coin';
     })[0];
@@ -1650,6 +2034,7 @@
       document.body.dataset.busy = '1';
       var coinHold = playCoinFlip(coin.meta.coin);
       setTimeout(function () {
+        render();
         var h2 = flashRecent();
         setTimeout(function () {
           busy = false;
@@ -1660,6 +2045,7 @@
       }, coinHold);
       return;
     }
+    render();
 
     /* Wait for the board to finish animating before control moves on.
        flashRecent() now returns the FULL length of everything it just
@@ -1823,8 +2209,16 @@
       /* A coach overlay freezes the player's dial: reading an
          explanation must never cost your action. The deadline is
          re-armed each frame it is open, so closing the overlay hands
-         back a full window. */
-      if (side === 'player' && window.EOL.coach && window.EOL.coach.open()) {
+         back a full window. CAMPAIGN battles freeze it entirely - the
+         Road is a school, and the tutorial SAYS the clock is for show
+         there (data/campaign-ch1.js round-1 lesson), so it must be. It
+         still ticks visually in ranked/solo wars as before. */
+      if (
+        side === 'player' &&
+        ((window.EOL.coach && window.EOL.coach.open()) ||
+          scriptActive() ||
+          (B && B.campaignStage))
+      ) {
         clockEnd = performance.now() + TURN_MS;
         if (num) num.textContent = Math.ceil(TURN_MS / 1000);
         clockRaf = requestAnimationFrame(function (t) {
@@ -2070,6 +2464,10 @@
   function ponderKick() {
     ponderCancel();
     if (!B || B.over || B.turn !== 'player') return;
+    /* THE SCRIPTED MATCH: pondering is parked entirely. bestAction()
+       draws a seed from B.rng, and one background search would knock
+       the pre-computed line off its dice. */
+    if (scriptActive()) return;
     /* Nothing to ponder in a match: the opponent is a person, and
        burning two cores guessing their move would only make the local
        board stutter while they type. */
@@ -2401,10 +2799,28 @@
      The round only ends when both sides pass back-to-back. */
   function endTurn() {
     if (busy || B.over) return;
+    cineCutTurn(); // passing is also "doing stuff"
+    /* THE SCRIPTED MATCH: pass only when the line passes. */
+    var mvP = scriptMove();
+    if (mvP && mvP.side === 'player') {
+      if (!mvP.pass) {
+        scriptDeny('The Recruiter shakes his head - the marked move first');
+        return;
+      }
+      scriptAdvance();
+    }
     stopClock();
     cancelAuto();
     clearSel();
     E.passTurn(B, 'player');
+    /* CAMPAIGN reaction: an UNPROMPTED pass (not the scripted lesson) */
+    if (!mvP && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onPlayerAction) {
+      try {
+        window.EOL.campaign.onPlayerAction(B, { pass: true });
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
+    }
     if (netCtl) netCtl.onLocal(null); // a pass is a move too - it must be sent
     cine('YOU PASS', '', 'player', 1000, true);
     afterPlayerAction();
@@ -2486,18 +2902,44 @@
         return;
       }
     } else {
-      /* Settle the decision while the position still exactly matches what
-         pondering saw. A pondered move is depth 4-8; the live fallback is
-         the usual depth 4. A pondered PASS is trusted outright. */
-      ponderStats.decisions++;
-      var decision = ponderAction(); // act | { pass: true } | null
-      ponderCancel();
-      if (decision && decision.pass) {
-        act = null; // pondering's verdict: pass
-      } else if (decision) {
-        act = decision; // pondered move (depth 4-8)
+      /* THE SCRIPTED MATCH: the line drives the enemy, not the search.
+         A mismatch aborts the script and falls through to the AI. */
+      var mvE = scriptMove();
+      if (mvE && mvE.side === 'enemy') {
+        var scripted = scriptEnemyAct(mvE);
+        if (!scripted) {
+          scriptEnd('desync');
+          act = AI.bestAction(B, 'enemy');
+        } else if (scripted.pass) {
+          act = null;
+        } else {
+          act = scripted.act;
+          if (mvE.say && window.EOL.campaign && window.EOL.campaign.onScriptSay) {
+            try {
+              window.EOL.campaign.onScriptSay(B, mvE);
+            } catch (e) {
+              /* narration is optional */
+            }
+          }
+        }
+      } else if (mvE && mvE.side === 'player') {
+        /* the line expected the player to act - reality disagrees */
+        scriptEnd('desync');
+        act = AI.bestAction(B, 'enemy');
       } else {
-        act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+        /* Settle the decision while the position still exactly matches what
+           pondering saw. A pondered move is depth 4-8; the live fallback is
+           the usual depth 4. A pondered PASS is trusted outright. */
+        ponderStats.decisions++;
+        var decision = ponderAction(); // act | { pass: true } | null
+        ponderCancel();
+        if (decision && decision.pass) {
+          act = null; // pondering's verdict: pass
+        } else if (decision) {
+          act = decision; // pondered move (depth 4-8)
+        } else {
+          act = AI.bestAction(B, 'enemy'); // live fallback at the usual depth 4
+        }
       }
     }
     render();
@@ -2511,7 +2953,9 @@
       await sleep(cineMs(700));
     } else {
       // Stage 1 (The Recruiter): moderates power to measure rather than overwhelm
-      if (act && act.ability && !act.ability.basic && B.campaignStage === 1) {
+      // - only when the scripted line is NOT driving him (it authors his
+      // restraint move-by-move already).
+      if (act && act.ability && !act.ability.basic && B.campaignStage === 1 && !moveScript) {
         var usedSig = B._recruiterSigUsed === B.round;
         if (usedSig || Math.random() < 0.65) {
           var basic = E.roleAbility(act.unit);
@@ -2541,12 +2985,16 @@
 
       var mark = B.log.length;
       E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
-      render();
 
+      /* NO SPOILERS: the enemy's bargain flips over the PRE-cast board
+         too - render() waits for the landing, exactly like the player
+         path in commit(). This is also what makes the coin VISIBLE on
+         enemy casts: it used to share the frame with the repaint. */
       var coin = B.log.slice(mark).filter(function (l) {
         return l.type === 'coin';
       })[0];
       if (coin) await sleep(playCoinFlip(coin.meta.coin));
+      render();
 
       await sleep(flashRecent() || 0);
       await sleep(cineMs(350));
@@ -2600,6 +3048,7 @@
   var cineQ = [];
   var cineLive = false;
   var cineTimer = null;
+  var cineCur = null;
   var turnBannerSide = null;
 
   /* Low-graphics mode shortens every cinematic to ~55%. These holds are
@@ -2634,6 +3083,7 @@
     }
     var it = cineQ.shift();
     cineLive = true;
+    cineCur = it;
     $('cine-title').textContent = it.title;
     $('cine-sub').textContent = it.sub;
     c.className = 'cine tone-' + it.tone + (it.slim ? ' slim' : '');
@@ -2643,13 +3093,33 @@
     cineTimer = setTimeout(function () {
       c.classList.remove('show');
       cineLive = false;
+      cineCur = null;
       cineDrain();
     }, it.ms);
+  }
+
+  /* The player acting IS the announcement: a YOUR TURN banner still on
+     screen while the action plays out reads as a stale caption (user
+     note 2026-08-09). The moment the player starts doing things, the
+     slim turn banner is cut short and any queued one is dropped.
+     Round cinematics are left alone - they carry phase information. */
+  function cineCutTurn() {
+    for (var i = cineQ.length - 1; i >= 0; i--) {
+      if (cineQ[i].slim && cineQ[i].tone === 'player') cineQ.splice(i, 1);
+    }
+    if (!cineLive || !cineCur || !cineCur.slim || cineCur.tone !== 'player') return;
+    clearTimeout(cineTimer);
+    var c = $('cine');
+    if (c) c.classList.remove('show');
+    cineLive = false;
+    cineCur = null;
+    cineDrain();
   }
 
   function cineReset() {
     cineQ.length = 0;
     cineLive = false;
+    cineCur = null;
     clearTimeout(cineTimer);
     var c = $('cine');
     if (c) c.classList.remove('show');
@@ -2657,6 +3127,16 @@
 
   function announceRound() {
     turnBannerSide = null; // a fresh round re-announces its opener
+    /* CAMPAIGN: let the road speak on round boundaries (the Recruiter's
+       guided gate teaches basics/signatures/the ramp as they happen).
+       Observational only - a bark can never touch the battle. */
+    if (B && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onBattleRound) {
+      try {
+        window.EOL.campaign.onBattleRound(B);
+      } catch (e) {
+        /* lore must never break a fight */
+      }
+    }
     var sub =
       B.round === 1
         ? 'Phase 1 - Basic Skills only'
@@ -3638,6 +4118,10 @@
     wrap.className = 'fx-coin-wrap';
     wrap.style.left = lr.width / 2 / z + 'px';
     wrap.style.top = (lr.height * 0.34) / z + 'px';
+    var sparks = '';
+    for (var i = 0; i < 8; i++) {
+      sparks += '<span class="fx-coin-spark" style="--a:' + i * 45 + '"></span>';
+    }
     wrap.innerHTML =
       '<div class="fx-coin ' +
       face +
@@ -3645,21 +4129,24 @@
       '<div class="coin-face heads"><i class="ra ra-crown"></i></div>' +
       '<div class="coin-face tails"><i class="ra ra-moon-sun"></i></div>' +
       '</div>' +
-      '<div class="fx-coin-label"></div>';
+      sparks +
+      '<div class="fx-coin-label' +
+      (face === 'tails' ? ' tails' : '') +
+      '"></div>';
     layer.appendChild(wrap);
-    // reveal the result text once the coin settles
+    // reveal the result text once the coin settles (spin runs 1.45s)
     setTimeout(function () {
       var t = wrap.querySelector('.fx-coin-label');
       t.textContent = face === 'heads' ? 'HEADS' : 'TAILS';
       t.classList.add('show');
-    }, 1150);
+    }, 1480);
     setTimeout(function () {
       wrap.classList.add('out');
-    }, 1900);
+    }, 2320);
     setTimeout(function () {
       wrap.remove();
-    }, 2300);
-    return 2100;
+    }, 2720);
+    return 2450;
   }
 
   /* --------------------------------------------------------
@@ -4100,6 +4587,126 @@
   }
   var RESULT_DELAY_MS = 620;
 
+  /* THE BATTLE REPORT (playtest 2026-08-10: 'this would help people
+     learn which cards are good'). Per-legend lifetime numbers from the
+     engine's own tally - damage dealt (shield soak included), healing,
+     damage taken, kills. Shown at the end of single games and drafts;
+     Unabridged holds it for the END OF THE SET and merges all games. */
+  function gameTallySnapshot() {
+    var out = { you: {}, foe: {} };
+    (B.units || []).forEach(function (u) {
+      var t = (B.tally || {})[u.uid];
+      var side = u.side === 'player' ? 'you' : 'foe';
+      var row =
+        out[side][u.card.id] ||
+        (out[side][u.card.id] = {
+          name: u.name,
+          role: u.role,
+          dealt: 0,
+          healed: 0,
+          taken: 0,
+          kills: 0,
+        });
+      if (!t) return;
+      row.dealt += t.dealt;
+      row.healed += t.healed;
+      row.taken += t.taken;
+      row.kills += t.kills;
+    });
+    return out;
+  }
+
+  function mergeReports(games) {
+    var out = { you: {}, foe: {} };
+    games.forEach(function (g) {
+      ['you', 'foe'].forEach(function (side) {
+        Object.keys(g[side] || {}).forEach(function (cid) {
+          var s = g[side][cid];
+          var row =
+            out[side][cid] ||
+            (out[side][cid] = { name: s.name, role: s.role, dealt: 0, healed: 0, taken: 0, kills: 0 });
+          row.dealt += s.dealt;
+          row.healed += s.healed;
+          row.taken += s.taken;
+          row.kills += s.kills;
+        });
+      });
+    });
+    return out;
+  }
+
+  function reportColHTML(label, cls, rows) {
+    rows.sort(function (a, b) {
+      return b.dealt + b.healed - (a.dealt + a.healed);
+    });
+    return (
+      '<div class="rs-col"><b class="rs-side ' +
+      cls +
+      '">' +
+      esc(label) +
+      '</b>' +
+      rows
+        .map(function (r) {
+          return (
+            '<div class="rs-row">' +
+            '<i class="ra ' +
+            (ROLE_ICON[r.role] || 'ra-player') +
+            '"></i>' +
+            '<span class="rs-name">' +
+            esc(r.name) +
+            '</span>' +
+            '<span class="rs-n" title="Damage dealt"><i class="ra ra-sword"></i>' +
+            r.dealt.toLocaleString() +
+            '</span>' +
+            '<span class="rs-n heal" title="Healing done"><i class="ra ra-health"></i>' +
+            r.healed.toLocaleString() +
+            '</span>' +
+            '<span class="rs-n taken" title="Damage taken"><i class="ra ra-broken-shield"></i>' +
+            r.taken.toLocaleString() +
+            '</span>' +
+            '<span class="rs-n ko" title="Kills">' +
+            (r.kills ? '<i class="ra ra-skull"></i>' + r.kills : '') +
+            '</span>' +
+            '</div>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+
+  function paintBattleReport(sr) {
+    var rs = $('result-stats');
+    if (!rs) return;
+    /* mid-set: the sideboard is next, the report waits for the war */
+    if (sr && !sr.over) {
+      rs.hidden = true;
+      rs.innerHTML = '';
+      return;
+    }
+    var agg = gameTallySnapshot();
+    if (sr && sr.over && window.EOL.play && window.EOL.play._setReport) {
+      var games = window.EOL.play._setReport();
+      if (games && games.length) agg = mergeReports(games);
+    }
+    var toRows = function (side) {
+      return Object.keys(agg[side]).map(function (cid) {
+        return agg[side][cid];
+      });
+    };
+    var foeName =
+      rivalInfo && rivalInfo.name ? rivalInfo.name + "'s legends" : 'Enemy legends';
+    rs.innerHTML =
+      '<div class="rs-head"><i class="ri-bar-chart-2-line"></i><span>Battle report' +
+      (sr && sr.over ? ' - full set' : '') +
+      '</span><span class="rs-key"><i class="ra ra-sword"></i> dealt &middot; <i class="ra ra-health"></i> healed &middot; <i class="ra ra-broken-shield"></i> taken &middot; <i class="ra ra-skull"></i> kills</span></div>' +
+      '<div class="rs-cols">' +
+      reportColHTML('Your legends', 'you', toRows('you')) +
+      reportColHTML(foeName, 'foe', toRows('foe')) +
+      '</div>';
+    rs.hidden = false;
+  }
+
   function showResult() {
     var win = B.winner === 'player';
     var ov = $('result');
@@ -4119,7 +4726,25 @@
        "Rematch") and returns null when no set is live - a non-set
        match is untouched. */
     var sr =
-      window.EOL.play && window.EOL.play.setGameResult ? window.EOL.play.setGameResult(win) : null;
+      window.EOL.play && window.EOL.play.setGameResult
+        ? window.EOL.play.setGameResult(win, gameTallySnapshot())
+        : null;
+    paintBattleReport(sr);
+    /* MATCH PAY (owner ruling 2026-08-10): singleplayer 50/25, PvP
+       75/50, per game. Campaign battles pay through their gates, not
+       here. Paid exactly once per battle instance. */
+    var coinsEl = $('result-coins');
+    if (coinsEl) coinsEl.hidden = true;
+    if (!B.campaignStage && window.EOL.econ && !B._coinsPaid) {
+      B._coinsPaid = true;
+      var P = window.EOL.econ.PAY;
+      var pay = netCtl ? (win ? P.pvpWin : P.pvpLoss) : win ? P.spWin : P.spLoss;
+      window.EOL.econ.addCoins(pay);
+      if (coinsEl) {
+        coinsEl.innerHTML = '<i class="ri-coin-fill coin-ico"></i>+' + pay + ' coins';
+        coinsEl.hidden = false;
+      }
+    }
     if (sr) {
       ov.querySelector('.result-sub').textContent = sr.sub;
       var rm = $('btn-rematch');
@@ -4127,19 +4752,20 @@
     }
     /* CAMPAIGN: the road frames its own result - Retry (fight the gate
        again) on the primary button, and a chapter-map exit on the home
-       button that plays the stage epilogue after a win. */
+       button that plays the stage epilogue after a win. Mid-set the
+       campaign stands down (`midSet`): the sideboard framing above is
+       the correct chrome between games, and stage progress must only
+       commit when the WAR is decided, never on game 1 of 3. */
     var cam =
       window.EOL.campaign && window.EOL.campaign.onBattleResult
-        ? window.EOL.campaign.onBattleResult(win)
+        ? window.EOL.campaign.onBattleResult(win, { midSet: !!(sr && !sr.over) })
         : null;
     if (cam && cam.campaign) {
-      ov.querySelector('.result-sub').textContent = win
-        ? 'The Recruiter closes his ledger - Gate I is yours.'
-        : 'The Recruiter sets down his quill. "The road will still be here."';
+      if (cam.sub) ov.querySelector('.result-sub').textContent = cam.sub;
       var rm2 = $('btn-rematch');
-      if (rm2) rm2.querySelector('span').textContent = 'Retry';
+      if (rm2) rm2.querySelector('span').textContent = cam.rematchLabel || 'Retry';
       var home2 = $('btn-result-home');
-      if (home2) home2.querySelector('span').textContent = 'Map';
+      if (home2) home2.querySelector('span').textContent = cam.homeLabel || 'Map';
     }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
@@ -4307,12 +4933,18 @@
        skull and "Enemy Bot" stay - they are correct, not a placeholder.
        The `matches` table carries p1_name/p2_name but no avatar column,
        so a real opponent gets their handle and the generic player glyph
-       rather than a broken image. */
-    var foeName = netCtl && netCtl.label ? netCtl.label : 'Enemy Bot';
+       rather than a broken image. A CAMPAIGN battle shows the rival:
+       the character is the opponent, and the plate should say so. */
+    var foeName =
+      netCtl && netCtl.label ? netCtl.label : rivalInfo && rivalInfo.name ? rivalInfo.name : 'Enemy Bot';
     var en = $('pf-name-enemy');
     if (en) en.textContent = foeName;
     var ei = $('pf-enemy');
-    if (ei) ei.innerHTML = avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
+    if (ei)
+      ei.innerHTML =
+        rivalInfo && rivalInfo.img
+          ? avatarHtml(rivalInfo.img, 'ra-skull')
+          : avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
   }
 
   function start(opts) {
@@ -4323,6 +4955,11 @@
        a shared rng seed. Both clients run the identical engine over the
        identical action stream, so they only have to agree on luck. */
     netCtl = opts.net || null;
+    rivalInfo = opts.rival || null;
+    /* THE SCRIPTED MATCH (campaign gate I): the whole line, both
+       sides, pre-computed against this exact seed. */
+    moveScript =
+      opts.moveScript && opts.moveScript.length ? { moves: opts.moveScript.slice(), i: 0 } : null;
     setNetWait(false);
     stopClock();
     disarmForfeit();
@@ -4466,6 +5103,17 @@
 
     render();
     if (opts.campaignStage) B.campaignStage = opts.campaignStage;
+    /* CAMPAIGN: hand the settled battle to the road so the rival can
+       speak during the match (non-blocking barks - a blocking overlay
+       mid-battle is wrong, design §6). No-op outside the campaign. */
+    if (B.campaignStage && window.EOL.campaign && window.EOL.campaign.onBattleStart) {
+      try {
+        window.EOL.campaign.onBattleStart(B);
+      } catch (e) {
+        /* lore must never break a fight */
+      }
+    }
+    if (moveScript) scriptNotify();
 
     /* Round 1 opens on whoever the engine says it does. Singleplayer is
        always the player; in a match the guest opens the even rounds, so
@@ -4529,6 +5177,10 @@
     _draft: draftBotTeam,
     _draftValue: draftValue,
     _markSets: markSets,
+    /* test hook: the scripted-match line state (harness only) */
+    _scriptState: function () {
+      return moveScript;
+    },
   };
 
   window.addEventListener('resize', function () {

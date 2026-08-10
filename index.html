@@ -167,6 +167,14 @@
            It exists so the cloud work later is a matter of wiring the
            handlers, not designing the flow. -->
       <div class="acct-corner">
+        <!-- THE HOME WALLET (owner request 2026-08-10): your coins at a
+             glance beside the account pill; clicking it walks you to
+             the Shop, because that is the only question a wallet ever
+             raises. Lives on eol:coins. -->
+        <button type="button" class="coin-chip" id="home-coins" title="Your coins - spend them in the Shop">
+          <i class="ri-coin-fill coin-ico" aria-hidden="true"></i>
+          <span id="home-coins-val">0</span>
+        </button>
         <button type="button" class="acct-btn" id="acct-btn" aria-haspopup="dialog">
           <span class="acct-avatar" aria-hidden="true"><i class="ra ra-player"></i></span>
           <span class="acct-label">Sign in</span>
@@ -208,9 +216,12 @@
         <i class="ri-discord-fill" aria-hidden="true"></i>
         <span class="discord-tip" aria-hidden="true">Discord</span>
       </a>
-      <span class="art-credit">art by <b>sh4dowmob</b></span>
+      <!-- BUILD TAG: outside testers were reporting against a moving
+           target ('two changes shipped since last night'). One glance
+           answers 'which build?' in every report. Bump per release. -->
+      <span class="build-tag" id="build-tag">demo build 2026-08-10</span>
 
-      <!-- Corner buttons — stacked vertically in the top-right, below
+      <!-- Corner buttons &mdash; stacked vertically in the top-right, below
            the account pill. Same circle spec as the Discord button. -->
       <div class="home-corner-btns">
         <button class="corner-btn" id="btn-corner-tutorial" type="button" aria-label="Replay tutorial">
@@ -280,6 +291,7 @@
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">
             <span id="visible-count">0</span> of <span id="total-count">0</span> legends
+            &middot; <span id="owned-count">0</span> owned
           </p>
         </div>
       </header>
@@ -353,331 +365,335 @@
           <span class="mast-emblem" aria-hidden="true"><i class="ra ra-scroll-unfurled"></i></span>
           <h2 class="col-title">Rulebook</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">Comprehensive Engine Rules & Mechanics Reference</p>
+          <p class="col-sub">The rules in plain words - with pictures and examples</p>
         </div>
       </header>
 
+      <!-- THE RULEBOOK, PLAIN-WORDS EDITION (2026-08-09). The old book was
+           nine walls of engine bullets; players bounced off it. Same facts,
+           new shape: short sentences, a diagram or worked example in every
+           card, the arena art doing the talking for the terrain laws. The
+           campaign's Gate I remains the real teacher - this is the shelf
+           copy you pull down when you need one number. -->
+      <p class="rb-hello">
+        <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+        <span>
+          New here? <b>Gate I of the campaign teaches all of this by hand</b> - play it first.
+          This book is the quick reference for when you just need one rule or one number.
+          And the little <b>? dots</b> scattered around every screen explain whatever they sit
+          beside - hover them.
+        </span>
+      </p>
+
       <div class="rulebook-grid">
-        <!-- Section 1: Turn & Round Model -->
+        <!-- 1. the whole game, 30 seconds -->
+        <article class="rule-card">
+          <div class="rc-head">
+            <i class="ra ra-crossed-swords"></i>
+            <h3>The Game in 30 Seconds</h3>
+          </div>
+          <div class="rc-body">
+            <ol class="rb-steps">
+              <li><b>Bring 12 legends.</b> Build a deck, or draft one on the spot.</li>
+              <li>
+                <b>Ban 2 of theirs.</b> They ban 2 of yours. Both sealed, revealed together -
+                no peeking.
+              </li>
+              <li><b>Field 6 of your 10.</b> Three up front, three in back.</li>
+              <li><b>Fight.</b> One action at a time, until one team falls.</li>
+            </ol>
+            <p class="rb-example">
+              <i class="ri-lightbulb-line" aria-hidden="true"></i>
+              <span>
+                A ban is a question: <i>what can this player not live without?</i> Strike the
+                crown pieces, never leave a legendary standing out of politeness.
+              </span>
+            </p>
+          </div>
+        </article>
+
+        <!-- 2. turn flow -->
         <article class="rule-card">
           <div class="rc-head">
             <i class="ra ra-cycle"></i>
-            <h3>1. Turn Flow & Round Phasing</h3>
+            <h3>How a Round Works</h3>
           </div>
           <div class="rc-body">
-            <ul>
-              <li>
-                <b>Alternating Turns:</b> Battles are played in alternating single actions. You make
-                one move with one living legend, then your opponent makes one move, back and forth
-                across the board.
-              </li>
-              <li>
-                <b>Starting Initiative:</b> In singleplayer, campaign, and multiplayer matches, the
-                opening player of Round 1 is decided by a fair <b>50/50 coin flip</b>. The starting
-                side alternates between odd and even rounds.
-              </li>
-              <li>
-                <b>Round 1 (Phase 1):</b> Basic Skills only. Powerful Signature Skills are locked
-                during the opening round to establish frontline positions and build initial tempo.
-              </li>
-              <li>
-                <b>Round 2 Onward (Phase 2):</b> All Signature Skills unlock, allowing full team
-                combos, ultimate abilities, and tactical counters.
-              </li>
-              <li>
-                <b>Round 4 Onward (Late-Game Ramp):</b> Starting in Round 4, all living legends grow
-                stronger each round, gaining an extra <b>+15% Attack power every round</b> (+15% in
-                Round 4, +30% in Round 5, +45% in Round 6, etc.) to ensure matches resolve
-                decisively.
-              </li>
-              <li>
-                <b>Passing Turns:</b> You may pass your action to save Energy or wait for an enemy
-                response. A round ends only when both players pass in a row or when neither side has
-                any legal moves left.
-              </li>
-            </ul>
+            <ol class="rb-steps">
+              <li>A <b>coin flip</b> decides who opens round 1. Odd and even rounds alternate the opener.</li>
+              <li>On your turn: pick <b>one legend</b>, use <b>one skill</b> - or pass.</li>
+              <li>Your opponent does the same. Back and forth.</li>
+              <li>When both sides pass in a row, the round ends and fresh energy arrives.</li>
+            </ol>
+            <div class="rb-tags">
+              <span class="rb-tag"><b>R1</b> basics only</span>
+              <span class="rb-tag"><b>R2+</b> signatures unlock</span>
+              <span class="rb-tag"><b>R4+</b> everyone gains +15% ATK per round</span>
+            </div>
+            <p class="rb-example">
+              <i class="ri-lightbulb-line" aria-hidden="true"></i>
+              <span>
+                Passing is not surrender. Pass early, bank the energy, and drop a huge signature
+                next round while your rival is broke.
+              </span>
+            </p>
           </div>
         </article>
 
-        <!-- Section 2: Energy Economy -->
+        <!-- 3. energy -->
         <article class="rule-card">
           <div class="rc-head">
             <i class="ra ra-lightning-bolt"></i>
-            <h3>2. Energy Economy & Carry-over</h3>
+            <h3>Energy: the Only Currency</h3>
           </div>
           <div class="rc-body">
+            <div class="rb-energy">
+              <div class="rb-erow">
+                <span class="rb-elabel">Round 1</span>
+                <span class="rb-ebar"><span style="width: 60%"></span></span>
+                <span class="rb-eval">60</span>
+              </div>
+              <div class="rb-erow">
+                <span class="rb-elabel">Round 2</span>
+                <span class="rb-ebar"><span style="width: 80%"></span></span>
+                <span class="rb-eval">80</span>
+              </div>
+              <div class="rb-erow">
+                <span class="rb-elabel">Round 3+</span>
+                <span class="rb-ebar"><span style="width: 100%"></span></span>
+                <span class="rb-eval">100</span>
+              </div>
+            </div>
             <ul>
+              <li><b>Unspent energy carries over</b> - your bank holds up to <b>150</b>.</li>
+              <li><b>Basic skills</b> cost about <b>15</b>. <b>Signatures</b> run <b>20 to 55</b>.</li>
               <li>
-                <b>Energy Income:</b> Both teams receive energy at the start of each round:
-                <b>60 Energy in Round 1</b>, <b>80 Energy in Round 2</b>, and
-                <b>100 Energy in Round 3 and every round after</b>.
-              </li>
-              <li>
-                <b>Carry-over Cap:</b> Any unspent Energy at the end of a round carries over and
-                adds to your next round's income, up to a maximum bank of <b>150 Energy</b>.
-              </li>
-              <li>
-                <b>Comeback Bonus:</b> If you begin a round with fewer surviving legends than your
-                opponent, your team rallies with an extra
-                <b>+15 Energy for each lost hero deficit</b> to help you turn the tide.
-              </li>
-              <li>
-                <b>Skill Costs:</b> Basic skills typically cost 15 Energy (or are free on certain
-                roles), while signature active skills cost between 20 and 55 Energy.
+                <b>Losing? You rally.</b> Start a round with fewer legends alive than the enemy
+                and you get <b>+15 energy per legend you are down</b>.
               </li>
             </ul>
+            <p class="rb-example">
+              <i class="ri-lightbulb-line" aria-hidden="true"></i>
+              <span>
+                Round 2, with 35 saved: 80 + 35 = <b>115 energy</b>. That is a 55-cost signature
+                <i>and</i> four basics in one round.
+              </span>
+            </p>
           </div>
         </article>
 
-        <!-- Section 3: Formation & Targeting -->
+        <!-- 4. rows & roles -->
         <article class="rule-card">
           <div class="rc-head">
             <i class="ra ra-crossed-axes"></i>
-            <h3>3. Formations & Targeting Laws</h3>
+            <h3>The Board: Rows &amp; Roles</h3>
           </div>
           <div class="rc-body">
-            <ul>
-              <li>
-                <b>6v6 Board Layout:</b> Each squad fields 6 legends arranged into
-                <b>3 Front Row</b> positions (slots 0, 1, 2) and <b>3 Back Row</b> positions (slots
-                3, 4, 5).
-              </li>
-              <li>
-                <b>Melee Frontline Lock:</b> <b>Tanks</b> and <b>Bruisers</b> are close-combat
-                fighters and must attack enemy Front Row legends. They can only strike at the Back
-                Row once every front-line enemy has fallen.
-              </li>
-              <li>
-                <b>Ranged Freedom:</b> <b>Casters</b>, <b>Controllers</b>, <b>Medics</b>, and
-                <b>Snipers</b> can aim their skills at any enemy on the board regardless of row.
-              </li>
-              <li>
-                <b>Broken Frontline Penalty:</b> When an entire Front Row is wiped out, surviving
-                Back Row legends suffer a <b>-5% Defense penalty</b> because their protective
-                vanguard has collapsed.
-              </li>
-            </ul>
+            <div class="rb-board" aria-hidden="true">
+              <div class="rb-brow">
+                <span class="rb-blabel">Back</span>
+                <span class="rb-slot"><i class="ra ra-health"></i></span>
+                <span class="rb-slot"><i class="ra ra-fairy-wand"></i></span>
+                <span class="rb-slot"><i class="ra ra-archery-target"></i></span>
+                <span class="rb-bnote">works in peace</span>
+              </div>
+              <div class="rb-brow front">
+                <span class="rb-blabel">Front</span>
+                <span class="rb-slot"><i class="ra ra-shield"></i></span>
+                <span class="rb-slot"><i class="ra ra-battered-axe"></i></span>
+                <span class="rb-slot"><i class="ra ra-gears"></i></span>
+                <span class="rb-bnote">takes the hits</span>
+              </div>
+            </div>
+            <p class="rb-law">
+              <i class="ri-sword-line" aria-hidden="true"></i>
+              <span>
+                <b>The melee law:</b> Tanks and Bruisers must chew through the enemy
+                <b>front row</b> before they can touch the back. Everyone else aims anywhere.
+              </span>
+            </p>
+            <div class="rb-roles">
+              <div class="rb-role"><i class="ra ra-shield"></i><span><b>Tank</b> - soaks hits, provokes enemies into hitting him.</span></div>
+              <div class="rb-role"><i class="ra ra-battered-axe"></i><span><b>Bruiser</b> - front-row muscle; hits hard, heals off the wounds.</span></div>
+              <div class="rb-role"><i class="ra ra-health"></i><span><b>Medic</b> - undoes damage. Guard yours; kill theirs first.</span></div>
+              <div class="rb-role"><i class="ra ra-fairy-wand"></i><span><b>Caster</b> - glass cannon; magic in wide, cruel shapes.</span></div>
+              <div class="rb-role"><i class="ra ra-archery-target"></i><span><b>Sniper</b> - reaches the back row where soft targets hide.</span></div>
+              <div class="rb-role"><i class="ra ra-gears"></i><span><b>Controller</b> - bends the fight: weakens, exposes, redirects.</span></div>
+            </div>
+            <p class="rb-fine">
+              If your whole front row falls, the survivors fight scared: <b>-5% defense</b> until
+              the end.
+            </p>
           </div>
         </article>
 
-        <!-- Section 4: Combat Math -->
+        <!-- 5. damage -->
         <article class="rule-card">
           <div class="rc-head">
             <i class="ra ra-sword"></i>
-            <h3>4. Damage Calculation & Mitigation</h3>
+            <h3>How Damage Works</h3>
           </div>
           <div class="rc-body">
-            <ul>
-              <li>
-                <b>Damage Power:</b> The damage you deal begins with your legend's
-                <b>Attack stat multiplied by the Skill's power percentage</b>, plus any active
-                attack modifiers and buffs.
-              </li>
-              <li>
-                <b>Defense & Mitigation:</b> That damage is reduced by the enemy's
-                <b>Defense percentage</b> (which reduces incoming damage up to a maximum of 75%) and
-                any active damage resistance barriers (up to 90%).
-              </li>
-              <li>
-                <b>Defense Ceiling:</b> Defense percentage is hard-capped at
-                <b>75% maximum reduction</b> so that armor never completely reduces damage to zero.
-              </li>
-              <li>
-                <b>Resistance Ceiling:</b> Timed damage resistance barriers (such as Warded) are
-                hard-capped at <b>90% maximum reduction</b>.
-              </li>
-              <li>
-                <b>Critical Strikes:</b> Critical hits multiply damage by exactly <b>1.5x</b> (50%
-                bonus damage), determined by your legend's Critical Chance stat.
-              </li>
-              <li>
-                <b>Guaranteed Impact:</b> Every attack that connects is guaranteed to deal at least
-                <b>1 point of damage</b>.
-              </li>
-            </ul>
+            <ol class="rb-steps">
+              <li><b>Start big:</b> your Attack &times; the skill's power %.</li>
+              <li><b>Armor shaves it:</b> the target's defense % comes off (capped at 75%).</li>
+              <li><b>Crits multiply:</b> a critical hit deals exactly <b>1.5&times;</b>.</li>
+            </ol>
+            <div class="rb-example rb-math">
+              <i class="ri-calculator-line" aria-hidden="true"></i>
+              <span>
+                <b>Worked example:</b> a Sniper with <b>1,000 ATK</b> casts a <b>180%</b>
+                signature &rarr; 1,800 raw. The target has <b>30% defense</b> &rarr;
+                <b>1,260 damage</b>. If it crits &rarr; <b>1,890</b>.
+              </span>
+            </div>
+            <p class="rb-fine">
+              Timed damage barriers (Warded) cap at 90%. No hit ever deals less than 1 damage.
+              Armor never makes anyone immortal.
+            </p>
           </div>
         </article>
 
-        <!-- Section 5: Protection System -->
+        <!-- 6. protection -->
         <article class="rule-card">
           <div class="rc-head">
             <i class="ra ra-heavy-shield"></i>
-            <h3>5. Protection Mechanics</h3>
+            <h3>Keeping People Alive</h3>
           </div>
           <div class="rc-body">
-            <ul>
-              <li>
-                <b>Provoke (Taunt):</b> Forces all single-target enemy attacks onto the provoker.
-                Area-of-effect spells and sniper skills that shoot around the provoker deal
-                <b>30% less damage</b> to all other targets. The provoker always takes full 100%
-                damage.
-              </li>
-              <li>
-                <b>Untargetable:</b> Absolute protection. An Untargetable legend cannot be targeted
-                by any enemy single-target skill under any circumstances.
-              </li>
-              <li>
-                <b>Shields:</b> Absorbs incoming damage point-for-point before your health takes a
-                hit. Burn damage bypasses shields. Overhealing from certain skills (like Medic
-                Restore) converts excess healing into shields.
-              </li>
-            </ul>
+            <div class="rb-roles rb-protect">
+              <div class="rb-role"><i class="ra ra-shield" style="color: #ffd98a"></i><span><b>Provoke</b> - "hit ME." Single-target attacks must obey. Splash damage around the provoker is 30% weaker - he always takes the full 100%.</span></div>
+              <div class="rb-role"><i class="ra ra-aura" style="color: #a9e9ff"></i><span><b>Untargetable</b> - cannot be picked by any single-target skill. Absolute, no exceptions.</span></div>
+              <div class="rb-role"><i class="ra ra-round-shield" style="color: #9fd8ff"></i><span><b>Shields</b> - absorb damage point-for-point before health. Burn sneaks past them. Some overhealing (Medic Restore) turns into shield.</span></div>
+            </div>
+            <p class="rb-example">
+              <i class="ri-lightbulb-line" aria-hidden="true"></i>
+              <span>
+                Classic opening: Tank provokes, enemy wastes a round punching the wall, your
+                Caster works in peace behind it.
+              </span>
+            </p>
           </div>
         </article>
 
-        <!-- Section 6: Status Effects Reference -->
+        <!-- 7. statuses -->
         <article class="rule-card">
           <div class="rc-head">
             <i class="ra ra-burning-embers"></i>
-            <h3>6. Status Effects & Afflictions</h3>
+            <h3>Status Effects at a Glance</h3>
           </div>
           <div class="rc-body">
-            <ul>
-              <li>
-                <b>Burn:</b> Deals <b>5% of maximum health</b> as true damage at the start of each
-                turn that team takes. Bypasses Defense and Shields completely.
-              </li>
-              <li>
-                <b>Exposed:</b> Strips away the target's Defense, reducing it to <b>0%</b> for heavy
-                damage.
-              </li>
-              <li>
-                <b>Marked:</b> Places a target reticle on an enemy. The next damaging Skill consumes
-                the Mark and triggers powerful bonus effects (such as bonus damage or burning).
-                Basic attacks do not consume Marks.
-              </li>
-              <li>
-                <b>Silence:</b> Completely stops a legend from acting &mdash; both Signature Skills
-                and Basic attacks are blocked.
-              </li>
-              <li>
-                <b>Warded:</b> Grants flat damage resistance that protects the legend even if they
-                are Exposed.
-              </li>
-              <li>
-                <b>Counter Ready:</b> Automatically strikes back against any attacker when hit while
-                shielded.
-              </li>
-              <li>
-                <b>Healing Reduced:</b> Lowers the amount of healing received from skills. Shields
-                are unaffected.
-              </li>
-              <li>
-                <b>Cost Modifiers:</b> Increases or decreases Energy costs across the entire team
-                (+15% or -15%).
-              </li>
-            </ul>
+            <div class="rb-chips">
+              <div class="rb-chip"><i class="ra ra-burning-embers" style="color: #ff7a3c"></i><span><b>Burn</b> - 5% of max HP every turn. Ignores armor <i>and</i> shields.</span></div>
+              <div class="rb-chip"><i class="ra ra-broken-shield" style="color: #ff5f7e"></i><span><b>Exposed</b> - defense stripped to 0%. Hit them NOW.</span></div>
+              <div class="rb-chip"><i class="ra ra-lightning-storm" style="color: #ffe066"></i><span><b>Marked</b> - the next damaging <i>skill</i> detonates it for a bonus. Basics do not.</span></div>
+              <div class="rb-chip"><i class="ra ra-uncertainty" style="color: #e0a3ff"></i><span><b>Silence</b> - no skills, no basics, no acting at all.</span></div>
+              <div class="rb-chip"><i class="ra ra-aura" style="color: #a9e9ff"></i><span><b>Warded</b> - flat damage resistance. Works even while Exposed.</span></div>
+              <div class="rb-chip"><i class="ra ra-crossed-swords" style="color: #9fd8ff"></i><span><b>Counter</b> - strikes back automatically when hit while shielded.</span></div>
+              <div class="rb-chip"><i class="ra ra-broken-heart" style="color: #ff9d9d"></i><span><b>Healing cut</b> - heals do less. Shields are unaffected.</span></div>
+              <div class="rb-chip"><i class="ra ra-hourglass" style="color: #8fe3b0"></i><span><b>Cost shift</b> - the whole team's skills cost +15% or -15%.</span></div>
+            </div>
+            <p class="rb-fine">
+              Debuffs are ammunition: legends like <b>Inari</b>, <b>Cicero</b> and the
+              <b>Pied Piper</b> hit harder for every debuff on the target. Stack miseries,
+              then swing. (Lifetime stack traits cap at 4-5 per battle.)
+            </p>
           </div>
         </article>
 
-        <!-- Section 7: Stacking & Debuff Scaling -->
+        <!-- 8. decks & formats -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-fox"></i>
-            <h3>7. Debuff Scaling & Payoffs</h3>
+            <i class="ri-stack-line"></i>
+            <h3>Decks, Drafts &amp; Sets</h3>
           </div>
           <div class="rc-body">
             <ul>
               <li>
-                <b>Debuff Synergies:</b> Distinct debuffs include stat reductions (reduced Attack,
-                Defense, or Crit), Silence, healing cuts, Burn, Exposed, Marked, and increased
-                Energy costs.
+                <b>A legal deck:</b> exactly <b>12 legends</b>, never more than <b>4 of one
+                role</b>.
               </li>
               <li>
-                <b>Debuff Damage Scaling:</b> Legends like <b>Inari</b> (+30% Attack per debuff),
-                <b>Cicero</b> (+15% Attack per debuff), <b>Friar Tuck</b> (+14% Attack per debuff),
-                and <b>Pied Piper</b> (+13% Attack per debuff) deal dramatically higher damage
-                against debuffed enemies.
+                <b>Classic:</b> bring a saved deck. <b>Draft:</b> build from nothing - packs of
+                3, you pick one, the rival picks one, the last card burns.
               </li>
               <li>
-                <b>Blessing Stripping:</b> Certain skills strip all positive blessings and shields
-                from enemies to turn the momentum in your favor.
-              </li>
-              <li>
-                <b>Stack Caps:</b> Passive stacking traits enforce battle-wide lifetime stack limits
-                (typically 4 to 5 stacks) to keep power balanced across long fights.
+                <b>The Set (best of 3):</b> after each game the <b>loser picks the next
+                arena</b>, and both sides may swap <b>1-2 legends</b> in from the bench.
               </li>
             </ul>
+            <p class="rb-example">
+              <i class="ri-lightbulb-line" aria-hidden="true"></i>
+              <span>
+                Lost game one to a burn deck? Pick the arena that suits YOU, bench the slow
+                pieces, bring the Medic. The sideboard is where sets are won.
+              </span>
+            </p>
           </div>
         </article>
 
-        <!-- Section 8: The 10 Battlefields -->
-        <article class="rule-card">
+        <!-- 9. the ten arenas - full width, art does the talking -->
+        <article class="rule-card rb-wide">
           <div class="rc-head">
             <i class="ra ra-arena"></i>
-            <h3>8. The 10 Battlefields & Terrain Laws</h3>
+            <h3>The Ten Arenas</h3>
           </div>
           <div class="rc-body">
-            <ul>
-              <li>
-                <b>The Colosseum:</b> Neutral arena where pure tactical skill decides the victor. No
-                special terrain modifiers.
-              </li>
-              <li>
-                <b>The Mirror Realm:</b> The first Signature Skill cast by <b>each player</b> each
-                round repeats a second time for free at <b>50% power</b>. (Basic attacks do not
-                echo).
-              </li>
-              <li>
-                <b>The Spirit World:</b> The first lethal blow against each legend leaves them alive
-                on <b>1 HP</b> instead of defeating them (once per legend per battle). A second hit
-                finishes the job.
-              </li>
-              <li>
-                <b>The Narrow Pass:</b> Melee chokepoint &mdash; only Front Row legends may use
-                Basic attacks. Back Row legends must spend Energy on real skills to contribute.
-              </li>
-              <li>
-                <b>The Open Plains:</b> Wide open ground &mdash; the -5% Backline Defense Penalty
-                when the front row falls is waived.
-              </li>
-              <li><b>Mana Spring:</b> +20 bonus Energy granted to both teams every round.</li>
-              <li><b>Energy Void:</b> -10 Energy reduction for both teams every round.</li>
-              <li>
-                <b>The Ancient Ruins:</b> A random ancient relic blessing is granted to all
-                surviving legends at the start of each round.
-              </li>
-              <li>
-                <b>The Hero's Trial:</b> All legends grow in strength every round, gaining +15%
-                Attack at each round rollover.
-              </li>
-              <li>
-                <b>The Blood Battlefield:</b> Defeating any enemy legend immediately rewards your
-                team with +20 bonus Energy.
-              </li>
-            </ul>
-          </div>
-        </article>
-
-        <!-- Section 9: Draft & Deck Construction -->
-        <article class="rule-card">
-          <div class="rc-head">
-            <i class="ra ra-cards"></i>
-            <h3>9. Draft & Deck Construction</h3>
-          </div>
-          <div class="rc-body">
-            <ul>
-              <li>
-                <b>Deck Composition:</b> A legal deck contains exactly <b>12 legends</b> with a
-                strict cap of <b>at most 4 legends of any single role</b> (Tanks, Bruisers, Casters,
-                Controllers, Medics, Snipers).
-              </li>
-              <li>
-                <b>Snake Draft:</b> 12 packs of 3 legends. Players take turns opening packs and
-                picking 1 card each; the 3rd card in each pack burns away until both squads reach 12
-                legends.
-              </li>
-              <li>
-                <b>Unabridged Match Sets:</b> A competitive best-of-3 series. Between games, the
-                losing player selects the next battlefield and players may swap 1 to 2 legends from
-                their reserve bench.
-              </li>
-            </ul>
+            <p class="rb-law">
+              <i class="ri-map-pin-line" aria-hidden="true"></i>
+              <span>
+                Every arena bends the rules its own way - read its card before each war.
+                Mid-fight, the badge in the board's <b>top-left corner</b> names the ground;
+                hover it whenever you forget.
+              </span>
+            </p>
+            <div class="rb-fields">
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/colosseum.png" alt="The Colosseum" loading="lazy" draggable="false" />
+                <figcaption><b>The Colosseum</b><span>No special laws. The one honest board.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/mirror-realm.png" alt="The Mirror Realm" loading="lazy" draggable="false" />
+                <figcaption><b>The Mirror Realm</b><span>Each player's first signature every round echoes again at 50% power.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/spirit-world.png" alt="The Spirit World" loading="lazy" draggable="false" />
+                <figcaption><b>The Spirit World</b><span>The first killing blow leaves each legend at 1 HP instead (once each).</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/narrow-pass.png" alt="The Narrow Pass" loading="lazy" draggable="false" />
+                <figcaption><b>The Narrow Pass</b><span>Only the front row may use basic attacks. The back must spend energy.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/open-plains.png" alt="The Open Plains" loading="lazy" draggable="false" />
+                <figcaption><b>The Open Plains</b><span>No backline penalty when the front row falls.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/mana-spring.png" alt="Mana Spring" loading="lazy" draggable="false" />
+                <figcaption><b>Mana Spring</b><span>+20 energy to both sides, every round.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/energy-void.png" alt="Energy Void" loading="lazy" draggable="false" />
+                <figcaption><b>Energy Void</b><span>-10 energy to both sides, every round. Waste nothing.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/ancient-ruins.png" alt="The Ancient Ruins" loading="lazy" draggable="false" />
+                <figcaption><b>The Ancient Ruins</b><span>A random relic blessing for every survivor, every round.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/heros-trial.png" alt="The Hero's Trial" loading="lazy" draggable="false" />
+                <figcaption><b>The Hero's Trial</b><span>Everyone grows: +15% attack at every round rollover.</span></figcaption>
+              </figure>
+              <figure class="rb-field">
+                <img src="assets/boards/thumbs/blood-battlefield.png" alt="The Blood Battlefield" loading="lazy" draggable="false" />
+                <figcaption><b>The Blood Battlefield</b><span>Every kill pays your team +20 energy. Momentum is money.</span></figcaption>
+              </figure>
+            </div>
           </div>
         </article>
       </div>
 
-      <footer>Echoes of Legend - Complete Engine & Rules Reference</footer>
+      <footer>Echoes of Legend - the rules in plain words</footer>
     </section>
 
     <!-- ==================== DECK EDITOR ==================== -->
@@ -771,30 +787,68 @@
           <span class="mast-emblem" aria-hidden="true"><i class="ri-store-2-line"></i></span>
           <h2 class="col-title">Shop</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">Pack preview - your collection is already complete</p>
+          <p class="col-sub">The Road pays in coin - the shelf pays in echoes. Legends are earned, never sold</p>
         </div>
       </header>
 
-      <div class="shop-body">
+      <!-- THE SHELF (real economy since 2026-08-10): three tiers, one
+           wallet, packs pay only unowned legends. -->
+      <div class="shop-wallet-row">
+        <span class="shop-wallet" id="shop-wallet"></span>
+        <span class="shop-progress" id="shop-progress"></span>
+      </div>
+      <div class="shop-body shop-shelf">
         <article class="product">
-          <div class="product-pack pk-host">
+          <div class="product-pack pk-host" data-pack="trio">
+            <div class="product-sheen"></div>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">Trio Pack</h3>
+            <p class="product-desc">
+              Three new legends. No guarantees, no ceremony wasted - the budget shelf.
+            </p>
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 50% &middot; Rare 35% &middot; Epic 15%</span>
+            </p>
+            <button class="btn btn-primary buy-pack" data-pack="trio"></button>
+          </div>
+        </article>
+        <article class="product">
+          <div class="product-pack pk-host" data-pack="echo">
             <div class="product-sheen"></div>
           </div>
           <div class="product-info">
             <h3 class="product-name">Echoes Pack</h3>
             <p class="product-desc">
-              Five legends from across all six factions. The final card is always
-              <b>Epic</b> rarity or better.
+              Five new legends. The final card is always <b>Epic</b> rarity.
             </p>
-            <p class="product-odds" id="product-odds"></p>
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
+              <span><b>Final card</b> Epic 100%</span>
+            </p>
+            <button class="btn btn-primary buy-pack" data-pack="echo"></button>
+          </div>
+        </article>
+        <article class="product">
+          <div class="product-pack pk-host" data-pack="crown">
+            <div class="product-sheen"></div>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">Crown Pack</h3>
+            <p class="product-desc">
+              Five new legends, heavy with power: nearly half the pulls are <b>Epic</b>, and the
+              final card always is.
+            </p>
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 15% &middot; Rare 45% &middot; Epic 40%</span>
+              <span><b>Final card</b> Epic 100%</span>
+            </p>
             <p class="product-note">
-              <i class="ri-information-line"></i>
-              Preview only: legends you reveal here are <b>not</b> added anywhere - you already own
-              the full collection.
+              <i class="ra ra-crown"></i><b>No pack sells a Legendary.</b> The rarest echoes are
+              earned on the Road of Echoes - one per faction, granted at its gate. Money buys
+              speed here, never crowns.
             </p>
-            <button class="btn btn-primary" id="btn-open-pack">
-              <i class="ra ra-gem"></i><span>Open Pack</span>
-            </button>
+            <button class="btn btn-primary buy-pack" data-pack="crown"></button>
           </div>
         </article>
       </div>
@@ -825,8 +879,8 @@
         <div class="po-summary" id="po-summary">
           <h3 class="po-sum-title">Pack Contents</h3>
           <p class="po-sum-note">
-            <i class="ri-information-line"></i>
-            Preview only - nothing was added to your collection.
+            <i class="ri-check-double-line"></i>
+            Yours now - the ledger wrote them the moment the pack tore.
           </p>
           <div class="po-sum-actions">
             <button class="btn btn-ghost btn-slim" id="po-again">
@@ -960,7 +1014,7 @@
                 placeholder="letters, numbers, . _ -"
                 autocomplete="off"
               />
-              <span class="set-hint">3–24 characters. Letters, numbers, . _ - only.</span>
+              <span class="set-hint">3&ndash;24 characters. Letters, numbers, . _ - only.</span>
             </label>
             <label class="auth-field">
               <span class="auth-lbl">New password <em>(optional)</em></span>
@@ -1003,7 +1057,7 @@
           </div>
           <p class="set-gfx-note">
             <i class="ri-information-line"></i>
-            Low strips backdrop blur, blends, particles and ambient motion — recommended on older
+            Low strips backdrop blur, blends, particles and ambient motion &mdash; recommended on older
             devices or with reduced-motion preferences.
           </p>
           <div class="set-row">
@@ -1208,7 +1262,7 @@
           <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
             <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
             <span class="wl-body">
-              <span class="wl-name">Unabridged · Bo3</span>
+              <span class="wl-name">Unabridged &middot; Bo3</span>
               <span class="wl-sub">3-board fight card, swaps between games</span>
             </span>
           </button>
@@ -1254,10 +1308,9 @@
     </div>
 
     <!-- ==================== CAMPAIGN (chapter select) ====================
-         The campaign route remains a nonfunctional presentation slice:
-         no stage writes progress, grants cards, or opens a battle. The
-         chapter plate is now an honest doorway into its ten-rival map so
-         the complete Chapter 1 route can be judged before implementation. -->
+         The campaign route is LIVE (2026-08-08): the chapter plate opens
+         the ten-rival map, every gate launches a real battle through
+         js/campaign.js, and progress/grants persist in localStorage. -->
     <section class="view campaign" data-view="campaign">
       <header class="col-header mast">
         <button class="back-btn" id="btn-campaign-back">
@@ -1308,9 +1361,11 @@
     </section>
 
     <!-- ==================== CHAPTER 1 (rival route) ====================
-         PRESENTATION ONLY (2026-08-06). Stage 1 is visibly first in the
-         road but still only acknowledges a click; stages 2-10 are locked
-         as a progression promise, not a save-state implementation. -->
+         FUNCTIONAL (2026-08-08). Every gate is playable: stages 1-4 are
+         Classic lessons with scripted rival sixes, 5/9/10 are Unabridged
+         sets on authored fight cards, 6-8 are drafts from curated pools
+         against personality bots. Card states/copy are painted by
+         js/campaign.js from data/campaign-ch1.js. -->
     <section class="view chapter" data-view="chapter" aria-labelledby="chapter-title">
       <header class="col-header mast chapter-head">
         <button class="back-btn" id="btn-chapter-back">
@@ -1327,6 +1382,11 @@
           <p class="col-sub">An unfinished story walks between memory and the Quiet</p>
         </div>
         </div>
+        <!-- THE LEDGER: the Recruiter's index of rivals and legends.
+             Introduced by a one-time highlight after Gate I falls. -->
+        <button class="ledger-btn" id="btn-ledger" type="button" aria-label="Open the Recruiter's Ledger">
+          <i class="ra ra-quill-ink" aria-hidden="true"></i><span>The Ledger</span>
+        </button>
       </header>
 
       <div class="stage-list" aria-label="The ten gates of Chapter 1">
@@ -1361,9 +1421,9 @@
           <div class="sc-expand">
             <div class="sc-lore">
               <p class="sc-desc">
-                An old memory broker asks what you want to outlive. “Every Echo thinks this road
+                An old memory broker asks what you want to outlive. &ldquo;Every Echo thinks this road
                 leads to immortality. It does not. It asks whether your story can last without
-                becoming trapped inside itself.”
+                becoming trapped inside itself.&rdquo;
               </p>
               <div class="sc-prompt">
                 <i class="ra ra-speech-bubble"></i> Click to speak with The Recruiter
@@ -1404,9 +1464,9 @@
           <div class="sc-expand">
             <div class="sc-lore">
               <p class="sc-desc">
-                A veteran who returned with twelve asks who your strength protects. “I promised to
+                A veteran who returned with twelve asks who your strength protects. &ldquo;I promised to
                 bring forty-three people home. I brought twelve. A wall is not made to keep danger
-                out. It is made to tell danger where it must stop.”
+                out. It is made to tell danger where it must stop.&rdquo;
               </p>
               <div class="sc-prompt">
                 <i class="ra ra-speech-bubble"></i> Click to speak with The Oathkeeper
@@ -1757,44 +1817,62 @@
         </button>
       </div>
 
-      <footer>One unfinished story · ten guardians · a gate toward Uruk</footer>
+      <footer>One unfinished story &middot; ten guardians &middot; a gate toward Uruk</footer>
     </section>
 
     <!-- ==================== CHAPTER 1 DIALOGUE ====================
-         Recruiter scene only for now. It is a narrative encounter, not a
-         battle launch: the Classic fight will arrive once campaign state and
-         authored rival teams exist. -->
+         Bottom-anchored dialogue BAR (2026-08-08). The old centred modal
+         covered the middle of the screen and read as intrusive; scenes
+         now play along the bottom edge, visual-novel style, so the map
+         (or the settled battle board, for epilogues) stays visible.
+         Clicking anywhere advances; the X (or Esc) skips the scene. -->
     <div
       class="chapter-dialogue"
       id="chapter-dialogue"
       hidden
       aria-hidden="true"
       role="dialog"
-      aria-modal="true"
       aria-labelledby="chapter-dialogue-speaker"
     >
       <div class="chapter-dialogue-scrim" id="chapter-dialogue-scrim"></div>
-      <section class="chapter-dialogue-card">
+      <section class="chapter-dialogue-bar">
         <button
           class="chapter-dialogue-close"
           id="chapter-dialogue-close"
           type="button"
-          aria-label="Close dialogue"
+          aria-label="Skip dialogue"
         >
           <i class="ri-close-line"></i>
         </button>
-        <div class="chapter-dialogue-art" aria-hidden="true">
-          <img src="assets/rivals/the-recruiter.png" alt="" draggable="false" />
-          <span class="chapter-dialogue-road"></span>
+        <div class="chapter-dialogue-bust" aria-hidden="true">
+          <img
+            id="chapter-dialogue-portrait"
+            src="assets/rivals/the-recruiter.png"
+            alt=""
+            draggable="false"
+          />
+          <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph" hidden
+            ><i class="ra ra-hood"></i
+          ></span>
         </div>
         <div class="chapter-dialogue-copy">
-          <span class="chapter-dialogue-kicker"
-            ><i class="ri-book-open-line"></i> Chapter 1 · Gate I</span
-          >
-          <h3 id="chapter-dialogue-speaker">The Recruiter</h3>
+          <div class="chapter-dialogue-head">
+            <h3 id="chapter-dialogue-speaker">The Recruiter</h3>
+            <span class="chapter-dialogue-kicker" id="chapter-dialogue-kicker"
+              ><i class="ri-book-open-line"></i> Chapter 1 &middot; Gate I</span
+            >
+          </div>
           <p id="chapter-dialogue-text"></p>
         </div>
         <footer class="chapter-dialogue-foot">
+          <button
+            class="chapter-dialogue-skiptut"
+            id="chapter-dialogue-skiptut"
+            type="button"
+            hidden
+          >
+            <i class="ri-skip-forward-line"></i><span>Skip tutorial</span>
+          </button>
           <span class="chapter-dialogue-step" id="chapter-dialogue-step">01 / 06</span>
           <button
             class="btn btn-primary chapter-dialogue-next"
@@ -1805,6 +1883,111 @@
           </button>
         </footer>
       </section>
+    </div>
+
+    <!-- ==================== CAMPAIGN: THE LEDGER ====================
+         The Recruiter's book made openable (2026-08-10). Ten rival
+         pages under fog of war - sealed until a gate is unlocked,
+         intel while it stands, the full page once it falls. Carries
+         its OWN flyout instance so hovering a rival's card shows the
+         same panel preparation uses. js/campaign.js renders everything
+         from the same story data the gates run on. -->
+    <div
+      class="ledger"
+      id="ledger"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ledger-title"
+    >
+      <div class="ledger-scrim" id="ledger-scrim"></div>
+      <div class="ledger-card">
+        <button class="ledger-close" id="ledger-close" type="button" aria-label="Close the ledger">
+          <i class="ri-close-line"></i>
+        </button>
+        <header class="ledger-head">
+          <h2 id="ledger-title"><i class="ra ra-quill-ink"></i> The Recruiter's Ledger</h2>
+        </header>
+        <div class="ledger-body">
+          <div class="ledger-rivals" id="ledger-rivals">
+            <div class="ledger-list" id="ledger-list"></div>
+            <div class="ledger-page" id="ledger-page"></div>
+          </div>
+        </div>
+        <aside class="flyout ledger-flyout" id="ledger-tip" data-rarity="common" aria-hidden="true"></aside>
+      </div>
+    </div>
+
+    <!-- ==================== CAMPAIGN: EXAM CHOICE GRANT ====================
+         The exam stages (5 and 9) pay out as a CHOICE, resolved at claim
+         time against the live roster (design R9) - never a hardcoded id. -->
+    <div
+      class="grant-choice"
+      id="grant-choice"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="grant-choice-title"
+    >
+      <div class="grant-choice-scrim"></div>
+      <div class="grant-choice-card">
+        <h2 id="grant-choice-title"><i class="ra ra-locked-fortress"></i> Choose your echoes</h2>
+        <p class="grant-choice-sub" id="grant-choice-sub"></p>
+        <div class="grant-choice-grid" id="grant-choice-grid"></div>
+        <footer class="grant-choice-foot">
+          <button class="btn btn-primary" id="grant-choice-go" type="button" disabled>
+            <span>Carry them</span><i class="ri-check-line"></i>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ==================== CAMPAIGN: THE WAYFINDER ====================
+         After the intro the Recruiter no longer teleports the player to
+         the Road - he POINTS. This bubble floats beside the next button
+         on the path (Play, then Campaign, then Chapter 1, then Gate I)
+         while the button itself gets a golden pulse. Pointer-transparent,
+         so it can never block the very click it asks for - the LOCK on
+         every other button lives in js/campaign.js (guideClickTrap),
+         not in this element. -->
+    <div class="nav-guide" id="nav-guide" hidden role="status" aria-live="polite">
+      <img
+        class="nav-guide-face"
+        src="assets/rivals/the-recruiter.png"
+        alt=""
+        draggable="false"
+      />
+      <div class="nav-guide-body">
+        <span class="nav-guide-name">The Recruiter</span>
+        <p class="nav-guide-text" id="nav-guide-text"></p>
+        <button class="nav-guide-skip" id="nav-guide-skip" type="button">
+          <i class="ri-skip-forward-line"></i><span>Skip tutorial</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== CAMPAIGN: GATE I TUTOR ====================
+         The Recruiter's guided-lesson bubble for the scripted first gate.
+         Bottom-left so it never covers the prep grids or the confirm
+         dock; the Continue button appears only on informational beats.
+         The shield dims and swallows every click while an informational
+         beat is up - reading first, acting second. -->
+    <div class="tutor-shield" id="tutor-shield" hidden></div>
+    <div class="tutor" id="tutor" hidden role="status" aria-live="polite">
+      <img
+        class="tutor-face"
+        id="tutor-face"
+        src="assets/rivals/the-recruiter.png"
+        alt=""
+        draggable="false"
+      />
+      <div class="tutor-body">
+        <span class="tutor-name" id="tutor-name">The Recruiter</span>
+        <p class="tutor-text" id="tutor-text"></p>
+        <button class="btn btn-primary tutor-next" id="tutor-next" type="button" hidden>
+          <span>Continue</span><i class="ri-arrow-right-line"></i>
+        </button>
+      </div>
     </div>
 
     <!-- ==================== PREPARATION (bans + field six) ==================== -->
@@ -1874,6 +2057,17 @@
             <span class="prep-note" id="prep-enemy-note">tap 2 to ban</span>
           </div>
           <div class="prep-cards" id="prep-enemy"></div>
+          <!-- CAMPAIGN: the Recruiter's ledger - how this rival bans,
+               told BEFORE the player commits. Sits BELOW the grid
+               (owner note 2026-08-10: above it, it shifted the enemy
+               cards out of alignment with the player's). -->
+          <p class="ledger-tell" id="prep-ledger-tell" hidden>
+            <i class="ra ra-quill-ink" aria-hidden="true"></i>
+            <span class="ledger-tell-body">
+              <b>The Recruiter's ledger</b>
+              <span id="prep-ledger-tell-text"></span>
+            </span>
+          </p>
         </section>
 
         <section class="prep-side field" id="prep-field" hidden>
@@ -2254,6 +2448,18 @@
         <div class="cine-sub" id="cine-sub"></div>
       </div>
 
+      <!-- CAMPAIGN: rival dialogue during the match. A small speech card
+           under the enemy commander plate - pointer-transparent and
+           self-expiring, so mid-fight lore never blocks the board
+           (design §6: blocking overlays are for pre/post-fight only). -->
+      <div class="rival-bark" id="rival-bark" role="status" aria-live="polite" hidden>
+        <img class="rival-bark-face" id="rival-bark-face" src="" alt="" draggable="false" />
+        <div class="rival-bark-body">
+          <span class="rival-bark-name" id="rival-bark-name"></span>
+          <p class="rival-bark-text" id="rival-bark-text"></p>
+        </div>
+      </div>
+
       <div class="toast" id="toast"></div>
 
       <div class="result" id="result">
@@ -2270,6 +2476,13 @@
           <h2 class="result-title">Victory</h2>
           <p class="result-sub"></p>
           <p class="result-rounds"></p>
+          <!-- match pay: filled by battle.js (non-campaign games) -->
+          <p class="result-coins" id="result-coins" hidden></p>
+          <!-- THE BATTLE REPORT (playtest 2026-08-10): per-legend
+               numbers so 'which cards are good' stops being a guess.
+               Filled by battle.js - end of match for single games and
+               drafts, end of the SET for Unabridged. -->
+          <div class="result-stats" id="result-stats" hidden></div>
           <div class="result-actions">
             <button class="btn btn-primary" id="btn-rematch">
               <i class="ra ra-cycle"></i><span>Rematch</span>
@@ -2298,7 +2511,7 @@
       <div class="setm-scrim"></div>
       <div class="setm-card fightcard">
         <h2 class="setm-title" id="set-fightcard-title">
-          <i class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED — FIGHT CARD
+          <i class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED &mdash; FIGHT CARD
         </h2>
         <p class="setm-sub" id="set-fightcard-sub"></p>
         <div class="setm-plates" id="set-fightcard-plates"></div>
@@ -2385,6 +2598,7 @@
     <script src="data/campaign-ch1.js"></script>
     <script src="data/draft-ai.js"></script>
 
+    <script src="js/economy.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>
@@ -2398,6 +2612,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
+    <!-- THE VAULT: full-save cloud sync for signed-in players (wallet,
+         collection, campaign, decks, settings). Local-only when signed
+         out; see the three laws at the top of the file. -->
+    <script src="js/cloud.js"></script>
+    <!-- THE WORKBENCH: EOL.dev console commands (coins, grantAll,
+         openRoad, reset). Harmless in production until the economy
+         is server-side - see the header of the file. -->
+    <script src="js/dev.js"></script>
     <script src="js/mp.js"></script>
     <script src="js/netplay.js"></script>
     <script src="js/app.js"></script>

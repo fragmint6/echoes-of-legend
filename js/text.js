@@ -264,10 +264,20 @@
   };
 
   /* Collapse a unit's live state into a de-duplicated icon list.
-     Same status stacked twice shows once with a count. */
+     Same status stacked twice shows once with a count.
+
+     HONEST MERGING (the Lancelot bug, 2026-08-09): stat buffs with
+     different timers share one chip, and the chip used to keep only
+     the FIRST buff's timer. A permanent +10% ATK plus an ally's
+     2-round +25% read as one \"+35% ATK, 99 rounds\" - the temporary
+     part looked permanent (or, applied in the other order, the
+     permanent part looked temporary). The chip now carries:
+       turns  - the LONGEST remaining timer (when the chip vanishes)
+       parts  - every contributing buff's own {amt, turns}, so the
+                popup can itemize instead of lying. */
   window.EOL.statusesOf = function (u, E) {
     var out = [];
-    function push(key, turns, count) {
+    function push(key, turns, count, amt) {
       var def = window.EOL.STATUS[key];
       if (!def) return;
       var hit = out.filter(function (o) {
@@ -275,6 +285,11 @@
       })[0];
       if (hit) {
         hit.count += count || 1;
+        /* the chip lives until its LONGEST member expires */
+        if (typeof turns === 'number' && typeof hit.turns === 'number') {
+          hit.turns = Math.max(hit.turns, turns);
+        }
+        if (amt !== undefined && hit.parts) hit.parts.push({ amt: amt, turns: turns });
         return;
       }
       out.push({
@@ -284,12 +299,13 @@
         label: def.label,
         turns: turns,
         count: count || 1,
+        parts: amt !== undefined ? [{ amt: amt, turns: turns }] : null,
       });
     }
 
     (u.buffs || []).forEach(function (b) {
       if (!b.stat) return;
-      push(b.stat + (b.amt >= 0 ? '+' : '-'), b.turns, 1);
+      push(b.stat + (b.amt >= 0 ? '+' : '-'), b.turns, 1, b.amt);
     });
     if (u.shield > 0) push('shield', null, 1);
     if (u.flags) {

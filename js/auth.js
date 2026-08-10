@@ -1,12 +1,12 @@
 /* =============================================================
  * Accounts - Supabase auth
  * -------------------------------------------------------------
- * WHAT AN ACCOUNT IS FOR, AND WHAT IT IS NOT
+ * WHAT AN ACCOUNT IS FOR
  *
- *   An account exists here for exactly one reason: matchmaking needs
- *   two stable identities to pair. It does NOT sync your collection.
- *   Decks and graphics settings all stay on the device, on purpose -
- *   see the note above pushDeck().
+ *   Two jobs, cleanly split: a stable identity so matchmaking can
+ *   pair two players (this module + js/mp.js), and a home for the
+ *   player's save - THE VAULT in js/cloud.js, which mirrors the
+ *   whole local state to the `saves` table when signed in.
  *
  * Design rules this module follows:
  *
@@ -263,26 +263,6 @@
   }
 
   /* ---------------------------------------------------------
-     NO DECK SYNC
-     -------------------------------------------------------------
-     Decks stay on the device, deliberately. Accounts exist here for
-     ONE reason: to give a player a stable identity so matchmaking can
-     pair two of them. Syncing collections is a separate feature with
-     its own merge-conflict questions, and shipping it half-done risks
-     the one thing that must never happen - losing someone's decks.
-
-     js/deck.js still calls pushDeck/deleteDeck; they are kept as
-     no-ops so that module needs no signed-in special case and sync can
-     be reinstated later without touching it.
-     --------------------------------------------------------- */
-  function pushDeck() {
-    return Promise.resolve();
-  }
-  function deleteDeck() {
-    return Promise.resolve();
-  }
-
-  /* ---------------------------------------------------------
      public API
      --------------------------------------------------------- */
   window.EOL.auth = {
@@ -347,10 +327,6 @@
     setHandle: setHandle,
     updatePassword: updatePassword,
     needsHandle: needsHandle,
-
-    /* Retained as no-ops: decks are local-only for now. */
-    pushDeck: pushDeck,
-    deleteDeck: deleteDeck,
 
     /* js/mp.js borrows the configured client rather than creating a
        second one, so both share a single auth session and socket. */

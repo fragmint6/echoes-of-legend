@@ -1651,6 +1651,101 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
 }
 
 {
+  /* THE LANCELOT CHIP BUG (2026-08-09). One stat chip can hold buffs on
+     different clocks - his permanent (99-round) ATK stacks plus an
+     ally's 2-round ATK buff. The merged chip kept only the FIRST
+     member's timer, so the temporary buff read as permanent (or, in
+     the other order, the permanent one read as expiring). The engine
+     was always right; the chip lied. */
+  const B = board(['camelot-lancelot', ...CLEAN_FOES.slice(0, 5)]);
+  const u = U(B, 'camelot-lancelot');
+  u.buffs.push({ stat: 'atk', amt: 10, turns: 99, tag: 'finest-knight-atk' });
+  u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
+
+  /* 1. engine truth: the temp part expires on schedule, the permanent stays */
+  const atkPct = () => u.buffs.reduce((t, b) => t + (b.stat === 'atk' ? b.amt : 0), 0);
+  ok(atkPct() === 35, `both buffs live before rollover (+${atkPct()}%)`);
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(
+    atkPct() === 10,
+    `the 2-round ally buff expired on schedule, the permanent stayed (+${atkPct()}%)`
+  );
+
+  /* 2. chip truth: longest clock wins, and every member is itemized */
+  u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
+  let chip = EOL.statusesOf(u, E).find((o) => o.key === 'atk+');
+  ok(chip && chip.turns >= 90, `merged chip wears the LONGEST clock (${chip && chip.turns})`);
+  ok(chip && chip.count === 2, 'merged chip counts both buffs');
+  ok(
+    chip && chip.parts && chip.parts.length === 2,
+    'chip itemizes each member for the popup breakdown'
+  );
+  ok(
+    chip && chip.parts.some((p) => p.turns === 2) && chip.parts.some((p) => p.turns >= 90),
+    'the breakdown keeps each member on its OWN clock'
+  );
+
+  /* 3. order independence: temp applied first must not shorten the chip */
+  u.buffs.length = 0;
+  u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
+  u.buffs.push({ stat: 'atk', amt: 10, turns: 97, tag: 'finest-knight-atk' });
+  chip = EOL.statusesOf(u, E).find((o) => o.key === 'atk+');
+  ok(
+    chip && chip.turns === 97,
+    `temp-first order still shows the longest clock (${chip && chip.turns})`
+  );
+
+  /* 4. the same rule holds for merged team cost modifiers */
+  u.buffs.length = 0;
+  u.costMods = [
+    { pct: 15, turns: 1 },
+    { pct: 15, turns: 3 },
+  ];
+  chip = EOL.statusesOf(u, E).find((o) => o.key === 'costup');
+  ok(chip && chip.turns === 3, `merged cost chip wears the longest clock (${chip && chip.turns})`);
+}
+
+{
+  /* THE BATTLE REPORT + DAMAGE PREVIEW (2026-08-10). The tally is
+     engine truth, and the preview must equal the dice-free hit. */
+  const B = board(['grimmwood-goldilocks', ...CLEAN_FOES.slice(0, 5)]);
+  const g = U(B, 'grimmwood-goldilocks');
+  const f = foesOf(B)[0];
+  B.rng = () => 0.999; // no crits: the preview's exact regime
+  const basic = E.roleAbility(g);
+  const pv = E.previewDamage(B, g, basic, f);
+  ok(!!pv && pv.dmg > 0, 'previewDamage prices a basic attack');
+  ok(pv.crit === Math.round(pv.dmg * 1.5), 'crit projection is exactly 1.5x');
+  const before = f.hp + f.shield;
+  E.useAbility(B, g, basic, [f]);
+  const lost = before - (f.hp + f.shield);
+  ok(
+    pv.dmg === lost,
+    `preview equals the dice-free hit (preview ${pv.dmg} vs dealt ${lost})`
+  );
+  ok(
+    B.tally[g.uid] && B.tally[g.uid].dealt === lost,
+    'the tally credits the attacker with the blow'
+  );
+  ok(
+    B.tally[f.uid] && B.tally[f.uid].taken + B.tally[f.uid].absorbed === lost,
+    'and debits the victim'
+  );
+  /* healing credits the healer */
+  const B2 = board(['grimmwood-snow-white', ...CLEAN_FOES.slice(0, 5)]);
+  const sw = U(B2, 'grimmwood-snow-white');
+  const ally = alliesOf(B2).find((x) => x.uid !== sw.uid) || sw;
+  ally.hp = Math.max(1, ally.hp - 2000);
+  B2.rng = () => 0.999;
+  E.useAbility(B2, sw, E.roleAbility(sw), [ally]);
+  ok(
+    B2.tally[sw.uid] && B2.tally[sw.uid].healed > 0,
+    'the tally credits the healer with the mending'
+  );
+}
+
+{
   /* Sun Wukong (72 Transformations): the rebirth must CLEAR everything he
      was carrying when he died - otherwise he returns still Burning and
      Exposed, i.e. straight back into the death that just happened - while

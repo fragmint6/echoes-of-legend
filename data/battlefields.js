@@ -168,7 +168,7 @@ window.EOL.battlefields = [
     icon: 'ra-trophy',
     tagline: 'A battlefield that measures the mightiest warrior.',
     colors: { primary: '#e0a93b', secondary: '#b3541e', glow: '#ffd88a' },
-    rules: ['Each side\u2019s costliest Skill-holder gains +30% Max HP and +20% ATK.'],
+    rules: ['Each side\'s costliest Skill-holder gains +30% Max HP and +20% ATK.'],
     draft: 'Hypercarry lines become real; spreading power evenly is weaker.',
     championHp: 30,
     championAtk: 20,
