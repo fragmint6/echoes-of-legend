@@ -691,15 +691,40 @@ const server = http.createServer((req, res) => {
     t(!!starter && !starter.querySelector('.dc-del') && !starter.querySelector('.dc-edit'), 'and offers neither Delete nor Edit');
   }
   // the shelf: buy a Trio pack for real
+  // (jsdom never fetches images, so check the sprites exist on disk)
+  {
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    t(fs.existsSync(path.join(root, 'assets/ui/coin.png')), 'the minted coin sprite exists on disk');
+    for (const k of ['trio', 'echo', 'crown'])
+      t(fs.existsSync(path.join(root, 'assets/packs', k + '.png')), 'the ' + k + ' wrapper painting exists on disk');
+  }
   w.EOL.econ.addCoins(1000);
   w.EOL.ui.show('shop');
   await sleep(700);
   t($('shop-wallet').textContent.indexOf('1,100') >= 0 || $('shop-wallet').textContent.indexOf('1100') >= 0, 'the shop shows the wallet');
+  // the minted coin sprite (2026-08-10): currency no longer borrows the energy bolt
+  t(!!$('shop-wallet').querySelector('img.coin-ico'), 'the wallet wears the minted coin, not the energy bolt');
+  t(!$('shop-wallet').querySelector('.ra-lightning-bolt'), 'no lightning bolt anywhere near the wallet');
+  // tiered pixel wrappers: each shelf pack wears its own painting + name
+  for (const [key, word] of [['trio', 'Trio'], ['echo', 'Echoes'], ['crown', 'Crown']]) {
+    const host = d.querySelector('.product-pack[data-pack="' + key + '"]');
+    const art = host && host.querySelector('.pk-art');
+    t(!!art && art.getAttribute('src') === 'assets/packs/' + key + '.png', 'the ' + word + ' pack wears its own wrapper art');
+    t(!!host && host.querySelector('.pk-wordmark span').textContent === word, 'and its wordmark says ' + word);
+  }
   w.EOL.shop.setFast(true);
   {
     const before = w.EOL.econ.unownedEntries().length;
     const coinsBefore = w.EOL.econ.coins();
     d.querySelector('.buy-pack[data-pack="trio"]').click();
+    // the pack on the opening table must wear the wrapper that was bought
+    t(
+      Array.from(d.querySelectorAll('#po-pack .pk-art')).length >= 3 &&
+        Array.from(d.querySelectorAll('#po-pack .pk-art')).every((img) => img.getAttribute('src') === 'assets/packs/trio.png'),
+      'the opening pack (and both burst halves) wear the Trio wrapper'
+    );
     for (let g = 0; g < 20 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
       await sleep(150);

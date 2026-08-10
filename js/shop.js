@@ -204,7 +204,7 @@
     }
     if (!econ.spend(pack.price)) {
       if (window.EOL.ui && window.EOL.ui.toast)
-        window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ra-lightning-bolt');
+        window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'img:assets/ui/coin.png');
       return;
     }
     currentPack = pack;
@@ -216,6 +216,11 @@
       })
     );
     paintShop();
+    /* the pack on the table wears the wrapper you paid for */
+    document.querySelectorAll('#po-pack .pk-host').forEach(function (h) {
+      h.dataset.pack = pack.key;
+      buildPackFace(h);
+    });
     resetStage();
     state = 'intro';
     var overlay = el('pack-opening');
@@ -385,35 +390,41 @@
   }
 
   /* ---------------- boot ---------------- */
-  /* The pack art is pure CSS/DOM - one builder paints every pack face
-     (shop product, opening pack, and both burst halves) from the same
-     markup so they always line up. */
+  /* The pack art is REAL pixel art since 2026-08-10 (one wrapper
+     painting per tier in assets/packs/). One builder still paints
+     every pack face (shop product, opening pack, and both burst
+     halves) from the same markup so they always line up; the host's
+     data-pack picks the wrapper, and begin() restamps the opening
+     hosts so the pack you tear is the pack you bought. */
+  var PACK_ART = {
+    trio: 'assets/packs/trio.png',
+    echo: 'assets/packs/echo.png',
+    crown: 'assets/packs/crown.png',
+  };
   function buildPackFace(host) {
-    if (!host || host.querySelector('.pk-face')) return;
-    var face = document.createElement('div');
-    face.className = 'pk-face';
-    face.innerHTML =
-      '<div class="pk-rays"></div>' +
-      '<div class="pk-holo"></div>' +
-      '<div class="pk-band top"></div><div class="pk-band bot"></div>' +
-      '<div class="pk-frame"></div>' +
-      '<span class="pk-corner tl"></span><span class="pk-corner tr"></span>' +
-      '<span class="pk-corner bl"></span><span class="pk-corner br"></span>' +
-      '<div class="pk-emblem">' +
-      '<div class="pk-ring outer"></div>' +
-      '<div class="pk-ring inner"></div>' +
-      '<i class="ra ra-crossed-swords"></i>' +
-      '</div>' +
-      '<div class="pk-wordmark"><span>Echoes</span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
-    host.insertBefore(face, host.firstChild);
+    if (!host) return;
+    var key = PACK_ART[host.dataset.pack] ? host.dataset.pack : 'echo';
+    var face = host.querySelector('.pk-face');
+    if (!face) {
+      face = document.createElement('div');
+      face.className = 'pk-face';
+      face.innerHTML =
+        '<img class="pk-art" alt="" draggable="false">' +
+        '<div class="pk-holo"></div>' +
+        '<div class="pk-wordmark"><span></span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
+      host.insertBefore(face, host.firstChild);
+    }
+    face.querySelector('.pk-art').src = PACK_ART[key];
+    face.querySelector('.pk-wordmark span').textContent = PACKS[key].name.split(' ')[0];
   }
 
   /* the shelf: prices, balance, and what is left to pull */
+  var COIN_IMG = '<img class="coin-ico" src="assets/ui/coin.png" alt="">';
   function paintShop() {
     var econ = window.EOL.econ;
     if (!econ) return;
     var w = el('shop-wallet');
-    if (w) w.innerHTML = '<i class="ra ra-lightning-bolt"></i>' + econ.coins().toLocaleString();
+    if (w) w.innerHTML = COIN_IMG + econ.coins().toLocaleString();
     var left = econ.unownedEntries().length;
     var prog = el('shop-progress');
     if (prog)
@@ -429,7 +440,7 @@
       btn.innerHTML =
         left === 0
           ? '<i class="ri-check-line"></i><span>Complete</span>'
-          : '<i class="ra ra-lightning-bolt"></i><span>' + pack.price + '</span>';
+          : COIN_IMG + '<span>' + pack.price + '</span>';
     });
   }
 

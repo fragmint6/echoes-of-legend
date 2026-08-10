@@ -7698,43 +7698,32 @@ body[data-gfx='low'] .set-pill.bump {
   color: var(--txt-dim);
 }
 
-/* ---- THE CSS PACK FACE ----
-   Pure-DOM pack artwork (no images): navy foil field, rotating gilt
-   rays, double gold frame with corner diamonds, glowing crossed-swords
-   seal, holo sweep and crimped foil bands. One face, painted by
-   shop.js into every pack host so product/opening/halves all match. */
+/* ---- THE PACK FACE ----
+   Real pixel-art wrappers since 2026-08-10 (assets/packs/{tier}.png,
+   120x168 masters through the blur+BOX pipeline like every other
+   sprite). One face, painted by shop.js into every pack host so
+   product/opening/halves all match; only the holo sweep and the
+   wordmark band survive from the old pure-CSS face. */
 .pk-face {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
+  /* fallback field while the wrapper sprite streams in */
   background:
     radial-gradient(ellipse at 50% 26%, rgba(96, 120, 220, 0.28), transparent 58%),
-    radial-gradient(ellipse at 50% 108%, rgba(192, 124, 255, 0.13), transparent 55%),
     linear-gradient(160deg, #25305c 0%, #151d3f 46%, #080b19 100%);
   user-select: none;
 }
-.pk-rays {
+.pk-art {
   position: absolute;
-  left: 50%;
-  top: 40%;
-  width: 220%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(255, 214, 130, 0.16) 0deg 4deg,
-    transparent 4deg 15deg
-  );
-  -webkit-mask: radial-gradient(circle, #000 0%, transparent 58%);
-  mask: radial-gradient(circle, #000 0%, transparent 58%);
-  animation: pk-rays-spin 70s linear infinite;
-}
-@keyframes pk-rays-spin {
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .pk-holo {
   position: absolute;
@@ -7759,132 +7748,33 @@ body[data-gfx='low'] .set-pill.bump {
     transform: translateX(9%) rotate(0.001deg);
   }
 }
-.pk-band {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 13px;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255, 214, 130, 0.4) 0 3px,
-    rgba(20, 26, 54, 0.9) 3px 6px
-  );
-  opacity: 0.85;
-}
-.pk-band.top {
-  top: 0;
-  border-bottom: 1px solid rgba(255, 214, 130, 0.5);
-}
-.pk-band.bot {
-  bottom: 0;
-  border-top: 1px solid rgba(255, 214, 130, 0.5);
-}
-.pk-frame {
-  position: absolute;
-  inset: 5.5%;
-  border: 2px solid rgba(255, 214, 130, 0.85);
-  border-radius: 10px;
-  box-shadow:
-    0 0 14px rgba(255, 205, 110, 0.25),
-    inset 0 0 18px rgba(255, 205, 110, 0.12);
-}
-.pk-frame::after {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  border: 1px solid rgba(255, 214, 130, 0.38);
-  border-radius: 7px;
-}
-.pk-corner {
-  position: absolute;
-  width: 9px;
-  height: 9px;
-  transform: rotate(45deg);
-  background: radial-gradient(circle, #ffe6a3, #f5c05a);
-  box-shadow: 0 0 9px rgba(255, 214, 130, 0.9);
-}
-.pk-corner.tl {
-  top: 5.5%;
-  left: 5.5%;
-  margin: 1px 0 0 1px;
-}
-.pk-corner.tr {
-  top: 5.5%;
-  right: 5.5%;
-  margin: 1px 1px 0 0;
-}
-.pk-corner.bl {
-  bottom: 5.5%;
-  left: 5.5%;
-  margin: 0 0 1px 1px;
-}
-.pk-corner.br {
-  bottom: 5.5%;
-  right: 5.5%;
-  margin: 0 1px 1px 0;
-}
-.pk-emblem {
-  position: absolute;
-  left: 50%;
-  top: 40%;
-  width: 54%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-}
-.pk-ring.outer {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 214, 130, 0.92);
-  box-shadow:
-    0 0 28px rgba(255, 205, 110, 0.55),
-    inset 0 0 20px rgba(255, 205, 110, 0.3);
-}
-.pk-ring.inner {
-  position: absolute;
-  inset: 10%;
-  border-radius: 50%;
-  border: 1.5px dashed rgba(255, 236, 170, 0.5);
-  animation: pk-ring-spin 30s linear infinite reverse;
-}
-@keyframes pk-ring-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.pk-emblem i {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: var(--pk-icon-sz, 58px);
-  color: #ffe6a3;
-  text-shadow:
-    0 0 20px rgba(255, 180, 70, 0.95),
-    0 2px 3px rgba(0, 0, 0, 0.65);
-}
-.po-pack .pk-emblem i {
-  --pk-icon-sz: 60px;
-}
-.product-pack .pk-emblem i {
-  --pk-icon-sz: 46px;
-}
 .pk-wordmark {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 10%;
+  bottom: 8%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
+  padding: 5px 0;
+  /* a soft scrim so the name reads over any wrapper painting */
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(8, 8, 18, 0.55) 28%,
+    rgba(8, 8, 18, 0.55) 72%,
+    transparent
+  );
   font-family: 'Cinzel', Georgia, serif;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgba(255, 230, 163, 0.92);
-  text-shadow: 0 0 12px rgba(255, 205, 110, 0.45);
+  color: rgba(255, 230, 163, 0.95);
+  text-shadow:
+    0 0 12px rgba(255, 205, 110, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.8);
 }
 .pk-wordmark i {
   font-size: 8px;
@@ -7893,9 +7783,6 @@ body[data-gfx='low'] .set-pill.bump {
 /* Emulated breakpoint (max-width: 900px) measured against the
    LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
    Toggled as html.mqw900 by paintViewport() in js/app.js. */
-html.mqw900 .po-pack .pk-emblem i {
-  --pk-icon-sz: 46px;
-}
 html.mqw900 .pk-wordmark {
   font-size: 11px;
 }
@@ -13113,10 +13000,7 @@ body[data-gfx='low'] .ai-acting {
    count: at 70s / 46s / 30s a SINGLE iteration still turns for a minute,
    so `animation-iteration-count: 1` leaves them visibly spinning. Measured
    11 loops still running on the home screen in low mode before this. */
-body[data-gfx='low'] .pk-rays,
 body[data-gfx='low'] .pk-holo,
-body[data-gfx='low'] .pk-ring,
-body[data-gfx='low'] .pk-ring.inner,
 body[data-gfx='low'] .po-rays,
 body[data-gfx='low'] .po-rays span,
 body[data-gfx='low'] .clash,
@@ -24457,4 +24341,48 @@ html.mqw640 .tutor-face {
 }
 .result-coins[hidden] {
   display: none;
+}
+
+/* ---- THE COIN (2026-08-10) ----
+   Currency finally got its own minted face (assets/ui/coin.png,
+   32x32 keyed sprite) instead of borrowing the energy bolt - a
+   playtest-era confusion between the resource you SPEND in battle
+   and the one you EARN outside it. Sized in em so it rides along
+   wherever a wallet, price, or payout pill already lays out its
+   old <i> icon (all those hosts are inline-flex with a gap). */
+.coin-ico {
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* ---- TIERED WRAPPERS ----
+   The three pack paintings carry their own palettes, so the shelf's
+   frame glow follows suit: burlap warmth for the Trio, the default
+   gilt navy for Echoes, royal violet for the Crown. */
+.product-pack[data-pack='trio'] {
+  border-color: rgba(205, 168, 118, 0.55);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(196, 148, 92, 0.18);
+}
+.product:hover .product-pack[data-pack='trio'] {
+  box-shadow:
+    0 34px 70px rgba(0, 0, 0, 0.7),
+    0 0 60px rgba(210, 160, 100, 0.3);
+}
+.product-pack[data-pack='crown'] {
+  border-color: rgba(214, 160, 255, 0.55);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(186, 120, 255, 0.2);
+}
+.product:hover .product-pack[data-pack='crown'] {
+  box-shadow:
+    0 34px 70px rgba(0, 0, 0, 0.7),
+    0 0 60px rgba(198, 138, 255, 0.32);
 }
