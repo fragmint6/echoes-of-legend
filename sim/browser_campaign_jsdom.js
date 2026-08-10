@@ -718,14 +718,6 @@ const server = http.createServer((req, res) => {
     t(!!starter && !starter.querySelector('.dc-del') && !starter.querySelector('.dc-edit'), 'and offers neither Delete nor Edit');
   }
   // the shelf: buy a Trio pack for real
-  // (jsdom never fetches images, so check the wrappers exist on disk)
-  {
-    const fs = require('fs');
-    const path = require('path');
-    const root = path.join(__dirname, '..');
-    for (const k of ['trio', 'echo', 'crown'])
-      t(fs.existsSync(path.join(root, 'assets/packs', k + '.png')), 'the ' + k + ' wrapper painting exists on disk');
-  }
   w.EOL.econ.addCoins(1000);
   w.EOL.ui.show('shop');
   await sleep(700);
@@ -733,11 +725,17 @@ const server = http.createServer((req, res) => {
   // the library coin (owner ruling: icon font, never a generated sprite)
   t(!!$('shop-wallet').querySelector('i.ri-coin-fill'), 'the wallet wears the library coin, not the energy bolt');
   t(!$('shop-wallet').querySelector('.ra-lightning-bolt') && !$('shop-wallet').querySelector('img'), 'no lightning bolt and no sprite anywhere near the wallet');
-  // tiered pixel wrappers: each shelf pack wears its own painting + name
-  for (const [key, word] of [['trio', 'Trio'], ['echo', 'Echoes'], ['crown', 'Crown']]) {
+  // tiered CSS wrappers: one skeleton, each shelf pack wearing its own skin
+  for (const [key, word, icon] of [
+    ['trio', 'Trio', 'ra-diamonds-card'],
+    ['echo', 'Echoes', 'ra-spiral-shell'],
+    ['crown', 'Crown', 'ra-crown'],
+  ]) {
     const host = d.querySelector('.product-pack[data-pack="' + key + '"]');
-    const art = host && host.querySelector('.pk-art');
-    t(!!art && art.getAttribute('src') === 'assets/packs/' + key + '.png', 'the ' + word + ' pack wears its own wrapper art');
+    const face = host && host.querySelector('.pk-face');
+    t(!!face && face.classList.contains('pk-' + key), 'the ' + word + ' pack wears its own skin');
+    t(!!face && !!face.querySelector('.pk-emblem .' + icon), 'and its own emblem (' + icon + ')');
+    t(!!face && face.querySelectorAll('.pk-pips span').length === w.EOL.shop.PACKS[key].size, 'and a pip fan matching its size');
     t(!!host && host.querySelector('.pk-wordmark span').textContent === word, 'and its wordmark says ' + word);
   }
   w.EOL.shop.setFast(true);
@@ -747,9 +745,9 @@ const server = http.createServer((req, res) => {
     d.querySelector('.buy-pack[data-pack="trio"]').click();
     // the pack on the opening table must wear the wrapper that was bought
     t(
-      Array.from(d.querySelectorAll('#po-pack .pk-art')).length >= 3 &&
-        Array.from(d.querySelectorAll('#po-pack .pk-art')).every((img) => img.getAttribute('src') === 'assets/packs/trio.png'),
-      'the opening pack (and both burst halves) wear the Trio wrapper'
+      Array.from(d.querySelectorAll('#po-pack .pk-face')).length >= 3 &&
+        Array.from(d.querySelectorAll('#po-pack .pk-face')).every((f) => f.classList.contains('pk-trio')),
+      'the opening pack (and both burst halves) wear the Trio skin'
     );
     for (let g = 0; g < 20 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();

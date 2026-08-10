@@ -390,32 +390,53 @@
   }
 
   /* ---------------- boot ---------------- */
-  /* The pack art is REAL pixel art since 2026-08-10 (one wrapper
-     painting per tier in assets/packs/). One builder still paints
-     every pack face (shop product, opening pack, and both burst
-     halves) from the same markup so they always line up; the host's
-     data-pack picks the wrapper, and begin() restamps the opening
-     hosts so the pack you tear is the pack you bought. */
-  var PACK_ART = {
-    trio: 'assets/packs/trio.png',
-    echo: 'assets/packs/echo.png',
-    crown: 'assets/packs/crown.png',
+  /* THE PACK FACE, third and final take (owner ruling 2026-08-10):
+     pure CSS/DOM again - the generated wrappers never agreed with
+     each other on shape or style. ONE skeleton (field, rays, holo,
+     crimped bands, double frame, medal, pips, wordmark) painted by
+     this builder into every pack host (shop product, opening pack,
+     both burst halves), skinned per tier by a pk-{key} class:
+     burlap bronze for Trio, gilt navy for Echoes, royal violet with
+     ruby studs for Crown. The pips row is the pack size - three
+     little fanned cards on the budget shelf, five up top. */
+  var PK_STYLE = {
+    trio: { icon: 'ra-diamonds-card' },
+    echo: { icon: 'ra-spiral-shell' },
+    crown: { icon: 'ra-crown' },
   };
   function buildPackFace(host) {
     if (!host) return;
-    var key = PACK_ART[host.dataset.pack] ? host.dataset.pack : 'echo';
+    var key = PACKS[host.dataset.pack] ? host.dataset.pack : 'echo';
+    var pack = PACKS[key];
     var face = host.querySelector('.pk-face');
     if (!face) {
       face = document.createElement('div');
-      face.className = 'pk-face';
-      face.innerHTML =
-        '<img class="pk-art" alt="" draggable="false">' +
-        '<div class="pk-holo"></div>' +
-        '<div class="pk-wordmark"><span></span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
       host.insertBefore(face, host.firstChild);
     }
-    face.querySelector('.pk-art').src = PACK_ART[key];
-    face.querySelector('.pk-wordmark span').textContent = PACKS[key].name.split(' ')[0];
+    face.className = 'pk-face pk-' + key;
+    var pips = '';
+    for (var i = 0; i < pack.size; i++) pips += '<span></span>';
+    face.innerHTML =
+      '<div class="pk-weave"></div>' +
+      '<div class="pk-rays"></div>' +
+      '<div class="pk-holo"></div>' +
+      '<div class="pk-crimp top"></div><div class="pk-crimp bot"></div>' +
+      '<div class="pk-frame"></div>' +
+      '<span class="pk-corner tl"></span><span class="pk-corner tr"></span>' +
+      '<span class="pk-corner bl"></span><span class="pk-corner br"></span>' +
+      '<span class="pk-spark s1"></span><span class="pk-spark s2"></span><span class="pk-spark s3"></span>' +
+      '<div class="pk-emblem">' +
+      '<div class="pk-medal"></div>' +
+      '<div class="pk-ring outer"></div>' +
+      '<div class="pk-ring inner"></div>' +
+      '<span class="pk-stud n"></span><span class="pk-stud e"></span>' +
+      '<span class="pk-stud s"></span><span class="pk-stud w"></span>' +
+      '<i class="ra ' + PK_STYLE[key].icon + '"></i>' +
+      '</div>' +
+      '<div class="pk-pips">' + pips + '</div>' +
+      '<div class="pk-wordmark"><span>' +
+      pack.name.split(' ')[0] +
+      '</span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
   }
 
   /* the shelf: prices, balance, and what is left to pull.
