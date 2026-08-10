@@ -385,10 +385,11 @@ drafts, which stay whole-roster as the great equalizer. Everyone owns
 the starter Grimmwood twelve forever, and the starter deck itself is
 neither editable nor deletable. Chapter 1 pays exactly **1500 coins**
 (down from 1800 — the less the campaign gives, the more the other
-modes matter) plus its named grants, all flowing into the same wallet
-and collection the shop reads. Matches pay per game: singleplayer
-50 win / 25 loss, PvP 75/50; campaign battles pay through their gates
-only. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
+modes matter), a **flat 150 per gate** — no curve, every gate worth
+the same — plus its named grants, all flowing into the same wallet
+and collection the shop reads. Replays pay a flat 25. Matches pay per
+game: singleplayer 50 win / 25 loss, PvP 75/50; campaign battles pay
+through their gates only. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
 every pack contains **only unowned cards** (duplicates may feed an
 awakening system someday), Huaxia is unobtainable until Chapter 2,
 and — deliberately — the shop does *not* follow the campaign's
@@ -418,8 +419,8 @@ Three tiers per gate (design R6):
    4-per-faction Blessing threshold (R8). The grant list *is* the
    curriculum: you own the wall after the wall lesson, the Marks after
    the Mark lesson.
-2. **Coin** — authored now, inert until the economy pass; replays pay
-   a reduced 25% taper so the chapter can't be farmed.
+2. **Coin** — a flat 150 per gate (owner ruling 2026-08-10); replays
+   pay a flat 25 so the chapter can't be farmed.
 3. **Choice grants** at the exams (V and IX) — "choose 2", resolved at
    claim time against the live roster (R9: choice-shaped rewards never
    go stale), letting a deliberate player complete four-stacks.

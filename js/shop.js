@@ -204,7 +204,7 @@
     }
     if (!econ.spend(pack.price)) {
       if (window.EOL.ui && window.EOL.ui.toast)
-        window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'img:assets/ui/coin.png');
+        window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ri-coin-fill');
       return;
     }
     currentPack = pack;
@@ -418,8 +418,11 @@
     face.querySelector('.pk-wordmark span').textContent = PACKS[key].name.split(' ')[0];
   }
 
-  /* the shelf: prices, balance, and what is left to pull */
-  var COIN_IMG = '<img class="coin-ico" src="assets/ui/coin.png" alt="">';
+  /* the shelf: prices, balance, and what is left to pull.
+     The coin is ri-coin-fill (remixicon 4.5.0, verified in the CDN
+     sheet) - currency stopped borrowing the energy bolt, and the
+     owner ruled AGAINST a generated sprite: library icon only. */
+  var COIN_IMG = '<i class="ri-coin-fill coin-ico"></i>';
   function paintShop() {
     var econ = window.EOL.econ;
     if (!econ) return;

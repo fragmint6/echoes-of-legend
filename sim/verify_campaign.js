@@ -144,12 +144,19 @@ ok(
 
 /* THE ECONOMY (owner ruling 2026-08-10): the chapter pays exactly
    1500 - the less the campaign gives, the more the other modes
-   matter. */
+   matter. Second ruling same day: a FLAT 150 per gate (no curve),
+   and replays pay a flat 25 (enforced in campaign.js). */
 var chapterCoins = 0;
 S.stages.forEach(function (st) {
   chapterCoins += (st.grants || {}).coins || 0;
 });
 ok(chapterCoins === 1500, 'Chapter 1 pays exactly 1500 coins (' + chapterCoins + ')');
+ok(
+  S.stages.every(function (st) {
+    return (st.grants || {}).coins === 150;
+  }),
+  'every gate pays the same flat 150'
+);
 
 console.log('B2. the fully scripted first gate');
 (function () {

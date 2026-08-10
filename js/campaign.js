@@ -214,8 +214,10 @@
         window.EOL.econ.addCoins(g.coins || 0);
       }
     } else {
-      /* Replays pay a reduced, capped tier 2 only (§7.2). */
-      var replayPay = Math.round((g.coins || 0) * 0.25);
+      /* Replays pay a FLAT 25 (owner ruling 2026-08-10, replacing
+         the old 25%-of-gate cut): every gate is worth revisiting,
+         none is worth farming. */
+      var replayPay = 25;
       prog.coins += replayPay;
       if (window.EOL.econ) window.EOL.econ.addCoins(replayPay);
     }

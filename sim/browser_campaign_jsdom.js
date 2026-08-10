@@ -672,13 +672,40 @@ const server = http.createServer((req, res) => {
   await sleep(700);
 
   /* ---------- THE ECONOMY: wallet, locks, the shelf ---------- */
-  t(w.EOL.econ.coins() === 100, 'Gate I paid its 100 coins into the ONE wallet (' + w.EOL.econ.coins() + ')');
+  t(w.EOL.econ.coins() === 150, 'Gate I paid its flat 150 into the ONE wallet (' + w.EOL.econ.coins() + ')');
+  // the home wallet chip rides beside the account pill and tracks eol:coins
+  w.EOL.ui.show('home');
+  await sleep(400);
+  t($('home-coins-val').textContent === '150', 'the home coin chip shows the wallet (' + $('home-coins-val').textContent + ')');
+  t(!!d.querySelector('#home-coins .ri-coin-fill'), 'and wears the library coin icon');
+  w.EOL.econ.addCoins(5);
+  await sleep(100);
+  t($('home-coins-val').textContent === '155', 'the chip moves live on eol:coins');
+  w.EOL.econ.spend(5);
+  await sleep(100);
+  w.EOL.ui.show('chapter');
+  await sleep(400);
   t(w.EOL.econ.owns('grimmwood-snow-white'), 'the starter twelve is owned forever');
   t(!w.EOL.econ.owns('camelot-king-arthur'), 'ungranted legends are NOT owned');
   t(!w.EOL.econ.owns('huaxia-sun-wukong') && w.EOL.econ.obtainableEntries().every((e) => e.faction.id !== 'huaxia'), 'Huaxia is unobtainable (Chapter 2 cargo)');
   // the deck editor's grid wears the locks
   t(!d.querySelector('#deck-grid .card[data-id="grimmwood-snow-white"]').classList.contains('unowned'), 'owned cards are open in the deck editor');
   t(d.querySelector('#deck-grid .card[data-id="duat-anubis"]').classList.contains('unowned'), 'unowned cards are locked in the deck editor');
+  // the collection: owned count is honest, owned legends lead the grid
+  w.EOL.ui.show('collection');
+  await sleep(700);
+  $('ctab-heroes').click();
+  await sleep(400);
+  {
+    const ownedN = w.EOL.econ.ownedCount();
+    t($('owned-count').textContent === String(ownedN), 'the collection counts what you OWN (' + $('owned-count').textContent + ' of ' + $('total-count').textContent + ')');
+    t(Number($('total-count').textContent) > ownedN, 'and no longer claims the whole roster');
+    const cards = Array.from(d.querySelectorAll('#roster .card[data-id]'));
+    t(cards.length > 0, 'the roster grid painted');
+    const firstUnowned = cards.findIndex((c) => c.classList.contains('unowned'));
+    const lastOwned = cards.reduce((m, c, i) => (c.classList.contains('unowned') ? m : i), -1);
+    t(firstUnowned === -1 || lastOwned < firstUnowned, 'every owned legend paints before every unowned one');
+  }
   // the starter deck cannot be deleted or edited
   w.EOL.ui.show('collection');
   await sleep(700);
@@ -691,22 +718,21 @@ const server = http.createServer((req, res) => {
     t(!!starter && !starter.querySelector('.dc-del') && !starter.querySelector('.dc-edit'), 'and offers neither Delete nor Edit');
   }
   // the shelf: buy a Trio pack for real
-  // (jsdom never fetches images, so check the sprites exist on disk)
+  // (jsdom never fetches images, so check the wrappers exist on disk)
   {
     const fs = require('fs');
     const path = require('path');
     const root = path.join(__dirname, '..');
-    t(fs.existsSync(path.join(root, 'assets/ui/coin.png')), 'the minted coin sprite exists on disk');
     for (const k of ['trio', 'echo', 'crown'])
       t(fs.existsSync(path.join(root, 'assets/packs', k + '.png')), 'the ' + k + ' wrapper painting exists on disk');
   }
   w.EOL.econ.addCoins(1000);
   w.EOL.ui.show('shop');
   await sleep(700);
-  t($('shop-wallet').textContent.indexOf('1,100') >= 0 || $('shop-wallet').textContent.indexOf('1100') >= 0, 'the shop shows the wallet');
-  // the minted coin sprite (2026-08-10): currency no longer borrows the energy bolt
-  t(!!$('shop-wallet').querySelector('img.coin-ico'), 'the wallet wears the minted coin, not the energy bolt');
-  t(!$('shop-wallet').querySelector('.ra-lightning-bolt'), 'no lightning bolt anywhere near the wallet');
+  t($('shop-wallet').textContent.indexOf('1,150') >= 0 || $('shop-wallet').textContent.indexOf('1150') >= 0, 'the shop shows the wallet');
+  // the library coin (owner ruling: icon font, never a generated sprite)
+  t(!!$('shop-wallet').querySelector('i.ri-coin-fill'), 'the wallet wears the library coin, not the energy bolt');
+  t(!$('shop-wallet').querySelector('.ra-lightning-bolt') && !$('shop-wallet').querySelector('img'), 'no lightning bolt and no sprite anywhere near the wallet');
   // tiered pixel wrappers: each shelf pack wears its own painting + name
   for (const [key, word] of [['trio', 'Trio'], ['echo', 'Echoes'], ['crown', 'Crown']]) {
     const host = d.querySelector('.product-pack[data-pack="' + key + '"]');

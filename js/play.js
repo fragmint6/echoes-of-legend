@@ -73,21 +73,10 @@
   function toast(msg, icon) {
     var host = $('toasts');
     if (!host) return;
-    /* icon: 'ra-*' / 'ri-*' font class, or 'img:path' for a sprite
-       (the coin, since 2026-08-10 - currency stopped borrowing the
-       energy bolt the day it got its own face). */
-    var ic;
-    if (icon && icon.indexOf('img:') === 0) {
-      ic = '<img class="coin-ico" src="' + icon.slice(4) + '" alt="">';
-    } else {
-      var cls = icon
-        ? (icon.indexOf('ra-') === 0 ? 'ra ' : 'ri ') + icon
-        : 'ri ri-information-line';
-      ic = '<i class="' + cls + '"></i>';
-    }
+    var cls = icon ? (icon.indexOf('ra-') === 0 ? 'ra ' : 'ri ') + icon : 'ri ri-information-line';
     var t = document.createElement('div');
     t.className = 'toast';
-    t.innerHTML = ic + '<span>' + esc(msg) + '</span>';
+    t.innerHTML = '<i class="' + cls + '"></i><span>' + esc(msg) + '</span>';
     host.appendChild(t);
     setTimeout(function () {
       t.classList.add('out');

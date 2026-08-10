@@ -278,7 +278,7 @@
   var rendered = 0; // how many of `filtered` are in the DOM
 
   function matching() {
-    return ROSTER.filter(function (entry) {
+    var list = ROSTER.filter(function (entry) {
       var c = entry.card;
       return (
         (state.faction === 'all' || entry.faction.id === state.faction) &&
@@ -287,16 +287,49 @@
         (state.q === '' || c.name.toLowerCase().indexOf(state.q) !== -1)
       );
     });
+    /* OWNED FIRST, always (owner ruling 2026-08-10): your legends
+       lead, the locked ones trail. ROSTER is already A-Z and sort()
+       is stable in every engine we serve, so each half stays
+       alphabetical. */
+    var econ = window.EOL.econ;
+    if (econ) {
+      list.sort(function (a, b) {
+        return (econ.owns(b.card.id) ? 1 : 0) - (econ.owns(a.card.id) ? 1 : 0);
+      });
+    }
+    return list;
+  }
+
+  /* the truth line under the Collection title: how many of the
+     roster you actually OWN (it used to read '63 of 63 legends' at
+     a fresh install - the filter count posing as a collection
+     count) */
+  function paintOwnedCount() {
+    var el = document.getElementById('owned-count');
+    if (el && window.EOL.econ) el.textContent = window.EOL.econ.ownedCount();
   }
 
   /* ownership changes at runtime (packs, gate grants): every painted
-     card re-checks its lock without a rebuild */
+     card re-checks its lock without a rebuild, the owned count moves,
+     and the owned-first order is recomputed for the NEXT paint (the
+     grid is rebuilt on every visit to the Collection). */
   document.addEventListener('eol:owned', function () {
     if (!window.EOL.econ) return;
     document.querySelectorAll('.card[data-id]').forEach(function (el) {
       el.classList.toggle('unowned', !window.EOL.econ.owns(el.dataset.id));
     });
+    filtered = matching();
+    paintOwnedCount();
   });
+
+  /* THE HOME WALLET: the main-menu coin chip beside the account pill.
+     Painted at boot and on every eol:coins; clicking it opens the
+     Shop (the only question a wallet raises is where to spend it). */
+  function paintHomeCoins() {
+    var el = document.getElementById('home-coins-val');
+    if (el && window.EOL.econ) el.textContent = window.EOL.econ.coins().toLocaleString();
+  }
+  document.addEventListener('eol:coins', paintHomeCoins);
 
   function renderBatch() {
     var grid = document.getElementById('roster');
@@ -339,6 +372,7 @@
     if (!grid) return;
     rendered = 0;
     grid.innerHTML = '';
+    paintOwnedCount();
     var sent = document.getElementById('roster-sentinel');
     if (sent) sent.classList.remove('done');
     renderBatch();
@@ -1585,6 +1619,7 @@
     if (sf) sf.textContent = FACTIONS.length;
     var total = document.getElementById('total-count');
     if (total) total.textContent = ROSTER.length;
+    paintOwnedCount();
 
     /* lazy loading: watch the sentinel; fall back to eager rendering on
        browsers without IntersectionObserver */
@@ -1608,6 +1643,13 @@
     document.getElementById('btn-collection').addEventListener('click', function () {
       show('collection');
     });
+    var homeCoins = document.getElementById('home-coins');
+    if (homeCoins) {
+      homeCoins.addEventListener('click', function () {
+        show('shop');
+      });
+      paintHomeCoins();
+    }
     var btnRulebook = document.getElementById('btn-rulebook');
     var btnCornerRulebook = document.getElementById('btn-corner-rulebook');
     if (btnRulebook) {

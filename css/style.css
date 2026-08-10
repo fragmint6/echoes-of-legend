@@ -14432,6 +14432,38 @@ body[data-auth='in'] .acct-avatar {
   align-items: center;
   gap: 10px;
 }
+/* the home wallet chip - same pill spec as the account button, gilt
+   ink because it is money */
+.coin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 214, 130, 0.4);
+  background: linear-gradient(180deg, rgba(38, 30, 16, 0.88), rgba(14, 11, 8, 0.85));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffd682;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: var(--cur-pointer);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  transition:
+    border-color 0.22s var(--ease),
+    transform 0.2s var(--ease),
+    box-shadow 0.22s var(--ease);
+}
+.coin-chip:hover {
+  border-color: rgba(255, 214, 130, 0.75);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.coin-chip:active {
+  transform: translateY(0) scale(0.985);
+}
 
 /* -------------------------------------------------------------
    DISCORD BUTTON
@@ -24290,7 +24322,7 @@ html.mqw640 .tutor-face {
   filter: grayscale(0.9) brightness(0.55);
 }
 .card.unowned::after {
-  content: 'NOT COLLECTED';
+  content: 'NOT OWNED';
   position: absolute;
   top: 50%;
   left: 50%;
@@ -24343,21 +24375,22 @@ html.mqw640 .tutor-face {
   display: none;
 }
 
-/* ---- THE COIN (2026-08-10) ----
-   Currency finally got its own minted face (assets/ui/coin.png,
-   32x32 keyed sprite) instead of borrowing the energy bolt - a
-   playtest-era confusion between the resource you SPEND in battle
-   and the one you EARN outside it. Sized in em so it rides along
-   wherever a wallet, price, or payout pill already lays out its
-   old <i> icon (all those hosts are inline-flex with a gap). */
-.coin-ico {
-  width: 1.1em;
-  height: 1.1em;
+/* ---- THE COIN (2026-08-10, revised same day) ----
+   Currency stopped borrowing the energy bolt - but the owner ruled
+   against a generated sprite too ('a coin icon from the icon
+   library'). ri-coin-fill it is, gilded, sized to ride wherever a
+   wallet, price, or payout pill already lays out its icon. */
+i.coin-ico {
+  font-size: 1.05em;
+  color: #ffd166;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   flex: none;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
-  -webkit-user-drag: none;
-  user-select: none;
+}
+/* on the gold buy buttons the gilt coin would vanish into the gilt -
+   inherit the button's ink there instead */
+.btn i.coin-ico {
+  color: inherit;
+  text-shadow: none;
 }
 
 /* ---- TIERED WRAPPERS ----

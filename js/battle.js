@@ -4741,7 +4741,7 @@
       var pay = netCtl ? (win ? P.pvpWin : P.pvpLoss) : win ? P.spWin : P.spLoss;
       window.EOL.econ.addCoins(pay);
       if (coinsEl) {
-        coinsEl.innerHTML = '<img class="coin-ico" src="assets/ui/coin.png" alt="">+' + pay + ' coins';
+        coinsEl.innerHTML = '<i class="ri-coin-fill coin-ico"></i>+' + pay + ' coins';
         coinsEl.hidden = false;
       }
     }

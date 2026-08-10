@@ -167,6 +167,14 @@
            It exists so the cloud work later is a matter of wiring the
            handlers, not designing the flow. -->
       <div class="acct-corner">
+        <!-- THE HOME WALLET (owner request 2026-08-10): your coins at a
+             glance beside the account pill; clicking it walks you to
+             the Shop, because that is the only question a wallet ever
+             raises. Lives on eol:coins. -->
+        <button type="button" class="coin-chip" id="home-coins" title="Your coins - spend them in the Shop">
+          <i class="ri-coin-fill coin-ico" aria-hidden="true"></i>
+          <span id="home-coins-val">0</span>
+        </button>
         <button type="button" class="acct-btn" id="acct-btn" aria-haspopup="dialog">
           <span class="acct-avatar" aria-hidden="true"><i class="ra ra-player"></i></span>
           <span class="acct-label">Sign in</span>
@@ -283,6 +291,7 @@
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">
             <span id="visible-count">0</span> of <span id="total-count">0</span> legends
+            &middot; <span id="owned-count">0</span> owned
           </p>
         </div>
       </header>
