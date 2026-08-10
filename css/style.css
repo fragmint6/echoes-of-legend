@@ -1066,6 +1066,10 @@ body {
   object-fit: cover;
   object-position: center 18%;
   display: block;
+  /* the 64px art experiment (2026-08-10): every surface that shows
+     character art must chunk, not blur */
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 /* subtle texture over the art */
 .card-art::after {
