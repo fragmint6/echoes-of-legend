@@ -23599,6 +23599,25 @@ html.mqw640 .tutor-face {
     animation: none;
   }
 }
+/* LOW-GRAPHICS MODE keeps the SAME static gold ring as reduced-motion.
+   The scripted tutorial's "markings" are the only-legal-click guide, so
+   they are feedback, not garnish. The global low-gfx rule caps every
+   animation to one iteration (body[data-gfx='low'] * { animation-iteration-count: 1 }),
+   which leaves .tutor-pick with NO visible ring once that single pulse
+   ends - a low-graphics playtester at gates I-II saw nothing and was
+   stuck. The base .tutor-pick rules carry no static box-shadow (it lives
+   only inside the tutor-pulse keyframes), so without this fallback the
+   mark vanishes after ~1.5s. Mirror the reduced-motion fallback exactly. */
+body[data-gfx='low'] .prep-c.tutor-pick,
+body[data-gfx='low'] .btn.tutor-pick,
+body[data-gfx='low'] .endturn-btn.tutor-pick,
+body[data-gfx='low'] .bcard.tutor-pick .bcard-inner,
+body[data-gfx='low'] .dk-ab.tutor-pick {
+  animation: none !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 227, 160, 0.95),
+    0 0 28px rgba(255, 190, 80, 0.65);
+}
 
 /* ======================================================================
    RULEBOOK VIEW
