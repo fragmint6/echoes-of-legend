@@ -4730,6 +4730,21 @@
         ? window.EOL.play.setGameResult(win, gameTallySnapshot())
         : null;
     paintBattleReport(sr);
+    /* MATCH PAY (owner ruling 2026-08-10): singleplayer 50/25, PvP
+       75/50, per game. Campaign battles pay through their gates, not
+       here. Paid exactly once per battle instance. */
+    var coinsEl = $('result-coins');
+    if (coinsEl) coinsEl.hidden = true;
+    if (!B.campaignStage && window.EOL.econ && !B._coinsPaid) {
+      B._coinsPaid = true;
+      var P = window.EOL.econ.PAY;
+      var pay = netCtl ? (win ? P.pvpWin : P.pvpLoss) : win ? P.spWin : P.spLoss;
+      window.EOL.econ.addCoins(pay);
+      if (coinsEl) {
+        coinsEl.innerHTML = '<i class="ra ra-lightning-bolt"></i>+' + pay + ' coins';
+        coinsEl.hidden = false;
+      }
+    }
     if (sr) {
       ov.querySelector('.result-sub').textContent = sr.sub;
       var rm = $('btn-rematch');

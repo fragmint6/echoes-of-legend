@@ -434,6 +434,7 @@ const server = http.createServer((req, res) => {
   t(!$('result-stats').hidden, 'the battle report is on the result screen');
   t(d.querySelectorAll('#result-stats .rs-row').length === 12, 'a report line for every legend in the fight');
   t($('result-stats').textContent.indexOf("The Recruiter's legends") >= 0, "the enemy column carries the rival's name");
+  t($('result-coins').hidden, 'campaign battles pay through their gates, not per match');
   await sleep(300);
   let prog = w.EOL.campaign.getProgress();
   t(prog.cleared.indexOf(1) >= 0 && prog.unlocked.indexOf(2) >= 0, 'stage 1 cleared, gate 2 unlocked');
@@ -669,6 +670,47 @@ const server = http.createServer((req, res) => {
   t($('nav-guide').hidden, 'bubble gone after the skip');
   w.EOL.ui.show('chapter');
   await sleep(700);
+
+  /* ---------- THE ECONOMY: wallet, locks, the shelf ---------- */
+  t(w.EOL.econ.coins() === 100, 'Gate I paid its 100 coins into the ONE wallet (' + w.EOL.econ.coins() + ')');
+  t(w.EOL.econ.owns('grimmwood-snow-white'), 'the starter twelve is owned forever');
+  t(!w.EOL.econ.owns('camelot-king-arthur'), 'ungranted legends are NOT owned');
+  t(!w.EOL.econ.owns('huaxia-sun-wukong') && w.EOL.econ.obtainableEntries().every((e) => e.faction.id !== 'huaxia'), 'Huaxia is unobtainable (Chapter 2 cargo)');
+  // the deck editor's grid wears the locks
+  t(!d.querySelector('#deck-grid .card[data-id="grimmwood-snow-white"]').classList.contains('unowned'), 'owned cards are open in the deck editor');
+  t(d.querySelector('#deck-grid .card[data-id="duat-anubis"]').classList.contains('unowned'), 'unowned cards are locked in the deck editor');
+  // the starter deck cannot be deleted or edited
+  w.EOL.ui.show('collection');
+  await sleep(700);
+  $('ctab-decks').click();
+  await sleep(300);
+  {
+    const rows = Array.from(d.querySelectorAll('#decks-list > *'));
+    const starter = rows.find((r) => r.textContent.indexOf('Grimmwood') >= 0);
+    t(!!starter && !!starter.querySelector('.dc-locked'), "the starter deck wears the Road's padlock");
+    t(!!starter && !starter.querySelector('.dc-del') && !starter.querySelector('.dc-edit'), 'and offers neither Delete nor Edit');
+  }
+  // the shelf: buy a Trio pack for real
+  w.EOL.econ.addCoins(1000);
+  w.EOL.ui.show('shop');
+  await sleep(700);
+  t($('shop-wallet').textContent.indexOf('1,100') >= 0 || $('shop-wallet').textContent.indexOf('1100') >= 0, 'the shop shows the wallet');
+  w.EOL.shop.setFast(true);
+  {
+    const before = w.EOL.econ.unownedEntries().length;
+    const coinsBefore = w.EOL.econ.coins();
+    d.querySelector('.buy-pack[data-pack="trio"]').click();
+    for (let g = 0; g < 20 && w.EOL.shop.state() !== 'summary'; g++) {
+      if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
+      await sleep(150);
+    }
+    t(w.EOL.shop.state() === 'summary', 'the pack opens to its summary');
+    t(w.EOL.econ.coins() === coinsBefore - 120, 'the Trio pack cost 120 coins');
+    t(w.EOL.econ.unownedEntries().length === before - 3, 'three NEW legends joined the collection');
+    t(w.EOL.shop.results().every((e) => e.faction.id !== 'huaxia'), 'no Huaxia in the pull');
+    t(w.EOL.shop.results().every((e) => w.EOL.econ.owns(e.card.id)), 'the pull is OWNED (granted at roll time)');
+    w.EOL.shop.close();
+  }
 
   /* ---------- mojibake sweep ---------- */
   {

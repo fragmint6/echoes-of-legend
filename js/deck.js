@@ -283,6 +283,9 @@
   }
 
   function removeDeck(id) {
+    /* the starter twelve is the Road's copy - it cannot be deleted
+       (owner ruling 2026-08-10) */
+    if (id === GRIMMWOOD_STARTER_ID) return;
     var i = decks.findIndex(function (d) {
       return d.id === id;
     });
@@ -318,6 +321,12 @@
 
   function add(id) {
     if (!editing || !byId()[id] || has(id)) return false;
+    /* THE ECONOMY: a deck holds only what you OWN. Drafts stay
+       whole-roster by design; construction does not. */
+    if (window.EOL.econ && !window.EOL.econ.owns(id)) {
+      hintWarn('Not in your collection yet - the Shop and the Road pay in legends.');
+      return false;
+    }
     if (count() >= DECK_SIZE) {
       hintWarn('Deck is full - remove a legend first.');
       return false;
@@ -365,6 +374,8 @@
   }
 
   function openEditor(id) {
+    /* the starter twelve is not editable - build your own from it */
+    if (id === GRIMMWOOD_STARTER_ID) return;
     var d = id ? get(id) : null;
     if (!d) d = create();
     editing = d;
@@ -516,16 +527,22 @@
         roleChips(d) +
         '</div>' +
         '<div class="dc-actions">' +
-        '<button class="btn btn-ghost btn-slim dc-edit"><i class="ri-edit-line"></i><span>Edit</span></button>' +
-        '<button class="btn btn-ghost btn-slim dc-del"><i class="ri-delete-bin-line"></i><span>Delete</span></button>' +
+        (d.id === GRIMMWOOD_STARTER_ID
+          ? '<span class="dc-locked"><i class="ri-lock-2-line"></i><span>Starter - the Road\'s copy</span></span>'
+          : '<button class="btn btn-ghost btn-slim dc-edit"><i class="ri-edit-line"></i><span>Edit</span></button>' +
+            '<button class="btn btn-ghost btn-slim dc-del"><i class="ri-delete-bin-line"></i><span>Delete</span></button>') +
         '</div>';
-      el.querySelector('.dc-edit').addEventListener('click', function () {
-        openEditor(d.id);
-      });
-      el.querySelector('.dc-del').addEventListener('click', function () {
-        removeDeck(d.id);
-        renderManager();
-      });
+      var edBtn = el.querySelector('.dc-edit');
+      if (edBtn)
+        edBtn.addEventListener('click', function () {
+          openEditor(d.id);
+        });
+      var delBtn = el.querySelector('.dc-del');
+      if (delBtn)
+        delBtn.addEventListener('click', function () {
+          removeDeck(d.id);
+          renderManager();
+        });
       host.appendChild(el);
     });
   }

@@ -142,6 +142,15 @@ ok(
   'the ledger spotlight line is authored (ASCII, names the LEDGER)'
 );
 
+/* THE ECONOMY (owner ruling 2026-08-10): the chapter pays exactly
+   1500 - the less the campaign gives, the more the other modes
+   matter. */
+var chapterCoins = 0;
+S.stages.forEach(function (st) {
+  chapterCoins += (st.grants || {}).coins || 0;
+});
+ok(chapterCoins === 1500, 'Chapter 1 pays exactly 1500 coins (' + chapterCoins + ')');
+
 console.log('B2. the fully scripted first gate');
 (function () {
   var st1 = S.stages[0];

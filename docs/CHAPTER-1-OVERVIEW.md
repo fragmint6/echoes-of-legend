@@ -379,6 +379,24 @@ roulette ever spins).
 
 ## 5. Rewards & Progression
 
+**The economy (2026-08-10).** One wallet, one ownership ledger
+(`js/economy.js`), everywhere. Ownership gates deck-building — never
+drafts, which stay whole-roster as the great equalizer. Everyone owns
+the starter Grimmwood twelve forever, and the starter deck itself is
+neither editable nor deletable. Chapter 1 pays exactly **1500 coins**
+(down from 1800 — the less the campaign gives, the more the other
+modes matter) plus its named grants, all flowing into the same wallet
+and collection the shop reads. Matches pay per game: singleplayer
+50 win / 25 loss, PvP 75/50; campaign battles pay through their gates
+only. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
+every pack contains **only unowned cards** (duplicates may feed an
+awakening system someday), Huaxia is unobtainable until Chapter 2,
+and — deliberately — the shop does *not* follow the campaign's
+progression law: an early Anubis is a trap purchase, not a broken
+one. Measured by `sim/economy_sim.js`: Chapter 1's coins carry ~5
+Echoes packs; a complete collection lands after roughly 27 more
+matches (~1.6h) at the floor winrate.
+
 **The Ledger (2026-08-10).** The Recruiter's book is a real screen now,
 opened from the chapter header and introduced by a one-time spotlight
 after Gate I falls. Two indexes, all rendered from the same story data

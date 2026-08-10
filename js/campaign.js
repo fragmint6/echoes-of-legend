@@ -206,9 +206,18 @@
       });
       prog.coins += g.coins || 0;
       if (g.choice) prog.pendingChoice = stage.id;
+      /* THE ECONOMY (2026-08-10): gate rewards are REAL now - cards
+         into the collection, coins into the one wallet the shop
+         spends. prog keeps its own totals as the road's record. */
+      if (window.EOL.econ) {
+        window.EOL.econ.grant(g.cards || []);
+        window.EOL.econ.addCoins(g.coins || 0);
+      }
     } else {
       /* Replays pay a reduced, capped tier 2 only (§7.2). */
-      prog.coins += Math.round((g.coins || 0) * 0.25);
+      var replayPay = Math.round((g.coins || 0) * 0.25);
+      prog.coins += replayPay;
+      if (window.EOL.econ) window.EOL.econ.addCoins(replayPay);
     }
     saveProgress(prog);
     updateStageCards();
@@ -1537,6 +1546,8 @@
       p2.choices[stage.id] = picked.slice();
       if (p2.pendingChoice === stage.id) p2.pendingChoice = null;
       saveProgress(p2);
+      /* the chosen echoes are OWNED now, not just remembered */
+      if (window.EOL.econ) window.EOL.econ.grant(picked);
       modal.hidden = true;
       done();
     };

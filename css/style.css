@@ -24350,3 +24350,111 @@ html.mqw640 .tutor-face {
     max-height: 30vh;
   }
 }
+
+/* =============================================================
+   THE ECONOMY (2026-08-10): wallet, the three-tier shelf, locked
+   collection cards, the starter deck's padlock, match pay.
+   ============================================================= */
+.shop-wallet-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 16px;
+}
+.shop-wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 214, 130, 0.45);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(38, 30, 16, 0.85), rgba(16, 12, 10, 0.9));
+  color: #ffd682;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.shop-wallet i {
+  font-size: 14px;
+}
+.shop-progress {
+  color: var(--txt-faint);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.shop-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.buy-pack {
+  min-width: 120px;
+  justify-content: center;
+  gap: 7px;
+}
+.buy-pack:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+/* locked (unowned) legends in the collection and the deck editor */
+.card.unowned .card-art img,
+.card.unowned .card-art {
+  filter: grayscale(0.9) brightness(0.55);
+}
+.card.unowned::after {
+  content: 'NOT COLLECTED';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  z-index: 6;
+  padding: 4px 12px;
+  border: 1px solid rgba(226, 228, 242, 0.4);
+  border-radius: 999px;
+  background: rgba(6, 8, 14, 0.82);
+  color: rgba(226, 228, 242, 0.75);
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+}
+/* the starter deck's padlock in the deck manager */
+.dc-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 214, 130, 0.3);
+  border-radius: 999px;
+  color: rgba(255, 214, 130, 0.75);
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+/* match pay on the result screen */
+.result-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px auto 4px;
+  padding: 5px 16px;
+  border: 1px solid rgba(255, 214, 130, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 214, 130, 0.08);
+  color: #ffd682;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  animation: veil-in 0.4s var(--ease);
+}
+.result-coins[hidden] {
+  display: none;
+}

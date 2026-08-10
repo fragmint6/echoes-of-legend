@@ -778,11 +778,32 @@
           <span class="mast-emblem" aria-hidden="true"><i class="ri-store-2-line"></i></span>
           <h2 class="col-title">Shop</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">Pack preview - your collection is already complete</p>
+          <p class="col-sub">The Road pays in coin - the shelf pays in legends</p>
         </div>
       </header>
 
-      <div class="shop-body">
+      <!-- THE SHELF (real economy since 2026-08-10): three tiers, one
+           wallet, packs pay only unowned legends. -->
+      <div class="shop-wallet-row">
+        <span class="shop-wallet" id="shop-wallet"></span>
+        <span class="shop-progress" id="shop-progress"></span>
+      </div>
+      <div class="shop-body shop-shelf">
+        <article class="product">
+          <div class="product-pack pk-host">
+            <div class="product-sheen"></div>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">Trio Pack</h3>
+            <p class="product-desc">
+              Three new legends. No guarantees, no ceremony wasted - the budget shelf.
+            </p>
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 50% &middot; Rare 34% &middot; Epic 13% &middot; Legendary 3%</span>
+            </p>
+            <button class="btn btn-primary buy-pack" data-pack="trio"></button>
+          </div>
+        </article>
         <article class="product">
           <div class="product-pack pk-host">
             <div class="product-sheen"></div>
@@ -790,18 +811,30 @@
           <div class="product-info">
             <h3 class="product-name">Echoes Pack</h3>
             <p class="product-desc">
-              Five legends from across all six factions. The final card is always
-              <b>Epic</b> rarity or better.
+              Five new legends. The final card is always <b>Epic</b> rarity or better.
             </p>
-            <p class="product-odds" id="product-odds"></p>
-            <p class="product-note">
-              <i class="ri-information-line"></i>
-              Preview only: legends you reveal here are <b>not</b> added anywhere - you already own
-              the full collection.
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 16% &middot; Legendary 4%</span>
+              <span><b>Final card</b> Epic 80% &middot; Legendary 20%</span>
             </p>
-            <button class="btn btn-primary" id="btn-open-pack">
-              <i class="ra ra-gem"></i><span>Open Pack</span>
-            </button>
+            <button class="btn btn-primary buy-pack" data-pack="echo"></button>
+          </div>
+        </article>
+        <article class="product">
+          <div class="product-pack pk-host">
+            <div class="product-sheen"></div>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">Crown Pack</h3>
+            <p class="product-desc">
+              Five new legends, hunting crowns: the final card is Epic or better with
+              <b>45% Legendary</b> odds.
+            </p>
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 20% &middot; Rare 38% &middot; Epic 30% &middot; Legendary 12%</span>
+              <span><b>Final card</b> Epic 55% &middot; Legendary 45%</span>
+            </p>
+            <button class="btn btn-primary buy-pack" data-pack="crown"></button>
           </div>
         </article>
       </div>
@@ -2429,6 +2462,8 @@
           <h2 class="result-title">Victory</h2>
           <p class="result-sub"></p>
           <p class="result-rounds"></p>
+          <!-- match pay: filled by battle.js (non-campaign games) -->
+          <p class="result-coins" id="result-coins" hidden></p>
           <!-- THE BATTLE REPORT (playtest 2026-08-10): per-legend
                numbers so 'which cards are good' stops being a guess.
                Filled by battle.js - end of match for single games and
@@ -2549,6 +2584,7 @@
     <script src="data/campaign-ch1.js"></script>
     <script src="data/draft-ai.js"></script>
 
+    <script src="js/economy.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>

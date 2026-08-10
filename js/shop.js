@@ -1,26 +1,71 @@
 /* =============================================================
-   Echoes of Legend - Shop & Pack Opening
-   Preview only: the player already owns every card, so nothing
-   revealed here is ever stored. rollPack() is pure (seedable rng)
-   so the odds can be unit-tested; the opening sequence is a small
-   state machine driven by setTimeout, with a fast mode for tests.
+   Echoes of Legend - Shop & Pack Opening (REAL since 2026-08-10)
+   -------------------------------------------------------------
+   Three pack tiers, priced in the one wallet the campaign and the
+   matches pay into. Packs contain ONLY unowned cards (owner ruling:
+   every pack is pure progress; duplicates may feed an awakening
+   system someday). Cards are GRANTED at roll time, before the
+   ceremony plays - a mid-animation refresh can never eat a card.
+   Huaxia is not obtainable (held for Chapter 2); everything else
+   is on the shelf from day one - the campaign's progression law is
+   a road rule, not a shop rule.
+   rollPack() stays pure (seedable rng) so odds are unit-testable;
+   the opening sequence is the same state machine as ever, with a
+   fast mode for tests.
    ============================================================= */
 (function () {
   'use strict';
   window.EOL = window.EOL || {};
 
-  var PACK_SIZE = 5;
-  /* Card odds, slots 1-4. The 5th card is always Epic or better. */
-  var ODDS = [
-    ['common', 45],
-    ['rare', 35],
-    ['epic', 16],
-    ['legendary', 4],
-  ];
-  var FINAL_ODDS = [
-    ['epic', 80],
-    ['legendary', 20],
-  ];
+  /* THE SHELF (owner ruling 2026-08-10): three tiers - a budget
+     taste, the standard five, and a top shelf that hunts crowns. */
+  var PACKS = {
+    trio: {
+      key: 'trio',
+      name: 'Trio Pack',
+      price: 120,
+      size: 3,
+      odds: [
+        ['common', 50],
+        ['rare', 34],
+        ['epic', 13],
+        ['legendary', 3],
+      ],
+      final: null, // no guarantee - it is the budget shelf
+    },
+    echo: {
+      key: 'echo',
+      name: 'Echoes Pack',
+      price: 300,
+      size: 5,
+      odds: [
+        ['common', 45],
+        ['rare', 35],
+        ['epic', 16],
+        ['legendary', 4],
+      ],
+      final: [
+        ['epic', 80],
+        ['legendary', 20],
+      ],
+    },
+    crown: {
+      key: 'crown',
+      name: 'Crown Pack',
+      price: 700,
+      size: 5,
+      odds: [
+        ['common', 20],
+        ['rare', 38],
+        ['epic', 30],
+        ['legendary', 12],
+      ],
+      final: [
+        ['epic', 55],
+        ['legendary', 45],
+      ],
+    },
+  };
 
   /* Sequence timings (ms) - cinematic pacing; tests set FAST mode. */
   var DUR = {
@@ -43,12 +88,25 @@
   }
 
   /* ---------------- pack contents (pure) ---------------- */
-  function poolByRarity() {
+  /* Pools are built from the UNOWNED obtainable roster only - every
+     card in every pack is new. `entries` is injectable for tests. */
+  function poolByRarity(entries) {
     var pools = { common: [], rare: [], epic: [], legendary: [] };
-    (window.EOL.factions || []).forEach(function (f) {
-      f.cards.forEach(function (c) {
-        (pools[c.rarity] = pools[c.rarity] || []).push({ card: c, faction: f });
-      });
+    var list =
+      entries ||
+      (window.EOL.econ
+        ? window.EOL.econ.unownedEntries()
+        : (function () {
+            var out = [];
+            (window.EOL.factions || []).forEach(function (f) {
+              f.cards.forEach(function (c) {
+                out.push({ card: c, faction: f });
+              });
+            });
+            return out;
+          })());
+    list.forEach(function (e) {
+      (pools[e.card.rarity] = pools[e.card.rarity] || []).push(e);
     });
     return pools;
   }
@@ -66,26 +124,27 @@
     return table[table.length - 1][0];
   }
 
-  /* Returns [{card, faction}] of length PACK_SIZE. No state touched. */
-  function rollPack(rng) {
+  /* Returns [{card, faction}], at most pack.size, never a duplicate,
+     never an owned card. Pure - no state touched. */
+  function rollPack(rng, pack, entries) {
     rng = rng || Math.random;
-    var pools = poolByRarity();
+    pack = pack || PACKS.echo;
+    var pools = poolByRarity(entries);
     function pickFrom(rarity) {
-      /* buckets are never empty with the current roster, but fall back
-         gracefully if one ever is */
       var order =
         rarity === 'common'
           ? ['common', 'rare', 'epic', 'legendary']
           : [rarity, 'epic', 'rare', 'legendary', 'common'];
       for (var i = 0; i < order.length; i++) {
         var p = pools[order[i]];
-        if (p && p.length) return p[Math.floor(rng() * p.length)];
+        if (p && p.length) return p.splice(Math.floor(rng() * p.length), 1)[0];
       }
       return null;
     }
     var out = [];
-    for (var i = 0; i < PACK_SIZE - 1; i++) out.push(pickFrom(rollRarity(ODDS, rng)));
-    out.push(pickFrom(rollRarity(FINAL_ODDS, rng)));
+    var main = pack.final ? pack.size - 1 : pack.size;
+    for (var i = 0; i < main; i++) out.push(pickFrom(rollRarity(pack.odds, rng)));
+    if (pack.final) out.push(pickFrom(rollRarity(pack.final, rng)));
     return out.filter(Boolean);
   }
 
@@ -131,9 +190,32 @@
     wrap.classList.remove('gone');
   }
 
-  /* 1 - pack drops in and invites the click */
-  function begin() {
-    results = rollPack();
+  var currentPack = null;
+
+  /* 1 - the PURCHASE: price gated, cards granted at roll time */
+  function begin(packKey) {
+    var pack = PACKS[packKey] || currentPack || PACKS.echo;
+    var econ = window.EOL.econ;
+    if (!econ) return;
+    if (!econ.unownedEntries().length) {
+      if (window.EOL.ui && window.EOL.ui.toast)
+        window.EOL.ui.toast('Your collection is complete - the Road has nothing left to sell', 'ra-crown');
+      return;
+    }
+    if (!econ.spend(pack.price)) {
+      if (window.EOL.ui && window.EOL.ui.toast)
+        window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ra-lightning-bolt');
+      return;
+    }
+    currentPack = pack;
+    results = rollPack(Math.random, pack);
+    /* GRANT NOW: the ceremony is theater, the ledger is truth */
+    econ.grant(
+      results.map(function (e) {
+        return e.card.id;
+      })
+    );
+    paintShop();
     resetStage();
     state = 'intro';
     var overlay = el('pack-opening');
@@ -326,20 +408,42 @@
     host.insertBefore(face, host.firstChild);
   }
 
+  /* the shelf: prices, balance, and what is left to pull */
+  function paintShop() {
+    var econ = window.EOL.econ;
+    if (!econ) return;
+    var w = el('shop-wallet');
+    if (w) w.innerHTML = '<i class="ra ra-lightning-bolt"></i>' + econ.coins().toLocaleString();
+    var left = econ.unownedEntries().length;
+    var prog = el('shop-progress');
+    if (prog)
+      prog.textContent =
+        left === 0
+          ? 'Collection complete - every echo answers to you'
+          : econ.ownedCount() + ' / ' + econ.obtainableEntries().length + ' legends collected';
+    document.querySelectorAll('.buy-pack').forEach(function (btn) {
+      var pack = PACKS[btn.dataset.pack];
+      if (!pack) return;
+      var can = left > 0 && econ.coins() >= pack.price;
+      btn.disabled = !can;
+      btn.innerHTML =
+        left === 0
+          ? '<i class="ri-check-line"></i><span>Complete</span>'
+          : '<i class="ra ra-lightning-bolt"></i><span>' + pack.price + '</span>';
+    });
+  }
+
   function mount() {
     document.querySelectorAll('.pk-host').forEach(buildPackFace);
 
-    var odds = el('product-odds');
-    if (odds) {
-      odds.innerHTML =
-        '<span><b>Card odds</b> Common 45% <span class="tip-dot">&middot;</span> Rare 35% ' +
-        '<span class="tip-dot">&middot;</span> Epic 16% <span class="tip-dot">&middot;</span> ' +
-        'Legendary 4%</span>' +
-        '<span><b>Final card</b> Epic 80% <span class="tip-dot">&middot;</span> Legendary 20%</span>';
-    }
-
-    el('btn-open-pack').addEventListener('click', begin);
-    el('po-again').addEventListener('click', begin);
+    document.querySelectorAll('.buy-pack').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        begin(btn.dataset.pack);
+      });
+    });
+    el('po-again').addEventListener('click', function () {
+      begin(currentPack ? currentPack.key : 'echo');
+    });
     el('po-done').addEventListener('click', close);
     el('po-skip').addEventListener('click', skip);
     el('po-pack').addEventListener('click', charge);
@@ -356,17 +460,22 @@
       if (state === 'summary') close();
       else skip();
     });
+    document.addEventListener('eol:coins', paintShop);
+    document.addEventListener('eol:owned', paintShop);
+    document.addEventListener('eol:view', function (ev) {
+      if (ev.detail === 'shop') paintShop();
+    });
+    paintShop();
   }
 
   document.addEventListener('DOMContentLoaded', mount);
 
   window.EOL.shop = {
-    PACK_SIZE: PACK_SIZE,
-    ODDS: ODDS,
-    FINAL_ODDS: FINAL_ODDS,
+    PACKS: PACKS,
     rollPack: rollPack,
     rollRarity: rollRarity,
     begin: begin,
+    paintShop: paintShop,
     charge: charge,
     skip: skip,
     close: close,

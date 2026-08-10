@@ -102,6 +102,10 @@
   function buildCard(card, faction, index) {
     var el = document.createElement('article');
     el.className = 'card';
+    /* THE ECONOMY (2026-08-10): unowned legends render locked wherever
+       this builder paints them (collection, deck editor). Refreshed
+       live on eol:owned as packs and gates pay out. */
+    if (window.EOL.econ && !window.EOL.econ.owns(card.id)) el.className += ' unowned';
     el.dataset.rarity = card.rarity;
     el.dataset.faction = faction.id;
     el.dataset.role = card.role;
@@ -250,6 +254,7 @@
     buildCard: buildCard,
     esc: esc,
     rich: rich,
+    toast: toast,
     ROLE_ICON: ROLE_ICON,
     ELEMENT_ICON: ELEMENT_ICON,
     ELEMENT_COLOR: ELEMENT_COLOR,
@@ -283,6 +288,15 @@
       );
     });
   }
+
+  /* ownership changes at runtime (packs, gate grants): every painted
+     card re-checks its lock without a rebuild */
+  document.addEventListener('eol:owned', function () {
+    if (!window.EOL.econ) return;
+    document.querySelectorAll('.card[data-id]').forEach(function (el) {
+      el.classList.toggle('unowned', !window.EOL.econ.owns(el.dataset.id));
+    });
+  });
 
   function renderBatch() {
     var grid = document.getElementById('roster');

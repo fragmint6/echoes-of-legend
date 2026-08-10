@@ -2315,18 +2315,30 @@
     m.setAttribute('aria-hidden', String(!on));
   }
 
+  /* the OWNED slice of the roster - random decks and deck validation
+     read this; drafts keep the whole roster by design */
+  function ownedFlat() {
+    var all = flatten();
+    if (!window.EOL.econ) return all;
+    var mine = all.filter(function (e) {
+      return window.EOL.econ.owns(e.card.id);
+    });
+    /* the starter twelve alone is a legal pool; never return less */
+    return mine.length >= RULES().DECK_SIZE ? mine : all;
+  }
+
   function startClassicDeck(deckId) {
     var deck = deckId ? window.EOL.decks.get(deckId) : null;
     var player12 = deck
       ? window.EOL.decks.entriesOf(deck)
-      : RULES().randomDeck(flatten(), Math.random); // the shuffle row
+      : RULES().randomDeck(ownedFlat(), Math.random); // the shuffle row
     if (!player12) return;
     modalShow(false);
     startPrep({
       mode: 'classic',
       deckId: deck ? deck.id : null,
       player12: player12,
-      enemy12: RULES().randomDeck(flatten(), Math.random),
+      enemy12: RULES().randomDeck(flatten(), Math.random), // the BOT owns everything
     });
   }
 
@@ -2383,6 +2395,12 @@
       })
       .forEach(function (d) {
         var ok = window.EOL.decks.isComplete(d);
+        var owned =
+          !window.EOL.econ ||
+          d.ids.every(function (cid) {
+            return window.EOL.econ.owns(cid);
+          });
+        if (!owned) ok = false;
         var row = document.createElement('button');
         row.className = 'dm-row' + (ok ? '' : ' disabled');
         row.type = 'button';
@@ -3688,7 +3706,7 @@
         var mine =
           deck && window.EOL.decks.isComplete(deck)
             ? window.EOL.decks.entriesOf(deck)
-            : RULES().randomDeck(flatten(), Math.random);
+            : RULES().randomDeck(ownedFlat(), Math.random);
         var myIds = mine.map(function (e) {
           return e.card.id;
         });
