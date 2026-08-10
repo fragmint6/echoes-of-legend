@@ -205,7 +205,14 @@ window.EOL = window.EOL || {};
            patch. */
         match: {
           seed: 1,
-          moves: [{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Open with the marked legend - a Basic. Cheap, honest work. Tap the legend, tap the skill, tap the marked victim."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}],"say":"My wall raises his shield and PROVOKES - watch your teeth get pulled toward him. Walls work both ways, Blank."},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","pass":true,"say":"Now PASS - yes, on purpose. Unspent Energy carries over, and round two has expensive plans. Hoarding is a move."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-pied-piper","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"},{"side":"enemy","id":"grimmwood-gingerbread-man"}],"say":"Now the Piper - pick both marked victims. CONTROLLERS do not win fights; they decide where fights are winnable: attack carved down, defences torn open, plans bent sideways."},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"sig","targets":[],"say":"And the Queen. CASTERS punish crowds: one incantation and the whole enemy line pays for standing together. Fragile as glass, worth every shard."},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}],"say":"Unchain the Wolf. BRUISERS are the front line's teeth - they tear down whatever the wall holds still, and they grow stronger doing it."},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Goldilocks. SNIPERS reach past every wall into the soft back row. They do not open wars - they end arguments."},{"side":"enemy","unit":"grimmwood-rapunzel","ability":"basic","targets":[{"side":"player","id":"grimmwood-evil-queen"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-snow-white"}]},{"side":"enemy","pass":true},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}]},{"side":"player","unit":"grimmwood-snow-white","ability":"sig","targets":[],"say":"Snow White. MEDICS buy back the mistakes your courage keeps making - wounds undone, poisons wiped. Wars are lost the round the healer dies."},{"side":"enemy","unit":"grimmwood-rapunzel","ability":"basic","targets":[{"side":"player","id":"grimmwood-goldilocks"}]},{"side":"player","unit":"grimmwood-gingerbread-man","ability":"sig","targets":[],"say":"The Gingerbread Man now. This is what TANKS are for: he plants himself, shouts the loudest, and danger forgets your soft targets exist."},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-snow-white"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"}]},{"side":"enemy","unit":"grimmwood-snow-white","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"}],"say":"My healer stitches the damage back. Remember the shape of that annoyance - and cure it at the source."},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"}]},{"side":"enemy","unit":"grimmwood-rapunzel","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-snow-white"}],"say":"Their healer stands in your sights. End her. Wars shorten when nobody argues with your arithmetic."},{"side":"enemy","pass":true},{"side":"enemy","unit":"grimmwood-rapunzel","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-goldilocks"}]},{"side":"player","unit":"grimmwood-goldilocks","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-rapunzel"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-rapunzel"}],"say":"Finish it. The ledger is waiting on my signature."}],
+          /* ROUNDS 1-2 ONLY (the handoff, 2026-08-10): the ledger walks the
+             opening - turn order, basics, the pass lesson, the round-2
+             signature unlock (Piper + Queen) - and ends at the top of round
+             3 with the player ahead and everyone standing. From there the
+             fight is FREE: the Recruiter reacts (tutorial.reactions) but
+             never steers. Handoff position soak: 30/30 AI continuations won
+             (avg 4.8/6 standing), with his own sig moderation active. */
+          moves: [{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Open with the marked legend - a Basic. Cheap, honest work. Tap the legend, tap the skill, tap the marked victim."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}],"say":"My wall raises his shield and PROVOKES - watch your teeth get pulled toward him. Walls work both ways, Blank."},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","pass":true,"say":"Now PASS - yes, on purpose. Unspent Energy carries over, and round two has expensive plans. Hoarding is a move."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-pied-piper","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"},{"side":"enemy","id":"grimmwood-gingerbread-man"}],"say":"Now the Piper - pick both marked victims. CONTROLLERS do not win fights; they decide where fights are winnable: attack carved down, defences torn open, plans bent sideways."},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"sig","targets":[],"say":"And the Queen. CASTERS punish crowds: one incantation and the whole enemy line pays for standing together. Fragile as glass, worth every shard."},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true}],
         },
       },
       tutorial: {
@@ -235,7 +242,33 @@ window.EOL = window.EOL || {};
             'A CONTROLLER. He does not deal the damage - he decides where damage MATTERS: carving attack down, tearing defence open, bending the fight. He takes the last front slot; his song does not care where he stands.',
         },
         rows: 'Study the rows. FRONT soaks the blows - the wall, the wolf, and the piper holding the third gap. BACK works in peace - healer, witch, dead-eye. Snipers exist to punish a naked back line; rows are why yours is not naked.',
-        toBattle: 'Press TO BATTLE when your hand stops shaking. Mine did too, eventually. About a century in. From here, every move is the ledger\'s: follow the golden marks and I will explain the war as we fight it.',
+        toBattle:
+          'Press TO BATTLE when your hand stops shaking. Mine did too, eventually. About a century in. The first two rounds are the ledger\'s - follow the golden marks while I name each lesson. From round three the war is YOURS.',
+        /* THE HANDOFF + REACTIONS (2026-08-10): rounds 1-2 are scripted,
+           then the Recruiter stops steering and starts REACTING - each
+           line fires once, on the player's own choice, at the moment of
+           consequence (the four role-signature lessons the shortened
+           script no longer delivers, plus a few observations). Non-
+           blocking barks, never corrections. */
+        handoff:
+          'The ledger ends here, Blank. Rounds one and two were mine - the war is yours now. I will watch, and I will talk, but I will not steer.',
+        reactions: {
+          roles: {
+            Bruiser:
+              'The Wolf, unchained - YOUR call this time. BRUISERS are the front line\'s teeth: they tear down whatever the wall holds still, and they grow stronger doing it.',
+            Sniper:
+              'Goldilocks, by your own hand. SNIPERS reach past every wall into the soft back row. They do not open wars - they end arguments.',
+            Medic:
+              'Snow White - good instinct. MEDICS buy back the mistakes your courage keeps making: wounds undone, poisons wiped. Wars are lost the round the healer dies.',
+            Tank:
+              'The Gingerbread Man plants himself because YOU asked. This is what TANKS are for: he shouts the loudest, and danger forgets your soft targets exist.',
+          },
+          enemyHeals:
+            'My healer stitches the damage back. Remember the shape of that annoyance - and cure it at the source.',
+          foeMedicDown:
+            'Their healer falls - to YOUR arithmetic. Wars shorten when nobody is left to argue with it.',
+          pass: 'Passing with a full purse, unprompted. You HAVE been listening. Savings win expensive rounds.',
+        },
         rounds: {
           1: [
             'Round one: BASICS only - signatures wake in round two. Even legends stretch first.',
@@ -252,7 +285,8 @@ window.EOL = window.EOL || {};
       },
       grants: { coins: 100 },
       resultWin: 'The Recruiter closes his ledger - Gate I is yours.',
-      resultLose: 'The Recruiter sets down his quill. "The road will still be here. So, unfortunately, will I."',
+      resultLose:
+        'The Recruiter sets down his quill. "Dead? At MY gate? Embarrassing - for me, Blank, not you. Take the rematch. Nobody has ever died at my gate twice."',
       barks: {
         start: '"I will not trick you. The Road has enough of that ahead."',
         firstBloodYou:
@@ -311,6 +345,14 @@ window.EOL = window.EOL || {};
          threat is taken at the gate. */
       banProfile: { roles: ['Sniper', 'Caster'], stat: 'atk' },
       banTell: 'He strikes the killers-at-a-distance first: your archers, your mages, whatever hits hardest from safety.',
+      /* THE ADVISED GATE (2026-08-10): gate 1 scripts, gate 2 ADVISES,
+         gate 3+ releases. The Recruiter walks one more gate offering
+         silver-marked counsel - computed live from the real deny math,
+         never enforced. Refusing costs nothing. */
+      advisor: {
+        ban: 'My counsel stands in silver, Blank - the two I would strike from his twelve. But it is not me fighting. Refuse freely; the Road grades results, not obedience.',
+        six: 'In silver again: the six I would field against him. Rearrange it, replace it, ignore it - your hand, your gate. This is the last one I walk beside you.',
+      },
       grants: { cards: ['camelot-king-arthur', 'camelot-lancelot'], coins: 120 },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',

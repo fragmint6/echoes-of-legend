@@ -591,10 +591,56 @@
           (settledActed ? ' settled' : '') +
           '"><i class="ri-check-line"></i></div>'
         : '') +
+      (!deadView && !acted && unitLockMsg(u)
+        ? '<div class="bcard-lockmsg"><i class="ri-lock-2-line"></i><span>' +
+          esc(unitLockMsg(u)) +
+          '</span></div>'
+        : '') +
       '<div class="bcard-ring"></div>' +
       '</div>' +
       '</div>'
     );
+  }
+
+  /* WHY IS THIS CARD DEAD IN THE WATER?
+     -------------------------------------------------------------
+     Outside playtest (2026-08-09): on the Narrow Pass, a back-row
+     hero in round 1 had its Basic blocked by the terrain AND its
+     signature blocked by the phase - a full lockout with a full
+     energy bar, and nothing said why. Two rules, both taught, whose
+     INTERSECTION nobody taught. When a living, unacted hero of yours
+     has no legal action on your turn, the card itself now says why -
+     shortest true words, worst offender first. */
+  function unitLockMsg(u) {
+    if (!B || B.over || B.turn !== 'player' || u.side !== 'player' || !u.alive) return '';
+    if (B.acted.player[u.uid]) return '';
+    if (scriptActive()) return ''; // the golden line owns the greying
+    var basic = E.roleAbility(u);
+    var sig = u.card.ability && u.card.ability.type === 'Active' ? u.card.ability : null;
+    var abs = [basic, sig].filter(Boolean);
+    if (!abs.length) return '';
+    var usable = abs.some(function (a) {
+      var n = E.pickCount(a);
+      return E.canUse(B, u, a) && (n === 0 || E.legalTargets(B, u, a).length >= n);
+    });
+    if (usable) return '';
+    if (u.flags.silence > 0) return 'Silenced - loses this turn';
+    var why = function (a) {
+      if (!a) return null;
+      if (!a.basic && E.signatureBlocked(B, u, a)) return 'signature locked until round 2';
+      if (!a.basic && a.oncePerBattle && u.usedOnce['ab:' + a.name]) return 'signature spent';
+      if (B.field && B.field.basicsFrontRowOnly && a.basic && !E.isFront(u))
+        return 'back row: no Basics on this arena';
+      if (B.energy.player < E.costOf(B, u, a)) return 'not enough Energy';
+      var n = E.pickCount(a);
+      if (n > 0 && E.legalTargets(B, u, a).length < n) return 'no legal targets';
+      return null;
+    };
+    var rb = why(basic);
+    var rs = sig ? why(sig) : null;
+    if (rb && rs && rb !== rs) return 'Locked: ' + rb + ' + ' + rs;
+    var one = rb || rs;
+    return one ? 'Locked: ' + one : '';
   }
 
   function abilityTip(u) {
@@ -797,7 +843,19 @@
     var rt = $('ramp-tag');
     if (rt) {
       rt.classList.toggle('on', ramp > 0);
-      $('ramp-val').textContent = '+' + ramp + '%';
+      /* the ramp is persistent STATE, and a playtest proved the quiet
+         pill reads as scenery ('I started doing ridiculous damage -
+         why?'). Every time the number grows, the pill physically
+         announces itself. */
+      var rv = $('ramp-val');
+      if (rv.textContent !== '+' + ramp + '%') {
+        rv.textContent = '+' + ramp + '%';
+        if (ramp > 0) {
+          rt.classList.remove('bump');
+          void rt.offsetWidth;
+          rt.classList.add('bump');
+        }
+      }
       var next = Math.round((E.rampMult(B.round + 1) - 1) * 100);
       rt.title =
         ramp > 0
@@ -1839,6 +1897,10 @@
     if (!s || !s.ability) return;
     stopClock();
     var mark = B.log.length;
+    /* pre-cast facts for the campaign's reaction layer */
+    var foesPre = B.units.filter(function (u) {
+      return u.side === 'enemy' && u.alive;
+    });
     var res = E.useAbility(B, s.unit, s.ability, s.chosen, s.choose);
     if (!res.ok) {
       toast('Cannot use that: ' + res.reason);
@@ -1854,6 +1916,25 @@
         : null;
     if (mvC && mvC.side === 'player' && !mvC.pass && s.unit.card.id === mvC.unit) {
       scriptAdvance();
+    }
+    /* CAMPAIGN: the Recruiter REACTS to free play (post-handoff gate 1).
+       Observational only - the campaign can bark, never touch the board. */
+    if (B.campaignStage && window.EOL.campaign && window.EOL.campaign.onPlayerAction) {
+      try {
+        window.EOL.campaign.onPlayerAction(B, {
+          sig: !s.ability.basic,
+          role: s.unit.role,
+          killedRoles: foesPre
+            .filter(function (u) {
+              return !u.alive;
+            })
+            .map(function (u) {
+              return u.role;
+            }),
+        });
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
     }
     /* Put the move on the wire BEFORE the animations play. The other
        client needs the whole action-time to render it, and the engine
@@ -2661,6 +2742,14 @@
     cancelAuto();
     clearSel();
     E.passTurn(B, 'player');
+    /* CAMPAIGN reaction: an UNPROMPTED pass (not the scripted lesson) */
+    if (!mvP && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onPlayerAction) {
+      try {
+        window.EOL.campaign.onPlayerAction(B, { pass: true });
+      } catch (e) {
+        /* lore never breaks a fight */
+      }
+    }
     if (netCtl) netCtl.onLocal(null); // a pass is a move too - it must be sent
     cine('YOU PASS', '', 'player', 1000, true);
     afterPlayerAction();

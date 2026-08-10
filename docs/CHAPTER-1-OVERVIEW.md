@@ -97,7 +97,7 @@ guardian gets exactly one knife hidden in the warmth.
 ## 3. The Ten Gates
 
 ### Gate I — The Recruiter
-- **Format:** Guided Classic (fully scripted) · **Board:** The Colosseum
+- **Format:** Guided Classic (scripted opening, free finish) · **Board:** The Colosseum
 - **Before the gate — the wayfinder:** on a fresh save the Recruiter
   interrupts the main menu once (and again whenever the Tutorial corner
   button asks). When his intro closes he does **not** teleport the
@@ -124,18 +124,33 @@ guardian gets exactly one knife hidden in the warmth.
   the newly ended before they wander into the thorns. Fights to
   *measure*, not to beat — "I will not trick you. The Road has enough
   of that ahead."
-- **Playstyle:** the entire gate is a pre-computed line. The deck is
-  the starter Grimmwood twelve; his bans, your bans, the ordered six
-  (one of every role, Controller included) and **all 41 moves of the
-  match** are the ledger's picks, gold-marked in the UI, with a role
-  lesson for every fielded legend and a narration beat on every
-  signature. The line ends in victory with all six of your legends
-  standing — if you follow the marks.
+- **Playstyle — do, then hand over (2026-08-10):** the ledger scripts
+  **rounds 1–2 only** (16 moves): turn order, basics, the deliberate
+  pass, and the round-2 signature unlock (Piper + Queen), gold-marked
+  in the UI. Then the handoff — *"the ledger ends here"* — and from
+  round 3 the war is **free**. The Recruiter stops steering and starts
+  **reacting**: the four remaining role-signature lessons now fire on
+  the player's *own* first cast of each (teaching at the moment of
+  consequence), plus one-time observations (their healer undoing your
+  work, their healer falling, an unprompted pass). Observations, never
+  corrections; silence is allowed. The handoff position was soaked:
+  30/30 AI continuations won with his live signature-moderation on, so
+  a loss is possible but rare — and losing is *content*: "nobody has
+  ever died at my gate twice," and the retry is free.
 - **Reward:** coin. And the word CONTINUING.
 
 ### Gate II — The Oathkeeper
-- **Format:** Classic · **Board:** The Narrow Pass (front row matters;
-  back row must spend signatures)
+- **Format:** Classic, **advised** (2026-08-10: gate 1 *does*, gate 2
+  *advises*, gate 3+ *releases*) · **Board:** The Narrow Pass (front
+  row matters; back row must spend signatures)
+- **The advised gate:** the Recruiter walks one more gate at the
+  player's shoulder. His counsel is **silver** (dashed, breathing) —
+  categorically different from Gate I's gold, which meant "the only
+  legal click." Suggested bans are computed live from the real
+  deny-value math and a suggested six from the greedy fielder, marked
+  but never enforced; his one bubble line per phase says outright that
+  refusing is free ("the Road grades results, not obedience"). Counsel
+  marks retire one by one as they are followed or overruled.
 - **Teaches:** walls, Provoke, the front line — "what strength is for."
 - **Who he is:** a scarred veteran in mismatched armor whose name is
   "Too Late." He promised forty-three people he would bring them home;

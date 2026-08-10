@@ -1,6 +1,14 @@
 /* =============================================================
    GATE I LINE GENERATOR - the scripted first match
    -------------------------------------------------------------
+   THE HANDOFF (2026-08-10): the shipped script is the first 16
+   moves ONLY - rounds 1-2, ending on the enemy pass that closes
+   round 2. If a balance patch moves a number, regenerate the full
+   line here, then freeze moves.slice(0, end-of-round-2) into the
+   data and re-run sim/verify_campaign.js (it replays the opening
+   AND finishes the game with the AI to prove the handoff position
+   still wins at the floor).
+   -------------------------------------------------------------
    The whole of gate I's battle is a PRE-COMPUTED line: every move
    on both sides, replayed in the browser under the same seeded
    rng (js/battle.js scripted-match layer). This tool generates

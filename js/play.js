@@ -1175,6 +1175,13 @@
          surfaced during the ban phase so the first decision of the
          gate is played with open eyes (playtest note 2026-08-09). */
       banTell: cfg.banTell || null,
+      /* THE ADVISED GATE (stage 2): silver counsel - suggested bans
+         and a suggested six, computed from the real deny/greedy math,
+         marked but never enforced. Gate 1 scripts, gate 2 advises,
+         gate 3+ releases. */
+      advisor: cfg.advisor || null,
+      advice: null,
+      adviceSix: null,
       /* GATE I SCRIPT (campaign): when present, the marked ban/six ids
          are the ONLY legal clicks - the tutorial narrates, this
          enforces. { bans:[ids], six:[ids], hintBan, hintSix } */
@@ -1206,6 +1213,11 @@
        player knows what they are waiting for. Three JPEGs is ~500 KB
        against a ban phase that lasts seconds. */
     warmFields([prep.field].concat(setState ? setState.card : []));
+    /* advised gate: compute the silver ban counsel up front (the six
+       counsel waits for the reveal - it depends on what survives) */
+    if (prep.advisor && !prep.script) {
+      prep.advice = { bans: chooseBans(prep.enemy12, prep.player12) };
+    }
     if (isMp) window.EOL.netplay.startBans(onFoeBans);
     prepAnim = true;
     renderPrep();
@@ -1271,6 +1283,53 @@
     }
   }
 
+  /* THE SILVER COUNSEL (advised gate). A categorically DIFFERENT mark
+     from the script's gold: gold means 'the only legal click', silver
+     means 'were it me' - dashed, quiet, and freely ignorable. Painted
+     for un-taken suggestions only, so counsel disappears as it is
+     either followed or overruled. */
+  function syncAdviceMarks() {
+    var p = prep;
+    var on = !!(p && p.advisor && p.advice && !p.script);
+    var mk = function (el, yes) {
+      if (el) el.classList.toggle('advice-pick', !!yes);
+    };
+    document.querySelectorAll('#prep-enemy .prep-c').forEach(function (el) {
+      mk(
+        el,
+        on &&
+          p.phase === 'ban' &&
+          !p.revealed &&
+          p.advice.bans.indexOf(el.dataset.cid) >= 0 &&
+          p.youBans.indexOf(el.dataset.cid) < 0
+      );
+    });
+    if (on && p.phase === 'pick' && !p.adviceSix) {
+      /* the six counsel exists only now: it is drawn from what SURVIVED */
+      var gone = p.botBans || [];
+      var pool = p.player12.filter(function (e) {
+        return gone.indexOf(e.card.id) < 0;
+      });
+      var foePool = p.enemy12.filter(function (e) {
+        return (p.youBans || []).indexOf(e.card.id) < 0;
+      });
+      p.adviceSix = chooseSix(pool, foePool).map(function (e) {
+        return e.card.id;
+      });
+    }
+    var fielded = p ? p.front.concat(p.back) : [];
+    document.querySelectorAll('#prep-player .prep-c').forEach(function (el) {
+      mk(
+        el,
+        on &&
+          p.phase === 'pick' &&
+          p.adviceSix &&
+          p.adviceSix.indexOf(el.dataset.cid) >= 0 &&
+          fielded.indexOf(el.dataset.cid) < 0
+      );
+    });
+  }
+
   /* Light-touch refresh of everything AROUND the card grids - notes,
      step chips and confirm buttons - without touching the grid DOM.
      Ban/pick clicks patch their own tile and then call only this, so a
@@ -1325,6 +1384,7 @@
             ? 'Too many swaps (max 2)'
             : 'To battle';
     syncTutorMarks();
+    syncAdviceMarks();
   }
 
   function renderPrep() {

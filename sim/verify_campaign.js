@@ -150,7 +150,10 @@ console.log('B3. the frozen match line REPLAYS to a clean win');
 (function () {
   var st1 = S.stages[0];
   var match = st1.script.match;
-  ok(!!match && match.moves && match.moves.length > 20, 'a frozen line exists');
+  ok(
+    !!match && match.moves && match.moves.length >= 12 && match.moves.length <= 20,
+    'a frozen OPENING exists (rounds 1-2 only - the handoff design)'
+  );
   if (!match) return;
   function mulberry(seed) {
     var a = seed >>> 0;
@@ -229,17 +232,88 @@ console.log('B3. the frozen match line REPLAYS to a clean win');
     if (side === 'player' && mv.ability === 'sig') sigs[mv.unit] = true;
   }
   ok(okSeq, 'every move of the line applies cleanly (side order, units, targets, costs)');
-  ok(B.over && B.winner === 'player', 'the line ends in a player VICTORY');
-  ok(Object.keys(sigs).length === 6, 'the line casts all SIX signatures (' + Object.keys(sigs).length + ')');
+  /* THE HANDOFF (2026-08-10): the line no longer plays the whole war.
+     It ends at the top of round 3 with everyone standing and the
+     player ahead - then the fight is free and the Recruiter only
+     reacts. Verify the position, then finish the game with the AI on
+     both sides (his live sig-moderation replicated) and demand the
+     deterministic continuation still ends in a player victory. */
+  ok(!B.over, 'the line ends with the war still LIVE (the handoff)');
+  ok(
+    B.round === 2 && E.roundComplete(B),
+    'the ledger closes exactly as round 2 ends (round ' + B.round + ')'
+  );
+  ok(Object.keys(sigs).length === 2, 'the script itself teaches TWO signatures (Piper + Queen)');
+  ok(sigs['grimmwood-pied-piper'] && sigs['grimmwood-evil-queen'], 'and they are the right two');
   var alive = B.units.filter(function (x) {
-    return x.side === 'player' && x.alive;
+    return x.alive;
   }).length;
-  ok(alive === 6, 'no player hero dies on the line (' + alive + '/6 stand)');
+  ok(alive === 12, 'nobody has died when the ledger closes (' + alive + '/12 stand)');
   ok(i === match.moves.length, 'the line is consumed exactly (' + i + '/' + match.moves.length + ')');
   var says = match.moves.filter(function (m) {
     return m.say;
   }).length;
-  ok(says >= 10, 'the Recruiter narrates the line (' + says + ' teaching beats)');
+  ok(says >= 5, 'the Recruiter narrates the opening (' + says + ' teaching beats)');
+
+  /* the free half: AI both sides, moderation on his signatures */
+  var sigRound = -1;
+  var contSteps = 0;
+  while (!B.over && B.round <= 30 && contSteps++ < 4000) {
+    var cSide = E.advanceAction(B);
+    if (!cSide) {
+      if (!B.over) E.nextRound(B);
+      continue;
+    }
+    var act = AI.bestAction(B, cSide);
+    if (cSide === 'enemy' && act && act.ability && !act.ability.basic) {
+      var usedSig = sigRound === B.round;
+      if (usedSig || B.rng() < 0.65) {
+        var modBasic = E.roleAbility(act.unit);
+        if (E.canUse(B, act.unit, modBasic)) {
+          var modPool = E.legalTargets(B, act.unit, modBasic);
+          if (modPool.length)
+            act = { unit: act.unit, ability: modBasic, chosen: [modPool[0]], choose: 0 };
+        }
+      } else sigRound = B.round;
+    }
+    if (!act) {
+      E.passTurn(B, cSide);
+      continue;
+    }
+    E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
+  }
+  ok(B.over && B.winner === 'player', 'the free half still ends in a player VICTORY (AI floor)');
+
+  /* the reaction layer's data: the four role lessons the script no
+     longer scripts, plus the observations */
+  var T1 = st1.tutorial || {};
+  ok(typeof T1.handoff === 'string' && T1.handoff.length > 20, 'a handoff line exists');
+  var rx = T1.reactions || {};
+  ['Tank', 'Bruiser', 'Sniper', 'Medic'].forEach(function (r) {
+    ok(
+      rx.roles && typeof rx.roles[r] === 'string' && /^[\x20-\x7E]+$/.test(rx.roles[r]),
+      'reaction: the ' + r + ' signature lesson survives the cut (ASCII)'
+    );
+  });
+  ['enemyHeals', 'foeMedicDown', 'pass'].forEach(function (k) {
+    ok(
+      typeof rx[k] === 'string' && /^[\x20-\x7E]+$/.test(rx[k]),
+      'reaction: ' + k + ' authored (ASCII)'
+    );
+  });
+  /* the advised gate: stage 2 carries the Recruiter's silver counsel */
+  var st2 = S.stages[1];
+  ok(
+    st2.advisor && typeof st2.advisor.ban === 'string' && typeof st2.advisor.six === 'string',
+    'stage 2 is the ADVISED gate (ban + six counsel authored)'
+  );
+  ok(
+    /^[\x20-\x7E]+$/.test(st2.advisor.ban + st2.advisor.six),
+    'advisor counsel is pure ASCII'
+  );
+  S.stages.forEach(function (st) {
+    if (st.id > 2) ok(!st.advisor, 'stage ' + st.id + ' is RELEASED - no advisor (do/advise/release)');
+  });
 })();
 
 console.log('C. terrain wiring');

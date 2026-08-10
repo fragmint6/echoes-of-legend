@@ -677,6 +677,7 @@
              the player commits their own (playtest note 2026-08-09:
              the least-informed call must not stay the blindest one) */
           banTell: stage.banTell || null,
+          advisor: stage.advisor || null,
           pinnedEnemy: stage.pinned || null,
           unbannable: stage.unbannable || null,
           rival: rivalOf(stage),
@@ -690,6 +691,9 @@
           cfg.field = fieldById(stage.field);
         }
         window.EOL.play.startPrep(cfg);
+        /* THE ADVISED GATE: the Recruiter walks one more gate at the
+           player's shoulder - counsel in silver, hands in pockets */
+        if (stage.advisor) startPrepTutor(stage);
       },
       {
         isCampaign: true,
@@ -855,10 +859,34 @@
         if (aliveCount(B, 'player') <= 2) fireBark('playerLow');
         else fireBark('allyDown', { chance: 0.65 });
       } else {
+        /* the REACTION for their fallen healer outranks the generic
+           death barks - it is the lesson the shortened script kept
+           trying to teach ('cure it at the source') */
+        var rxD = (battleWatch.stage.tutorial || {}).reactions;
+        if (u.role === 'Medic' && rxD && rxD.foeMedicDown && battleWatch.rxFree) {
+          if (fireReaction('foeMedicDown', rxD.foeMedicDown, { force: true })) return;
+        }
         var left = aliveCount(B, 'enemy');
         if (left === 1) fireBark('foeLast', { force: true });
         else if (left <= 3) fireBark('foeHalf');
         else fireBark('foeDown', { chance: 0.4 });
+      }
+    } else if (ev.t === 'heal') {
+      /* their medic undoing your work, once: the shape of the annoyance */
+      var healer = (B.units || []).filter(function (x) {
+        return x.uid === ev.src;
+      })[0];
+      var rxH = (battleWatch.stage.tutorial || {}).reactions;
+      if (
+        healer &&
+        healer.side === 'enemy' &&
+        ev.tgt !== ev.src &&
+        (ev.amount || 0) > 0 &&
+        rxH &&
+        rxH.enemyHeals &&
+        battleWatch.rxFree
+      ) {
+        fireReaction('enemyHeals', rxH.enemyHeals);
       }
     } else if (ev.t === 'revive') {
       var r = (B.units || []).filter(function (x) {
@@ -880,6 +908,12 @@
       deaths: { player: 0, enemy: 0 },
       lastAt: 0,
       prevHook: window.EOL.onBattleEvent || null,
+      /* THE REACTION LAYER (gate 1, post-handoff): rxFree flips true
+         when the scripted line ends; each reaction fires once, with a
+         cooldown, and silence is always allowed. */
+      rxFree: !(stage.script && stage.script.match),
+      rxFired: {},
+      rxCool: 0,
     };
     window.EOL.onBattleEvent = function (BB, ev) {
       if (battleWatch && battleWatch.prevHook) {
@@ -955,6 +989,14 @@
   }
   function onScriptEnd(B, reason) {
     if (!battleWatch) return;
+    battleWatch.rxFree = true; // the Recruiter stops steering either way
+    if (reason === 'done') {
+      /* THE HANDOFF (2026-08-10): the shortened line ends at the top of
+         round 3 by design - the war is the player's now, and he says so */
+      var T = battleWatch.stage.tutorial || {};
+      if (T.handoff) queueBark(battleWatch.stage, T.handoff);
+      return;
+    }
     if (reason === 'desync') {
       /* the line broke (a balance patch moved a number) - the fight
          gracefully becomes a normal battle, and says so in character */
@@ -962,6 +1004,41 @@
         battleWatch.stage,
         'The Recruiter squints at his ledger. "The ink has moved. Fight it your own way, Blank - I will watch."'
       );
+    }
+  }
+
+  /* THE REACTIONS - the Recruiter answering the player's OWN choices
+     after the handoff. Observations, never corrections: the four
+     role-signature lessons the shortened script no longer scripts,
+     the unprompted pass, the fall of the enemy healer. Each fires
+     once; a cooldown keeps him from chaining barks; anything
+     unremarkable earns silence. */
+  var RX_COOLDOWN = 6500;
+
+  function fireReaction(key, text, opts) {
+    if (!battleWatch || !battleWatch.rxFree || !text) return false;
+    if (battleWatch.rxFired[key]) return false;
+    var now = Date.now();
+    if (!(opts && opts.force) && now < battleWatch.rxCool) return false;
+    battleWatch.rxFired[key] = true;
+    battleWatch.rxCool = now + RX_COOLDOWN;
+    queueBark(battleWatch.stage, text);
+    return true;
+  }
+
+  function onPlayerAction(B, info) {
+    if (!battleWatch || !info) return;
+    var T = battleWatch.stage.tutorial || {};
+    var rx = T.reactions;
+    if (!rx) return;
+    /* (enemy deaths - including their healer - are handled in
+       watchEvent, where the death event lands first; reacting here
+       too would chain two barks off one blow) */
+    if (info.sig && rx.roles && rx.roles[info.role]) {
+      if (fireReaction('role-' + info.role, rx.roles[info.role])) return;
+    }
+    if (info.pass && rx.pass) {
+      fireReaction('pass', rx.pass);
     }
   }
 
@@ -1033,7 +1110,7 @@
 
   function startPrepTutor(stage) {
     stopPrepTutor();
-    if (!stage.tutorial) return;
+    if (!stage.tutorial && !stage.advisor) return;
     tut = { stage: stage, flags: {}, seq: null, timer: window.setInterval(tutorTick, 260) };
     /* claim the battlefield popup's button BEFORE the popup opens:
        play.js's entrance unlock (animationend / 900ms fallback) checks
@@ -1041,7 +1118,7 @@
        between our polls while the arena + tips beats are unread */
     var T = stage.tutorial;
     var bfGo = $('bf-go');
-    if (bfGo && (T.arena || T.tips)) {
+    if (bfGo && T && (T.arena || T.tips)) {
       bfGo.dataset.campaignHold = '1';
       bfGo.disabled = true;
       tut.heldGo = true;
@@ -1101,6 +1178,24 @@
       return;
     }
     var T = tut.stage.tutorial;
+    if (!T) {
+      /* THE ADVISED GATE (stage 2): no script, no shield, no holds -
+         the Recruiter stands at the shoulder with silver counsel and
+         his hands in his pockets. One line per phase, ungated. */
+      var A = tut.stage.advisor;
+      if (!A) {
+        stopPrepTutor();
+        return;
+      }
+      var REC = { rival: 'The Recruiter', portrait: 'assets/rivals/the-recruiter.png' };
+      if (p.phase === 'ban') {
+        if (p.waiting || p.revealed) hideTutor();
+        else showTutor(REC, A.ban, false);
+      } else if (p.phase === 'pick') {
+        showTutor(REC, A.six, false);
+      }
+      return;
+    }
     if (p.phase === 'ban') {
       if (runTutorSeq(T.intro, 'intro')) return;
       if (p.waiting) {
@@ -1585,6 +1680,7 @@
     onScriptMove: onScriptMove,
     onScriptSay: onScriptSay,
     onScriptEnd: onScriptEnd,
+    onPlayerAction: onPlayerAction,
     onBattleResult: onBattleResult,
     startTutorial: runIntroTutorial,
     skipTutorial: skipTutorial,

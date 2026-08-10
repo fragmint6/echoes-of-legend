@@ -3537,6 +3537,40 @@ body[data-turn='player'] .turn-label {
   backdrop-filter: grayscale(0.7);
   animation: veil-in 0.3s var(--ease);
 }
+/* THE LOCKOUT STRIP: a living, unacted hero of yours with NO legal
+   action says why on the card itself (playtest 2026-08-09: terrain
+   row-lock + the round-1 signature lock intersected into a silent
+   full lockout with a full energy bar). */
+.bcard-lockmsg {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 26px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 120, 120, 0.45);
+  background: rgba(24, 8, 12, 0.92);
+  color: #ffb9b9;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  pointer-events: none;
+  animation: veil-in 0.3s var(--ease);
+}
+.bcard-lockmsg i {
+  flex: 0 0 auto;
+  font-size: 10px;
+  margin-top: 1px;
+}
+.bcard-lockmsg span {
+  min-width: 0;
+}
 /* already-veiled units re-render WITHOUT the fade: render() rebuilds
    the grid every action, and re-playing veil-in made the whole board
    strobe whenever a mid/late-round heal landed */
@@ -6326,6 +6360,22 @@ body[data-turn='player'] .turn-label {
 .ramp-tag.on {
   visibility: visible;
   animation: ramp-in 0.35s var(--ease);
+}
+/* every time the ramp GROWS, the pill announces itself - a quiet
+   permanent chip taught nobody anything (playtest 2026-08-09) */
+.ramp-tag.bump {
+  animation: ramp-bump 0.7s var(--ease);
+}
+@keyframes ramp-bump {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: none;
+  }
+  30% {
+    transform: scale(1.22);
+    box-shadow: 0 0 18px rgba(255, 180, 70, 0.75);
+  }
 }
 .ramp-tag i {
   font-size: 11px;
@@ -23146,6 +23196,24 @@ html.mqw640 .tutor-face {
 }
 .prep-c.tutor-pick {
   z-index: 2;
+}
+/* THE SILVER COUNSEL (advised gate): categorically different from the
+   script's gold. Gold pulses = the only legal click; silver dashes =
+   'were it me' - a suggestion the player may freely overrule. */
+.prep-c.advice-pick {
+  z-index: 2;
+  outline: 2px dashed rgba(200, 214, 232, 0.75);
+  outline-offset: 3px;
+  animation: advice-breathe 2.2s ease-in-out infinite;
+}
+@keyframes advice-breathe {
+  0%,
+  100% {
+    outline-color: rgba(200, 214, 232, 0.35);
+  }
+  50% {
+    outline-color: rgba(220, 232, 248, 0.85);
+  }
 }
 .bcard.tutor-pick {
   z-index: 3;

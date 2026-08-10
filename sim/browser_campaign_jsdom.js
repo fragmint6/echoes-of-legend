@@ -152,7 +152,7 @@ const server = http.createServer((req, res) => {
   t(!$('deck-modal').classList.contains('show'), 'no deck picker on the scripted gate');
   t(d.body.dataset.view === 'prep', 'prep opens directly');
   const prep = w.EOL.play._prepState();
-  t(!!prep.script && prep.script.match && prep.script.match.moves.length === 41, 'the 41-move line is loaded in prep');
+  t(!!prep.script && prep.script.match && prep.script.match.moves.length === 16, 'the 16-move OPENING is loaded in prep (rounds 1-2 - the handoff design)');
   await sleep(400);
   t(!$('tutor').hidden && !$('tutor-next').hidden, 'tutor intro with Continue');
   t(!$('tutor-shield').hidden, 'info beat raises the soft dim shield');
@@ -236,12 +236,12 @@ const server = http.createServer((req, res) => {
   t(d.body.dataset.view === 'battle', 'battle starts');
   t($('tutor').hidden, 'tutor stands down once the fight begins');
 
-  /* ---------- THE SCRIPTED MATCH: visible marks + all 41 moves ---------- */
+  /* ---------- THE SCRIPTED OPENING: visible marks, rounds 1-2 ---------- */
   const B1 = w.EOL.battle.getState();
   t(B1.campaignStage === 1, 'battle carries stage id');
   t($('pf-name-enemy').textContent === 'The Recruiter', 'enemy commander plate shows the rival');
   let ms0 = w.EOL.battle._scriptState();
-  t(!!ms0 && ms0.moves.length === 41, 'move script loaded (41)');
+  t(!!ms0 && ms0.moves.length === 16, 'move script loaded (16 - the ledger owns rounds 1-2 only)');
   await sleep(600);
   {
     const mv = ms0.moves[ms0.i];
@@ -316,15 +316,90 @@ const server = http.createServer((req, res) => {
     }
     await sleep(260);
   }
+  /* ---------- THE HANDOFF: the ledger closes, the war stays live ---------- */
+  t(!w.EOL.battle._scriptState(), 'the opening is fully consumed');
+  {
+    const Bh = w.EOL.battle.getState();
+    t(!!Bh && !Bh.over, 'the handoff leaves the war LIVE - no more escort');
+    t(Bh.units.filter((x) => x.alive).length === 12, 'nobody has died when the ledger closes');
+  }
+  t(sawAbilityMark, 'ability rows were marked during the opening');
+  t(sawTargetMark, 'targets were marked during the opening');
+  t(sawPassMark, 'the Pass dial was marked on the scripted pass');
+
+  /* ---------- FREE PLAY: the player fights, the Recruiter REACTS ----------
+     Drive the player's side through the real UI (unit click, ability
+     click, target click), guided by the game's own AI. Along the way the
+     handoff bark must land and at least one role-lesson REACTION must
+     fire on a signature the player chose to cast. */
+  let sawHandoffBark = false,
+    sawReaction = false;
+  const guard2 = Date.now() + 420000;
+  while (Date.now() < guard2) {
+    const B = w.EOL.battle.getState();
+    if (!B || B.over) break;
+    const barkTxt = $('rival-bark-text').textContent;
+    if (/ledger ends here/i.test(barkTxt)) sawHandoffBark = true;
+    if (/CONTROLLERS|CASTERS/.test(barkTxt)) sawRoleSay = true; // queued scripted says drain here
+    if (/BRUISERS|SNIPERS|MEDICS|TANKS/.test(barkTxt)) {
+      sawReaction = true; // these four ONLY exist as post-handoff reactions now
+      sawRoleSay = true;
+    }
+    if (B.turn !== 'player' || d.body.dataset.busy === '1') {
+      await sleep(220);
+      continue;
+    }
+    /* a pending target pick resolves first - click a lit card */
+    const lit = d.querySelector('.bcard.targetable');
+    if (lit) {
+      lit.click();
+      await sleep(160);
+      continue;
+    }
+    const act = w.EOL.ai.bestAction(B, 'player');
+    if (!act || !act.unit || !act.ability) {
+      const et = $('btn-endturn');
+      if (!et.disabled) {
+        et.click();
+        await sleep(320);
+      } else await sleep(220);
+      continue;
+    }
+    const cardEl = d.querySelector('.bcard[data-uid="' + act.unit.uid + '"]');
+    if (!cardEl) {
+      await sleep(200);
+      continue;
+    }
+    const cineEl = $('cine');
+    const turnBannerUp =
+      cineEl.classList.contains('show') &&
+      /\bslim\b/.test(cineEl.className) &&
+      /tone-player/.test(cineEl.className);
+    cardEl.click();
+    if (turnBannerUp && !cineEl.classList.contains('show')) sawBannerCut = true;
+    await sleep(140);
+    const isSig = act.ability === act.unit.card.ability;
+    const abBtn = d.querySelector('#flyout .dk-ab.act[data-ab="' + (isSig ? 0 : 1) + '"]');
+    if (abBtn) {
+      abBtn.click();
+      await sleep(140);
+    }
+    /* prefer the AI's own victims when they are lit */
+    for (const tu of act.chosen || act.targets || []) {
+      const tEl = tu && d.querySelector('.bcard.targetable[data-uid="' + tu.uid + '"]');
+      if (tEl) {
+        tEl.click();
+        await sleep(140);
+      }
+    }
+    await sleep(240);
+  }
   const Bend = w.EOL.battle.getState();
-  t(!!Bend && Bend.over && Bend.winner === 'player', 'the 41-move line ends in VICTORY');
-  t(Bend.units.filter((x) => x.side === 'player' && x.alive).length === 6, 'all six stand');
-  t(!w.EOL.battle._scriptState(), 'line fully consumed');
-  t(sawAbilityMark, 'ability rows were marked during the match');
-  t(sawTargetMark, 'targets were marked during the match');
-  t(sawPassMark, 'the Pass dial was marked on scripted passes');
-  t(sawBannerCut, 'acting cuts a lingering YOUR TURN banner in the same click');
+  t(!!Bend && Bend.over && Bend.winner === 'player', 'the FREE half still ends in VICTORY');
+  t(sawHandoffBark, 'the Recruiter announces the handoff ("the ledger ends here")');
+  t(sawReaction, 'a role-signature REACTION fired on a move the player chose');
   t(sawRoleSay, 'signature narration teaches ROLES, not damage numbers');
+  t(sawBannerCut, 'acting cuts a lingering YOUR TURN banner in the same click');
   let shown = false;
   for (let g = 0; g < 30 && !shown; g++) {
     await sleep(400);
@@ -340,6 +415,58 @@ const server = http.createServer((req, res) => {
   $('chapter-dialogue-close').click();
   await sleep(900);
   t(d.body.dataset.view === 'chapter', 'back on the map');
+
+  /* ---------- STAGE 2: THE ADVISED GATE (do -> advise -> release) ---------- */
+  w.EOL.campaign._launchStage(w.EOL.campaign._stageById(2));
+  await sleep(300);
+  Array.from(d.querySelectorAll('#dm-list .dm-row'))
+    .find((r) => r.textContent.indexOf('Grimmwood') >= 0)
+    .click();
+  await sleep(700);
+  t(d.body.dataset.view === 'prep', 'gate 2 opens preparation');
+  {
+    const p2 = w.EOL.play._prepState();
+    t(!!p2.advisor && !p2.script, 'gate 2 is advised, never scripted');
+    t(!!p2.advice && p2.advice.bans.length === 2, 'silver ban counsel computed from the real deny math');
+    t(d.querySelectorAll('#prep-enemy .prep-c.advice-pick').length === 2, 'both counseled bans wear SILVER marks');
+    t(!d.querySelector('#prep-enemy .prep-c.tutor-pick'), 'and no GOLD marks - silver is advice, gold is law');
+    t(!$('tutor').hidden && $('tutor-next').hidden, 'the Recruiter counsels, ungated (no Continue, no shield)');
+    t($('tutor-name').textContent === 'The Recruiter', 'the counsel is voiced by the Recruiter, not the rival');
+    t($('tutor-text').textContent.indexOf('Refuse freely') >= 0, 'and it says outright that refusing is fine');
+    t($('tutor-shield').hidden, 'no shield - the advised gate never locks the board');
+    // REFUSING the counsel must cost nothing: ban a NON-advised card
+    const freePick = Array.from(d.querySelectorAll('#prep-enemy .prep-c')).find(
+      (el) => p2.advice.bans.indexOf(el.dataset.cid) < 0
+    );
+    freePick.click();
+    await sleep(250);
+    t(w.EOL.play._prepState().youBans.length === 1, 'a non-counseled ban lands without resistance');
+    // then follow half the counsel
+    d.querySelector('#prep-enemy .prep-c.advice-pick').click();
+    await sleep(250);
+    t(w.EOL.play._prepState().youBans.length === 2, 'mixed obedience: one his, one yours');
+    $('prep-confirm-main').click();
+    // reveal hold (non-scripted) then the pick phase - poll, not guess
+    for (let g = 0; g < 25 && w.EOL.play._prepState().phase !== 'pick'; g++) await sleep(300);
+    t(w.EOL.play._prepState().phase === 'pick', 'pick phase opens');
+    await sleep(400);
+    const p2b = w.EOL.play._prepState();
+    t(!!p2b.adviceSix && p2b.adviceSix.length === 6, 'a silver SIX is counseled from what survived');
+    t(
+      d.querySelectorAll('#prep-player .prep-c.advice-pick').length === 6,
+      'all six suggestions marked while none are fielded'
+    );
+    t($('tutor-text').textContent.indexOf('your hand, your gate') >= 0, 'the six counsel line plays');
+    // following one piece of counsel retires that one mark
+    d.querySelector('#prep-player .prep-c.advice-pick').click();
+    await sleep(300);
+    t(
+      d.querySelectorAll('#prep-player .prep-c.advice-pick').length === 5,
+      'counsel disappears as it is followed'
+    );
+  }
+  w.EOL.ui.show('chapter');
+  await sleep(700);
 
   /* ---------- STAGE 5: campaign picker locks the format ---------- */
   prog = w.EOL.campaign.getProgress();
