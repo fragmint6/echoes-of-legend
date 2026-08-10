@@ -280,6 +280,15 @@ window.EOL = window.EOL || {};
           2: [
             'Round two - SIGNATURES unlock. The expensive, theatrical ones. Time to spend what you hoarded.',
           ],
+          /* round 3 = the first FREE round (the handoff lands just
+             before these). By now the Piper and the Queen have left
+             sigils on the enemy line - teach reading them, then teach
+             the one-two (playtest ruling 2026-08-10: encourage combo
+             thinking, not attack-and-hope). */
+          3: [
+            'See the little sigils under a legend\'s health bar? STATUSES - blessings and curses. HOVER one and it explains itself. Read the enemy before you swing; wars are won by people who read.',
+            'A trade secret: curses COMPOUND. Let the Piper carve their defence open, then send Goldilocks to collect what is left. Expose, then execute - the Road rewards the one-two, not heroics.',
+          ],
           4: [
             'Round four. From here the Road sharpens every blade a little more each round - it despises stalemates. Finish what you started.',
           ],

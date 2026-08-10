@@ -163,6 +163,23 @@ console.log('B2. the fully scripted first gate');
   var T = st1.tutorial;
   ok(!!T, 'stage 1 carries tutorial copy');
   ok(T.intro && T.intro.length >= 2, 'tutorial: prep intro beats');
+  /* the post-handoff round-3 lessons (owner ruling 2026-08-10): read
+     the sigils (and HOVER them), then the one-two - expose, execute */
+  ok(
+    Array.isArray((T.rounds || {})[3]) && T.rounds[3].length === 2,
+    'tutorial: round-3 carries the status + combo lessons'
+  );
+  ok(
+    /STATUS/i.test(T.rounds[3][0]) && /HOVER/.test(T.rounds[3][0]),
+    'the status lesson teaches sigil-reading and the hover'
+  );
+  ok(/one-two/i.test(T.rounds[3][1]), 'the combo lesson preaches the one-two');
+  ok(
+    T.rounds[3].every(function (l) {
+      return /^[\x20-\x7E]+$/.test(l);
+    }),
+    'round-3 lessons are pure ASCII'
+  );
   ['ban0', 'ban1', 'ban2', 'reveal', 'arena', 'tips', 'field', 'rows', 'toBattle'].forEach(function (k) {
     ok(typeof T[k] === 'string' && T[k].length > 20, 'tutorial: ' + k + ' authored');
   });

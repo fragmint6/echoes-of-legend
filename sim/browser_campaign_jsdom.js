@@ -346,7 +346,7 @@ const server = http.createServer((req, res) => {
      handoff bark must land and at least one role-lesson REACTION must
      fire on a signature the player chose to cast. */
   let sawHandoffBark = false,
-    sawReaction = false,
+    sawStatusLesson = false,
     sawDmgPreview = false;
   const guard2 = Date.now() + 420000;
   while (Date.now() < guard2) {
@@ -354,11 +354,9 @@ const server = http.createServer((req, res) => {
     if (!B || B.over) break;
     const barkTxt = $('rival-bark-text').textContent;
     if (/ledger ends here/i.test(barkTxt)) sawHandoffBark = true;
+    if (/STATUSES|sigils/.test(barkTxt)) sawStatusLesson = true;
     if (/CONTROLLERS|CASTERS/.test(barkTxt)) sawRoleSay = true; // queued scripted says drain here
-    if (/BRUISERS|SNIPERS|MEDICS|TANKS/.test(barkTxt)) {
-      sawReaction = true; // these four ONLY exist as post-handoff reactions now
-      sawRoleSay = true;
-    }
+    if (/BRUISERS|SNIPERS|MEDICS|TANKS/.test(barkTxt)) sawRoleSay = true;
     if (B.turn !== 'player' || d.body.dataset.busy === '1') {
       await sleep(220);
       continue;
@@ -413,7 +411,17 @@ const server = http.createServer((req, res) => {
   const Bend = w.EOL.battle.getState();
   t(!!Bend && Bend.over && Bend.winner === 'player', 'the FREE half still ends in VICTORY');
   t(sawHandoffBark, 'the Recruiter announces the handoff ("the ledger ends here")');
-  t(sawReaction, 'a role-signature REACTION fired on a move the player chose');
+  {
+    // the reaction layer: assert the FIRING (the queue may still be
+    // draining lessons when the battle ends - display is timing, the
+    // record is truth)
+    const bw = w.EOL.campaign._battleWatch();
+    t(
+      !!bw && Object.keys(bw.rxFired || {}).some((k) => k.indexOf('role-') === 0),
+      'a role-signature REACTION fired on a move the player chose'
+    );
+  }
+  t(sawStatusLesson, 'round 3 taught reading the status sigils (and the hover)');
   t(sawRoleSay, 'signature narration teaches ROLES, not damage numbers');
   t(sawDmgPreview, 'targetable enemies wore a damage preview during free play');
   t(sawBannerCut, 'acting cuts a lingering YOUR TURN banner in the same click');

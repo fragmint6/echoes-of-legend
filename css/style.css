@@ -9334,7 +9334,7 @@ body[data-gfx='low'] .col-thumb {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  margin: -2px 0 10px;
+  margin: 10px 0 0; /* below the enemy grid - never shifts the rows */
   padding: 8px 12px;
   border-left: 3px solid rgba(255, 214, 130, 0.5);
   border-radius: 0 10px 10px 0;
@@ -24180,7 +24180,7 @@ html.mqw640 .tutor-face {
 /* the why, at the FOOT of the hover panel */
 .dk-lock {
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* owner note 2026-08-10: text sat high in the box */
   gap: 7px;
   margin-top: 8px;
   padding: 7px 10px;
@@ -24196,7 +24196,6 @@ html.mqw640 .tutor-face {
 }
 .dk-lock i {
   flex: 0 0 auto;
-  margin-top: 1px;
   font-size: 12px;
 }
 .dk-lock span {
