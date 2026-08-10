@@ -365,6 +365,20 @@ roulette ever spins).
 
 ## 5. Rewards & Progression
 
+**The Ledger (2026-08-10).** The Recruiter's book is a real screen now,
+opened from the chapter header and introduced by a one-time spotlight
+after Gate I falls. Two indexes, all rendered from the same story data
+the gates run on: **Rivals** — ten pages under fog of war (sealed while
+a gate is locked; the ground, the banning habit, and the Recruiter's
+counsel once it's unlocked; the full twelve, the record, and any
+correction the player forced onto a ban-claim once it's cleared) — and
+**Legends**, a derived cross-index of every card the Road has shown
+(starter, granted, or fielded by an unlocked rival; locked gates leak
+nothing, so the Duat reveal stays sealed until Gate X opens). Broken
+ban-claims persist in the progress store (`tellsBroken`) and render as
+struck-through habit lines with the correction beneath — the falsified
+"never once" preserved as the player's own trophy.
+
 Three tiers per gate (design R6):
 
 1. **Curriculum cards** — 1-2 named echoes from the rival's faction,

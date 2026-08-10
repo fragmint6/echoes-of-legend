@@ -127,7 +127,20 @@ S.stages.forEach(function (st) {
   } else {
     ok(!st.banTellBroken, 'stage ' + st.id + ': hedged/absent tells never made a breakable promise');
   }
+  /* THE LEDGER: every page carries the Recruiter's counsel */
+  ok(
+    typeof st.counsel === 'string' && st.counsel.length > 20 && /^[\x20-\x7E]+$/.test(st.counsel),
+    'stage ' + st.id + ': ledger counsel authored (ASCII)'
+  );
 });
+
+/* the ledger's one-time introduction line */
+ok(
+  typeof (S.guide || {}).ledger === 'string' &&
+    S.guide.ledger.indexOf('LEDGER') >= 0 &&
+    /^[\x20-\x7E]+$/.test(S.guide.ledger),
+  'the ledger spotlight line is authored (ASCII, names the LEDGER)'
+);
 
 console.log('B2. the fully scripted first gate');
 (function () {

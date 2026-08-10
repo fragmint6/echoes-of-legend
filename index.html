@@ -1335,6 +1335,11 @@
           <p class="col-sub">An unfinished story walks between memory and the Quiet</p>
         </div>
         </div>
+        <!-- THE LEDGER: the Recruiter's index of rivals and legends.
+             Introduced by a one-time highlight after Gate I falls. -->
+        <button class="ledger-btn" id="btn-ledger" type="button" aria-label="Open the Recruiter's Ledger">
+          <i class="ra ra-quill-ink" aria-hidden="true"></i><span>The Ledger</span>
+        </button>
       </header>
 
       <div class="stage-list" aria-label="The ten gates of Chapter 1">
@@ -1831,6 +1836,47 @@
           </button>
         </footer>
       </section>
+    </div>
+
+    <!-- ==================== CAMPAIGN: THE LEDGER ====================
+         The Recruiter's book made openable (2026-08-10). Two indexes:
+         RIVALS (ten pages under fog of war - sealed until a gate is
+         unlocked, intel while it stands, the full page once it falls)
+         and LEGENDS (a cross-index of every card the Road has shown:
+         who runs it, where it was granted). js/campaign.js renders
+         everything from the same story data the gates use. -->
+    <div
+      class="ledger"
+      id="ledger"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ledger-title"
+    >
+      <div class="ledger-scrim" id="ledger-scrim"></div>
+      <div class="ledger-card">
+        <button class="ledger-close" id="ledger-close" type="button" aria-label="Close the ledger">
+          <i class="ri-close-line"></i>
+        </button>
+        <header class="ledger-head">
+          <h2 id="ledger-title"><i class="ra ra-quill-ink"></i> The Recruiter's Ledger</h2>
+          <div class="ledger-tabs" role="tablist">
+            <button class="ledger-tab sel" id="ledger-tab-rivals" type="button" role="tab">
+              Rivals
+            </button>
+            <button class="ledger-tab" id="ledger-tab-legends" type="button" role="tab">
+              Legends
+            </button>
+          </div>
+        </header>
+        <div class="ledger-body">
+          <div class="ledger-rivals" id="ledger-rivals">
+            <div class="ledger-list" id="ledger-list"></div>
+            <div class="ledger-page" id="ledger-page"></div>
+          </div>
+          <div class="ledger-legends" id="ledger-legends" hidden></div>
+        </div>
+      </div>
     </div>
 
     <!-- ==================== CAMPAIGN: EXAM CHOICE GRANT ====================

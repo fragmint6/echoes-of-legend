@@ -1373,7 +1373,17 @@
             var ce = dict[id];
             return ce && claim.indexOf(ce.card.role) >= 0;
           });
-          if (offeredClaim && !struckClaim) p.tellBreak = p.banTellBroken;
+          if (offeredClaim && !struckClaim) {
+            p.tellBreak = p.banTellBroken;
+            /* the correction is HISTORY now - the ledger remembers */
+            if (window.EOL.campaign && window.EOL.campaign.onTellBreak) {
+              try {
+                window.EOL.campaign.onTellBreak(p.campaignStage);
+              } catch (e) {
+                /* the record is flavour; prep never breaks on it */
+              }
+            }
+          }
         }
       }
       var tellTxt = null;

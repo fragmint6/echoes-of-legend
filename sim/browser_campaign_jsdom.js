@@ -416,6 +416,55 @@ const server = http.createServer((req, res) => {
   await sleep(900);
   t(d.body.dataset.view === 'chapter', 'back on the map');
 
+  /* ---------- THE LEDGER: introduced once, then a real index ---------- */
+  // the spotlight: after Gate I falls, the ledger button earns a pointer
+  for (let g = 0; g < 15 && !$('btn-ledger').classList.contains('guide-mark'); g++) await sleep(250);
+  t($('btn-ledger').classList.contains('guide-mark'), 'the ledger button is spotlit after Gate I');
+  t(!$('nav-guide').hidden && $('nav-guide-text').textContent.indexOf('LEDGER') >= 0, 'the Recruiter introduces his book');
+  t($('nav-guide-skip').hidden, 'a pointer, not a flow - no skip pill');
+  t(w.localStorage.getItem('eol.tutorial.ledger.v1') === '1', 'the spotlight is once-per-save');
+  $('btn-ledger').click();
+  await sleep(300);
+  t(!$('btn-ledger').classList.contains('guide-mark'), 'opening the ledger retires the spotlight');
+  t(!$('ledger').hidden, 'the ledger opens');
+  t(d.querySelectorAll('#ledger-list .lg-row').length === 10, 'ten pages, one per gate');
+  // opens on the furthest readable page: gate 2 (unlocked, intel state)
+  t($('ledger-page').textContent.indexOf('killers-at-a-distance') >= 0, 'gate 2 intel: the habit is readable BEFORE the fight');
+  t($('ledger-page').textContent.indexOf('lazy back row') >= 0, 'and the counsel (recommended bans/decks) is there');
+  t($('ledger-page').textContent.indexOf('Unwritten until the gate is walked') >= 0, 'but his twelve stays unwritten');
+  // gate 1: cleared - the full page
+  d.querySelector('#ledger-list .lg-row[data-lg="1"]').click();
+  await sleep(150);
+  t(d.querySelectorAll('#ledger-page .lg-chip').length === 12, "the Recruiter's twelve is written out (cleared page)");
+  t($('ledger-page').textContent.indexOf('Gate cleared') >= 0, 'with the record stamped');
+  // gate 3: locked - sealed page, no leaks
+  d.querySelector('#ledger-list .lg-row[data-lg="3"]').click();
+  await sleep(150);
+  t($('ledger-page').textContent.indexOf('The Road has not taken you there') >= 0, 'locked gates keep sealed pages');
+  t($('ledger-page').textContent.indexOf('Outlaw') < 0, 'and leak no names');
+  // the legends cross-index
+  $('ledger-tab-legends').click();
+  await sleep(200);
+  {
+    const lgTxt = $('ledger-legends').textContent;
+    t(lgTxt.indexOf('Gingerbread Man') >= 0, 'legends index lists the starter twelve');
+    t(lgTxt.indexOf('starter twelve') >= 0, 'with ownership notes');
+    t(lgTxt.indexOf('Camelot') >= 0, "gate 2 is unlocked, so the Oathkeeper's legends are indexed");
+    t(lgTxt.indexOf('Duat') < 0, 'the Duat reveal stays SEALED until Gate X opens');
+  }
+  // broken claims persist to the store the ledger reads
+  w.EOL.campaign.onTellBreak(3);
+  t(w.EOL.campaign.getProgress().tellsBroken.indexOf(3) >= 0, 'a broken ban-claim is recorded forever');
+  $('ledger-close').click();
+  await sleep(200);
+  t($('ledger').hidden, 'the ledger closes');
+  // the spotlight never repeats
+  w.EOL.ui.show('home');
+  await sleep(700);
+  w.EOL.ui.show('chapter');
+  await sleep(1400);
+  t(!$('btn-ledger').classList.contains('guide-mark'), 'the spotlight is a one-time introduction');
+
   /* ---------- STAGE 2: THE ADVISED GATE (do -> advise -> release) ---------- */
   w.EOL.campaign._launchStage(w.EOL.campaign._stageById(2));
   await sleep(300);

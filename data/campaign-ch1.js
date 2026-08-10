@@ -146,6 +146,8 @@ window.EOL = window.EOL || {};
       mode: 'classic',
       format: 'Classic - Guided gate',
       terrain: 'The Colosseum',
+      counsel:
+        'You already beat me, Blank. My counsel is spent - but the pages after mine are not.',
       field: 'colosseum',
       line: 'An old memory broker opens a weathered ledger and writes a blank line. He fights to measure you, not to beat you - and he walks you through every law of the war himself: the bans, the ranks, the first blood. Plays it straight. Nothing hidden.',
       lock: 'The first question',
@@ -308,6 +310,8 @@ window.EOL = window.EOL || {};
       mode: 'classic',
       format: 'Classic',
       terrain: 'The Narrow Pass',
+      counsel:
+        'The Pass kills a lazy back row - bring casters who earn their slot, and a wall of your own. Were I you, I would strike his healer before the first blow.',
       field: 'narrow-pass',
       line: 'A scarred veteran mends his shield with iron wire and asks who your strength protects. Nothing reaches your back line while he stands - go through him.',
       lock: 'Clear The Recruiter',
@@ -382,6 +386,8 @@ window.EOL = window.EOL || {};
       mode: 'classic',
       format: 'Classic',
       terrain: 'The Open Plains',
+      counsel:
+        'She shoots whatever you love most - so love two things. Spread your power, keep the back line dressed, and take her healer early.',
       field: 'open-plains',
       line: 'A rifle cracks from the watchtree. She always shoots your strongest legend - bait or bury them. Protect your brightest echo, or learn who you leave behind.',
       lock: 'Clear The Oathkeeper',
@@ -448,6 +454,8 @@ window.EOL = window.EOL || {};
       mode: 'classic',
       format: 'Classic',
       terrain: 'The Mana Spring',
+      counsel:
+        'The Spring pays both sides - she spends it on Marks that come due later. Cleanse them or kill the one who writes them, and guard your healer; she goes first.',
       field: 'mana-spring',
       line: 'An ascetic keeper turns the rings of a bronze astrolabe and a gold circle blooms underfoot. Her Marks are a promise. Answer them or pay.',
       lock: 'Clear The Outlaw',
@@ -504,6 +512,8 @@ window.EOL = window.EOL || {};
       mode: 'set',
       format: 'Unabridged - Three gates',
       terrain: 'Colosseum - Pass - Plains',
+      counsel:
+        'Best of three with forced substitutions: the BENCH is the exam. Bring twelve you trust, not six and passengers. She strikes what your list leans on - lean on nothing twice.',
       fightCard: ['colosseum', 'narrow-pass', 'open-plains'],
       line: 'Three toll arches, one Warden. Bring a deck you built yourself: best of three, mandatory substitutions, and NO RETREAT once it begins. Adapt or fall.',
       lock: 'Clear The Anointed',
@@ -552,6 +562,8 @@ window.EOL = window.EOL || {};
       mode: 'draft',
       format: 'Draft',
       terrain: 'The Energy Void',
+      counsel:
+        'A draft against whim: no pattern to her picks, so draft for YOURSELF and refuse to be baited into denying. The Void starves the greedy - cheap skills win long wars.',
       field: 'energy-void',
       persona: 'trickster',
       personaJitter: 4.5,
@@ -603,6 +615,8 @@ window.EOL = window.EOL || {};
       mode: 'draft',
       format: 'Draft',
       terrain: 'The Blood Battlefield',
+      counsel:
+        'He drafts a machine - every pick feeds the last. Break the chain: take his linchpin when you see it, even at a small cost to your own pile. Kills pay energy on his ground; do not trade bodies idly.',
       field: 'blood-battlefield',
       persona: 'strategist',
       personaJitter: 0.6,
@@ -651,6 +665,8 @@ window.EOL = window.EOL || {};
       mode: 'draft',
       format: 'Draft',
       terrain: 'The Spirit World',
+      counsel:
+        'She drafts endings - closers, last words. Build your engine early and keep the middle loud. The Spirit World gives every legend one refusal; count on the second blow, not the first.',
       field: 'spirit-world',
       persona: 'chronicler',
       personaJitter: 3.2,
@@ -699,6 +715,8 @@ window.EOL = window.EOL || {};
       mode: 'set',
       format: 'Unabridged - Three gates',
       terrain: 'Void - Battlefield - Spirit World',
+      counsel:
+        'Her bans take your heaviest hitters, every time - power spread across twelve beats power stacked in two. Three arenas you have already walked; the exam is whether you changed.',
       fightCard: ['energy-void', 'blood-battlefield', 'spirit-world'],
       line: 'Before the bronze threshold stands a guardian who does not speak. Best of three across the ground you have already walked. Every road has one gate that does not speak.',
       lock: 'Clear The Chronicler',
@@ -751,6 +769,8 @@ window.EOL = window.EOL || {};
       mode: 'set',
       format: 'Unabridged - Final judgment',
       terrain: "The Legend's Trial - Ruins - Mirror Realm",
+      counsel:
+        'He cannot be banned - plan around a mountain. His strikes take your crowns, so bring depth and spend early. The Trial ramps everyone: the clock is yours too, if you make it one.',
       fightCard: ['heros-trial', 'ancient-ruins', 'mirror-realm'],
       line: 'The First King stands beside the great scales. He cannot be banned and he will not be benched - and the scales give life back: Isis walks with him. Beat the set, not one deck.',
       lock: 'Clear The Last Guardian',
@@ -1277,6 +1297,10 @@ window.EOL = window.EOL || {};
       play: 'The compass card - CAMPAIGN. Ten gates, ten teachers, and the first one is mine. Take the road.',
       campaign: 'There it is: Chapter 1, The Road of Echoes. Open the chapter and count the gates yourself.',
       chapter: 'Gate I - the plate with my face on it. Knock, and we will talk terms in the Colosseum.',
+      /* shown ONCE after Gate I falls: the ledger button earns an
+         introduction the moment its pages start mattering */
+      ledger:
+        'One more thing, Blank - THE LEDGER, the quill by the chapter name. My pages on every guardian ahead: how they ban, what ground they hold, what I would bring against them. Read before you knock on strange gates.',
     },
     /* Back-compat aliases (older callers referenced these names). */
     recruiterDialogue: DIALOGUES[1],
