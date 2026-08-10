@@ -95,7 +95,7 @@ async function get(url, opts) {
 
   /* ---------- 3. schema ---------- */
   console.log('\n  Database schema');
-  const need = ['profiles', 'mp_queue', 'mp_matches', 'ladders'];
+  const need = ['profiles', 'mp_queue', 'mp_matches', 'ladders', 'saves'];
   const missing = [];
   for (const t of need) {
     const r = await get(U + '/rest/v1/' + t + '?select=*&limit=1', { headers: H });

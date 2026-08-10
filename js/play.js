@@ -3949,6 +3949,11 @@
     rematch: rematch,
     openClassicModal: openClassicModal,
     startDraft: startDraft,
+    /* the status toast host - EOL.ui.toast delegates here (app.js was
+       exporting the bare identifier `toast`, which in a browser is the
+       #toast DIV via id-globals: a function-shaped landmine found
+       2026-08-10 while wiring the vault-restore greeting) */
+    toast: toast,
     /* THE SET */
     warLength: warLength,
     setWarLength: setWarLength,

@@ -158,6 +158,90 @@ ok(
   'every gate pays the same flat 150'
 );
 
+/* THE RARITY LAW (owner ruling 2026-08-10): one legendary per six
+   roster slots. 6-11 cards -> exactly 1; 12-17 -> exactly 2. */
+console.log('B3. the rarity and crown laws');
+EOL.factions.forEach(function (f) {
+  var n = f.cards.filter(function (c) {
+    return c.rarity === 'legendary';
+  }).length;
+  var want = f.cards.length >= 12 ? 2 : 1;
+  ok(
+    n === want,
+    f.id + ': ' + f.cards.length + ' cards carry ' + want + ' legendary (' + n + ')'
+  );
+});
+
+/* THE CROWN LAW: every OBTAINABLE non-Grimmwood legendary is granted
+   by exactly one gate's Legend Pack - the campaign is the only mint.
+   (Grimmwood's two are the starter set; Huaxia is Chapter 2 cargo.) */
+(function () {
+  var packs = [];
+  S.stages.forEach(function (st) {
+    if (st.grants && st.grants.legendPack) packs.push(st.grants.legendPack);
+  });
+  ok(packs.length === new Set(packs).size, 'no legendary is granted twice');
+  var wanted = [];
+  EOL.factions.forEach(function (f) {
+    if (f.id === 'grimmwood' || f.id === 'huaxia') return;
+    f.cards.forEach(function (c) {
+      if (c.rarity === 'legendary') wanted.push(c.id);
+    });
+  });
+  ok(
+    wanted.length === packs.length &&
+      wanted.every(function (id) {
+        return packs.indexOf(id) >= 0;
+      }),
+    'every obtainable faction legendary rides exactly one Legend Pack (' +
+      packs.length +
+      ' of ' +
+      wanted.length +
+      ')'
+  );
+  /* and the shop's tables never name one */
+  var shopSrc = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'js', 'shop.js'),
+    'utf8'
+  );
+  ok(
+    !/\[\s*'legendary'\s*,\s*\d/.test(shopSrc),
+    "no odds row in js/shop.js names 'legendary'"
+  );
+})();
+
+/* THE VAULT REGISTRY (js/cloud.js): every persisted eol.* KEY constant
+   in the codebase must be registered for cloud sync - a forgotten key
+   fails here, not in a player's lost save. */
+(function () {
+  var fs = require('fs');
+  var path = require('path');
+  var cloudSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'cloud.js'), 'utf8');
+  var registered = {};
+  (cloudSrc.match(/'eol\.[^']+'/g) || []).forEach(function (m) {
+    registered[m.slice(1, -1)] = true;
+  });
+  var exempt = {
+    'eol.deck.v1': true, // legacy key, read-and-migrated only
+    'eol.cloud.restored': true, // sessionStorage marker, per-boot
+  };
+  var missing = [];
+  ['app.js', 'campaign.js', 'deck.js', 'economy.js', 'play.js', 'shop.js', 'battle.js'].forEach(
+    function (f) {
+      var src = fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8');
+      (src.match(/_KEY = '(eol\.[^']+)'/g) || []).forEach(function (m) {
+        var key = m.match(/'(eol\.[^']+)'/)[1];
+        if (!registered[key] && !exempt[key] && missing.indexOf(key) < 0) missing.push(key);
+      });
+    }
+  );
+  ok(
+    missing.length === 0,
+    'every persisted key is registered in the vault' +
+      (missing.length ? ' (missing: ' + missing.join(', ') + ')' : '')
+  );
+})();
+
 /* THE SCALE LAW (js/app.js paintViewport): style.css must never name
    a raw viewport unit - under the root-zoom UI scale they resolve
    against the DEVICE window and get zoom-scaled on top, which is how
@@ -429,8 +513,23 @@ S.stages.forEach(function (st) {
   var g = st.grants || {};
   (g.cards || []).forEach(function (id) {
     ok(!!dict[id], 'stage ' + st.id + ': grant ' + id + ' resolves');
+    ok(
+      dict[id].card.rarity !== 'legendary',
+      'stage ' + st.id + ': named grants stay below legendary (crowns ride Legend Packs)'
+    );
   });
-  if (g.cards) ok(g.cards.length === 2, 'stage ' + st.id + ': faction grants arrive as PAIRS (R8)');
+  if (g.cards)
+    ok(
+      g.cards.length >= 1 && g.cards.length <= 2,
+      'stage ' + st.id + ': faction grants arrive as one or two cards (R8, revised for Legend Packs)'
+    );
+  if (g.legendPack) {
+    ok(!!dict[g.legendPack], 'stage ' + st.id + ': legend pack ' + g.legendPack + ' resolves');
+    ok(
+      dict[g.legendPack].card.rarity === 'legendary',
+      'stage ' + st.id + ': the Legend Pack carries a LEGENDARY'
+    );
+  }
   if (g.choice) {
     ok(g.choice.count === 2, 'stage ' + st.id + ': exam grants choice of 2');
     g.choice.factions.forEach(function (fid) {

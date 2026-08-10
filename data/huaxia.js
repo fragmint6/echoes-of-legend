@@ -25,7 +25,7 @@ window.EOL.registerFaction({
     {
       id: 'huaxia-qin-shi-huang',
       name: 'Qin Shi Huang',
-      rarity: 'legendary',
+      rarity: 'epic', /* RARITY LAW 2026-08-10: one legendary per 6 roster slots - at 9 cards Huaxia carries ONE, and the Monkey King keeps the crown */
       role: 'Caster',
       element: 'Magic',
       stats: { hp: 4970, atk: 1950, def: 15 },

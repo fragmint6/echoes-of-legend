@@ -295,9 +295,11 @@ Both were real, both were latent in singleplayer, and both are fixed:
 
 ## What is deliberately not built yet
 
-- **Deck sync is gone, on purpose.** You asked to drop it. Decks live in
-  `localStorage`. An account is only an identity for matchmaking, so
-  signing in or out can never touch your decks.
+- ~~**Deck sync is gone, on purpose.**~~ **Superseded 2026-08-10 by THE
+  VAULT (section 10 below):** the whole local save - wallet, collection,
+  campaign progress, decks, settings - now syncs to `public.saves` when
+  signed in. `js/cloud.js` holds the three laws (works signed out; the
+  account is the save; never half-written).
 - **Ranked anything.** Online Classic and Online Draft both ship
   UNRANKED; the ladder (and Unabridged in ranked) is ROADMAP Phase 4.
 - **Trophies and ladder.** The table exists; nothing writes it. Trophy
@@ -306,6 +308,11 @@ Both were real, both were latent in singleplayer, and both are fixed:
   each other's moves. The checksum catches accidental drift, not a
   determined cheater. Replaying the action log in an Edge Function is
   the next step, and it has to come *before* trophies mean anything.
+- **Server-authoritative ECONOMY.** The vault stores whatever the client
+  says the wallet holds - RLS keeps players out of *each other's* rows,
+  not out of their own. The day coins are sold for money, wallet writes
+  must move behind an Edge Function that is the only thing allowed to
+  add coins. Until then a cheater can only cheat themselves.
 
 ## Verifying it works
 
@@ -348,3 +355,61 @@ browsers and checks the board checksum after every action.
 | Sign-in does nothing on `file://` | Serve over http (step 7). |
 | Stuck at "Looking for an opponent" | Only one player is queued, or the two are signed in as the same account. |
 | Paired but the draft never starts | Realtime is off for the project (step 5). |
+
+## 10. THE VAULT - cloud saves (added 2026-08-10)
+
+Signed-in players carry their whole save with the account: wallet,
+owned cards, campaign progress, decks, settings, tutorial flags.
+`js/cloud.js` mirrors every registered `localStorage` key into ONE
+jsonb document per user.
+
+Run this in **SQL Editor**:
+
+```sql
+create table if not exists public.saves (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.saves enable row level security;
+
+create policy "read own save"
+  on public.saves for select
+  using (auth.uid() = user_id);
+
+create policy "insert own save"
+  on public.saves for insert
+  with check (auth.uid() = user_id);
+
+create policy "update own save"
+  on public.saves for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- no delete policy: saves are never deleted from the client
+```
+
+Verify with `node sim/preflight.js` - it now checks the `saves` table
+alongside the multiplayer ones.
+
+**The three laws** (also at the top of `js/cloud.js`):
+
+1. **The game must work signed out.** No account, no SDK, no network:
+   nothing syncs, localStorage remains the save, every singleplayer
+   feature works.
+2. **The account is the save.** Sign-in pulls the vault; if the account
+   already has one, it wins over the device (one clean reload applies
+   it). A brand-new account adopts the device's current save as its
+   first vault. Signing out changes nothing locally.
+3. **The vault is never half-written.** The whole snapshot travels in
+   one upsert; there is no per-key merge that could tear the wallet
+   away from the collection it paid for.
+
+Pushes: a 4-second dirty-check loop, an immediate nudge on economy
+events, and a flush when the tab hides. Failures are silent and the
+next tick retries.
+
+**Monetization note:** RLS protects players from each other, not from
+themselves. Before coins are ever sold for money, wallet writes must
+move server-side (Edge Function) - see the list above.

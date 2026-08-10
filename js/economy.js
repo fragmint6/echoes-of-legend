@@ -178,6 +178,15 @@
       return !owns(e.card.id);
     });
   }
+  /* THE CROWN LAW (owner ruling 2026-08-10): legendaries are NEVER
+     sold. Packs draw from this pool - unowned AND below legendary -
+     so a paying player can buy speed toward a full shelf of echoes
+     but can never buy a crown. Legends come from the Road alone. */
+  function packableEntries() {
+    return unownedEntries().filter(function (e) {
+      return e.card.rarity !== 'legendary';
+    });
+  }
   function ownedCount() {
     return obtainableEntries().length - unownedEntries().length;
   }
@@ -192,6 +201,7 @@
     starterIds: starterIds,
     obtainableEntries: obtainableEntries,
     unownedEntries: unownedEntries,
+    packableEntries: packableEntries,
     ownedCount: ownedCount,
     /* test hooks */
     _reset: function () {

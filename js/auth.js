@@ -263,17 +263,13 @@
   }
 
   /* ---------------------------------------------------------
-     NO DECK SYNC
+     DECK SYNC - superseded by THE VAULT (js/cloud.js, 2026-08-10)
      -------------------------------------------------------------
-     Decks stay on the device, deliberately. Accounts exist here for
-     ONE reason: to give a player a stable identity so matchmaking can
-     pair two of them. Syncing collections is a separate feature with
-     its own merge-conflict questions, and shipping it half-done risks
-     the one thing that must never happen - losing someone's decks.
-
-     js/deck.js still calls pushDeck/deleteDeck; they are kept as
-     no-ops so that module needs no signed-in special case and sync can
-     be reinstated later without touching it.
+     Decks (and the whole local save) now travel with the account as
+     one snapshot document; see cloud.js for the three laws. These
+     per-deck push/delete hooks remain as no-ops so js/deck.js needs
+     no signed-in special case - the vault's dirty-check loop picks
+     up eol.decks.v1 like every other key.
      --------------------------------------------------------- */
   function pushDeck() {
     return Promise.resolve();

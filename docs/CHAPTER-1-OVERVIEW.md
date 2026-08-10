@@ -389,7 +389,14 @@ modes matter), a **flat 150 per gate** — no curve, every gate worth
 the same — plus its named grants, all flowing into the same wallet
 and collection the shop reads. Replays pay a flat 25. Matches pay per
 game: singleplayer 50 win / 25 loss, PvP 75/50; campaign battles pay
-through their gates only. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
+through their gates only. **THE CROWN LAW (2026-08-10):** no pack
+ever sells a Legendary. Each faction carries exactly one (Grimmwood,
+at twelve cards, two — the starter pair), and every obtainable
+faction legendary is granted by its gate as a one-card **Legend
+Pack** ceremony: Arthur at II, Robin at III, Zeus at IV, Seimei at
+VI, Constantine at VII, Amaterasu at VIII, Anubis at X. Money — coins
+today, purchases someday — buys speed toward a full shelf of echoes,
+never crowns. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
 every pack contains **only unowned cards** (duplicates may feed an
 awakening system someday), Huaxia is unobtainable until Chapter 2,
 and — deliberately — the shop does *not* follow the campaign's

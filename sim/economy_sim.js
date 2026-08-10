@@ -82,28 +82,44 @@ ok(
   fresh.every((e) => e.faction.id !== 'huaxia'),
   'Huaxia is never obtainable (held for Chapter 2)'
 );
+/* THE CROWN LAW (owner ruling 2026-08-10): packs sell echoes, never
+   crowns - the packable pool is the unowned roster below legendary */
+const packable = econ.packableEntries();
+ok(packable.length === 35, `packable (unowned, sub-legendary) at start is 35 (${packable.length})`);
+ok(
+  packable.every((e) => e.card.rarity !== 'legendary'),
+  'the packable pool holds no legendary'
+);
 Object.keys(shop.PACKS).forEach((key) => {
   const pack = shop.PACKS[key];
+  if (key === 'legend') {
+    /* the Road's own wrapper: one card, no price, off the shelf */
+    ok(pack.size === 1 && pack.price === 0, 'Legend Pack: one card, never priced');
+    return;
+  }
   const rng = mulberry(1234 + pack.price);
   let finalOk = true,
     dupeOk = true,
     sizeOk = true,
-    huaxiaOk = true;
+    huaxiaOk = true,
+    crownOk = true;
   for (let i = 0; i < 400; i++) {
     const out = shop.rollPack(rng, pack, fresh.slice());
     if (out.length !== pack.size) sizeOk = false;
     const ids = out.map((e) => e.card.id);
     if (new Set(ids).size !== ids.length) dupeOk = false;
     if (out.some((e) => e.faction.id === 'huaxia')) huaxiaOk = false;
+    if (out.some((e) => e.card.rarity === 'legendary')) crownOk = false;
     if (pack.final) {
       const last = out[out.length - 1];
-      if (last.card.rarity !== 'epic' && last.card.rarity !== 'legendary') finalOk = false;
+      if (last.card.rarity !== 'epic') finalOk = false;
     }
   }
   ok(sizeOk, pack.name + ': always ' + pack.size + ' cards');
   ok(dupeOk, pack.name + ': never a duplicate inside a pack');
   ok(huaxiaOk, pack.name + ': never Huaxia');
-  if (pack.final) ok(finalOk, pack.name + ': final-card guarantee (Epic+) holds');
+  ok(crownOk, pack.name + ': NEVER a legendary - even fed the raw unowned roster');
+  if (pack.final) ok(finalOk, pack.name + ': final-card guarantee (always Epic) holds');
   ok(pack.price > 0 && pack.odds.reduce((t, r) => t + r[1], 0) === 100, pack.name + ': odds sum to 100');
 });
 
@@ -116,7 +132,9 @@ let packs = 0,
   wins = 0;
 const PAY = econ.PAY;
 const packDef = shop.PACKS.echo;
-while (econ.unownedEntries().length > 0 && packs + matches < 4000) {
+/* the shelf's job ends when every SOLD echo is owned - the seven
+   faction legendaries are the campaign's to give, not the shop's */
+while (econ.packableEntries().length > 0 && packs + matches < 4000) {
   if (wallet >= packDef.price) {
     wallet -= packDef.price;
     const out = shop.rollPack(rng, packDef);
@@ -129,13 +147,25 @@ while (econ.unownedEntries().length > 0 && packs + matches < 4000) {
     if (win) wins++;
   }
 }
-ok(econ.unownedEntries().length === 0, 'the collection completes');
+ok(econ.packableEntries().length === 0, 'every sold echo lands');
+const leftovers = econ.unownedEntries();
+ok(
+  leftovers.length === 7 && leftovers.every((e) => e.card.rarity === 'legendary'),
+  `all that remains after the shelf is the Road's seven crowns (${leftovers.length})`
+);
 const hours = ((matches * 3.5) / 60).toFixed(1);
 console.log(
   `  chapter coins carried ${Math.min(10, packs)} packs; total ${packs} packs, ` +
     `${matches} matches (${wins} won) - roughly ${hours}h of play after the campaign`
 );
-ok(matches > 15 && matches < 400, `the grind is real but humane (${matches} matches)`);
+/* THE CROWN LAW shortened the shelf ON PURPOSE: 35 sellable echoes
+   (was 42 with crowns in the pool), so the shop is a sprint and the
+   seven legendaries pace the long game through the campaign. The old
+   'grind is real' floor (>15 matches) measured a pool that no longer
+   exists; what still matters is that the shelf can't be emptied by
+   chapter coins alone and never becomes a slog. */
+ok(packs >= 7, `at least seven packs to fill the 35-echo shelf (${packs})`);
+ok(matches > 0 && matches < 400, `chapter coins alone do not finish it; the rest stays humane (${matches} matches)`);
 
 console.log('');
 if (fail) {

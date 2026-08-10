@@ -787,7 +787,7 @@
           <span class="mast-emblem" aria-hidden="true"><i class="ri-store-2-line"></i></span>
           <h2 class="col-title">Shop</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">The Road pays in coin - the shelf pays in legends</p>
+          <p class="col-sub">The Road pays in coin - the shelf pays in echoes. Legends are earned, never sold</p>
         </div>
       </header>
 
@@ -808,7 +808,7 @@
               Three new legends. No guarantees, no ceremony wasted - the budget shelf.
             </p>
             <p class="product-odds">
-              <span><b>Card odds</b> Common 50% &middot; Rare 34% &middot; Epic 13% &middot; Legendary 3%</span>
+              <span><b>Card odds</b> Common 50% &middot; Rare 35% &middot; Epic 15%</span>
             </p>
             <button class="btn btn-primary buy-pack" data-pack="trio"></button>
           </div>
@@ -820,11 +820,11 @@
           <div class="product-info">
             <h3 class="product-name">Echoes Pack</h3>
             <p class="product-desc">
-              Five new legends. The final card is always <b>Epic</b> rarity or better.
+              Five new legends. The final card is always <b>Epic</b> rarity.
             </p>
             <p class="product-odds">
-              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 16% &middot; Legendary 4%</span>
-              <span><b>Final card</b> Epic 80% &middot; Legendary 20%</span>
+              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
+              <span><b>Final card</b> Epic 100%</span>
             </p>
             <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           </div>
@@ -836,12 +836,17 @@
           <div class="product-info">
             <h3 class="product-name">Crown Pack</h3>
             <p class="product-desc">
-              Five new legends, hunting crowns: the final card is Epic or better with
-              <b>45% Legendary</b> odds.
+              Five new legends, heavy with power: nearly half the pulls are <b>Epic</b>, and the
+              final card always is.
             </p>
             <p class="product-odds">
-              <span><b>Card odds</b> Common 20% &middot; Rare 38% &middot; Epic 30% &middot; Legendary 12%</span>
-              <span><b>Final card</b> Epic 55% &middot; Legendary 45%</span>
+              <span><b>Card odds</b> Common 15% &middot; Rare 45% &middot; Epic 40%</span>
+              <span><b>Final card</b> Epic 100%</span>
+            </p>
+            <p class="product-note">
+              <i class="ra ra-crown"></i><b>No pack sells a Legendary.</b> The rarest echoes are
+              earned on the Road of Echoes - one per faction, granted at its gate. Money buys
+              speed here, never crowns.
             </p>
             <button class="btn btn-primary buy-pack" data-pack="crown"></button>
           </div>
@@ -2607,6 +2612,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
+    <!-- THE VAULT: full-save cloud sync for signed-in players (wallet,
+         collection, campaign, decks, settings). Local-only when signed
+         out; see the three laws at the top of the file. -->
+    <script src="js/cloud.js"></script>
     <script src="js/mp.js"></script>
     <script src="js/netplay.js"></script>
     <script src="js/app.js"></script>

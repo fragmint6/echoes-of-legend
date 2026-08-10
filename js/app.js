@@ -254,7 +254,15 @@
     buildCard: buildCard,
     esc: esc,
     rich: rich,
-    toast: toast,
+    /* the ONE status toast. NOT `toast: toast` - app.js has no local
+       toast, so that bare identifier resolved to the <div id="toast">
+       element through browser id-globals and every ui.toast() call
+       was a TypeError waiting on a code path (found 2026-08-10; the
+       real function lives in play.js and is delegated to lazily). */
+    toast: function (msg, icon) {
+      if (window.EOL.play && typeof window.EOL.play.toast === 'function')
+        window.EOL.play.toast(msg, icon);
+    },
     ROLE_ICON: ROLE_ICON,
     ELEMENT_ICON: ELEMENT_ICON,
     ELEMENT_COLOR: ELEMENT_COLOR,
@@ -468,10 +476,13 @@
 
     var rarityOpts = [
       { value: 'all', text: 'All Rarities', icon: 'ri-sparkling-line' },
-      { value: 'legendary', text: 'Legendary' },
-      { value: 'epic', text: 'Epic' },
-      { value: 'rare', text: 'Rare' },
-      { value: 'common', text: 'Common' },
+      /* each tier wears its crest in its own color (owner request
+         2026-08-10) - classes scoped so faction crests that happen to
+         share a glyph stay untinted */
+      { value: 'legendary', text: 'Legendary', icon: 'ra ra-crown rar-legendary' },
+      { value: 'epic', text: 'Epic', icon: 'ra ra-gem rar-epic' },
+      { value: 'rare', text: 'Rare', icon: 'ra ra-diamond rar-rare' },
+      { value: 'common', text: 'Common', icon: 'ra ra-circular-shield rar-common' },
     ];
 
     var roleOpts = [{ value: 'all', text: 'All Roles', icon: 'ri-team-line' }];
@@ -1605,6 +1616,9 @@
     initScale();
     initMenuParticles();
     if (window.EOL.auth) window.EOL.auth.init();
+    if (window.EOL.cloud) window.EOL.cloud.init();
+    if (window.EOL.cloud && window.EOL.cloud.restored() && window.EOL.ui && window.EOL.ui.toast)
+      window.EOL.ui.toast('Your save was restored from your account', 'ri-cloud-line');
     initAuth();
     if (!ROSTER.length) {
       console.error('[EOL] No faction data loaded.');

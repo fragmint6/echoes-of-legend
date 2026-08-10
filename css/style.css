@@ -24205,8 +24205,45 @@ html.mqw640 .tutor-face {
 .lg-open {
   color: #ffd98a;
 }
+/* met, not beaten: first blood opened the page */
+.lg-met {
+  color: #ff9d9d;
+}
 .lg-lock {
   color: rgba(226, 228, 242, 0.35);
+}
+/* draft gates list their ROADS, not a twelve */
+.lg-tablenote {
+  margin: 0 0 10px;
+  color: var(--txt-dim);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.lg-factions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lg-fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fc, #888) 55%, transparent);
+  background: color-mix(in srgb, var(--fc, #888) 14%, rgba(8, 10, 18, 0.8));
+  color: var(--txt);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.lg-fchip > i {
+  color: var(--fc, #888);
+  font-size: 14px;
+}
+.lg-fchip.featured {
+  border-color: color-mix(in srgb, var(--fc, #888) 90%, #fff);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--fc, #888) 40%, transparent);
 }
 .ledger-page {
   overflow-y: auto;
@@ -24793,4 +24830,40 @@ i.coin-ico {
   box-shadow:
     0 34px 70px rgba(0, 0, 0, 0.7),
     0 0 60px rgba(198, 138, 255, 0.32);
+}
+
+/* ---- RARITY CRESTS in the collection's dropdown (2026-08-10) ----
+   scoped classes, so faction crests sharing a glyph stay untinted */
+.rar-legendary {
+  color: var(--r-legendary-1);
+}
+.rar-epic {
+  color: var(--r-epic-1);
+}
+.rar-rare {
+  color: var(--r-rare-1);
+}
+.rar-common {
+  color: var(--r-common-1);
+}
+
+/* ---- THE LEGEND PACK skin ----
+   One card, no price: the Road's own wrapper - parchment gold, worn
+   almost white at the center. Never appears on the shelf. */
+.pk-face.pk-legend {
+  --pk-hi: #7d6226;
+  --pk-mid: #4c3a12;
+  --pk-lo: #1d1406;
+  --pk-a: #ffe9ad;
+  --pk-glow: rgba(255, 224, 140, 0.65);
+  --pk-stud1: #fff6dc;
+  --pk-stud2: #f0c674;
+  --pk-bgglow: rgba(255, 224, 140, 0.22);
+}
+.pk-legend .pk-rays {
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--pk-a) 26%, transparent) 0deg 4deg,
+    transparent 4deg 9deg
+  );
 }

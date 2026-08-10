@@ -463,7 +463,7 @@ const server = http.createServer((req, res) => {
   t($('ledger-page').textContent.indexOf('your hardest hitters') >= 0, 'derived truthfully from the ban profile');
   t($('ledger-page').textContent.indexOf('Only front-row legends') >= 0, 'the Ground carries the full arena laws, not just a name');
   t($('ledger-page').textContent.indexOf('lazy back row') >= 0, 'and the counsel (recommended bans/decks) is there');
-  t($('ledger-page').textContent.indexOf('Unwritten until the gate is walked') >= 0, 'but his twelve stays unwritten');
+  t($('ledger-page').textContent.indexOf('Unwritten until you first cross blades') >= 0, 'but his twelve stays unwritten until first blood');
   // gate 1: cleared - the full page with REAL battle tiles
   d.querySelector('#ledger-list .lg-row[data-lg="1"]').click();
   await sleep(200);
@@ -705,6 +705,7 @@ const server = http.createServer((req, res) => {
     const firstUnowned = cards.findIndex((c) => c.classList.contains('unowned'));
     const lastOwned = cards.reduce((m, c, i) => (c.classList.contains('unowned') ? m : i), -1);
     t(firstUnowned === -1 || lastOwned < firstUnowned, 'every owned legend paints before every unowned one');
+    t(!!d.querySelector('#filters .dd-opt .ra-crown.rar-legendary') && !!d.querySelector('#filters .dd-opt .ra-gem.rar-epic'), 'the rarity dropdown wears tier crests in tier colors');
   }
   // the starter deck cannot be deleted or edited
   w.EOL.ui.show('collection');
@@ -757,8 +758,63 @@ const server = http.createServer((req, res) => {
     t(w.EOL.econ.coins() === coinsBefore - 120, 'the Trio pack cost 120 coins');
     t(w.EOL.econ.unownedEntries().length === before - 3, 'three NEW legends joined the collection');
     t(w.EOL.shop.results().every((e) => e.faction.id !== 'huaxia'), 'no Huaxia in the pull');
+    t(w.EOL.shop.results().every((e) => e.card.rarity !== 'legendary'), 'and no legendary - the Crown Law holds in the pull');
     t(w.EOL.shop.results().every((e) => w.EOL.econ.owns(e.card.id)), 'the pull is OWNED (granted at roll time)');
     w.EOL.shop.close();
+  }
+
+  /* ---------- THE CROWN LAW + THE LEGEND PACK ---------- */
+  {
+    const P = w.EOL.shop.PACKS;
+    t(
+      ['trio', 'echo', 'crown'].every((k) =>
+        P[k].odds.concat(P[k].final || []).every((row) => row[0] !== 'legendary')
+      ),
+      'no odds table anywhere names a legendary'
+    );
+    t(w.EOL.cloud && typeof w.EOL.cloud.push === 'function' && w.EOL.cloud.status() === 'off', 'the vault idles signed-out (local play untouched)');
+    t(w.EOL.cloud.KEYS.indexOf('eol.wallet.v1') >= 0 && w.EOL.cloud.KEYS.indexOf('eol.campaign.ch1.progress') >= 0 && w.EOL.cloud.KEYS.indexOf('eol.decks.v1') >= 0, 'the vault registry carries wallet, campaign, and decks');
+    // Gate II ends Camelot's road: its ONE legendary arrives at clear
+    // time, then plays a one-card Legend Pack ceremony on the map
+    t(!w.EOL.econ.owns('camelot-king-arthur'), 'the crown is not owned before the gate falls');
+    w.EOL.campaign._recordClear(w.EOL.campaign._stageById(2));
+    t(w.EOL.econ.owns('camelot-king-arthur'), 'Gate II grants its legend at CLEAR time (refresh-proof)');
+    t(w.EOL.campaign.getProgress().pendingLegend === 2, 'with the ceremony queued');
+    w.EOL.ui.show('chapter');
+    await sleep(1500);
+    for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
+      if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
+      await sleep(150);
+    }
+    t(w.EOL.shop.state() === 'summary', 'the Legend Pack ceremony plays to its summary');
+    t(w.EOL.shop.results().length === 1 && w.EOL.shop.results()[0].card.id === 'camelot-king-arthur', 'one card in the wrapper - THE card');
+    t($('po-again').hidden, 'no Open Another on a Legend Pack');
+    t(!!d.querySelector('#po-pack .pk-face.pk-legend'), 'and it wears the Legend wrapper');
+    w.EOL.shop.close();
+    t(w.EOL.campaign.getProgress().pendingLegend === null, 'the ceremony never replays');
+  }
+
+  /* ---------- FIRST BLOOD in the ledger; draft gates list ROADS ---------- */
+  {
+    const prog = w.EOL.campaign.getProgress();
+    [3, 6].forEach((n) => {
+      if (prog.unlocked.indexOf(n) < 0) prog.unlocked.push(n);
+      if (prog.fought.indexOf(n) < 0) prog.fought.push(n);
+    });
+    w.localStorage.setItem('eol.campaign.ch1.progress', JSON.stringify(prog));
+    w.EOL.campaign.openLedger();
+    await sleep(300);
+    d.querySelector('#ledger-list .lg-row[data-lg="3"]').click();
+    await sleep(250);
+    t(d.querySelectorAll('#ledger-page .prep-c').length === 12, 'one fight (won or lost) writes the twelve into the ledger');
+    t($('ledger-page').textContent.indexOf('Met, not beaten') >= 0, 'and the record says met, not beaten');
+    d.querySelector('#ledger-list .lg-row[data-lg="6"]').click();
+    await sleep(250);
+    t(!d.querySelector('#ledger-page .prep-c'), 'a draft gate never claims a fixed twelve');
+    t(d.querySelectorAll('#ledger-page .lg-fchip').length === 5, "the Trickster's page lists her five ROADS instead");
+    t(!!d.querySelector('#ledger-page .lg-fchip.featured'), 'with the featured faction wearing the bright crest');
+    $('ledger-close').click();
+    await sleep(200);
   }
 
   /* ---------- mojibake sweep ---------- */

@@ -382,7 +382,7 @@ window.EOL = window.EOL || {};
         ban: 'My counsel stands in silver, Blank - the two I would strike from his twelve. But it is not me fighting. Refuse freely; the Road grades results, not obedience.',
         six: 'In silver again: the six I would field against him. Rearrange it, replace it, ignore it - your hand, your gate. This is the last one I walk beside you.',
       },
-      grants: { cards: ['camelot-king-arthur', 'camelot-lancelot'], coins: 150 },
+      grants: { cards: ['camelot-lancelot'], legendPack: 'camelot-king-arthur', coins: 150 },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
@@ -450,7 +450,7 @@ window.EOL = window.EOL || {};
       banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
       banTellBroken:
         'Correction entered: today she let a Tank stand. You will remember this match. So, now, will the ledger.',
-      grants: { cards: ['sherwood-robin-hood', 'sherwood-little-john'], coins: 150 },
+      grants: { cards: ['sherwood-little-john'], legendPack: 'sherwood-robin-hood', coins: 150 },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
       barks: {
@@ -508,7 +508,7 @@ window.EOL = window.EOL || {};
       banTell: 'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
       banTellBroken:
         'The ledger stands corrected: your healer went unstruck. Mercy, or a mistake - it records both the same way.',
-      grants: { cards: ['olympus-zeus', 'olympus-hercules'], coins: 150 },
+      grants: { cards: ['olympus-hercules'], legendPack: 'olympus-zeus', coins: 150 },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
       barks: {
@@ -635,7 +635,7 @@ window.EOL = window.EOL || {};
       lock: 'Clear the Mid-Road',
       banProfile: {},
       banTell: 'She bans on whim as much as wisdom. No pattern on record - and she knows the ledger looks.',
-      grants: { cards: ['yamato-kaguya', 'yamato-benkei'], coins: 150 },
+      grants: { cards: ['yamato-kaguya', 'yamato-benkei'], legendPack: 'yamato-abe-no-seimei', coins: 150 },
       resultWin: 'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
       resultLose: '"Every choice leaves another possible self across the table," she grins. "Mine was better."',
       barks: {
@@ -685,7 +685,7 @@ window.EOL = window.EOL || {};
       lock: 'Clear The Trickster',
       banProfile: {},
       banTell: 'He finds the card your plan cannot live without and removes it. Have a second plan.',
-      grants: { cards: ['roma-julius-caesar', 'roma-brutus'], coins: 150 },
+      grants: { cards: ['roma-julius-caesar', 'roma-brutus'], legendPack: 'roma-constantine-the-great', coins: 150 },
       resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
       resultLose: '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
       barks: {
@@ -735,7 +735,7 @@ window.EOL = window.EOL || {};
       lock: 'Clear The Strategist',
       banProfile: {},
       banTell: 'The Chronicler strikes what your story leans on - enough endings read to know a load-bearing hero on sight.',
-      grants: { cards: ['takamagahara-amaterasu', 'takamagahara-izanami'], coins: 150 },
+      grants: { cards: ['takamagahara-izanami'], legendPack: 'takamagahara-amaterasu', coins: 150 },
       resultWin: 'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
       resultLose: '"I have shelved this outcome before," the Chronicler sighs. "Try a different edition."',
       barks: {
@@ -838,7 +838,7 @@ window.EOL = window.EOL || {};
       unbannable: ['campaign-gilgamesh'],
       banProfile: { power: true },
       banTell: 'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
-      grants: { cards: ['duat-isis', 'duat-anubis'], coins: 150 },
+      grants: { cards: ['duat-isis'], legendPack: 'duat-anubis', coins: 150 },
       resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
       resultLose: '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
       barks: {

@@ -155,6 +155,7 @@
           parsed.coins = parsed.coins || 0;
           parsed.choices = parsed.choices || {};
           parsed.tellsBroken = parsed.tellsBroken || [];
+          parsed.fought = parsed.fought || [];
           return parsed;
         }
       }
@@ -169,10 +170,15 @@
       coins: 0,
       choices: {},
       pendingChoice: null,
+      /* an unopened Legend Pack ceremony (grant already landed) */
+      pendingLegend: null,
       /* stages whose ban-claim tell the player has FALSIFIED - the
          ledger keeps the correction forever (playtester ruling:
          that is the match you remember) */
       tellsBroken: [],
+      /* stages whose rival the player has faced at least once, win
+         or lose - the ledger opens their twelve after first blood */
+      fought: [],
     };
   }
   function saveProgress(prog) {
@@ -193,6 +199,15 @@
     }
   }
 
+  /* first blood: the rival has been faced at least once (win or lose) */
+  function progFought(stageId) {
+    var prog = getProgress();
+    if (prog.fought.indexOf(stageId) >= 0) return false;
+    prog.fought.push(stageId);
+    saveProgress(prog);
+    return true;
+  }
+
   function recordClear(stage, prog) {
     prog = prog || getProgress();
     var first = prog.cleared.indexOf(stage.id) < 0;
@@ -206,11 +221,20 @@
       });
       prog.coins += g.coins || 0;
       if (g.choice) prog.pendingChoice = stage.id;
+      /* THE LEGEND PACK (owner ruling 2026-08-10): a gate that ends a
+         faction's road hands over its ONE legendary - granted HERE,
+         at clear time (refresh-proof), with the one-card ceremony
+         queued for the chapter map. Legendaries reach a collection
+         no other way: the shop's tables stop at Epic. */
+      if (g.legendPack) {
+        if (prog.grants.indexOf(g.legendPack) < 0) prog.grants.push(g.legendPack);
+        prog.pendingLegend = stage.id;
+      }
       /* THE ECONOMY (2026-08-10): gate rewards are REAL now - cards
          into the collection, coins into the one wallet the shop
          spends. prog keeps its own totals as the road's record. */
       if (window.EOL.econ) {
-        window.EOL.econ.grant(g.cards || []);
+        window.EOL.econ.grant((g.cards || []).concat(g.legendPack ? [g.legendPack] : []));
         window.EOL.econ.addCoins(g.coins || 0);
       }
     } else {
@@ -1413,6 +1437,9 @@
       return null;
     }
     resultInfo = { stage: stage.id, won: win };
+    /* FIRST BLOOD (owner ruling 2026-08-10): facing a rival once -
+       win or lose - opens their forces in the ledger. */
+    progFought(stage.id);
     if (win) recordClear(stage);
     return {
       campaign: true,
@@ -1471,6 +1498,9 @@
     (window.EOL.factions || []).forEach(function (f) {
       if ((g.factions || []).indexOf(f.id) < 0) return;
       f.cards.forEach(function (c) {
+        /* THE CROWN LAW: legendaries travel only inside Legend Packs -
+           an exam choice never offers one */
+        if (c.rarity === 'legendary') return;
         if (!taken[c.id]) out.push(dict[c.id]);
       });
     });
@@ -1579,6 +1609,32 @@
     openGrantChoice(stage, function () {
       updateStageCards();
     });
+  }
+
+  /* THE LEGEND CEREMONY: an unopened Legend Pack plays the one-card
+     opening the next time the chapter map is quiet. The card is
+     already owned (granted at clear time) - this is the handshake,
+     not the handoff, so clearing the flag BEFORE the theater can
+     never cost a card. Waits out any dialogue on the screen. */
+  function reofferPendingLegend() {
+    var prog = getProgress();
+    if (!prog.pendingLegend) return;
+    var stage = stageById(prog.pendingLegend);
+    if (!stage || !stage.grants || !stage.grants.legendPack) {
+      prog.pendingLegend = null;
+      saveProgress(prog);
+      return;
+    }
+    if (dlg) {
+      /* an epilogue is still talking - try again when it is done */
+      window.setTimeout(reofferPendingLegend, 900);
+      return;
+    }
+    if (document.body.dataset.view !== 'chapter') return;
+    prog.pendingLegend = null;
+    saveProgress(prog);
+    if (window.EOL.shop && window.EOL.shop.openLegendPack)
+      window.EOL.shop.openLegendPack(stage.grants.legendPack);
   }
 
   /* ---------------------------------------------------------
@@ -1693,6 +1749,9 @@
 
   function ledgerStateOf(stage, prog) {
     if (prog.cleared.indexOf(stage.id) >= 0) return 'full';
+    /* FIRST BLOOD (owner ruling 2026-08-10): one fight - won or lost -
+       opens the rival's forces in the ledger */
+    if (prog.fought.indexOf(stage.id) >= 0) return 'met';
     if (prog.unlocked.indexOf(stage.id) >= 0) return 'intel';
     return 'sealed';
   }
@@ -1743,9 +1802,11 @@
         var icon =
           st === 'full'
             ? '<i class="ri-checkbox-circle-fill lg-done"></i>'
-            : st === 'intel'
-              ? '<i class="ri-lock-unlock-line lg-open"></i>'
-              : '<i class="ri-lock-2-fill lg-lock"></i>';
+            : st === 'met'
+              ? '<i class="ri-sword-line lg-met"></i>'
+              : st === 'intel'
+                ? '<i class="ri-lock-unlock-line lg-open"></i>'
+                : '<i class="ri-lock-2-fill lg-lock"></i>';
         var face =
           st === 'sealed'
             ? '<span class="lg-face lg-face-hood"><i class="ra ra-hood"></i></span>'
@@ -1872,26 +1933,79 @@
         stage.counsel +
         '</p></div>';
     }
-    if (st === 'full') {
+    var revealed = st === 'full' || st === 'met';
+    var isDraft = stage.mode === 'draft';
+    if (isDraft) {
+      /* DRAFT GATES field no fixed twelve - they sit at a table. The
+         ledger shows the FACTIONS whose echoes are in the pool
+         (owner ruling 2026-08-10), once the rival has been faced. */
+      if (revealed) {
+        var seen = {};
+        var pool = (stage.pool && stage.pool.cards) || [];
+        var chips = '';
+        pool.forEach(function (id) {
+          var e = cardDict()[id];
+          if (!e || seen[e.faction.id]) return;
+          seen[e.faction.id] = true;
+          chips +=
+            '<span class="lg-fchip' +
+            (e.faction.id === (stage.pool && stage.pool.featured) ? ' featured' : '') +
+            '" style="--fc:' +
+            e.faction.colors.primary +
+            '"><i class="ra ' +
+            e.faction.icon +
+            '"></i>' +
+            e.faction.name +
+            '</span>';
+        });
+        html +=
+          '<div class="lg-fact"><span class="lg-label"><i class="ri-stack-line"></i> The Table</span>' +
+          '<p class="lg-tablenote">No fixed twelve - a draft. The pool draws from these roads' +
+          ((stage.pool || {}).featured ? ' (the bright crest is the featured faction, always whole)' : '') +
+          ':</p>' +
+          '<div class="lg-factions">' +
+          chips +
+          '</div></div>';
+      } else {
+        html +=
+          '<div class="lg-fact lg-unwritten"><span class="lg-label"><i class="ri-stack-line"></i> The Table</span>' +
+          '<p>A draft table. Its roads stay unwritten until you first sit across from them.</p></div>';
+      }
+      if (st === 'full') {
+        html +=
+          '<div class="lg-fact lg-record"><span class="lg-label"><i class="ri-flag-line"></i> Record</span>' +
+          '<p>Gate cleared' +
+          (clears > 1 ? ' - walked ' + clears + ' times' : '') +
+          '. <span class="lg-word">' +
+          (stage.resultWin || '') +
+          '</span></p></div>';
+      }
+    } else if (revealed) {
       html +=
         '<div class="lg-fact"><span class="lg-label"><i class="ri-stack-line"></i> The Twelve</span>' +
         '<div class="prep-cards lg-twelve" id="lg-twelve"></div></div>';
-      html +=
-        '<div class="lg-fact lg-record"><span class="lg-label"><i class="ri-flag-line"></i> Record</span>' +
-        '<p>Gate cleared' +
-        (clears > 1 ? ' - walked ' + clears + ' times' : '') +
-        '. <span class="lg-word">' +
-        (stage.resultWin || '') +
-        '</span></p></div>';
+      if (st === 'full') {
+        html +=
+          '<div class="lg-fact lg-record"><span class="lg-label"><i class="ri-flag-line"></i> Record</span>' +
+          '<p>Gate cleared' +
+          (clears > 1 ? ' - walked ' + clears + ' times' : '') +
+          '. <span class="lg-word">' +
+          (stage.resultWin || '') +
+          '</span></p></div>';
+      } else {
+        html +=
+          '<div class="lg-fact lg-record"><span class="lg-label"><i class="ri-flag-line"></i> Record</span>' +
+          '<p>Met, not beaten. The gate still stands - but their forces are written now.</p></div>';
+      }
     } else {
       html +=
         '<div class="lg-fact lg-unwritten"><span class="lg-label"><i class="ri-stack-line"></i> The Twelve</span>' +
-        '<p>Unwritten until the gate is walked.</p></div>';
+        '<p>Unwritten until you first cross blades.</p></div>';
     }
     host.innerHTML = html;
     /* the twelve are REAL battle tiles with the prep hover panel,
        bound to the ledger's own flyout instance */
-    if (st === 'full' && window.EOL.play && window.EOL.play.tileFor) {
+    if (revealed && !isDraft && window.EOL.play && window.EOL.play.tileFor) {
       var grid = $('lg-twelve');
       var tip = $('ledger-tip');
       var dict = cardDict();
@@ -2109,6 +2223,8 @@
       if (ev.detail === 'chapter') {
         updateStageCards();
         window.setTimeout(reofferPendingChoice, 400);
+        /* an unopened Legend Pack plays its ceremony first chance */
+        window.setTimeout(reofferPendingLegend, 600);
         /* the one-time ledger introduction, once Gate I has fallen */
         window.setTimeout(maybeSpotLedger, 900);
       }
@@ -2192,6 +2308,7 @@
     _buildPool: buildPool,
     _launchStage: launchStage,
     _stageById: stageById,
+    _recordClear: recordClear,
     _watchEvent: watchEvent,
     _battleWatch: function () {
       return battleWatch;

@@ -17,8 +17,12 @@
   'use strict';
   window.EOL = window.EOL || {};
 
-  /* THE SHELF (owner ruling 2026-08-10): three tiers - a budget
-     taste, the standard five, and a top shelf that hunts crowns. */
+  /* THE SHELF (owner rulings 2026-08-10): three tiers - a budget
+     taste, the standard five, and a top shelf heavy with Epics.
+     THE CROWN LAW, same day: NO LEGENDARY IN ANY PACK, ever. The
+     future may sell coins, and the day it does, the only thing money
+     can speed up is the shelf of echoes - crowns are earned on the
+     Road. Epic is the ceiling of every table below. */
   var PACKS = {
     trio: {
       key: 'trio',
@@ -27,9 +31,8 @@
       size: 3,
       odds: [
         ['common', 50],
-        ['rare', 34],
-        ['epic', 13],
-        ['legendary', 3],
+        ['rare', 35],
+        ['epic', 15],
       ],
       final: null, // no guarantee - it is the budget shelf
     },
@@ -41,13 +44,9 @@
       odds: [
         ['common', 45],
         ['rare', 35],
-        ['epic', 16],
-        ['legendary', 4],
+        ['epic', 20],
       ],
-      final: [
-        ['epic', 80],
-        ['legendary', 20],
-      ],
+      final: [['epic', 100]],
     },
     crown: {
       key: 'crown',
@@ -55,15 +54,23 @@
       price: 700,
       size: 5,
       odds: [
-        ['common', 20],
-        ['rare', 38],
-        ['epic', 30],
-        ['legendary', 12],
+        ['common', 15],
+        ['rare', 45],
+        ['epic', 40],
       ],
-      final: [
-        ['epic', 55],
-        ['legendary', 45],
-      ],
+      final: [['epic', 100]],
+    },
+    /* THE LEGEND PACK - never on the shelf, never priced. The Road
+       hands one over after certain gates: a single-card ceremony
+       carrying that faction's one legendary. begin() refuses it;
+       only campaign.js can open it, through openLegendPack(). */
+    legend: {
+      key: 'legend',
+      name: 'Legend Pack',
+      price: 0,
+      size: 1,
+      odds: [],
+      final: null,
     },
   };
 
@@ -88,14 +95,16 @@
   }
 
   /* ---------------- pack contents (pure) ---------------- */
-  /* Pools are built from the UNOWNED obtainable roster only - every
-     card in every pack is new. `entries` is injectable for tests. */
+  /* Pools are built from the PACKABLE roster only - unowned AND below
+     legendary (the Crown Law). `entries` is injectable for tests, and
+     the legendary filter applies even then: no injected pool can put
+     a crown in a wrapper. */
   function poolByRarity(entries) {
-    var pools = { common: [], rare: [], epic: [], legendary: [] };
+    var pools = { common: [], rare: [], epic: [] };
     var list =
       entries ||
       (window.EOL.econ
-        ? window.EOL.econ.unownedEntries()
+        ? window.EOL.econ.packableEntries()
         : (function () {
             var out = [];
             (window.EOL.factions || []).forEach(function (f) {
@@ -106,6 +115,7 @@
             return out;
           })());
     list.forEach(function (e) {
+      if (e.card.rarity === 'legendary') return;
       (pools[e.card.rarity] = pools[e.card.rarity] || []).push(e);
     });
     return pools;
@@ -132,9 +142,7 @@
     var pools = poolByRarity(entries);
     function pickFrom(rarity) {
       var order =
-        rarity === 'common'
-          ? ['common', 'rare', 'epic', 'legendary']
-          : [rarity, 'epic', 'rare', 'legendary', 'common'];
+        rarity === 'common' ? ['common', 'rare', 'epic'] : [rarity, 'epic', 'rare', 'common'];
       for (var i = 0; i < order.length; i++) {
         var p = pools[order[i]];
         if (p && p.length) return p.splice(Math.floor(rng() * p.length), 1)[0];
@@ -197,9 +205,11 @@
     var pack = PACKS[packKey] || currentPack || PACKS.echo;
     var econ = window.EOL.econ;
     if (!econ) return;
-    if (!econ.unownedEntries().length) {
+    /* the Legend Pack is the Road's to give, never the shelf's to sell */
+    if (pack.key === 'legend') return;
+    if (!econ.packableEntries().length) {
       if (window.EOL.ui && window.EOL.ui.toast)
-        window.EOL.ui.toast('Your collection is complete - the Road has nothing left to sell', 'ra-crown');
+        window.EOL.ui.toast('Every echo the shelf sells is yours - the legends left walk the Road', 'ra-crown');
       return;
     }
     if (!econ.spend(pack.price)) {
@@ -207,7 +217,6 @@
         window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ri-coin-fill');
       return;
     }
-    currentPack = pack;
     results = rollPack(Math.random, pack);
     /* GRANT NOW: the ceremony is theater, the ledger is truth */
     econ.grant(
@@ -215,6 +224,31 @@
         return e.card.id;
       })
     );
+    startCeremony(pack);
+  }
+
+  /* THE LEGEND PACK: campaign.js opens this after a gate that grants
+     a legendary. The card is already granted by recordClear (a mid-
+     ceremony refresh can never eat a crown); this is pure theater -
+     one card, no price, no 'open another'. */
+  function openLegendPack(cardId) {
+    var entry = null;
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (c.id === cardId) entry = { card: c, faction: f };
+      });
+    });
+    if (!entry) return false;
+    if (window.EOL.econ) window.EOL.econ.grant([cardId]); // idempotent safety
+    results = [entry];
+    startCeremony(PACKS.legend);
+    return true;
+  }
+
+  /* the shared curtain-up: stamp the wrapper, reset the stage, drop
+     the pack onto the table */
+  function startCeremony(pack) {
+    currentPack = pack;
     paintShop();
     /* the pack on the table wears the wrapper you paid for */
     document.querySelectorAll('#po-pack .pk-host').forEach(function (h) {
@@ -222,6 +256,8 @@
       buildPackFace(h);
     });
     resetStage();
+    var again = el('po-again');
+    if (again) again.hidden = pack.key === 'legend';
     state = 'intro';
     var overlay = el('pack-opening');
     overlay.classList.add('on');
@@ -229,15 +265,15 @@
     document.body.classList.add('pack-open');
     el('po-skip').classList.add('show');
 
-    var pack = el('po-pack');
+    var packEl = el('po-pack');
     // restart the drop animation
-    void pack.offsetWidth;
-    pack.classList.add('drop');
+    void packEl.offsetWidth;
+    packEl.classList.add('drop');
     later(function () {
       if (state !== 'intro') return;
       state = 'await';
-      pack.classList.remove('drop');
-      pack.classList.add('idle');
+      packEl.classList.remove('drop');
+      packEl.classList.add('idle');
       el('po-hint').classList.add('show');
     }, dur('introDrop'));
   }
@@ -403,6 +439,7 @@
     trio: { icon: 'ra-diamonds-card' },
     echo: { icon: 'ra-spiral-shell' },
     crown: { icon: 'ra-crown' },
+    legend: { icon: 'ra-sunbeams' },
   };
   function buildPackFace(host) {
     if (!host) return;
@@ -449,12 +486,16 @@
     if (!econ) return;
     var w = el('shop-wallet');
     if (w) w.innerHTML = COIN_IMG + econ.coins().toLocaleString();
-    var left = econ.unownedEntries().length;
+    /* the shelf sells down to the last ECHO; the legends that remain
+       are the Road's business, and the counter says so */
+    var left = econ.packableEntries().length;
     var prog = el('shop-progress');
     if (prog)
       prog.textContent =
         left === 0
-          ? 'Collection complete - every echo answers to you'
+          ? econ.unownedEntries().length === 0
+            ? 'Collection complete - every echo answers to you'
+            : 'Every echo the shelf sells is yours - the legends left walk the Road'
           : econ.ownedCount() + ' / ' + econ.obtainableEntries().length + ' legends collected';
     document.querySelectorAll('.buy-pack').forEach(function (btn) {
       var pack = PACKS[btn.dataset.pack];
@@ -510,6 +551,7 @@
     rollPack: rollPack,
     rollRarity: rollRarity,
     begin: begin,
+    openLegendPack: openLegendPack,
     paintShop: paintShop,
     charge: charge,
     skip: skip,
