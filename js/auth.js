@@ -1,12 +1,12 @@
 /* =============================================================
  * Accounts - Supabase auth
  * -------------------------------------------------------------
- * WHAT AN ACCOUNT IS FOR, AND WHAT IT IS NOT
+ * WHAT AN ACCOUNT IS FOR
  *
- *   An account exists here for exactly one reason: matchmaking needs
- *   two stable identities to pair. It does NOT sync your collection.
- *   Decks and graphics settings all stay on the device, on purpose -
- *   see the note above pushDeck().
+ *   Two jobs, cleanly split: a stable identity so matchmaking can
+ *   pair two players (this module + js/mp.js), and a home for the
+ *   player's save - THE VAULT in js/cloud.js, which mirrors the
+ *   whole local state to the `saves` table when signed in.
  *
  * Design rules this module follows:
  *
@@ -263,22 +263,6 @@
   }
 
   /* ---------------------------------------------------------
-     DECK SYNC - superseded by THE VAULT (js/cloud.js, 2026-08-10)
-     -------------------------------------------------------------
-     Decks (and the whole local save) now travel with the account as
-     one snapshot document; see cloud.js for the three laws. These
-     per-deck push/delete hooks remain as no-ops so js/deck.js needs
-     no signed-in special case - the vault's dirty-check loop picks
-     up eol.decks.v1 like every other key.
-     --------------------------------------------------------- */
-  function pushDeck() {
-    return Promise.resolve();
-  }
-  function deleteDeck() {
-    return Promise.resolve();
-  }
-
-  /* ---------------------------------------------------------
      public API
      --------------------------------------------------------- */
   window.EOL.auth = {
@@ -343,10 +327,6 @@
     setHandle: setHandle,
     updatePassword: updatePassword,
     needsHandle: needsHandle,
-
-    /* Retained as no-ops: decks are local-only for now. */
-    pushDeck: pushDeck,
-    deleteDeck: deleteDeck,
 
     /* js/mp.js borrows the configured client rather than creating a
        second one, so both share a single auth session and socket. */

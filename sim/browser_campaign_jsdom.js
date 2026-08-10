@@ -794,6 +794,23 @@ const server = http.createServer((req, res) => {
     t(w.EOL.campaign.getProgress().pendingLegend === null, 'the ceremony never replays');
   }
 
+  /* ---------- THE WORKBENCH + the readable vault document ---------- */
+  {
+    t(!!w.EOL.dev && typeof w.EOL.dev.coins === 'function', 'the owner workbench is loaded');
+    const before = w.EOL.econ.coins();
+    w.EOL.dev.coins(500);
+    t(w.EOL.econ.coins() === before + 500, 'EOL.dev.coins(500) is the one-line test-coin answer');
+    w.EOL.dev.coins(-500);
+    t(w.EOL.econ.coins() === before, 'and negative takes them back');
+    const doc = w.EOL.cloud._collect();
+    t(doc.v === 2, 'the vault document is format v2');
+    t(typeof doc.wallet === 'number' && doc.wallet === w.EOL.econ.coins(), 'wallet is a NUMBER a human can edit in the dashboard');
+    t(Array.isArray(doc.owned), 'owned is a plain list of card ids');
+    t(doc.campaign && typeof doc.campaign === 'object' && Array.isArray(doc.campaign.cleared), 'campaign progress is a readable object');
+    t(doc.settings && typeof doc.settings === 'object', 'settings are grouped, not scattered');
+    t(!w.EOL.auth.pushDeck && !w.EOL.auth.deleteDeck, 'the dead per-deck sync hooks are gone with their table');
+  }
+
   /* ---------- FIRST BLOOD in the ledger; draft gates list ROADS ---------- */
   {
     const prog = w.EOL.campaign.getProgress();

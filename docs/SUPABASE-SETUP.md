@@ -17,13 +17,37 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | Email sign-in, signups open, **auto-confirm on** | done |
 | OK | Redirect URL for your host | done |
 | OK | **Realtime Broadcast** - tested with two live clients | working |
-| OK | `profiles`, `ladders` tables | present |
+| OK | `profiles`, `saves` tables | present |
 | OK | `mp_queue`, `mp_matches` tables | **created** |
 | OK | `try_match()` function | **created** |
 
 **The backend is READY.** `node sim/preflight.js` confirms two signed-in
 players can queue and play. The setup steps below are kept as reference
 and for setting the project up again from scratch.
+
+---
+
+## THE BACKEND MAP (cleanup 2026-08-10)
+
+Four tables. If the dashboard shows more, run the cleanup in section
+9b. Everything the backend holds, in one look:
+
+| Table | Written by | What it holds |
+| --- | --- | --- |
+| `profiles` | `js/auth.js` | Identity: the callsign your opponent sees. One row per user. |
+| `saves` | `js/cloud.js` (THE VAULT) | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
+| `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
+| `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
+
+| Function | Called by | Job |
+| --- | --- | --- |
+| `try_match()` | mp.js | Atomic pairing (`for update skip locked`). |
+| `find_my_match()` | mp.js | Rejoin after a refresh. |
+| `touch_match()` / `save_match_state()` / `end_match()` | mp.js | Match lifecycle. |
+
+Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
+no code referenced it) and `ladders` (nothing wrote it; it returns
+with ranked in ROADMAP Phase 4, server-side or not at all).
 
 ---
 
@@ -114,11 +138,12 @@ What it creates:
 | `profiles` | Display name shown to your opponent. |
 | `mp_queue` | Who is waiting for a match. Rows are deleted the instant a pair is made. |
 | `mp_matches` | The match, and its `seed` - the shared randomness both clients build the draft, battlefield and battle luck from. |
-| `ladders` | Table only. Nothing writes it yet, on purpose. |
 | `try_match()` | Atomic pairing. `for update skip locked` is what stops two clients claiming the same opponent. |
 | RLS policies | What makes the publishable key safe to ship in browser code. |
 
-There is no `decks` table. Decks stay on the device.
+(`ladders` used to be created here too - it is gone until ranked is
+real; see THE BACKEND MAP and section 9b.) There is no `decks` table:
+decks travel inside the `saves` document.
 
 ## 4b. Migration 02 - match lifecycle
 
@@ -356,12 +381,55 @@ browsers and checks the board checksum after every action.
 | Stuck at "Looking for an opponent" | Only one player is queued, or the two are signed in as the same account. |
 | Paired but the draft never starts | Realtime is off for the project (step 5). |
 
+## 9b. CLEANUP - drop the dead tables (2026-08-10)
+
+The dashboard had six tables; only four earn their place (see THE
+BACKEND MAP at the top). Run this once in **SQL Editor**:
+
+```sql
+-- the pre-vault deck-sync experiment: no code references it
+drop table if exists public.decks;
+
+-- nothing writes it; ranked (ROADMAP Phase 4) recreates it properly,
+-- server-authoritative, or not at all
+drop table if exists public.ladders;
+```
+
+`node sim/preflight.js` has a graveyard check: it warns if either
+table still exists.
+
 ## 10. THE VAULT - cloud saves (added 2026-08-10)
 
 Signed-in players carry their whole save with the account: wallet,
 owned cards, campaign progress, decks, settings, tutorial flags.
-`js/cloud.js` mirrors every registered `localStorage` key into ONE
-jsonb document per user.
+`js/cloud.js` stores it as ONE **readable** json document per user
+(format v2 - the original v1 stored raw localStorage strings and was
+impossible to hand-edit; v1 rows migrate themselves on next sign-in):
+
+```json
+{
+  "v": 2,
+  "wallet": 1230,
+  "owned": ["camelot-lancelot", "olympus-medusa"],
+  "campaign": { "cleared": [1, 2], "fought": [1, 2, 3], "coins": 450 },
+  "decks": { "...": "..." },
+  "settings": { "scale": 100, "gfx": "high", "warLength": "set" },
+  "flags": { "tutorialIntro": "1", "tips": {} }
+}
+```
+
+### Giving yourself test coins (and other owner surgery)
+
+Two ways, pick by mood:
+
+1. **The console (fastest).** Open the game, press F12, and type
+   `EOL.dev.coins(5000)`. Done - the wallet updates live and, if
+   signed in, the vault syncs it within seconds. The whole workbench:
+   `EOL.dev.coins(n)`, `EOL.dev.grantAll()`, `EOL.dev.openRoad()`,
+   `EOL.dev.reset()`, `EOL.dev.save()` (js/dev.js documents each).
+2. **The dashboard.** Table Editor -> `saves` -> your row -> edit
+   `data` -> change the `wallet` number -> save -> reload the game.
+   On boot the vault wins over the device, so the edit lands.
 
 Run this in **SQL Editor**:
 

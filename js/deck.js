@@ -67,14 +67,10 @@
     } catch (e) {
       /* private mode */
     }
-    /* Local-first: the write above already succeeded, so the game is
-       consistent whether or not the network call does. Cloud sync is a
-       best-effort follow-up and its failure is never fatal. */
-    var A = window.EOL.auth;
-    if (A && A.isReady && A.isReady() && A.user()) {
-      var d = touched || editing;
-      if (d) A.pushDeck(d).catch(function () {});
-    }
+    /* Cloud sync is THE VAULT's job (js/cloud.js): its dirty-check
+       loop picks up eol.decks.v1 like every other key. The old
+       per-deck pushDeck() hook - and the dead `decks` table behind
+       it - are gone (backend cleanup 2026-08-10). */
   }
 
   /* One-time import of the legacy 6-hero squad. Prefills an
@@ -292,9 +288,7 @@
     if (i < 0) return;
     decks.splice(i, 1);
     if (editing && editing.id === id) editing = null;
-    save();
-    var A = window.EOL.auth;
-    if (A && A.isReady && A.isReady() && A.user()) A.deleteDeck(id).catch(function () {});
+    save(); /* the vault syncs the whole deck list - nothing per-deck */
   }
 
   /* ---------------- editor state ---------------- */

@@ -95,7 +95,11 @@ async function get(url, opts) {
 
   /* ---------- 3. schema ---------- */
   console.log('\n  Database schema');
-  const need = ['profiles', 'mp_queue', 'mp_matches', 'ladders', 'saves'];
+  /* THE BACKEND MAP (cleanup 2026-08-10): exactly four tables.
+     profiles (identity) + saves (THE VAULT) + mp_queue/mp_matches
+     (matchmaking). `decks` and `ladders` were dead weight and have a
+     graveyard check below. */
+  const need = ['profiles', 'mp_queue', 'mp_matches', 'saves'];
   const missing = [];
   for (const t of need) {
     const r = await get(U + '/rest/v1/' + t + '?select=*&limit=1', { headers: H });
@@ -108,6 +112,17 @@ async function get(url, opts) {
       pass("table '" + t + "' exists (RLS is hiding rows, which is correct)");
     } else {
       warn("table '" + t + "' returned HTTP " + r.status);
+    }
+  }
+  /* the graveyard: tables the cleanup migration should have removed */
+  for (const t of ['decks', 'ladders']) {
+    const r = await get(U + '/rest/v1/' + t + '?select=*&limit=1', { headers: H });
+    if (r.body && r.body.code === 'PGRST205') {
+      pass("dead table '" + t + "' is gone");
+    } else {
+      warn(
+        "dead table '" + t + "' still exists - run the cleanup SQL in SUPABASE-SETUP.md section 9b"
+      );
     }
   }
 
@@ -132,7 +147,7 @@ async function get(url, opts) {
   console.log('\n  Row Level Security');
   const probes = [
     ['profiles', { id: '00000000-0000-0000-0000-000000000009', handle: 'preflight' }],
-    ['ladders', { user_id: '00000000-0000-0000-0000-000000000009', mode: 'draft', trophies: 9999 }],
+    ['saves', { user_id: '00000000-0000-0000-0000-000000000009', data: { v: 2, wallet: 9999 } }],
   ];
   for (const [t, row] of probes) {
     if (missing.indexOf(t) >= 0) continue;

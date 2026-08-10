@@ -35,26 +35,46 @@
   'use strict';
   window.EOL = window.EOL || {};
 
-  /* Every key the game persists. New features MUST register here -
-     verify_campaign greps this list against the KEY constants in the
-     codebase so a forgotten key fails the battery, not the player. */
-  var KEYS = [
-    'eol.wallet.v1', // the one wallet
-    'eol.owned.v1', // owned cards
-    'eol.econ.migrated.v1', // one-time economy import marker
-    'eol.campaign.ch1.progress', // the Road: clears, grants, fought, tells
-    'eol.decks.v1', // every deck
-    'eol.grimmwood-starter.v1', // starter-deck seed marker
-    'eol.scale', // UI scale
-    'eol.gfx', // graphics quality
-    'eol.tips', // dismissed tip dots
-    'eol.coach.v1', // seen coach overlays
-    'eol.war.length', // single / set preference
-    'eol.tutorial.intro.v1', // intro scene seen
-    'eol.tutorial.guide.v1', // wayfinder pending
-    'eol.tutorial.ledger.v1', // ledger spotlight seen
-    'eol.uname.skip', // callsign prompt dismissed
+  /* THE DOCUMENT (v2, 2026-08-10): one HUMAN-READABLE json per user.
+     v1 stored raw localStorage strings under their storage keys -
+     correct, but unreadable in the dashboard (the owner could not
+     find the wallet to give himself test coins). v2 is organized the
+     way a person thinks:
+
+       {
+         v: 2,
+         wallet: 1230,                    <- EDIT THIS NUMBER in the
+                                             dashboard to grant coins
+         owned: ["camelot-lancelot",...],
+         campaign: { cleared:[...], fought:[...], ... },
+         decks: {...},
+         settings: { scale: 100, gfx: "high", warLength: "set" },
+         flags: { tutorialIntro: "1", tips: {...}, ... }
+       }
+
+     MAP is the single source of truth: storage key <-> document path
+     <-> type. New persisted keys MUST be added here - verify_campaign
+     greps this file for every _KEY constant in the codebase. */
+  var MAP = [
+    ['eol.wallet.v1', 'wallet', 'int'],
+    ['eol.owned.v1', 'owned', 'json'],
+    ['eol.campaign.ch1.progress', 'campaign', 'json'],
+    ['eol.decks.v1', 'decks', 'json'],
+    ['eol.scale', 'settings.scale', 'int'],
+    ['eol.gfx', 'settings.gfx', 'str'],
+    ['eol.war.length', 'settings.warLength', 'str'],
+    ['eol.tips', 'flags.tips', 'json'],
+    ['eol.coach.v1', 'flags.coach', 'json'],
+    ['eol.econ.migrated.v1', 'flags.econMigrated', 'str'],
+    ['eol.grimmwood-starter.v1', 'flags.starterSeeded', 'str'],
+    ['eol.tutorial.intro.v1', 'flags.tutorialIntro', 'str'],
+    ['eol.tutorial.guide.v1', 'flags.tutorialGuide', 'str'],
+    ['eol.tutorial.ledger.v1', 'flags.tutorialLedger', 'str'],
+    ['eol.uname.skip', 'flags.unameSkip', 'str'],
   ];
+  var KEYS = MAP.map(function (row) {
+    return row[0];
+  });
 
   var TABLE = 'saves';
   var PUSH_TICK_MS = 4000;
@@ -67,29 +87,55 @@
     return window.EOL.auth && window.EOL.auth.rawClient ? window.EOL.auth.rawClient() : null;
   }
 
+  function setPath(obj, path, val) {
+    var parts = path.split('.');
+    var host = obj;
+    for (var i = 0; i < parts.length - 1; i++) host = host[parts[i]] = host[parts[i]] || {};
+    host[parts[parts.length - 1]] = val;
+  }
+  function getPath(obj, path) {
+    var parts = path.split('.');
+    var host = obj;
+    for (var i = 0; i < parts.length && host != null; i++) host = host[parts[i]];
+    return host === undefined ? null : host;
+  }
+
+  /* localStorage -> the v2 document */
   function collect() {
-    var out = {};
-    KEYS.forEach(function (k) {
+    var doc = { v: 2 };
+    MAP.forEach(function (row) {
       try {
-        var v = localStorage.getItem(k);
-        if (v !== null) out[k] = v;
+        var raw = localStorage.getItem(row[0]);
+        if (raw === null) return;
+        var val = raw;
+        if (row[2] === 'int') val = parseInt(raw, 10);
+        else if (row[2] === 'json') {
+          try {
+            val = JSON.parse(raw);
+          } catch (e) {
+            val = raw;
+          }
+        }
+        setPath(doc, row[1], val);
       } catch (e) {
         /* private mode: nothing to vault */
       }
     });
-    return out;
+    return doc;
   }
 
   function digest(snap) {
     return JSON.stringify(snap);
   }
 
-  /* write a vault into localStorage; returns true if anything changed */
-  function apply(snap) {
+  /* the v2 document -> localStorage; returns true if anything changed.
+     A v1 vault (raw 'eol.*' keys, no version field) is read the old
+     way once and becomes v2 on the next push - nobody's save is lost
+     to the reorganization. */
+  function apply(doc) {
     var changed = false;
-    try {
-      KEYS.forEach(function (k) {
-        var want = Object.prototype.hasOwnProperty.call(snap, k) ? String(snap[k]) : null;
+    function write(k, want) {
+      try {
         var have = localStorage.getItem(k);
         if (want === null && have !== null) {
           localStorage.removeItem(k);
@@ -98,10 +144,25 @@
           localStorage.setItem(k, want);
           changed = true;
         }
-      });
-    } catch (e) {
-      /* private mode: the vault cannot land, play on */
+      } catch (e) {
+        /* private mode: the vault cannot land, play on */
+      }
     }
+    if (!doc || doc.v !== 2) {
+      /* v1: raw strings under storage keys */
+      KEYS.forEach(function (k) {
+        var has = doc && Object.prototype.hasOwnProperty.call(doc, k);
+        write(k, has ? String(doc[k]) : null);
+      });
+      return changed;
+    }
+    MAP.forEach(function (row) {
+      var val = getPath(doc, row[1]);
+      var want = null;
+      if (val !== null && val !== undefined)
+        want = row[2] === 'json' && typeof val !== 'string' ? JSON.stringify(val) : String(val);
+      write(row[0], want);
+    });
     return changed;
   }
 
@@ -221,6 +282,8 @@
     init: init,
     push: push,
     KEYS: KEYS.slice(),
+    /* test hook: the exact document a push would store */
+    _collect: collect,
     status: function () {
       return uid ? 'on' : 'off';
     },
