@@ -3685,6 +3685,165 @@
     if (s2 && sub != null) s2.textContent = sub;
   }
 
+  /* ---------------------------------------------------------
+     MODE CAROUSELS
+     -------------------------------------------------------------
+     The mode select is a pair of horizontal, snap-centred carousels
+     instead of a wall of cards. Arrows, dots, swipe/trackpad scrolling,
+     focus, and Left/Right keys all drive the same selected slide. */
+  var modeCarousels = [];
+
+  function carouselCards(shell) {
+    return shell
+      ? Array.prototype.slice.call(shell.querySelectorAll('.mode-grid > .mode-card'))
+      : [];
+  }
+
+  function carouselTitle(card) {
+    var name = card && card.querySelector('.mode-name');
+    return name ? name.textContent.trim() : 'Mode';
+  }
+
+  function carouselLabel(card) {
+    return carouselTitle(card) + (card && card.classList.contains('soon') ? ', coming soon' : '');
+  }
+
+  function paintModeCarousel(shell, index) {
+    if (!shell) return;
+    var cards = carouselCards(shell);
+    if (!cards.length) return;
+    index = Math.max(0, Math.min(cards.length - 1, index | 0));
+    shell.dataset.carouselIndex = String(index);
+    cards.forEach(function (card, i) {
+      var current = i === index;
+      card.classList.toggle('carousel-current', current);
+      card.setAttribute('aria-roledescription', 'slide');
+      card.setAttribute(
+        'aria-label',
+        carouselLabel(card) + ', ' + (i + 1) + ' of ' + cards.length
+      );
+    });
+    var dots = shell.querySelectorAll('[data-carousel-dots] > button');
+    Array.prototype.forEach.call(dots, function (dot, i) {
+      dot.classList.toggle('sel', i === index);
+      dot.setAttribute('aria-current', i === index ? 'true' : 'false');
+    });
+    var prev = shell.querySelector('[data-carousel-prev]');
+    var next = shell.querySelector('[data-carousel-next]');
+    if (prev) prev.disabled = index <= 0;
+    if (next) next.disabled = index >= cards.length - 1;
+    var status = shell.querySelector('[data-carousel-status]');
+    if (status)
+      status.textContent = carouselTitle(cards[index]) + ' · ' + (index + 1) + ' / ' + cards.length;
+  }
+
+  function showModeCard(card, instant, focusCard) {
+    if (!card) return;
+    var shell = card.closest ? card.closest('[data-mode-carousel]') : null;
+    if (!shell) return;
+    var track = shell.querySelector('.mode-grid');
+    var cards = carouselCards(shell);
+    var index = cards.indexOf(card);
+    if (!track || index < 0) return;
+    var left = Math.max(0, card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2);
+    if (typeof track.scrollTo === 'function') {
+      track.scrollTo({ left: left, behavior: instant ? 'auto' : 'smooth' });
+    } else {
+      track.scrollLeft = left;
+    }
+    paintModeCarousel(shell, index);
+    if (focusCard && card.focus) card.focus({ preventScroll: true });
+  }
+
+  function syncModeCarousel(shell) {
+    if (!shell || shell.hidden) return;
+    var track = shell.querySelector('.mode-grid');
+    var cards = carouselCards(shell);
+    if (!track || !cards.length) return;
+    var centre = track.scrollLeft + track.clientWidth / 2;
+    var best = 0;
+    var distance = Infinity;
+    cards.forEach(function (card, i) {
+      var d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - centre);
+      if (d < distance) {
+        distance = d;
+        best = i;
+      }
+    });
+    paintModeCarousel(shell, best);
+  }
+
+  function refreshModeCarousel(shell) {
+    if (!shell || shell.hidden) return;
+    var cards = carouselCards(shell);
+    var index = Number(shell.dataset.carouselIndex || 0);
+    if (cards[index]) showModeCard(cards[index], true, false);
+  }
+
+  function initModeCarousels() {
+    document.querySelectorAll('[data-mode-carousel]').forEach(function (shell) {
+      if (shell.dataset.carouselReady === '1') return;
+      shell.dataset.carouselReady = '1';
+      modeCarousels.push(shell);
+      var cards = carouselCards(shell);
+      var dots = shell.querySelector('[data-carousel-dots]');
+      if (!cards.length) return;
+
+      cards.forEach(function (card, i) {
+        if (dots) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.setAttribute('aria-label', 'Show ' + carouselLabel(card));
+          dot.addEventListener('click', function () {
+            showModeCard(card, false, true);
+          });
+          dots.appendChild(dot);
+        }
+        card.addEventListener('focus', function () {
+          if (!card.classList.contains('carousel-current')) {
+            showModeCard(card, true, false);
+          }
+        });
+      });
+
+      var prev = shell.querySelector('[data-carousel-prev]');
+      var next = shell.querySelector('[data-carousel-next]');
+      function step(delta) {
+        var index = Number(shell.dataset.carouselIndex || 0) + delta;
+        index = Math.max(0, Math.min(cards.length - 1, index));
+        showModeCard(cards[index], false, true);
+      }
+      if (prev) prev.addEventListener('click', function () { step(-1); });
+      if (next) next.addEventListener('click', function () { step(1); });
+
+      var track = shell.querySelector('.mode-grid');
+      var scrollRaf = 0;
+      if (track) {
+        track.addEventListener('scroll', function () {
+          if (scrollRaf) cancelAnimationFrame(scrollRaf);
+          scrollRaf = requestAnimationFrame(function () {
+            scrollRaf = 0;
+            syncModeCarousel(shell);
+          });
+        });
+        track.addEventListener('keydown', function (e) {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          e.preventDefault();
+          step(e.key === 'ArrowLeft' ? -1 : 1);
+        });
+      }
+      paintModeCarousel(shell, 0);
+    });
+
+    window.addEventListener('resize', function () {
+      modeCarousels.forEach(refreshModeCarousel);
+    });
+    document.addEventListener('eol:view', function (ev) {
+      if (ev.detail !== 'play') return;
+      modeCarousels.forEach(refreshModeCarousel);
+    });
+  }
+
   /* Park the sliding highlight exactly over the selected tab.
      The two tabs are different widths (Multiplayer carries the
      "account" badge, which vanishes on sign-in), so the thumb is
@@ -3726,20 +3885,28 @@
          side with a small card stagger. gfx-low swaps instantly. */
       var showEl = which === 'solo' ? solo : mp,
         hideEl = which === 'solo' ? mp : solo,
+        showShell = showEl.closest ? showEl.closest('[data-mode-carousel]') : null,
+        hideShell = hideEl.closest ? hideEl.closest('[data-mode-carousel]') : null,
         dir = which === 'mp' ? '' : '-r';
       clearTimeout(gridAnimT);
       solo.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
       mp.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
       if (document.body.dataset.gfx === 'low' || hideEl.hidden || hideEl === showEl) {
         hideEl.hidden = true;
+        if (hideShell) hideShell.hidden = true;
+        if (showShell) showShell.hidden = false;
         showEl.hidden = false;
+        refreshModeCarousel(showShell);
         return;
       }
       hideEl.classList.add('mg-out' + dir);
       gridAnimT = setTimeout(function () {
         hideEl.hidden = true;
+        if (hideShell) hideShell.hidden = true;
         hideEl.classList.remove('mg-out' + dir);
+        if (showShell) showShell.hidden = false;
         showEl.hidden = false;
+        refreshModeCarousel(showShell);
         showEl.classList.add('mg-in' + dir);
         gridAnimT = setTimeout(function () {
           showEl.classList.remove('mg-in' + dir);
@@ -3951,6 +4118,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     initQuitGuard();
+    initModeCarousels();
     initMultiplayer();
     /* Rate the roster while the player is still on the menu.
        -------------------------------------------------------------
@@ -4120,6 +4288,7 @@
     rematch: rematch,
     openClassicModal: openClassicModal,
     startDraft: startDraft,
+    showModeCard: showModeCard,
     /* the status toast host - EOL.ui.toast delegates here (app.js was
        exporting the bare identifier `toast`, which in a browser is the
        #toast DIV via id-globals: a function-shaped landmine found

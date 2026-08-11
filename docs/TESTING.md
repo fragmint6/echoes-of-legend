@@ -27,6 +27,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
 | Supabase settings | `preflight` | ~5s |
 | Measurement / feedback | `node sim/verify_telemetry.js` | <1s |
+| Daily attempts / mode carousel | `node sim/verify_daily_ui.js` | <1s |
 | Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
 | About to deploy | see [Before you deploy](#before-you-deploy) | ~3m |
 
@@ -209,7 +210,14 @@ Daily Puzzle gate, RLS, sign-in settings, and a real Realtime Broadcast
 round trip. Run after any dashboard change. Migration 04 must be installed
 before the Daily Puzzle checks report ready. Preflight cannot exercise the
 signed-in generation lease, so older installs must apply migration 05
-separately.
+separately. The two-attempt client also requires migration 07; use the focused
+contract below to audit that SQL before applying it.
+
+### `verify_daily_ui.js` - <1s
+Exercises the fresh, one-used, and exhausted two-attempt states against a
+small dependency-free DOM. It also audits migration 07's numbered primary
+key, 1–2 check constraint, concurrent-claim lock, and third-claim rejection,
+then verifies the solo/multiplayer carousel and Guild Battles placeholder.
 
 ### `generate_daily_puzzle.js --dry-run` - ~5-60s
 Runs the same depth-4 worker used by the scheduled Daily Puzzle job,

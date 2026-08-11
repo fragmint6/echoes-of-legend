@@ -5,7 +5,7 @@
 
    Reads js/supabase-config.js and interrogates the REAL project.
    Answers two questions: can two people queue and play, and is the
-   one-attempt Daily Puzzle gate installed?
+   Daily Puzzle gate installed?
 
    Every check reports what it actually observed, so a failure names
    the fix instead of just saying "something is wrong".

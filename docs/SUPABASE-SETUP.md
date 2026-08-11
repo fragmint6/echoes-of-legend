@@ -1,9 +1,9 @@
 # Supabase setup - accounts, multiplayer, and Daily Puzzles
 
 The goal: **two people on different computers can play online, saves follow
-an account, and every signed-in player receives the same one-attempt Daily
-Puzzle.** Nothing here is ranked yet - the ladder is ROADMAP Phase 4; the
-online modes remain unranked.
+an account, and every signed-in player receives the same Daily Puzzle with
+two attempts.** Nothing here is ranked yet - the ladder is ROADMAP Phase 4;
+the online modes remain unranked.
 
 ---
 
@@ -24,10 +24,11 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | Daily Puzzle migration 04 | installed |
 | OK | Daily Puzzle RPC hotfix 05 | installed |
 | ADD | Measurement + feedback migration 06 | run section 4f |
+| ADD | Two-attempt Daily Puzzle migration 07 | run section 4g |
 
-**Accounts, multiplayer, and Daily Puzzles are ready.** Run migration 06 to
-activate the anonymous playtest funnel and in-game feedback inbox added for
-the next tester cohort.
+**Accounts and multiplayer are ready.** Run migration 06 for the anonymous
+playtest funnel and migration 07 before deploying the two-attempt Daily
+Puzzle client.
 
 ---
 
@@ -43,7 +44,7 @@ in section 9b. Everything the backend holds, in one look:
 | `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
 | `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
 | `daily_puzzles` | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
-| `daily_puzzle_attempts` | Daily Puzzle RPCs | One claim per account for the active puzzle; deleted with yesterday's position. |
+| `daily_puzzle_attempts` | Daily Puzzle RPCs | Up to two numbered claims per account for the active puzzle; deleted with yesterday's position. |
 | `daily_puzzle_jobs` | `js/daily.js` | One short generation lease so many open browsers still run only one forge. |
 | `telemetry_events` | `js/telemetry.js` | Privacy-light anonymous views, queue/match milestones, battle starts/results, and coarse errors; raw rows retain 180 days. |
 | `player_feedback` | `js/telemetry.js` | Voluntary bug, balance, confusion, and suggestion reports sent from the game. |
@@ -55,7 +56,7 @@ in section 9b. Everything the backend holds, in one look:
 | `touch_match()` / `save_match_state()` / `end_match()` | mp.js | Match lifecycle. |
 | `claim_daily_generation()` / `submit_daily_candidate()` | `js/daily.js` Web Worker | Elect one signed-in browser to forge and stage the shared position. |
 | `publish_daily_puzzle()` | pg_cron / overdue browser | Atomically promote staged at 7 AM Eastern. |
-| `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Check, atomically consume, and finish one official attempt. |
+| `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Count, atomically consume, and finish either of two official attempts. |
 | `record_telemetry()` | `js/telemetry.js` | Validate and rate-limit one anonymous funnel event without attaching account identity. |
 | `submit_player_feedback()` | `js/telemetry.js` | Validate and rate-limit an anonymous voluntary feedback message with optional coarse diagnostics. |
 
@@ -216,7 +217,8 @@ It creates:
 
 - `daily_puzzles`, hard-capped by its unique `active` / `staged` slots to
   **two positions at most**;
-- `daily_puzzle_attempts`, with `(puzzle_id, user_id)` as its primary key;
+- `daily_puzzle_attempts`, initially one row per puzzle/account (migration 07
+  adds the numbered second attempt);
 - `daily_puzzle_jobs`, a tiny expiring lease—not a stored position;
 - generation lease/submission, status, atomic attempt, result, and
   publication RPCs;
@@ -236,11 +238,12 @@ position publishes immediately when it finishes. This makes the system
 self-healing without an always-on server; the only tradeoff is that the
 first visitor after a completely idle reset may wait for generation.
 
-A player's attempt is consumed inside `claim_daily_puzzle()` immediately
-before the board is returned. Merely opening the Daily Puzzle card does not
-consume it; once the battle opens, closing or refreshing cannot restore it.
-Official Daily Puzzles therefore require a signed-in account. The original
-interactive generator remains available to developers at `?dailyLab=1`.
+Each of a player's two attempts is consumed inside `claim_daily_puzzle()`
+immediately before the board is returned. Merely opening the Daily Puzzle
+card does not consume one; once a battle opens, closing or refreshing cannot
+restore that numbered attempt. Official Daily Puzzles therefore require a
+signed-in account. The original interactive generator remains available to
+developers at `?dailyLab=1`.
 
 ## 4e. Migration 05 - Daily Puzzle RPC hotfix
 
@@ -278,6 +281,22 @@ retention, UTM links, feedback workflow, and ready-to-run dashboard queries.
 The game remains fully playable if this migration is missing or Supabase is
 offline; measurement fails quietly and the feedback form offers a copy plus
 Discord fallback.
+
+## 4g. Migration 07 - two Daily Puzzle attempts
+
+Run **[`docs/supabase-migration-07.sql`](supabase-migration-07.sql)** once in
+the SQL Editor before deploying the current `js/daily.js`.
+
+It preserves existing attempts as attempt 1, changes the attempt key to
+`(puzzle_id, user_id, attempt_no)`, and replaces the three player-facing
+Daily RPCs. Claims are serialized per puzzle/account, so simultaneous tabs
+can receive attempts 1 and 2 but can never mint a third. Result reporting is
+also tied to the numbered claim instead of updating both rows.
+
+The puzzle position and seeded future remain identical on both attempts.
+Opening the modal is still free; opening each battle consumes one allowance.
+Publication still deletes the old puzzle and both attempt rows at the 7:00 AM
+Eastern reset.
 
 ## 5. Realtime - nothing to do
 

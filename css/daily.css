@@ -5,12 +5,10 @@
    when a developer explicitly opens `?dailyLab=1`.
    ============================================================= */
 
-/* Four solo modes should read as two deliberate pairs. In particular,
-   Daily Puzzles belongs beside Campaign instead of dangling alone on a
-   third column chosen by auto-fit. */
+/* The solo track now belongs to the shared mode carousel. Keep the id
+   from restoring the old two-column max width over that component. */
 #mode-grid-solo {
-  grid-template-columns: repeat(2, minmax(280px, 1fr));
-  max-width: 920px;
+  max-width: none;
 }
 .mode-card-daily {
   border-color: rgba(119, 204, 255, 0.34);
@@ -109,8 +107,8 @@ body[data-gfx='low'] .mode-card-daily.forging .mode-glyph {
   animation: none;
 }
 
-/* The status/claim surface is modal so the one-attempt boundary is
-   impossible to miss. In lab mode it also contains the live forge. */
+/* The status/claim surface makes the two-attempt allowance impossible
+   to miss. In lab mode it also contains the live forge. */
 .daily-modal {
   position: fixed;
   inset: 0;
@@ -359,13 +357,11 @@ body[data-gfx='low'] .daily-modal:not([aria-hidden='true']) .daily-sigil {
 }
 
 html.mqw720 #mode-grid-solo {
-  grid-template-columns: 1fr;
-  max-width: 520px;
+  max-width: none;
 }
 @media (max-width: 720px) {
   #mode-grid-solo {
-    grid-template-columns: 1fr;
-    max-width: 520px;
+    max-width: none;
   }
 }
 

@@ -615,6 +615,11 @@
     }
     if (navGuide.lastEl !== el) {
       if (navGuide.lastEl) navGuide.lastEl.classList.remove('guide-mark');
+      /* A carousel slide can be valid but offscreen. Bring the Campaign
+         card into the centred slot before measuring the wayfinder bubble. */
+      if (window.EOL.play && window.EOL.play.showModeCard) {
+        window.EOL.play.showModeCard(el, true, false);
+      }
       el.classList.add('guide-mark');
       navGuide.lastEl = el;
     }

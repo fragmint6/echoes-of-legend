@@ -25310,3 +25310,229 @@ i.coin-ico {
     transparent 4deg 9deg
   );
 }
+
+/* =============================================================
+   PLAY MODE CAROUSELS
+   -------------------------------------------------------------
+   One centred arena standard at a time, with neighbouring plaques
+   peeking in as context. Pointer dragging, touch swipes, arrows, dots,
+   focus and keyboard navigation all share the horizontal snap track.
+   ============================================================= */
+.mode-carousel[hidden],
+.mode-carousel .mode-grid[hidden] {
+  display: none;
+}
+.view.play .mode-carousel {
+  --mode-slide: min(620px, calc(100% - 170px));
+  position: relative;
+  z-index: 1;
+  width: min(1040px, 100%);
+  margin: auto;
+  padding: 0 54px 8px;
+}
+.mode-carousel .mode-grid {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  gap: 24px;
+  margin: 0;
+  padding: 20px calc((100% - var(--mode-slide)) / 2) 22px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: calc((100% - var(--mode-slide)) / 2);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+}
+.mode-carousel .mode-grid::-webkit-scrollbar {
+  display: none;
+}
+.mode-carousel .mode-card {
+  flex: 0 0 var(--mode-slide);
+  width: var(--mode-slide);
+  min-width: 0;
+  min-height: clamp(280px, calc(var(--vh1) * 38), 330px);
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  opacity: 0.5;
+  transform: scale(0.925);
+  filter: saturate(0.72);
+  transition:
+    opacity 0.3s var(--ease),
+    transform 0.32s var(--ease),
+    filter 0.3s var(--ease),
+    border-color 0.28s var(--ease),
+    box-shadow 0.28s var(--ease);
+}
+.mode-carousel .mode-card.carousel-current {
+  opacity: 1;
+  transform: scale(1);
+  filter: none;
+}
+.mode-carousel .mode-card.carousel-current:hover:not(.soon) {
+  transform: translateY(-5px) scale(1);
+}
+.mode-carousel .mode-card:not(.carousel-current):hover:not(.soon) {
+  opacity: 0.72;
+  transform: scale(0.945);
+}
+.mode-carousel-arrow {
+  position: absolute;
+  z-index: 5;
+  top: calc(50% - 26px);
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 214, 130, 0.42);
+  background: radial-gradient(circle at 45% 30%, rgba(55, 43, 22, 0.96), rgba(8, 11, 19, 0.98));
+  color: #ffd98a;
+  font-size: 27px;
+  cursor: var(--cur-pointer);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-50%);
+  transition:
+    transform 0.2s var(--ease),
+    opacity 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+.mode-carousel-arrow.prev {
+  left: 8px;
+}
+.mode-carousel-arrow.next {
+  right: 8px;
+}
+.mode-carousel-arrow:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.08);
+  border-color: rgba(255, 222, 148, 0.76);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.58),
+    0 0 20px rgba(255, 196, 78, 0.18);
+}
+.mode-carousel-arrow:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.94);
+}
+.mode-carousel-arrow:disabled {
+  opacity: 0.22;
+  cursor: var(--cur-default, default);
+}
+.mode-carousel-arrow:focus-visible,
+.mode-carousel-dots > button:focus-visible {
+  outline: 2px solid #ffe29a;
+  outline-offset: 3px;
+}
+.mode-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 22px;
+  margin-top: -5px;
+}
+.mode-carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mode-carousel-dots > button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 1px solid rgba(255, 219, 140, 0.42);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: var(--cur-pointer);
+  transition:
+    width 0.24s var(--ease),
+    background 0.24s var(--ease),
+    box-shadow 0.24s var(--ease);
+}
+.mode-carousel-dots > button.sel {
+  width: 24px;
+  background: linear-gradient(90deg, #d99a32, #ffe29a);
+  border-color: #ffe2a1;
+  box-shadow: 0 0 12px rgba(255, 199, 88, 0.44);
+}
+.mode-carousel-status {
+  min-width: 122px;
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.mode-carousel .mode-card-guild .mode-cta {
+  border-color: rgba(231, 159, 132, 0.58);
+  background: linear-gradient(180deg, #a94a39, #6d1b12);
+  color: #ffe8db;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 226, 206, 0.2),
+    inset 0 -2px 0 rgba(49, 5, 2, 0.5);
+}
+
+html.mqw720 .view.play .mode-carousel {
+  --mode-slide: calc(100% - 28px);
+  padding-inline: 36px;
+}
+html.mqw720 .mode-carousel-arrow {
+  width: 38px;
+  height: 38px;
+  font-size: 23px;
+}
+html.mqw720 .mode-carousel-arrow.prev {
+  left: 0;
+}
+html.mqw720 .mode-carousel-arrow.next {
+  right: 0;
+}
+html.mqw720 .mode-carousel .mode-grid {
+  gap: 15px;
+  padding-block: 13px 18px;
+}
+html.mqw720 .mode-carousel-status {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .view.play .mode-carousel {
+    --mode-slide: calc(100% - 28px);
+    padding-inline: 36px;
+  }
+  .mode-carousel-arrow {
+    width: 38px;
+    height: 38px;
+    font-size: 23px;
+  }
+  .mode-carousel-arrow.prev {
+    left: 0;
+  }
+  .mode-carousel-arrow.next {
+    right: 0;
+  }
+  .mode-carousel .mode-grid {
+    gap: 15px;
+    padding-block: 13px 18px;
+  }
+  .mode-carousel-status {
+    display: none;
+  }
+}
+
+body[data-gfx='low'] .mode-carousel .mode-card,
+body[data-gfx='low'] .mode-carousel-arrow,
+body[data-gfx='low'] .mode-carousel-dots > button {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-carousel .mode-card,
+  .mode-carousel-arrow,
+  .mode-carousel-dots > button {
+    transition: none;
+  }
+}

@@ -115,6 +115,21 @@ const server = http.createServer((req, res) => {
   $('btn-play').click();
   await sleep(1100);
   t(d.body.dataset.view === 'play', 'player walked to the play screen');
+  t(
+    d.querySelectorAll('#mode-carousel-solo .mode-card').length === 4 &&
+      d.querySelectorAll('#mode-carousel-solo .mode-carousel-dots > button').length === 4,
+    'singleplayer modes are presented as a four-slide carousel'
+  );
+  t(
+    $('mode-campaign').classList.contains('carousel-current'),
+    'the carousel centres Campaign when the wayfinder asks for it'
+  );
+  t(
+    $('mode-mp-guild').classList.contains('soon') &&
+      $('mode-mp-guild').getAttribute('aria-disabled') === 'true' &&
+      $('mode-mp-guild').textContent.indexOf('Coming soon') >= 0,
+    'Multiplayer includes a coming-soon Guild Battles slide'
+  );
   t($('mode-campaign').classList.contains('guide-mark'), 'guide re-points at the Campaign card');
   t(!$('btn-play').classList.contains('guide-mark'), 'the old mark is lifted');
   t($('nav-guide-text').textContent.indexOf('CAMPAIGN') >= 0, 'the bubble names the Campaign card');
@@ -722,6 +737,31 @@ const server = http.createServer((req, res) => {
   t(d.body.dataset.view === 'home', 'and leaves the player exactly where they stood');
   t($('chapter-dialogue').hidden, 'without opening anything on their behalf');
   t($('nav-guide').hidden, 'bubble gone after the skip');
+
+  /* The carousel remains fully navigable after the guided walk. */
+  w.EOL.ui.show('play');
+  await sleep(250);
+  d.querySelector('.play-tab[data-arena="mp"]').click();
+  await sleep(350);
+  t(
+    $('mode-grid-solo').hidden &&
+      !$('mode-grid-mp').hidden &&
+      $('mode-carousel-solo').hidden &&
+      !$('mode-carousel-mp').hidden,
+    'the Multiplayer tab swaps to its carousel without leaking the solo track'
+  );
+  $('mode-carousel-mp').querySelector('[data-carousel-next]').click();
+  await sleep(50);
+  t($('mode-mp-draft').classList.contains('carousel-current'), 'carousel arrows advance to Online Draft');
+  $('mode-carousel-mp').querySelector('[data-carousel-next]').click();
+  await sleep(50);
+  t($('mode-mp-guild').classList.contains('carousel-current'), 'Guild Battles can be centred as a coming-soon slide');
+  d.querySelector('.play-tab[data-arena="solo"]').click();
+  await sleep(350);
+  t(
+    !$('mode-grid-solo').hidden && $('mode-grid-mp').hidden,
+    'returning to Singleplayer restores only its carousel'
+  );
   w.EOL.ui.show('chapter');
   await sleep(700);
 
@@ -964,6 +1004,43 @@ const server = http.createServer((req, res) => {
       t(false, 'the reward unlocks only after two cards are selected');
       t(false, 'claiming the Warden cards closes the reward');
     }
+  }
+
+  /* ---------- DAILY PUZZLE: two explicit attempts ---------- */
+  {
+    w.EOL.daily._showOfficialStatus({
+      attempts_used: 0,
+      attempts_remaining: 2,
+      attempted: false,
+      finished: false,
+      won: false,
+    });
+    t(
+      $('daily-status').textContent === 'Ready · 2 attempts remaining' &&
+        $('daily-enter').querySelector('span').textContent === 'Begin first attempt',
+      'a fresh Daily Puzzle offers the first of two attempts'
+    );
+    w.EOL.daily._showOfficialStatus({
+      attempts_used: 1,
+      attempts_remaining: 1,
+      attempted: false,
+      finished: true,
+      won: false,
+    });
+    t(
+      $('daily-status').textContent === 'Ready · 1 attempt remaining' &&
+        $('daily-enter').querySelector('span').textContent === 'Begin second attempt',
+      'one spent Daily attempt leaves a clearly named second attempt'
+    );
+    w.EOL.daily._showOfficialStatus({
+      attempts_used: 2,
+      attempts_remaining: 0,
+      attempted: true,
+      finished: true,
+      won: false,
+    });
+    t($('daily-enter').hidden, 'the Daily Puzzle offers no third attempt');
+    w.EOL.daily.cancel();
   }
 
   /* ---------- mojibake sweep ---------- */

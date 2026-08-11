@@ -4,7 +4,7 @@
    At 6:55 AM America/New_York, signed-in browsers compete for one short
    Supabase generation lease. The winner runs this procedural forge in a
    Web Worker, stages its serialized checkpoint, and the database publishes
-   it at reset. Every player claims the same position and future RNG once.
+   it at reset. Every player may claim the same position and future RNG twice.
 
    If no browser is online, the first visitor after reset recovers the job.
    `?dailyLab=1` keeps a private calibration forge. Neither path reads an
@@ -17,6 +17,7 @@
   window.EOL = window.EOL || {};
 
   var TARGET_RATE = 0.3;
+  var MAX_DAILY_ATTEMPTS = 2;
   var SCOUT_ATTEMPTS = 5;
   var CANDIDATES_PER_SCOUT = 10;
   var PRELIM_TRIALS = 5;
@@ -801,7 +802,7 @@
     var account = $('acct-btn');
     if (account) account.click();
     if (window.EOL.ui && window.EOL.ui.toast) {
-      window.EOL.ui.toast('Sign in to claim one official Daily Puzzle attempt', 'ri-lock-line');
+      window.EOL.ui.toast('Sign in to claim two official Daily Puzzle attempts', 'ri-lock-line');
     }
   }
 
@@ -828,39 +829,74 @@
     }
   }
 
+  function attemptCounts(row) {
+    var used =
+      row && row.attempts_used != null
+        ? Number(row.attempts_used)
+        : row && row.attempted
+          ? MAX_DAILY_ATTEMPTS
+          : 0;
+    if (!isFinite(used)) used = 0;
+    used = Math.max(0, Math.min(MAX_DAILY_ATTEMPTS, Math.floor(used)));
+    var remaining =
+      row && row.attempts_remaining != null
+        ? Number(row.attempts_remaining)
+        : MAX_DAILY_ATTEMPTS - used;
+    if (!isFinite(remaining)) remaining = MAX_DAILY_ATTEMPTS - used;
+    remaining = Math.max(0, Math.min(MAX_DAILY_ATTEMPTS, Math.floor(remaining)));
+    return { used: used, remaining: remaining };
+  }
+
   function showOfficialStatus(row) {
     setDailyCardBuilding(false);
     var modal = $('daily-modal');
     if (modal) modal.classList.add('ready');
-    setDailyStatus(row.attempted ? 'Today’s attempt has been used' : 'Ready · one attempt');
+    var count = attemptCounts(row);
+    setDailyStatus(
+      count.remaining > 0
+        ? 'Ready · ' + count.remaining + ' attempt' + (count.remaining === 1 ? '' : 's') + ' remaining'
+        : 'Both attempts have been used'
+    );
     if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
 
     var enter = $('daily-enter');
-    if (row.attempted) {
+    if (count.remaining <= 0) {
       if ($('daily-title'))
-        $('daily-title').textContent = row.won ? 'Puzzle solved' : 'Attempt spent';
+        $('daily-title').textContent = row.won ? 'Puzzle solved' : 'Both attempts spent';
       if ($('daily-copy')) {
         $('daily-copy').textContent = row.finished
           ? row.won
             ? 'You found today’s winning line. A new shared position arrives at the next reset.'
-            : 'Today’s line is closed. A new shared position arrives at the next reset.'
-          : 'This attempt was claimed when the battle opened and cannot be replayed today.';
+            : 'Both lines are closed. A new shared position arrives at the next reset.'
+          : 'Both attempts were claimed when their battles opened and cannot be replayed today.';
       }
       if (enter) enter.hidden = true;
       return;
     }
 
-    if ($('daily-title')) $('daily-title').textContent = 'Today’s position awaits';
+    if ($('daily-title')) {
+      $('daily-title').textContent =
+        count.used === 0
+          ? 'Today’s position awaits'
+          : row.won
+            ? 'Puzzle solved · replay available'
+            : 'Second attempt awaits';
+    }
     if ($('daily-copy')) {
       $('daily-copy').textContent =
-        'Everyone receives this exact board and this exact future luck. Opening the battle consumes your one attempt.';
+        count.used === 0
+          ? 'Everyone receives this exact board and this exact future luck. Opening the battle consumes the first of your two attempts.'
+          : row.won
+            ? 'You found the winning line and still have one official replay available on the same position.'
+            : 'Your first attempt is spent. Opening the battle again consumes your final attempt on the same shared position.';
     }
     if (enter) {
       enter.hidden = false;
       enter.disabled = false;
       enter.dataset.action = 'claim';
       var label = enter.querySelector('span');
-      if (label) label.textContent = 'Begin my attempt';
+      if (label)
+        label.textContent = count.used === 0 ? 'Begin first attempt' : 'Begin second attempt';
     }
   }
 
@@ -932,7 +968,7 @@
 
   function start() {
     /* `?dailyLab=1` keeps the original browser forge reachable for
-       balancing work without weakening the one-attempt official mode. */
+       balancing work without weakening the two-attempt official mode. */
     var lab = false;
     try {
       lab = new URLSearchParams(window.location.search).get('dailyLab') === '1';
@@ -964,13 +1000,14 @@
         official: true,
         puzzleId: row.puzzle_id,
         puzzleDay: row.puzzle_day,
+        attemptNo: Number(row.attempt_no || 1),
       };
       enterPuzzle();
     } catch (err) {
       console.error('[daily puzzle claim]', err);
       if (job !== jobSeq) return;
-      /* A second tab may have claimed between status and click. Refreshing
-         status tells the truth without ever handing out a second board. */
+      /* Another tab may have claimed the remaining allowance between the
+         status read and this click. Refresh from the atomic server count. */
       try {
         await loadOfficialStatus(job);
       } catch (statusErr) {
@@ -991,6 +1028,7 @@
       id: readyPuzzle.puzzleId || null,
       day: readyPuzzle.puzzleDay || null,
       official: !!readyPuzzle.official,
+      attemptNo: readyPuzzle.attemptNo || null,
       startRound: readyPuzzle.round,
     };
     readyPuzzle = null;
@@ -1014,6 +1052,7 @@
         client
           .rpc('finish_daily_attempt', {
             p_puzzle: B.puzzle.id,
+            p_attempt: B.puzzle.attemptNo || 1,
             p_won: !!win,
             p_rounds: B.round,
           })
@@ -1026,9 +1065,13 @@
       puzzle: true,
       title: win ? 'Puzzle Solved' : 'Line Broken',
       sub: win
-        ? 'You turned a losing story into a victory.'
+        ? B.puzzle.official && (B.puzzle.attemptNo || 1) < MAX_DAILY_ATTEMPTS
+          ? 'You found the winning line. One official replay remains on today’s position.'
+          : 'You turned a losing story into a victory.'
         : B.puzzle.official
-          ? 'The line closes for today. A new position arrives at 7:00 AM Eastern.'
+          ? (B.puzzle.attemptNo || 1) < MAX_DAILY_ATTEMPTS
+            ? 'One attempt remains on this position before the 7:00 AM Eastern reset.'
+            : 'Both lines are closed. A new position arrives at 7:00 AM Eastern.'
           : 'This position has a winning line. Forge another, or try a fresh one.',
       rematchLabel: B.puzzle.official ? 'Daily Puzzle' : 'New Puzzle',
       homeLabel: 'Back to Play',
@@ -1094,6 +1137,8 @@
     _runContinuation: runContinuation,
     _serializeBattle: serializeBattle,
     _deserializeBattle: deserializeBattle,
+    _attemptCounts: attemptCounts,
+    _showOfficialStatus: showOfficialStatus,
     _generatePosition: function (seed) {
       return generatePosition(jobSeq, seed | 0);
     },

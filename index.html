@@ -1357,85 +1357,165 @@
         <span class="play-tab-thumb" aria-hidden="true"></span>
       </div>
 
-      <div class="mode-grid" id="mode-grid-solo">
-        <!-- THE SET (roadmap Phase 1): match length is chosen at launch,
-             inside the deck popup below - the play screen itself stays
-             a one-look mode select with no scrolling. -->
-        <button class="mode-card" id="mode-classic">
-          <i class="mode-wm ri-sword-line" aria-hidden="true"></i>
-          <i class="mode-glyph ri-sword-line"></i>
-          <span class="mode-name">Classic</span>
-          <span class="mode-desc">
-            Bring a saved deck of 12. Ban 2 of the enemy's legends, field your six, fight.
-          </span>
-          <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
+      <div
+        class="mode-carousel"
+        id="mode-carousel-solo"
+        data-mode-carousel
+        role="region"
+        aria-roledescription="carousel"
+        aria-label="Singleplayer modes"
+      >
+        <button
+          type="button"
+          class="mode-carousel-arrow prev"
+          data-carousel-prev
+          aria-label="Previous singleplayer mode"
+          aria-controls="mode-grid-solo"
+        >
+          <i class="ri-arrow-left-s-line"></i>
         </button>
+        <div class="mode-grid" id="mode-grid-solo">
+          <!-- THE SET (roadmap Phase 1): match length is chosen at launch,
+               inside the deck popup below; the carousel stays focused on
+               one mode at a time. -->
+          <button class="mode-card" id="mode-classic">
+            <i class="mode-wm ri-sword-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-sword-line"></i>
+            <span class="mode-name">Classic</span>
+            <span class="mode-desc">
+              Bring a saved deck of 12. Ban 2 of the enemy's legends, field your six, fight.
+            </span>
+            <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
+          </button>
 
-        <button class="mode-card" id="mode-draft">
-          <i class="mode-wm ri-shuffle-line" aria-hidden="true"></i>
-          <i class="mode-glyph ri-shuffle-line"></i>
-          <span class="mode-name">Draft</span>
-          <span class="mode-desc">
-            Build from nothing - snake-draft 12 legends against the bot, then the same bans and
-            battle as Classic.
-          </span>
-          <span class="mode-cta">Enter draft <i class="ri-arrow-right-line"></i></span>
-        </button>
+          <button class="mode-card" id="mode-draft">
+            <i class="mode-wm ri-shuffle-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-shuffle-line"></i>
+            <span class="mode-name">Draft</span>
+            <span class="mode-desc">
+              Build from nothing - snake-draft 12 legends against the bot, then the same bans and
+              battle as Classic.
+            </span>
+            <span class="mode-cta">Enter draft <i class="ri-arrow-right-line"></i></span>
+          </button>
 
-        <button class="mode-card" id="mode-campaign">
-          <i class="mode-wm ri-road-map-line" aria-hidden="true"></i>
-          <i class="mode-glyph ri-road-map-line"></i>
-          <span class="mode-name">Campaign</span>
-          <span class="mode-desc">
-            A nameless Wayfarer crosses ten gates before the First Legend decides whether a story
-            can continue.
-          </span>
-          <span class="mode-cta">Take the road <i class="ri-arrow-right-line"></i></span>
-        </button>
+          <button class="mode-card" id="mode-campaign">
+            <i class="mode-wm ri-road-map-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-road-map-line"></i>
+            <span class="mode-name">Campaign</span>
+            <span class="mode-desc">
+              A nameless Wayfarer crosses ten gates before the First Legend decides whether a story
+              can continue.
+            </span>
+            <span class="mode-cta">Take the road <i class="ri-arrow-right-line"></i></span>
+          </button>
 
-        <button class="mode-card mode-card-daily" id="mode-daily">
-          <i class="mode-wm ri-calendar-check-line" aria-hidden="true"></i>
-          <i class="mode-glyph ri-calendar-check-line"></i>
-          <span class="mode-name">Daily Puzzles</span>
-          <span class="mode-desc">
-            One AI-forged mid-battle position for everyone. One official attempt before the next
-            7:00 AM Eastern reset.
-          </span>
-          <span class="mode-cta" id="daily-card-cta">Today’s puzzle <i class="ri-arrow-right-line"></i></span>
+          <button class="mode-card mode-card-daily" id="mode-daily">
+            <i class="mode-wm ri-calendar-check-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-calendar-check-line"></i>
+            <span class="mode-name">Daily Puzzles</span>
+            <span class="mode-desc">
+              One AI-forged mid-battle position for everyone. Two official attempts before the next
+              7:00 AM Eastern reset.
+            </span>
+            <span class="mode-cta" id="daily-card-cta">Today’s puzzle <i class="ri-arrow-right-line"></i></span>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="mode-carousel-arrow next"
+          data-carousel-next
+          aria-label="Next singleplayer mode"
+          aria-controls="mode-grid-solo"
+        >
+          <i class="ri-arrow-right-s-line"></i>
         </button>
+        <div class="mode-carousel-nav">
+          <div class="mode-carousel-dots" data-carousel-dots aria-label="Choose a singleplayer mode"></div>
+          <span class="mode-carousel-status" data-carousel-status aria-live="polite"></span>
+        </div>
       </div>
 
-      <div class="mode-grid" id="mode-grid-mp" hidden>
-        <button class="mode-card" id="mode-mp-classic">
-          <i class="mode-wm ri-sword-line" aria-hidden="true"></i>
-          <i class="mode-glyph ri-sword-line"></i>
-          <span class="mode-name">Online Classic</span>
-          <span class="mode-desc">
-            Bring your own deck of 12 against a real opponent, then the same bans and battle as
-            Draft.
-          </span>
-          <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
+      <div
+        class="mode-carousel"
+        id="mode-carousel-mp"
+        data-mode-carousel
+        role="region"
+        aria-roledescription="carousel"
+        aria-label="Multiplayer modes"
+        hidden
+      >
+        <button
+          type="button"
+          class="mode-carousel-arrow prev"
+          data-carousel-prev
+          aria-label="Previous multiplayer mode"
+          aria-controls="mode-grid-mp"
+        >
+          <i class="ri-arrow-left-s-line"></i>
         </button>
+        <div class="mode-grid" id="mode-grid-mp" hidden>
+          <button class="mode-card" id="mode-mp-classic">
+            <i class="mode-wm ri-sword-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-sword-line"></i>
+            <span class="mode-name">Online Classic</span>
+            <span class="mode-desc">
+              Bring your own deck of 12 against a real opponent, then the same bans and battle as
+              Draft.
+            </span>
+            <span class="mode-cta">Select deck <i class="ri-arrow-right-line"></i></span>
+          </button>
 
-        <button class="mode-card" id="mode-mp-draft">
-          <i class="mode-wm ri-shuffle-line" aria-hidden="true"></i>
-          <i class="mode-glyph ri-shuffle-line"></i>
-          <span class="mode-name">Online Draft</span>
-          <span class="mode-desc">
-            Snake-draft 12 legends against a real opponent, then the same bans and battle as
-            Classic. Both squads come from one shared pool.
-          </span>
-          <span class="mode-cta">Find a match <i class="ri-arrow-right-line"></i></span>
+          <button class="mode-card" id="mode-mp-draft">
+            <i class="mode-wm ri-shuffle-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-shuffle-line"></i>
+            <span class="mode-name">Online Draft</span>
+            <span class="mode-desc">
+              Snake-draft 12 legends against a real opponent, then the same bans and battle as
+              Classic. Both squads come from one shared pool.
+            </span>
+            <span class="mode-cta">Find a match <i class="ri-arrow-right-line"></i></span>
+          </button>
+
+          <button
+            type="button"
+            class="mode-card mode-card-guild soon"
+            id="mode-mp-guild"
+            aria-disabled="true"
+          >
+            <span class="mode-soon-tag">Coming soon</span>
+            <i class="mode-wm ri-shield-star-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-shield-star-line"></i>
+            <span class="mode-name">Guild Battles</span>
+            <span class="mode-desc">
+              Rally with a guild for a three-day campaign every two weeks, contribute your own
+              tactical battles, and earn rewards together.
+            </span>
+            <span class="mode-cta">Coming soon <i class="ri-time-line"></i></span>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="mode-carousel-arrow next"
+          data-carousel-next
+          aria-label="Next multiplayer mode"
+          aria-controls="mode-grid-mp"
+        >
+          <i class="ri-arrow-right-s-line"></i>
         </button>
+        <div class="mode-carousel-nav">
+          <div class="mode-carousel-dots" data-carousel-dots aria-label="Choose a multiplayer mode"></div>
+          <span class="mode-carousel-status" data-carousel-status aria-live="polite"></span>
+        </div>
       </div>
 
       <footer>Echoes of Legend - Prototype</footer>
     </section>
 
     <!-- DAILY PUZZLE: the database publishes one shared position and
-         atomically grants each player one attempt. The client checks that
-         shared state without exposing generation diagnostics. `?dailyLab=1`
-         keeps the private developer calibration path. -->
+         atomically grants each player up to two attempts. The client checks
+         that shared state without exposing generation diagnostics.
+         `?dailyLab=1` keeps the private developer calibration path. -->
     <div class="daily-modal" id="daily-modal" aria-hidden="true">
       <div class="daily-forge" role="dialog" aria-modal="true" aria-labelledby="daily-title">
         <button class="daily-close" id="daily-close" type="button" aria-label="Close Daily Puzzle">
@@ -1445,7 +1525,7 @@
           <i class="ri-calendar-check-line"></i>
           <span></span>
         </div>
-        <span class="daily-kicker">One board · one attempt</span>
+        <span class="daily-kicker">One board · two attempts</span>
         <h3 class="daily-title" id="daily-title">Today’s Daily Puzzle</h3>
         <p class="daily-copy" id="daily-copy">
           Checking the shared position and your attempt.

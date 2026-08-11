@@ -30,22 +30,26 @@ var files = [path.join(root, 'index.html')].concat(
 var remix45 = new Set(
   (
     'ri-add-circle-line ri-add-line ri-arrow-down-s-line ri-arrow-go-back-line ' +
-    'ri-arrow-left-line ri-arrow-right-line ri-arrow-up-down-line ri-bar-chart-2-line ' +
-    'ri-book-2-line ri-book-open-line ri-calculator-line ri-calendar-check-line ' +
+    'ri-arrow-left-line ri-arrow-left-s-line ri-arrow-right-line ri-arrow-right-s-line ' +
+    'ri-arrow-up-down-line ri-bar-chart-2-line ri-book-2-line ri-book-open-line ' +
+    'ri-calculator-line ri-calendar-check-line ' +
     'ri-chat-3-line ri-check-double-line ri-check-line ri-checkbox-circle-fill ' +
     'ri-checkbox-circle-line ri-close-line ri-cloud-line ri-coin-fill ri-cursor-line ' +
-    'ri-delete-bin-line ri-discord-fill ri-edit-line ri-error-warning-line ri-eye-line ' +
-    'ri-eye-off-line ri-file-list-3-line ri-flag-line ri-forbid-2-line ri-gamepad-line ' +
+    'ri-delete-bin-line ri-discord-fill ri-edit-line ri-equalizer-2-line ' +
+    'ri-error-warning-line ri-eye-line ri-eye-off-line ri-file-list-3-line ri-flag-line ' +
+    'ri-forbid-2-line ri-gamepad-line ' +
     'ri-graduation-cap-line ri-hammer-line ri-home-4-line ri-image-line ri-inbox-2-line ' +
     'ri-information-line ri-landscape-line ri-leaf-line ri-lightbulb-line ri-links-line ' +
     'ri-loader-4-line ri-lock-2-fill ri-lock-2-line ri-lock-fill ri-lock-line ' +
     'ri-lock-unlock-line ri-login-box-line ri-logout-box-r-line ri-map-2-line ' +
-    'ri-map-pin-line ri-play-line ri-question-line ri-quill-pen-line ri-refresh-line ' +
+    'ri-map-pin-line ri-music-2-line ri-play-circle-line ri-play-line ri-question-line ' +
+    'ri-quill-pen-line ri-refresh-line ' +
     'ri-repeat-line ri-restart-line ri-road-map-line ri-save-3-line ri-scissors-cut-line ' +
-    'ri-search-line ri-settings-4-line ri-shield-user-line ri-shuffle-line ' +
-    'ri-skip-forward-fill ri-skip-forward-line ri-sparkling-2-line ri-sparkling-line ' +
-    'ri-stack-line ri-store-2-line ri-sword-line ri-team-line ri-time-line ri-timer-line ' +
-    'ri-trophy-line ri-user-3-line ri-user-star-line ri-zoom-in-line'
+    'ri-search-line ri-settings-4-line ri-shield-star-line ri-shield-user-line ' +
+    'ri-shuffle-line ri-skip-forward-fill ri-skip-forward-line ri-sound-module-line ' +
+    'ri-sparkling-2-line ri-sparkling-line ri-stack-line ri-store-2-line ri-sword-line ' +
+    'ri-team-line ri-time-line ri-timer-line ri-trophy-line ri-user-3-line ' +
+    'ri-user-star-line ri-volume-mute-line ri-volume-up-line ri-zoom-in-line'
   ).split(/\s+/)
 );
 

@@ -8,7 +8,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 - **Private rooms.** So you can play with your friends and for testing purposes.
 
-- **Daily puzzle.** One fixed board, same for everyone, one attempt a day.
+- **Daily puzzle.** One fixed board, same for everyone, two attempts a day.
 
 - **Faction bonuses.** Decks will receive bonuses based on how many legends in the deck are in the same faction.
 
