@@ -312,6 +312,8 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   Object.keys(route).forEach((scene) =>
     ok(A._trackForScene(scene) === route[scene], scene + ' scene has a score arrangement')
   );
+  const noiseBeforeBattle = noises;
+  A.scene('battle', { field: 'colosseum' });
   A.setBattlefield('mana-spring');
   ok(
     A._trackForScene('battle') === 'battleBright',
@@ -319,6 +321,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
   A.setBattlefield('spirit-world');
   ok(A._trackForScene('battle') === 'battleDark', 'dark battlefields select the dark arrangement');
+  ok(noises === noiseBeforeBattle, 'all three match arrangements avoid static/noise voices');
 
   const masterControl = document.getElementById('audio-master');
   masterControl.value = '61';
