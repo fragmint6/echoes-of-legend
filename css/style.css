@@ -23461,10 +23461,8 @@ html.mqw640 .nav-guide-text {
   justify-content: flex-end;
 }
 
-/* Campaign prep: the boss card the ban grid refuses (R5). */
-.prep-c.unbannable {
-  box-shadow: 0 0 0 1px rgba(255, 215, 122, 0.55);
-}
+/* Ban-protected cards need only the chip; an extra outline around the
+   full card made every Legendary look awkwardly double-framed. */
 .prep-c.unbannable::before {
   content: 'UNBANNABLE';
   position: absolute;
