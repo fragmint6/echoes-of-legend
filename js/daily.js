@@ -40,6 +40,7 @@
   var generationWorker = null;
   var generationPromise = null;
   var generationTimer = null;
+  var cardPollTimer = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -650,6 +651,52 @@
     return view !== 'battle' && view !== 'prep' && view !== 'draft';
   }
 
+  function setDailyCardBuilding(building) {
+    var card = $('mode-daily');
+    if (!card) return;
+    card.disabled = !!building;
+    card.classList.toggle('forging', !!building);
+    card.setAttribute('aria-busy', building ? 'true' : 'false');
+    card.title = building ? 'The shared Daily Puzzle is being generated.' : '';
+    var cta = $('daily-card-cta');
+    if (cta) {
+      cta.innerHTML = building
+        ? 'Puzzle under construction <i class="ri-hammer-line"></i>'
+        : 'Today’s puzzle <i class="ri-arrow-right-line"></i>';
+    }
+    if (!building && cardPollTimer) {
+      clearTimeout(cardPollTimer);
+      cardPollTimer = null;
+    }
+  }
+
+  async function pollDailyCard() {
+    if (cardPollTimer) {
+      clearTimeout(cardPollTimer);
+      cardPollTimer = null;
+    }
+    if (!signedInUser()) {
+      setDailyCardBuilding(false);
+      return;
+    }
+    var client = supabaseClient();
+    if (!client) return;
+    try {
+      var response = await client.rpc('daily_puzzle_status').maybeSingle();
+      if (!response.error && response.data) {
+        setDailyCardBuilding(false);
+        return;
+      }
+    } catch (e) {
+      /* The next poll retries; card status must never break navigation. */
+    }
+    setDailyCardBuilding(true);
+    /* If a lease holder disappeared, this becomes eligible as soon as its
+       lease expires. The RPC still guarantees only one browser wins. */
+    maybeForgeShared(true, false);
+    cardPollTimer = setTimeout(pollDailyCard, 5000);
+  }
+
   function paintSharedForge() {
     var modal = $('daily-modal');
     if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
@@ -727,7 +774,11 @@
         .rpc('claim_daily_generation', { p_recover: !!recover })
         .maybeSingle();
       if (claim.error) throw claim.error;
-      if (!claim.data) return false;
+      if (!claim.data) {
+        if (recover) pollDailyCard();
+        return false;
+      }
+      if (recover) setDailyCardBuilding(true);
       if (visible) paintSharedForge();
 
       var candidate = await generateInWorker(claim.data);
@@ -741,10 +792,12 @@
       document.dispatchEvent(
         new CustomEvent('eol:daily-published', { detail: claim.data.puzzle_day })
       );
+      if (recover) setDailyCardBuilding(false);
       return true;
     })()
       .catch(function (error) {
         console.warn('[daily puzzle forge]', error && error.message ? error.message : error);
+        if (recover) pollDailyCard();
         return false;
       })
       .finally(function () {
@@ -788,7 +841,10 @@
       clearTimeout(generationTimer);
       generationTimer = null;
     }
-    if (!user) return;
+    if (!user) {
+      setDailyCardBuilding(false);
+      return;
+    }
     /* One cheap server check recovers a missed reset. During 6:55–6:59,
        follow it with the next-day staging request. */
     maybeForgeShared(true, false).then(function () {
@@ -835,6 +891,7 @@
   }
 
   function showOfficialStatus(row) {
+    setDailyCardBuilding(false);
     var metrics = row.metrics || {};
     var modal = $('daily-modal');
     if (modal) modal.classList.add('ready');
@@ -890,6 +947,7 @@
     /* No current row means nobody was online for the scheduled forge.
        Recover in this browser (or wait for the other lease holder), then
        poll until the server atomically exposes the completed position. */
+    setDailyCardBuilding(true);
     paintSharedForge();
     await maybeForgeShared(true, true);
     for (var i = 0; i < 75; i++) {
