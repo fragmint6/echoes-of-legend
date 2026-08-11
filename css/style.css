@@ -22151,6 +22151,53 @@ body[data-gfx='low'] .cw-motes {
   align-items: center;
   gap: 5px;
 }
+/* The road advertises its exact first-clear payout on every gate. */
+.sc-rewards {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+.sc-rewards > b {
+  margin-right: 2px;
+  color: rgba(232, 224, 204, 0.62);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sc-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid rgba(220, 224, 241, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #c9ccda;
+  font-size: 8.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.sc-reward.coin i {
+  color: #ffd36d;
+}
+.sc-reward.legendary {
+  border-color: rgba(255, 209, 105, 0.34);
+  background: rgba(94, 62, 13, 0.24);
+  color: #ffe2a0;
+}
+.stage-card.is-cleared .sc-rewards > b {
+  color: #8fe3b0;
+}
+.result-coins.campaign-rewards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffe3a1;
+}
 .sc-status {
   display: flex;
   align-items: center;
@@ -23322,11 +23369,51 @@ html.mqw640 .nav-guide-text {
   line-height: 1.6;
 }
 .grant-choice-grid {
+  --bcw: 92px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(84px, var(--bcw)));
+  justify-content: center;
   gap: 9px;
   overflow: auto;
-  padding: 4px 2px;
+  padding: 8px 4px 12px;
+}
+.grant-choice-grid .gc-card-choice {
+  cursor: var(--cur-pointer);
+  border-radius: 9px;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+.grant-choice-grid .gc-card-choice:hover,
+.grant-choice-grid .gc-card-choice:focus-visible {
+  z-index: 3;
+  outline: none;
+  transform: translateY(-3px);
+}
+.grant-choice-grid .gc-card-choice.sel .bcard-inner {
+  border-color: #ffd98a;
+  box-shadow:
+    0 0 0 2px rgba(255, 217, 138, 0.72),
+    0 0 24px rgba(255, 187, 74, 0.38);
+}
+.grant-choice-grid .gc-card-choice.sel::after {
+  content: '\2713';
+  position: absolute;
+  z-index: 7;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f2c76e;
+  color: #251605;
+  font-size: 13px;
+  font-weight: 900;
+}
+.grant-choice-flyout {
+  z-index: 7;
 }
 .gc-tile {
   display: flex;

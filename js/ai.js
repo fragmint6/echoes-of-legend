@@ -229,21 +229,12 @@
 
   /* Does this action's damage certainly kill something outright?
      Uses the pessimistic (no-crit) damage so it never over-promises. */
-  function lethalCount(B, unit, ability, targets) {
-    var spec = ability.spec || {};
-    var eff = spec.effects || (spec.choose && spec.choose[0].effects) || [];
-    var atk = E.atkOf(unit);
+  function lethalCount(B, unit, ability, targets, chooseIndex) {
     var n = 0;
     (targets || []).forEach(function (t) {
       if (!t.alive) return;
-      var total = 0;
-      eff.forEach(function (e) {
-        if (e.k !== 'dmg') return;
-        // conditional riders may not fire; only count unconditional ones
-        if (e.if) return;
-        total += atk * e.power * (1 - E.defOf(t) / 100);
-      });
-      if (total >= t.hp + t.shield) n++;
+      var pv = E.previewDamage(B, unit, ability, t, chooseIndex || 0);
+      if (pv && pv.dmg >= t.hp + t.shield) n++;
     });
     return n;
   }
@@ -252,19 +243,12 @@
      Scaling by the victim's own value means killing a Medic outranks
      killing a spent Bruiser, and it keeps the bonus on the same scale as
      everything else in evaluate(). */
-  function lethalValue(B, unit, ability, targets) {
-    var spec = ability.spec || {};
-    var eff = spec.effects || (spec.choose && spec.choose[0].effects) || [];
-    var atk = E.atkOf(unit);
+  function lethalValue(B, unit, ability, targets, chooseIndex) {
     var v = 0;
     (targets || []).forEach(function (t) {
       if (!t.alive) return;
-      var total = 0;
-      eff.forEach(function (e) {
-        if (e.k !== 'dmg' || e.if) return;
-        total += atk * e.power * (1 - E.defOf(t) / 100);
-      });
-      if (total >= t.hp + t.shield) v += unitValue(B, t);
+      var pv = E.previewDamage(B, unit, ability, t, chooseIndex || 0);
+      if (pv && pv.dmg >= t.hp + t.shield) v += unitValue(B, t);
     });
     return v;
   }
@@ -498,10 +482,25 @@
             });
           }
           if (c.targetHasDebuff != null) {
-            pass = targets.length > 0 && E.hasDebuff(targets[0]) === !!c.targetHasDebuff;
+            pass =
+              pass && targets.length > 0 && E.hasDebuff(targets[0]) === !!c.targetHasDebuff;
           }
+          if (c.debuffCountAtLeast != null) {
+            pass =
+              pass && targets.length > 0 && E.debuffCount(targets[0]) >= c.debuffCountAtLeast;
+          }
+          if (c.buffCountAtLeast != null) {
+            pass = pass && targets.length > 0 && E.buffCount(targets[0]) >= c.buffCountAtLeast;
+          }
+          var hp = targets.length ? targets[0].hp / targets[0].maxHp : null;
+          if (c.targetHpBelow != null) pass = pass && hp != null && hp < c.targetHpBelow;
+          if (c.targetHpAbove != null) pass = pass && hp != null && hp > c.targetHpAbove;
+          if (c.targetHpBetween)
+            pass = pass && hp != null && hp >= c.targetHpBetween[0] && hp <= c.targetHpBetween[1];
+          if (c.targetHpOutside)
+            pass = pass && hp != null && (hp < c.targetHpOutside[0] || hp > c.targetHpOutside[1]);
           if (c.selfShielded) pass = unit.shield > 0;
-          s += scoreEffects(B, unit, pass ? e.then : e.other, targets, atk);
+          s += scoreEffects(B, unit, pass ? e.then : e.other || e.else, targets, atk);
           break;
         }
         default:
@@ -534,8 +533,8 @@
               chosen: [],
               choose: ci,
               score: scoreAction(B, unit, ability, t0),
-              lethal: lethalCount(B, unit, ability, t0),
-              lethalVal: lethalValue(B, unit, ability, t0),
+              lethal: lethalCount(B, unit, ability, t0, ci),
+              lethalVal: lethalValue(B, unit, ability, t0, ci),
             });
           } else {
             var pool = E.legalTargets(B, unit, ability);
@@ -584,8 +583,8 @@
                   chosen: [t],
                   choose: ci,
                   score: scoreAction(B, unit, ability, [t]),
-                  lethal: lethalCount(B, unit, ability, [t]),
-                  lethalVal: lethalValue(B, unit, ability, [t]),
+                  lethal: lethalCount(B, unit, ability, [t], ci),
+                  lethalVal: lethalValue(B, unit, ability, [t], ci),
                 });
               });
             } else {
@@ -603,8 +602,8 @@
                   chosen: two,
                   choose: ci,
                   score: scoreAction(B, unit, ability, two),
-                  lethal: lethalCount(B, unit, ability, two),
-                  lethalVal: lethalValue(B, unit, ability, two),
+                  lethal: lethalCount(B, unit, ability, two, ci),
+                  lethalVal: lethalValue(B, unit, ability, two, ci),
                 });
               }
             }

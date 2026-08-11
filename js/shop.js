@@ -210,6 +210,20 @@
 
   var currentPack = null;
 
+  function syncOpenAnother() {
+    var again = el('po-again');
+    if (!again) return;
+    var econ = window.EOL.econ;
+    var pack = currentPack;
+    var canBuy =
+      !!pack &&
+      pack.key !== 'legend' &&
+      !!econ &&
+      econ.coins() >= pack.price &&
+      econ.packableEntries().length > 0;
+    again.hidden = !canBuy;
+  }
+
   /* 1 - the PURCHASE: price gated, cards granted at roll time */
   function begin(packKey) {
     var pack = PACKS[packKey] || currentPack || PACKS.echo;
@@ -266,8 +280,7 @@
       buildPackFace(h);
     });
     resetStage();
-    var again = el('po-again');
-    if (again) again.hidden = pack.key === 'legend';
+    syncOpenAnother();
     state = 'intro';
     var overlay = el('pack-opening');
     overlay.classList.add('on');
@@ -390,6 +403,7 @@
   /* 4 - fan settles, actions appear */
   function summary() {
     state = 'summary';
+    syncOpenAnother();
     el('po-cards').classList.add('settled');
     el('po-summary').classList.add('show');
     el('po-skip').classList.remove('show');
@@ -575,8 +589,14 @@
       if (state === 'summary') close();
       else skip();
     });
-    document.addEventListener('eol:coins', paintShop);
-    document.addEventListener('eol:owned', paintShop);
+    document.addEventListener('eol:coins', function () {
+      paintShop();
+      syncOpenAnother();
+    });
+    document.addEventListener('eol:owned', function () {
+      paintShop();
+      syncOpenAnother();
+    });
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'shop') paintShop();
     });

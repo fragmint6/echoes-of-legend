@@ -185,7 +185,10 @@ window.EOL = window.EOL || {};
          legal clicks) and voiced by js/campaign.js's tutor engine. */
       script: {
         deck: 'starter-grimmwood',
-        bans: ['grimmwood-rumpelstiltskin', 'grimmwood-evil-queen'],
+        /* Legendaries are protected from constructed bans. The lesson
+           strikes a reserve wall and a reserve sniper instead, leaving
+           the scripted enemy six unchanged. */
+        bans: ['grimmwood-hansel-gretel', 'grimmwood-puss-in-boots'],
         /* click order matters: the back row seats first, so the Piper
            takes the third front slot beside the wall and the wolf -
            one of every role on the field, exactly as the ledger drew it */
@@ -197,7 +200,7 @@ window.EOL = window.EOL || {};
           'grimmwood-goldilocks',
           'grimmwood-pied-piper',
         ],
-        hintBan: 'The Recruiter taps the ledger - "Those two. Take my crown pieces."',
+        hintBan: 'The Recruiter taps the ledger - "Those two. Take the spare wall and the hidden blade."',
         hintSix: 'The Recruiter shakes his head - "The marked card. Trust the ledger this once."',
         /* THE WHOLE MATCH IS SCRIPTED: a pre-computed line generated
            against the real engine under this exact seed
@@ -222,8 +225,8 @@ window.EOL = window.EOL || {};
           'Preparation. Two ledgers of twelve - mine on the right, yours on the left. Nobody fights with all twelve; wars are won by what you agree to leave out.',
           'First law: the bans. You strike two of MY legends out of the fight, and I strike two of yours. Simultaneous. Sealed. No peeking. Honest politics - the only kind left.',
         ],
-        ban0: 'Strike my two crown pieces - Rumpelstiltskin and the Evil Queen. Never leave a legendary standing out of politeness. They are marked; tap them.',
-        ban1: 'One down. The Evil Queen has noticed, and she is not flattered. Cross her out too.',
+        ban0: 'Crown cards cannot be banned; a legend must be answered in battle. Strike my reserve wall and hidden blade instead - Hansel & Gretel and Puss in Boots. They are marked; tap them.',
+        ban1: 'One down. Now take Puss in Boots - never let a second ranged threat wait safely on the bench.',
         ban2: 'Ruthless. I approve. Now press CONFIRM BANS - mine were written before you sat down.',
         reveal: 'There. I took your candle-children and your midnight girl. A ban is a question: what can you not live without? Remember how this feels, and do it to everyone after me.',
         arena: 'This card is the ARENA - read it before every war. The Colosseum is the one honest board: no special laws. Every other arena on this road bends the rules, and its card tells you exactly how. In battle, the badge in the top-left corner names the ground; hover it whenever you forget.',
@@ -414,18 +417,21 @@ window.EOL = window.EOL || {};
          honest support - the lesson stays Robin's rifle, not the
          replacements. */
       enemy12: [
+        /* The opening six carries THREE independent damage threats.
+           Banning two no longer removes the deck's entire offence; Puss,
+           Guy and Red wait next in the deterministic refill order. */
         'sherwood-robin-hood',
         'sherwood-little-john',
         'grimmwood-gingerbread-man',
         'sherwood-maid-marian',
-        'grimmwood-snow-white',
-        'sherwood-friar-tuck',
-        'grimmwood-cinderella',
-        'grimmwood-pied-piper',
         'sherwood-will-scarlet',
         'grimmwood-goldilocks',
-        'grimmwood-rapunzel',
+        'grimmwood-puss-in-boots',
         'sherwood-guy-of-gisborne',
+        'grimmwood-red-riding-hood',
+        'sherwood-friar-tuck',
+        'grimmwood-pied-piper',
+        'grimmwood-cinderella',
       ],
       factionMix: { sherwood: 6, grimmwood: 6 },
       /* Soak-tuned 2026-08-09: triple snipers on the +15% back-row board
@@ -438,8 +444,8 @@ window.EOL = window.EOL || {};
         'sherwood-little-john',
         'grimmwood-gingerbread-man',
         'sherwood-maid-marian',
-        'grimmwood-snow-white',
-        'sherwood-friar-tuck',
+        'sherwood-will-scarlet',
+        'grimmwood-goldilocks',
       ],
       /* She bans your protectors, so the favourite stands in the open.
          Soak-tuned 2026-08-09: taking BOTH walls AND healers off a
@@ -481,27 +487,30 @@ window.EOL = window.EOL || {};
          deck of stages 1-4, because Olympus is the chapter's only Mark
          teacher and cannot be swapped (§4 balance flag). */
       enemy12: [
-        'sherwood-little-john',
-        'olympus-hercules',
-        'grimmwood-big-bad-wolf',
+        /* Olympus fields as an actual Mark engine: Zeus writes the
+           promise, Athena/Medusa control it, and Ares cashes it. The
+           bench leads with two real finishers if Ares is banned. */
         'olympus-zeus',
-        'olympus-medusa',
-        'olympus-apollo',
-        'camelot-guinevere',
-        'camelot-mordred',
-        'olympus-athena',
-        'grimmwood-rapunzel',
+        'olympus-hercules',
         'olympus-ares',
-        'grimmwood-evil-queen',
-      ],
-      factionMix: { olympus: 6, sherwood: 1, grimmwood: 3, camelot: 2 },
-      botSix: [
-        'sherwood-little-john',
-        'olympus-hercules',
-        'grimmwood-big-bad-wolf',
-        'olympus-zeus',
         'olympus-medusa',
         'olympus-apollo',
+        'olympus-athena',
+        'grimmwood-evil-queen',
+        'camelot-mordred',
+        'grimmwood-puss-in-boots',
+        'camelot-lancelot',
+        'grimmwood-pied-piper',
+        'grimmwood-rapunzel',
+      ],
+      factionMix: { olympus: 6, grimmwood: 4, camelot: 2 },
+      botSix: [
+        'olympus-zeus',
+        'olympus-hercules',
+        'olympus-ares',
+        'olympus-medusa',
+        'olympus-apollo',
+        'olympus-athena',
       ],
       /* Marks must land and stick: your cleansers are anointed first. */
       banProfile: { roles: ['Medic'], stat: 'atk' },
@@ -538,17 +547,21 @@ window.EOL = window.EOL || {};
       /* The exam deck: 4/4/4 across the three taught factions (R8 -
          authored on purpose, counts recorded for the blessings pass). */
       enemy12: [
-        'camelot-king-arthur',
+        /* Two protected crowns, not three: Robin and Zeus anchor two
+           different win conditions while Camelot supplies a flexible
+           non-Legendary spine. Four real bruisers make every mandatory
+           substitution dangerous rather than diluting the deck. */
         'camelot-lancelot',
         'camelot-merlin',
         'camelot-guinevere',
+        'camelot-mordred',
         'sherwood-robin-hood',
         'sherwood-little-john',
         'sherwood-guy-of-gisborne',
         'sherwood-will-scarlet',
         'olympus-zeus',
         'olympus-hercules',
-        'olympus-medusa',
+        'olympus-ares',
         'olympus-apollo',
       ],
       factionMix: { camelot: 4, sherwood: 4, olympus: 4 },
@@ -584,7 +597,7 @@ window.EOL = window.EOL || {};
         'A draft against whim: no pattern to her picks, so draft for YOURSELF and refuse to be baited into denying. The Void starves the greedy - cheap skills win long wars.',
       field: 'energy-void',
       persona: 'trickster',
-      personaJitter: 4.5,
+      personaJitter: 0.75,
       pool: {
         featured: 'yamato',
         /* FROZEN POOL (owner ruling 2026-08-09): the 36 cards of every
@@ -600,13 +613,13 @@ window.EOL = window.EOL || {};
           'yamato-momotaro',
           'yamato-kaguya',
           'grimmwood-hansel-gretel',
-          'grimmwood-rumpelstiltskin',
+          'roma-cicero',
           'grimmwood-big-bad-wolf',
           'grimmwood-snow-white',
           'grimmwood-red-riding-hood',
           'grimmwood-pied-piper',
           'grimmwood-gingerbread-man',
-          'grimmwood-evil-queen',
+          'takamagahara-tsukuyomi',
           'grimmwood-puss-in-boots',
           'grimmwood-rapunzel',
           'grimmwood-goldilocks',
@@ -661,20 +674,20 @@ window.EOL = window.EOL || {};
         'He drafts a machine - every pick feeds the last. Break the chain: take his linchpin when you see it, even at a small cost to your own pile. Kills pay energy on his ground; do not trade bodies idly.',
       field: 'blood-battlefield',
       persona: 'strategist',
-      personaJitter: 0.6,
+      personaJitter: 0.15,
       pool: {
         featured: 'roma',
         /* FROZEN POOL: the Strategist's table - kill chains, execute
            payoffs, and the walls that deny them. */
         cards: [
-          'roma-spartacus', 'camelot-king-arthur', 'olympus-hercules',
+          'roma-spartacus', 'grimmwood-gingerbread-man', 'olympus-hercules',
           'sherwood-little-john', 'yamato-benkei', 'grimmwood-hansel-gretel',
           'roma-julius-caesar', 'camelot-lancelot', 'grimmwood-big-bad-wolf',
           'sherwood-guy-of-gisborne', 'sherwood-will-scarlet', 'yamato-minamoto-no-yoshitsune',
           'roma-brutus', 'sherwood-robin-hood', 'grimmwood-goldilocks',
           'grimmwood-puss-in-boots', 'camelot-mordred', 'yamato-tomoe-gozen',
-          'roma-constantine-the-great', 'olympus-zeus', 'grimmwood-evil-queen',
-          'grimmwood-rumpelstiltskin', 'yamato-kaguya', 'grimmwood-rapunzel',
+          'roma-constantine-the-great', 'olympus-zeus', 'takamagahara-tsukuyomi',
+          'camelot-merlin', 'yamato-kaguya', 'grimmwood-rapunzel',
           'roma-cicero', 'olympus-medusa', 'camelot-morgan-le-fay',
           'yamato-abe-no-seimei', 'grimmwood-pied-piper', 'olympus-athena',
           'roma-augustus', 'grimmwood-snow-white', 'camelot-guinevere',
@@ -711,7 +724,7 @@ window.EOL = window.EOL || {};
         'She drafts endings - closers, last words. Build your engine early and keep the middle loud. The Spirit World gives every legend one refusal; count on the second blow, not the first.',
       field: 'spirit-world',
       persona: 'chronicler',
-      personaJitter: 3.2,
+      personaJitter: 0.25,
       pool: {
         featured: 'takamagahara',
         /* FROZEN POOL: the Chronicler's catalogue - burn, cleanse,
@@ -725,7 +738,7 @@ window.EOL = window.EOL || {};
           'camelot-mordred', 'roma-brutus', 'yamato-tomoe-gozen',
           'takamagahara-amaterasu', 'takamagahara-tsukuyomi', 'grimmwood-evil-queen',
           'olympus-zeus', 'grimmwood-rapunzel', 'yamato-kaguya',
-          'takamagahara-izanami', 'takamagahara-inari', 'grimmwood-rumpelstiltskin',
+          'takamagahara-izanami', 'takamagahara-inari', 'roma-cicero',
           'sherwood-friar-tuck', 'camelot-merlin', 'grimmwood-pied-piper',
           'takamagahara-izanagi', 'grimmwood-snow-white', 'grimmwood-cinderella',
           'camelot-guinevere', 'olympus-apollo', 'sherwood-maid-marian',
@@ -767,14 +780,18 @@ window.EOL = window.EOL || {};
       /* Soak-tuned 2026-08-09: 23% vs the ~40% target with Abe no Seimei
          anchoring - the legendary diviner sits out; the door still holds. */
       enemy12: [
-        'yamato-minamoto-no-yoshitsune',
+        /* The final exam carries the full two protected crowns and a
+           complete front/back plan on every substitution: Abe taxes the
+           player's answers, Constantine converts the Guardian's buffs,
+           and six separate damage/control bodies remain behind them. */
+        'yamato-abe-no-seimei',
         'yamato-benkei',
         'yamato-tomoe-gozen',
-        'yamato-momotaro',
+        'yamato-kaguya',
+        'roma-constantine-the-great',
         'roma-julius-caesar',
-        'roma-spartacus',
         'roma-brutus',
-        'roma-augustus',
+        'roma-spartacus',
         'takamagahara-tsukuyomi',
         'takamagahara-izanami',
         'takamagahara-susanoo',
@@ -830,10 +847,10 @@ window.EOL = window.EOL || {};
         'roma-spartacus',
         'takamagahara-susanoo',
         'camelot-lancelot',
-        'yamato-abe-no-seimei',
-        'sherwood-robin-hood',
+        'grimmwood-pied-piper',
+        'grimmwood-goldilocks',
       ],
-      factionMix: { 'first-legend': 1, duat: 6, roma: 1, takamagahara: 1, camelot: 1, yamato: 1, sherwood: 1 },
+      factionMix: { 'first-legend': 1, duat: 6, roma: 1, takamagahara: 1, camelot: 1, grimmwood: 2 },
       pinned: ['campaign-gilgamesh'],
       unbannable: ['campaign-gilgamesh'],
       banProfile: { power: true },

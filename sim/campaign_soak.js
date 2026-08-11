@@ -143,13 +143,16 @@ function predictSix(pool) {
   return chooseSix(pool, null, null, 3.0);
 }
 
-function personaBans(profile, deckEntries, myPool) {
+function personaBans(profile, deckEntries, myPool, allowLegendaries) {
   profile = profile || {};
+  var legal = deckEntries.filter(function (e) {
+    return allowLegendaries || e.card.rarity !== 'legendary';
+  });
   var out = [];
   (profile.ids || []).forEach(function (id) {
     if (out.length >= RULES.BANS || out.indexOf(id) >= 0) return;
     if (
-      deckEntries.some(function (e) {
+      legal.some(function (e) {
         return e.card.id === id;
       })
     )
@@ -157,10 +160,10 @@ function personaBans(profile, deckEntries, myPool) {
   });
   if (out.length < RULES.BANS) {
     var atkMax = 1;
-    deckEntries.forEach(function (e) {
+    legal.forEach(function (e) {
       atkMax = Math.max(atkMax, e.card.stats.atk);
     });
-    var scored = deckEntries
+    var scored = legal
       .filter(function (e) {
         return out.indexOf(e.card.id) < 0;
       })
@@ -181,10 +184,13 @@ function personaBans(profile, deckEntries, myPool) {
   return out.slice(0, RULES.BANS);
 }
 
-function playerBans(enemyDeck, myDeck, unbannable) {
+function playerBans(enemyDeck, myDeck, unbannable, allowLegendaries) {
   var scored = enemyDeck
     .filter(function (e) {
-      return !unbannable || unbannable.indexOf(e.card.id) < 0;
+      return (
+        (allowLegendaries || e.card.rarity !== 'legendary') &&
+        (!unbannable || unbannable.indexOf(e.card.id) < 0)
+      );
     })
     .map(function (e) {
       return { id: e.card.id, v: DAI.denyValue(enemyDeck, e, myDeck) + Math.random() * 1.2 };
@@ -223,7 +229,7 @@ function draftPick(team, offered, foeTeam, persona, personaJitter) {
       }
       v += Math.random() * (personaJitter || 0);
     }
-    v += Math.random() * 1.5;
+    v += Math.random() * (persona ? 0.35 : 1.5);
     if (v > bestScore) {
       bestScore = v;
       best = e;
@@ -241,6 +247,7 @@ function buildDeck(collection) {
       bestScore = -Infinity;
     for (var i = 0; i < rest.length; i++) {
       if (RULES.capBlocked(team, rest[i].card)) continue;
+      if (RULES.legendaryCapBlocked(team, rest[i].card)) continue;
       var v = DAI.value(team, rest[i], { size: RULES.DECK_SIZE }) + DAI.powerOf(rest[i].card) * 0.8;
       if (v > bestScore) {
         bestScore = v;
@@ -498,8 +505,8 @@ function playDraftGate(st) {
     take(youOpen ? 'foe' : 'you');
     /* third card burns */
   });
-  var botBans = personaBans(st.banProfile, you, foe);
-  var youBans = playerBans(foe, you, null);
+  var botBans = personaBans(st.banProfile, you, foe, true);
+  var youBans = playerBans(foe, you, null, true);
   var mySurv = you.filter(function (e) {
     return botBans.indexOf(e.card.id) < 0;
   });

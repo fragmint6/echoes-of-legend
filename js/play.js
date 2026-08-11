@@ -148,11 +148,18 @@
   /* The bot's two bans against a 12-hero deck.
      It bans what is strongest IN CONTEXT: raw power, what the rest of
      your deck would unlock with it, and what would punish its own six. */
-  function chooseBans(deckEntries, myPool) {
+  function banCandidates(deckEntries, allowLegendaries) {
+    return (deckEntries || []).filter(function (e) {
+      return allowLegendaries || e.card.rarity !== 'legendary';
+    });
+  }
+
+  function chooseBans(deckEntries, myPool, allowLegendaries) {
     var ai = DAI();
-    var scored = deckEntries.map(function (e, i) {
+    var legal = banCandidates(deckEntries, allowLegendaries);
+    var scored = legal.map(function (e) {
       return {
-        i: i,
+        entry: e,
         v: ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 1.2,
       };
     });
@@ -160,7 +167,7 @@
       return b.v - a.v;
     });
     return scored.slice(0, RULES().BANS).map(function (x) {
-      return deckEntries[x.i].card.id;
+      return x.entry.card.id;
     });
   }
 
@@ -177,22 +184,23 @@
        stat:'atk'  prefers your hardest hitters
        power:true  prefers your highest-rated cards (Gilgamesh bans
                    what the scales weigh heaviest) */
-  function personaBans(profile, deckEntries, myPool) {
+  function personaBans(profile, deckEntries, myPool, allowLegendaries) {
     var ai = DAI();
     var out = [];
+    var legal = banCandidates(deckEntries, allowLegendaries);
     (profile.ids || []).forEach(function (id) {
       if (out.length >= RULES().BANS || out.indexOf(id) >= 0) return;
-      var owns = deckEntries.some(function (e) {
+      var owns = legal.some(function (e) {
         return e.card.id === id;
       });
       if (owns) out.push(id);
     });
     if (out.length < RULES().BANS) {
       var atkMax = 1;
-      deckEntries.forEach(function (e) {
+      legal.forEach(function (e) {
         atkMax = Math.max(atkMax, e.card.stats.atk);
       });
-      var scored = deckEntries
+      var scored = legal
         .filter(function (e) {
           return out.indexOf(e.card.id) < 0;
         })
@@ -389,7 +397,11 @@
         }
         v += Math.random() * draftPersonaJitter;
       }
-      v += Math.random() * 1.5;
+      /* Campaign rivals draft with intent. Their personaJitter still
+         preserves style and imperfect reads, but the generic 1.5-point
+         wobble no longer stacks on top and turns late-gate picks into
+         coin flips. Ordinary solo draft keeps the wider variance. */
+      v += Math.random() * (draftPersona ? 0.35 : 1.5);
       if (v > bestScore) {
         bestScore = v;
         best = e;
@@ -1108,6 +1120,20 @@
        host rolls it from the shared match rng and it is derived, not
        re-rolled, on the guest. */
     var isMp = !!cfg.mp;
+    /* Legendary cards are protected from bans in constructed formats
+       (Classic singles and Unabridged). Draft's rarity law lives at its
+       36-card table, so draft bans remain ordinary. Merge authored
+       exceptions such as Gilgamesh with every crown in the enemy deck
+       before setBegin snapshots the rule for all games of a set. */
+    var allowLegendBans = cfg.mode === 'draft';
+    if (!allowLegendBans) {
+      var protectedIds = (cfg.unbannable || []).slice();
+      (cfg.enemy12 || []).forEach(function (e) {
+        if (e.card.rarity === 'legendary' && protectedIds.indexOf(e.card.id) < 0)
+          protectedIds.push(e.card.id);
+      });
+      cfg.unbannable = protectedIds;
+    }
     /* THE SET: a fresh prep under warLength 'set' begins a new war
        (fight card drawn here, game 1's board pre-designated). ANY
        non-continuing prep kills a stale set, so quitting mid-set can
@@ -1135,7 +1161,12 @@
       foeBans = null;
     } else if (cfg.botBanProfile) {
       /* CAMPAIGN: the rival bans in character (§9.11). */
-      foeBans = personaBans(cfg.botBanProfile, cfg.player12, cfg.enemy12);
+      foeBans = personaBans(
+        cfg.botBanProfile,
+        cfg.player12,
+        cfg.enemy12,
+        allowLegendBans
+      );
     } else if (cfg.campaignStage === 1) {
       // Legacy fallback: The Recruiter bans Hansel & Gretel and Cinderella
       // (the data-driven profile normally covers this path).
@@ -1149,7 +1180,7 @@
       if (hg) foeBans.push(hg.card.id);
       if (cin) foeBans.push(cin.card.id);
       if (foeBans.length < RULES().BANS) {
-        var normal = chooseBans(cfg.player12, cfg.enemy12);
+        var normal = chooseBans(cfg.player12, cfg.enemy12, allowLegendBans);
         normal.forEach(function (id) {
           if (foeBans.length < RULES().BANS && foeBans.indexOf(id) === -1) {
             foeBans.push(id);
@@ -1157,7 +1188,7 @@
         });
       }
     } else {
-      foeBans = chooseBans(cfg.player12, cfg.enemy12);
+      foeBans = chooseBans(cfg.player12, cfg.enemy12, allowLegendBans);
     }
     prep = {
       mode: cfg.mode,
@@ -1226,7 +1257,9 @@
     /* advised gate: compute the silver ban counsel up front (the six
        counsel waits for the reveal - it depends on what survives) */
     if (prep.advisor && !prep.script) {
-      prep.advice = { bans: chooseBans(prep.enemy12, prep.player12) };
+      prep.advice = {
+        bans: chooseBans(prep.enemy12, prep.player12, prep.mode === 'draft'),
+      };
     }
     if (isMp) window.EOL.netplay.startBans(onFoeBans);
     prepAnim = true;
@@ -1453,7 +1486,15 @@
     $('prep-field').hidden = p.phase !== 'pick';
     $('prep-actions-main').hidden = p.phase === 'pick';
     $('prep-vs').hidden = p.phase === 'pick';
-    if ($('prep-fields')) $('prep-fields').hidden = p.phase !== 'pick';
+    if ($('prep-fields')) {
+      var fieldsButton = $('prep-fields');
+      var showFields = p.phase === 'pick';
+      fieldsButton.hidden = !showFields;
+      /* Some button skins set display explicitly and can beat the UA's
+         [hidden] rule. An inline display guard makes it impossible for
+         See battlefields to leak into the ban phase. */
+      fieldsButton.style.display = showFields ? '' : 'none';
+    }
 
     /* entrance stagger only on phase entry; pick clicks stay snappy */
     youGrid.classList.toggle('quiet', !prepAnim);
@@ -1508,10 +1549,16 @@
         el.classList.toggle('banpick', banned);
         if (noBan) el.classList.add('unbannable');
         el.addEventListener('click', function () {
-          /* R5 hardcode: the boss cannot be banned. The grid says so
-             instead of silently ignoring the click. */
+          /* Legendary protection (plus any authored exception such as
+             Gilgamesh). The grid says so instead of ignoring the click. */
           if (noBan) {
-            toast(e.card.name + ' cannot be banned - the judgement stands', 'ra-crown');
+            toast(
+              e.card.name +
+                (e.card.rarity === 'legendary'
+                  ? ' is Legendary - crown cards cannot be banned'
+                  : ' cannot be banned'),
+              'ra-crown'
+            );
             flashNode('prep-enemy-note');
             return;
           }
@@ -2207,7 +2254,7 @@
     if (m.mode === 'classic') {
       var myDeck = toEntries((st.decks || {})[st.mySlot]);
       var foeDeck = toEntries((st.decks || {})[st.foeSlot]);
-      if (myDeck.length !== 12 || foeDeck.length !== 12) return false;
+      if (!RULES().isLegal(myDeck) || !RULES().isLegal(foeDeck)) return false;
       window.EOL.netplay.begin(m);
       startPrep({
         mode: 'classic',
@@ -2359,7 +2406,8 @@
     } else {
       if (titleEl) titleEl.textContent = 'Choose your deck';
       if (subEl)
-        subEl.textContent = 'The enemy builds a squad of 12 - max 4 of a role, like yours.';
+        subEl.textContent =
+          'The enemy builds a squad of 12 - max 4 of a role and max 2 Legendaries, like yours.';
     }
 
     var host = $('dm-list');
@@ -2413,7 +2461,12 @@
           '<span class="dm-meta">' +
           d.ids.length +
           '/12 legends' +
-          (ok ? '' : ' - needs 12 to battle (edit it)') +
+          (ok
+            ? ''
+            : d.ids.length === RULES().DECK_SIZE &&
+                RULES().legendaryCount(window.EOL.decks.entriesOf(d)) > RULES().MAX_LEGENDARIES
+              ? ' - max 2 Legendaries (edit it)'
+              : ' - needs a legal 12 to battle (edit it)') +
           '</span></span>' +
           (ok ? '<i class="dm-go ri-arrow-right-line"></i>' : '');
         if (ok)
@@ -3717,8 +3770,8 @@
               return dict[id];
             })
             .filter(Boolean);
-          if (foe12.length !== RULES().DECK_SIZE) {
-            toast('The opponent sent an unreadable deck', 'ri-error-warning-line');
+          if (foe12.length !== RULES().DECK_SIZE || !RULES().isLegal(foe12)) {
+            toast('The opponent sent an illegal deck', 'ri-error-warning-line');
             leaveMatch();
             return;
           }
@@ -3902,8 +3955,9 @@
     var pf = $('prep-fields');
     if (pf)
       pf.addEventListener('click', function () {
+        if (!prep || prep.phase !== 'pick') return;
         if (setState && showFightCardViewer()) return;
-        if (prep && prep.field) revealBattlefield(prep.field, null);
+        if (prep.field) revealBattlefield(prep.field, null);
       });
 
     var ck = $('coach-ok');

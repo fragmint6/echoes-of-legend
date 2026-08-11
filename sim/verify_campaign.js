@@ -77,7 +77,52 @@ S.stages.forEach(function (st) {
   });
   ok(entries.every(Boolean), 'stage ' + st.id + ': every enemy12 id resolves');
   ok(EOL.deckRules.isLegal(entries.filter(Boolean)), 'stage ' + st.id + ': enemy12 is a legal 12');
+  ok(
+    entries.filter(function (e) {
+      return e && e.card.rarity === 'legendary';
+    }).length <= EOL.deckRules.MAX_LEGENDARIES,
+    'stage ' + st.id + ': enemy12 obeys the two-Legendary constructed cap'
+  );
 });
+(function () {
+  var legal = S.stages[0].enemy12.map(function (id) {
+    return dict[id];
+  });
+  var replace = legal.findIndex(function (e) {
+    return e.card.rarity !== 'legendary';
+  });
+  var third = Object.keys(dict)
+    .map(function (id) {
+      return dict[id];
+    })
+    .filter(function (e) {
+      return (
+        e.card.rarity === 'legendary' &&
+        e.card.role === legal[replace].card.role &&
+        legal.indexOf(e) < 0
+      );
+    })[0];
+  var illegal = legal.slice();
+  illegal[replace] = third;
+  ok(!EOL.deckRules.isLegal(illegal), 'a constructed deck with a third Legendary is illegal');
+  var all = Object.keys(dict)
+    .map(function (id) {
+      return dict[id];
+    })
+    .filter(function (e) {
+      return e.card.id !== S.bossCard.id;
+    });
+  var generated = EOL.deckRules.draftPool(all, function () {
+    return 0.37;
+  });
+  ok(generated.length === 36, 'generated Draft tables still contain exactly 36 cards');
+  ok(
+    generated.filter(function (e) {
+      return e.card.rarity === 'legendary';
+    }).length <= EOL.deckRules.DRAFT_MAX_LEGENDARIES,
+    'generated Draft tables obey the global four-Legendary cap'
+  );
+})();
 
 console.log('B. scripted sixes + rival behaviour data');
 S.stages.forEach(function (st) {
@@ -630,14 +675,23 @@ S.stages.forEach(function (st) {
     }),
     'stage ' + st.id + ': no Huaxia/Duat in the pool'
   );
+  var legendaryN = P.filter(function (id) {
+    return dict[id] && dict[id].card.rarity === 'legendary';
+  }).length;
+  ok(
+    legendaryN <= EOL.deckRules.DRAFT_MAX_LEGENDARIES,
+    'stage ' + st.id + ': no more than 4 Legendaries on the 36-card table (' + legendaryN + ')'
+  );
   ok(!!st.persona, 'stage ' + st.id + ': draft persona set');
 });
 
 console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
 /* Factions enter the Road one gate at a time - Grimmwood at I,
    Camelot II, Sherwood III, Olympus IV, Yamato VI, Roma VII,
-   Takamagahara VIII, Duat only at X. A gate may not field, pool or
-   grant a card from a faction the player has not been shown. */
+   Takamagahara VIII, Duat only at X. Rival decks and grants may not
+   jump that order. Curated Draft tables may preview non-Legendary cards
+   from the next road when a 36-distinct-card table cannot otherwise obey
+   the four-Legendary cap; future crowns must remain hidden. */
 (function () {
   var INTRO = {
     1: 'grimmwood',
@@ -666,7 +720,6 @@ console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
     if (st.id === 10) okSet['first-legend'] = true;
     [
       ['enemy12', st.enemy12 || []],
-      ['pool', (st.pool && st.pool.cards) || []],
       ['grants', (st.grants || {}).cards || []],
     ].forEach(function (pair) {
       var badIds = pair[1].filter(function (id) {
@@ -682,6 +735,16 @@ console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
           (badIds.length ? ' (LEAK: ' + badIds.join(', ') + ')' : '')
       );
     });
+    var futureCrowns = ((st.pool && st.pool.cards) || []).filter(function (id) {
+      return !okSet[facOf[id]] && dict[id] && dict[id].card.rarity === 'legendary';
+    });
+    ok(
+      futureCrowns.length === 0,
+      'stage ' +
+        st.id +
+        ' pool: no Legendary from a future faction' +
+        (futureCrowns.length ? ' (LEAK: ' + futureCrowns.join(', ') + ')' : '')
+    );
   });
 })();
 

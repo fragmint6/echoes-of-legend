@@ -1008,6 +1008,62 @@ Object.keys(PROBES).forEach((id) => {
    ============================================================= */
 section('B8. Bug regression guards');
 {
+  /* Goldilocks' threshold is evaluated once at cast start. Her preview and
+     resolution must describe the same one-hit branch even when that hit
+     moves the target outside the 30-70% window. */
+  const B = board(['grimmwood-goldilocks', ...FILL]);
+  const goldi = U(B, 'grimmwood-goldilocks');
+  const foe = foesOf(B)[0];
+  foe.hp = foe.maxHp * 0.5;
+  B.rng = () => 0.99; // deterministic non-critical resolution
+  const pv = E.previewDamage(B, goldi, goldi.card.ability, foe, 0);
+  const hp0 = foe.hp;
+  const events = [];
+  const tap = EOL.onBattleEvent;
+  EOL.onBattleEvent = (b, ev) => {
+    if (b === B && ev.src === goldi.uid && ev.tgt === foe.uid && ev.t === 'dmg') events.push(ev);
+  };
+  cast(B, 'grimmwood-goldilocks', [foe]);
+  EOL.onBattleEvent = tap;
+  ok(events.length === 1, `Goldilocks: Just Right resolves exactly one damage hit (${events.length})`);
+  ok(
+    near(hp0 - foe.hp, pv.dmg, 0.01),
+    `Goldilocks: preview matches resolved damage (${Math.round(pv.dmg)} shown, ${Math.round(hp0 - foe.hp)} dealt)`
+  );
+}
+{
+  /* Provoke recovery occurs before the incoming hit, so the recovery can
+     save Gingerbread Man from damage that would otherwise be lethal. */
+  const B = board(['grimmwood-gingerbread-man', ...FILL]);
+  const ginger = U(B, 'grimmwood-gingerbread-man');
+  const foe = foesOf(B)[0];
+  cast(B, 'grimmwood-gingerbread-man', [ginger]);
+  ginger.shield = 0;
+  ginger.hp = 900;
+  const events = [];
+  const tap = EOL.onBattleEvent;
+  EOL.onBattleEvent = (b, ev) => {
+    if (b === B && ev.tgt === ginger.uid && (ev.t === 'heal' || ev.t === 'dmg')) events.push(ev.t);
+  };
+  B.rng = () => 0.99;
+  B.acted.enemy = {};
+  B.energy.enemy = 100;
+  E.useAbility(B, foe, E.roleAbility(foe), [ginger]);
+  EOL.onBattleEvent = tap;
+  ok(ginger.alive && ginger.hp > 0, 'Gingerbread Man: pre-hit recovery prevents the otherwise lethal blow');
+  ok(
+    events.indexOf('heal') >= 0 && events.indexOf('heal') < events.indexOf('dmg'),
+    'Gingerbread Man: recovery event resolves before incoming damage'
+  );
+}
+{
+  const B = board(['grimmwood-gingerbread-man', ...FILL]);
+  const ginger = U(B, 'grimmwood-gingerbread-man');
+  ginger.shield = ginger.maxHp * 0.95;
+  cast(B, 'grimmwood-gingerbread-man', [ginger]);
+  ok(ginger.shield === ginger.maxHp, 'Shield is capped at exactly 100% Max HP');
+}
+{
   /* dead caster must not resolve a pending (u.pending) effect */
   const B = board(['yamato-abe-no-seimei', ...FILL]);
   const abe = U(B, 'yamato-abe-no-seimei');

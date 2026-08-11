@@ -151,6 +151,10 @@ const server = http.createServer((req, res) => {
   await sleep(900);
   t(!$('deck-modal').classList.contains('show'), 'no deck picker on the scripted gate');
   t(d.body.dataset.view === 'prep', 'prep opens directly');
+  t(
+    $('prep-fields').hidden && $('prep-fields').style.display === 'none',
+    'See battlefields is fully hidden during the ban phase'
+  );
   const prep = w.EOL.play._prepState();
   t(!!prep.script && prep.script.match && prep.script.match.moves.length === 16, 'the 16-move OPENING is loaded in prep (rounds 1-2 - the handoff design)');
   await sleep(400);
@@ -172,10 +176,13 @@ const server = http.createServer((req, res) => {
   t(d.querySelectorAll('#prep-enemy .prep-c.tutor-pick').length === 2, 'both ban marks appear the moment the board is truly live');
   t($('prep-enemy-note').textContent.indexOf('tap 2 to ban') === 0, 'header asks for bans again');
   d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-rumpelstiltskin"]').click();
+  await sleep(180);
+  t(w.EOL.play._prepState().youBans.length === 0, 'Legendary crowns refuse constructed bans');
+  d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-hansel-gretel"]').click();
   await sleep(280);
-  d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-evil-queen"]').click();
+  d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-puss-in-boots"]').click();
   await sleep(280);
-  t(w.EOL.play._prepState().youBans.length === 2, 'both scripted bans placed');
+  t(w.EOL.play._prepState().youBans.length === 2, 'both scripted non-Legendary bans placed');
   $('prep-confirm-main').click();
   await sleep(600);
   const pr = w.EOL.play._prepState();
@@ -184,6 +191,7 @@ const server = http.createServer((req, res) => {
   t($('tutor-text').textContent.indexOf('candle-children') >= 0, 'narration names his bans while the stamps show');
   await sleep(3200);
   t(w.EOL.play._prepState().phase === 'pick', 'pick phase opens after the long hold');
+  t(!$('prep-fields').hidden, 'See battlefields returns for the fielding phase');
   await sleep(500);
   t($('bf-reveal').classList.contains('show'), 'battlefield card is up');
   t(!$('tutor').hidden && !$('tutor-next').hidden, 'arena lesson shows while the card is up');
@@ -434,7 +442,10 @@ const server = http.createServer((req, res) => {
   t(!$('result-stats').hidden, 'the battle report is on the result screen');
   t(d.querySelectorAll('#result-stats .rs-row').length === 12, 'a report line for every legend in the fight');
   t($('result-stats').textContent.indexOf("The Recruiter's legends") >= 0, "the enemy column carries the rival's name");
-  t($('result-coins').hidden, 'campaign battles pay through their gates, not per match');
+  t(
+    !$('result-coins').hidden && $('result-coins').textContent.indexOf('+150 coins') >= 0,
+    'campaign victory shows its exact gate reward receipt'
+  );
   await sleep(300);
   let prog = w.EOL.campaign.getProgress();
   t(prog.cleared.indexOf(1) >= 0 && prog.unlocked.indexOf(2) >= 0, 'stage 1 cleared, gate 2 unlocked');
@@ -459,7 +470,7 @@ const server = http.createServer((req, res) => {
   t(d.querySelectorAll('#ledger-list .lg-row').length === 10, 'ten pages, one per gate');
   // opens on the furthest readable page: gate 2 (unlocked, intel state)
   t($('ledger-page').textContent.indexOf('killers-at-a-distance') >= 0, 'gate 2 intel: the habit is readable BEFORE the fight');
-  t($('ledger-page').textContent.indexOf('Likes to strike:') >= 0, 'the habit names the MECHANISM, not just the reputation');
+  t($('ledger-page').textContent.indexOf('Likes to ban:') >= 0, 'the habit names the MECHANISM, not just the reputation');
   t($('ledger-page').textContent.indexOf('your hardest hitters') >= 0, 'derived truthfully from the ban profile');
   t($('ledger-page').textContent.indexOf('Only front-row legends') >= 0, 'the Ground carries the full arena laws, not just a name');
   t($('ledger-page').textContent.indexOf('lazy back row') >= 0, 'and the counsel (recommended bans/decks) is there');
@@ -518,7 +529,7 @@ const server = http.createServer((req, res) => {
     t($('tutor-shield').hidden, 'no shield - the advised gate never locks the board');
     // REFUSING the counsel must cost nothing: ban a NON-advised card
     const freePick = Array.from(d.querySelectorAll('#prep-enemy .prep-c')).find(
-      (el) => p2.advice.bans.indexOf(el.dataset.cid) < 0
+      (el) => el.dataset.rarity !== 'legendary' && p2.advice.bans.indexOf(el.dataset.cid) < 0
     );
     freePick.click();
     await sleep(250);
@@ -691,6 +702,12 @@ const server = http.createServer((req, res) => {
   // the deck editor's grid wears the locks
   t(!d.querySelector('#deck-grid .card[data-id="grimmwood-snow-white"]').classList.contains('unowned'), 'owned cards are open in the deck editor');
   t(d.querySelector('#deck-grid .card[data-id="duat-anubis"]').classList.contains('unowned'), 'unowned cards are locked in the deck editor');
+  {
+    const cards = Array.from(d.querySelectorAll('#deck-grid .card[data-id]'));
+    const firstUnowned = cards.findIndex((c) => c.classList.contains('unowned'));
+    const lastOwned = cards.reduce((m, c, i) => (c.classList.contains('unowned') ? m : i), -1);
+    t(firstUnowned === -1 || lastOwned < firstUnowned, 'the deck builder lists every owned card before any unowned card');
+  }
   // the collection: owned count is honest, owned legends lead the grid
   w.EOL.ui.show('collection');
   await sleep(700);
@@ -762,6 +779,11 @@ const server = http.createServer((req, res) => {
     t(w.EOL.shop.results().every((e) => e.faction.id !== 'huaxia'), 'no Huaxia in the pull');
     t(w.EOL.shop.results().every((e) => e.card.rarity !== 'legendary'), 'and no legendary - the Crown Law holds in the pull');
     t(w.EOL.shop.results().every((e) => w.EOL.econ.owns(e.card.id)), 'the pull is OWNED (granted at roll time)');
+    t(!$('po-again').hidden, 'Open Another appears while another Trio pack is affordable');
+    const drain = w.EOL.econ.coins() - 119;
+    w.EOL.econ.spend(drain);
+    t($('po-again').hidden, 'Open Another hides immediately when the pack is no longer affordable');
+    w.EOL.econ.addCoins(drain);
     w.EOL.shop.close();
   }
 
@@ -831,10 +853,47 @@ const server = http.createServer((req, res) => {
     d.querySelector('#ledger-list .lg-row[data-lg="6"]').click();
     await sleep(250);
     t(!d.querySelector('#ledger-page .prep-c'), 'a draft gate never claims a fixed twelve');
-    t(d.querySelectorAll('#ledger-page .lg-fchip').length === 5, "the Trickster's page lists her five ROADS instead");
+    t(
+      d.querySelectorAll('#ledger-page .lg-fchip').length === 7,
+      "the Trickster's page honestly lists every road represented on her capped table"
+    );
     t(!!d.querySelector('#ledger-page .lg-fchip.featured'), 'with the featured faction wearing the bright crest');
     $('ledger-close').click();
     await sleep(200);
+  }
+
+  /* ---------- WARDEN REWARD: Ledger-style miniature cards ---------- */
+  {
+    w.EOL.campaign._recordClear(w.EOL.campaign._stageById(5));
+    /* Re-enter as the real result flow does; calling show() on the already
+       active chapter view intentionally emits no duplicate transition. */
+    w.EOL.ui.show('home');
+    w.EOL.ui.show('chapter');
+    await sleep(350);
+    t(!$('grant-choice').hidden, "the Warden's two-Echo reward reopens on the chapter map");
+    const choices = Array.from(d.querySelectorAll('#grant-choice-grid .gc-card-choice'));
+    t(choices.length > 2, 'the Warden offers a real selection of Echoes');
+    t(
+      choices.length > 0 &&
+        choices.every((el) => el.classList.contains('prep-c') && !!el.querySelector('.bcard-art') && !!el.querySelector('.bcard-role')),
+      'every Warden option uses the Ledger miniature-card language'
+    );
+    if (choices.length >= 2) {
+      choices[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      choices[1].click();
+      t(
+        choices[0].getAttribute('aria-checked') === 'true' && choices[1].getAttribute('aria-checked') === 'true',
+        'Warden cards support keyboard and pointer selection semantics'
+      );
+      t(!$('grant-choice-go').disabled, 'the reward unlocks only after two cards are selected');
+      $('grant-choice-go').click();
+      await sleep(100);
+      t($('grant-choice').hidden, 'claiming the Warden cards closes the reward');
+    } else {
+      t(false, 'Warden cards support keyboard and pointer selection semantics');
+      t(false, 'the reward unlocks only after two cards are selected');
+      t(false, 'claiming the Warden cards closes the reward');
+    }
   }
 
   /* ---------- mojibake sweep ---------- */

@@ -99,11 +99,50 @@
      shuffled deck. The procedural builder below survives purely as
      a fallback for a stage that ships without a frozen list.
      --------------------------------------------------------- */
+  function limitDraftLegendaries(entries, featuredId) {
+    var max = (window.EOL.deckRules && window.EOL.deckRules.DRAFT_MAX_LEGENDARIES) || 4;
+    var crowns = entries.filter(function (e) {
+      return e.card.rarity === 'legendary';
+    });
+    if (crowns.length <= max) return entries;
+
+    /* Keep the featured faction's crown first so an authored promise
+       that the whole faction appears remains true, then keep the first
+       authored crowns up to the table cap. Replace extras with unused
+       non-Legendaries of the same role to preserve all 36 seats. */
+    crowns.sort(function (a, b) {
+      return (b.faction.id === featuredId ? 1 : 0) - (a.faction.id === featuredId ? 1 : 0);
+    });
+    var keep = {};
+    crowns.slice(0, max).forEach(function (e) {
+      keep[e.card.id] = true;
+    });
+    var used = {};
+    entries.forEach(function (e) {
+      used[e.card.id] = true;
+    });
+    var replacements = [];
+    (window.EOL.factions || []).forEach(function (f) {
+      if (f.id === 'huaxia' || f.id === 'duat') return;
+      f.cards.forEach(function (c) {
+        if (c.rarity !== 'legendary' && !used[c.id]) replacements.push({ card: c, faction: f });
+      });
+    });
+    return entries.map(function (e) {
+      if (e.card.rarity !== 'legendary' || keep[e.card.id]) return e;
+      for (var i = 0; i < replacements.length; i++) {
+        if (replacements[i].card.role !== e.card.role) continue;
+        return replacements.splice(i, 1)[0];
+      }
+      return e; // malformed future roster: validation will flag it
+    });
+  }
+
   function buildPool(spec) {
     var featuredId = spec && spec.featured ? spec.featured : spec;
     if (spec && spec.cards && spec.cards.length) {
       var frozen = entriesFor(spec.cards);
-      if (frozen.length === spec.cards.length) return frozen;
+      if (frozen.length === spec.cards.length) return limitDraftLegendaries(frozen, featuredId);
     }
     var byRole = {};
     (window.EOL.factions || []).forEach(function (f) {
@@ -128,7 +167,7 @@
       }
       pool = pool.concat(featured.concat(rest).slice(0, 6));
     });
-    return pool;
+    return limitDraftLegendaries(pool, featuredId);
   }
 
   /* ---------------------------------------------------------
@@ -1409,6 +1448,22 @@
      --------------------------------------------------------- */
   var resultInfo = null;
 
+  function rewardLine(stage, first) {
+    if (!first) return '+25 coins · Replay reward';
+    var g = stage.grants || {};
+    var parts = ['+' + (g.coins || 0) + ' coins'];
+    (g.cards || []).forEach(function (id) {
+      var e = cardDict()[id];
+      if (e) parts.push(e.card.name);
+    });
+    if (g.choice) parts.push('Choose ' + g.choice.count + ' Echoes');
+    if (g.legendPack) {
+      var crown = cardDict()[g.legendPack];
+      if (crown) parts.push('Legendary: ' + crown.card.name);
+    }
+    return parts.join(' · ');
+  }
+
   function onBattleResult(win, info) {
     clearBattleWatch();
     hideBark();
@@ -1436,14 +1491,16 @@
       activeCampaignStage = null;
       return null;
     }
-    resultInfo = { stage: stage.id, won: win };
+    var firstClear = false;
     /* FIRST BLOOD (owner ruling 2026-08-10): facing a rival once -
        win or lose - opens their forces in the ledger. */
     progFought(stage.id);
-    if (win) recordClear(stage);
+    if (win) firstClear = recordClear(stage);
+    resultInfo = { stage: stage.id, won: win, first: firstClear };
     return {
       campaign: true,
       sub: win ? stage.resultWin : stage.resultLose,
+      rewards: win ? rewardLine(stage, firstClear) : null,
       rematchLabel: 'Retry',
       homeLabel: win ? 'Continue' : 'Map',
     };
@@ -1553,34 +1610,40 @@
         picked.length === g.count ? 'Carry them' : 'Choose ' + (g.count - picked.length) + ' more';
     };
     candidates.forEach(function (e) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'gc-tile rarity-' + e.card.rarity;
-      b.style.setProperty('--fc', e.faction.colors.primary);
-      b.innerHTML =
-        '<i class="ra ' +
-        e.card.icon +
-        '"></i><span class="gc-name">' +
-        (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
-        '</span><span class="gc-role">' +
-        e.card.role +
-        ' - ' +
-        e.faction.name +
-        '</span>';
-      b.addEventListener('click', function () {
+      /* Reuse the Ledger's actual little battle card and hover panel,
+         rather than reducing a mythic choice to a generic icon button. */
+      var b =
+        window.EOL.play && window.EOL.play.tileFor
+          ? window.EOL.play.tileFor(e, $('grant-choice-tip'))
+          : document.createElement('div');
+      b.classList.add('gc-card-choice');
+      b.setAttribute('role', 'checkbox');
+      b.setAttribute('aria-checked', 'false');
+      b.setAttribute('aria-label', 'Choose ' + e.card.name);
+      b.tabIndex = 0;
+      var toggle = function () {
         var i = picked.indexOf(e.card.id);
         if (i >= 0) {
           picked.splice(i, 1);
           b.classList.remove('sel');
+          b.setAttribute('aria-checked', 'false');
         } else {
           if (picked.length >= g.count) return;
           picked.push(e.card.id);
           b.classList.add('sel');
+          b.setAttribute('aria-checked', 'true');
         }
         sync();
+      };
+      b.addEventListener('click', toggle);
+      b.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+        toggle();
       });
       grid.appendChild(b);
     });
+    if (window.EOL.play && window.EOL.play.fitTileNames) window.EOL.play.fitTileNames();
     sync();
     go.onclick = function () {
       if (picked.length !== g.count) return;
@@ -1640,6 +1703,52 @@
   /* ---------------------------------------------------------
      CHAPTER MAP - stage card states and copy.
      --------------------------------------------------------- */
+  function paintStageRewards(card, stage, cleared) {
+    var info = card.querySelector('.sc-info');
+    if (!info) return;
+    var row = info.querySelector('.sc-rewards');
+    if (!row) {
+      row = document.createElement('span');
+      row.className = 'sc-rewards';
+      info.appendChild(row);
+    }
+    var g = stage.grants || {};
+    var chips = [];
+    chips.push(
+      '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' +
+        (g.coins || 0) +
+        ' coins</span>'
+    );
+    (g.cards || []).forEach(function (id) {
+      var e = cardDict()[id];
+      if (e)
+        chips.push(
+          '<span class="sc-reward"><i class="ra ' +
+            e.card.icon +
+            '"></i>' +
+            (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
+            '</span>'
+        );
+    });
+    if (g.choice)
+      chips.push(
+        '<span class="sc-reward"><i class="ra ra-locked-fortress"></i>Choose ' +
+          g.choice.count +
+          ' Echoes</span>'
+      );
+    if (g.legendPack) {
+      var crown = cardDict()[g.legendPack];
+      if (crown)
+        chips.push(
+          '<span class="sc-reward legendary"><i class="ra ra-crown"></i>Legendary: ' +
+            (window.EOL.ui ? window.EOL.ui.esc(crown.card.name) : crown.card.name) +
+            '</span>'
+        );
+    }
+    row.innerHTML =
+      '<b>' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
+  }
+
   function updateStageCards() {
     var prog = getProgress();
     var unlocked = prog.unlocked || [1];
@@ -1658,6 +1767,7 @@
 
       var state = card.querySelector('.sc-state-badge, .rival-state, .rival-lock');
       var prompt = card.querySelector('.sc-prompt');
+      paintStageRewards(card, stage, isCleared);
 
       if (isCleared) {
         if (state) {
@@ -1922,7 +2032,7 @@
               '</p>'
             : '<p>' + stage.banTell + '</p>'
           : '') +
-        '<p class="lg-prefs"><b>Likes to strike:</b> ' +
+        '<p class="lg-prefs"><b>Likes to ban:</b> ' +
         habitPrefs(stage) +
         '</p>' +
         '</div>';
@@ -2222,9 +2332,11 @@
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'chapter') {
         updateStageCards();
-        window.setTimeout(reofferPendingChoice, 400);
-        /* an unopened Legend Pack plays its ceremony first chance */
-        window.setTimeout(reofferPendingLegend, 600);
+        window.setTimeout(reofferPendingChoice, 120);
+        /* An unopened Legend Pack appears as soon as the chapter map is
+           back on screen. It is a campaign reward, never something the
+           player should have to visit the Shop to discover. */
+        window.setTimeout(reofferPendingLegend, 0);
         /* the one-time ledger introduction, once Gate I has fallen */
         window.setTimeout(maybeSpotLedger, 900);
       }

@@ -338,7 +338,7 @@
         <div class="decks-head">
           <p class="decks-intro">
             <i class="ri-information-line"></i>
-            A deck holds <b>12 legends</b> (max 4 per role). When a battle begins, the enemy bans 2
+            A deck holds <b>12 legends</b> (max 4 per role and max 2 Legendaries). When a battle begins, the enemy bans 2
             of them and you field 6 of the survivors.
           </p>
           <button class="btn btn-primary btn-slim" id="btn-new-deck">
@@ -405,8 +405,8 @@
             <p class="rb-example">
               <i class="ri-lightbulb-line" aria-hidden="true"></i>
               <span>
-                A ban is a question: <i>what can this player not live without?</i> Strike the
-                crown pieces, never leave a legendary standing out of politeness.
+                A ban is a question: <i>what can this player not live without?</i> Crown cards
+                are protected, so strike the support or combo piece that lets their legend take over.
               </span>
             </p>
           </div>
@@ -705,11 +705,11 @@
         <div class="col-titles">
           <h2 class="col-title">Deck Editor</h2>
           <p class="col-sub">
-            <span id="deck-count">0</span> of 12 legends - max 4 per role
+            <span id="deck-count">0</span> of 12 legends - max 4 per role, 2 Legendaries
             <button
               type="button"
               class="tipdot"
-              data-tip="A deck holds 12 legends, with at most 4 of the same role. Bring a mix: tough front-liners, damage dealers, and support."
+              data-tip="A deck holds 12 legends, with at most 4 of the same role and 2 Legendary cards. Bring a mix: tough front-liners, damage dealers, and support."
               aria-label="Tip"
             >
               <i class="ri-question-line"></i>
@@ -1239,7 +1239,7 @@
     <div class="deck-modal" id="deck-modal" aria-hidden="true">
       <div class="dm-card">
         <h3 class="dm-title">Choose your deck</h3>
-        <p class="dm-sub">The enemy builds a squad of 12 &mdash; max 4 of a role, like yours.</p>
+        <p class="dm-sub">The enemy builds a squad of 12 &mdash; max 4 of a role and max 2 Legendaries, like yours.</p>
         <div class="war-length" id="war-length" role="group" aria-label="Match length">
           <div class="wl-head">
             <span class="wl-kicker">Match length</span>
@@ -1933,7 +1933,14 @@
       <div class="grant-choice-card">
         <h2 id="grant-choice-title"><i class="ra ra-locked-fortress"></i> Choose your echoes</h2>
         <p class="grant-choice-sub" id="grant-choice-sub"></p>
-        <div class="grant-choice-grid" id="grant-choice-grid"></div>
+        <div class="grant-choice-grid prep-cards" id="grant-choice-grid"></div>
+        <!-- Same little battle-card inspector used by the Ledger. -->
+        <aside
+          class="flyout grant-choice-flyout"
+          id="grant-choice-tip"
+          data-rarity="common"
+          aria-hidden="true"
+        ></aside>
         <footer class="grant-choice-foot">
           <button class="btn btn-primary" id="grant-choice-go" type="button" disabled>
             <span>Carry them</span><i class="ri-check-line"></i>

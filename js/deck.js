@@ -1,7 +1,8 @@
 /* =============================================================
    Echoes of Legend - Deck Manager & Deck Editor
    -------------------------------------------------------------
-   Decks are saved squads of TWELVE heroes (max 4 per role). They
+   Decks are saved squads of TWELVE heroes (max 4 per role, max 2
+   Legendaries). They
    live in the Collection's Decks tab; the editor is this screen's
    re-skinned grid (intentionally identical to the Collection, plus
    the deck tray on top). Formation is no longer chosen here: at
@@ -326,7 +327,16 @@
       return false;
     }
     var cand = byId()[id].card;
-    if (window.EOL.deckRules.capBlocked(entriesOf(editing), cand)) {
+    var currentEntries = entriesOf(editing);
+    if (window.EOL.deckRules.legendaryCapBlocked(currentEntries, cand)) {
+      hintWarn(
+        'Max ' +
+          window.EOL.deckRules.MAX_LEGENDARIES +
+          ' Legendaries in Classic and Unabridged decks.'
+      );
+      return false;
+    }
+    if (window.EOL.deckRules.capBlocked(currentEntries, cand)) {
       hintWarn(
         'Max ' +
           MAX_PER_ROLE +
@@ -760,9 +770,17 @@
     var grid = $('deck-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    /* Deck construction is an ownership task, so the usable part of the
+       collection always comes first. Alphabetical order remains stable
+       inside the owned and unowned halves. */
+    var econ = window.EOL.econ;
     var sorted = roster()
       .slice()
       .sort(function (a, b) {
+        if (econ) {
+          var ownedDelta = (econ.owns(b.card.id) ? 1 : 0) - (econ.owns(a.card.id) ? 1 : 0);
+          if (ownedDelta) return ownedDelta;
+        }
         return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
       });
     sorted.forEach(function (e, i) {
@@ -784,6 +802,14 @@
     buildGrid();
     load();
     render();
+    /* A campaign reward or pack can change ownership without reloading
+       the page. Rebuild so the newly owned card moves into the leading
+       group immediately, while preserving the active filters and deck. */
+    document.addEventListener('eol:owned', function () {
+      buildGrid();
+      render();
+      applyGridFilter();
+    });
 
     var tabH = $('ctab-heroes'),
       tabD = $('ctab-decks');

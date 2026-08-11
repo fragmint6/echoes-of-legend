@@ -30,6 +30,10 @@
      multiplayer battle is the same battle, with a different source of
      enemy decisions. No second engine, no second loop. */
   var netCtl = null;
+  /* endBattle can be reached by the normal turn loop and an asynchronous
+     remote-forfeit notification in the same tick. Keep the result path
+     exactly-once. */
+  var endingBattle = false;
   /* CAMPAIGN rival identity for this battle ({name, img} or null).
      Set fresh on every start(); paints the enemy commander plate and
      anchors the in-battle rival dialogue (js/campaign.js). */
@@ -1774,7 +1778,14 @@
         if (sel && sel.ability) return; // a live selection wins
         paintPreview(u, ab, sel ? sel.choose : 0);
       });
-      row.addEventListener('mouseleave', clearPreview);
+      row.addEventListener('mouseleave', function () {
+        /* Clicking a Skill rebuilds the dock. The old hovered row then
+           emits mouseleave; blindly clearing here erased the damage chips
+           paintSelection had just created for the CLICKED selection. A
+           committed selection always wins over the transient hover. */
+        if (sel && sel.ability) paintSelection();
+        else clearPreview();
+      });
     });
     fly.querySelectorAll('.dk-choice').forEach(function (btn) {
       btn.addEventListener('click', function (ev) {
@@ -4553,6 +4564,8 @@
   }
 
   function endBattle() {
+    if (endingBattle) return;
+    endingBattle = true;
     hideTip();
     stopClock();
     disarmForfeit();
@@ -4734,7 +4747,10 @@
        75/50, per game. Campaign battles pay through their gates, not
        here. Paid exactly once per battle instance. */
     var coinsEl = $('result-coins');
-    if (coinsEl) coinsEl.hidden = true;
+    if (coinsEl) {
+      coinsEl.hidden = true;
+      coinsEl.classList.remove('campaign-rewards');
+    }
     if (!B.campaignStage && window.EOL.econ && !B._coinsPaid) {
       B._coinsPaid = true;
       var P = window.EOL.econ.PAY;
@@ -4762,6 +4778,15 @@
         : null;
     if (cam && cam.campaign) {
       if (cam.sub) ov.querySelector('.result-sub').textContent = cam.sub;
+      /* Campaign gates pay real rewards too. Put the exact receipt on
+         the victory card instead of making the player infer it later
+         from their wallet or collection. */
+      if (coinsEl && cam.rewards) {
+        coinsEl.innerHTML =
+          '<i class="ra ra-open-treasure-chest"></i><span>' + esc(cam.rewards) + '</span>';
+        coinsEl.classList.add('campaign-rewards');
+        coinsEl.hidden = false;
+      }
       var rm2 = $('btn-rematch');
       if (rm2) rm2.querySelector('span').textContent = cam.rematchLabel || 'Retry';
       var home2 = $('btn-result-home');
@@ -4955,6 +4980,7 @@
        a shared rng seed. Both clients run the identical engine over the
        identical action stream, so they only have to agree on luck. */
     netCtl = opts.net || null;
+    endingBattle = false;
     rivalInfo = opts.rival || null;
     /* THE SCRIPTED MATCH (campaign gate I): the whole line, both
        sides, pre-computed against this exact seed. */
@@ -4998,6 +5024,19 @@
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
           });
+    }
+    /* A forfeit can arrive while it is OUR turn, when no decide()
+       promise exists to wake the battle loop. Register an explicit
+       terminal callback so Victory is shown immediately in either turn
+       state; endBattle's once-guard handles the waiting-promise path. */
+    if (netCtl && netCtl.onForfeitWin) {
+      netCtl.onForfeitWin(function () {
+        if (!B || !B.over || B.winner !== 'player') return;
+        busy = false;
+        document.body.dataset.busy = '0';
+        render();
+        endBattle();
+      });
     }
     sel = null;
     busy = false;

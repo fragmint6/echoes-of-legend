@@ -17,7 +17,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Lost in the Woods',
         cost: 45,
-        text: 'Immediately gain a <b>15% Max HP Shield</b> and share one with your lowest HP ally, plus Provoke for 1 round, healing <b>4% Max HP</b> each time they are attacked while Provoking.',
+        text: 'Immediately gain a <b>15% Max HP Shield</b> and share one with your lowest HP ally, plus Provoke for 1 round, recovering <b>4% Max HP before each incoming hit</b> while Provoking.',
         note: null,
         spec: {
           target: { side: 'self' },
@@ -214,7 +214,7 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Run, Run, Run',
         cost: 40,
-        text: 'Immediately gain a <b>15% Max HP Shield</b> and <b>Provoke</b> for 1 round, healing <b>4% Max HP</b> each time you are attacked while Provoking. The <b>2 lowest-HP enemies</b> suffer <b>20% reduced ATK</b> for 2 rounds.',
+        text: 'Immediately gain a <b>15% Max HP Shield</b> and <b>Provoke</b> for 1 round, recovering <b>4% Max HP before each incoming hit</b> while Provoking. The <b>2 lowest-HP enemies</b> suffer <b>20% reduced ATK</b> for 2 rounds.',
         note: null,
         spec: {
           target: { side: 'self' },
@@ -350,11 +350,15 @@ window.EOL.registerFaction({
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
           effects: [
-            /* exactly one arm fires - the window is inclusive, its
-               complement covers everything else, so it always reads as
-               ONE hit, priced by where the target stands */
-            { k: 'dmg', power: 2.5, element: 'Nature', if: { targetHpBetween: [0.3, 0.7] } },
-            { k: 'dmg', power: 1.2, element: 'Nature', if: { targetHpOutside: [0.3, 0.7] } },
+            /* One explicit branch means exactly ONE hit. Two adjacent
+               conditional damage effects could both fire when the first
+               hit moved an in-window target below 30% HP. */
+            {
+              k: 'branch',
+              cond: { targetHpBetween: [0.3, 0.7] },
+              then: [{ k: 'dmg', power: 2.5, element: 'Nature' }],
+              other: [{ k: 'dmg', power: 1.2, element: 'Nature' }],
+            },
           ],
         },
       },

@@ -402,7 +402,8 @@
       if (spec.choose && spec.choose[chooseIndex || 0]) {
         effects = spec.choose[chooseIndex || 0].effects;
       }
-      var ctx = { signature: !ability.basic, scale: 1, self: unit };
+      var ctx = { signature: !ability.basic, scale: 1, self: unit, preHp: {} };
+      ctx.preHp[tgt.uid] = tgt.hp;
       /* the provoke tax, mirrored from useAbility */
       if (
         isAttack(ability) &&
@@ -415,36 +416,54 @@
       }
       var total = 0;
       var found = false;
-      effects.forEach(function (e) {
-        if (e.k !== 'dmg') return;
-        if (e.to) return; // redirected effects never hit the picked target
-        if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
-        var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
-        var raw = atkOf(unit) * e.power * provokeM;
-        if (e.ifMult) {
-          e.ifMult.forEach(function (m) {
-            if (condMet(B, m.when, condCtx(ctx, tgt))) raw *= m.mult;
-          });
-        }
-        if (e.perDebuff) {
-          var dn = debuffCount(tgt);
-          if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
-          raw += atkOf(unit) * e.perDebuff * dn * provokeM;
-        }
-        if (e.perBuff) {
-          var bn = buffCount(tgt);
-          if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
-          raw += atkOf(unit) * e.perBuff * bn * provokeM;
-        }
-        var outM = outgoingMult(B, unit, tgt);
-        B._multTrail = null;
-        var inM = incomingMult(B, unit, tgt, ctx.signature === true);
-        B._multTrail = null;
-        var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
-        var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
-        total += Math.max(1, Math.round(afterDef));
-        found = true;
-      });
+      /* Walk conditional branches as the resolver does. Previously the
+         preview only saw top-level `dmg` entries, so branch-based
+         executes (Anubis/Gilgamesh, and now Goldilocks) showed no number
+         at all while two-line conditionals could show the wrong total. */
+      function scan(list) {
+        (list || []).forEach(function (e) {
+          if (e.k === 'branch') {
+            var pass = branchPasses(B, unit, [tgt], e.cond || {}, ctx);
+            if (e.cond && e.cond.anyAllyFallen != null) {
+              pass =
+                B.units.some(function (u) {
+                  return u.side === unit.side && !u.alive;
+                }) === !!e.cond.anyAllyFallen;
+            }
+            scan(pass ? e.then : e.other || e.else);
+            return;
+          }
+          if (e.k !== 'dmg') return;
+          if (e.to && e.to !== 'targets') return; // redirected effects do not hit this target
+          if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
+          var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
+          var raw = atkOf(unit) * e.power * (ctx.scale || 1) * provokeM;
+          if (e.ifMult) {
+            e.ifMult.forEach(function (m) {
+              if (condMet(B, m.when, condCtx(ctx, tgt))) raw *= m.mult;
+            });
+          }
+          if (e.perDebuff) {
+            var dn = debuffCount(tgt);
+            if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
+            raw += atkOf(unit) * e.perDebuff * dn * (ctx.scale || 1) * provokeM;
+          }
+          if (e.perBuff) {
+            var bn = buffCount(tgt);
+            if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
+            raw += atkOf(unit) * e.perBuff * bn * (ctx.scale || 1) * provokeM;
+          }
+          var outM = outgoingMult(B, unit, tgt);
+          B._multTrail = null;
+          var inM = incomingMult(B, unit, tgt, ctx.signature === true);
+          B._multTrail = null;
+          var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
+          var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
+          total += Math.max(1, Math.round(afterDef));
+          found = true;
+        });
+      }
+      scan(effects);
       if (!found) return null;
       return {
         dmg: total,
@@ -1270,8 +1289,9 @@
 
   /* Shared by the resolver and the preview so a branch can never be
      evaluated one way for the game and another way for the UI. */
-  function branchPasses(B, src, list, cond) {
+  function branchPasses(B, src, list, cond, ctx) {
     var pass = true;
+    ctx = ctx || {};
     if (cond.anyTargetMarked) {
       pass = list.some(function (t) {
         return t.flags.marked > 0;
@@ -1300,11 +1320,31 @@
     if (cond.buffCountAtLeast != null) {
       pass = list.length > 0 && buffCount(list[0]) >= cond.buffCountAtLeast;
     }
+    var first = list[0];
+    var firstHp =
+      first && ctx.preHp && ctx.preHp[first.uid] != null
+        ? ctx.preHp[first.uid] / first.maxHp
+        : first
+          ? first.hp / first.maxHp
+          : null;
     if (cond.targetHpBelow != null) {
-      pass = pass && list.length > 0 && list[0].hp / list[0].maxHp < cond.targetHpBelow;
+      pass = pass && list.length > 0 && firstHp < cond.targetHpBelow;
     }
     if (cond.targetHpAbove != null) {
-      pass = pass && list.length > 0 && list[0].hp / list[0].maxHp > cond.targetHpAbove;
+      pass = pass && list.length > 0 && firstHp > cond.targetHpAbove;
+    }
+    if (cond.targetHpBetween) {
+      pass =
+        pass &&
+        list.length > 0 &&
+        firstHp >= cond.targetHpBetween[0] &&
+        firstHp <= cond.targetHpBetween[1];
+    }
+    if (cond.targetHpOutside) {
+      pass =
+        pass &&
+        list.length > 0 &&
+        (firstHp < cond.targetHpOutside[0] || firstHp > cond.targetHpOutside[1]);
     }
     return pass;
   }
@@ -1335,6 +1375,11 @@
     return {
       target: target,
       self: ctx.self,
+      /* HP-gated effects read the target at cast start. Without this,
+         an earlier hit/heal in the same ability could switch on a later
+         mutually-exclusive arm (Goldilocks fired both damage lines) or
+         switch off a promised triage bonus. */
+      preHp: ctx.preHp,
       preDamaged: ctx.preDamaged,
       wasMarked: ctx.wasMarked,
       lastDamage: ctx.lastDamage,
@@ -1353,26 +1398,30 @@
   function condMet(B, cond, ctx) {
     if (!cond) return true;
     var tgt = ctx.target;
+    /* Snapshot HP once per cast. Conditions that are part of a triggered
+       passive have no snapshot and correctly read the live value. */
+    var hpRatio =
+      tgt && ctx.preHp && ctx.preHp[tgt.uid] != null
+        ? ctx.preHp[tgt.uid] / tgt.maxHp
+        : tgt
+          ? tgt.hp / tgt.maxHp
+          : null;
     if (cond.targetHpBelow != null) {
-      if (!tgt || tgt.hp / tgt.maxHp >= cond.targetHpBelow) return false;
+      if (!tgt || hpRatio >= cond.targetHpBelow) return false;
     }
     if (cond.targetHpAbove != null) {
-      if (!tgt || tgt.hp / tgt.maxHp <= cond.targetHpAbove) return false;
+      if (!tgt || hpRatio <= cond.targetHpAbove) return false;
     }
     /* Goldilocks: an HP window. `targetHpBetween` is INCLUSIVE at both
        ends ("between 30% and 70% HP" includes a hero sitting at exactly
-       30% or 70%); `targetHpOutside` is its exact complement, so a
-       two-arm card can price in-window and out-of-window with no gap
-       or overlap. */
+       30% or 70%); `targetHpOutside` is its exact complement. */
     if (cond.targetHpBetween) {
       if (!tgt) return false;
-      var hb = tgt.hp / tgt.maxHp;
-      if (hb < cond.targetHpBetween[0] || hb > cond.targetHpBetween[1]) return false;
+      if (hpRatio < cond.targetHpBetween[0] || hpRatio > cond.targetHpBetween[1]) return false;
     }
     if (cond.targetHpOutside) {
       if (!tgt) return false;
-      var ho = tgt.hp / tgt.maxHp;
-      if (ho >= cond.targetHpOutside[0] && ho <= cond.targetHpOutside[1]) return false;
+      if (hpRatio >= cond.targetHpOutside[0] && hpRatio <= cond.targetHpOutside[1]) return false;
     }
     if (cond.targetBackRow) {
       if (!tgt || isFront(tgt)) return false;
@@ -1618,6 +1667,17 @@
 
   function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders) {
     if (!tgt.alive) return 0;
+
+    /* Run, Run, Run / Breadcrumb Barricade recover BEFORE the incoming
+       blow resolves. Resolving this after damage let a nominally lethal
+       hit take the target to 0 and then heal it back before death was
+       finalized, creating a hidden death-cheat. Pre-hit recovery can
+       still save a low hero, but a blow larger than the recovered HP now
+       kills them honestly. */
+    if (tgt.flags.taunt > 0 && tgt.flags.tauntHeal) {
+      healUnit(B, tgt, tgt, tgt.maxHp * (tgt.flags.tauntHeal / 100));
+    }
+
     /* Guan Yu: whether the target was Shielded at the moment the attack
        landed (before the shield could absorb it). */
     var hadShield = tgt.shield > 0;
@@ -1836,11 +1896,8 @@
     // Lancelot: an ally striking an Exposed enemy sharpens him further
     if (tgt.flags.exposed > 0) fireAllyStruckExposed(B, src, tgt);
 
-    /* Hansel & Gretel: being struck while Provoking heals them. Resolved
-       after the damage so the heal is applied to the reduced HP. */
-    if (tgt.alive && tgt.flags.taunt > 0 && tgt.flags.tauntHeal) {
-      healUnit(B, tgt, tgt, tgt.maxHp * (tgt.flags.tauntHeal / 100));
-    }
+    /* Provoke recovery resolved before this blow at the top of
+       dealDamage; it must never resurrect a target from a lethal hit. */
 
     /* Will Scarlet: attacking the same target again and again builds
        stacks; switching targets wipes them. Tracked on the attacker. */
@@ -2120,6 +2177,17 @@
     checkEnd(B);
   }
 
+  /* No hero may carry more Shield than 100% of their Max HP. Return the
+     amount that actually fit so combat text, events and the report never
+     claim shield that was discarded by the cap. */
+  function addShieldCapped(tgt, amount) {
+    var cap = Math.max(0, Math.round(tgt.maxHp));
+    tgt.shield = Math.max(0, Math.min(cap, Math.round(tgt.shield || 0)));
+    var gain = Math.max(0, Math.min(Math.round(amount || 0), cap - tgt.shield));
+    tgt.shield += gain;
+    return gain;
+  }
+
   function healUnit(B, src, tgt, amount, opts) {
     if (!tgt.alive) return 0;
     var mod = healDecay(B.round);
@@ -2140,24 +2208,25 @@
        Shield instead - burst insurance rather than wasted healing. */
     var overflow = amt - real;
     if (opts && opts.overflowShield && overflow > 0) {
-      overflow = Math.round(overflow);
-      tgt.shield += overflow;
-      tgt.shieldSrc = src.uid; // granter credited for absorbs
-      logMsg(B, 'shield', tgt.name + "'s overflow hardens into a " + overflow + ' shield.', {
-        uid: tgt.uid,
-        status: 'shield',
-        amount: overflow,
-      });
-      emit(B, {
-        t: 'shield',
-        src: src.uid,
-        tgt: tgt.uid,
-        amount: overflow,
-        signature: !!opts.signature,
-        overflow: true,
-        round: B.round,
-      });
-      fireAllyWarded(B, tgt);
+      overflow = addShieldCapped(tgt, overflow);
+      if (overflow > 0) {
+        tgt.shieldSrc = src.uid; // granter credited for absorbs
+        logMsg(B, 'shield', tgt.name + "'s overflow hardens into a " + overflow + ' shield.', {
+          uid: tgt.uid,
+          status: 'shield',
+          amount: overflow,
+        });
+        emit(B, {
+          t: 'shield',
+          src: src.uid,
+          tgt: tgt.uid,
+          amount: overflow,
+          signature: !!opts.signature,
+          overflow: true,
+          round: B.round,
+        });
+        fireAllyWarded(B, tgt);
+      }
     }
     return real;
   }
@@ -2237,6 +2306,7 @@
           effect: e,
           ctx: {
             scale: ctx.scale,
+            preHp: ctx.preHp,
             preDamaged: ctx.preDamaged,
             killedSomething: ctx.killedSomething,
             signature: ctx.signature,
@@ -2254,6 +2324,7 @@
         effect: e,
         ctx: {
           scale: ctx.scale,
+          preHp: ctx.preHp,
           preDamaged: ctx.preDamaged,
           killedSomething: ctx.killedSomething,
           signature: ctx.signature,
@@ -2649,8 +2720,11 @@
             t.stackTotals = t.stackTotals || {};
             t.stackTotals[e.stackTag] = stacksUsed(t, e.stackTag) + 1;
           }
-          var amt = Math.round(t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1));
-          t.shield += amt;
+          var amt = addShieldCapped(
+            t,
+            t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1)
+          );
+          if (amt <= 0) return;
           t.shieldSrc = src.uid; // last granter is credited for absorbs
           logMsg(B, 'shield', t.name + ' gains a ' + amt + ' shield.', {
             uid: t.uid,
@@ -3236,23 +3310,27 @@
              therefore has to be part of the revive itself rather than a
              separate effect. Generic `shieldPctMaxHp` rider. */
           if (e.shieldPctMaxHp) {
-            var sh = Math.round(t.maxHp * (e.shieldPctMaxHp / 100) * (ctx.scale || 1));
-            t.shield += sh;
-            t.shieldSrc = src.uid;
-            logMsg(B, 'shield', t.name + ' returns behind a ' + sh + ' shield.', {
-              uid: t.uid,
-              status: 'shield',
-              amount: sh,
-              signature: !!ctx.signature,
-            });
-            emit(B, {
-              t: 'shield',
-              src: src.uid,
-              tgt: t.uid,
-              amount: sh,
-              signature: !!ctx.signature,
-              round: B.round,
-            });
+            var sh = addShieldCapped(
+              t,
+              t.maxHp * (e.shieldPctMaxHp / 100) * (ctx.scale || 1)
+            );
+            if (sh > 0) {
+              t.shieldSrc = src.uid;
+              logMsg(B, 'shield', t.name + ' returns behind a ' + sh + ' shield.', {
+                uid: t.uid,
+                status: 'shield',
+                amount: sh,
+                signature: !!ctx.signature,
+              });
+              emit(B, {
+                t: 'shield',
+                src: src.uid,
+                tgt: t.uid,
+                amount: sh,
+                signature: !!ctx.signature,
+                round: B.round,
+              });
+            }
           }
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
         });
@@ -3280,7 +3358,7 @@
            `anyAllyFallen` stays here: it reads the battle rather than
            the target list, and only the resolver needs it. */
         var cond = e.cond || {};
-        var pass = branchPasses(B, src, list, cond);
+        var pass = branchPasses(B, src, list, cond, ctx);
         if (cond.anyAllyFallen != null) {
           pass =
             B.units.some(function (u) {
@@ -3467,10 +3545,17 @@
 
     var ctx0 = {
       turnIdAtStart: B.turnId,
+      preHp: {},
       preDamaged: {},
       wasMarked: {},
       signature: !ability.basic,
     };
+    /* Snapshot every unit, not only the clicked targets: effects may
+       redirect to allies/enemies/rows, and HP conditions on those units
+       must still describe cast-start state. */
+    B.units.forEach(function (u) {
+      ctx0.preHp[u.uid] = u.hp;
+    });
     targets.forEach(function (t) {
       ctx0.preDamaged[t.uid] = t.lastDamagedRound === B.round;
       ctx0.wasMarked[t.uid] = t.flags.marked > 0;
@@ -3610,6 +3695,7 @@
       applyEffects(B, unit, echoTargets, echoEffects, {
         scale: B.field.echoScale || 0.5,
         signature: true,
+        preHp: ctx0.preHp,
         preDamaged: ctx0.preDamaged,
         wasMarked: ctx0.wasMarked,
       });
@@ -3838,25 +3924,26 @@
         // Hercules: a shield forms as the taunt drops
         if (u.flags.taunt <= 0) u.flags.tauntHeal = null;
         if (u.flags.taunt <= 0 && u.flags.tauntShield) {
-          var amt = Math.round(u.maxHp * (u.flags.tauntShield / 100));
-          u.shield += amt;
-          u.shieldSrc = u.uid;
+          var amt = addShieldCapped(u, u.maxHp * (u.flags.tauntShield / 100));
           u.flags.tauntShield = null;
-          logMsg(B, 'shield', u.name + "'s labors end - a " + amt + ' shield forms.', {
-            uid: u.uid,
-            status: 'shield',
-            amount: amt,
-            signature: true,
-          });
-          emit(B, {
-            t: 'shield',
-            src: u.uid,
-            tgt: u.uid,
-            amount: amt,
-            signature: true,
-            round: B.round,
-          });
-          fireAllyWarded(B, u);
+          if (amt > 0) {
+            u.shieldSrc = u.uid;
+            logMsg(B, 'shield', u.name + "'s labors end - a " + amt + ' shield forms.', {
+              uid: u.uid,
+              status: 'shield',
+              amount: amt,
+              signature: true,
+            });
+            emit(B, {
+              t: 'shield',
+              src: u.uid,
+              tgt: u.uid,
+              amount: amt,
+              signature: true,
+              round: B.round,
+            });
+            fireAllyWarded(B, u);
+          }
         }
       }
       // Duration-less Marks deliberately do NOT tick: they persist until
