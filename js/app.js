@@ -99,13 +99,15 @@
     );
   }
 
-  function buildCard(card, faction, index) {
+  function buildCard(card, faction, index, options) {
+    options = options || {};
     var el = document.createElement('article');
     el.className = 'card';
-    /* THE ECONOMY (2026-08-10): unowned legends render locked wherever
-       this builder paints them (collection, deck editor). Refreshed
-       live on eol:owned as packs and gates pay out. */
-    if (window.EOL.econ && !window.EOL.econ.owns(card.id)) el.className += ' unowned';
+    /* Ownership is collection/deck-builder information, not a property of
+       the card itself. Draft and pack surfaces deliberately opt out. */
+    if (options.markUnowned && window.EOL.econ && !window.EOL.econ.owns(card.id)) {
+      el.className += ' unowned';
+    }
     el.dataset.rarity = card.rarity;
     el.dataset.faction = faction.id;
     el.dataset.role = card.role;
@@ -344,7 +346,7 @@
     if (!grid || rendered >= filtered.length) return;
     var end = Math.min(rendered + PAGE, filtered.length);
     for (var i = rendered; i < end; i++) {
-      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i));
+      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i, { markUnowned: true }));
     }
     rendered = end;
     var sent = document.getElementById('roster-sentinel');

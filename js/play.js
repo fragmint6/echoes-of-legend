@@ -2636,7 +2636,7 @@
       var wrap = document.createElement('div');
       wrap.className = 'dpack-card';
       wrap.style.animationDelay = i * 90 + 'ms';
-      var card = window.EOL.ui.buildCard(e.card, e.faction, i);
+      var card = window.EOL.ui.buildCard(e.card, e.faction, i, { markUnowned: false });
       var hint = card.querySelector('.hint-txt');
       if (hint) hint.textContent = 'draft this legend';
       wrap.appendChild(card);
