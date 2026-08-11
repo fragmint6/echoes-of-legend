@@ -325,6 +325,21 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   ok(A._trackForScene('battle') === 'battleDark', 'dark battlefields select the dark arrangement');
   ok(noises === noiseBeforeBattle, 'all three match arrangements avoid static/noise voices');
 
+  const beforeTabSwitch = A._musicState();
+  document.hidden = true;
+  document.visibilityState = 'hidden';
+  document.dispatchEvent(new Event('visibilitychange'));
+  document.hidden = false;
+  document.visibilityState = 'visible';
+  document.dispatchEvent(new Event('visibilitychange'));
+  await wait(0);
+  const afterTabSwitch = A._musicState();
+  ok(
+    afterTabSwitch.track === beforeTabSwitch.track &&
+      afterTabSwitch.token === beforeTabSwitch.token,
+    'returning from another tab resumes the same score generation without restarting'
+  );
+
   const masterControl = document.getElementById('audio-master');
   masterControl.value = '61';
   masterControl.dispatchEvent(new Event('input'));

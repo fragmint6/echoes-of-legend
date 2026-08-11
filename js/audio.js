@@ -46,6 +46,7 @@
   var currentTrack = null;
   var trackGain = null;
   var musicTimer = null;
+  var musicScheduler = null;
   var musicToken = 0;
   var musicSources = [];
   var nextStepTime = 0;
@@ -1556,6 +1557,7 @@
       clearTimeout(musicTimer);
       musicTimer = null;
     }
+    musicScheduler = null;
     var oldGain = trackGain;
     var oldSources = musicSources.slice();
     musicSources.length = 0;
@@ -1603,7 +1605,7 @@
     nextStepTime = ctx.currentTime + 0.08;
     stepIndex = 0;
 
-    function scheduler() {
+    musicScheduler = function scheduler() {
       if (token !== musicToken || !ctx || currentTrack !== name) return;
       var def = TRACKS[name];
       var stepDur = 60 / def.tempo / 4;
@@ -1612,9 +1614,9 @@
         stepIndex++;
         nextStepTime += stepDur;
       }
-      musicTimer = setTimeout(scheduler, 90);
-    }
-    scheduler();
+      musicTimer = setTimeout(musicScheduler, 90);
+    };
+    musicScheduler();
   }
 
   function scene(name, meta) {
@@ -1884,8 +1886,17 @@
         .resume()
         .then(function () {
           hiddenSuspended = false;
-          stopMusic(0.02);
-          startTrack(trackForScene(desiredScene));
+          var wanted = trackForScene(desiredScene);
+          if (currentTrack !== wanted) {
+            /* The player may have changed scenes while the page was
+               hidden. That is a real score transition, so start it. */
+            startTrack(wanted);
+          } else if (musicScheduler && !musicTimer) {
+            /* AudioContext suspension freezes currentTime and every
+               already-scheduled note. Resume the SAME scheduler at the
+               SAME step: no opening bar, no crossfade, no restart. */
+            musicScheduler();
+          }
         })
         .catch(function () {});
     }
@@ -1914,6 +1925,9 @@
     },
     /* verification hooks: deterministic shape, never browser secrets */
     _trackForScene: trackForScene,
+    _musicState: function () {
+      return { track: currentTrack, token: musicToken, step: stepIndex };
+    },
     _prefKey: PREF_KEY,
   };
 })();
