@@ -107,6 +107,8 @@ async function get(url, opts) {
     'daily_puzzles',
     'daily_puzzle_attempts',
     'daily_puzzle_jobs',
+    'telemetry_events',
+    'player_feedback',
   ];
   const missing = [];
   for (const t of need) {
@@ -178,6 +180,54 @@ async function get(url, opts) {
     );
   }
 
+  /* ---------- 4c. measurement + feedback RPCs ---------- */
+  console.log('\n  Playtest measurement');
+  const measurementRpcs = [
+    {
+      name: 'record_telemetry',
+      migration: '06',
+      body: {
+        p_visitor: '00000000-0000-4000-8000-000000000006',
+        p_session: '00000000-0000-4000-8000-000000000006',
+        p_event: 'preflight_invalid',
+        p_context: {},
+      },
+      expected: /unsupported measurement event/i,
+    },
+    {
+      name: 'submit_player_feedback',
+      migration: '06',
+      body: {
+        p_visitor: '00000000-0000-4000-8000-000000000006',
+        p_session: '00000000-0000-4000-8000-000000000006',
+        p_category: 'preflight_invalid',
+        p_message: 'probe',
+        p_context: {},
+      },
+      expected: /unsupported feedback category/i,
+    },
+  ];
+  for (const probe of measurementRpcs) {
+    const r = await get(U + '/rest/v1/rpc/' + probe.name, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, H),
+      body: JSON.stringify(probe.body),
+    });
+    if (r.body && r.body.code === 'PGRST202') {
+      fail(probe.name + '() is missing - run Supabase migration ' + probe.migration);
+    } else if (r.body && probe.expected.test(r.body.message || '')) {
+      pass(probe.name + '() exists and validates anonymous input');
+    } else {
+      warn(
+        probe.name +
+          '() returned HTTP ' +
+          r.status +
+          ': ' +
+          ((r.body && r.body.message) || 'no message')
+      );
+    }
+  }
+
   /* ---------- 5. RLS really is on ---------- */
   console.log('\n  Row Level Security');
   const probes = [
@@ -190,6 +240,23 @@ async function get(url, opts) {
         puzzle_day: '2099-01-01',
         payload: { v: 1 },
         metrics: {},
+      },
+    ],
+    [
+      'telemetry_events',
+      {
+        visitor_id: '00000000-0000-4000-8000-000000000006',
+        session_id: '00000000-0000-4000-8000-000000000006',
+        event_name: 'session_started',
+      },
+    ],
+    [
+      'player_feedback',
+      {
+        visitor_id: '00000000-0000-4000-8000-000000000006',
+        session_id: '00000000-0000-4000-8000-000000000006',
+        category: 'bug',
+        message: 'preflight direct-write probe',
       },
     ],
   ];

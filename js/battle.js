@@ -38,6 +38,11 @@
      Set fresh on every start(); paints the enemy commander plate and
      anchors the in-battle rival dialogue (js/campaign.js). */
   var rivalInfo = null;
+  /* Coarse, privacy-safe match context for the playtest funnel and the
+     optional diagnostics attached to feedback. Never contains card ids,
+     actions, callsigns or the deterministic seed. */
+  var measurementContext = null;
+  var measurementComplete = false;
 
   /* =============================================================
      THE SCRIPTED MATCH (campaign gate I)
@@ -4829,6 +4834,16 @@
       var home2 = $('btn-result-home');
       if (home2) home2.querySelector('span').textContent = cam.homeLabel || 'Map';
     }
+    if (!measurementComplete) {
+      measurementComplete = true;
+      if (window.EOL.telemetry && window.EOL.telemetry.battleCompleted) {
+        window.EOL.telemetry.battleCompleted({
+          won: !!win,
+          rounds: B.round,
+          set_over: sr ? !!sr.over : true,
+        });
+      }
+    }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
        once the set is decided, and was never touched outside a set. */
@@ -5064,6 +5079,7 @@
        identical action stream, so they only have to agree on luck. */
     netCtl = opts.net || null;
     endingBattle = false;
+    measurementComplete = false;
     rivalInfo = opts.rival || null;
     /* THE SCRIPTED MATCH (campaign gate I): the whole line, both
        sides, pre-computed against this exact seed. */
@@ -5241,6 +5257,22 @@
 
     render();
     if (opts.campaignStage) B.campaignStage = opts.campaignStage;
+    measurementContext = {
+      mode: B.puzzle
+        ? 'daily'
+        : B.campaignStage
+          ? 'campaign'
+          : netCtl
+            ? 'online_' + (opts.mode || 'unknown')
+            : 'solo_' + (opts.mode || 'battle'),
+      format: opts.war || 'single',
+      field: B.field ? B.field.id : 'none',
+    };
+    if (B.campaignStage) measurementContext.stage = B.campaignStage;
+    if (B.puzzle) measurementContext.official = !!B.puzzle.official;
+    if (window.EOL.telemetry && window.EOL.telemetry.battleStarted) {
+      window.EOL.telemetry.battleStarted(measurementContext);
+    }
     /* CAMPAIGN: hand the settled battle to the road so the rival can
        speak during the match (non-blocking barks - a blocking overlay
        mid-battle is wrong, design §6). No-op outside the campaign. */

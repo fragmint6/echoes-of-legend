@@ -22,17 +22,18 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | `mp_queue`, `mp_matches` tables | **created** |
 | OK | `try_match()` function | **created** |
 | OK | Daily Puzzle migration 04 | installed |
-| FIX | Daily Puzzle RPC hotfix 05 | run section 4e now |
+| OK | Daily Puzzle RPC hotfix 05 | installed |
+| ADD | Measurement + feedback migration 06 | run section 4f |
 
-**Accounts and multiplayer are ready.** `node sim/preflight.js` confirms two
-signed-in players can queue and play. The current Daily Puzzle install needs
-the small migration 05 RPC hotfix in section 4e.
+**Accounts, multiplayer, and Daily Puzzles are ready.** Run migration 06 to
+activate the anonymous playtest funnel and in-game feedback inbox added for
+the next tester cohort.
 
 ---
 
 ## THE BACKEND MAP (cleanup 2026-08-10)
 
-Seven tables. If the dashboard shows unrelated leftovers, run the cleanup
+Nine tables. If the dashboard shows unrelated leftovers, run the cleanup
 in section 9b. Everything the backend holds, in one look:
 
 | Table | Written by | What it holds |
@@ -44,6 +45,8 @@ in section 9b. Everything the backend holds, in one look:
 | `daily_puzzles` | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
 | `daily_puzzle_attempts` | Daily Puzzle RPCs | One claim per account for the active puzzle; deleted with yesterday's position. |
 | `daily_puzzle_jobs` | `js/daily.js` | One short generation lease so many open browsers still run only one forge. |
+| `telemetry_events` | `js/telemetry.js` | Privacy-light anonymous views, queue/match milestones, battle starts/results, and coarse errors; raw rows retain 180 days. |
+| `player_feedback` | `js/telemetry.js` | Voluntary bug, balance, confusion, and suggestion reports sent from the game. |
 
 | Function | Called by | Job |
 | --- | --- | --- |
@@ -53,6 +56,8 @@ in section 9b. Everything the backend holds, in one look:
 | `claim_daily_generation()` / `submit_daily_candidate()` | `js/daily.js` Web Worker | Elect one signed-in browser to forge and stage the shared position. |
 | `publish_daily_puzzle()` | pg_cron / overdue browser | Atomically promote staged at 7 AM Eastern. |
 | `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Check, atomically consume, and finish one official attempt. |
+| `record_telemetry()` | `js/telemetry.js` | Validate and rate-limit one anonymous funnel event without attaching account identity. |
+| `submit_player_feedback()` | `js/telemetry.js` | Validate and rate-limit an anonymous voluntary feedback message with optional coarse diagnostics. |
 
 Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
 no code referenced it) and `ladders` (nothing wrote it; it returns
@@ -248,6 +253,31 @@ The hotfix only replaces `claim_daily_generation()` and
 `claim_daily_puzzle()`. It does not delete puzzle rows, attempts, jobs, or
 cron configuration, and it is safe to run more than once. Fresh installations
 that use the current migration 04 file already contain the fix.
+
+## 4f. Migration 06 - playtest measurement and feedback
+
+Run **[`docs/supabase-migration-06.sql`](supabase-migration-06.sql)** once in
+the SQL Editor after deploying `js/telemetry.js`.
+
+It adds two owner-readable, browser-private tables:
+
+- `telemetry_events` for anonymous screens, mode choices, queue/match
+  milestones, battle starts/results, acquisition tags, and coarse client
+  errors. Raw rows retain 180 days.
+- `player_feedback` for messages deliberately submitted through the new
+  Feedback form.
+
+Browser roles have no direct table access. Two narrow RPCs validate payloads,
+cap their size, and rate-limit anonymous visitor ids. Neither funnel events
+nor feedback messages attach account identity. The funnel never sends email,
+callsign, card choices, actions, full URLs, full user-agent strings, or stack
+traces. Players can turn measurement off under **Settings -> Privacy**.
+
+See **[`docs/MEASUREMENT.md`](MEASUREMENT.md)** for the exact stored fields,
+retention, UTM links, feedback workflow, and ready-to-run dashboard queries.
+The game remains fully playable if this migration is missing or Supabase is
+offline; measurement fails quietly and the feedback form offers a copy plus
+Discord fallback.
 
 ## 5. Realtime - nothing to do
 

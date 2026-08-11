@@ -26,6 +26,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Battlefield scenes / animation | `browser_loops` | ~45s |
 | Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
 | Supabase settings | `preflight` | ~5s |
+| Measurement / feedback | `node sim/verify_telemetry.js` | <1s |
 | Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
 | About to deploy | see [Before you deploy](#before-you-deploy) | ~3m |
 

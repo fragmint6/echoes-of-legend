@@ -4147,6 +4147,7 @@ body[data-turn='player'] .turn-label {
 }
 .result-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
   margin-top: 26px;
@@ -18946,6 +18947,128 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   margin: -8px 0 0;
   padding-top: 18px;
 }
+
+/* Anonymous measurement uses the same two-way switch language as the
+   display controls, but its own emerald thumb keeps privacy visually
+   distinct from graphics (gold) and helper tips (blue). */
+.measure-opt {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 14px;
+  background: none;
+  color: var(--txt-faint);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: var(--cur-pointer);
+  transition: color 0.24s var(--ease);
+}
+.measure-opt[aria-pressed='true'] {
+  color: #081710;
+}
+.measure-thumb {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #bcf7d7, #66c995);
+  box-shadow: 0 2px 8px rgba(80, 220, 145, 0.28);
+  transition: transform 0.28s var(--ease);
+}
+body[data-measurement='off'] .measure-thumb {
+  transform: translateX(100%);
+}
+body[data-gfx='low'] .measure-thumb {
+  transition: none;
+}
+
+/* Voluntary feedback inbox. It reuses the auth modal's focus and scrim
+   language but needs room for a real report rather than two credentials. */
+.feedback-card {
+  width: min(520px, 100%);
+  max-height: min(760px, calc(100 * var(--dvh1) - 32px));
+  overflow-y: auto;
+  text-align: left;
+}
+.feedback-card .auth-head {
+  text-align: center;
+}
+.feedback-form {
+  gap: 16px;
+}
+.feedback-form select,
+.feedback-form textarea {
+  width: 100%;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  padding: 12px 14px;
+  background: rgba(5, 8, 15, 0.72);
+  color: var(--txt);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  transition:
+    border-color 0.18s var(--ease),
+    box-shadow 0.18s var(--ease);
+}
+.feedback-form textarea {
+  min-height: 126px;
+  line-height: 1.5;
+}
+.feedback-form select:focus,
+.feedback-form textarea:focus {
+  border-color: rgba(255, 205, 110, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 198, 90, 0.1);
+}
+.feedback-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--txt-dim);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: var(--cur-pointer);
+}
+.feedback-check input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  accent-color: var(--r-legendary-1);
+}
+.feedback-check span {
+  display: grid;
+  gap: 3px;
+}
+.feedback-check small {
+  color: var(--txt-faint);
+  font-size: 10.5px;
+}
+.feedback-fallback {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.feedback-fallback .btn {
+  text-decoration: none;
+}
+.feedback-card .auth-foot.ok {
+  color: #9ee9bc;
+}
+
 /* Emulated breakpoint (max-width: 560px) measured against the
    LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
    Toggled as html.mqw560 by paintViewport() in js/app.js. */
@@ -20159,6 +20282,10 @@ body[data-gfx='low'] .tips-thumb {
 .mg-in .mode-card:nth-of-type(3),
 .mg-in-r .mode-card:nth-of-type(3) {
   animation-delay: 0.26s;
+}
+.mg-in .mode-card:nth-of-type(4),
+.mg-in-r .mode-card:nth-of-type(4) {
+  animation-delay: 0.33s;
 }
 @keyframes mg-rise {
   from {

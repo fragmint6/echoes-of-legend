@@ -2058,6 +2058,8 @@
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
+      mode: cfg.mode,
+      war: setState ? 'unabridged' : 'single',
       campaignStage: cfg.campaignStage,
       rival: cfg.rival || null,
       rng: match ? mulberry(match.seed | 0) : null,
@@ -2114,6 +2116,8 @@
       teams: { player: playerSix, enemy: enemySix },
       enemyFormed: true,
       field: cfg.field,
+      mode: cfg.mode,
+      war: 'single',
       /* One shared luck stream. Offset from the draft seed so the
          battle does not replay the pack shuffle's numbers. */
       rng: NP.rngFrom((cfg.seed | 0) + 0x5f37),
@@ -3684,6 +3688,9 @@
       }
       mpQueueMode = mode;
       mpDeckId = deckId || null;
+      if (window.EOL.telemetry && window.EOL.telemetry.track) {
+        window.EOL.telemetry.track('multiplayer_queue_started', { mode: mode });
+      }
       mmShow(true);
       mmSay('Finding an opponent', 'Searching the queue...');
       var vs = $('mm-vs');
@@ -3736,6 +3743,12 @@
     });
 
     MP.on('matched', function (m) {
+      if (window.EOL.telemetry && window.EOL.telemetry.track) {
+        window.EOL.telemetry.track('multiplayer_match_found', {
+          mode: m.mode || mpQueueMode || 'unknown',
+          resumed: !!m.resumed,
+        });
+      }
       /* REJOINING AN IN-PROGRESS MATCH.
          Draft picks, bans and formations are now persisted, so a
          reconnect can rebuild the board rather than concede it.

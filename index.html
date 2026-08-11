@@ -234,6 +234,10 @@
           <i class="ri-book-open-line" aria-hidden="true"></i>
           <span class="corner-tip" aria-hidden="true">Rulebook</span>
         </button>
+        <button class="corner-btn" id="btn-corner-feedback" type="button" aria-label="Send feedback">
+          <i class="ri-chat-3-line" aria-hidden="true"></i>
+          <span class="corner-tip" aria-hidden="true">Feedback</span>
+        </button>
       </div>
 
       <!-- ==================== SETTINGS MODAL ====================
@@ -1104,8 +1108,104 @@
             steps: 80, 85, 90, 95, 100, 105, 110.
           </p>
         </section>
+
+        <section class="set-block" aria-labelledby="set-privacy-h">
+          <h3 class="set-h" id="set-privacy-h">
+            <i class="ri-shield-user-line set-h-ico" aria-hidden="true"></i>
+            <span class="set-h-body">
+              Privacy
+              <small class="set-h-sub">Anonymous playtest measurement.</small>
+            </span>
+          </h3>
+          <div class="gfx-switch measure-switch set-gfx" role="group" aria-label="Anonymous measurement">
+            <button type="button" class="measure-opt" data-measurement="on" aria-pressed="true">
+              <i class="ri-bar-chart-2-line" aria-hidden="true"></i>Measurement on
+            </button>
+            <button type="button" class="measure-opt" data-measurement="off" aria-pressed="false">
+              <i class="ri-eye-off-line" aria-hidden="true"></i>Measurement off
+            </button>
+            <span class="measure-thumb" aria-hidden="true"></span>
+          </div>
+          <p class="set-gfx-note">
+            <i class="ri-information-line"></i>
+            Stores anonymous screens, mode choices and match milestones in this game’s Supabase.
+            It never sends your email, callsign, card choices, messages, or full browser signature.
+            Turning this off erases the anonymous identifier from this device.
+          </p>
+        </section>
       </div>
     </div>
+
+    <!-- Voluntary playtest inbox. Available signed in or out; submission
+         goes through a validating Supabase RPC with no direct table access. -->
+    <div
+      class="auth-modal"
+      id="feedback-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="feedback-title"
+    >
+      <div class="auth-scrim" id="feedback-scrim"></div>
+      <div class="auth-card feedback-card" role="document">
+        <button type="button" class="auth-close" id="feedback-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ri-chat-3-line"></i></div>
+          <h2 class="auth-title" id="feedback-title">Send feedback</h2>
+          <p class="auth-sub">Bugs, balance problems and confusing moments all go to the playtest inbox.</p>
+        </div>
+        <p class="auth-foot" id="feedback-foot" aria-live="polite"></p>
+        <form class="auth-form feedback-form" id="feedback-form">
+          <label class="auth-field">
+            <span class="auth-lbl">What kind of feedback?</span>
+            <select id="feedback-category" required>
+              <option value="bug">Bug</option>
+              <option value="balance">Balance</option>
+              <option value="confusing">Something was confusing</option>
+              <option value="suggestion">Suggestion</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label class="auth-field">
+            <span class="auth-lbl">What happened?</span>
+            <textarea
+              id="feedback-message"
+              maxlength="2000"
+              rows="6"
+              placeholder="What did you expect, and what happened instead?"
+              required
+            ></textarea>
+            <span class="set-hint">3–2,000 characters. Please do not include private information.</span>
+          </label>
+          <label class="feedback-check">
+            <input type="checkbox" id="feedback-diagnostics" checked />
+            <span>
+              Attach coarse diagnostics
+              <small>Build, current screen, viewport, platform and last match type — never email or card choices.</small>
+            </span>
+          </label>
+          <button type="submit" class="btn btn-primary auth-submit" id="feedback-submit">
+            <i class="ri-check-line"></i><span>Send feedback</span>
+          </button>
+        </form>
+        <div class="feedback-fallback">
+          <button type="button" class="btn btn-ghost btn-slim" id="feedback-copy">
+            <i class="ri-file-list-3-line"></i><span>Copy note</span>
+          </button>
+          <a
+            class="btn btn-ghost btn-slim"
+            href="https://discord.gg/HFFk6wc7Ha"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i class="ri-discord-fill"></i><span>Open Discord</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
     <div
       class="auth-modal"
       id="uname-modal"
@@ -2554,6 +2654,9 @@
             <button class="btn btn-ghost" id="btn-result-home">
               <i class="ri-home-4-line"></i><span>Home</span>
             </button>
+            <button class="btn btn-ghost" id="btn-result-feedback">
+              <i class="ri-chat-3-line"></i><span>Feedback</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2677,6 +2780,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
+    <!-- Privacy-light playtest funnel + voluntary feedback inbox. Stores
+         only through the validating RPCs in Supabase migration 06. -->
+    <script src="js/telemetry.js"></script>
     <!-- THE VAULT: full-save cloud sync for signed-in players (wallet,
          collection, campaign, decks, settings). Local-only when signed
          out; see the three laws at the top of the file. -->
