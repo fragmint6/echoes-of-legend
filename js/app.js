@@ -1718,6 +1718,11 @@ goBack();
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
       document.getElementById('result').className = 'result';
+      /* A puzzle's secondary action returns to the singleplayer mode
+         screen; the next launch always forges another position. */
+      if (window.EOL.daily && window.EOL.daily.consumeResult) {
+        if (window.EOL.daily.consumeResult()) return;
+      }
       /* Campaign owns its secondary result button: after Gate I the road
          either plays the victory epilogue or returns to the chapter map. */
       if (window.EOL.campaign && window.EOL.campaign.consumeResult) {

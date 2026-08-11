@@ -4734,12 +4734,22 @@
           ? 'Won in a single round'
           : 'Lost in a single round'
         : (win ? 'Won after ' : 'Fell after ') + B.round + ' rounds';
+    var puzzleResult =
+      B.puzzle && window.EOL.daily && window.EOL.daily.onResult
+        ? window.EOL.daily.onResult(win, B)
+        : null;
+    if (puzzleResult) {
+      ov.querySelector('.result-title').textContent = puzzleResult.title;
+      ov.querySelector('.result-sub').textContent = puzzleResult.sub;
+      ov.querySelector('.result-rounds').textContent =
+        'Started in round ' + B.puzzle.startRound + ' · finished in round ' + B.round;
+    }
     /* THE SET: play.js reframes the outcome as set progress (score
        line instead of epitaph, "Sideboard"/"New set" instead of
        "Rematch") and returns null when no set is live - a non-set
        match is untouched. */
     var sr =
-      window.EOL.play && window.EOL.play.setGameResult
+      !B.puzzle && window.EOL.play && window.EOL.play.setGameResult
         ? window.EOL.play.setGameResult(win, gameTallySnapshot())
         : null;
     paintBattleReport(sr);
@@ -4751,7 +4761,7 @@
       coinsEl.hidden = true;
       coinsEl.classList.remove('campaign-rewards');
     }
-    if (!B.campaignStage && window.EOL.econ && !B._coinsPaid) {
+    if (!B.campaignStage && !B.puzzle && window.EOL.econ && !B._coinsPaid) {
       B._coinsPaid = true;
       var P = window.EOL.econ.PAY;
       var pay = netCtl ? (win ? P.pvpWin : P.pvpLoss) : win ? P.spWin : P.spLoss;
@@ -4765,6 +4775,16 @@
       ov.querySelector('.result-sub').textContent = sr.sub;
       var rm = $('btn-rematch');
       if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
+    }
+    if (puzzleResult) {
+      var puzzleRematch = $('btn-rematch');
+      if (puzzleRematch && puzzleRematch.querySelector('span')) {
+        puzzleRematch.querySelector('span').textContent = puzzleResult.rematchLabel;
+      }
+      var puzzleHome = $('btn-result-home');
+      if (puzzleHome && puzzleHome.querySelector('span')) {
+        puzzleHome.querySelector('span').textContent = puzzleResult.homeLabel;
+      }
     }
     /* CAMPAIGN: the road frames its own result - Retry (fight the gate
        again) on the primary button, and a chapter-map exit on the home
@@ -4972,10 +4992,48 @@
           : avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
   }
 
+  /* A generated puzzle is already several rounds into a real engine
+     battle. Accept that state only through this narrow, validated path,
+     then restore the live-only pieces intentionally omitted by
+     engine.cloneBattle (logging, tallies and non-silent presentation). */
+  function preparePrebuiltBattle(source, opts) {
+    if (!source || !Array.isArray(source.units) || source.units.length !== 12) {
+      throw new Error('Invalid prebuilt battle: expected twelve units');
+    }
+    if (source.over || source.winner || source.round < 1) {
+      throw new Error('Invalid prebuilt battle: position is already finished');
+    }
+    if (!source.passed || !source.turnPassed || !source.acted || !source.energy) {
+      throw new Error('Invalid prebuilt battle: turn state is incomplete');
+    }
+    if (opts.puzzle && (source.round < 5 || source.round > 8 || source.turn !== 'player')) {
+      throw new Error('Invalid puzzle checkpoint: expected a player turn in rounds 5–8');
+    }
+
+    source.rng = opts.rng || source.rng || Math.random;
+    source.simulation = false;
+    source.silent = false;
+    source.log = [];
+    source.tally = {};
+    source.uidMap = {};
+    source.units.forEach(function (u) {
+      if (!u || (u.side !== 'player' && u.side !== 'enemy') || !u.uid) {
+        throw new Error('Invalid prebuilt battle: malformed unit');
+      }
+      u.battle = source;
+      source.uidMap[u.uid] = u;
+    });
+    if (opts.puzzle) source.puzzle = opts.puzzle;
+    return source;
+  }
+
   function start(opts) {
     E = window.EOL.engine;
     AI = window.EOL.ai;
     opts = opts || {};
+    if (!opts.puzzle && window.EOL.daily && window.EOL.daily.deactivate) {
+      window.EOL.daily.deactivate();
+    }
     /* A multiplayer battle hands us an adaptor for the other player and
        a shared rng seed. Both clients run the identical engine over the
        identical action stream, so they only have to agree on luck. */
@@ -4994,7 +5052,10 @@
        out of a lost game - same two-step arm/confirm either way. */
     var fbtn = $('btn-forfeit');
     if (fbtn) fbtn.hidden = false;
-    if (opts.teams && opts.teams.player && opts.teams.enemy) {
+    if (opts.prebuilt) {
+      playerDeck = null;
+      B = preparePrebuiltBattle(opts.prebuilt, opts);
+    } else if (opts.teams && opts.teams.player && opts.teams.enemy) {
       playerDeck = null; // mode flows own their rematch config
       B = E.createBattle(
         opts.teams.player,
@@ -5052,6 +5113,14 @@
     cineReset();
     turnBannerSide = null;
     $('result').className = 'result';
+    var rematchLabel = $('btn-rematch');
+    if (rematchLabel && rematchLabel.querySelector('span')) {
+      rematchLabel.querySelector('span').textContent = 'Rematch';
+    }
+    var homeLabel = $('btn-result-home');
+    if (homeLabel && homeLabel.querySelector('span')) {
+      homeLabel.querySelector('span').textContent = 'Home';
+    }
 
     /* Theme the whole arena to the active battlefield. The board carries
        data-field for the per-field particle character and accent colour,
@@ -5138,6 +5207,25 @@
       }
     }
 
+    /* Generated-puzzle provenance stays visible after the forge closes.
+       It explains why the match begins midstream and preserves the small
+       depth-4 calibration sample alongside the ordinary battle HUD. */
+    var puzzleChip = $('puzzle-chip');
+    if (puzzleChip) {
+      puzzleChip.hidden = !B.puzzle;
+      if (B.puzzle) {
+        var puzzleDetail = $('puzzle-chip-detail');
+        if (puzzleDetail) {
+          puzzleDetail.textContent =
+            'Round ' +
+            B.puzzle.startRound +
+            ' · ' +
+            Math.round(B.puzzle.estimate * 100) +
+            '% estimate';
+        }
+      }
+    }
+
     paintCommanders();
 
     render();
@@ -5170,7 +5258,7 @@
        announce+ponder and skip maybeAutoEndTurn, so round 1 was the
        one turn a stalling opponent could sit on forever. */
     startClock('player');
-    if (window.EOL.coach && window.EOL.coach.show) {
+    if (!B.puzzle && window.EOL.coach && window.EOL.coach.show) {
       window.EOL.coach.show(
         'battle',
         'ra-crossed-swords',
@@ -5252,6 +5340,10 @@
     var rm = $('btn-rematch');
     if (rm)
       rm.addEventListener('click', function () {
+        if (B && B.puzzle && window.EOL.daily && window.EOL.daily.start) {
+          window.EOL.daily.start();
+          return;
+        }
         if (window.EOL.play && window.EOL.play.rematch) window.EOL.play.rematch();
         else start();
       });

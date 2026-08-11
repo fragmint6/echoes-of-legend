@@ -36,6 +36,7 @@
     <link rel="icon" href="assets/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png" />
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/daily.css" />
   </head>
   <body>
     <div class="bg-layer"></div>
@@ -219,7 +220,7 @@
       <!-- BUILD TAG: outside testers were reporting against a moving
            target ('two changes shipped since last night'). One glance
            answers 'which build?' in every report. Bump per release. -->
-      <span class="build-tag" id="build-tag">demo build 2026-08-10</span>
+      <span class="build-tag" id="build-tag">demo build 2026-08-11</span>
 
       <!-- Corner buttons &mdash; stacked vertically in the top-right, below
            the account pill. Same circle spec as the Discord button. -->
@@ -1206,6 +1207,17 @@
           </span>
           <span class="mode-cta">Take the road <i class="ri-arrow-right-line"></i></span>
         </button>
+
+        <button class="mode-card mode-card-daily" id="mode-daily">
+          <i class="mode-wm ra ra-hourglass" aria-hidden="true"></i>
+          <i class="mode-glyph ra ra-hourglass"></i>
+          <span class="mode-name">Daily Puzzles</span>
+          <span class="mode-desc">
+            Take over a hard mid-battle position forged by real AI play. Any legend, any arena,
+            one narrow path to victory.
+          </span>
+          <span class="mode-cta">Forge a puzzle <i class="ri-arrow-right-line"></i></span>
+        </button>
       </div>
 
       <div class="mode-grid" id="mode-grid-mp" hidden>
@@ -1234,6 +1246,45 @@
 
       <footer>Echoes of Legend - Prototype</footer>
     </section>
+
+    <!-- DAILY PUZZLE LAB: the browser forges a position from a real
+         AI-versus-AI battle, then tests continuations before the player
+         enters it. This is intentionally an interactive test flow for
+         now: every launch creates a fresh position, with no daily timer
+         or saved official attempt yet. -->
+    <div class="daily-modal" id="daily-modal" aria-hidden="true">
+      <div class="daily-forge" role="dialog" aria-modal="true" aria-labelledby="daily-title">
+        <button class="daily-close" id="daily-close" type="button" aria-label="Cancel puzzle generation">
+          <i class="ri-close-line"></i>
+        </button>
+        <div class="daily-sigil" aria-hidden="true">
+          <i class="ra ra-hourglass"></i>
+          <span></span>
+        </div>
+        <span class="daily-kicker">Experimental puzzle forge</span>
+        <h3 class="daily-title" id="daily-title">Scouting a battle</h3>
+        <p class="daily-copy" id="daily-copy">
+          Two depth-4 rivals are playing toward a difficult decision. This can take a few seconds.
+        </p>
+        <div class="daily-progress" id="daily-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="daily-progress-fill"></span>
+        </div>
+        <div class="daily-status" id="daily-status" role="status" aria-live="polite">
+          Building unrestricted teams&hellip;
+        </div>
+        <div class="daily-metrics" id="daily-metrics" hidden>
+          <div><span>Checkpoint</span><b id="daily-round">Round 5</b></div>
+          <div><span>Depth-4 estimate</span><b id="daily-rate">30%</b></div>
+          <div><span>Forge time</span><b id="daily-time">0.0s</b></div>
+        </div>
+        <button class="btn btn-primary daily-enter" id="daily-enter" type="button" hidden>
+          <i class="ra ra-crossed-swords"></i><span>Play this position</span>
+        </button>
+        <p class="daily-fine" id="daily-fine">
+          Fresh every play during testing &middot; target: about 30% AI win rate
+        </p>
+      </div>
+    </div>
 
     <!-- classic: pick one of your saved decks -->
     <div class="deck-modal" id="deck-modal" aria-hidden="true">
@@ -2371,6 +2422,10 @@
             <ul class="bfp-rules" id="bfp-rules"></ul>
           </div>
         </div>
+        <div class="puzzle-chip" id="puzzle-chip" hidden>
+          <i class="ra ra-hourglass" aria-hidden="true"></i>
+          <span><small>Daily Puzzle</small><b id="puzzle-chip-detail">Round 5 &middot; 30% estimate</b></span>
+        </div>
         <!-- ================= BATTLEFIELD SCENE =================
              One scene system, re-skinned per battlefield by
              .board[data-field] in css/style.css. The old generic
@@ -2621,6 +2676,7 @@
     <script src="js/battle.js"></script>
     <script src="js/deck.js"></script>
     <script src="js/play.js"></script>
+    <script src="js/daily.js"></script>
     <script src="js/campaign.js"></script>
     <script src="js/shop.js"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
