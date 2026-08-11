@@ -1248,11 +1248,10 @@
       <footer>Echoes of Legend - Prototype</footer>
     </section>
 
-    <!-- DAILY PUZZLE: at 6:55 Eastern, one signed-in browser wins a
-         database lease and stages tomorrow’s real AI-versus-AI checkpoint
-         in a Web Worker. The database publishes one shared position and
-         atomically grants each player one attempt. `?dailyLab=1` keeps the
-         private calibration forge. -->
+    <!-- DAILY PUZZLE: the database publishes one shared position and
+         atomically grants each player one attempt. The client checks that
+         shared state without exposing generation diagnostics. `?dailyLab=1`
+         keeps the private developer calibration path. -->
     <div class="daily-modal" id="daily-modal" aria-hidden="true">
       <div class="daily-forge" role="dialog" aria-modal="true" aria-labelledby="daily-title">
         <button class="daily-close" id="daily-close" type="button" aria-label="Close Daily Puzzle">
@@ -1267,16 +1266,8 @@
         <p class="daily-copy" id="daily-copy">
           Checking the shared position and your attempt.
         </p>
-        <div class="daily-progress" id="daily-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <span id="daily-progress-fill"></span>
-        </div>
         <div class="daily-status" id="daily-status" role="status" aria-live="polite">
-          Building unrestricted teams&hellip;
-        </div>
-        <div class="daily-metrics" id="daily-metrics" hidden>
-          <div><span>Checkpoint</span><b id="daily-round">Round 5</b></div>
-          <div><span>Depth-4 estimate</span><b id="daily-rate">30%</b></div>
-          <div><span id="daily-metric-third">AI sample</span><b id="daily-time">3 / 10</b></div>
+          Checking today’s puzzle&hellip;
         </div>
         <button class="btn btn-primary daily-enter" id="daily-enter" type="button" hidden>
           <i class="ri-play-line"></i><span>Play this position</span>
@@ -2425,7 +2416,7 @@
         </div>
         <div class="puzzle-chip" id="puzzle-chip" hidden>
           <i class="ri-calendar-check-line" aria-hidden="true"></i>
-          <span><small>Daily Puzzle</small><b id="puzzle-chip-detail">Round 5 &middot; 30% estimate</b></span>
+          <span>Daily Puzzle</span>
         </div>
         <!-- ================= BATTLEFIELD SCENE =================
              One scene system, re-skinned per battlefield by

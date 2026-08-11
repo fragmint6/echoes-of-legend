@@ -5232,24 +5232,10 @@
       }
     }
 
-    /* Generated-puzzle provenance stays visible after the forge closes.
-       It explains why the match begins midstream and preserves the small
-       depth-4 calibration sample alongside the ordinary battle HUD. */
+    /* Keep only a quiet provenance label in the HUD. Generation details
+       are implementation data, not information the player needs. */
     var puzzleChip = $('puzzle-chip');
-    if (puzzleChip) {
-      puzzleChip.hidden = !B.puzzle;
-      if (B.puzzle) {
-        var puzzleDetail = $('puzzle-chip-detail');
-        if (puzzleDetail) {
-          puzzleDetail.textContent =
-            'Round ' +
-            B.puzzle.startRound +
-            ' · ' +
-            Math.round(B.puzzle.estimate * 100) +
-            '% estimate';
-        }
-      }
-    }
+    if (puzzleChip) puzzleChip.hidden = !B.puzzle;
 
     paintCommanders();
 

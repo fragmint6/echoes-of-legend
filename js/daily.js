@@ -36,7 +36,6 @@
   var jobSeq = 0;
   var readyPuzzle = null;
   var activePuzzle = false;
-  var shownProgress = 0;
   var generationWorker = null;
   var generationPromise = null;
   var generationTimer = null;
@@ -92,28 +91,20 @@
     });
   }
 
-  function progress(pct, status) {
-    pct = Math.max(shownProgress, Math.max(0, Math.min(100, Math.round(pct))));
-    shownProgress = pct;
-    var bar = $('daily-progress');
-    var fill = $('daily-progress-fill');
-    if (bar) bar.setAttribute('aria-valuenow', String(pct));
-    if (fill) fill.style.width = pct + '%';
+  function setDailyStatus(status) {
     if (status != null && $('daily-status')) $('daily-status').textContent = status;
   }
 
   function openModal() {
     var modal = $('daily-modal');
     if (!modal) return;
-    shownProgress = 0;
     modal.setAttribute('aria-hidden', 'false');
     modal.classList.remove('ready');
-    if ($('daily-title')) $('daily-title').textContent = 'Scouting a battle';
+    if ($('daily-title')) $('daily-title').textContent = 'Preparing a practice puzzle';
     if ($('daily-copy')) {
       $('daily-copy').textContent =
-        'Two depth-4 rivals are playing toward a difficult decision. This can take a few seconds.';
+        'A fresh private position is being prepared for the developer lab.';
     }
-    if ($('daily-metrics')) $('daily-metrics').hidden = true;
     if ($('daily-enter')) {
       $('daily-enter').hidden = true;
       $('daily-enter').disabled = false;
@@ -122,10 +113,9 @@
       if (label) label.textContent = 'Play this position';
     }
     if ($('daily-fine')) {
-      $('daily-fine').textContent =
-        'Fresh every play during testing · target: about 30% AI win rate';
+      $('daily-fine').textContent = 'Developer lab · not the official Daily Puzzle';
     }
-    progress(2, 'Building unrestricted teams…');
+    setDailyStatus('Preparing a practice puzzle…');
   }
 
   function closeModal() {
@@ -399,13 +389,7 @@
       }
 
       playAiAction(B, side, E, AI);
-      if (steps % 3 === 0) {
-        progress(
-          7 + attempt * 10 + Math.min(9, B.round),
-          'Scouting match ' + (attempt + 1) + ' of ' + SCOUT_ATTEMPTS + ' · round ' + B.round
-        );
-        await yieldControl(job);
-      }
+      if (steps % 3 === 0) await yieldControl(job);
     }
 
     /* Health alone is not the verdict, but it is a useful queue: positions
@@ -441,13 +425,9 @@
       var trialSeed = (seed + candidateNo * 104729 + rec.trials * 7919) | 0;
       if (runContinuation(rec.candidate.state, trialSeed, E, AI)) rec.wins++;
       rec.trials++;
-      progress(
-        35 + Math.min(56, candidateNo * 3 + rec.trials * 1.7),
-        'Testing checkpoint ' + candidateNo + ' · trial ' + rec.trials + ' of ' + total
-      );
       /* A whole continuation is intentionally the largest synchronous
-         chunk. Yielding after every trial makes both progress and Cancel
-         paint between searches. */
+         chunk. Yielding after every trial keeps Cancel responsive between
+         searches. */
       await yieldControl(job);
     }
     rec.rate = rec.wins / rec.trials;
@@ -519,50 +499,32 @@
     }
   }
 
-  function showReady(rec, elapsed, seed) {
-    var pct = Math.round(rec.rate * 100);
+  function showReady(rec, seed) {
     readyPuzzle = {
       state: rec.candidate.state,
       round: rec.candidate.round,
-      wins: rec.wins,
-      trials: rec.trials,
-      rate: rec.rate,
-      elapsed: elapsed,
       seed: seed,
     };
     var modal = $('daily-modal');
     if (modal) modal.classList.add('ready');
-    if ($('daily-title')) $('daily-title').textContent = 'Position forged';
+    if ($('daily-title')) $('daily-title').textContent = 'Practice position ready';
     if ($('daily-copy')) {
       $('daily-copy').textContent =
-        'Born from a real AI battle. The player side won ' +
-        rec.wins +
-        ' of ' +
-        rec.trials +
-        ' fast depth-4 continuations from this exact decision.';
+        'A fresh private position is ready. Enter the battle and find the winning line.';
     }
-    if ($('daily-round')) $('daily-round').textContent = 'Round ' + rec.candidate.round;
-    if ($('daily-rate')) $('daily-rate').textContent = pct + '%';
-    if ($('daily-time')) $('daily-time').textContent = (elapsed / 1000).toFixed(1) + 's';
-    if ($('daily-metrics')) $('daily-metrics').hidden = false;
     if ($('daily-enter')) $('daily-enter').hidden = false;
     if ($('daily-fine')) {
-      $('daily-fine').textContent =
-        rec.distance <= 0.1
-          ? 'Target acquired · small browser sample for test play'
-          : 'Closest checkpoint found inside the interactive test budget';
+      $('daily-fine').textContent = 'Developer lab · not the official Daily Puzzle';
     }
-    progress(100, 'Ready · find the winning line');
+    setDailyStatus('Ready to play');
   }
 
-  function showError(err) {
-    if ($('daily-title')) $('daily-title').textContent = 'The forge went cold';
+  function showError() {
+    if ($('daily-title')) $('daily-title').textContent = 'The practice puzzle is unavailable';
     if ($('daily-copy')) {
-      $('daily-copy').textContent =
-        'No playable checkpoint could be completed this time. Try another fresh scouting match.';
+      $('daily-copy').textContent = 'A playable practice position could not be prepared this time.';
     }
-    shownProgress = 0;
-    progress(0, err && err.message ? err.message : 'Generation failed');
+    setDailyStatus('Try again in a moment');
     var enter = $('daily-enter');
     if (enter) {
       enter.hidden = false;
@@ -572,14 +534,13 @@
     }
   }
 
-  function showOfficialError(message) {
+  function showOfficialError() {
     if ($('daily-title')) $('daily-title').textContent = 'The puzzle is unavailable';
     if ($('daily-copy')) {
       $('daily-copy').textContent =
         'The official position could not be reached. Your attempt has not been consumed.';
     }
-    shownProgress = 0;
-    progress(0, message || 'Try again in a moment');
+    setDailyStatus('Try again in a moment');
     var enter = $('daily-enter');
     if (enter) {
       enter.hidden = false;
@@ -589,23 +550,6 @@
       if (label) label.textContent = 'Try again';
     }
     if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
-  }
-
-  function paintOfficialMetrics(metrics) {
-    metrics = metrics || {};
-    if ($('daily-round')) $('daily-round').textContent = 'Round ' + (metrics.round || '—');
-    if ($('daily-rate')) {
-      $('daily-rate').textContent =
-        metrics.rate == null ? '—' : Math.round(Number(metrics.rate) * 100) + '%';
-    }
-    if ($('daily-time')) {
-      $('daily-time').textContent =
-        metrics.wins == null || metrics.trials == null
-          ? '—'
-          : metrics.wins + ' / ' + metrics.trials;
-    }
-    if ($('daily-metric-third')) $('daily-metric-third').textContent = 'AI sample';
-    if ($('daily-metrics')) $('daily-metrics').hidden = false;
   }
 
   function supabaseClient() {
@@ -701,14 +645,13 @@
     var modal = $('daily-modal');
     if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
     modal.classList.remove('ready');
-    if ($('daily-title')) $('daily-title').textContent = 'Forging today’s puzzle';
+    if ($('daily-title')) $('daily-title').textContent = 'Puzzle under construction';
     if ($('daily-copy')) {
       $('daily-copy').textContent =
-        'This is the first visit after reset, so your browser is building the shared position for everyone.';
+        'Today’s shared position is still being prepared. This window will update automatically when it is ready.';
     }
     if ($('daily-enter')) $('daily-enter').hidden = true;
-    if ($('daily-metrics')) $('daily-metrics').hidden = true;
-    progress(62, 'Depth-4 rivals are scouting rounds 5–8…');
+    setDailyStatus('Waiting for today’s puzzle…');
   }
 
   function generateInWorker(lease) {
@@ -873,30 +816,23 @@
       window.EOL.ui.show('play');
     }
     openModal();
-    if ($('daily-metric-third')) $('daily-metric-third').textContent = 'Forge time';
-    var started =
-      typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
     try {
       await yieldControl(myJob);
       var rec = await generatePosition(myJob, seed);
       assertCurrent(myJob);
-      var ended =
-        typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
-      showReady(rec, ended - started, seed);
+      showReady(rec, seed);
     } catch (err) {
       if (err && err.name === 'DailyPuzzleCancelled') return;
       console.error('[daily puzzle]', err);
-      if (myJob === jobSeq) showError(err);
+      if (myJob === jobSeq) showError();
     }
   }
 
   function showOfficialStatus(row) {
     setDailyCardBuilding(false);
-    var metrics = row.metrics || {};
     var modal = $('daily-modal');
     if (modal) modal.classList.add('ready');
-    paintOfficialMetrics(metrics);
-    progress(100, row.attempted ? 'Today’s attempt has been used' : 'Ready · one attempt');
+    setDailyStatus(row.attempted ? 'Today’s attempt has been used' : 'Ready · one attempt');
     if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
 
     var enter = $('daily-enter');
@@ -960,7 +896,7 @@
       /* If another browser crashed with the lease, retry periodically;
          the server awards it only after that lease expires. */
       if (i > 0 && i % 5 === 0) await maybeForgeShared(true, true);
-      progress(62 + Math.min(30, i), 'Waiting for the shared forge…');
+      setDailyStatus('Waiting for today’s puzzle…');
     }
     throw new Error('Today’s puzzle is still being forged');
   }
@@ -984,13 +920,13 @@
       $('daily-copy').textContent = 'Checking the shared position and your attempt…';
     }
     if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
-    progress(18, 'Contacting the puzzle archive…');
+    setDailyStatus('Checking today’s puzzle…');
     try {
       await loadOfficialStatus(myJob);
     } catch (err) {
       if (err && err.name === 'DailyPuzzleCancelled') return;
       console.error('[daily puzzle]', err);
-      if (myJob === jobSeq) showOfficialError(err && err.message);
+      if (myJob === jobSeq) showOfficialError();
     }
   }
 
@@ -1008,7 +944,7 @@
     var job = jobSeq;
     var enter = $('daily-enter');
     if (enter) enter.disabled = true;
-    progress(100, 'Claiming today’s attempt…');
+    setDailyStatus('Opening today’s puzzle…');
     try {
       var client = supabaseClient();
       if (!client) throw new Error('Account service is offline');
@@ -1020,14 +956,10 @@
       if (!packet || packet.v !== 1 || !packet.position) {
         throw new Error('Published puzzle data is invalid');
       }
-      var metrics = packet.meta || row.metrics || {};
+      var state = deserializeBattle(packet.position);
       readyPuzzle = {
-        state: deserializeBattle(packet.position),
-        round: metrics.round,
-        wins: metrics.wins,
-        trials: metrics.trials,
-        rate: Number(metrics.rate) || 0,
-        elapsed: metrics.forgeMs || 0,
+        state: state,
+        round: state.round,
         liveSeed: packet.position.rngSeed | 0,
         official: true,
         puzzleId: row.puzzle_id,
@@ -1042,7 +974,7 @@
       try {
         await loadOfficialStatus(job);
       } catch (statusErr) {
-        showOfficialError((err && err.message) || 'Attempt could not be claimed');
+        showOfficialError();
       }
     } finally {
       if (enter) enter.disabled = false;
@@ -1060,10 +992,6 @@
       day: readyPuzzle.puzzleDay || null,
       official: !!readyPuzzle.official,
       startRound: readyPuzzle.round,
-      estimate: readyPuzzle.rate,
-      wins: readyPuzzle.wins,
-      trials: readyPuzzle.trials,
-      forgeMs: readyPuzzle.elapsed,
     };
     readyPuzzle = null;
     activePuzzle = true;
