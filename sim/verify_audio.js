@@ -260,7 +260,9 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const A = window.EOL.audio;
   ok(A.supported(), 'Web Audio support is detected');
   ok(A._prefKey === 'eol.audio.v1', 'audio uses the versioned preference key');
-  ok(await A.unlock(), 'the first gesture can unlock the audio context');
+  const opening = A.unlock();
+  ok(oscillators > 0, 'the opening menu bar is queued immediately with the unlock gesture');
+  ok(await opening, 'the first gesture can unlock the audio context');
 
   ['hover', 'click', 'back', 'confirm', 'toggle', 'deny', 'modal', 'notification'].forEach(A.ui);
   ['shuffle', 'deal', 'pick', 'remove', 'ban', 'burn', 'place', 'reveal', 'legendary'].forEach(

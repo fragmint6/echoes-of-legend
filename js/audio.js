@@ -39,6 +39,7 @@
   var reverbReturn = null;
   var noiseBuffer = null;
   var unlocked = false;
+  var unlockJob = null;
   var prefs = loadPrefs();
 
   var desiredScene = 'menu';
@@ -184,17 +185,33 @@
   function unlock() {
     var c = ensureContext();
     if (!c) return Promise.resolve(false);
-    var job = c.state === 'suspended' ? c.resume() : Promise.resolve();
-    return Promise.resolve(job)
+    if (unlocked && c.state === 'running') return Promise.resolve(true);
+    if (unlockJob) return unlockJob;
+
+    /* resume() must be INVOKED inside the gesture, but its promise may
+       resolve noticeably later on Safari and some mobile browsers. Queue
+       the opening bar now, while the context clock is still parked, so it
+       begins at +80ms the instant the browser releases audio instead of
+       waiting for that promise and then beginning another startup cycle. */
+    var resumeJob = c.state === 'running' ? Promise.resolve() : c.resume();
+    unlocked = true;
+    if (!currentTrack && prefs.music > 0 && !prefs.muted) startTrack(trackForScene(desiredScene));
+
+    unlockJob = Promise.resolve(resumeJob)
       .then(function () {
         unlocked = true;
+        unlockJob = null;
         if (!currentTrack && prefs.music > 0 && !prefs.muted)
           startTrack(trackForScene(desiredScene));
         return true;
       })
       .catch(function () {
+        unlocked = false;
+        unlockJob = null;
+        stopMusic(0.02);
         return false;
       });
+    return unlockJob;
   }
 
   function now(when) {
@@ -1573,12 +1590,15 @@
     if (!ctx || !unlocked || prefs.muted || prefs.music <= 0 || document.hidden) return;
     if (!TRACKS[name]) name = 'menu';
     if (currentTrack === name && musicTimer) return;
+    var firstTrack = !currentTrack;
     stopMusic(0.28);
     currentTrack = name;
     var token = ++musicToken;
     trackGain = ctx.createGain();
     trackGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    trackGain.gain.exponentialRampToValueAtTime(0.82, ctx.currentTime + 0.6);
+    /* The very first score should answer the unlocking gesture at once.
+       Later scene changes retain a gentler crossfade. */
+    trackGain.gain.exponentialRampToValueAtTime(0.82, ctx.currentTime + (firstTrack ? 0.16 : 0.48));
     trackGain.connect(musicBus);
     nextStepTime = ctx.currentTime + 0.08;
     stepIndex = 0;
@@ -1774,6 +1794,11 @@
   }
 
   function mount() {
+    /* Build the graph and procedural buffers during page setup, not on
+       the player's first click. Playback remains suspended (browser
+       autoplay law), but the first gesture now does only one cheap
+       resume instead of context + reverb + noise initialization. */
+    ensureContext();
     syncControls();
     ['master', 'music', 'sfx'].forEach(function (key) {
       var input = document.getElementById('audio-' + key);
@@ -1821,15 +1846,29 @@
     viewScene(document.body.dataset.view || 'home');
   }
 
-  function gestureUnlock(e) {
-    if (e && e.type === 'keydown' && ['Shift', 'Control', 'Alt', 'Meta', 'Tab'].indexOf(e.key) >= 0)
-      return;
-    unlock();
+  function removeUnlockListeners() {
     document.removeEventListener('pointerdown', gestureUnlock, true);
+    document.removeEventListener('touchstart', gestureUnlock, true);
+    document.removeEventListener('mousedown', gestureUnlock, true);
+    document.removeEventListener('click', gestureUnlock, true);
     document.removeEventListener('keydown', gestureUnlock, true);
   }
 
+  function gestureUnlock(e) {
+    if (e && e.type === 'keydown' && ['Shift', 'Control', 'Alt', 'Meta', 'Tab'].indexOf(e.key) >= 0)
+      return;
+    unlock().then(function (okay) {
+      /* A denied resume is retryable on the next gesture. The old path
+         removed its only listeners before it knew whether audio had
+         actually started, which could strand the menu in silence. */
+      if (okay) removeUnlockListeners();
+    });
+  }
+
   document.addEventListener('pointerdown', gestureUnlock, true);
+  document.addEventListener('touchstart', gestureUnlock, true);
+  document.addEventListener('mousedown', gestureUnlock, true);
+  document.addEventListener('click', gestureUnlock, true);
   document.addEventListener('keydown', gestureUnlock, true);
   document.addEventListener('visibilitychange', function () {
     if (!ctx) return;
