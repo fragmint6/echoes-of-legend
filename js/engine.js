@@ -3774,6 +3774,12 @@
         amount: dmg,
         element: 'Fire',
         status: 'burn',
+        /* The renderer plays this log over the pre-handoff board. Carry
+           the post-tick snapshot so the HP bar moves with the flames and
+           number instead of waiting for the next action's full render. */
+        hpAfter: u.hp,
+        shieldAfter: u.shield,
+        maxHp: u.maxHp,
       });
       /* the battle report: burn credits its arsonist when known */
       tallyOf(B, u.uid).taken += Math.min(dmg, hpBefore);

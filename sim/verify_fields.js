@@ -337,12 +337,21 @@ const SW_VICTIM = 'huaxia-guan-yu';
      the next tick kills. (Previously burn ignored the field and killed
      straight through.) */
   const B = board(F('spirit-world'));
+  B.simulation = false; // this regression inspects the visual replay log
   const tgt = U(B, SW_VICTIM);
   tgt.flags.burn = 3;
   tgt.hp = 5;
   E.setTurn(B, 'enemy'); // the burning side is handed the action -> tick
   ok(tgt.alive && tgt.hp === 1, `a lethal burn tick is reprieved to 1 HP (hp ${tgt.hp})`);
   ok(tgt.spiritSpared === true, 'the burn reprieve is recorded on the hero');
+  const burnLog = B.log.filter((entry) => entry.type === 'burn').pop();
+  ok(
+    burnLog &&
+      burnLog.meta.hpAfter === tgt.hp &&
+      burnLog.meta.shieldAfter === tgt.shield &&
+      burnLog.meta.maxHp === tgt.maxHp,
+    'the Burn replay carries its post-tick HP snapshot for synchronized bars'
+  );
   E.setTurn(B, 'player');
   E.setTurn(B, 'enemy'); // second tick
   ok(!tgt.alive, 'the next burn tick finishes the job');
