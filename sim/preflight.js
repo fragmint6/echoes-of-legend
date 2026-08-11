@@ -4,7 +4,8 @@
    node sim/preflight.js
 
    Reads js/supabase-config.js and interrogates the REAL project.
-   Answers one question: can two people queue and play right now?
+   Answers two questions: can two people queue and play, and is the
+   one-attempt Daily Puzzle gate installed?
 
    Every check reports what it actually observed, so a failure names
    the fix instead of just saying "something is wrong".
@@ -95,11 +96,17 @@ async function get(url, opts) {
 
   /* ---------- 3. schema ---------- */
   console.log('\n  Database schema');
-  /* THE BACKEND MAP (cleanup 2026-08-10): exactly four tables.
-     profiles (identity) + saves (THE VAULT) + mp_queue/mp_matches
-     (matchmaking). `decks` and `ladders` were dead weight and have a
-     graveyard check below. */
-  const need = ['profiles', 'mp_queue', 'mp_matches', 'saves'];
+  /* THE BACKEND MAP: identity + vault + two matchmaking tables +
+     the active/staged Daily Puzzle store and its atomic attempt claims.
+     `decks` and `ladders` remain dead weight and have a graveyard check. */
+  const need = [
+    'profiles',
+    'mp_queue',
+    'mp_matches',
+    'saves',
+    'daily_puzzles',
+    'daily_puzzle_attempts',
+  ];
   const missing = [];
   for (const t of need) {
     const r = await get(U + '/rest/v1/' + t + '?select=*&limit=1', { headers: H });
@@ -143,11 +150,47 @@ async function get(url, opts) {
     pass('try_match() exists (HTTP ' + rpc.status + ': ' + (rpc.body && rpc.body.message) + ')');
   }
 
+  /* ---------- 4b. Daily Puzzle gate ---------- */
+  console.log('\n  Daily Puzzle function');
+  const dailyRpc = await get(U + '/rest/v1/rpc/daily_puzzle_status', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, H),
+    body: '{}',
+  });
+  if (dailyRpc.body && dailyRpc.body.code === 'PGRST202') {
+    fail('daily_puzzle_status() is missing - run Supabase migration 04');
+  } else if (
+    dailyRpc.status === 401 ||
+    dailyRpc.status === 403 ||
+    (dailyRpc.body && /authentication|required|permission/i.test(dailyRpc.body.message || ''))
+  ) {
+    pass('daily_puzzle_status() exists and requires a signed-in account');
+  } else if (dailyRpc.status === 200) {
+    warn('daily_puzzle_status() exposed data to an anonymous caller');
+  } else {
+    pass(
+      'daily_puzzle_status() exists (HTTP ' +
+        dailyRpc.status +
+        ': ' +
+        (dailyRpc.body && dailyRpc.body.message) +
+        ')'
+    );
+  }
+
   /* ---------- 5. RLS really is on ---------- */
   console.log('\n  Row Level Security');
   const probes = [
     ['profiles', { id: '00000000-0000-0000-0000-000000000009', handle: 'preflight' }],
     ['saves', { user_id: '00000000-0000-0000-0000-000000000009', data: { v: 2, wallet: 9999 } }],
+    [
+      'daily_puzzles',
+      {
+        slot: 'active',
+        puzzle_day: '2099-01-01',
+        payload: { v: 1 },
+        metrics: {},
+      },
+    ],
   ];
   for (const [t, row] of probes) {
     if (missing.indexOf(t) >= 0) continue;

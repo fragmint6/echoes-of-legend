@@ -1213,10 +1213,10 @@
           <i class="mode-glyph ra ra-hourglass"></i>
           <span class="mode-name">Daily Puzzles</span>
           <span class="mode-desc">
-            Take over a hard mid-battle position forged by real AI play. Any legend, any arena,
-            one narrow path to victory.
+            One AI-forged mid-battle position for everyone. One official attempt before the next
+            7:00 AM Eastern reset.
           </span>
-          <span class="mode-cta">Forge a puzzle <i class="ri-arrow-right-line"></i></span>
+          <span class="mode-cta">Today’s puzzle <i class="ri-arrow-right-line"></i></span>
         </button>
       </div>
 
@@ -1247,24 +1247,24 @@
       <footer>Echoes of Legend - Prototype</footer>
     </section>
 
-    <!-- DAILY PUZZLE LAB: the browser forges a position from a real
-         AI-versus-AI battle, then tests continuations before the player
-         enters it. This is intentionally an interactive test flow for
-         now: every launch creates a fresh position, with no daily timer
-         or saved official attempt yet. -->
+    <!-- DAILY PUZZLE: a scheduled generator stages tomorrow’s real
+         AI-versus-AI checkpoint shortly before reset. The database then
+         publishes one shared position and atomically grants each signed-in
+         player one attempt when they enter the battle. `?dailyLab=1` keeps
+         the original browser forge available for calibration. -->
     <div class="daily-modal" id="daily-modal" aria-hidden="true">
       <div class="daily-forge" role="dialog" aria-modal="true" aria-labelledby="daily-title">
-        <button class="daily-close" id="daily-close" type="button" aria-label="Cancel puzzle generation">
+        <button class="daily-close" id="daily-close" type="button" aria-label="Close Daily Puzzle">
           <i class="ri-close-line"></i>
         </button>
         <div class="daily-sigil" aria-hidden="true">
           <i class="ra ra-hourglass"></i>
           <span></span>
         </div>
-        <span class="daily-kicker">Experimental puzzle forge</span>
-        <h3 class="daily-title" id="daily-title">Scouting a battle</h3>
+        <span class="daily-kicker">One board · one attempt</span>
+        <h3 class="daily-title" id="daily-title">Today’s Daily Puzzle</h3>
         <p class="daily-copy" id="daily-copy">
-          Two depth-4 rivals are playing toward a difficult decision. This can take a few seconds.
+          Checking the shared position and your attempt.
         </p>
         <div class="daily-progress" id="daily-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <span id="daily-progress-fill"></span>
@@ -1275,13 +1275,13 @@
         <div class="daily-metrics" id="daily-metrics" hidden>
           <div><span>Checkpoint</span><b id="daily-round">Round 5</b></div>
           <div><span>Depth-4 estimate</span><b id="daily-rate">30%</b></div>
-          <div><span>Forge time</span><b id="daily-time">0.0s</b></div>
+          <div><span id="daily-metric-third">AI sample</span><b id="daily-time">3 / 10</b></div>
         </div>
         <button class="btn btn-primary daily-enter" id="daily-enter" type="button" hidden>
           <i class="ra ra-crossed-swords"></i><span>Play this position</span>
         </button>
         <p class="daily-fine" id="daily-fine">
-          Fresh every play during testing &middot; target: about 30% AI win rate
+          Resets every day at 7:00 AM Eastern Time
         </p>
       </div>
     </div>

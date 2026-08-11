@@ -1,8 +1,9 @@
-# Supabase setup - accounts and multiplayer draft
+# Supabase setup - accounts, multiplayer, and Daily Puzzles
 
-The goal: **two people on two different computers queue for Online Draft
-(or Online Classic) and play each other.** Nothing here is ranked yet -
-the ladder is ROADMAP Phase 4; these are the unranked online modes.
+The goal: **two people on different computers can play online, saves follow
+an account, and every signed-in player receives the same one-attempt Daily
+Puzzle.** Nothing here is ranked yet - the ladder is ROADMAP Phase 4; the
+online modes remain unranked.
 
 ---
 
@@ -20,17 +21,19 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | `profiles`, `saves` tables | present |
 | OK | `mp_queue`, `mp_matches` tables | **created** |
 | OK | `try_match()` function | **created** |
+| SETUP | Daily Puzzle migration 04 | run section 4d once |
+| SETUP | GitHub `SUPABASE_SERVICE_ROLE_KEY` secret | add in section 4d |
 
-**The backend is READY.** `node sim/preflight.js` confirms two signed-in
-players can queue and play. The setup steps below are kept as reference
-and for setting the project up again from scratch.
+**Accounts and multiplayer are ready.** `node sim/preflight.js` confirms two
+signed-in players can queue and play. Daily Puzzle publication becomes live
+after the two section 4d setup items are completed.
 
 ---
 
 ## THE BACKEND MAP (cleanup 2026-08-10)
 
-Four tables. If the dashboard shows more, run the cleanup in section
-9b. Everything the backend holds, in one look:
+Six tables. If the dashboard shows unrelated leftovers, run the cleanup in
+section 9b. Everything the backend holds, in one look:
 
 | Table | Written by | What it holds |
 | --- | --- | --- |
@@ -38,12 +41,16 @@ Four tables. If the dashboard shows more, run the cleanup in section
 | `saves` | `js/cloud.js` (THE VAULT) | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
 | `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
 | `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
+| `daily_puzzles` | Scheduled worker + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
+| `daily_puzzle_attempts` | Daily Puzzle RPCs | One claim per account for the active puzzle; deleted with yesterday's position. |
 
 | Function | Called by | Job |
 | --- | --- | --- |
 | `try_match()` | mp.js | Atomic pairing (`for update skip locked`). |
 | `find_my_match()` | mp.js | Rejoin after a refresh. |
 | `touch_match()` / `save_match_state()` / `end_match()` | mp.js | Match lifecycle. |
+| `stage_daily_puzzle()` / `publish_daily_puzzle()` | GitHub Actions + pg_cron | Hold tomorrow's position, then atomically promote it at 7 AM Eastern. |
+| `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Check, atomically consume, and finish one official attempt. |
 
 Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
 no code referenced it) and `ladders` (nothing wrote it; it returns
@@ -190,6 +197,51 @@ What it adds:
 | `mp_match_state` | Stores a snapshot of the match at each phase boundary. |
 | `save_match_state()` | Writes the current game state (called by the host after every phase change). |
 | `find_my_match()` | Returns the persisted state so the rejoining client resumes where it left off. |
+
+## 4d. Migration 04 - official Daily Puzzle
+
+Run **[`docs/supabase-migration-04.sql`](supabase-migration-04.sql)** in the
+SQL Editor. It creates:
+
+- `daily_puzzles`, hard-capped by its unique `active` / `staged` slots to
+  **two positions at most**;
+- `daily_puzzle_attempts`, with `(puzzle_id, user_id)` as its primary key;
+- metadata/status, atomic claim, result, staging, and publication RPCs;
+- a database cron that publishes at **7:00 AM America/New_York**, following
+  EST/EDT automatically.
+
+The scheduled generator is [`.github/workflows/daily-puzzle.yml`](../.github/workflows/daily-puzzle.yml).
+It runs the real depth-4 engine at 6:55 AM Eastern, serializes and validates
+the checkpoint, then stages it. At reset, publication deletes yesterday's
+active row and its attempts, promotes staged, and leaves one active row.
+That is the attempt reset; no mass user update is needed.
+
+### One required GitHub secret
+
+1. Supabase Dashboard -> **Project Settings -> API Keys**.
+2. Copy a current **secret / service_role** key. Do not use the browser's
+   publishable key and do not paste the secret into any repository file.
+3. GitHub repository -> **Settings -> Secrets and variables -> Actions ->
+   New repository secret**.
+4. Name it exactly `SUPABASE_SERVICE_ROLE_KEY` and paste the value.
+
+Only the scheduled worker receives this secret. The browser can call the
+three authenticated player RPCs but has no table access and cannot stage,
+replace, or inspect tomorrow's position.
+
+### Bootstrap and test
+
+Under GitHub -> **Actions -> Stage Daily Puzzle -> Run workflow**, run it
+manually once. Leave `seed` blank for a fresh position. For an immediate
+same-day bootstrap after 7 AM Eastern, set `puzzle_day` to today's Eastern
+`YYYY-MM-DD`; the staging RPC detects that reset has passed and promotes it
+immediately. Otherwise leave the day blank and it stages the next reset.
+
+A player's attempt is consumed inside `claim_daily_puzzle()` immediately
+before the board is returned. Merely opening the Daily Puzzle card does not
+consume it; once the battle opens, closing or refreshing cannot restore it.
+Official Daily Puzzles therefore require a signed-in account. The original
+interactive generator remains available to developers at `?dailyLab=1`.
 
 ## 5. Realtime - nothing to do
 
@@ -383,8 +435,9 @@ browsers and checks the board checksum after every action.
 
 ## 9b. CLEANUP - drop the dead tables (2026-08-10)
 
-The dashboard had six tables; only four earn their place (see THE
-BACKEND MAP at the top). Run this once in **SQL Editor**:
+These two pre-vault tables are still dead; the Daily Puzzle tables in the
+backend map are intentional and must not be removed. Run this cleanup once
+in **SQL Editor**:
 
 ```sql
 -- the pre-vault deck-sync experiment: no code references it

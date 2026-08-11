@@ -1,8 +1,8 @@
 /* =============================================================
-   DAILY PUZZLE LAB
-   Fresh browser-generated checkpoints while the puzzle forge is being
-   calibrated. Kept in its own sheet so this experimental surface can be
-   retired or promoted without adding another override layer to style.css.
+   DAILY PUZZLE
+   The official shared-position card, claim/status modal, and in-battle
+   provenance chip. The same surface becomes the procedural forge only
+   when a developer explicitly opens `?dailyLab=1`.
    ============================================================= */
 
 /* Four solo modes should read as two deliberate pairs. In particular,
@@ -15,10 +15,30 @@
 .mode-card-daily {
   border-color: rgba(119, 204, 255, 0.34);
   background:
-    radial-gradient(circle 2.2px at 13px 13px, rgba(168, 224, 255, 0.95) 42%, rgba(30, 88, 126, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at calc(100% - 13px) 13px, rgba(168, 224, 255, 0.95) 42%, rgba(30, 88, 126, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at 13px calc(100% - 13px), rgba(168, 224, 255, 0.95) 42%, rgba(30, 88, 126, 0.7) 58%, transparent 74%),
-    radial-gradient(circle 2.2px at calc(100% - 13px) calc(100% - 13px), rgba(168, 224, 255, 0.95) 42%, rgba(30, 88, 126, 0.7) 58%, transparent 74%),
+    radial-gradient(
+      circle 2.2px at 13px 13px,
+      rgba(168, 224, 255, 0.95) 42%,
+      rgba(30, 88, 126, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at calc(100% - 13px) 13px,
+      rgba(168, 224, 255, 0.95) 42%,
+      rgba(30, 88, 126, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at 13px calc(100% - 13px),
+      rgba(168, 224, 255, 0.95) 42%,
+      rgba(30, 88, 126, 0.7) 58%,
+      transparent 74%
+    ),
+    radial-gradient(
+      circle 2.2px at calc(100% - 13px) calc(100% - 13px),
+      rgba(168, 224, 255, 0.95) 42%,
+      rgba(30, 88, 126, 0.7) 58%,
+      transparent 74%
+    ),
     radial-gradient(circle at 80% -10%, rgba(76, 182, 255, 0.13), transparent 55%),
     linear-gradient(180deg, rgba(18, 31, 48, 0.76), rgba(7, 12, 22, 0.9));
 }
@@ -38,7 +58,12 @@
   box-shadow: 0 0 9px rgba(87, 198, 255, 0.9);
 }
 .mode-card-daily .mode-name::after {
-  background: linear-gradient(90deg, rgba(143, 222, 255, 0.8), rgba(87, 187, 255, 0.17) 72%, transparent);
+  background: linear-gradient(
+    90deg,
+    rgba(143, 222, 255, 0.8),
+    rgba(87, 187, 255, 0.17) 72%,
+    transparent
+  );
 }
 .mode-card-daily:hover:not(.soon) {
   border-color: rgba(144, 224, 255, 0.7);
@@ -48,9 +73,8 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
-/* The forge is modal because generation owns the AI briefly. Keeping it
-   above the current view prevents accidental navigation while still
-   offering an explicit cancel at every yield boundary. */
+/* The status/claim surface is modal so the one-attempt boundary is
+   impossible to miss. In lab mode it also contains the live forge. */
 .daily-modal {
   position: fixed;
   inset: 0;
@@ -75,7 +99,8 @@
   border: 1px solid rgba(144, 220, 255, 0.36);
   border-radius: 22px;
   background:
-    linear-gradient(90deg, transparent, rgba(133, 219, 255, 0.6), transparent) top / 72% 1px no-repeat,
+    linear-gradient(90deg, transparent, rgba(133, 219, 255, 0.6), transparent) top / 72% 1px
+      no-repeat,
     radial-gradient(circle at 50% -12%, rgba(61, 174, 230, 0.2), transparent 46%),
     linear-gradient(180deg, rgba(18, 27, 42, 0.98), rgba(7, 11, 20, 0.99));
   box-shadow:
@@ -151,7 +176,9 @@
   animation: daily-orbit 8s linear infinite;
 }
 @keyframes daily-orbit {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .daily-modal.ready .daily-sigil span {
   animation: none;
@@ -282,7 +309,9 @@ body[data-gfx='low'] .daily-sigil span {
   border-radius: 999px;
   color: #a8e4ff;
   background: linear-gradient(180deg, rgba(11, 26, 39, 0.91), rgba(5, 11, 20, 0.87));
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }

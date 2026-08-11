@@ -1104,8 +1104,8 @@
       });
       document.getElementById('auth-title').textContent = up ? 'Join the ladder' : 'Welcome back';
       document.getElementById('auth-sub').textContent = up
-        ? 'Create an account to play online matches against other players.'
-        : 'Sign in to play online matches against other players.';
+        ? 'Create an account for online matches, cloud saves, and official Daily Puzzles.'
+        : 'Sign in for online matches, cloud saves, and official Daily Puzzles.';
       document.getElementById('auth-submit-txt').textContent = up ? 'Create account' : 'Sign in';
       document.getElementById('auth-name-field').hidden = !up;
       say('');
@@ -1125,8 +1125,8 @@
           'Singleplayer works as normal and your decks are saved on this device.';
       } else {
         foot.innerHTML =
-          '<i class="ri-information-line"></i>An account unlocks multiplayer. ' +
-          'Your decks stay on this device.';
+          '<i class="ri-information-line"></i>An account unlocks multiplayer, cloud saves, ' +
+          'and one official Daily Puzzle attempt per reset.';
       }
       if (kind) {
         foot.classList.remove('flash');

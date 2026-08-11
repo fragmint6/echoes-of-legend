@@ -1,15 +1,15 @@
 /* =============================================================
-   DAILY PUZZLE LAB
+   DAILY PUZZLE
    -------------------------------------------------------------
-   The test version deliberately generates a NEW puzzle on every launch.
-   It does not read an authored position list: unrestricted legal teams
-   are drawn, depth-4 AI plays a real match into rounds 5-8, and candidate
-   player turns are tested through fresh depth-4 continuations. The best
-   bounded candidate is offered to the player in the ordinary battle UI.
+   A scheduled Node worker runs this same procedural forge shortly before
+   7:00 AM America/New_York, stages its serialized checkpoint in Supabase,
+   and the database publishes it at reset. Every signed-in player claims
+   the exact same position and deterministic future luck once.
 
-   This is interactive calibration, not the eventual publication service.
-   The small, fast sample keeps the browser responsive; a production daily
-   will need a deterministic server recipe and a much larger trial count.
+   The original browser forge remains available behind `?dailyLab=1` for
+   calibration. It never reads an authored position list: unrestricted
+   legal teams are drawn, depth-4 AI plays into rounds 5-8, and candidate
+   player turns are tested through fresh depth-4 continuations.
    ============================================================= */
 (function () {
   'use strict';
@@ -112,6 +112,7 @@
     if ($('daily-metrics')) $('daily-metrics').hidden = true;
     if ($('daily-enter')) {
       $('daily-enter').hidden = true;
+      $('daily-enter').disabled = false;
       $('daily-enter').dataset.action = 'play';
       var label = $('daily-enter').querySelector('span');
       if (label) label.textContent = 'Play this position';
@@ -138,6 +139,174 @@
       });
     });
     return pool;
+  }
+
+  function plain(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  /* The database stores immutable ids plus every mutable engine field —
+     never card definitions and never the unit -> battle back-pointer.
+     Keeping the wire format explicit makes a published position small,
+     inspectable and safe from accidental cycles when the engine grows. */
+  function serializeBattle(B, futureSeed) {
+    if (!B || !Array.isArray(B.units) || B.units.length !== 12) {
+      throw new Error('Cannot serialize an invalid puzzle battle');
+    }
+    return {
+      v: 1,
+      rngSeed: futureSeed | 0,
+      battle: {
+        round: B.round,
+        oddFirst: B.oddFirst,
+        turn: B.turn,
+        first: B.first,
+        noOpeningLimit: !!B.noOpeningLimit,
+        passed: plain(B.passed),
+        turnPassed: plain(B.turnPassed),
+        lastActor: B.lastActor,
+        actionNo: B.actionNo,
+        turnId: B.turnId,
+        energy: plain(B.energy),
+        field: B.field ? B.field.id : null,
+        comeback: plain(B.comeback),
+        deathSeq: B.deathSeq || 0,
+        roundEchoUsed: plain(B.roundEchoUsed || { player: false, enemy: false }),
+        costMods: plain(B.costMods || { player: [], enemy: [] }),
+        deferred: plain(B.deferred || []),
+        acted: plain(B.acted),
+        units: B.units.map(function (u) {
+          var row = {
+            uid: u.uid,
+            card: u.card.id,
+            faction: u.faction.id,
+            side: u.side,
+            slot: u.slot,
+            idx: u.idx,
+            name: u.name,
+            role: u.role,
+            element: u.element,
+            maxHp: u.maxHp,
+            hp: u.hp,
+            baseAtk: u.baseAtk,
+            baseDef: u.baseDef,
+            shield: u.shield,
+            shieldSrc: u.shieldSrc,
+            alive: u.alive,
+            diedAt: u.diedAt,
+            spiritSpared: u.spiritSpared,
+            deathCheated: u.deathCheated,
+            streakUid: u.streakUid,
+            lastDamagedRound: u.lastDamagedRound,
+            buffs: plain(u.buffs || []),
+            flags: plain(u.flags || {}),
+            usedOnce: plain(u.usedOnce || {}),
+            roundFlags: plain(u.roundFlags || {}),
+            stackTotals: plain(u.stackTotals || {}),
+            pending: plain(u.pending || []),
+          };
+          if (u.costMods) row.costMods = plain(u.costMods);
+          if (u.triggeredBy) row.triggeredBy = plain(u.triggeredBy);
+          return row;
+        }),
+      },
+    };
+  }
+
+  function deserializeBattle(payload) {
+    if (!payload || payload.v !== 1 || !payload.battle || !Array.isArray(payload.battle.units)) {
+      throw new Error('Unsupported daily puzzle position');
+    }
+    var src = payload.battle;
+    if (src.units.length !== 12 || src.round < ROUND_MIN || src.round > ROUND_MAX) {
+      throw new Error('Daily puzzle position failed validation');
+    }
+
+    var factions = {};
+    var cards = {};
+    (window.EOL.factions || []).forEach(function (faction) {
+      factions[faction.id] = faction;
+      (faction.cards || []).forEach(function (card) {
+        cards[card.id] = card;
+      });
+    });
+    var field =
+      src.field && window.EOL.battlefieldById ? window.EOL.battlefieldById(src.field) : null;
+    if (src.field && !field) throw new Error('Daily puzzle uses an unknown battlefield');
+
+    var B = {
+      round: src.round,
+      oddFirst: src.oddFirst,
+      turn: src.turn,
+      first: src.first,
+      noOpeningLimit: !!src.noOpeningLimit,
+      passed: plain(src.passed),
+      turnPassed: plain(src.turnPassed),
+      lastActor: src.lastActor,
+      actionNo: src.actionNo,
+      turnId: src.turnId,
+      units: [],
+      uidMap: {},
+      energy: plain(src.energy),
+      field: field,
+      comeback: plain(src.comeback),
+      deathSeq: src.deathSeq || 0,
+      roundEchoUsed: plain(src.roundEchoUsed || { player: false, enemy: false }),
+      costMods: plain(src.costMods || { player: [], enemy: [] }),
+      log: [],
+      simulation: false,
+      silent: false,
+      deferred: plain(src.deferred || []),
+      tally: {},
+      over: false,
+      winner: null,
+      acted: plain(src.acted),
+      rng: rng32(payload.rngSeed | 0),
+    };
+
+    src.units.forEach(function (row) {
+      var card = cards[row.card];
+      var faction = factions[row.faction];
+      if (!card || !faction || (row.side !== 'player' && row.side !== 'enemy')) {
+        throw new Error('Daily puzzle contains an unknown legend');
+      }
+      var u = {
+        battle: B,
+        uid: row.uid,
+        card: card,
+        faction: faction,
+        side: row.side,
+        slot: row.slot,
+        idx: row.idx,
+        name: row.name || card.name,
+        role: row.role || card.role,
+        element: row.element || card.element,
+        maxHp: row.maxHp,
+        hp: row.hp,
+        baseAtk: row.baseAtk,
+        baseDef: row.baseDef,
+        shield: row.shield || 0,
+        shieldSrc: row.shieldSrc,
+        alive: !!row.alive,
+        diedAt: row.diedAt,
+        spiritSpared: row.spiritSpared,
+        deathCheated: row.deathCheated,
+        streakUid: row.streakUid,
+        lastDamagedRound: row.lastDamagedRound,
+        buffs: plain(row.buffs || []),
+        flags: plain(row.flags || {}),
+        usedOnce: plain(row.usedOnce || {}),
+        roundFlags: plain(row.roundFlags || {}),
+        stackTotals: plain(row.stackTotals || {}),
+        pending: plain(row.pending || []),
+      };
+      if (row.costMods) u.costMods = plain(row.costMods);
+      if (row.triggeredBy) u.triggeredBy = plain(row.triggeredBy);
+      B.units.push(u);
+      B.uidMap[u.uid] = u;
+    });
+    if (B.turn !== 'player') throw new Error('Daily puzzle does not open on a player decision');
+    return B;
   }
 
   function playAiAction(B, side, E, AI) {
@@ -218,7 +387,7 @@
         var enemyAlive = E.unitsOf(B, 'enemy').length;
         if (playerAlive >= 2 && enemyAlive >= 2) {
           candidates.push({
-            state: E.cloneBattle(B, rng32(seed ^ (candidates.length + 1) * 7919)),
+            state: E.cloneBattle(B, rng32(seed ^ ((candidates.length + 1) * 7919))),
             strength: checkpointStrength(B),
             round: B.round,
           });
@@ -317,14 +486,14 @@
             rate: 0,
             distance: Infinity,
           };
-          await addTrials(rec, PRELIM_TRIALS, seed ^ attempt * 65537, candidateNo, job, E, AI);
+          await addTrials(rec, PRELIM_TRIALS, seed ^ (attempt * 65537), candidateNo, job, E, AI);
           best = better(best, rec);
 
           /* Five trials can express 20% or 40%, both close enough to earn
              a second sample. Only accept after ten so the displayed rate
              is never based on the tiny screening pass alone. */
           if (rec.distance <= 0.11) {
-            await addTrials(rec, FINAL_TRIALS, seed ^ attempt * 65537, candidateNo, job, E, AI);
+            await addTrials(rec, FINAL_TRIALS, seed ^ (attempt * 65537), candidateNo, job, E, AI);
             best = better(best, rec);
             if (rec.rate >= 0.2 && rec.rate <= 0.4) return rec;
           }
@@ -388,37 +557,89 @@
       $('daily-copy').textContent =
         'No playable checkpoint could be completed this time. Try another fresh scouting match.';
     }
+    shownProgress = 0;
     progress(0, err && err.message ? err.message : 'Generation failed');
     var enter = $('daily-enter');
     if (enter) {
       enter.hidden = false;
-      enter.dataset.action = 'retry';
+      enter.dataset.action = 'lab-retry';
       var label = enter.querySelector('span');
       if (label) label.textContent = 'Try again';
     }
   }
 
-  async function start() {
+  function showOfficialError(message) {
+    if ($('daily-title')) $('daily-title').textContent = 'The puzzle is unavailable';
+    if ($('daily-copy')) {
+      $('daily-copy').textContent =
+        'The official position could not be reached. Your attempt has not been consumed.';
+    }
+    shownProgress = 0;
+    progress(0, message || 'Try again in a moment');
+    var enter = $('daily-enter');
+    if (enter) {
+      enter.hidden = false;
+      enter.disabled = false;
+      enter.dataset.action = 'official-retry';
+      var label = enter.querySelector('span');
+      if (label) label.textContent = 'Try again';
+    }
+    if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
+  }
+
+  function paintOfficialMetrics(metrics) {
+    metrics = metrics || {};
+    if ($('daily-round')) $('daily-round').textContent = 'Round ' + (metrics.round || '—');
+    if ($('daily-rate')) {
+      $('daily-rate').textContent =
+        metrics.rate == null ? '—' : Math.round(Number(metrics.rate) * 100) + '%';
+    }
+    if ($('daily-time')) {
+      $('daily-time').textContent =
+        metrics.wins == null || metrics.trials == null
+          ? '—'
+          : metrics.wins + ' / ' + metrics.trials;
+    }
+    if ($('daily-metric-third')) $('daily-metric-third').textContent = 'AI sample';
+    if ($('daily-metrics')) $('daily-metrics').hidden = false;
+  }
+
+  function supabaseClient() {
+    return window.EOL.auth && window.EOL.auth.rawClient ? window.EOL.auth.rawClient() : null;
+  }
+
+  function signedInUser() {
+    return window.EOL.auth && window.EOL.auth.user ? window.EOL.auth.user() : null;
+  }
+
+  function askForAccount() {
+    var account = $('acct-btn');
+    if (account) account.click();
+    if (window.EOL.ui && window.EOL.ui.toast) {
+      window.EOL.ui.toast('Sign in to claim one official Daily Puzzle attempt', 'ri-lock-line');
+    }
+  }
+
+  async function startLab() {
     var myJob = ++jobSeq;
     var seed = randomSeed();
     readyPuzzle = null;
     activePuzzle = false;
     var result = $('result');
     if (result) result.className = 'result';
-    if (
-      document.body.dataset.view !== 'play' &&
-      window.EOL.ui &&
-      window.EOL.ui.show
-    ) {
+    if (document.body.dataset.view !== 'play' && window.EOL.ui && window.EOL.ui.show) {
       window.EOL.ui.show('play');
     }
     openModal();
-    var started = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+    if ($('daily-metric-third')) $('daily-metric-third').textContent = 'Forge time';
+    var started =
+      typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
     try {
       await yieldControl(myJob);
       var rec = await generatePosition(myJob, seed);
       assertCurrent(myJob);
-      var ended = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+      var ended =
+        typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
       showReady(rec, ended - started, seed);
     } catch (err) {
       if (err && err.name === 'DailyPuzzleCancelled') return;
@@ -427,12 +648,147 @@
     }
   }
 
+  function showOfficialStatus(row) {
+    var metrics = row.metrics || {};
+    var modal = $('daily-modal');
+    if (modal) modal.classList.add('ready');
+    paintOfficialMetrics(metrics);
+    progress(100, row.attempted ? 'Today’s attempt has been used' : 'Ready · one attempt');
+    if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
+
+    var enter = $('daily-enter');
+    if (row.attempted) {
+      if ($('daily-title'))
+        $('daily-title').textContent = row.won ? 'Puzzle solved' : 'Attempt spent';
+      if ($('daily-copy')) {
+        $('daily-copy').textContent = row.finished
+          ? row.won
+            ? 'You found today’s winning line. A new shared position arrives at the next reset.'
+            : 'Today’s line is closed. A new shared position arrives at the next reset.'
+          : 'This attempt was claimed when the battle opened and cannot be replayed today.';
+      }
+      if (enter) enter.hidden = true;
+      return;
+    }
+
+    if ($('daily-title')) $('daily-title').textContent = 'Today’s position awaits';
+    if ($('daily-copy')) {
+      $('daily-copy').textContent =
+        'Everyone receives this exact board and this exact future luck. Opening the battle consumes your one attempt.';
+    }
+    if (enter) {
+      enter.hidden = false;
+      enter.disabled = false;
+      enter.dataset.action = 'claim';
+      var label = enter.querySelector('span');
+      if (label) label.textContent = 'Begin my attempt';
+    }
+  }
+
+  async function loadOfficialStatus(job) {
+    var client = supabaseClient();
+    if (!client) throw new Error('Account service is offline');
+    var response = await client.rpc('daily_puzzle_status').maybeSingle();
+    assertCurrent(job);
+    if (response.error) throw response.error;
+    if (!response.data) throw new Error('No Daily Puzzle has been published yet');
+    showOfficialStatus(response.data);
+  }
+
+  async function startOfficial() {
+    if (!signedInUser()) {
+      askForAccount();
+      return;
+    }
+    var myJob = ++jobSeq;
+    readyPuzzle = null;
+    activePuzzle = false;
+    var result = $('result');
+    if (result) result.className = 'result';
+    if (document.body.dataset.view !== 'play' && window.EOL.ui && window.EOL.ui.show) {
+      window.EOL.ui.show('play');
+    }
+    openModal();
+    if ($('daily-title')) $('daily-title').textContent = 'Today’s Daily Puzzle';
+    if ($('daily-copy')) {
+      $('daily-copy').textContent = 'Checking the shared position and your attempt…';
+    }
+    if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
+    progress(18, 'Contacting the puzzle archive…');
+    try {
+      await loadOfficialStatus(myJob);
+    } catch (err) {
+      if (err && err.name === 'DailyPuzzleCancelled') return;
+      console.error('[daily puzzle]', err);
+      if (myJob === jobSeq) showOfficialError(err && err.message);
+    }
+  }
+
+  function start() {
+    /* `?dailyLab=1` keeps the original browser forge reachable for
+       balancing work without weakening the one-attempt official mode. */
+    var lab = false;
+    try {
+      lab = new URLSearchParams(window.location.search).get('dailyLab') === '1';
+    } catch (e) {}
+    return lab ? startLab() : startOfficial();
+  }
+
+  async function claimOfficial() {
+    var job = jobSeq;
+    var enter = $('daily-enter');
+    if (enter) enter.disabled = true;
+    progress(100, 'Claiming today’s attempt…');
+    try {
+      var client = supabaseClient();
+      if (!client) throw new Error('Account service is offline');
+      var response = await client.rpc('claim_daily_puzzle').single();
+      assertCurrent(job);
+      if (response.error) throw response.error;
+      var row = response.data;
+      var packet = row && row.payload;
+      if (!packet || packet.v !== 1 || !packet.position) {
+        throw new Error('Published puzzle data is invalid');
+      }
+      var metrics = packet.meta || row.metrics || {};
+      readyPuzzle = {
+        state: deserializeBattle(packet.position),
+        round: metrics.round,
+        wins: metrics.wins,
+        trials: metrics.trials,
+        rate: Number(metrics.rate) || 0,
+        elapsed: metrics.forgeMs || 0,
+        liveSeed: packet.position.rngSeed | 0,
+        official: true,
+        puzzleId: row.puzzle_id,
+        puzzleDay: row.puzzle_day,
+      };
+      enterPuzzle();
+    } catch (err) {
+      console.error('[daily puzzle claim]', err);
+      if (job !== jobSeq) return;
+      /* A second tab may have claimed between status and click. Refreshing
+         status tells the truth without ever handing out a second board. */
+      try {
+        await loadOfficialStatus(job);
+      } catch (statusErr) {
+        showOfficialError((err && err.message) || 'Attempt could not be claimed');
+      }
+    } finally {
+      if (enter) enter.disabled = false;
+    }
+  }
+
   function enterPuzzle() {
     if (!readyPuzzle || !window.EOL.battle) return;
     var E = window.EOL.engine;
-    var liveSeed = (readyPuzzle.seed ^ 0x6d2b79f5) | 0;
+    var liveSeed =
+      readyPuzzle.liveSeed == null ? (readyPuzzle.seed ^ 0x6d2b79f5) | 0 : readyPuzzle.liveSeed | 0;
     var live = E.cloneBattle(readyPuzzle.state, rng32(liveSeed));
     var meta = {
+      id: readyPuzzle.puzzleId || null,
+      day: readyPuzzle.puzzleDay || null,
+      official: !!readyPuzzle.official,
       startRound: readyPuzzle.round,
       estimate: readyPuzzle.rate,
       wins: readyPuzzle.wins,
@@ -453,13 +809,30 @@
   function onResult(win, B) {
     if (!B || !B.puzzle) return null;
     activePuzzle = true;
+    if (B.puzzle.official && B.puzzle.id && !B.puzzle._reported) {
+      B.puzzle._reported = true;
+      var client = supabaseClient();
+      if (client) {
+        client
+          .rpc('finish_daily_attempt', {
+            p_puzzle: B.puzzle.id,
+            p_won: !!win,
+            p_rounds: B.round,
+          })
+          .then(function (response) {
+            if (response.error) console.warn('[daily puzzle result]', response.error.message);
+          });
+      }
+    }
     return {
       puzzle: true,
       title: win ? 'Puzzle Solved' : 'Line Broken',
       sub: win
         ? 'You turned a losing story into a victory.'
-        : 'This position has a winning line. Forge another, or try a fresh one.',
-      rematchLabel: 'New Puzzle',
+        : B.puzzle.official
+          ? 'The line closes for today. A new position arrives at 7:00 AM Eastern.'
+          : 'This position has a winning line. Forge another, or try a fresh one.',
+      rematchLabel: B.puzzle.official ? 'Daily Puzzle' : 'New Puzzle',
       homeLabel: 'Back to Play',
     };
   }
@@ -481,22 +854,29 @@
     var enter = $('daily-enter');
     if (enter) {
       enter.addEventListener('click', function () {
-        if (enter.dataset.action === 'retry') start();
+        if (enter.dataset.action === 'claim') claimOfficial();
+        else if (enter.dataset.action === 'lab-retry') startLab();
+        else if (enter.dataset.action === 'official-retry') startOfficial();
         else enterPuzzle();
       });
     }
-    document.addEventListener('keydown', function (e) {
-      var modal = $('daily-modal');
-      if (e.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false') {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        closeModal();
-      }
-    }, true);
+    document.addEventListener(
+      'keydown',
+      function (e) {
+        var modal = $('daily-modal');
+        if (e.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false') {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          closeModal();
+        }
+      },
+      true
+    );
   });
 
   window.EOL.daily = {
     start: start,
+    startLab: startLab,
     enter: enterPuzzle,
     cancel: closeModal,
     onResult: onResult,
@@ -511,6 +891,8 @@
        so no authored/checkpoint state becomes part of the public API. */
     _rng32: rng32,
     _runContinuation: runContinuation,
+    _serializeBattle: serializeBattle,
+    _deserializeBattle: deserializeBattle,
     _generatePosition: function (seed) {
       return generatePosition(jobSeq, seed | 0);
     },

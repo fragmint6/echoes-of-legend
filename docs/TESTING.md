@@ -25,6 +25,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Battlefield scenes / animation | `browser_loops` | ~45s |
 | Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
 | Supabase settings | `preflight` | ~5s |
+| Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
 | About to deploy | see [Before you deploy](#before-you-deploy) | ~3m |
 
 ---
@@ -194,9 +195,24 @@ worse than none). Fast enough to run any time you touch
 `js/netplay.js`.
 
 ### `preflight.js` - ~5s
-Interrogates your **live** Supabase project: tables, `try_match()`,
-RLS, sign-in settings, and a real Realtime Broadcast round trip. Run
-after any dashboard change. Currently prints **READY**.
+Interrogates your **live** Supabase project: tables, `try_match()`, the
+Daily Puzzle gate, RLS, sign-in settings, and a real Realtime Broadcast
+round trip. Run after any dashboard change. Migration 04 must be installed
+before the Daily Puzzle checks report ready.
+
+### `generate_daily_puzzle.js --dry-run` - ~5-60s
+Runs the same depth-4 worker used by the scheduled Daily Puzzle job,
+serializes its rounds 5-8 checkpoint, deserializes it, and requires an
+exact second serialization before succeeding. A dry run never contacts
+Supabase and needs no secret:
+
+```bash
+node tools/generate_daily_puzzle.js --dry-run
+```
+
+Use `--out /tmp/puzzle.json` when you need to inspect the packet. Without
+`--dry-run`, the worker requires `SUPABASE_URL` and the server-only
+`SUPABASE_SERVICE_ROLE_KEY`, then stages through migration 04's RPC.
 
 ### `full.js` - the balance command, ~40 min
 Not a test - it asserts nothing. **This is the one command for a
