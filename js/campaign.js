@@ -12,9 +12,9 @@
      R1  every rival twelve is authored data, nothing is rolled
      R3  no leaving mid-set; progress commits on stage completion
      R5  the boss is pinned + unbannable by hardcode (js/play.js)
-     §6  mid-fight lore is NON-BLOCKING (the bark widget is
-         pointer-transparent and self-expiring; blocking overlays
-         are for pre-fight and post-fight only)
+     §6  mid-fight lore is NON-BLOCKING (later barks self-expire;
+         Gates I-II are event-driven and reader-paced, with only a
+         small optional dismiss control accepting input)
    ============================================================= */
 (function () {
   'use strict';
@@ -830,15 +830,12 @@
      IN-BATTLE RIVAL DIALOGUE (barks)
      -------------------------------------------------------------
      A speech card front and centre under the HUD. It rides the
-     engine's observational event hook - never gameplay logic - and
-     self-expires, so it cannot fight the animation queue, the busy
-     gate or the auto-end-turn timer (§6's standing rule against
-     blocking mid-battle lore).
-
-     Lines QUEUE: a burst of dialogue (the Recruiter's guided gate,
-     a round beat landing on a death beat) plays in sequence rather
-     than stomping itself. The queue drains only while the battle
-     view is up, and dies with it.
+     engine's observational event hook - never gameplay logic. Later
+     rivals self-expire and queue lightweight flavour. Gates I-II are
+     different by design: dialogue is attached to actual moves/events,
+     stays until read or dismissed, and a newer context REPLACES the old
+     one so the Recruiter's words can never trail behind the battle.
+     Nothing blocks the board or the turn system.
      --------------------------------------------------------- */
   var BARK_GAP = 5200;
   var barkQ = [];
@@ -846,6 +843,10 @@
   var barkTimer = null;
   var barkWaits = 0;
   var barkBusyWaits = 0;
+
+  function reactiveDialogue(stage) {
+    return !!(stage && stage.reactiveDialogue);
+  }
 
   function barkMs(text) {
     /* Reading time. Playtest note (2026-08-10, watched live): a player
@@ -865,7 +866,11 @@
     barkBusyWaits = 0;
     window.clearTimeout(barkTimer);
     var el = $('rival-bark');
-    if (el) el.classList.remove('show');
+    if (el) {
+      el.classList.remove('show', 'reactive');
+      var dismiss = $('rival-bark-dismiss');
+      if (dismiss) dismiss.hidden = true;
+    }
   }
 
   /* A bark must land AFTER what it talks about is visible. Events fire
@@ -925,12 +930,20 @@
     }
     setText($('rival-bark-name'), b.stage.rival);
     setText($('rival-bark-text'), b.text);
+    var paced = reactiveDialogue(b.stage);
+    el.classList.toggle('reactive', paced);
+    var dismiss = $('rival-bark-dismiss');
+    if (dismiss) dismiss.hidden = !paced;
     el.hidden = false;
     el.classList.remove('show');
     void el.offsetWidth; // restart the slide-in
     el.classList.add('show');
     barkActive = true;
     window.clearTimeout(barkTimer);
+    /* Gates I-II are paced by the player's actions, not a reading-time
+       guess. The line remains until it is dismissed or a newer relevant
+       event replaces it. Later rivals keep the lightweight timed bark. */
+    if (paced) return;
     barkTimer = window.setTimeout(function () {
       el.classList.remove('show');
       barkActive = false;
@@ -951,13 +964,16 @@
       el.classList.remove('deny');
       void el.offsetWidth;
       el.classList.add('deny');
-      /* and give the reader their full time again */
-      window.clearTimeout(barkTimer);
-      barkTimer = window.setTimeout(function () {
-        el.classList.remove('show');
-        barkActive = false;
-        barkTimer = window.setTimeout(pumpBark, 380);
-      }, barkMs(text));
+      /* Reader-paced lines do not own an expiry clock. For later gates,
+         repeating a line still gives the reader their full time again. */
+      if (!reactiveDialogue(stage)) {
+        window.clearTimeout(barkTimer);
+        barkTimer = window.setTimeout(function () {
+          el.classList.remove('show');
+          barkActive = false;
+          barkTimer = window.setTimeout(pumpBark, 380);
+        }, barkMs(text));
+      }
       return;
     }
     displayBark({ stage: stage, text: text, ms: null });
@@ -965,9 +981,34 @@
 
   function queueBark(stage, text, ms) {
     if (!text) return;
+    if (reactiveDialogue(stage)) {
+      /* Never let tutorial speech lag behind play. Keep only the newest
+         observation/instruction, leave the current line visible while an
+         animation is loud, then replace it as soon as the board settles. */
+      barkQ.length = 0;
+      barkQ.push({ stage: stage, text: text, ms: null });
+      if (barkActive) {
+        barkActive = false;
+        window.clearTimeout(barkTimer);
+      }
+      pumpBark();
+      return;
+    }
     if (barkQ.length > 7) return; // dialogue never piles into a backlog
     barkQ.push({ stage: stage, text: text, ms: ms || null });
     pumpBark();
+  }
+
+  function dismissReactiveBark() {
+    var el = $('rival-bark');
+    if (!el || !el.classList.contains('reactive')) return;
+    el.classList.remove('show');
+    barkActive = false;
+    window.clearTimeout(barkTimer);
+    /* If a newer event arrived during an animation, it remains eligible
+       to appear once the board is quiet; dismissing stale text must not
+       discard the current instruction. */
+    barkTimer = window.setTimeout(pumpBark, 180);
   }
 
   function barkLine(stage, key) {
@@ -1092,14 +1133,15 @@
         /* barks are flavour; they never break a fight */
       }
     };
-    /* The opening line waits for the view swap + round banner. Set
-       stages greet each game differently. The Recruiter's guided gate
-       skips its generic opener - the round-1 lesson lines ARE its
-       opening dialogue (see onBattleRound). */
-    if (stage.tutorial && stage.tutorial.rounds && stage.tutorial.rounds[1]) {
+    /* Gates I-II have no time-fired opener or round monologue. Their
+       dialogue starts only when the script asks for a move or the battle
+       produces something worth reacting to. This keeps both fast learners
+       and slow readers aligned with the words on screen. */
+    if (reactiveDialogue(stage)) {
       battleWatch.fired.start = true;
       return;
     }
+    /* Later set stages greet each game differently. */
     var key = 'start';
     try {
       var ss = window.EOL.play && window.EOL.play._setState ? window.EOL.play._setState() : null;
@@ -1127,6 +1169,10 @@
   function onBattleRound(B) {
     if (!battleWatch) return;
     var stage = battleWatch.stage;
+    /* Early-gate teaching is attached to the player's marked move and
+       actual battle events. Round-number timers were the source of stale
+       dialogue and are deliberately silent here. */
+    if (reactiveDialogue(stage)) return;
     var T = stage.tutorial;
     if (!T || !T.rounds) return;
     var lines = T.rounds[B.round];
@@ -1202,12 +1248,20 @@
 
   function onPlayerAction(B, info) {
     if (!battleWatch || !info) return;
+    /* In reader-paced gates, taking the next action is itself an
+       acknowledgement. Hide the previous line; a newer event already
+       parked in barkQ (for example first blood) is preserved and will
+       appear when the action animation settles. Scripted instructions
+       are excluded because scriptAdvance has already installed the next
+       marked move before this callback runs. */
+    if (reactiveDialogue(battleWatch.stage) && battleWatch.rxFree) dismissReactiveBark();
     var T = battleWatch.stage.tutorial || {};
     var rx = T.reactions;
     if (!rx) return;
-    /* (enemy deaths - including their healer - are handled in
-       watchEvent, where the death event lands first; reacting here
-       too would chain two barks off one blow) */
+    /* Enemy deaths - including their healer - are handled in watchEvent.
+       Let that consequence outrank a generic role observation from the
+       same blow instead of replacing it in the reactive slot. */
+    if (info.killedRoles && info.killedRoles.length) return;
     if (info.sig && rx.roles && rx.roles[info.role]) {
       if (fireReaction('role-' + info.role, rx.roles[info.role])) return;
     }
@@ -2314,6 +2368,9 @@
     /* A tap on the tutor's shield used to vanish without a trace -
        the first outside playtest stalled exactly there. Now the
        bubble shakes its head, pointing the eye at Continue. */
+    var barkDismiss = $('rival-bark-dismiss');
+    if (barkDismiss) barkDismiss.addEventListener('click', dismissReactiveBark);
+
     var tshield = $('tutor-shield');
     if (tshield)
       tshield.addEventListener('click', function () {

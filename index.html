@@ -2455,16 +2455,26 @@
         <div class="cine-sub" id="cine-sub"></div>
       </div>
 
-      <!-- CAMPAIGN: rival dialogue during the match. A small speech card
-           under the enemy commander plate - pointer-transparent and
-           self-expiring, so mid-fight lore never blocks the board
-           (design §6: blocking overlays are for pre/post-fight only). -->
+      <!-- CAMPAIGN: contextual dialogue during the match. Later rivals
+           speak briefly without blocking play. The first two gates use a
+           reader-paced version: each line is triggered by what just
+           happened, stays until the player acts or dismisses it, and is
+           replaced by the next relevant observation instead of queuing. -->
       <div class="rival-bark" id="rival-bark" role="status" aria-live="polite" hidden>
         <img class="rival-bark-face" id="rival-bark-face" src="" alt="" draggable="false" />
         <div class="rival-bark-body">
           <span class="rival-bark-name" id="rival-bark-name"></span>
           <p class="rival-bark-text" id="rival-bark-text"></p>
         </div>
+        <button
+          class="rival-bark-dismiss"
+          id="rival-bark-dismiss"
+          type="button"
+          aria-label="Dismiss dialogue"
+          hidden
+        >
+          <i class="ri-check-line"></i><span>Got it</span>
+        </button>
       </div>
 
       <div class="toast" id="toast"></div>

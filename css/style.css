@@ -23063,12 +23063,13 @@ html.mqw640 .chapter-dialogue-foot {
   }
 }
 
-/* ---------------- Campaign: rival dialogue during the match ----------------
+/* ---------------- Campaign: contextual dialogue during the match -----------
    A speech card front and centre, just under the HUD, where the eye
-   already lives between turns. Still pointer-transparent and
-   self-expiring: it can never block the board, the busy gate or the
-   auto-end-turn timer. Lines queue (js/campaign.js) so a burst of
-   dialogue plays in sequence instead of stomping itself. */
+   already lives between turns. Later-gate flavour remains transient and
+   pointer-transparent. Gates I-II add `.reactive`: the current contextual
+   line stays readable at the player's pace and only its small dismissal
+   control accepts input; a newer battle event replaces it rather than
+   leaving stale speech in a queue. */
 .rival-bark {
   position: fixed;
   z-index: 60; /* above the board, below the cine dim (290) */
@@ -23142,6 +23143,39 @@ html.mqw640 .chapter-dialogue-foot {
   color: #f2e9e6;
   font-size: 14px;
   line-height: 1.55;
+}
+.rival-bark-dismiss {
+  display: none;
+}
+.rival-bark.reactive {
+  padding-right: 78px;
+}
+.rival-bark.reactive .rival-bark-dismiss {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 194, 150, 0.3);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 226, 205, 0.8);
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.rival-bark.reactive .rival-bark-dismiss:hover,
+.rival-bark.reactive .rival-bark-dismiss:focus-visible {
+  border-color: rgba(255, 194, 150, 0.62);
+  background: rgba(255, 176, 120, 0.12);
+  color: #ffe0ca;
+  outline: none;
 }
 html.mqw640 .rival-bark {
   top: auto;

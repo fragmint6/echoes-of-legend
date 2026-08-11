@@ -123,6 +123,8 @@ window.EOL = window.EOL || {};
                      roles:[..]   prefers striking these roles
                      stat:'atk'   prefers your hardest hitters
                      power:true   prefers your highest-rated cards
+       reactiveDialogue  early-gate in-match lines follow actual moves/
+                   events and remain readable until replaced or dismissed
        banTell     the Recruiter's ledger note on that habit, shown
                    during the ban phase BEFORE the player commits
                    (playtest ruling 2026-08-09: the first call of a
@@ -144,6 +146,9 @@ window.EOL = window.EOL || {};
       rival: 'The Recruiter',
       portrait: 'assets/rivals/the-recruiter.png',
       mode: 'classic',
+      /* In-match teaching is event-driven and reader-paced: no automatic
+         round chatter, no expiry timer, no stale dialogue backlog. */
+      reactiveDialogue: true,
       format: 'Classic - Guided gate',
       terrain: 'The Colosseum',
       counsel:
@@ -256,7 +261,7 @@ window.EOL = window.EOL || {};
            script no longer delivers, plus a few observations). Non-
            blocking barks, never corrections. */
         handoff:
-          'The ledger ends here, Blank. Rounds one and two were mine - the war is yours now. I will watch, and I will talk, but I will not steer.',
+          'The ledger ends here, Blank. The war is yours now. HOVER the sigils under every legend before you swing: curses compound, so expose first and execute second. I will react to what YOU do, but I will not steer.',
         reactions: {
           roles: {
             Bruiser:
@@ -274,35 +279,15 @@ window.EOL = window.EOL || {};
             'Their healer falls - to YOUR arithmetic. Wars shorten when nobody is left to argue with it.',
           pass: 'Passing with a full purse, unprompted. You HAVE been listening. Savings win expensive rounds.',
         },
-        rounds: {
-          1: [
-            'Round one: BASICS only - signatures wake in round two. Even legends stretch first.',
-            'The tall bar by your crest is ENERGY: every skill spends it, savings carry over, and income grows each round - 60, then 80, then 100.',
-            'See the dial by the Pass button? The TURN CLOCK - thirty seconds a move, out in the real wars. On my road it ticks for show only: the Road has waited centuries. Take your time.',
-          ],
-          2: [
-            'Round two - SIGNATURES unlock. The expensive, theatrical ones. Time to spend what you hoarded.',
-          ],
-          /* round 3 = the first FREE round (the handoff lands just
-             before these). By now the Piper and the Queen have left
-             sigils on the enemy line - teach reading them, then teach
-             the one-two (playtest ruling 2026-08-10: encourage combo
-             thinking, not attack-and-hope). */
-          3: [
-            'See the little sigils under a legend\'s health bar? STATUSES - blessings and curses. HOVER one and it explains itself. Read the enemy before you swing; wars are won by people who read.',
-            'A trade secret: curses COMPOUND. Let the Piper carve their defence open, then send Goldilocks to collect what is left. Expose, then execute - the Road rewards the one-two, not heroics.',
-          ],
-          4: [
-            'Round four. From here the Road sharpens every blade a little more each round - it despises stalemates. Finish what you started.',
-          ],
-        },
+        /* No `rounds` monologue: every in-match line is attached to the
+           marked move, the handoff, or a battle event. That keeps the
+           words current regardless of how quickly the player reads. */
       },
       grants: { coins: 150 },
       resultWin: 'The Recruiter closes his ledger - Gate I is yours.',
       resultLose:
         'The Recruiter sets down his quill. "Dead? At MY gate? Embarrassing - for me, Blank, not you. Take the rematch. Nobody has ever died at my gate twice."',
       barks: {
-        start: '"I will not trick you. The Road has enough of that ahead."',
         firstBloodYou:
           '"First blood to you. Do not smile yet - the outnumbered side earns bonus Energy every round. The Road pays its wounded."',
         firstBloodFoe:
@@ -320,6 +305,9 @@ window.EOL = window.EOL || {};
       rival: 'The Oathkeeper',
       portrait: 'assets/rivals/the-oathkeeper.png',
       mode: 'classic',
+      /* His words answer battle events and stay until read; he no longer
+         starts talking on a timer while the player studies the board. */
+      reactiveDialogue: true,
       format: 'Classic',
       terrain: 'The Narrow Pass',
       counsel:
@@ -389,7 +377,6 @@ window.EOL = window.EOL || {};
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
-        start: '"The pass narrows here. So do excuses."',
         firstBloodYou: '"Through the shield. Good. That is the only honest road."',
         firstBloodFoe: '"I told danger where it must stop. You crossed the line."',
         allyDown: '"Who was protecting them? Think. Answer with your hands."',

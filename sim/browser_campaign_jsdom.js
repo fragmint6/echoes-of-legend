@@ -251,6 +251,15 @@ const server = http.createServer((req, res) => {
   let ms0 = w.EOL.battle._scriptState();
   t(!!ms0 && ms0.moves.length === 16, 'move script loaded (16 - the ledger owns rounds 1-2 only)');
   await sleep(600);
+  t($('rival-bark').classList.contains('reactive'), 'Gate I dialogue uses reader-paced reactive mode');
+  t(!$('rival-bark-dismiss').hidden, 'reader-paced dialogue offers an optional Got it control');
+  t(
+    $('rival-bark-text').textContent === ms0.moves[ms0.i].say,
+    'the dialogue describes the current marked move, not a timed round beat'
+  );
+  $('rival-bark-dismiss').click();
+  await sleep(120);
+  t(!$('rival-bark').classList.contains('show'), 'Got it dismisses the line without advancing the battle');
   {
     const mv = ms0.moves[ms0.i];
     const u = B1.units.find((x) => x.side === 'player' && x.card.id === mv.unit);
@@ -429,7 +438,7 @@ const server = http.createServer((req, res) => {
       'a role-signature REACTION fired on a move the player chose'
     );
   }
-  t(sawStatusLesson, 'round 3 taught reading the status sigils (and the hover)');
+  t(sawStatusLesson, 'the reactive handoff teaches reading the status sigils');
   t(sawRoleSay, 'signature narration teaches ROLES, not damage numbers');
   t(sawDmgPreview, 'targetable enemies wore a damage preview during free play');
   t(sawBannerCut, 'acting cuts a lingering YOUR TURN banner in the same click');
@@ -517,6 +526,10 @@ const server = http.createServer((req, res) => {
     .click();
   await sleep(700);
   t(d.body.dataset.view === 'prep', 'gate 2 opens preparation');
+  t(
+    w.EOL.campaign._stageById(2).reactiveDialogue === true,
+    'Gate II also uses event-driven, reader-paced in-match dialogue'
+  );
   {
     const p2 = w.EOL.play._prepState();
     t(!!p2.advisor && !p2.script, 'gate 2 is advised, never scripted');

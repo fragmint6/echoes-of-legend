@@ -353,23 +353,23 @@ console.log('B2. the fully scripted first gate');
   var T = st1.tutorial;
   ok(!!T, 'stage 1 carries tutorial copy');
   ok(T.intro && T.intro.length >= 2, 'tutorial: prep intro beats');
-  /* the post-handoff round-3 lessons (owner ruling 2026-08-10): read
-     the sigils (and HOVER them), then the one-two - expose, execute */
+  /* Early-gate dialogue is event-driven and reader-paced. The old
+     round arrays auto-fired independently of play speed and could leave
+     the Recruiter several moves behind a fast player. */
+  ok(st1.reactiveDialogue === true, 'gate 1 opts into reactive, reader-paced battle dialogue');
+  ok(S.stages[1].reactiveDialogue === true, 'gate 2 opts into reactive, reader-paced battle dialogue');
+  ok(!T.rounds, 'gate 1 has no automatic round-number monologue');
+  ok(!((st1.barks || {}).start), 'gate 1 has no time-fired match opener');
+  ok(!((S.stages[1].barks || {}).start), 'gate 2 has no time-fired match opener');
   ok(
-    Array.isArray((T.rounds || {})[3]) && T.rounds[3].length === 2,
-    'tutorial: round-3 carries the status + combo lessons'
+    /HOVER/.test(T.handoff) && /sigils/i.test(T.handoff),
+    'the reactive handoff teaches reading and hovering status sigils'
   );
   ok(
-    /STATUS/i.test(T.rounds[3][0]) && /HOVER/.test(T.rounds[3][0]),
-    'the status lesson teaches sigil-reading and the hover'
+    /compound/i.test(T.handoff) && /expose first and execute second/i.test(T.handoff),
+    'the reactive handoff teaches the setup-then-execute combo'
   );
-  ok(/one-two/i.test(T.rounds[3][1]), 'the combo lesson preaches the one-two');
-  ok(
-    T.rounds[3].every(function (l) {
-      return /^[\x20-\x7E]+$/.test(l);
-    }),
-    'round-3 lessons are pure ASCII'
-  );
+  ok(/^[\x20-\x7E]+$/.test(T.handoff), 'the reactive handoff is pure ASCII');
   ['ban0', 'ban1', 'ban2', 'reveal', 'arena', 'tips', 'field', 'rows', 'toBattle'].forEach(function (k) {
     ok(typeof T[k] === 'string' && T[k].length > 20, 'tutorial: ' + k + ' authored');
   });
@@ -377,9 +377,16 @@ console.log('B2. the fully scripted first gate');
   sc.six.forEach(function (id) {
     ok(T.roles && typeof T.roles[id] === 'string' && T.roles[id].length > 30, 'tutorial: role lesson for ' + id);
   });
-  ok(T.rounds && T.rounds[1] && T.rounds[1].length >= 2, 'tutorial: round-1 lessons');
-  ok(T.rounds[2] && T.rounds[2].length >= 1, 'tutorial: round-2 signature lesson');
-  ok(T.rounds[4] && T.rounds[4].length >= 1, 'tutorial: round-4 ramp lesson (RAMP_FROM=4)');
+  var spokenMoves = sc.match.moves.filter(function (mv) {
+    return mv.say;
+  });
+  ok(spokenMoves.length >= 4, 'the guided opening attaches teaching to specific moves');
+  ok(
+    spokenMoves.every(function (mv) {
+      return mv.side === 'player' || mv.side === 'enemy';
+    }),
+    'every guided line has a concrete acting side/event'
+  );
 })();
 
 console.log('B3. the frozen match line REPLAYS to a clean win');
@@ -631,7 +638,13 @@ S.stages.forEach(function (st) {
   ok(scene && scene[scene.length - 1].battle === true, 'stage ' + st.id + ': scene ends on the fight');
   ok(epi && epi.length >= 2, 'stage ' + st.id + ': victory epilogue exists');
   ok(!!st.resultWin && !!st.resultLose, 'stage ' + st.id + ': win and lose result lines');
-  ok(st.barks && !!st.barks.start, 'stage ' + st.id + ': in-battle barks authored');
+  ok(
+    st.barks &&
+      (st.reactiveDialogue
+        ? !!st.barks.firstBloodYou && !!st.barks.firstBloodFoe
+        : !!st.barks.start),
+    'stage ' + st.id + ': in-battle barks authored'
+  );
   if (st.mode === 'set')
     ok(!!st.barks.start2 && !!st.barks.start3, 'stage ' + st.id + ': per-game set barks');
 });
