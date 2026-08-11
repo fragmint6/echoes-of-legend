@@ -22,6 +22,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Buffs, debuffs, comeback | `verify_all` + `verify_buffs` | ~47s |
 | `js/engine.js` (anything) | `verify_all` + `fields` + `buffs` + `mirror` | ~2m |
 | UI / CSS / `js/play.js` | `browser_solo` + `browser_panel` | ~60s |
+| Icon markup or icon choices | `node tools/audit_icons.js` | <1s |
 | Battlefield scenes / animation | `browser_loops` | ~45s |
 | Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
 | Supabase settings | `preflight` | ~5s |
@@ -112,6 +113,13 @@ board-wide sweep, any new random draw is exactly what it catches.**
 ```bash
 node sim/verify_mirror.js --games 60      # quick, while iterating
 node sim/verify_mirror.js --games 500     # before shipping engine work
+```
+
+### `tools/audit_icons.js` - <1s
+Enforces the boundary in [the icon system](icon-system.md): Remix Icon for interface chrome and RPG Awesome only for explicitly marked game-domain concepts. It also rejects Remix class names outside the pinned 4.5.0 catalog.
+
+```bash
+node tools/audit_icons.js
 ```
 
 ### `browser_solo.js` - ~45s, needs browser

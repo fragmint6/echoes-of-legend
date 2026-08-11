@@ -73,10 +73,18 @@
   function toast(msg, icon) {
     var host = $('toasts');
     if (!host) return;
-    var cls = icon ? (icon.indexOf('ra-') === 0 ? 'ra ' : 'ri ') + icon : 'ri ri-information-line';
+    var isGameIcon = !!icon && icon.indexOf('ra-') === 0;
+    var cls = icon ? (isGameIcon ? 'ra ' : 'ri ') + icon : 'ri ri-information-line';
     var t = document.createElement('div');
     t.className = 'toast';
-    t.innerHTML = '<i class="' + cls + '"></i><span>' + esc(msg) + '</span>';
+    t.innerHTML =
+      '<i' +
+      (isGameIcon ? ' data-icon-domain="game"' : '') +
+      ' class="' +
+      cls +
+      '"></i><span>' +
+      esc(msg) +
+      '</span>';
     host.appendChild(t);
     setTimeout(function () {
       t.classList.add('out');
@@ -114,7 +122,7 @@
     if (!forcing && coachSeen().indexOf(key) >= 0) return false;
     var c = $('coach');
     if (!c) return true;
-    $('coach-ico').className = 'ra ' + icon;
+    $('coach-ico').className = icon;
     $('coach-title').textContent = title;
     $('coach-body').textContent = body;
     c.classList.add('show');
@@ -442,7 +450,7 @@
       '<div class="dk-stat" style="--sc:' +
       color +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       icon +
       '"></i>' +
       '<span class="dk-stat-k">' +
@@ -474,7 +482,9 @@
       esc(a.name) +
       '</span>' +
       (a.type === 'Active' && a.cost != null
-        ? '<span class="dk-cost"><i class="ra ra-lightning-bolt"></i>' + a.cost + '</span>'
+        ? '<span class="dk-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+          a.cost +
+          '</span>'
         : '') +
       '</div>' +
       '<div class="dk-ab-text">' +
@@ -598,7 +608,7 @@
       c.rarity +
       '" style="--fc-primary:' +
       e.faction.colors.primary +
-      '"><i class="ra ' +
+      '"><i data-icon-domain="game" class="ra ' +
       c.icon +
       '"></i></div>' +
       '<div class="dk-id">' +
@@ -696,7 +706,7 @@
       c.rarity +
       '" style="--fc-primary:' +
       e.faction.colors.primary +
-      '"><i class="ra ' +
+      '"><i data-icon-domain="game" class="ra ' +
       c.icon +
       '"></i></div>' +
       '<div class="dk-id">' +
@@ -799,7 +809,7 @@
         ? '<div class="bart-portrait"><img src="' +
           esc(c.art) +
           '" alt="" draggable="false" /></div>'
-        : '<i class="ra ' + c.icon + '"></i>') +
+        : '<i data-icon-domain="game" class="ra ' + c.icon + '"></i>') +
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
@@ -808,11 +818,11 @@
       '<div class="bcard-top"><span class="borb" title="' +
       esc(c.element) +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       elIc(c.element) +
       '"></i></span></div>' +
       '<div class="bcard-foot">' +
-      '<div class="bcard-role"><i class="ra ' +
+      '<div class="bcard-role"><i data-icon-domain="game" class="ra ' +
       roleIc(c.role) +
       '"></i>' +
       esc(c.role) +
@@ -1161,12 +1171,7 @@
       foeBans = null;
     } else if (cfg.botBanProfile) {
       /* CAMPAIGN: the rival bans in character (§9.11). */
-      foeBans = personaBans(
-        cfg.botBanProfile,
-        cfg.player12,
-        cfg.enemy12,
-        allowLegendBans
-      );
+      foeBans = personaBans(cfg.botBanProfile, cfg.player12, cfg.enemy12, allowLegendBans);
     } else if (cfg.campaignStage === 1) {
       // Legacy fallback: The Recruiter bans Hansel & Gretel and Cinderella
       // (the data-driven profile normally covers this path).
@@ -1267,7 +1272,7 @@
     window.EOL.ui.show('prep');
     coachShow(
       'prep-ban',
-      'ra-interdiction',
+      'ri-forbid-2-line',
       'Phase 1: Ban Two Legends',
       "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
         'yours at the same time - their picks stay hidden until you lock yours in.'
@@ -1571,7 +1576,10 @@
             p.youBans.indexOf(e.card.id) < 0 &&
             p.script.bans.indexOf(e.card.id) < 0
           ) {
-            toast(p.script.hintBan || 'Follow the marked cards - this gate is scripted', 'ra-quill-ink');
+            toast(
+              p.script.hintBan || 'Follow the marked cards - this gate is scripted',
+              'ri-quill-pen-line'
+            );
             flashNode('prep-enemy-note');
             return;
           }
@@ -1672,7 +1680,7 @@
        formation, so removals and shuffles are refused too. */
     if (prep.script && prep.script.six) {
       if (idx >= 0) {
-        toast('The ledger placed that one - the formation stands', 'ra-quill-ink');
+        toast('The ledger placed that one - the formation stands', 'ri-quill-pen-line');
         flashNode('prep-player-note');
         return;
       }
@@ -1684,7 +1692,10 @@
         }
       }
       if (id !== nextId) {
-        toast(prep.script.hintSix || 'Field the marked card - this gate is scripted', 'ra-quill-ink');
+        toast(
+          prep.script.hintSix || 'Field the marked card - this gate is scripted',
+          'ri-quill-pen-line'
+        );
         flashNode('prep-player-note');
         return;
       }
@@ -1750,13 +1761,13 @@
             pair[2] +
             (s + 1) +
             '</span>' +
-            '<i class="fs-glyph ra ' +
+            '<i data-icon-domain="game" class="fs-glyph ra ' +
             e.card.icon +
             '"></i>' +
             '<span class="fs-name">' +
             esc(e.card.name) +
             '</span>' +
-            '<span class="fs-role"><i class="ra ' +
+            '<span class="fs-role"><i data-icon-domain="game" class="ra ' +
             roleIc(e.card.role) +
             '"></i>' +
             esc(e.card.role) +
@@ -1790,7 +1801,7 @@
     /* THE SCRIPT (gate I): the ledger set the rows; the match line
        depends on them. */
     if (prep && prep.script && prep.script.six) {
-      toast('The ledger set the rows - they stand', 'ra-quill-ink');
+      toast('The ledger set the rows - they stand', 'ri-quill-pen-line');
       flashNode('prep-sub');
       return;
     }
@@ -1867,7 +1878,7 @@
       var afterReveal = function () {
         coachShow(
           'prep-pick',
-          'ra-crossed-swords',
+          'ri-team-line',
           'Phase 2: Field Your Six',
           'Pick 6 of your surviving legends and mind the formation: the front row soaks the ' +
             'hits while the back row supports. Tap a slotted legend to swap its row.'
@@ -2401,8 +2412,7 @@
     var subEl = document.querySelector('.dm-sub');
     if (isCampaign) {
       if (titleEl) titleEl.textContent = opts.title || 'Choose your deck';
-      if (subEl)
-        subEl.textContent = opts.sub || 'Select your squad of 12 for the battle ahead.';
+      if (subEl) subEl.textContent = opts.sub || 'Select your squad of 12 for the battle ahead.';
     } else {
       if (titleEl) titleEl.textContent = 'Choose your deck';
       if (subEl)
@@ -2581,7 +2591,7 @@
     if (draft.busy) foeOpens();
     coachShow(
       'draft',
-      'ra-clovers-card',
+      'ri-shuffle-line',
       'The Snake Draft',
       'Packs of three, 12 packs. You open the odd packs, the enemy opens the even ones. ' +
         'One pick each per pack, the third card burns - both squads build to 12, then preparation begins.'
@@ -2690,7 +2700,7 @@
           e.card.rarity +
           (cfg[3] === freshSide && idx === cfg[2].length - 1 ? ' fresh' : '');
         pip.title = e.card.name;
-        pip.innerHTML = '<i class="ra ' + e.card.icon + '"></i>';
+        pip.innerHTML = '<i data-icon-domain="game" class="ra ' + e.card.icon + '"></i>';
         pip.addEventListener('mouseenter', function () {
           showDraftTip(e, pip);
         });
@@ -3030,7 +3040,7 @@
       '<span class="setm-slot">' +
       esc(slotLabel) +
       '</span>' +
-      '<span class="setm-stamp" aria-hidden="true"><i class="ra ra-crossed-swords"></i>CALLED</span>' +
+      '<span class="setm-stamp" aria-hidden="true"><i data-icon-domain="game" class="ra ra-crossed-swords"></i>CALLED</span>' +
       '</div>' +
       '<div class="setm-body">' +
       '<span class="setm-name">' +
@@ -3058,7 +3068,7 @@
     var t = $('set-fightcard-title');
     if (t)
       t.innerHTML =
-        '<i class="ra ' +
+        '<i data-icon-domain="game" class="ra ' +
         icon +
         '" aria-hidden="true"></i> ' +
         text +
@@ -3527,7 +3537,8 @@
          the HUD, the boss pinned, and the stage id on the battle. */
       campaignStage: setState.campaignStage || null,
       rival: setState.rival || null,
-      pinnedEnemy: setState.pinnedEnemy && setState.pinnedEnemy.length ? setState.pinnedEnemy : null,
+      pinnedEnemy:
+        setState.pinnedEnemy && setState.pinnedEnemy.length ? setState.pinnedEnemy : null,
       unbannable: setState.unbannable && setState.unbannable.length ? setState.unbannable : null,
       botBans: setState.botBans.slice(),
       youBans: setState.youBans.slice(),

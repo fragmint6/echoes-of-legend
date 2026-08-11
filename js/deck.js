@@ -473,7 +473,7 @@
       .sort()
       .map(function (r) {
         return (
-          '<span class="dc-role"><i class="ra ' +
+          '<span class="dc-role"><i data-icon-domain="game" class="ra ' +
           (icons[r] || 'ra-player') +
           '"></i>' +
           cnt[r] +
@@ -501,7 +501,7 @@
             '" title="' +
             esc(e.card.name) +
             '">' +
-            '<i class="ra ' +
+            '<i data-icon-domain="game" class="ra ' +
             e.card.icon +
             '"></i></span>'
           );
@@ -574,13 +574,13 @@
           '<span class="ds-order">' +
           (slot + 1) +
           '</span>' +
-          '<i class="ds-glyph ra ' +
+          '<i data-icon-domain="game" class="ds-glyph ra ' +
           e.card.icon +
           '"></i>' +
           '<span class="ds-name">' +
           esc(e.card.name) +
           '</span>' +
-          '<span class="ds-role"><i class="ra ' +
+          '<span class="ds-role"><i data-icon-domain="game" class="ra ' +
           (window.EOL.ui.ROLE_ICON[e.card.role] || 'ra-player') +
           '"></i>' +
           esc(e.card.role) +

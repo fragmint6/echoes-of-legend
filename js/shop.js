@@ -233,7 +233,10 @@
     if (pack.key === 'legend') return;
     if (!econ.packableEntries().length) {
       if (window.EOL.ui && window.EOL.ui.toast)
-        window.EOL.ui.toast('Every echo the shelf sells is yours - the legends left walk the Road', 'ra-crown');
+        window.EOL.ui.toast(
+          'Every echo the shelf sells is yours - the legends left walk the Road',
+          'ri-checkbox-circle-line'
+        );
       return;
     }
     if (!econ.spend(pack.price)) {
@@ -382,7 +385,7 @@
     flip.innerHTML =
       '<div class="po-flip-inner">' +
       '<div class="po-back"><div class="po-back-ring"></div>' +
-      '<i class="ra ra-crossed-swords"></i></div>' +
+      '<i data-icon-domain="game" class="ra ra-crossed-swords"></i></div>' +
       '<div class="po-front"></div>' +
       '</div>';
     var front = flip.querySelector('.po-front');
@@ -393,7 +396,9 @@
   function legendBanner(name) {
     var b = el('po-legend-banner');
     b.innerHTML =
-      '<i class="ra ra-crown"></i><span>Legendary - ' + window.EOL.ui.esc(name) + '</span>';
+      '<i data-icon-domain="game" class="ra ra-crown"></i><span>Legendary - ' +
+      window.EOL.ui.esc(name) +
+      '</span>';
     b.classList.add('show');
     later(function () {
       b.classList.remove('show');
@@ -521,12 +526,16 @@
       '<div class="pk-ring inner"></div>' +
       '<span class="pk-stud n"></span><span class="pk-stud e"></span>' +
       '<span class="pk-stud s"></span><span class="pk-stud w"></span>' +
-      '<i class="ra ' + PK_STYLE[key].icon + '"></i>' +
+      '<i data-icon-domain="game" class="ra ' +
+      PK_STYLE[key].icon +
+      '"></i>' +
       '</div>' +
-      '<div class="pk-pips">' + pips + '</div>' +
+      '<div class="pk-pips">' +
+      pips +
+      '</div>' +
       '<div class="pk-wordmark"><span>' +
       pack.name.split(' ')[0] +
-      '</span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
+      '</span><i data-icon-domain="game" class="ra ra-crossed-swords"></i><span>Pack</span></div>';
   }
 
   /* the shelf: prices, balance, and what is left to pull.

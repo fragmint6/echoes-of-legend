@@ -13,7 +13,8 @@
       rel="stylesheet"
     />
 
-    <!-- Icon databases -->
+    <!-- Icon databases: Remix is the interface default; RPG Awesome is
+         reserved for marked game-domain concepts. See docs/icon-system.md. -->
     <!-- RPG Awesome: ~500 fantasy/RPG glyphs (swords, shields, elements, creatures) -->
     <link
       rel="stylesheet"
@@ -177,7 +178,7 @@
           <span id="home-coins-val">0</span>
         </button>
         <button type="button" class="acct-btn" id="acct-btn" aria-haspopup="dialog">
-          <span class="acct-avatar" aria-hidden="true"><i class="ra ra-player"></i></span>
+          <span class="acct-avatar" aria-hidden="true"><i class="ri-user-3-line"></i></span>
           <span class="acct-label">Sign in</span>
           <!-- shown only while body[data-auth='wait'] - the gap between
                having credentials and the session coming back -->
@@ -230,7 +231,7 @@
           <span class="corner-tip" aria-hidden="true">Tutorial</span>
         </button>
         <button class="corner-btn" id="btn-corner-rulebook" type="button" aria-label="Open rulebook">
-          <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+          <i class="ri-book-open-line" aria-hidden="true"></i>
           <span class="corner-tip" aria-hidden="true">Rulebook</span>
         </button>
       </div>
@@ -248,7 +249,7 @@
 
       <div class="home-inner">
         <div class="home-emblem">
-          <i class="ra ra-crossed-swords"></i>
+          <i class="ri-sword-line"></i>
         </div>
 
         <h1 class="home-title">
@@ -257,13 +258,13 @@
           <span class="ht-line">Legend</span>
         </h1>
 
-        <div class="home-rule"><span></span><i class="ra ra-crossed-swords"></i><span></span></div>
+        <div class="home-rule"><span></span><i class="ri-sword-line"></i><span></span></div>
 
         <p class="home-sub">History Meets Destiny</p>
 
         <div class="home-actions">
           <button class="btn btn-primary btn-hero" id="btn-play">
-            <i class="ra ra-crossed-swords"></i>
+            <i class="ri-sword-line"></i>
             <span>Play</span>
             <i class="ri-arrow-right-line b-arrow" aria-hidden="true"></i>
           </button>
@@ -272,7 +273,7 @@
             <span>Shop</span>
           </button>
           <button class="btn btn-ghost" id="btn-collection">
-            <i class="ra ra-book"></i>
+            <i class="ri-book-open-line"></i>
             <span>Collection</span>
           </button>
         </div>
@@ -287,7 +288,7 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-book"></i></span>
+          <span class="mast-emblem" aria-hidden="true"><i class="ri-book-open-line"></i></span>
           <h2 class="col-title">Collection</h2>
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">
@@ -302,7 +303,7 @@
       <div class="col-tabs" role="tablist">
         <span class="col-thumb" aria-hidden="true"></span>
         <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
-          <i class="ra ra-player"></i><span>Legends</span>
+          <i class="ri-user-3-line"></i><span>Legends</span>
         </button>
         <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
           <i class="ri-stack-line"></i><span>Decks</span>
@@ -329,7 +330,7 @@
         <div class="roster-sentinel" id="roster-sentinel" aria-hidden="true"><span></span></div>
 
         <div class="empty-state" id="empty">
-          <i class="ra ra-broken-shield"></i>
+          <i class="ri-inbox-2-line"></i>
           No legends match these filters.
         </div>
       </div>
@@ -363,7 +364,7 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-scroll-unfurled"></i></span>
+          <span class="mast-emblem" aria-hidden="true"><i class="ri-book-open-line"></i></span>
           <h2 class="col-title">Rulebook</h2>
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">The rules in plain words - with pictures and examples</p>
@@ -377,7 +378,7 @@
            campaign's Gate I remains the real teacher - this is the shelf
            copy you pull down when you need one number. -->
       <p class="rb-hello">
-        <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+        <i class="ri-book-open-line" aria-hidden="true"></i>
         <span>
           New here? <b>Gate I of the campaign teaches all of this by hand</b> - play it first.
           This book is the quick reference for when you just need one rule or one number.
@@ -390,7 +391,7 @@
         <!-- 1. the whole game, 30 seconds -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-crossed-swords"></i>
+            <i data-icon-domain="game" class="ra ra-crossed-swords"></i>
             <h3>The Game in 30 Seconds</h3>
           </div>
           <div class="rc-body">
@@ -416,7 +417,7 @@
         <!-- 2. turn flow -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-cycle"></i>
+            <i data-icon-domain="game" class="ra ra-cycle"></i>
             <h3>How a Round Works</h3>
           </div>
           <div class="rc-body">
@@ -444,7 +445,7 @@
         <!-- 3. energy -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-lightning-bolt"></i>
+            <i data-icon-domain="game" class="ra ra-lightning-bolt"></i>
             <h3>Energy: the Only Currency</h3>
           </div>
           <div class="rc-body">
@@ -486,23 +487,23 @@
         <!-- 4. rows & roles -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-crossed-axes"></i>
+            <i data-icon-domain="game" class="ra ra-crossed-axes"></i>
             <h3>The Board: Rows &amp; Roles</h3>
           </div>
           <div class="rc-body">
             <div class="rb-board" aria-hidden="true">
               <div class="rb-brow">
                 <span class="rb-blabel">Back</span>
-                <span class="rb-slot"><i class="ra ra-health"></i></span>
-                <span class="rb-slot"><i class="ra ra-fairy-wand"></i></span>
-                <span class="rb-slot"><i class="ra ra-archery-target"></i></span>
+                <span class="rb-slot"><i data-icon-domain="game" class="ra ra-health"></i></span>
+                <span class="rb-slot"><i data-icon-domain="game" class="ra ra-fairy-wand"></i></span>
+                <span class="rb-slot"><i data-icon-domain="game" class="ra ra-archery-target"></i></span>
                 <span class="rb-bnote">works in peace</span>
               </div>
               <div class="rb-brow front">
                 <span class="rb-blabel">Front</span>
-                <span class="rb-slot"><i class="ra ra-shield"></i></span>
-                <span class="rb-slot"><i class="ra ra-battered-axe"></i></span>
-                <span class="rb-slot"><i class="ra ra-gears"></i></span>
+                <span class="rb-slot"><i data-icon-domain="game" class="ra ra-shield"></i></span>
+                <span class="rb-slot"><i data-icon-domain="game" class="ra ra-battered-axe"></i></span>
+                <span class="rb-slot"><i data-icon-domain="game" class="ra ra-gears"></i></span>
                 <span class="rb-bnote">takes the hits</span>
               </div>
             </div>
@@ -514,12 +515,12 @@
               </span>
             </p>
             <div class="rb-roles">
-              <div class="rb-role"><i class="ra ra-shield"></i><span><b>Tank</b> - soaks hits, provokes enemies into hitting him.</span></div>
-              <div class="rb-role"><i class="ra ra-battered-axe"></i><span><b>Bruiser</b> - front-row muscle; hits hard, heals off the wounds.</span></div>
-              <div class="rb-role"><i class="ra ra-health"></i><span><b>Medic</b> - undoes damage. Guard yours; kill theirs first.</span></div>
-              <div class="rb-role"><i class="ra ra-fairy-wand"></i><span><b>Caster</b> - glass cannon; magic in wide, cruel shapes.</span></div>
-              <div class="rb-role"><i class="ra ra-archery-target"></i><span><b>Sniper</b> - reaches the back row where soft targets hide.</span></div>
-              <div class="rb-role"><i class="ra ra-gears"></i><span><b>Controller</b> - bends the fight: weakens, exposes, redirects.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-shield"></i><span><b>Tank</b> - soaks hits, provokes enemies into hitting him.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-battered-axe"></i><span><b>Bruiser</b> - front-row muscle; hits hard, heals off the wounds.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-health"></i><span><b>Medic</b> - undoes damage. Guard yours; kill theirs first.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-fairy-wand"></i><span><b>Caster</b> - glass cannon; magic in wide, cruel shapes.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-archery-target"></i><span><b>Sniper</b> - reaches the back row where soft targets hide.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-gears"></i><span><b>Controller</b> - bends the fight: weakens, exposes, redirects.</span></div>
             </div>
             <p class="rb-fine">
               If your whole front row falls, the survivors fight scared: <b>-5% defense</b> until
@@ -531,7 +532,7 @@
         <!-- 5. damage -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-sword"></i>
+            <i data-icon-domain="game" class="ra ra-sword"></i>
             <h3>How Damage Works</h3>
           </div>
           <div class="rc-body">
@@ -558,14 +559,14 @@
         <!-- 6. protection -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-heavy-shield"></i>
+            <i data-icon-domain="game" class="ra ra-heavy-shield"></i>
             <h3>Keeping People Alive</h3>
           </div>
           <div class="rc-body">
             <div class="rb-roles rb-protect">
-              <div class="rb-role"><i class="ra ra-shield" style="color: #ffd98a"></i><span><b>Provoke</b> - "hit ME." Single-target attacks must obey. Splash damage around the provoker is 30% weaker - he always takes the full 100%.</span></div>
-              <div class="rb-role"><i class="ra ra-aura" style="color: #a9e9ff"></i><span><b>Untargetable</b> - cannot be picked by any single-target skill. Absolute, no exceptions.</span></div>
-              <div class="rb-role"><i class="ra ra-round-shield" style="color: #9fd8ff"></i><span><b>Shields</b> - absorb damage point-for-point before health. Burn sneaks past them. Some overhealing (Medic Restore) turns into shield.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-shield" style="color: #ffd98a"></i><span><b>Provoke</b> - "hit ME." Single-target attacks must obey. Splash damage around the provoker is 30% weaker - he always takes the full 100%.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-aura" style="color: #a9e9ff"></i><span><b>Untargetable</b> - cannot be picked by any single-target skill. Absolute, no exceptions.</span></div>
+              <div class="rb-role"><i data-icon-domain="game" class="ra ra-round-shield" style="color: #9fd8ff"></i><span><b>Shields</b> - absorb damage point-for-point before health. Burn sneaks past them. Some overhealing (Medic Restore) turns into shield.</span></div>
             </div>
             <p class="rb-example">
               <i class="ri-lightbulb-line" aria-hidden="true"></i>
@@ -580,19 +581,19 @@
         <!-- 7. statuses -->
         <article class="rule-card">
           <div class="rc-head">
-            <i class="ra ra-burning-embers"></i>
+            <i data-icon-domain="game" class="ra ra-burning-embers"></i>
             <h3>Status Effects at a Glance</h3>
           </div>
           <div class="rc-body">
             <div class="rb-chips">
-              <div class="rb-chip"><i class="ra ra-burning-embers" style="color: #ff7a3c"></i><span><b>Burn</b> - 5% of max HP every turn. Ignores armor <i>and</i> shields.</span></div>
-              <div class="rb-chip"><i class="ra ra-broken-shield" style="color: #ff5f7e"></i><span><b>Exposed</b> - defense stripped to 0%. Hit them NOW.</span></div>
-              <div class="rb-chip"><i class="ra ra-lightning-storm" style="color: #ffe066"></i><span><b>Marked</b> - the next damaging <i>skill</i> detonates it for a bonus. Basics do not.</span></div>
-              <div class="rb-chip"><i class="ra ra-uncertainty" style="color: #e0a3ff"></i><span><b>Silence</b> - no skills, no basics, no acting at all.</span></div>
-              <div class="rb-chip"><i class="ra ra-aura" style="color: #a9e9ff"></i><span><b>Warded</b> - flat damage resistance. Works even while Exposed.</span></div>
-              <div class="rb-chip"><i class="ra ra-crossed-swords" style="color: #9fd8ff"></i><span><b>Counter</b> - strikes back automatically when hit while shielded.</span></div>
-              <div class="rb-chip"><i class="ra ra-broken-heart" style="color: #ff9d9d"></i><span><b>Healing cut</b> - heals do less. Shields are unaffected.</span></div>
-              <div class="rb-chip"><i class="ra ra-hourglass" style="color: #8fe3b0"></i><span><b>Cost shift</b> - the whole team's skills cost +15% or -15%.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-burning-embers" style="color: #ff7a3c"></i><span><b>Burn</b> - 5% of max HP every turn. Ignores armor <i>and</i> shields.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-broken-shield" style="color: #ff5f7e"></i><span><b>Exposed</b> - defense stripped to 0%. Hit them NOW.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-lightning-storm" style="color: #ffe066"></i><span><b>Marked</b> - the next damaging <i>skill</i> detonates it for a bonus. Basics do not.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-uncertainty" style="color: #e0a3ff"></i><span><b>Silence</b> - no skills, no basics, no acting at all.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-aura" style="color: #a9e9ff"></i><span><b>Warded</b> - flat damage resistance. Works even while Exposed.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-crossed-swords" style="color: #9fd8ff"></i><span><b>Counter</b> - strikes back automatically when hit while shielded.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-broken-heart" style="color: #ff9d9d"></i><span><b>Healing cut</b> - heals do less. Shields are unaffected.</span></div>
+              <div class="rb-chip"><i data-icon-domain="game" class="ra ra-hourglass" style="color: #8fe3b0"></i><span><b>Cost shift</b> - the whole team's skills cost +15% or -15%.</span></div>
             </div>
             <p class="rb-fine">
               Debuffs are ammunition: legends like <b>Inari</b>, <b>Cicero</b> and the
@@ -636,7 +637,7 @@
         <!-- 9. the ten arenas - full width, art does the talking -->
         <article class="rule-card rb-wide">
           <div class="rc-head">
-            <i class="ra ra-arena"></i>
+            <i data-icon-domain="game" class="ra ra-arena"></i>
             <h3>The Ten Arenas</h3>
           </div>
           <div class="rc-body">
@@ -771,7 +772,7 @@
       <div class="card-grid deck-grid" id="deck-grid"></div>
 
       <div class="empty-state" id="deck-empty">
-        <i class="ra ra-broken-shield"></i>
+        <i class="ri-inbox-2-line"></i>
         No legends match these filters.
       </div>
 
@@ -845,7 +846,7 @@
               <span><b>Final card</b> Epic 100%</span>
             </p>
             <p class="product-note">
-              <i class="ra ra-crown"></i><b>No pack sells a Legendary.</b> The rarest echoes are
+              <i data-icon-domain="game" class="ra ra-crown"></i><b>No pack sells a Legendary.</b> The rarest echoes are
               earned on the Road of Echoes - one per faction, granted at its gate. Money buys
               speed here, never crowns.
             </p>
@@ -885,7 +886,7 @@
           </p>
           <div class="po-sum-actions">
             <button class="btn btn-ghost btn-slim" id="po-again">
-              <i class="ra ra-gem"></i><span>Open Another</span>
+              <i class="ri-add-circle-line"></i><span>Open Another</span>
             </button>
             <button class="btn btn-primary btn-slim" id="po-done">
               <i class="ri-check-line"></i><span>Done</span>
@@ -910,7 +911,7 @@
         </button>
 
         <div class="auth-head">
-          <div class="auth-emblem"><i class="ra ra-crossed-swords"></i></div>
+          <div class="auth-emblem"><i class="ri-shield-user-line"></i></div>
           <h2 class="auth-title" id="auth-title">Welcome back</h2>
           <p class="auth-sub" id="auth-sub">
             Sign in to play online matches against other players.
@@ -970,7 +971,7 @@
             <input type="password" name="password" placeholder="........" autocomplete="off" />
           </label>
           <button type="submit" class="btn btn-primary auth-submit" id="auth-submit">
-            <i class="ra ra-key"></i><span id="auth-submit-txt">Sign in</span>
+            <i class="ri-login-box-line"></i><span id="auth-submit-txt">Sign in</span>
           </button>
         </form>
       </div>
@@ -1116,7 +1117,7 @@
       <div class="auth-scrim" id="uname-scrim"></div>
       <div class="auth-card" role="document">
         <div class="auth-head">
-          <div class="auth-emblem"><i class="ra ra-crown"></i></div>
+          <div class="auth-emblem"><i class="ri-user-star-line"></i></div>
           <h2 class="auth-title" id="uname-title">Choose your callsign</h2>
           <p class="auth-sub">
             This is the name other players see in matchmaking. Letters, numbers, and
@@ -1130,7 +1131,7 @@
             <input type="text" id="uname-input" placeholder="e.g. Scribe_77" autocomplete="off" />
           </label>
           <button type="submit" class="btn btn-primary auth-submit">
-            <i class="ra ra-quill-ink"></i><span>Claim this name</span>
+            <i class="ri-check-line"></i><span>Claim this name</span>
           </button>
         </form>
         <button type="button" class="btn btn-ghost uname-skip" id="uname-skip">
@@ -1146,7 +1147,7 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-crossed-swords"></i></span>
+          <span class="mast-emblem" aria-hidden="true"><i class="ri-gamepad-line"></i></span>
           <h2 class="col-title">Play</h2>
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">Choose your battlefield</p>
@@ -1163,10 +1164,10 @@
           role="tab"
           aria-selected="true"
         >
-          <i class="ra ra-player"></i><span>Singleplayer</span>
+          <i class="ri-user-3-line"></i><span>Singleplayer</span>
         </button>
         <button type="button" class="play-tab" data-arena="mp" role="tab" aria-selected="false">
-          <i class="ra ra-double-team"></i><span>Multiplayer</span>
+          <i class="ri-team-line"></i><span>Multiplayer</span>
           <span class="play-tab-note" id="mp-lock">account</span>
         </button>
         <span class="play-tab-thumb" aria-hidden="true"></span>
@@ -1177,8 +1178,8 @@
              inside the deck popup below - the play screen itself stays
              a one-look mode select with no scrolling. -->
         <button class="mode-card" id="mode-classic">
-          <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
-          <i class="mode-glyph ra ra-crossed-swords"></i>
+          <i class="mode-wm ri-sword-line" aria-hidden="true"></i>
+          <i class="mode-glyph ri-sword-line"></i>
           <span class="mode-name">Classic</span>
           <span class="mode-desc">
             Bring a saved deck of 12. Ban 2 of the enemy's legends, field your six, fight.
@@ -1187,8 +1188,8 @@
         </button>
 
         <button class="mode-card" id="mode-draft">
-          <i class="mode-wm ra ra-clovers-card" aria-hidden="true"></i>
-          <i class="mode-glyph ra ra-clovers-card"></i>
+          <i class="mode-wm ri-shuffle-line" aria-hidden="true"></i>
+          <i class="mode-glyph ri-shuffle-line"></i>
           <span class="mode-name">Draft</span>
           <span class="mode-desc">
             Build from nothing - snake-draft 12 legends against the bot, then the same bans and
@@ -1198,8 +1199,8 @@
         </button>
 
         <button class="mode-card" id="mode-campaign">
-          <i class="mode-wm ra ra-compass" aria-hidden="true"></i>
-          <i class="mode-glyph ra ra-compass"></i>
+          <i class="mode-wm ri-road-map-line" aria-hidden="true"></i>
+          <i class="mode-glyph ri-road-map-line"></i>
           <span class="mode-name">Campaign</span>
           <span class="mode-desc">
             A nameless Wayfarer crosses ten gates before the First Legend decides whether a story
@@ -1209,8 +1210,8 @@
         </button>
 
         <button class="mode-card mode-card-daily" id="mode-daily">
-          <i class="mode-wm ra ra-hourglass" aria-hidden="true"></i>
-          <i class="mode-glyph ra ra-hourglass"></i>
+          <i class="mode-wm ri-calendar-check-line" aria-hidden="true"></i>
+          <i class="mode-glyph ri-calendar-check-line"></i>
           <span class="mode-name">Daily Puzzles</span>
           <span class="mode-desc">
             One AI-forged mid-battle position for everyone. One official attempt before the next
@@ -1222,8 +1223,8 @@
 
       <div class="mode-grid" id="mode-grid-mp" hidden>
         <button class="mode-card" id="mode-mp-classic">
-          <i class="mode-wm ra ra-crossed-swords" aria-hidden="true"></i>
-          <i class="mode-glyph ra ra-crossed-swords"></i>
+          <i class="mode-wm ri-sword-line" aria-hidden="true"></i>
+          <i class="mode-glyph ri-sword-line"></i>
           <span class="mode-name">Online Classic</span>
           <span class="mode-desc">
             Bring your own deck of 12 against a real opponent, then the same bans and battle as
@@ -1233,8 +1234,8 @@
         </button>
 
         <button class="mode-card" id="mode-mp-draft">
-          <i class="mode-wm ra ra-clovers-card" aria-hidden="true"></i>
-          <i class="mode-glyph ra ra-clovers-card"></i>
+          <i class="mode-wm ri-shuffle-line" aria-hidden="true"></i>
+          <i class="mode-glyph ri-shuffle-line"></i>
           <span class="mode-name">Online Draft</span>
           <span class="mode-desc">
             Snake-draft 12 legends against a real opponent, then the same bans and battle as
@@ -1258,7 +1259,7 @@
           <i class="ri-close-line"></i>
         </button>
         <div class="daily-sigil" aria-hidden="true">
-          <i class="ra ra-hourglass"></i>
+          <i class="ri-calendar-check-line"></i>
           <span></span>
         </div>
         <span class="daily-kicker">One board · one attempt</span>
@@ -1278,7 +1279,7 @@
           <div><span id="daily-metric-third">AI sample</span><b id="daily-time">3 / 10</b></div>
         </div>
         <button class="btn btn-primary daily-enter" id="daily-enter" type="button" hidden>
-          <i class="ra ra-crossed-swords"></i><span>Play this position</span>
+          <i class="ri-play-line"></i><span>Play this position</span>
         </button>
         <p class="daily-fine" id="daily-fine">
           Resets every day at 7:00 AM Eastern Time
@@ -1304,14 +1305,14 @@
             </button>
           </div>
           <button type="button" class="wl-opt" data-len="single" aria-pressed="true">
-            <i class="ra ra-player-thunder-struck" aria-hidden="true"></i>
+            <i class="ri-sword-line" aria-hidden="true"></i>
             <span class="wl-body">
               <span class="wl-name">Single Battle</span>
               <span class="wl-sub">One game, quick war</span>
             </span>
           </button>
           <button type="button" class="wl-opt" data-len="set" aria-pressed="false">
-            <i class="ra ra-scroll-unfurled" aria-hidden="true"></i>
+            <i class="ri-book-2-line" aria-hidden="true"></i>
             <span class="wl-body">
               <span class="wl-name">Unabridged &middot; Bo3</span>
               <span class="wl-sub">3-board fight card, swaps between games</span>
@@ -1334,7 +1335,7 @@
     <div class="mm-modal" id="mm-modal" hidden>
       <div class="mm-scrim" id="mm-scrim"></div>
       <div class="mm-card">
-        <div class="mm-spinner" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
+        <div class="mm-spinner" aria-hidden="true"><i class="ri-loader-4-line"></i></div>
         <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
         <div class="mm-subrow">
           <p class="mm-sub" id="mm-sub">Searching the queue...</p>
@@ -1349,7 +1350,7 @@
         </div>
         <div class="mm-vs" id="mm-vs" hidden>
           <span class="mm-side" id="mm-you">You</span>
-          <span class="mm-x"><i class="ra ra-crossed-swords"></i></span>
+          <span class="mm-x"><i class="ri-sword-line"></i></span>
           <span class="mm-side" id="mm-opp">Opponent</span>
         </div>
         <button class="btn btn-ghost btn-slim" id="mm-cancel">
@@ -1368,7 +1369,7 @@
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <span class="mast-emblem" aria-hidden="true"><i class="ra ra-compass"></i></span>
+          <span class="mast-emblem" aria-hidden="true"><i class="ri-road-map-line"></i></span>
           <h2 class="col-title">Campaign</h2>
           <span class="mast-rule" aria-hidden="true"></span>
           <p class="col-sub">Where unfinished stories learn how to continue</p>
@@ -1425,7 +1426,7 @@
         <div class="chapter-head-inner">
         <div class="col-titles">
           <span class="mast-emblem chapter-emblem" aria-hidden="true"
-            ><i class="ra ra-compass"></i
+            ><i class="ri-road-map-line"></i
           ></span>
           <p class="chapter-overline">Chapter 1</p>
           <h2 class="col-title" id="chapter-title">The Road of Echoes</h2>
@@ -1436,7 +1437,7 @@
         <!-- THE LEDGER: the Recruiter's index of rivals and legends.
              Introduced by a one-time highlight after Gate I falls. -->
         <button class="ledger-btn" id="btn-ledger" type="button" aria-label="Open the Recruiter's Ledger">
-          <i class="ra ra-quill-ink" aria-hidden="true"></i><span>The Ledger</span>
+          <i class="ri-file-list-3-line" aria-hidden="true"></i><span>The Ledger</span>
         </button>
       </header>
 
@@ -1477,7 +1478,7 @@
                 becoming trapped inside itself.&rdquo;
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Recruiter
+                <i class="ri-chat-3-line"></i> Click to speak with The Recruiter
               </div>
             </div>
           </div>
@@ -1520,7 +1521,7 @@
                 out. It is made to tell danger where it must stop.&rdquo;
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Oathkeeper
+                <i class="ri-chat-3-line"></i> Click to speak with The Oathkeeper
               </div>
             </div>
           </div>
@@ -1562,7 +1563,7 @@
                 brightest echo to see who you leave behind.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Outlaw
+                <i class="ri-chat-3-line"></i> Click to speak with The Outlaw
               </div>
             </div>
           </div>
@@ -1604,7 +1605,7 @@
                 prophecy or freedom.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Anointed
+                <i class="ri-chat-3-line"></i> Click to speak with The Anointed
               </div>
             </div>
           </div>
@@ -1648,7 +1649,7 @@
                 memory and the Quiet.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Warden
+                <i class="ri-chat-3-line"></i> Click to speak with The Warden
               </div>
             </div>
           </div>
@@ -1690,7 +1691,7 @@
                 to win with what remains.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Trickster
+                <i class="ri-chat-3-line"></i> Click to speak with The Trickster
               </div>
             </div>
           </div>
@@ -1732,7 +1733,7 @@
                 destiny.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Strategist
+                <i class="ri-chat-3-line"></i> Click to speak with The Strategist
               </div>
             </div>
           </div>
@@ -1773,7 +1774,7 @@
                 In the wall-less library beneath cold stars, the Quiet learns that you exist.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Chronicler
+                <i class="ri-chat-3-line"></i> Click to speak with The Chronicler
               </div>
             </div>
           </div>
@@ -1817,7 +1818,7 @@
                 hold a door shut against oblivion.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with The Last Guardian
+                <i class="ri-chat-3-line"></i> Click to speak with The Last Guardian
               </div>
             </div>
           </div>
@@ -1861,7 +1862,7 @@
                 whether a story can continue without becoming a prison.
               </p>
               <div class="sc-prompt">
-                <i class="ra ra-speech-bubble"></i> Click to speak with Gilgamesh
+                <i class="ri-chat-3-line"></i> Click to speak with Gilgamesh
               </div>
             </div>
           </div>
@@ -1903,7 +1904,7 @@
             draggable="false"
           />
           <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph" hidden
-            ><i class="ra ra-hood"></i
+            ><i data-icon-domain="game" class="ra ra-hood"></i
           ></span>
         </div>
         <div class="chapter-dialogue-copy">
@@ -1957,7 +1958,7 @@
           <i class="ri-close-line"></i>
         </button>
         <header class="ledger-head">
-          <h2 id="ledger-title"><i class="ra ra-quill-ink"></i> The Recruiter's Ledger</h2>
+          <h2 id="ledger-title"><i class="ri-file-list-3-line"></i> The Recruiter's Ledger</h2>
         </header>
         <div class="ledger-body">
           <div class="ledger-rivals" id="ledger-rivals">
@@ -1982,7 +1983,7 @@
     >
       <div class="grant-choice-scrim"></div>
       <div class="grant-choice-card">
-        <h2 id="grant-choice-title"><i class="ra ra-locked-fortress"></i> Choose your echoes</h2>
+        <h2 id="grant-choice-title"><i data-icon-domain="game" class="ra ra-locked-fortress"></i> Choose your echoes</h2>
         <p class="grant-choice-sub" id="grant-choice-sub"></p>
         <div class="grant-choice-grid prep-cards" id="grant-choice-grid"></div>
         <!-- Same little battle-card inspector used by the Ledger. -->
@@ -2097,7 +2098,7 @@
       <div class="prep-board" id="prep-board">
         <section class="prep-side you" id="prep-side-you">
           <div class="prep-side-tag">
-            <i class="ra ra-player"></i><span>Your Deck</span>
+            <i data-icon-domain="game" class="ra ra-player"></i><span>Your Deck</span>
             <span class="prep-note" id="prep-player-note"
               >the enemy's bans are hidden until you commit yours</span
             >
@@ -2106,12 +2107,12 @@
         </section>
 
         <div class="prep-vs" id="prep-vs" aria-hidden="true">
-          <i class="ra ra-crossed-swords"></i>
+          <i data-icon-domain="game" class="ra ra-crossed-swords"></i>
         </div>
 
         <section class="prep-side foe" id="prep-side-foe">
           <div class="prep-side-tag">
-            <i class="ra ra-skull"></i><span>Enemy Deck</span>
+            <i data-icon-domain="game" class="ra ra-skull"></i><span>Enemy Deck</span>
             <span class="prep-note" id="prep-enemy-note">tap 2 to ban</span>
           </div>
           <div class="prep-cards" id="prep-enemy"></div>
@@ -2120,7 +2121,7 @@
                (owner note 2026-08-10: above it, it shifted the enemy
                cards out of alignment with the player's). -->
           <p class="ledger-tell" id="prep-ledger-tell" hidden>
-            <i class="ra ra-quill-ink" aria-hidden="true"></i>
+            <i class="ri-file-list-3-line" aria-hidden="true"></i>
             <span class="ledger-tell-body">
               <b>The Recruiter's ledger</b>
               <span id="prep-ledger-tell-text"></span>
@@ -2146,7 +2147,7 @@
           </div>
           <div class="prep-actions">
             <button class="btn btn-primary" id="prep-confirm" disabled>
-              <i class="ra ra-crossed-swords"></i><span id="prep-confirm-txt">To battle</span>
+              <i class="ri-sword-line"></i><span id="prep-confirm-txt">To battle</span>
             </button>
             <button
               type="button"
@@ -2166,7 +2167,7 @@
       <!-- phase 1 dock: the confirm lives under the board until the tray opens -->
       <div class="prep-actions main" id="prep-actions-main">
         <button class="btn btn-primary" id="prep-confirm-main" disabled>
-          <i class="ra ra-crossed-swords"></i><span id="prep-confirm-main-txt">Confirm bans</span>
+          <i class="ri-check-line"></i><span id="prep-confirm-main-txt">Confirm bans</span>
         </button>
       </div>
 
@@ -2192,7 +2193,7 @@
             <ul class="bf-rules" id="bf-rules"></ul>
             <p class="bf-draft" id="bf-draft"></p>
             <button class="btn btn-primary bf-go" id="bf-go">
-              <i class="ra ra-crossed-swords"></i><span>Field your six</span>
+              <i class="ri-check-line"></i><span>Field your six</span>
             </button>
           </div>
         </div>
@@ -2227,14 +2228,14 @@
       <div class="draft-piles">
         <div class="draft-pile you">
           <div class="dpile-tag">
-            <i class="ra ra-player"></i><span>Your squad</span>
+            <i data-icon-domain="game" class="ra ra-player"></i><span>Your squad</span>
             <b><span id="dp-you-n">0</span>/12</b>
           </div>
           <div class="dpile-strip" id="dpile-you"></div>
         </div>
         <div class="draft-pile foe">
           <div class="dpile-tag">
-            <i class="ra ra-skull"></i><span>Enemy squad</span>
+            <i data-icon-domain="game" class="ra ra-skull"></i><span>Enemy squad</span>
             <b><span id="dp-foe-n">0</span>/12</b>
           </div>
           <div class="dpile-strip" id="dpile-foe"></div>
@@ -2248,7 +2249,7 @@
     <!-- ==================== COACH OVERLAY + TOASTS ==================== -->
     <div class="coach" id="coach" aria-hidden="true">
       <div class="coach-card">
-        <div class="coach-ico"><i id="coach-ico" class="ra ra-clovers-card"></i></div>
+        <div class="coach-ico"><i id="coach-ico" class="ri-lightbulb-line"></i></div>
         <h3 class="coach-title" id="coach-title"></h3>
         <p class="coach-body" id="coach-body"></p>
         <button class="btn btn-primary btn-slim coach-ok" id="coach-ok">
@@ -2269,7 +2270,7 @@
     >
       <div class="quit-scrim" id="quit-scrim"></div>
       <div class="quit-card">
-        <div class="quit-ico"><i class="ra ra-castle-flag"></i></div>
+        <div class="quit-ico"><i class="ri-flag-line"></i></div>
         <h3 class="quit-title" id="quit-title">Leave the match?</h3>
         <p class="quit-body" id="quit-body">
           This is an online match. Leaving now counts as a forfeit and your opponent wins.
@@ -2279,7 +2280,7 @@
             <i class="ri-arrow-go-back-line"></i><span>Keep playing</span>
           </button>
           <button class="btn btn-danger btn-slim" id="quit-go">
-            <i class="ra ra-castle-flag"></i><span>Forfeit and leave</span>
+            <i class="ri-flag-line"></i><span>Forfeit and leave</span>
           </button>
         </div>
       </div>
@@ -2296,18 +2297,18 @@
       <!-- TOP: both commanders + energy -->
       <header class="hud">
         <div class="hud-side player">
-          <div class="pf-icon" id="pf-player"><i class="ra ra-player"></i></div>
+          <div class="pf-icon" id="pf-player"><i class="ri-user-3-line"></i></div>
           <div class="pf-body">
             <div class="pf-name">
               <span id="pf-name-player">You</span>
               <span class="pf-alive"
-                ><i class="ra ra-health"></i><span id="alive-player">6</span></span
+                ><i data-icon-domain="game" class="ra ra-health"></i><span id="alive-player">6</span></span
               >
             </div>
             <div class="en-bar"><span class="en-fill" id="en-fill-player"></span></div>
           </div>
           <div class="en-txt">
-            <i class="ra ra-lightning-bolt"></i>
+            <i data-icon-domain="game" class="ra ra-lightning-bolt"></i>
             <b id="en-val-player">30</b><span id="en-cap-player">/30</span>
             <button
               type="button"
@@ -2348,7 +2349,7 @@
             <span class="round-num" id="round-num">1</span>
             <span class="turn-label" id="turn-label">Your Turn</span>
             <span class="init-tag" id="init-tag" title="Round 1 opening limit">
-              <i class="ra ra-hourglass"></i><b id="init-val">Round 1: Basic Skills only</b>
+              <i data-icon-domain="game" class="ra ra-hourglass"></i><b id="init-val">Round 1: Basic Skills only</b>
             </span>
             <!-- THE SET war score: same pill spec as the ramp tag, in
                  black/gray. Shown instead of the action pill above while
@@ -2361,7 +2362,7 @@
               title="Unabridged - first to 2 games. The loser of each game calls the next battlefield."
             ></span>
             <span class="ramp-tag" id="ramp-tag" title="All legends gain ATK each round">
-              <i class="ra ra-muscle-up"></i><b id="ramp-val">+0%</b> ATK
+              <i data-icon-domain="game" class="ra ra-muscle-up"></i><b id="ramp-val">+0%</b> ATK
             </span>
           </div>
           <div class="et-wrap">
@@ -2378,7 +2379,7 @@
 
         <div class="hud-side enemy">
           <div class="en-txt">
-            <i class="ra ra-lightning-bolt"></i>
+            <i data-icon-domain="game" class="ra ra-lightning-bolt"></i>
             <b id="en-val-enemy">30</b><span id="en-cap-enemy">/30</span>
             <button
               type="button"
@@ -2392,13 +2393,13 @@
           <div class="pf-body">
             <div class="pf-name">
               <span class="pf-alive"
-                ><i class="ra ra-health"></i><span id="alive-enemy">6</span></span
+                ><i data-icon-domain="game" class="ra ra-health"></i><span id="alive-enemy">6</span></span
               >
               <span id="pf-name-enemy">Enemy Bot</span>
             </div>
             <div class="en-bar"><span class="en-fill" id="en-fill-enemy"></span></div>
           </div>
-          <div class="pf-icon" id="pf-enemy"><i class="ra ra-skull"></i></div>
+          <div class="pf-icon" id="pf-enemy"><i data-icon-domain="game" class="ra ra-skull"></i></div>
         </div>
       </header>
 
@@ -2408,11 +2409,11 @@
              Hovering (or focusing) it opens a panel naming the terrain
              and listing exactly what it does. -->
         <div class="bf-chip" id="bf-chip" hidden tabindex="0" aria-describedby="bf-chip-pop">
-          <i class="ra" id="bf-chip-ico"></i>
+          <i data-icon-domain="game" class="ra" id="bf-chip-ico"></i>
           <span id="bf-chip-name"></span>
           <div class="bf-chip-pop" id="bf-chip-pop" role="tooltip">
             <div class="bfp-head">
-              <i class="ra" id="bfp-ico"></i>
+              <i data-icon-domain="game" class="ra" id="bfp-ico"></i>
               <div>
                 <div class="bfp-name" id="bfp-name"></div>
                 <div class="bfp-kicker">Battlefield</div>
@@ -2423,7 +2424,7 @@
           </div>
         </div>
         <div class="puzzle-chip" id="puzzle-chip" hidden>
-          <i class="ra ra-hourglass" aria-hidden="true"></i>
+          <i class="ri-calendar-check-line" aria-hidden="true"></i>
           <span><small>Daily Puzzle</small><b id="puzzle-chip-detail">Round 5 &middot; 30% estimate</b></span>
         </div>
         <!-- ================= BATTLEFIELD SCENE =================
@@ -2487,18 +2488,18 @@
              out of the way: it must be reachable but never mistaken for
              a primary action. Confirms before it fires. -->
         <button class="forfeit-btn" id="btn-forfeit" hidden>
-          <i class="ra ra-castle-flag"></i><span>Forfeit</span>
+          <i class="ri-flag-line"></i><span>Forfeit</span>
         </button>
 
         <section class="team-side player-side">
-          <div class="row-tag player-tag"><i class="ra ra-player"></i> Your Team</div>
+          <div class="row-tag player-tag"><i data-icon-domain="game" class="ra ra-player"></i> Your Team</div>
           <div class="bgrid" id="grid-player"></div>
         </section>
 
-        <div class="clash"><span></span><i class="ra ra-crossed-swords"></i><span></span></div>
+        <div class="clash"><span></span><i data-icon-domain="game" class="ra ra-crossed-swords"></i><span></span></div>
 
         <section class="team-side enemy-side">
-          <div class="row-tag enemy-tag">Enemy <i class="ra ra-skull"></i></div>
+          <div class="row-tag enemy-tag">Enemy <i data-icon-domain="game" class="ra ra-skull"></i></div>
           <div class="bgrid" id="grid-enemy"></div>
         </section>
       </main>
@@ -2544,7 +2545,7 @@
           >
             <i class="ri-question-line"></i>
           </button>
-          <div class="result-icon"><i class="ra ra-crown"></i></div>
+          <div class="result-icon"><i class="ri-trophy-line"></i></div>
           <h2 class="result-title">Victory</h2>
           <p class="result-sub"></p>
           <p class="result-rounds"></p>
@@ -2557,7 +2558,7 @@
           <div class="result-stats" id="result-stats" hidden></div>
           <div class="result-actions">
             <button class="btn btn-primary" id="btn-rematch">
-              <i class="ra ra-cycle"></i><span>Rematch</span>
+              <i class="ri-restart-line"></i><span>Rematch</span>
             </button>
             <button class="btn btn-ghost" id="btn-result-home">
               <i class="ri-home-4-line"></i><span>Home</span>
@@ -2583,12 +2584,12 @@
       <div class="setm-scrim"></div>
       <div class="setm-card fightcard">
         <h2 class="setm-title" id="set-fightcard-title">
-          <i class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED &mdash; FIGHT CARD
+          <i data-icon-domain="game" class="ra ra-scroll-unfurled" aria-hidden="true"></i> UNABRIDGED &mdash; FIGHT CARD
         </h2>
         <p class="setm-sub" id="set-fightcard-sub"></p>
         <div class="setm-plates" id="set-fightcard-plates"></div>
         <button type="button" class="btn btn-primary setm-go" id="set-fightcard-go">
-          <i class="ra ra-crossed-swords"></i><span>Field your six</span>
+          <i class="ri-check-line"></i><span>Field your six</span>
         </button>
       </div>
     </div>
@@ -2608,7 +2609,7 @@
       <div class="setm-scrim"></div>
       <div class="setm-card">
         <h2 class="setm-title" id="set-boardpick-title">
-          <i class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD
+          <i data-icon-domain="game" class="ra ra-crowned-heart" aria-hidden="true"></i> CALL THE NEXT BATTLEFIELD
           <button
             type="button"
             class="tipdot"
@@ -2640,7 +2641,7 @@
       <div class="veil-core">
         <div class="veil-ward-wrap">
           <span class="veil-ward"><i></i><b></b></span>
-          <div class="veil-seal" aria-hidden="true"><i class="ra ra-crossed-swords"></i></div>
+          <div class="veil-seal" aria-hidden="true"><i class="ri-sword-line"></i></div>
         </div>
         <div class="veil-title">Echoes <em>of</em> Legend</div>
         <div class="veil-bar"><span></span></div>

@@ -85,7 +85,7 @@
       ';--pct:' +
       pct.toFixed(1) +
       '%">' +
-      '<i class="stat-ico ra ' +
+      '<i data-icon-domain="game" class="stat-ico ra ' +
       icon +
       '"></i>' +
       '<span class="stat-key">' +
@@ -122,7 +122,7 @@
 
     var costTag =
       isActive && card.ability.cost != null
-        ? '<span class="ab-cost"><i class="ra ra-lightning-bolt"></i>' +
+        ? '<span class="ab-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
           card.ability.cost +
           '</span>'
         : '';
@@ -134,7 +134,7 @@
       ? '<div class="art-portrait"><img src="' +
         esc(card.art) +
         '" alt="" draggable="false" /></div>'
-      : '<i class="art-glyph ra ' + card.icon + '"></i>';
+      : '<i data-icon-domain="game" class="art-glyph ra ' + card.icon + '"></i>';
 
     el.innerHTML =
       '<div class="card-art' +
@@ -155,14 +155,14 @@
       '<span class="element-orb" title="' +
       esc(card.element) +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       (ELEMENT_ICON[card.element] || 'ra-player') +
       '"></i>' +
       '</span>' +
       '</div>' +
       '<div class="card-plate">' +
       '<div class="plate-role">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       (ROLE_ICON[card.role] || 'ra-player') +
       '"></i>' +
       esc(card.role) +
@@ -216,7 +216,7 @@
       '</div>' +
       '</div>' +
       '<div class="ov-foot">' +
-      '<span class="role-pill"><i class="ra ' +
+      '<span class="role-pill"><i data-icon-domain="game" class="ra ' +
       (ROLE_ICON[card.role] || 'ra-player') +
       '"></i> ' +
       esc(card.role) +
@@ -394,7 +394,14 @@
   }
 
   /* Build one dropdown.
-     opts: [{value, label, icon}]  onPick: fn(value) */
+     opts: [{value, label, icon}]  onPick: fn(value)
+
+     RPG Awesome is permitted here only when an option itself is a game
+     concept (faction, rarity, role). Mark those nodes so the icon audit
+     can distinguish them from ordinary dropdown chrome. */
+  function iconDomainAttr(icon) {
+    return icon && /(^|\s)ra(\s|$)/.test(icon) ? ' data-icon-domain="game"' : '';
+  }
   function buildDropdown(host, label, opts, onPick) {
     var dd = document.createElement('div');
     dd.className = 'dd';
@@ -419,7 +426,7 @@
         label +
         '</span>' +
         '<span class="dd-value">' +
-        (o.icon ? '<i class="' + o.icon + '"></i>' : '') +
+        (o.icon ? '<i' + iconDomainAttr(o.icon) + ' class="' + o.icon + '"></i>' : '') +
         esc(o.text) +
         '</span>' +
         '<i class="dd-caret ri-arrow-down-s-line"></i>';
@@ -437,7 +444,9 @@
       b.dataset.value = o.value;
       b.setAttribute('role', 'option');
       b.innerHTML =
-        (o.icon ? '<i class="' + o.icon + '"></i>' : '<i class="dd-blank"></i>') +
+        (o.icon
+          ? '<i' + iconDomainAttr(o.icon) + ' class="' + o.icon + '"></i>'
+          : '<i class="dd-blank"></i>') +
         '<span>' +
         esc(o.text) +
         '</span><i class="dd-check ri-check-line"></i>';
@@ -1233,13 +1242,13 @@
           if (av) {
             av.innerHTML = user.avatar
               ? '<img src="' + esc(user.avatar) + '" alt="" />'
-              : '<i class="ra ra-player"></i>';
+              : '<i class="ri-user-3-line"></i>';
           }
           if (!modal.hidden) close();
         } else {
           if (label) label.textContent = 'Sign in';
           openBtn.title = 'Sign in';
-          if (av) av.innerHTML = '<i class="ra ra-player"></i>';
+          if (av) av.innerHTML = '<i class="ri-user-3-line"></i>';
         }
       });
     }
@@ -1713,7 +1722,7 @@
         window.EOL.campaign.closeRecruiterDialogue();
         return;
       }
-goBack();
+      goBack();
       // the shop and the deck picker modal handle Esc themselves
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
@@ -1733,5 +1742,5 @@ goBack();
 
     show('home');
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
-});
+  });
 })();

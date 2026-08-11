@@ -327,7 +327,9 @@
       kicker.innerHTML =
         '<i class="ri-book-open-line"></i> Chapter 1 <i class="ri-sword-line kick-sep"></i> Gate ' +
         (ROMAN[dlg.stage ? dlg.stage.id : 1] || '') +
-        (dlg.kind === 'epilogue' ? ' <i class="ri-checkbox-circle-line kick-sep"></i> Cleared' : '');
+        (dlg.kind === 'epilogue'
+          ? ' <i class="ri-checkbox-circle-line kick-sep"></i> Cleared'
+          : '');
     }
     var img = $('chapter-dialogue-portrait');
     var glyph = $('chapter-dialogue-glyph');
@@ -351,17 +353,13 @@
     if (next) {
       if (line.battle) {
         next.innerHTML =
-          '<i class="ra ra-crossed-swords"></i><span>Fight ' +
+          '<i class="ri-sword-line"></i><span>Fight ' +
           (dlg.stage ? dlg.stage.rival : '') +
           '</span>';
       } else if (dlg.index >= dlg.lines.length - 1) {
         next.innerHTML =
           '<span>' +
-          (dlg.kind === 'epilogue'
-            ? 'Walk on'
-            : dlg.kind === 'intro'
-              ? 'To the Road'
-              : 'Close') +
+          (dlg.kind === 'epilogue' ? 'Walk on' : dlg.kind === 'intro' ? 'To the Road' : 'Close') +
           '</span><i class="ri-check-line"></i>';
       } else {
         next.innerHTML = '<span>Continue</span><i class="ri-arrow-right-line"></i>';
@@ -804,7 +802,9 @@
         title: 'Choose your deck to face ' + stage.rival,
         sub:
           stage.mode === 'set'
-            ? 'Unabridged: best of three on ' + stage.terrain + '. Substitutions are law - no retreat once it begins.'
+            ? 'Unabridged: best of three on ' +
+              stage.terrain +
+              '. Substitutions are law - no retreat once it begins.'
             : 'Select your squad of 12 for the battle on ' + stage.terrain + '.',
       }
     );
@@ -944,11 +944,14 @@
        guess. The line remains until it is dismissed or a newer relevant
        event replaces it. Later rivals keep the lightweight timed bark. */
     if (paced) return;
-    barkTimer = window.setTimeout(function () {
-      el.classList.remove('show');
-      barkActive = false;
-      barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
-    }, b.ms || barkMs(b.text));
+    barkTimer = window.setTimeout(
+      function () {
+        el.classList.remove('show');
+        barkActive = false;
+        barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
+      },
+      b.ms || barkMs(b.text)
+    );
   }
 
   /* THE QUEUE-JUMP: an off-script click needs its correction NOW, not
@@ -1446,8 +1449,7 @@
          your six" button is HELD until both beats are read: without
          this the popup could be dismissed straight past the lesson
          that points at it (user note 2026-08-09). */
-      var gatedBeats =
-        (T.arena && !tut.flags.arena) || (T.tips && !tut.flags.tips);
+      var gatedBeats = (T.arena && !tut.flags.arena) || (T.tips && !tut.flags.tips);
       var bfGo = $('bf-go');
       if (bfGo) {
         if (gatedBeats) {
@@ -1528,7 +1530,8 @@
        must not be scored as a gate clear. The battle itself knows what
        it is - trust it over our own memory. */
     try {
-      var live = window.EOL.battle && window.EOL.battle.getState ? window.EOL.battle.getState() : null;
+      var live =
+        window.EOL.battle && window.EOL.battle.getState ? window.EOL.battle.getState() : null;
       if (live && live.campaignStage !== activeCampaignStage) {
         activeCampaignStage = null;
         return null;
@@ -1769,15 +1772,13 @@
     var g = stage.grants || {};
     var chips = [];
     chips.push(
-      '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' +
-        (g.coins || 0) +
-        ' coins</span>'
+      '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' + (g.coins || 0) + ' coins</span>'
     );
     (g.cards || []).forEach(function (id) {
       var e = cardDict()[id];
       if (e)
         chips.push(
-          '<span class="sc-reward"><i class="ra ' +
+          '<span class="sc-reward"><i data-icon-domain="game" class="ra ' +
             e.card.icon +
             '"></i>' +
             (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
@@ -1786,7 +1787,7 @@
     });
     if (g.choice)
       chips.push(
-        '<span class="sc-reward"><i class="ra ra-locked-fortress"></i>Choose ' +
+        '<span class="sc-reward"><i data-icon-domain="game" class="ra ra-locked-fortress"></i>Choose ' +
           g.choice.count +
           ' Echoes</span>'
       );
@@ -1794,13 +1795,12 @@
       var crown = cardDict()[g.legendPack];
       if (crown)
         chips.push(
-          '<span class="sc-reward legendary"><i class="ra ra-crown"></i>Legendary: ' +
+          '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>Legendary: ' +
             (window.EOL.ui ? window.EOL.ui.esc(crown.card.name) : crown.card.name) +
             '</span>'
         );
     }
-    row.innerHTML =
-      '<b>' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
+    row.innerHTML = '<b>' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
   }
 
   function updateStageCards() {
@@ -1829,15 +1829,14 @@
             '<i class="ri-checkbox-circle-fill" style="color:#8fe3b0"></i> Gate Cleared';
         }
         if (prompt) {
-          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to walk the gate again';
+          prompt.innerHTML = '<i class="ri-chat-3-line"></i> Click to walk the gate again';
         }
       } else if (isUnlocked) {
         if (state) {
           state.innerHTML = '<i class="ri-lock-unlock-line" style="color:#ffd98a"></i> Open Gate';
         }
         if (prompt) {
-          prompt.innerHTML =
-            '<i class="ra ra-speech-bubble"></i> Click to speak with ' + stage.rival;
+          prompt.innerHTML = '<i class="ri-chat-3-line"></i> Click to speak with ' + stage.rival;
         }
       } else {
         if (state) {
@@ -1973,7 +1972,7 @@
                 : '<i class="ri-lock-2-fill lg-lock"></i>';
         var face =
           st === 'sealed'
-            ? '<span class="lg-face lg-face-hood"><i class="ra ra-hood"></i></span>'
+            ? '<span class="lg-face lg-face-hood"><i data-icon-domain="game" class="ra ra-hood"></i></span>'
             : '<span class="lg-face"><img src="' +
               stage.portrait +
               '" alt="" draggable="false" /></span>';
@@ -2006,7 +2005,7 @@
     var st = ledgerStateOf(stage, prog);
     if (st === 'sealed') {
       host.innerHTML =
-        '<div class="lg-sealed"><i class="ra ra-hood"></i>' +
+        '<div class="lg-sealed"><i data-icon-domain="game" class="ra ra-hood"></i>' +
         '<h3>Gate ' +
         ROMAN[stage.id] +
         '</h3>' +
@@ -2093,7 +2092,7 @@
     }
     if (stage.counsel && (stage.id !== 1 || st === 'full')) {
       html +=
-        '<div class="lg-fact"><span class="lg-label"><i class="ra ra-quill-ink"></i> Counsel</span><p>' +
+        '<div class="lg-fact"><span class="lg-label"><i class="ri-lightbulb-line"></i> Counsel</span><p>' +
         stage.counsel +
         '</p></div>';
     }
@@ -2116,7 +2115,7 @@
             (e.faction.id === (stage.pool && stage.pool.featured) ? ' featured' : '') +
             '" style="--fc:' +
             e.faction.colors.primary +
-            '"><i class="ra ' +
+            '"><i data-icon-domain="game" class="ra ' +
             e.faction.icon +
             '"></i>' +
             e.faction.name +
@@ -2125,7 +2124,9 @@
         html +=
           '<div class="lg-fact"><span class="lg-label"><i class="ri-stack-line"></i> The Table</span>' +
           '<p class="lg-tablenote">No fixed twelve - a draft. The pool draws from these roads' +
-          ((stage.pool || {}).featured ? ' (the bright crest is the featured faction, always whole)' : '') +
+          ((stage.pool || {}).featured
+            ? ' (the bright crest is the featured faction, always whole)'
+            : '') +
           ':</p>' +
           '<div class="lg-factions">' +
           chips +

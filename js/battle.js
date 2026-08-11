@@ -500,7 +500,7 @@
         var pop =
           '<span class="st-pop">' +
           '<span class="stp-head">' +
-          '<i class="ra ' +
+          '<i data-icon-domain="game" class="ra ' +
           st.icon +
           '"></i>' +
           '<b>' +
@@ -519,7 +519,7 @@
           '"' +
           (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
           ' tabindex="0">' +
-          '<i class="ra ' +
+          '<i data-icon-domain="game" class="ra ' +
           st.icon +
           '"></i>' +
           (st.count > 1 ? '<b class="st-n">' + st.count + '</b>' : '') +
@@ -537,7 +537,7 @@
       '' +
       '<div class="bstats">' +
       '<div class="bhp">' +
-      '<i class="ra ra-health bhp-ico"></i>' +
+      '<i data-icon-domain="game" class="ra ra-health bhp-ico"></i>' +
       '<span class="bbar">' +
       '<span class="bbar-fill" style="width:' +
       pct +
@@ -556,13 +556,13 @@
       '<span class="bnum' +
       (atkDelta > 0 ? ' up' : atkDelta < 0 ? ' down' : '') +
       '">' +
-      '<i class="ra ra-sword"></i>' +
+      '<i data-icon-domain="game" class="ra ra-sword"></i>' +
       atk +
       '</span>' +
       '<span class="bnum' +
       (defDelta > 0 ? ' up' : defDelta < 0 ? ' down' : '') +
       '">' +
-      '<i class="ra ra-shield"></i>' +
+      '<i data-icon-domain="game" class="ra ra-shield"></i>' +
       def +
       '%</span>' +
       '</div>' +
@@ -579,7 +579,7 @@
         ? '<div class="bart-portrait"><img src="' +
           esc(u.card.art) +
           '" alt="" draggable="false" /></div>'
-        : '<i class="ra ' + u.card.icon + '"></i>') +
+        : '<i data-icon-domain="game" class="ra ' + u.card.icon + '"></i>') +
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
@@ -589,7 +589,7 @@
       '<span class="borb" title="' +
       esc(u.element) +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       (ELEMENT_ICON[u.element] || 'ra-player') +
       '"></i></span>' +
       '</div>' +
@@ -597,7 +597,7 @@
       chips +
       '</div>' +
       '<div class="bcard-foot">' +
-      '<div class="bcard-role"><i class="ra ' +
+      '<div class="bcard-role"><i data-icon-domain="game" class="ra ' +
       (ROLE_ICON[u.role] || 'ra-player') +
       '"></i>' +
       esc(u.role) +
@@ -681,7 +681,9 @@
         esc(a.name) +
         '</span>' +
         (a.type === 'Active'
-          ? '<span class="tip-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>'
+          ? '<span class="tip-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+            cost +
+            '</span>'
           : '') +
         '</div>' +
         '<div class="tip-ab-text">' +
@@ -903,7 +905,7 @@
       if (sp.dataset.k !== sk) {
         sp.dataset.k = sk;
         sp.innerHTML =
-          '<i class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
+          '<i data-icon-domain="game" class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
           setInfo.game +
           '/3 - </span><b>' +
           setInfo.you +
@@ -1190,9 +1192,9 @@
               var lethal = pv.dmg >= u.hp + u.shield;
               chip.classList.toggle('lethal', lethal);
               chip.innerHTML =
-                '<i class="ra ra-sword"></i>' +
+                '<i data-icon-domain="game" class="ra ra-sword"></i>' +
                 pv.dmg.toLocaleString() +
-                (lethal ? '<i class="ra ra-skull dp-skull"></i>' : '');
+                (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
               chip.title =
                 'Estimated damage (before crits). Crit chance ' +
                 pv.critChance +
@@ -1248,9 +1250,11 @@
             var chip = document.createElement('span');
             chip.className = 'dmg-preview' + (pv.dmg >= t.hp + t.shield ? ' lethal' : '');
             chip.innerHTML =
-              '<i class="ra ra-sword"></i>' +
+              '<i data-icon-domain="game" class="ra ra-sword"></i>' +
               pv.dmg.toLocaleString() +
-              (pv.dmg >= t.hp + t.shield ? '<i class="ra ra-skull dp-skull"></i>' : '');
+              (pv.dmg >= t.hp + t.shield
+                ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>'
+                : '');
             el.appendChild(chip);
           }
         }
@@ -1364,7 +1368,9 @@
           '"><i class="ri-lock-fill"></i></span>'
         : '') +
       (isActive && !lockedPhase
-        ? '<span class="dk-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>'
+        ? '<span class="dk-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+          cost +
+          '</span>'
         : '') +
       '</div>' +
       '<div class="dk-ab-text">' +
@@ -1516,12 +1522,12 @@
             '"' +
             (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
             ' tabindex="0">' +
-            '<i class="ra ' +
+            '<i data-icon-domain="game" class="ra ' +
             st.icon +
             '"></i>' +
             (st.count > 1 ? '<b class="dk-sn">' + st.count + '</b>' : '') +
             '<span class="dk-spop">' +
-            '<span class="dsp-head"><i class="ra ' +
+            '<span class="dsp-head"><i data-icon-domain="game" class="ra ' +
             st.icon +
             '"></i><b>' +
             esc(st.label) +
@@ -1575,7 +1581,7 @@
       '<div class="dk-stat" style="--sc:' +
       color +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       icon +
       '"></i>' +
       '<span class="dk-stat-k">' +
@@ -1640,7 +1646,7 @@
           (sel.choose === i ? ' sel' : '') +
           '" data-choice="' +
           i +
-          '"><i class="ra ' +
+          '"><i data-icon-domain="game" class="ra ' +
           (c.icon || 'ra-sword') +
           '"></i>' +
           esc(c.label) +
@@ -1658,7 +1664,7 @@
          shaped needs to sit in it. */
       '<div class="dk-portrait" style="--fc-primary:' +
       u.faction.colors.primary +
-      '"><i class="ra ' +
+      '"><i data-icon-domain="game" class="ra ' +
       u.card.icon +
       '"></i></div>' +
       '<div class="dk-id">' +
@@ -1855,7 +1861,8 @@
       var wanted = scriptAbilityOf(mvA, u);
       var same =
         u.card.id === mvA.unit &&
-        (ability === wanted || (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
+        (ability === wanted ||
+          (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
       if (!same) {
         scriptDeny('The Recruiter shakes his head - follow the marked move');
         return;
@@ -1993,9 +2000,7 @@
        true and scriptMove() would refuse, stranding the final index
        unconsumed. */
     var mvC =
-      moveScript && moveScript.i < moveScript.moves.length
-        ? moveScript.moves[moveScript.i]
-        : null;
+      moveScript && moveScript.i < moveScript.moves.length ? moveScript.moves[moveScript.i] : null;
     if (mvC && mvC.side === 'player' && !mvC.pass && s.unit.card.id === mvC.unit) {
       scriptAdvance();
     }
@@ -2226,9 +2231,7 @@
          still ticks visually in ranked/solo wars as before. */
       if (
         side === 'player' &&
-        ((window.EOL.coach && window.EOL.coach.open()) ||
-          scriptActive() ||
-          (B && B.campaignStage))
+        ((window.EOL.coach && window.EOL.coach.open()) || scriptActive() || (B && B.campaignStage))
       ) {
         clockEnd = performance.now() + TURN_MS;
         if (num) num.textContent = Math.ceil(TURN_MS / 1000);
@@ -2973,7 +2976,13 @@
           if (E.canUse(B, act.unit, basic)) {
             var pool = E.legalTargets(B, act.unit, basic);
             if (pool.length) {
-              act = { unit: act.unit, ability: basic, chosen: [pool[0]], targets: [pool[0]], choose: 0 };
+              act = {
+                unit: act.unit,
+                ability: basic,
+                chosen: [pool[0]],
+                targets: [pool[0]],
+                choose: 0,
+              };
             }
           }
         } else {
@@ -3300,7 +3309,7 @@
 
     if (signature) {
       var sig = spawn('fx-cast-sigil', a.x, a.y, fx.color, 760);
-      sig.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+      sig.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
     }
 
     // motes gathering inward before the release
@@ -3758,7 +3767,7 @@
           var html = '';
           for (var p = 0; p < 8; p++) {
             html +=
-              '<i class="ra ' +
+              '<i data-icon-domain="game" class="ra ' +
               (p % 2 ? 'ra-leaf' : fx.sigil) +
               '" style="--a:' +
               p * 45 +
@@ -3862,7 +3871,7 @@
         }
         // a glowing rune stamps down over the target
         var st = spawn('fx-rune-stamp', t.x, t.y, fx.color, 620);
-        if (st) st.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+        if (st) st.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
         var col2 = spawn('fx-column', t.x, 0, fx.trail, 500);
         if (col2) {
           col2.style.top = '0px';
@@ -3873,7 +3882,7 @@
         if (!gfxLow()) {
           setTimeout(function () {
             var gh = spawn('fx-rune-ghost', t.x, t.y, fx.color, 1200);
-            if (gh) gh.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+            if (gh) gh.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
           }, 260);
         }
         break;
@@ -4137,8 +4146,8 @@
       '<div class="fx-coin ' +
       face +
       '">' +
-      '<div class="coin-face heads"><i class="ra ra-crown"></i></div>' +
-      '<div class="coin-face tails"><i class="ra ra-moon-sun"></i></div>' +
+      '<div class="coin-face heads"><i data-icon-domain="game" class="ra ra-crown"></i></div>' +
+      '<div class="coin-face tails"><i data-icon-domain="game" class="ra ra-moon-sun"></i></div>' +
       '</div>' +
       sparks +
       '<div class="fx-coin-label' +
@@ -4195,7 +4204,7 @@
       color,
       1000
     );
-    g.innerHTML = '<i class="ra ' + def.icon + '"></i>';
+    g.innerHTML = '<i data-icon-domain="game" class="ra ' + def.icon + '"></i>';
 
     // ring sweeping the card
     spawn('fx-stat-ring ' + (positive ? 'up' : 'down') + big, t.x, t.y, color, 720);
@@ -4637,7 +4646,14 @@
           var s = g[side][cid];
           var row =
             out[side][cid] ||
-            (out[side][cid] = { name: s.name, role: s.role, dealt: 0, healed: 0, taken: 0, kills: 0 });
+            (out[side][cid] = {
+              name: s.name,
+              role: s.role,
+              dealt: 0,
+              healed: 0,
+              taken: 0,
+              kills: 0,
+            });
           row.dealt += s.dealt;
           row.healed += s.healed;
           row.taken += s.taken;
@@ -4662,23 +4678,23 @@
         .map(function (r) {
           return (
             '<div class="rs-row">' +
-            '<i class="ra ' +
+            '<i data-icon-domain="game" class="ra ' +
             (ROLE_ICON[r.role] || 'ra-player') +
             '"></i>' +
             '<span class="rs-name">' +
             esc(r.name) +
             '</span>' +
-            '<span class="rs-n" title="Damage dealt"><i class="ra ra-sword"></i>' +
+            '<span class="rs-n" title="Damage dealt"><i data-icon-domain="game" class="ra ra-sword"></i>' +
             r.dealt.toLocaleString() +
             '</span>' +
-            '<span class="rs-n heal" title="Healing done"><i class="ra ra-health"></i>' +
+            '<span class="rs-n heal" title="Healing done"><i data-icon-domain="game" class="ra ra-health"></i>' +
             r.healed.toLocaleString() +
             '</span>' +
-            '<span class="rs-n taken" title="Damage taken"><i class="ra ra-broken-shield"></i>' +
+            '<span class="rs-n taken" title="Damage taken"><i data-icon-domain="game" class="ra ra-broken-shield"></i>' +
             r.taken.toLocaleString() +
             '</span>' +
             '<span class="rs-n ko" title="Kills">' +
-            (r.kills ? '<i class="ra ra-skull"></i>' + r.kills : '') +
+            (r.kills ? '<i data-icon-domain="game" class="ra ra-skull"></i>' + r.kills : '') +
             '</span>' +
             '</div>'
           );
@@ -4707,12 +4723,11 @@
         return agg[side][cid];
       });
     };
-    var foeName =
-      rivalInfo && rivalInfo.name ? rivalInfo.name + "'s legends" : 'Enemy legends';
+    var foeName = rivalInfo && rivalInfo.name ? rivalInfo.name + "'s legends" : 'Enemy legends';
     rs.innerHTML =
       '<div class="rs-head"><i class="ri-bar-chart-2-line"></i><span>Battle report' +
       (sr && sr.over ? ' - full set' : '') +
-      '</span><span class="rs-key"><i class="ra ra-sword"></i> dealt &middot; <i class="ra ra-health"></i> healed &middot; <i class="ra ra-broken-shield"></i> taken &middot; <i class="ra ra-skull"></i> kills</span></div>' +
+      '</span><span class="rs-key"><i data-icon-domain="game" class="ra ra-sword"></i> dealt &middot; <i data-icon-domain="game" class="ra ra-health"></i> healed &middot; <i data-icon-domain="game" class="ra ra-broken-shield"></i> taken &middot; <i data-icon-domain="game" class="ra ra-skull"></i> kills</span></div>' +
       '<div class="rs-cols">' +
       reportColHTML('Your legends', 'you', toRows('you')) +
       reportColHTML(foeName, 'foe', toRows('foe')) +
@@ -4803,7 +4818,9 @@
          from their wallet or collection. */
       if (coinsEl && cam.rewards) {
         coinsEl.innerHTML =
-          '<i class="ra ra-open-treasure-chest"></i><span>' + esc(cam.rewards) + '</span>';
+          '<i data-icon-domain="game" class="ra ra-open-treasure-chest"></i><span>' +
+          esc(cam.rewards) +
+          '</span>';
         coinsEl.classList.add('campaign-rewards');
         coinsEl.hidden = false;
       }
@@ -4957,7 +4974,11 @@
     if (url) {
       return '<img src="' + esc(url) + '" alt="" referrerpolicy="no-referrer" />';
     }
-    return '<i class="ra ' + fallbackIcon + '"></i>';
+    var isGameIcon = fallbackIcon.indexOf('ri-') !== 0;
+    var iconClass = isGameIcon ? 'ra ' + fallbackIcon : fallbackIcon;
+    return (
+      '<i' + (isGameIcon ? ' data-icon-domain="game"' : '') + ' class="' + iconClass + '"></i>'
+    );
   }
 
   function paintCommanders() {
@@ -4972,7 +4993,7 @@
     var pn = $('pf-name-player');
     if (pn) pn.textContent = youName;
     var pi = $('pf-player');
-    if (pi) pi.innerHTML = avatarHtml(me && me.avatar, 'ra-player');
+    if (pi) pi.innerHTML = avatarHtml(me && me.avatar, 'ri-user-3-line');
 
     /* Against the bot there is no opponent identity to show, so the
        skull and "Enemy Bot" stay - they are correct, not a placeholder.
@@ -4981,7 +5002,11 @@
        rather than a broken image. A CAMPAIGN battle shows the rival:
        the character is the opponent, and the plate should say so. */
     var foeName =
-      netCtl && netCtl.label ? netCtl.label : rivalInfo && rivalInfo.name ? rivalInfo.name : 'Enemy Bot';
+      netCtl && netCtl.label
+        ? netCtl.label
+        : rivalInfo && rivalInfo.name
+          ? rivalInfo.name
+          : 'Enemy Bot';
     var en = $('pf-name-enemy');
     if (en) en.textContent = foeName;
     var ei = $('pf-enemy');
@@ -4989,7 +5014,7 @@
       ei.innerHTML =
         rivalInfo && rivalInfo.img
           ? avatarHtml(rivalInfo.img, 'ra-skull')
-          : avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
+          : avatarHtml(null, netCtl ? 'ri-user-3-line' : 'ra-skull');
   }
 
   /* A generated puzzle is already several rounds into a real engine
@@ -5166,11 +5191,11 @@
       bfb.hidden = !fld;
       if (fld) {
         var ico = $('bf-chip-ico');
-        if (ico) ico.className = 'ra ' + fld.icon;
+        if (ico) ico.className = 'ra ' + fld.icon; // icon-domain: game
         var nm = $('bf-chip-name');
         if (nm) nm.textContent = fld.name;
         var pico = $('bfp-ico');
-        if (pico) pico.className = 'ra ' + fld.icon;
+        if (pico) pico.className = 'ra ' + fld.icon; // icon-domain: game
         var pnm = $('bfp-name');
         if (pnm) pnm.textContent = fld.name;
         var pd = $('bfp-desc');
@@ -5261,10 +5286,10 @@
     if (!B.puzzle && window.EOL.coach && window.EOL.coach.show) {
       window.EOL.coach.show(
         'battle',
-        'ra-crossed-swords',
+        'ri-sword-line',
         'Your first battle',
-        'The tall bar is your Energy - every Skill costs some. The round counter above '
-          + 'shows whose turn it is, and Pass ends your move. Tap a legend to fight.'
+        'The tall bar is your Energy - every Skill costs some. The round counter above ' +
+          'shows whose turn it is, and Pass ends your move. Tap a legend to fight.'
       );
     }
   }
