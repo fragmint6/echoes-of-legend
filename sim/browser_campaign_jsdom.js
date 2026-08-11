@@ -469,6 +469,17 @@ const server = http.createServer((req, res) => {
   t(shown, 'result screen shows');
   t(!$('result-stats').hidden, 'the battle report is on the result screen');
   t(d.querySelectorAll('#result-stats .rs-row').length === 12, 'a report line for every legend in the fight');
+  const critUnit = w.EOL.battle.getState().units.find((u) => u.alive);
+  w.EOL.battle._popNumber(
+    { type: 'damage', meta: { uid: critUnit.uid, amount: 1234, crit: true } },
+    0
+  );
+  await sleep(30);
+  t(
+    !!d.querySelector('.pop.crit .pop-critical') &&
+      d.querySelector('.pop.crit .pop-critical').textContent === 'CRITICAL',
+    'every critical damage number carries explicit CRITICAL text'
+  );
   t($('result-stats').textContent.indexOf("The Recruiter's legends") >= 0, "the enemy column carries the rival's name");
   t(
     !$('result-coins').hidden && $('result-coins').textContent.indexOf('+150 coins') >= 0,
@@ -840,18 +851,25 @@ const server = http.createServer((req, res) => {
     await sleep(1500);
     t(d.body.dataset.view === 'chapter', 'Legendary reveal opens after the chapter map returns');
     t(
+      $('pack-opening').parentNode === d.body && $('pack-opening').classList.contains('on'),
+      'the global reward theater is actually visible over the chapter map'
+    );
+    t(
       !$('po-campaign-award').hidden &&
-        $('po-campaign-award').textContent.indexOf('Legendary acquired') >= 0 &&
-        $('po-campaign-award-name').textContent.indexOf('King Arthur') >= 0,
-      'the gate popup unmistakably names the acquired Legendary before reveal'
+        $('po-campaign-award').textContent.indexOf('Legendary reward pack') >= 0 &&
+        $('po-campaign-award-name').textContent.indexOf('Gate II cleared') >= 0 &&
+        $('po-campaign-award').textContent.indexOf('King Arthur') < 0,
+      'the gate popup confirms the pack without revealing its Legendary'
     );
     const gate2Rewards = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
     t(
       gate2Rewards &&
         gate2Rewards.querySelectorAll('.sc-reward').length === 2 &&
         !!gate2Rewards.querySelector('.coin') &&
-        !!gate2Rewards.querySelector('.legendary'),
-      'a standard gate receipt contains only coins and its Legendary'
+        !!gate2Rewards.querySelector('.legendary') &&
+        gate2Rewards.textContent.indexOf('Legendary reward pack') >= 0 &&
+        gate2Rewards.textContent.indexOf('King Arthur') < 0,
+      'a standard gate receipt contains only coins and a spoiler-free Legendary pack'
     );
     for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
@@ -860,7 +878,11 @@ const server = http.createServer((req, res) => {
     t(w.EOL.shop.state() === 'summary', 'the Legend Pack ceremony plays to its summary');
     t(d.querySelector('#po-summary .po-sum-title').textContent === 'Legendary Acquired', 'the reveal ends on an explicit Legendary Acquired receipt');
     t(w.EOL.shop.results().length === 1 && w.EOL.shop.results()[0].card.id === 'camelot-king-arthur', 'one card in the wrapper - THE card');
-    t($('po-again').hidden, 'no Open Another on a Legend Pack');
+    t($('po-cards').textContent.indexOf('King Arthur') >= 0, 'the Legendary identity appears only after the pack opens');
+    t(
+      $('po-again').hidden && w.getComputedStyle($('po-again')).display === 'none',
+      'no visible Open Another action on a free Legend Pack'
+    );
     t(!!d.querySelector('#po-pack .pk-face.pk-legend'), 'and it wears the Legend wrapper');
     w.EOL.shop.close();
     t(w.EOL.campaign.getProgress().pendingLegend === null, 'the ceremony never replays');

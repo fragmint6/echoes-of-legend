@@ -982,7 +982,10 @@
       /* rects are screen-scale px under GUI scale; --cardw is a layout
          value, so convert down first */
       var artH = Math.max(40, (rowH - statsH) / uiS() - gap);
-      grid.style.setProperty('--cardw', Math.floor((artH * 250) / 355) + 'px');
+      /* Keep a little vertical breathing room, but use more of each board
+         socket than the old 250/355 portrait ratio. The rendered battle
+         tile is 5:6, so 270/355 remains safely inside the available row. */
+      grid.style.setProperty('--cardw', Math.floor((artH * 270) / 355) + 'px');
     });
     fitNames();
   }
@@ -3415,7 +3418,8 @@
   }
 
   /* A critical gets its own sequence: the screen dims, a slashing X
-     tears across the target, then a gold shockwave. */
+     tears across the target, then a gold shockwave. The floating number
+     owns the single, consistent CRITICAL label on every hit path. */
   function playCritImpact(x, y, fx) {
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
@@ -3445,11 +3449,6 @@
     setTimeout(function () {
       bd.classList.remove('shake', 'crit-flash');
     }, 520);
-
-    setTimeout(function () {
-      var word = spawn('fx-crit', x, y - 24, '#ffd050', 1000);
-      word.textContent = 'CRITICAL';
-    }, 420);
   }
 
   function playImpact(x, y, fx, crit, element, silentAudio) {
@@ -4487,7 +4486,12 @@
         absorbed[l.meta.uid] = { offset: aoff };
         if (l.meta.src) {
           setTimeout(function () {
-            playStrike(l.meta.src, l.meta.uid, 'Light', false);
+            playStrike(
+              l.meta.src,
+              l.meta.uid,
+              l.meta.element || 'Light',
+              !!l.meta.crit
+            );
           }, aoff);
         }
         popNumber(l, aoff + 320);
@@ -4560,7 +4564,19 @@
       if (!c) return;
       var pop = document.createElement('div');
       pop.className = 'pop ' + kind + (l.meta.crit ? ' crit' : '');
-      pop.textContent = sign + Number(l.meta.amount).toLocaleString();
+      var value = document.createElement('span');
+      value.className = 'pop-value';
+      value.textContent = sign + Number(l.meta.amount).toLocaleString();
+      pop.appendChild(value);
+      /* The gold number alone was too easy to miss, and AoE/shielded
+         animation paths do not all run the large impact word. Attach the
+         verdict to the number itself so every logged crit says CRITICAL. */
+      if (l.meta.crit) {
+        var verdict = document.createElement('span');
+        verdict.className = 'pop-critical';
+        verdict.textContent = 'CRITICAL';
+        pop.appendChild(verdict);
+      }
       // stack simultaneous numbers so they don't overlap
       var lane = popLane[l.meta.uid] || 0;
       popLane[l.meta.uid] = lane + 1;
@@ -5395,6 +5411,7 @@
     _draft: draftBotTeam,
     _draftValue: draftValue,
     _markSets: markSets,
+    _popNumber: popNumber,
     /* test hook: the scripted-match line state (harness only) */
     _scriptState: function () {
       return moveScript;

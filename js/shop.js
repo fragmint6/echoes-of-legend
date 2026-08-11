@@ -218,7 +218,8 @@
     var pack = currentPack;
     var canBuy =
       !!pack &&
-      pack.key !== 'legend' &&
+      pack.price > 0 &&
+      ['trio', 'echo', 'crown'].indexOf(pack.key) >= 0 &&
       !!econ &&
       econ.coins() >= pack.price &&
       econ.packableEntries().length > 0;
@@ -295,11 +296,12 @@
     if (award) {
       award.hidden = !isCampaignLegend;
       var awardName = el('po-campaign-award-name');
-      if (awardName && isCampaignLegend && results[0]) {
+      if (awardName && isCampaignLegend) {
+        /* The wrapper is the reveal. Before it tears, confirm only where
+           the reward came from—never print the card hiding inside. */
         awardName.textContent =
-          results[0].card.name +
-          ' joined your collection' +
-          (currentAwardMeta && currentAwardMeta.gate ? ' · ' + currentAwardMeta.gate : '');
+          (currentAwardMeta && currentAwardMeta.gate ? currentAwardMeta.gate + ' · ' : '') +
+          'Open the pack to discover who answered';
       }
     }
     var hint = el('po-hint');
@@ -619,6 +621,14 @@
   }
 
   function mount() {
+    /* The ceremony is shared by Shop purchases and campaign rewards. It
+       was authored inside the Shop section, so opening it from the chapter
+       map only set state on an ancestor hidden with the inactive view—the
+       player did not actually see it until visiting Shop. Promote the one
+       overlay to the document layer before any route can open it. */
+    var ceremony = el('pack-opening');
+    if (ceremony && ceremony.parentNode !== document.body) document.body.appendChild(ceremony);
+
     document.querySelectorAll('.pk-host').forEach(buildPackFace);
 
     document.querySelectorAll('.buy-pack').forEach(function (btn) {
@@ -640,7 +650,8 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      if (document.body.dataset.view !== 'shop') return;
+      /* The theater is global now: a campaign reward opens over Chapter,
+         while paid packs open over Shop. Escape must work in both places. */
       if (!el('pack-opening').classList.contains('on')) return;
       if (state === 'summary') close();
       else skip();

@@ -1716,30 +1716,33 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
   const B = board(['camelot-lancelot', ...CLEAN_FOES.slice(0, 5)]);
   const u = U(B, 'camelot-lancelot');
   u.buffs.push({ stat: 'atk', amt: 10, turns: 99, tag: 'finest-knight-atk' });
+  u.buffs.push({ stat: 'atk', amt: 10, turns: 99, tag: 'finest-knight-atk' });
   u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
 
-  /* 1. engine truth: the temp part expires on schedule, the permanent stays */
+  /* 1. engine truth: the temp part expires on schedule, permanent stacks stay */
   const atkPct = () => u.buffs.reduce((t, b) => t + (b.stat === 'atk' ? b.amt : 0), 0);
-  ok(atkPct() === 35, `both buffs live before rollover (+${atkPct()}%)`);
+  ok(atkPct() === 45, `all buffs live before rollover (+${atkPct()}%)`);
   E.nextRound(B);
   E.nextRound(B);
   ok(
-    atkPct() === 10,
-    `the 2-round ally buff expired on schedule, the permanent stayed (+${atkPct()}%)`
+    atkPct() === 20,
+    `the 2-round ally buff expired on schedule, permanent stacks stayed (+${atkPct()}%)`
   );
 
-  /* 2. chip truth: longest clock wins, and every member is itemized */
+  /* 2. chip truth: same-clock stacks combine; different clocks remain distinct */
   u.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });
   let chip = EOL.statusesOf(u, E).find((o) => o.key === 'atk+');
   ok(chip && chip.turns >= 90, `merged chip wears the LONGEST clock (${chip && chip.turns})`);
-  ok(chip && chip.count === 2, 'merged chip counts both buffs');
+  ok(chip && chip.count === 3, 'merged chip counts all three buffs');
   ok(
     chip && chip.parts && chip.parts.length === 2,
-    'chip itemizes each member for the popup breakdown'
+    'popup groups the stack into one permanent part and one temporary part'
   );
   ok(
-    chip && chip.parts.some((p) => p.turns === 2) && chip.parts.some((p) => p.turns >= 90),
-    'the breakdown keeps each member on its OWN clock'
+    chip &&
+      chip.parts.some((p) => p.turns === 2 && p.amt === 25) &&
+      chip.parts.some((p) => p.turns >= 90 && p.amt === 20 && p.count === 2),
+    'same-status effects on the same clock display as one summed stack'
   );
 
   /* 3. order independence: temp applied first must not shorten the chip */
@@ -1760,6 +1763,65 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
   ];
   chip = EOL.statusesOf(u, E).find((o) => o.key === 'costup');
   ok(chip && chip.turns === 3, `merged cost chip wears the longest clock (${chip && chip.turns})`);
+}
+
+{
+  /* DEFEATED MEANS INERT. Expiry riders and leftover multi-part effects
+     must neither protect a corpse nor let a defeated source act. */
+  const B = board([
+    'olympus-hercules',
+    'grimmwood-hansel-gretel',
+    'camelot-guinevere',
+    'sherwood-little-john',
+    'grimmwood-snow-white',
+    'olympus-apollo',
+  ]);
+  const hercules = U(B, 'olympus-hercules');
+  const hansel = U(B, 'grimmwood-hansel-gretel');
+  const living = U(B, 'camelot-guinevere');
+
+  cast(B, 'olympus-hercules', []);
+  hercules.alive = false;
+  hercules.hp = 0;
+  hercules.shield = 0;
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(hercules.shield === 0, 'defeated Hercules cannot form his end-of-Provoke shield');
+  ok(E.passiveOf(hercules) === null, 'a defeated legend exposes no active passive');
+
+  hansel.alive = false;
+  hansel.hp = 0;
+  hansel.shield = 0;
+  E.applyEffectsPublic(B, living, [hansel], [{ k: 'shield', pctMaxHp: 30 }], {
+    immediate: true,
+  });
+  ok(hansel.shield === 0 && !hansel.alive, 'ordinary effects cannot shield or revive a corpse');
+
+  E.applyEffectsPublic(
+    B,
+    hercules,
+    [hansel],
+    [{ k: 'revive', pctMaxHp: 50, to: 'lastFallenAlly' }],
+    { immediate: true }
+  );
+  ok(!hansel.alive && hansel.hp === 0, 'a defeated source cannot trigger a resurrection');
+}
+
+{
+  /* Even when a Shield absorbs the entire hit, the combat log must retain
+     the critical verdict so the renderer can print CRITICAL beside it. */
+  const B = board(['grimmwood-goldilocks', ...CLEAN_FOES.slice(0, 5)]);
+  const src = U(B, 'grimmwood-goldilocks');
+  const target = foesOf(B)[0];
+  B.simulation = false;
+  src.buffs.push({ stat: 'crit', amt: 100, turns: 99, tag: 'crit-proof' });
+  target.shield = target.maxHp;
+  E.useAbility(B, src, E.roleAbility(src), [target]);
+  const absorbed = B.log.find((l) => l.type === 'absorb');
+  ok(
+    absorbed && absorbed.meta && absorbed.meta.crit === true,
+    'a fully absorbed critical still carries the explicit critical verdict'
+  );
 }
 
 {

@@ -1528,10 +1528,9 @@
     var g = stage.grants || {};
     var parts = ['+' + (g.coins || 0) + ' coins'];
     if (g.choice) parts.push('Choose ' + g.choice.count + ' Echoes');
-    if (g.legendPack) {
-      var crown = cardDict()[g.legendPack];
-      if (crown) parts.push('Legendary: ' + crown.card.name);
-    }
+    /* The pack itself is the reveal. The result receipt confirms the
+       reward category without naming the card before the wrapper opens. */
+    if (g.legendPack) parts.push('Legendary reward pack');
     return parts.join(' · ');
   }
 
@@ -1754,9 +1753,8 @@
 
   /* THE LEGEND CEREMONY: an unopened Legend Pack plays the one-card
      opening the next time the chapter map is quiet. The card is
-     already owned (granted at clear time) - this is the handshake,
-     not the handoff, so clearing the flag BEFORE the theater can
-     never cost a card. Waits out any dialogue on the screen. */
+     already owned (granted at clear time), while the durable queue stays
+     set until the theater accepts it. Waits out any dialogue on screen. */
   function reofferPendingLegend() {
     var prog = getProgress();
     if (!prog.pendingLegend) return;
@@ -1772,12 +1770,19 @@
       return;
     }
     if (document.body.dataset.view !== 'chapter') return;
+    /* Do not consume the durable queue until the global theater actually
+       accepts it. Previously the flag was cleared first; if Shop had not
+       mounted yet, the reward was owned but its reveal was silently lost. */
+    if (!(window.EOL.shop && window.EOL.shop.openLegendPack)) {
+      window.setTimeout(reofferPendingLegend, 120);
+      return;
+    }
+    var opened = window.EOL.shop.openLegendPack(stage.grants.legendPack, {
+      gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
+    });
+    if (!opened) return;
     prog.pendingLegend = null;
     saveProgress(prog);
-    if (window.EOL.shop && window.EOL.shop.openLegendPack)
-      window.EOL.shop.openLegendPack(stage.grants.legendPack, {
-        gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
-      });
   }
 
   /* ---------------------------------------------------------
@@ -1803,15 +1808,10 @@
           g.choice.count +
           ' Echoes</span>'
       );
-    if (g.legendPack) {
-      var crown = cardDict()[g.legendPack];
-      if (crown)
-        chips.push(
-          '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>Legendary: ' +
-            (window.EOL.ui ? window.EOL.ui.esc(crown.card.name) : crown.card.name) +
-            '</span>'
-        );
-    }
+    if (g.legendPack)
+      chips.push(
+        '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>Legendary reward pack</span>'
+      );
     row.innerHTML = '<b>' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
   }
 

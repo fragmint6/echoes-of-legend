@@ -1509,6 +1509,12 @@
      Passive helpers
      --------------------------------------------------------- */
   function passiveOf(u) {
+    /* Defeated legends are inert. Keeping this guard at the passive lookup
+       prevents every reaction path—ally damage, wards, kills, counters and
+       field modifiers—from accidentally asking a corpse to participate.
+       wouldDie is still legal because handleDeath checks it before flipping
+       the unit's `alive` flag. */
+    if (!u || !u.alive) return null;
     var a = u.card.ability;
     return a.type === 'Passive' && a.passive ? a.passive : null;
   }
@@ -1718,6 +1724,10 @@
           uid: tgt.uid,
           amount: absorbed,
           src: src.uid,
+          /* A fully absorbed crit has no later HP-damage number to carry
+             its verdict, so the shield number owns the critical tell. */
+          crit: crit && dmg === 0,
+          element: element,
         });
       }
     }
@@ -2073,6 +2083,16 @@
 
     u.alive = false;
     u.hp = 0;
+    /* Defeat cancels armed reactions. Their ordinary duration counters may
+       continue to decay for a possible resurrection, but no expiry heal,
+       shield or counter may wait on the corpse and fire later. */
+    u.flags.taunt = 0;
+    u.flags.tauntHeal = null;
+    u.flags.tauntShield = null;
+    u.flags.counterTurns = 0;
+    u.flags.counterPow = 0;
+    u.flags.counterPowMarked = 0;
+    delete u.flags.counterSrc;
     /* death order, so `to:'fallenAllies'` can raise the most recent
        casualty first. Monotonic counter rather than round number,
        which would tie for two deaths in the same round. */
@@ -2283,8 +2303,15 @@
   }
 
   function applyEffects(B, src, targets, effects, ctx) {
+    /* A queued rider or multi-part cast stops with its caster. Damage had
+       its own mid-cast guard, but heals, shields and stat effects did not,
+       allowing the remainder of an action to resolve from the grave. */
+    if (!src || !src.alive) return;
     ctx = ctx || {};
     (effects || []).forEach(function (e) {
+      /* A counter can defeat the caster during an earlier damage effect
+         in this very list; re-check between every component. */
+      if (!src.alive) return;
       /* Per-trigger routing. A passive declaring `triggers: [...]` fires its
          whole effects list on ANY of them; an effect may add `on: 'name'`
          (or an array) to respond to only some. Effects without `on` are
@@ -2517,6 +2544,16 @@
        above - re-assigning `targets` here used to stomp onlyMarked
        (Zeus's Divine Judgment then-hit literally everyone). */
     else list = list;
+
+    /* A target that fell earlier in this same multi-part action is no
+       longer eligible for healing, shields, buffs, control or riders.
+       Resurrection is the sole intentional interaction with a corpse and
+       receives the dedicated fallenAllies selector above. */
+    if (e.k !== 'revive') {
+      list = (list || []).filter(function (u) {
+        return u && u.alive;
+      });
+    }
 
     /* UNTARGETABLE IS ABSOLUTE (2026-08-01).
        `legalTargets` filters untargetable enemies out of an ability's own
@@ -3934,25 +3971,31 @@
         // Hercules: a shield forms as the taunt drops
         if (u.flags.taunt <= 0) u.flags.tauntHeal = null;
         if (u.flags.taunt <= 0 && u.flags.tauntShield) {
-          var amt = addShieldCapped(u, u.maxHp * (u.flags.tauntShield / 100));
+          var shieldPct = u.flags.tauntShield;
+          /* Expiry riders belong to the living unit that armed them.
+             Hercules used to form his end-of-Provoke shield even after
+             being defeated because timers tick for every board slot. */
           u.flags.tauntShield = null;
-          if (amt > 0) {
-            u.shieldSrc = u.uid;
-            logMsg(B, 'shield', u.name + "'s labors end - a " + amt + ' shield forms.', {
-              uid: u.uid,
-              status: 'shield',
-              amount: amt,
-              signature: true,
-            });
-            emit(B, {
-              t: 'shield',
-              src: u.uid,
-              tgt: u.uid,
-              amount: amt,
-              signature: true,
-              round: B.round,
-            });
-            fireAllyWarded(B, u);
+          if (u.alive) {
+            var amt = addShieldCapped(u, u.maxHp * (shieldPct / 100));
+            if (amt > 0) {
+              u.shieldSrc = u.uid;
+              logMsg(B, 'shield', u.name + "'s labors end - a " + amt + ' shield forms.', {
+                uid: u.uid,
+                status: 'shield',
+                amount: amt,
+                signature: true,
+              });
+              emit(B, {
+                t: 'shield',
+                src: u.uid,
+                tgt: u.uid,
+                amount: amt,
+                signature: true,
+                round: B.round,
+              });
+              fireAllyWarded(B, u);
+            }
           }
         }
       }

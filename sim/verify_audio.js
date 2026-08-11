@@ -367,6 +367,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const cloud = fs.readFileSync(path.join(ROOT, 'js/cloud.js'), 'utf8');
   const battle = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
   const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
+  const audioSource = fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8');
   ok(
     page.indexOf('<script src="js/audio.js"') >= 0 &&
       page.indexOf('<script src="js/audio.js"') < page.indexOf('<script src="js/battle.js"'),
@@ -390,6 +391,14 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       /audio\.pack\('burst'/.test(shop) &&
       /isLegend \? 'legendary' : 'flip'/.test(shop),
     'pack charge, burst, flip, and Legendary reveal beats are connected'
+  );
+  ok(
+    /battleWar:\s*\{ tempo: 104/.test(audioSource) &&
+      /battleBright:\s*\{ tempo: 108/.test(audioSource) &&
+      /battleDark:\s*\{ tempo: 98/.test(audioSource) &&
+      /function battleBrass\(/.test(audioSource) &&
+      /function battleStrings\(/.test(audioSource),
+    'match scores use the quicker martial brass-and-strings arrangements'
   );
 
   console.log('\n' + (fail ? fail + ' FAILED' : 'ALL ' + pass + ' ASSERTIONS PASSED'));

@@ -1112,13 +1112,13 @@
     campaign: { tempo: 70, steps: 16 },
     prep: { tempo: 102, steps: 16 },
     shop: { tempo: 92, steps: 16 },
-    /* Battle is deliberately half-time and orchestral. The original
-       116-124 BPM arrangement reused Prep's clipped hats and square
-       ostinato, which read as "Prep sped up" and exposed an abrasive
-       high-frequency noise texture. */
-    battleWar: { tempo: 94, steps: 16 },
-    battleBright: { tempo: 100, steps: 16 },
-    battleDark: { tempo: 86, steps: 16 },
+    /* Battle keeps its noise-free orchestral language but moves with more
+       urgency than the old half-time bed. These are only a modest lift;
+       the intensity comes mainly from martial pulses, low-string motion
+       and brass-shaped phrases rather than a retro high-register loop. */
+    battleWar: { tempo: 104, steps: 16 },
+    battleBright: { tempo: 108, steps: 16 },
+    battleDark: { tempo: 98, steps: 16 },
   };
 
   function trackForScene(scene) {
@@ -1218,6 +1218,51 @@
       filter: 640,
       attack: 0.006,
       release: 0.11,
+    });
+  }
+
+  /* Filtered, layered battle voices. A raw square/triangle lead reads as
+     an 8-bit oscillator; these slower low-pass attacks suggest brass and
+     bowed strings while remaining fully procedural and noise-free. */
+  function battleBrass(n, t, d, g, dest, pan, dark) {
+    note(n, t, d, g, 'sawtooth', {
+      bus: 'music',
+      dest: dest,
+      pan: pan || 0,
+      wet: dark ? 0.1 : 0.14,
+      filter: dark ? 980 : 1450,
+      attack: 0.045,
+      release: Math.min(0.34, d * 0.72),
+    });
+    note(n - 12, t + 0.008, d * 0.94, g * 0.48, 'triangle', {
+      bus: 'music',
+      dest: dest,
+      pan: (pan || 0) - 0.04,
+      wet: 0.05,
+      filter: dark ? 620 : 820,
+      attack: 0.035,
+      release: Math.min(0.3, d * 0.68),
+    });
+  }
+
+  function battleStrings(n, t, d, g, dest, pan, dark) {
+    note(n, t, d, g, 'sawtooth', {
+      bus: 'music',
+      dest: dest,
+      pan: pan || 0,
+      wet: 0.04,
+      filter: dark ? 720 : 1040,
+      attack: 0.014,
+      release: Math.min(0.13, d * 0.48),
+    });
+    note(n + 12, t + 0.006, d * 0.72, g * 0.22, 'triangle', {
+      bus: 'music',
+      dest: dest,
+      pan: (pan || 0) + 0.08,
+      wet: 0.04,
+      filter: dark ? 900 : 1300,
+      attack: 0.012,
+      release: Math.min(0.11, d * 0.42),
     });
   }
 
@@ -1398,62 +1443,60 @@
     }
 
     /* -------------------------------------------------------
-       MATCH SCORE v2 - broad, tonal, and deliberately unlike Prep.
+       MATCH SCORE v3 - martial, tonal, and deliberately unlike Prep.
 
-       Prep is a brisk planning clock: clipped square bass, snare and
-       hats. Matches now move in half-time with round sine drums,
-       sustained harmony and long phrases. Most importantly, there is
-       NO noise source in any battle arrangement. That removes the
-       headphone-fatiguing static while leaving combat SFX crisp.
+       Prep is a planning clock: clipped square bass, snare and hats.
+       Matches use round sine war drums, filtered low strings, layered
+       brass calls and sustained harmony at a slightly quicker pulse.
+       Most importantly, there is NO noise source in any battle
+       arrangement. Combat stays urgent without headphone static or a
+       bright 8-bit lead competing with ability SFX.
        ------------------------------------------------------- */
     if (name === 'battleBright') {
       var brightRoots = [48, 55, 53, 50];
       var brightRoot = brightRoots[chordIndex];
-      var brightArp = [0, 7, 12, 16, 12, 7, 9, 12];
-      if (s === 0 || s === 8) battlePulse(t, s === 0 ? 0.052 : 0.044, dest, false);
+      var brightDrive = [0, 7, 12, 7, 4, 7, 12, 9];
+      var brightCall = [null, null, 67, null, 69, null, 72, 71, null, null, 69, null, 67, null, 64, 67];
+      if (s % 4 === 0) battlePulse(t, s % 8 === 0 ? 0.058 : 0.034, dest, s % 8 !== 0);
       if (s === 0)
         chord([brightRoot, brightRoot + 4, brightRoot + 7], t, stepDur * 15.5, 0.009, {
           dest: dest,
-          wet: 0.18,
-          filter: 1850,
-          attack: 0.48,
-          release: 1.25,
+          wet: 0.16,
+          filter: 1700,
+          attack: 0.38,
+          release: 1.05,
         });
       if (s === 0 || s === 8)
         musicNote(
           brightRoot - 12 + (s === 8 ? 7 : 0),
           t,
-          stepDur * 5.4,
-          0.027,
+          stepDur * 5.2,
+          0.029,
           'sine',
           dest,
-          -0.18,
-          0.04,
-          620
+          -0.2,
+          0.03,
+          600
         );
       if (s % 2 === 0)
-        musicNote(
-          brightRoot + 12 + brightArp[s / 2],
+        battleStrings(
+          brightRoot - 12 + brightDrive[s / 2],
           t,
-          stepDur * 1.7,
-          0.013,
-          'triangle',
+          stepDur * 1.45,
+          0.017,
+          dest,
+          -0.1,
+          false
+        );
+      if (brightCall[s] != null)
+        battleBrass(
+          brightCall[s] + (chordIndex === 1 ? 0 : chordIndex === 2 ? -2 : 0),
+          t,
+          stepDur * (s === 7 || s === 15 ? 2.5 : 1.8),
+          0.012,
           dest,
           0.16,
-          0.18,
-          2600
-        );
-      if (s === 5 || s === 13)
-        musicNote(
-          brightRoot + (s === 5 ? 24 : 21),
-          t,
-          stepDur * 2.8,
-          0.012,
-          'sine',
-          dest,
-          0.26,
-          0.24,
-          3200
+          false
         );
       return;
     }
@@ -1461,94 +1504,93 @@
     if (name === 'battleDark') {
       var darkRoots = [38, 41, 36, 33];
       var darkRoot = darkRoots[chordIndex];
-      if (s === 0 || s === 10) battlePulse(t, s === 0 ? 0.055 : 0.038, dest, false);
-      if (s === 7) battlePulse(t, 0.024, dest, true);
+      var darkDrive = [0, 0, 5, 3, 0, 7, 5, 3];
+      var darkCall = [null, null, 50, null, null, 53, null, 52, null, null, 55, null, 53, null, 50, null];
+      if (s % 4 === 0) battlePulse(t, s % 8 === 0 ? 0.061 : 0.036, dest, s % 8 !== 0);
+      if (s === 6 || s === 14) battlePulse(t, 0.024, dest, true);
       if (s === 0) {
         chord([darkRoot, darkRoot + 5, darkRoot + 10], t, stepDur * 15.7, 0.01, {
           dest: dest,
-          wet: 0.2,
-          filter: 1050,
-          attack: 0.9,
-          release: 1.8,
+          wet: 0.18,
+          filter: 980,
+          attack: 0.68,
+          release: 1.5,
         });
-        musicNote(darkRoot - 12, t, stepDur * 14.8, 0.031, 'sine', dest, -0.2, 0.03, 420);
+        musicNote(darkRoot - 12, t, stepDur * 14.8, 0.032, 'sine', dest, -0.22, 0.02, 400);
       }
-      if (s === 4 || s === 11)
-        musicNote(
-          darkRoot + (s === 4 ? 19 : 15),
+      if (s % 2 === 0)
+        battleStrings(
+          darkRoot + darkDrive[s / 2],
           t,
-          stepDur * 3.6,
-          0.014,
-          'sine',
+          stepDur * 1.55,
+          0.018,
           dest,
-          0.2,
-          0.22,
-          1700
+          -0.12,
+          true
         );
-      if (s === 14)
-        musicNote(darkRoot + 12, t, stepDur * 1.8, 0.01, 'triangle', dest, 0.08, 0.12, 1300);
+      if (darkCall[s] != null)
+        battleBrass(
+          darkCall[s] + (chordIndex === 2 ? -2 : chordIndex === 3 ? -3 : 0),
+          t,
+          stepDur * (s === 10 ? 2.7 : 2.1),
+          0.014,
+          dest,
+          0.14,
+          true
+        );
       return;
     }
 
-    /* Neutral and martial fields: low war drums beneath a restrained
-       horn call. The syncopation breathes around ability SFX instead of
-       maintaining Prep's constant sixteenth-note pressure. */
+    /* Neutral and martial fields: a driving low-string figure, four-beat
+       war-drum pattern and a descending brass answer. It leaves the upper
+       spectrum open for casts and impacts instead of competing with them
+       as a bright arcade lead. */
     var warRoots = [43, 46, 41, 38];
     var warRoot = warRoots[chordIndex];
-    var warLead = [
-      null,
-      null,
-      67,
-      null,
-      null,
-      65,
-      null,
-      null,
-      null,
-      null,
-      70,
-      null,
-      null,
-      67,
-      null,
-      null,
-    ];
-    if (s === 0 || s === 8) battlePulse(t, s === 0 ? 0.058 : 0.05, dest, false);
-    if (s === 5 || s === 13) battlePulse(t, 0.032, dest, true);
+    var warDrive = [0, 7, 0, 10, 0, 7, 12, 10];
+    var warLead = [null, null, 67, null, 70, null, 69, 67, null, null, 65, null, 67, null, 62, 65];
+    if (s % 4 === 0) battlePulse(t, s % 8 === 0 ? 0.064 : 0.038, dest, s % 8 !== 0);
+    if (s === 6 || s === 14) battlePulse(t, 0.026, dest, true);
     if (s === 0)
       chord([warRoot, warRoot + 7, warRoot + 10], t, stepDur * 15.5, 0.009, {
         dest: dest,
-        wet: 0.14,
-        filter: 1350,
-        attack: 0.5,
-        release: 1.35,
+        wet: 0.13,
+        filter: 1280,
+        attack: 0.42,
+        release: 1.15,
       });
     if (s === 0 || s === 8)
       musicNote(
         warRoot - 12 + (s === 8 ? 7 : 0),
         t,
-        stepDur * 5.8,
-        0.03,
+        stepDur * 5.5,
+        0.031,
         'sine',
         dest,
-        -0.2,
-        0.03,
-        560
+        -0.22,
+        0.02,
+        540
+      );
+    if (s % 2 === 0)
+      battleStrings(
+        warRoot - 12 + warDrive[s / 2],
+        t,
+        stepDur * 1.5,
+        0.018,
+        dest,
+        -0.1,
+        false
       );
     if (warLead[s] != null)
-      musicNote(
-        warLead[s] + (chordIndex === 3 ? -2 : 0),
+      battleBrass(
+        warLead[s] + (chordIndex === 2 ? -2 : chordIndex === 3 ? -3 : 0),
         t,
-        stepDur * 2.7,
-        0.016,
-        'triangle',
+        stepDur * (s === 7 || s === 15 ? 2.5 : 1.9),
+        0.013,
         dest,
-        0.2,
-        0.12,
-        1750
+        0.16,
+        chordIndex === 3
       );
-    if (s === 6 || s === 14)
-      musicNote(warRoot + 19, t, stepDur * 1.6, 0.01, 'sine', dest, 0.08, 0.1, 1500);
   }
 
   function stopMusic(fade) {
