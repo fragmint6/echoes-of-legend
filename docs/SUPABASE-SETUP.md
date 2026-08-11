@@ -21,11 +21,12 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | `profiles`, `saves` tables | present |
 | OK | `mp_queue`, `mp_matches` tables | **created** |
 | OK | `try_match()` function | **created** |
-| SETUP | Daily Puzzle migration 04 | run section 4d once |
+| OK | Daily Puzzle migration 04 | installed |
+| FIX | Daily Puzzle RPC hotfix 05 | run section 4e now |
 
 **Accounts and multiplayer are ready.** `node sim/preflight.js` confirms two
-signed-in players can queue and play. Daily Puzzle publication becomes live
-after the single migration 04 SQL paste in section 4d.
+signed-in players can queue and play. The current Daily Puzzle install needs
+the small migration 05 RPC hotfix in section 4e.
 
 ---
 
@@ -203,7 +204,8 @@ What it adds:
 
 Run **[`docs/supabase-migration-04.sql`](supabase-migration-04.sql)** in the
 SQL Editor. That single paste is the whole setup—there is no GitHub Action,
-server secret, Edge Function, or additional hosting.
+server secret, Edge Function, or additional hosting. Fresh installs use the
+corrected RPC definitions already included in migration 04.
 
 It creates:
 
@@ -234,6 +236,18 @@ before the board is returned. Merely opening the Daily Puzzle card does not
 consume it; once the battle opens, closing or refreshing cannot restore it.
 Official Daily Puzzles therefore require a signed-in account. The original
 interactive generator remains available to developers at `?dailyLab=1`.
+
+## 4e. Migration 05 - Daily Puzzle RPC hotfix
+
+If migration 04 was installed before **2026-08-11**, run
+**[`docs/supabase-migration-05.sql`](supabase-migration-05.sql)** once in the
+SQL Editor. It fixes PostgreSQL treating the `puzzle_day` and `puzzle_id`
+RETURNS TABLE variables as ambiguous inside `ON CONFLICT` targets.
+
+The hotfix only replaces `claim_daily_generation()` and
+`claim_daily_puzzle()`. It does not delete puzzle rows, attempts, jobs, or
+cron configuration, and it is safe to run more than once. Fresh installations
+that use the current migration 04 file already contain the fix.
 
 ## 5. Realtime - nothing to do
 

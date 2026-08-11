@@ -206,7 +206,9 @@ worse than none). Fast enough to run any time you touch
 Interrogates your **live** Supabase project: tables, `try_match()`, the
 Daily Puzzle gate, RLS, sign-in settings, and a real Realtime Broadcast
 round trip. Run after any dashboard change. Migration 04 must be installed
-before the Daily Puzzle checks report ready.
+before the Daily Puzzle checks report ready. Preflight cannot exercise the
+signed-in generation lease, so older installs must apply migration 05
+separately.
 
 ### `generate_daily_puzzle.js --dry-run` - ~5-60s
 Runs the same depth-4 worker used by the scheduled Daily Puzzle job,

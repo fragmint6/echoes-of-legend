@@ -174,7 +174,10 @@ begin
 
   insert into public.daily_puzzle_jobs(puzzle_day, token, user_id, lease_until)
   values (target_day, new_token, me, now() + interval '3 minutes')
-  on conflict (puzzle_day) do update
+  -- Name the constraint rather than the output column. In a RETURNS TABLE
+  -- PL/pgSQL function, `puzzle_day` is also an output variable, so the
+  -- column-inference form is ambiguous at runtime.
+  on conflict on constraint daily_puzzle_jobs_pkey do update
     set token = excluded.token,
         user_id = excluded.user_id,
         leased_at = now(),
@@ -358,7 +361,9 @@ begin
 
   insert into public.daily_puzzle_attempts(puzzle_id, user_id)
   values (p.id, me)
-  on conflict (puzzle_id, user_id) do nothing;
+  -- `puzzle_id` is also a RETURNS TABLE output variable. Naming the
+  -- constraint avoids the same PL/pgSQL ambiguity as the lease RPC.
+  on conflict on constraint daily_puzzle_attempts_pkey do nothing;
   get diagnostics inserted = row_count;
   if inserted <> 1 then
     raise exception 'daily_attempt_used';
