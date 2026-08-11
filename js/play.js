@@ -94,6 +94,18 @@
     }, 2450);
   }
 
+  function prepScriptDeny(p, message) {
+    if (
+      p &&
+      p.campaignStage &&
+      window.EOL.campaign &&
+      window.EOL.campaign.onPrepScriptDeny &&
+      window.EOL.campaign.onPrepScriptDeny(p.campaignStage, message)
+    )
+      return;
+    toast(message, 'ri-quill-pen-line');
+  }
+
   /* ---------------- coach overlays (what to do, once per context) ---------------- */
   var COACH_KEY = 'eol.coach.v1';
   function coachSeen() {
@@ -204,23 +216,30 @@
       if (owns) out.push(id);
     });
     if (out.length < RULES().BANS) {
-      var atkMax = 1;
-      legal.forEach(function (e) {
-        atkMax = Math.max(atkMax, e.card.stats.atk);
-      });
+      /* Personality is a PRIORITY, not a small suggestion added to the
+         stock deny score. Compare the authored tells lexicographically:
+         preferred roles first, then the named stat/power obsession, and
+         only then generic deck denial. This makes the ledger honest - an
+         Oathkeeper with legal Snipers/Casters actually strikes them, and
+         the Anointed never overlooks a Medic for a generically good card. */
       var scored = legal
         .filter(function (e) {
           return out.indexOf(e.card.id) < 0;
         })
         .map(function (e) {
-          var v = ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.9;
-          if (profile.roles && profile.roles.indexOf(e.card.role) >= 0) v += 3.5;
-          if (profile.stat === 'atk') v += (e.card.stats.atk / atkMax) * 2.5;
-          if (profile.power) v += ai.powerOf(e.card) * 3.0;
-          return { id: e.card.id, v: v };
+          return {
+            id: e.card.id,
+            role: profile.roles && profile.roles.indexOf(e.card.role) >= 0 ? 1 : 0,
+            stat: profile.stat === 'atk' ? e.card.stats.atk : 0,
+            power: profile.power ? ai.powerOf(e.card) : 0,
+            deny: ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.35,
+          };
         });
       scored.sort(function (a, b) {
-        return b.v - a.v;
+        if (a.role !== b.role) return b.role - a.role;
+        if (a.stat !== b.stat) return b.stat - a.stat;
+        if (a.power !== b.power) return b.power - a.power;
+        return b.deny - a.deny;
       });
       scored.forEach(function (s) {
         if (out.length < RULES().BANS) out.push(s.id);
@@ -229,13 +248,41 @@
     return out.slice(0, RULES().BANS);
   }
 
+  /* Personality-aware FIELDING uses the same competency score, then
+     values the roles/effects an authored rival built around. This is not
+     weaker search or random flavour: it prevents a Trickster from drafting
+     denial and then benching every Controller because a generic tier list
+     prefers one more Bruiser. */
+  function fieldPersonaBonus(profile, entry) {
+    if (!profile || !entry) return 0;
+    var role = entry.card.role;
+    var roles = {
+      sentinel: { Tank: 0.14, Medic: 0.08, Bruiser: 0.04 },
+      hunter: { Sniper: 0.16, Bruiser: 0.1, Controller: 0.04 },
+      anointed: { Caster: 0.14, Controller: 0.12, Medic: 0.06 },
+      warden: { Controller: 0.1, Tank: 0.07, Medic: 0.06 },
+      trickster: { Controller: 0.18, Caster: 0.07 },
+      strategist: { Controller: 0.14, Sniper: 0.1, Bruiser: 0.07 },
+      chronicler: { Caster: 0.16, Controller: 0.12, Medic: 0.08 },
+      guardian: { Tank: 0.14, Controller: 0.1, Caster: 0.06 },
+      conqueror: { Bruiser: 0.15, Caster: 0.12, Sniper: 0.1, Medic: 0.05 },
+    };
+    var v = roles[profile] && roles[profile][role] ? roles[profile][role] : 0;
+    var tags = DAI().tags(entry);
+    if (profile === 'trickster' && (tags.gives.denial || tags.gives.energy)) v += 0.06;
+    if (profile === 'strategist' && (tags.gives.kills || tags.gives.exposed)) v += 0.056;
+    if (profile === 'chronicler' && (tags.gives.burn || tags.gives.cleanse || tags.gives.denial))
+      v += 0.06;
+    if (profile === 'conqueror' && (tags.gives.exposed || tags.gives.kills)) v += 0.056;
+    return v;
+  }
+
   /* Greedy best battle six from the surviving pool, with hard rails so a
      six is never fielded without a Tank or Medic when one was available.
      The field carries NO role cap: the deck's max-4 is the only rule.
      `preSeed` (ids or entries) are MUST-KEEPS taken from the pool before
-     the greedy walk fills the rest - the campaign's scripted sixes
-     (stages 1-4) and Gilgamesh's `pinned` hardcode (R5) both ride it. */
-  function chooseSix(pool, enemyPool, preSeed) {
+     the greedy walk fills the rest. */
+  function chooseSix(pool, enemyPool, preSeed, aiProfile) {
     var ai = DAI();
     var team = [],
       rest = pool.slice();
@@ -272,7 +319,10 @@
       for (var pass = 0; pass < 2 && best < 0; pass++) {
         for (var i = 0; i < rest.length; i++) {
           if (forced && pass === 0 && rest[i].card.role !== forced) continue;
-          var v = ai.value(team, rest[i], { size: FIELD }) + Math.random() * 1.5;
+          var v =
+            ai.value(team, rest[i], { size: FIELD }) +
+            fieldPersonaBonus(aiProfile, rest[i]) +
+            Math.random() * (aiProfile ? 0.45 : 1.5);
           /* answer what the opponent is actually bringing */
           if (enemyPool && enemyPool.length) {
             for (var k = 0; k < enemyPool.length; k++) {
@@ -390,18 +440,26 @@
       var v = mine + Math.max(0, theirs - mine) * 0.35 + ai.powerOf(e.card) * 0.8;
       if (draftPersona) {
         var T = ai.tags(e);
+        /* Rivals commit harder to a coherent twelve than the stock drafter.
+           These are valuation priorities, not free cards or a shallower
+           opponent: every offered pick remains legal and contested. */
         if (draftPersona === 'trickster') {
-          v += Math.max(0, theirs - mine) * 0.75;
-          if (T.gives.energy || T.wants.energy) v += 1.1;
+          v += Math.max(0, theirs - mine) * 0.55;
+          if (T.gives.energy) v += 0.7;
+          if (T.gives.denial) v += 0.6;
+          if (T.wants.energy && !T.gives.energy) v -= 0.3; // the Void punishes greed
         } else if (draftPersona === 'strategist') {
           if (foeTeam) {
-            for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.6;
+            for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.65;
           }
-          v += ai.powerOf(e.card) * 0.4;
+          if (T.gives.kills || T.wants.kills) v += 0.65;
+          if (T.gives.denial || T.gives.exposed) v += 0.45;
+          v += ai.powerOf(e.card) * 0.45;
         } else if (draftPersona === 'chronicler') {
-          if (T.gives.burn) v += 1.2;
-          if (T.gives.cleanse) v += 1.0;
-          if (T.gives.denial) v += 0.9;
+          if (T.gives.burn) v += 0.8;
+          if (T.gives.cleanse) v += 0.65;
+          if (T.gives.denial) v += 0.6;
+          if (T.gives.exposed) v += 0.35;
         }
         v += Math.random() * draftPersonaJitter;
       }
@@ -1215,6 +1273,7 @@
       pinnedEnemy: cfg.pinnedEnemy || null,
       unbannable: cfg.unbannable || null,
       rival: cfg.rival || null,
+      aiProfile: cfg.aiProfile || null,
       /* CAMPAIGN: the Recruiter's ledger note on how this rival bans,
          surfaced during the ban phase so the first decision of the
          gate is played with open eyes (playtest note 2026-08-09). */
@@ -1274,8 +1333,7 @@
     prepAnim = true;
     renderPrep();
     window.EOL.ui.show('prep');
-    if (window.EOL.audio)
-      window.EOL.audio.card('shuffle', { delay: prep.campaignStage ? 720 : 0 });
+    if (window.EOL.audio) window.EOL.audio.card('shuffle', { delay: prep.campaignStage ? 720 : 0 });
     coachShow(
       'prep-ban',
       'ri-forbid-2-line',
@@ -1560,6 +1618,24 @@
         el.classList.toggle('banpick', banned);
         if (noBan) el.classList.add('unbannable');
         el.addEventListener('click', function () {
+          /* THE SCRIPT (gate I) owns EVERY wrong click, including a
+             crown that would normally explain itself with a toast. The
+             Recruiter's relevant instruction is the only correction in
+             this gate. Removing a placed ban stays legal. */
+          if (
+            p.script &&
+            p.script.bans &&
+            p.youBans.indexOf(e.card.id) < 0 &&
+            p.script.bans.indexOf(e.card.id) < 0
+          ) {
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
+            prepScriptDeny(
+              p,
+              p.script.hintBan || 'Follow the marked cards - this gate is scripted'
+            );
+            flashNode('prep-enemy-note');
+            return;
+          }
           /* Legendary protection (plus any authored exception such as
              Gilgamesh). The grid says so instead of ignoring the click. */
           if (noBan) {
@@ -1570,23 +1646,6 @@
                   ? ' is Legendary - crown cards cannot be banned'
                   : ' cannot be banned'),
               'ra-crown'
-            );
-            flashNode('prep-enemy-note');
-            return;
-          }
-          /* THE SCRIPT (gate I): only the marked bans may be added.
-             Removing a placed ban stays legal, so a mis-click is
-             always recoverable. */
-          if (
-            p.script &&
-            p.script.bans &&
-            p.youBans.indexOf(e.card.id) < 0 &&
-            p.script.bans.indexOf(e.card.id) < 0
-          ) {
-            if (window.EOL.audio) window.EOL.audio.ui('deny');
-            toast(
-              p.script.hintBan || 'Follow the marked cards - this gate is scripted',
-              'ri-quill-pen-line'
             );
             flashNode('prep-enemy-note');
             return;
@@ -1691,7 +1750,7 @@
     if (prep.script && prep.script.six) {
       if (idx >= 0) {
         if (window.EOL.audio) window.EOL.audio.ui('deny');
-        toast('The ledger placed that one - the formation stands', 'ri-quill-pen-line');
+        prepScriptDeny(prep, 'The ledger placed that one - the formation stands');
         flashNode('prep-player-note');
         return;
       }
@@ -1704,9 +1763,9 @@
       }
       if (id !== nextId) {
         if (window.EOL.audio) window.EOL.audio.ui('deny');
-        toast(
-          prep.script.hintSix || 'Field the marked card - this gate is scripted',
-          'ri-quill-pen-line'
+        prepScriptDeny(
+          prep,
+          prep.script.hintSix || 'Field the marked card - this gate is scripted'
         );
         flashNode('prep-player-note');
         return;
@@ -2025,7 +2084,7 @@
       enemySix =
         setState && setState.lastBotIds.length
           ? setBotSix(survive, predictedSix)
-          : chooseSix(survive, predictedSix, mustKeep);
+          : chooseSix(survive, predictedSix, mustKeep, prep.aiProfile);
     }
     if (setState) {
       /* heroes leaving the six become locked out for the rest of the
@@ -2077,6 +2136,7 @@
       war: setState ? 'unabridged' : 'single',
       campaignStage: cfg.campaignStage,
       rival: cfg.rival || null,
+      aiProfiles: cfg.aiProfile ? { enemy: cfg.aiProfile } : null,
       rng: match ? mulberry(match.seed | 0) : null,
       moveScript: match ? match.moves : null,
       oddFirst: cfg.oddFirst || null,
@@ -2665,8 +2725,7 @@
       });
       e._wrap = wrap;
       packHost.appendChild(wrap);
-      if (window.EOL.audio)
-        window.EOL.audio.card('deal', { delay: i * 90, pan: (i - 1) * 0.24 });
+      if (window.EOL.audio) window.EOL.audio.card('deal', { delay: i * 90, pan: (i - 1) * 0.24 });
     });
     updateCaps();
   }
@@ -2694,8 +2753,7 @@
     stamp.className = 'dtake';
     stamp.textContent = who === 'you' ? 'Yours' : 'Enemy';
     e._wrap.appendChild(stamp);
-    if (window.EOL.audio)
-      window.EOL.audio.card('pick', { pan: who === 'you' ? -0.28 : 0.28 });
+    if (window.EOL.audio) window.EOL.audio.card('pick', { pan: who === 'you' ? -0.28 : 0.28 });
   }
 
   /* the leftover third of a pack burns away before the next deal */
@@ -2906,6 +2964,7 @@
         campaignStage: camp ? camp.stage : null,
         botBanProfile: camp ? camp.banProfile : null,
         banTell: camp ? camp.banTell || null : null,
+        aiProfile: camp ? camp.aiProfile || null : null,
         rival: camp ? camp.rival : null,
         war: camp ? 'single' : null,
       });
@@ -3032,6 +3091,7 @@
          later games need survives here. */
       campaignStage: cfg.campaignStage || null,
       rival: cfg.rival || null,
+      aiProfile: cfg.aiProfile || null,
       pinnedEnemy: cfg.pinnedEnemy ? cfg.pinnedEnemy.slice() : [],
       unbannable: cfg.unbannable ? cfg.unbannable.slice() : [],
       pending: null, // 'sideboard' | 'over' after a game ends
@@ -3401,7 +3461,7 @@
         return pinnedIds.indexOf(e.card.id) >= 0;
       });
     };
-    var chosen = chooseSix(survive, forecast, pinnedIds);
+    var chosen = chooseSix(survive, forecast, pinnedIds, setState && setState.aiProfile);
     var old = setState.lastBotIds || [];
     if (!old.length) return chosen;
     var fresh = chosen.filter(function (e) {
@@ -3422,7 +3482,12 @@
     });
     /* score bench heroes, best first */
     bench.sort(function (a, b) {
-      return ai.value(chosen, b, { size: 6 }) - ai.value(chosen, a, { size: 6 });
+      return (
+        ai.value(chosen, b, { size: 6 }) +
+        fieldPersonaBonus(setState && setState.aiProfile, b) -
+        ai.value(chosen, a, { size: 6 }) -
+        fieldPersonaBonus(setState && setState.aiProfile, a)
+      );
     });
     var need = fresh < 1 ? 1 : 2 - fresh;
     /* rebuild the six from the old public six + exactly `need` swaps,
@@ -3441,12 +3506,17 @@
       droppable
         .slice()
         .sort(function (a, b) {
-          return ai.value(base, a, { size: 6 }) - ai.value(base, b, { size: 6 });
+          return (
+            ai.value(base, a, { size: 6 }) +
+            fieldPersonaBonus(setState && setState.aiProfile, a) -
+            ai.value(base, b, { size: 6 }) -
+            fieldPersonaBonus(setState && setState.aiProfile, b)
+          );
         })
         .slice(need)
     );
     var pool = half.concat(bench.slice(0, need * 2));
-    oldKeep = chooseSix(pool, forecast, pinnedIds);
+    oldKeep = chooseSix(pool, forecast, pinnedIds, setState && setState.aiProfile);
     return oldKeep;
   }
 
@@ -3563,6 +3633,7 @@
          the HUD, the boss pinned, and the stage id on the battle. */
       campaignStage: setState.campaignStage || null,
       rival: setState.rival || null,
+      aiProfile: setState.aiProfile || null,
       pinnedEnemy:
         setState.pinnedEnemy && setState.pinnedEnemy.length ? setState.pinnedEnemy : null,
       unbannable: setState.unbannable && setState.unbannable.length ? setState.unbannable : null,
@@ -4092,7 +4163,9 @@
     fitTileNames: fitPrepNames,
     /* test hooks */
     _chooseBans: chooseBans,
+    _personaBans: personaBans,
     _chooseSix: chooseSix,
+    _fieldPersonaBonus: fieldPersonaBonus,
     _draftPick: draftPick,
     _prepState: function () {
       return prep;

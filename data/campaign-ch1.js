@@ -10,7 +10,7 @@
      - ban profiles so each rival BANS in character (§9.11),
      - draft personas + curated pool specs for stages 6-8,
      - fight cards for the three Unabridged stages (5, 9, 10),
-     - the grant curriculum (§7.3 - pairs, choice at the exams),
+     - gate rewards (coins + one Legendary; choices at the exams),
      - all dialogue: pre-fight scenes, victory epilogues, defeat
        lines, and IN-BATTLE RIVAL BARKS (non-blocking, see
        js/campaign.js + the #rival-bark element),
@@ -116,8 +116,10 @@ window.EOL = window.EOL || {};
        enemy12     the authored rival deck (card ids; legal 12)
        factionMix  authored faction counts, recorded so the future
                    Faction Blessings retune is a data pass (R8)
-       botSix      scripted fielded six - stages 1-4 only (§8:
-                   difficulty comes from decks, never the AI)
+       botSix      optional authored opening six; tactical battle play is
+                   still the normal full-depth AI
+       aiProfile   full-depth tactical evaluation priorities; these alter
+                   what a rival values, never search depth or competence
        banProfile  how this rival bans, in character (§9.11):
                      ids:[..]     always-ban list, first priority
                      roles:[..]   prefers striking these roles
@@ -135,9 +137,9 @@ window.EOL = window.EOL || {};
        pool        curated draft pool spec: { featured: factionId }
                    - the featured faction's full six is guaranteed
                    in the pool; the rest fills to 6-per-role
-       grants      tier-1 curriculum cards + tier-2 coin. Exams
-                   grant a CHOICE (R9: choice-shaped, resolved at
-                   claim time against the live roster).
+       grants      150 coins plus the gate Legendary. Mid-road exams
+                   replace the Legendary with a two-card CHOICE resolved
+                   at claim time against the live roster.
      --------------------------------------------------------- */
   var STAGES = [
     {
@@ -147,8 +149,11 @@ window.EOL = window.EOL || {};
       portrait: 'assets/rivals/the-recruiter.png',
       mode: 'classic',
       /* In-match teaching is event-driven and reader-paced: no automatic
-         round chatter, no expiry timer, no stale dialogue backlog. */
+         round chatter or stale backlog. The instruction remains manually
+         dismissible, but clears itself after a generous reading window so
+         it never camps over the board. */
       reactiveDialogue: true,
+      autoDismissDialogue: true,
       format: 'Classic - Guided gate',
       terrain: 'The Colosseum',
       counsel:
@@ -205,7 +210,8 @@ window.EOL = window.EOL || {};
           'grimmwood-goldilocks',
           'grimmwood-pied-piper',
         ],
-        hintBan: 'The Recruiter taps the ledger - "Those two. Take the spare wall and the hidden blade."',
+        hintBan:
+          'The Recruiter taps the ledger - "Those two. Take the spare wall and the hidden blade."',
         hintSix: 'The Recruiter shakes his head - "The marked card. Trust the ledger this once."',
         /* THE WHOLE MATCH IS SCRIPTED: a pre-computed line generated
            against the real engine under this exact seed
@@ -222,7 +228,90 @@ window.EOL = window.EOL || {};
              fight is FREE: the Recruiter reacts (tutorial.reactions) but
              never steers. Handoff position soak: 30/30 AI continuations won
              (avg 4.8/6 standing), with his own sig moderation active. */
-          moves: [{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-pied-piper"}],"say":"Open with the marked legend - a Basic. Cheap, honest work. Tap the legend, tap the skill, tap the marked victim."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-big-bad-wolf"}],"say":"My wall raises his shield and PROVOKES - watch your teeth get pulled toward him. Walls work both ways, Blank."},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","pass":true,"say":"Now PASS - yes, on purpose. Unspent Energy carries over, and round two has expensive plans. Hoarding is a move."},{"side":"enemy","unit":"grimmwood-gingerbread-man","ability":"basic","targets":[{"side":"player","id":"grimmwood-pied-piper"}]},{"side":"player","unit":"grimmwood-pied-piper","ability":"sig","targets":[{"side":"enemy","id":"grimmwood-red-riding-hood"},{"side":"enemy","id":"grimmwood-gingerbread-man"}],"say":"Now the Piper - pick both marked victims. CONTROLLERS do not win fights; they decide where fights are winnable: attack carved down, defences torn open, plans bent sideways."},{"side":"enemy","unit":"grimmwood-red-riding-hood","ability":"basic","targets":[{"side":"player","id":"grimmwood-gingerbread-man"}]},{"side":"player","unit":"grimmwood-evil-queen","ability":"sig","targets":[],"say":"And the Queen. CASTERS punish crowds: one incantation and the whole enemy line pays for standing together. Fragile as glass, worth every shard."},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-big-bad-wolf","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true},{"side":"player","unit":"grimmwood-goldilocks","ability":"basic","targets":[{"side":"enemy","id":"grimmwood-gingerbread-man"}]},{"side":"enemy","pass":true}],
+          moves: [
+            {
+              side: 'player',
+              unit: 'grimmwood-big-bad-wolf',
+              ability: 'basic',
+              targets: [{ side: 'enemy', id: 'grimmwood-pied-piper' }],
+              say: 'Open with the marked legend - a Basic. Cheap, honest work. Tap the legend, tap the skill, tap the marked victim.',
+            },
+            {
+              side: 'enemy',
+              unit: 'grimmwood-gingerbread-man',
+              ability: 'basic',
+              targets: [{ side: 'player', id: 'grimmwood-big-bad-wolf' }],
+              say: 'My wall raises his shield and PROVOKES - watch your teeth get pulled toward him. Walls work both ways, Blank.',
+            },
+            {
+              side: 'player',
+              unit: 'grimmwood-goldilocks',
+              ability: 'basic',
+              targets: [{ side: 'enemy', id: 'grimmwood-gingerbread-man' }],
+            },
+            {
+              side: 'enemy',
+              unit: 'grimmwood-red-riding-hood',
+              ability: 'basic',
+              targets: [{ side: 'player', id: 'grimmwood-pied-piper' }],
+            },
+            {
+              side: 'player',
+              unit: 'grimmwood-evil-queen',
+              ability: 'basic',
+              targets: [{ side: 'enemy', id: 'grimmwood-gingerbread-man' }],
+            },
+            { side: 'enemy', pass: true },
+            {
+              side: 'player',
+              pass: true,
+              say: 'Now PASS - yes, on purpose. Unspent Energy carries over, and round two has expensive plans. Hoarding is a move.',
+            },
+            {
+              side: 'enemy',
+              unit: 'grimmwood-gingerbread-man',
+              ability: 'basic',
+              targets: [{ side: 'player', id: 'grimmwood-pied-piper' }],
+            },
+            {
+              side: 'player',
+              unit: 'grimmwood-pied-piper',
+              ability: 'sig',
+              targets: [
+                { side: 'enemy', id: 'grimmwood-red-riding-hood' },
+                { side: 'enemy', id: 'grimmwood-gingerbread-man' },
+              ],
+              say: 'Now the Piper - pick both marked victims. CONTROLLERS do not win fights; they decide where fights are winnable: attack carved down, defences torn open, plans bent sideways.',
+            },
+            {
+              side: 'enemy',
+              unit: 'grimmwood-red-riding-hood',
+              ability: 'basic',
+              targets: [{ side: 'player', id: 'grimmwood-gingerbread-man' }],
+            },
+            {
+              side: 'player',
+              unit: 'grimmwood-evil-queen',
+              ability: 'sig',
+              targets: [],
+              say: 'And the Queen. CASTERS punish crowds: one incantation and the whole enemy line pays for standing together. Fragile as glass, worth every shard.',
+            },
+            { side: 'enemy', pass: true },
+            {
+              side: 'player',
+              unit: 'grimmwood-big-bad-wolf',
+              ability: 'basic',
+              targets: [{ side: 'enemy', id: 'grimmwood-gingerbread-man' }],
+            },
+            { side: 'enemy', pass: true },
+            {
+              side: 'player',
+              unit: 'grimmwood-goldilocks',
+              ability: 'basic',
+              targets: [{ side: 'enemy', id: 'grimmwood-gingerbread-man' }],
+            },
+            { side: 'enemy', pass: true },
+          ],
         },
       },
       tutorial: {
@@ -233,10 +322,13 @@ window.EOL = window.EOL || {};
         ban0: 'Crown cards cannot be banned; a legend must be answered in battle. Strike my reserve wall and hidden blade instead - Hansel & Gretel and Puss in Boots. They are marked; tap them.',
         ban1: 'One down. Now take Puss in Boots - never let a second ranged threat wait safely on the bench.',
         ban2: 'Ruthless. I approve. Now press CONFIRM BANS - mine were written before you sat down.',
-        reveal: 'There. I took your candle-children and your midnight girl. A ban is a question: what can you not live without? Remember how this feels, and do it to everyone after me.',
-        arena: 'This card is the ARENA - read it before every war. The Colosseum is the one honest board: no special laws. Every other arena on this road bends the rules, and its card tells you exactly how. In battle, the badge in the top-left corner names the ground; hover it whenever you forget.',
+        reveal:
+          'There. I took your candle-children and your midnight girl. A ban is a question: what can you not live without? Remember how this feels, and do it to everyone after me.',
+        arena:
+          'This card is the ARENA - read it before every war. The Colosseum is the one honest board: no special laws. Every other arena on this road bends the rules, and its card tells you exactly how. In battle, the badge in the top-left corner names the ground; hover it whenever you forget.',
         tips: 'And see the little question-mark dots scattered across every screen? Hover one - there is one on this very card. They explain whatever they sit beside. I wrote most of them myself, and I do not write for my health.',
-        field: 'Now field the six the ledger marked - one at a time, in order. Tap the marked card: {name}.',
+        field:
+          'Now field the six the ledger marked - one at a time, in order. Tap the marked card: {name}.',
         roles: {
           'grimmwood-gingerbread-man':
             'A TANK. High health, real armor, and abilities that PROVOKE - forcing enemies to hit him instead of the people worth protecting. Every wall you will ever love is one of these.',
@@ -253,7 +345,7 @@ window.EOL = window.EOL || {};
         },
         rows: 'Study the rows. FRONT soaks the blows - the wall, the wolf, and the piper holding the third gap. BACK works in peace - healer, witch, dead-eye. Snipers exist to punish a naked back line; rows are why yours is not naked.',
         toBattle:
-          'Press TO BATTLE when your hand stops shaking. Mine did too, eventually. About a century in. The first two rounds are the ledger\'s - follow the golden marks while I name each lesson. From round three the war is YOURS.',
+          "Press TO BATTLE when your hand stops shaking. Mine did too, eventually. About a century in. The first two rounds are the ledger's - follow the golden marks while I name each lesson. From round three the war is YOURS.",
         /* THE HANDOFF + REACTIONS (2026-08-10): rounds 1-2 are scripted,
            then the Recruiter stops steering and starts REACTING - each
            line fires once, on the player's own choice, at the moment of
@@ -265,13 +357,12 @@ window.EOL = window.EOL || {};
         reactions: {
           roles: {
             Bruiser:
-              'The Wolf, unchained - YOUR call this time. BRUISERS are the front line\'s teeth: they tear down whatever the wall holds still, and they grow stronger doing it.',
+              "The Wolf, unchained - YOUR call this time. BRUISERS are the front line's teeth: they tear down whatever the wall holds still, and they grow stronger doing it.",
             Sniper:
               'Goldilocks, by your own hand. SNIPERS reach past every wall into the soft back row. They do not open wars - they end arguments.',
             Medic:
               'Snow White - good instinct. MEDICS buy back the mistakes your courage keeps making: wounds undone, poisons wiped. Wars are lost the round the healer dies.',
-            Tank:
-              'The Gingerbread Man plants himself because YOU asked. This is what TANKS are for: he shouts the loudest, and danger forgets your soft targets exist.',
+            Tank: 'The Gingerbread Man plants himself because YOU asked. This is what TANKS are for: he shouts the loudest, and danger forgets your soft targets exist.',
           },
           enemyHeals:
             'My healer stitches the damage back. Remember the shape of that annoyance - and cure it at the source.',
@@ -292,8 +383,10 @@ window.EOL = window.EOL || {};
           '"First blood to you. Do not smile yet - the outnumbered side earns bonus Energy every round. The Road pays its wounded."',
         firstBloodFoe:
           '"First blood to me. Steady. Fewer heroes means fewer turns - but the Road pays YOU bonus Energy now. Spend it angrily."',
-        allyDown: '"Another of yours gone. Each body lost is a turn lost every round. Guard the rest."',
-        foeHalf: '"Half my side, gone. When you outnumber a foe, PRESS - turns are the true currency."',
+        allyDown:
+          '"Another of yours gone. Each body lost is a turn lost every round. Guard the rest."',
+        foeHalf:
+          '"Half my side, gone. When you outnumber a foe, PRESS - turns are the true currency."',
         foeLast: '"One of mine left. Focus your fire, Blank. Mercy is for stories with endings."',
         playerLow:
           '"Two standing. The comeback Energy is yours every round now - spend it like your last sentence. It may be."',
@@ -305,6 +398,7 @@ window.EOL = window.EOL || {};
       rival: 'The Oathkeeper',
       portrait: 'assets/rivals/the-oathkeeper.png',
       mode: 'classic',
+      aiProfile: 'sentinel',
       /* His words answer battle events and stay until read; he no longer
          starts talking on a timer while the player studies the board. */
       reactiveDialogue: true,
@@ -323,41 +417,45 @@ window.EOL = window.EOL || {};
       /* THE PROGRESSION LAW (owner ruling 2026-08-10): a gate may only
          field factions the Road has introduced. Gate II = Grimmwood +
          Camelot, nothing else - and the twelve EXPRESSES his habit:
-         three walls, three blades behind them, one begrudged sniper
-         (Mordred, the traitor he keeps where he can see him). Order:
+         layered shields feeding a Camelot counter-line, with Mordred
+         (the traitor he keeps where he can see him). Order:
          the six first, then the bench weakest-first (the scripted
          refill law). */
       enemy12: [
+        /* His oath is an actual formation: layered Shields protect a
+           Morgan/Mordred expose line while Lancelot scales behind them.
+           Puss is the first aggressive substitution; Red, Wolf and
+           Rapunzel keep real offence behind any two bans. */
         'camelot-king-arthur',
-        'grimmwood-gingerbread-man',
         'grimmwood-hansel-gretel',
         'camelot-guinevere',
-        'camelot-merlin',
-        'grimmwood-red-riding-hood',
-        'grimmwood-snow-white',
+        'camelot-lancelot',
         'camelot-morgan-le-fay',
         'camelot-mordred',
-        'camelot-lancelot',
-        'grimmwood-rapunzel',
+        'grimmwood-puss-in-boots',
+        'grimmwood-red-riding-hood',
         'grimmwood-big-bad-wolf',
+        'grimmwood-rapunzel',
+        'camelot-merlin',
+        'grimmwood-gingerbread-man',
       ],
       factionMix: { camelot: 6, grimmwood: 6 },
-      /* Soak-tuned 2026-08-10 (progression rebuild): the wall holds,
-         the teeth behind it are modest - the lesson is going THROUGH
-         him. He will not even FIELD a ranged killer unless your bans
-         force his hand - Mordred waits on the bench, watched. */
+      /* This opening is authored as a shield/expose machine: Arthur and
+         the twins hold while Morgan/Mordred punish the opened row.
+         Tactical decisions still use the normal full-depth AI. */
       botSix: [
         'camelot-king-arthur',
-        'grimmwood-gingerbread-man',
         'grimmwood-hansel-gretel',
         'camelot-guinevere',
-        'camelot-merlin',
-        'grimmwood-red-riding-hood',
+        'camelot-lancelot',
+        'camelot-morgan-le-fay',
+        'camelot-mordred',
       ],
       /* He tells you his oath before he swears it: your best back-line
          threat is taken at the gate. */
       banProfile: { roles: ['Sniper', 'Caster'], stat: 'atk' },
-      banTell: 'He strikes the killers-at-a-distance first: your archers, your mages, whatever hits hardest from safety.',
+      banTell:
+        'He strikes the killers-at-a-distance first: your archers, your mages, whatever hits hardest from safety.',
       /* THE BROKEN CLAIM (playtester ruling 2026-08-10: 'never once' can
          be broken by one match, and that is the match I would remember).
          When the reveal contradicts a role-claim tell, the ledger says
@@ -373,7 +471,7 @@ window.EOL = window.EOL || {};
         ban: 'My counsel stands in silver, Blank - the two I would strike from his twelve. But it is not me fighting. Refuse freely; the Road grades results, not obedience.',
         six: 'In silver again: the six I would field against him. Rearrange it, replace it, ignore it - your hand, your gate. This is the last one I walk beside you.',
       },
-      grants: { cards: ['camelot-lancelot'], legendPack: 'camelot-king-arthur', coins: 150 },
+      grants: { legendPack: 'camelot-king-arthur', coins: 150 },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
@@ -392,6 +490,7 @@ window.EOL = window.EOL || {};
       rival: 'The Outlaw',
       portrait: 'assets/rivals/the-outlaw.png',
       mode: 'classic',
+      aiProfile: 'hunter',
       format: 'Classic',
       terrain: 'The Open Plains',
       counsel:
@@ -404,35 +503,31 @@ window.EOL = window.EOL || {};
          honest support - the lesson stays Robin's rifle, not the
          replacements. */
       enemy12: [
-        /* The opening six carries THREE independent damage threats.
-           Banning two no longer removes the deck's entire offence; Puss,
-           Guy and Red wait next in the deterministic refill order. */
+        /* Robin calls the favourite, Friar softens it, and Puss/Will keep
+           pressure on it. Guy and Goldilocks wait as a second independent
+           kill line; the bench also preserves another wall, two healers
+           and Red as a third damage wave. */
         'sherwood-robin-hood',
-        'sherwood-little-john',
-        'grimmwood-gingerbread-man',
-        'sherwood-maid-marian',
-        'sherwood-will-scarlet',
-        'grimmwood-goldilocks',
-        'grimmwood-puss-in-boots',
         'sherwood-guy-of-gisborne',
-        'grimmwood-red-riding-hood',
-        'sherwood-friar-tuck',
-        'grimmwood-pied-piper',
+        'grimmwood-puss-in-boots',
+        'grimmwood-goldilocks',
+        'sherwood-little-john',
+        'sherwood-maid-marian',
+        'grimmwood-gingerbread-man',
+        'grimmwood-snow-white',
         'grimmwood-cinderella',
+        'sherwood-will-scarlet',
+        'sherwood-friar-tuck',
+        'grimmwood-red-riding-hood',
       ],
       factionMix: { sherwood: 6, grimmwood: 6 },
-      /* Soak-tuned 2026-08-09: triple snipers on the +15% back-row board
-         measured 13% player WR - a wall, not a lesson. Robin + Goldilocks
-         still teach the focus-fire read. */
-      /* Soak-tuned: Goldilocks' execute alone is worth ~40pp on the
-         Plains - Robin's rifle carries the focus-fire lesson solo. */
       botSix: [
         'sherwood-robin-hood',
-        'sherwood-little-john',
-        'grimmwood-gingerbread-man',
-        'sherwood-maid-marian',
+        'sherwood-friar-tuck',
+        'grimmwood-puss-in-boots',
         'sherwood-will-scarlet',
-        'grimmwood-goldilocks',
+        'sherwood-little-john',
+        'sherwood-maid-marian',
       ],
       /* She bans your protectors, so the favourite stands in the open.
          Soak-tuned 2026-08-09: taking BOTH walls AND healers off a
@@ -443,7 +538,7 @@ window.EOL = window.EOL || {};
       banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
       banTellBroken:
         'Correction entered: today she let a Tank stand. You will remember this match. So, now, will the ledger.',
-      grants: { cards: ['sherwood-little-john'], legendPack: 'sherwood-robin-hood', coins: 150 },
+      grants: { legendPack: 'sherwood-robin-hood', coins: 150 },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
       barks: {
@@ -463,6 +558,7 @@ window.EOL = window.EOL || {};
       rival: 'The Anointed',
       portrait: 'assets/rivals/the-anointed.png',
       mode: 'classic',
+      aiProfile: 'anointed',
       format: 'Classic',
       terrain: 'The Mana Spring',
       counsel:
@@ -474,37 +570,39 @@ window.EOL = window.EOL || {};
          deck of stages 1-4, because Olympus is the chapter's only Mark
          teacher and cannot be swapped (§4 balance flag). */
       enemy12: [
-        /* Olympus fields as an actual Mark engine: Zeus writes the
-           promise, Athena/Medusa control it, and Ares cashes it. The
-           bench leads with two real finishers if Ares is banned. */
+        /* Apollo writes the first Mark, Zeus calls it due and Ares cashes
+           the opening. Morgan exposes the favourite for Puss to punish,
+           making a second independent kill line. The bench carries another marker, two
+           walls/healers and three finishers, under the one-crown law. */
         'olympus-zeus',
         'olympus-hercules',
         'olympus-ares',
-        'olympus-medusa',
         'olympus-apollo',
-        'olympus-athena',
-        'grimmwood-evil-queen',
+        'camelot-morgan-le-fay',
         'camelot-mordred',
+        'olympus-athena',
+        'camelot-guinevere',
+        'sherwood-little-john',
         'grimmwood-puss-in-boots',
-        'camelot-lancelot',
-        'grimmwood-pied-piper',
         'grimmwood-rapunzel',
+        'grimmwood-big-bad-wolf',
       ],
-      factionMix: { olympus: 6, grimmwood: 4, camelot: 2 },
+      factionMix: { olympus: 5, camelot: 3, sherwood: 1, grimmwood: 3 },
       botSix: [
         'olympus-zeus',
-        'olympus-hercules',
+        'sherwood-little-john',
         'olympus-ares',
-        'olympus-medusa',
         'olympus-apollo',
-        'olympus-athena',
+        'camelot-morgan-le-fay',
+        'grimmwood-puss-in-boots',
       ],
       /* Marks must land and stick: your cleansers are anointed first. */
       banProfile: { roles: ['Medic'], stat: 'atk' },
-      banTell: 'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
+      banTell:
+        'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
       banTellBroken:
         'The ledger stands corrected: your healer went unstruck. Mercy, or a mistake - it records both the same way.',
-      grants: { cards: ['olympus-hercules'], legendPack: 'olympus-zeus', coins: 150 },
+      grants: { legendPack: 'olympus-zeus', coins: 150 },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
       barks: {
@@ -524,6 +622,7 @@ window.EOL = window.EOL || {};
       rival: 'The Warden of the Mid-Road',
       portrait: 'assets/rivals/the-warden-of-the-mid-road.png',
       mode: 'set',
+      aiProfile: 'warden',
       format: 'Unabridged - Three gates',
       terrain: 'Colosseum - Pass - Plains',
       counsel:
@@ -531,31 +630,33 @@ window.EOL = window.EOL || {};
       fightCard: ['colosseum', 'narrow-pass', 'open-plains'],
       line: 'Three toll arches, one Warden. Bring a deck you built yourself: best of three, mandatory substitutions, and NO RETREAT once it begins. Adapt or fall.',
       lock: 'Clear The Anointed',
-      /* The exam deck: 4/4/4 across the three taught factions (R8 -
-         authored on purpose, counts recorded for the blessings pass). */
+      /* The first exam combines every lesson already taught into one
+         authored debuff-and-punish set. */
       enemy12: [
-        /* Two protected crowns, not three: Robin and Zeus anchor two
-           different win conditions while Camelot supplies a flexible
-           non-Legendary spine. Four real bruisers make every mandatory
-           substitution dangerous rather than diluting the deck. */
-        'camelot-lancelot',
-        'camelot-merlin',
-        'camelot-guinevere',
-        'camelot-mordred',
-        'sherwood-robin-hood',
-        'sherwood-little-john',
+        /* The Warden brings a debuff-and-punish set rather than three
+           disconnected faction samples. Morgan, Piper and Rapunzel open
+           targets; Queen, Wolf, Puss, Guy and Mordred cash them. Two walls
+           and two healers keep the plan intact across mandatory swaps. */
+        'grimmwood-evil-queen',
+        'camelot-morgan-le-fay',
+        'grimmwood-rapunzel',
+        'grimmwood-pied-piper',
+        'grimmwood-big-bad-wolf',
+        'grimmwood-puss-in-boots',
         'sherwood-guy-of-gisborne',
-        'sherwood-will-scarlet',
-        'olympus-zeus',
-        'olympus-hercules',
-        'olympus-ares',
-        'olympus-apollo',
+        'camelot-mordred',
+        'grimmwood-hansel-gretel',
+        'sherwood-little-john',
+        'grimmwood-snow-white',
+        'camelot-guinevere',
       ],
-      factionMix: { camelot: 4, sherwood: 4, olympus: 4 },
+      factionMix: { grimmwood: 7, camelot: 3, sherwood: 2 },
       /* No scripted six from here up: a set without sideboarding is
-         not a set. The Warden fields adaptively and swaps in answers. */
-      banProfile: {},
-      banTell: 'She reads your twelve like a ledger and strikes what the rest of it leans on. Bring no single point of failure.',
+         not a set. The Warden fields adaptively, swaps in answers and
+         strikes whichever card the player's twelve leans on most. */
+      banProfile: { power: true },
+      banTell:
+        'She reads your twelve like a ledger and strikes what the rest of it leans on. Bring no single point of failure.',
       grants: { choice: { count: 2, factions: ['camelot', 'sherwood', 'olympus'] }, coins: 150 },
       resultWin: 'The Warden lays the iron key on the table. "You changed after winning. Go on."',
       resultLose: '"The Mid-Road keeps what does not adapt," the Warden says. "Return ready."',
@@ -578,13 +679,14 @@ window.EOL = window.EOL || {};
       rival: 'The Trickster',
       portrait: 'assets/rivals/the-trickster.png',
       mode: 'draft',
+      aiProfile: 'trickster',
       format: 'Draft',
       terrain: 'The Energy Void',
       counsel:
         'A draft against whim: no pattern to her picks, so draft for YOURSELF and refuse to be baited into denying. The Void starves the greedy - cheap skills win long wars.',
       field: 'energy-void',
       persona: 'trickster',
-      personaJitter: 0.75,
+      personaJitter: 0.25,
       pool: {
         featured: 'yamato',
         /* FROZEN POOL (owner ruling 2026-08-09): the 36 cards of every
@@ -633,11 +735,14 @@ window.EOL = window.EOL || {};
       },
       line: 'She deals twelve cards onto black stone. "You take one. Then I take one. The only cheating is pretending you did not want what you picked." She will steal the pieces your plan needs.',
       lock: 'Clear the Mid-Road',
-      banProfile: {},
-      banTell: 'She bans on whim as much as wisdom. No pattern on record - and she knows the ledger looks.',
-      grants: { cards: ['yamato-kaguya', 'yamato-benkei'], legendPack: 'yamato-abe-no-seimei', coins: 150 },
-      resultWin: 'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
-      resultLose: '"Every choice leaves another possible self across the table," she grins. "Mine was better."',
+      banProfile: { roles: ['Controller', 'Medic'] },
+      banTell:
+        'She steals the hands that make a plan work - Controllers first, then the healer you expected to keep. The whim is which one she smiles at.',
+      grants: { legendPack: 'yamato-abe-no-seimei', coins: 150 },
+      resultWin:
+        'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
+      resultLose:
+        '"Every choice leaves another possible self across the table," she grins. "Mine was better."',
       barks: {
         start: '"New rules! I will explain them after they stop helping me."',
         firstBloodYou: '"Rude. I had plans for that one."',
@@ -655,6 +760,7 @@ window.EOL = window.EOL || {};
       rival: 'The Strategist',
       portrait: 'assets/rivals/the-strategist.png',
       mode: 'draft',
+      aiProfile: 'strategist',
       format: 'Draft',
       terrain: 'The Blood Battlefield',
       counsel:
@@ -667,27 +773,53 @@ window.EOL = window.EOL || {};
         /* FROZEN POOL: the Strategist's table - kill chains, execute
            payoffs, and the walls that deny them. */
         cards: [
-          'roma-spartacus', 'grimmwood-gingerbread-man', 'olympus-hercules',
-          'sherwood-little-john', 'yamato-benkei', 'grimmwood-hansel-gretel',
-          'roma-julius-caesar', 'camelot-lancelot', 'grimmwood-big-bad-wolf',
-          'sherwood-guy-of-gisborne', 'sherwood-will-scarlet', 'yamato-minamoto-no-yoshitsune',
-          'roma-brutus', 'sherwood-robin-hood', 'grimmwood-goldilocks',
-          'grimmwood-puss-in-boots', 'camelot-mordred', 'yamato-tomoe-gozen',
-          'roma-constantine-the-great', 'olympus-zeus', 'takamagahara-tsukuyomi',
-          'camelot-merlin', 'yamato-kaguya', 'grimmwood-rapunzel',
-          'roma-cicero', 'olympus-medusa', 'camelot-morgan-le-fay',
-          'yamato-abe-no-seimei', 'grimmwood-pied-piper', 'olympus-athena',
-          'roma-augustus', 'grimmwood-snow-white', 'camelot-guinevere',
-          'olympus-apollo', 'sherwood-maid-marian', 'grimmwood-cinderella',
+          'roma-spartacus',
+          'grimmwood-gingerbread-man',
+          'olympus-hercules',
+          'sherwood-little-john',
+          'yamato-benkei',
+          'grimmwood-hansel-gretel',
+          'roma-julius-caesar',
+          'camelot-lancelot',
+          'grimmwood-big-bad-wolf',
+          'sherwood-guy-of-gisborne',
+          'sherwood-will-scarlet',
+          'yamato-minamoto-no-yoshitsune',
+          'roma-brutus',
+          'sherwood-robin-hood',
+          'grimmwood-goldilocks',
+          'grimmwood-puss-in-boots',
+          'camelot-mordred',
+          'yamato-tomoe-gozen',
+          'roma-constantine-the-great',
+          'olympus-zeus',
+          'takamagahara-tsukuyomi',
+          'camelot-merlin',
+          'yamato-kaguya',
+          'grimmwood-rapunzel',
+          'roma-cicero',
+          'olympus-medusa',
+          'camelot-morgan-le-fay',
+          'yamato-abe-no-seimei',
+          'grimmwood-pied-piper',
+          'olympus-athena',
+          'roma-augustus',
+          'grimmwood-snow-white',
+          'camelot-guinevere',
+          'olympus-apollo',
+          'sherwood-maid-marian',
+          'grimmwood-cinderella',
         ],
       },
       line: 'An old man plots your habits on a wax board of violet lines. He drafts against what you are drafting, and every careless victory becomes a path to your next defeat.',
       lock: 'Clear The Trickster',
-      banProfile: {},
-      banTell: 'He finds the card your plan cannot live without and removes it. Have a second plan.',
-      grants: { cards: ['roma-julius-caesar', 'roma-brutus'], legendPack: 'roma-constantine-the-great', coins: 150 },
+      banProfile: { roles: ['Caster', 'Sniper'], stat: 'atk' },
+      banTell:
+        'He removes the ranged finishers your plan cannot live without, hardest hitter first. Have a second plan.',
+      grants: { legendPack: 'roma-constantine-the-great', coins: 150 },
       resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
-      resultLose: '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
+      resultLose:
+        '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
       barks: {
         start: '"You will protect the center first. Then you will overcorrect."',
         firstBloodYou: '"An unpriced move. How irritating."',
@@ -705,39 +837,67 @@ window.EOL = window.EOL || {};
       rival: 'The Chronicler',
       portrait: 'assets/rivals/the-chronicler.png',
       mode: 'draft',
+      aiProfile: 'chronicler',
       format: 'Draft',
       terrain: 'The Spirit World',
       counsel:
         'She drafts endings - closers, last words. Build your engine early and keep the middle loud. The Spirit World gives every legend one refusal; count on the second blow, not the first.',
       field: 'spirit-world',
       persona: 'chronicler',
-      personaJitter: 0.25,
+      personaJitter: 0.15,
       pool: {
         featured: 'takamagahara',
         /* FROZEN POOL: the Chronicler's catalogue - burn, cleanse,
            Silence, and the bodies that must outlast them. */
         cards: [
-          'takamagahara-susanoo', 'grimmwood-gingerbread-man', 'olympus-hercules',
-          'yamato-benkei', 'yamato-momotaro', 'grimmwood-hansel-gretel',
-          'grimmwood-big-bad-wolf', 'grimmwood-red-riding-hood', 'camelot-lancelot',
-          'olympus-ares', 'roma-julius-caesar', 'sherwood-will-scarlet',
-          'sherwood-robin-hood', 'grimmwood-goldilocks', 'grimmwood-puss-in-boots',
-          'camelot-mordred', 'roma-brutus', 'yamato-tomoe-gozen',
-          'takamagahara-amaterasu', 'takamagahara-tsukuyomi', 'grimmwood-evil-queen',
-          'olympus-zeus', 'grimmwood-rapunzel', 'yamato-kaguya',
-          'takamagahara-izanami', 'takamagahara-inari', 'roma-cicero',
-          'sherwood-friar-tuck', 'camelot-merlin', 'grimmwood-pied-piper',
-          'takamagahara-izanagi', 'grimmwood-snow-white', 'grimmwood-cinderella',
-          'camelot-guinevere', 'olympus-apollo', 'sherwood-maid-marian',
+          'takamagahara-susanoo',
+          'grimmwood-gingerbread-man',
+          'olympus-hercules',
+          'yamato-benkei',
+          'yamato-momotaro',
+          'grimmwood-hansel-gretel',
+          'grimmwood-big-bad-wolf',
+          'grimmwood-red-riding-hood',
+          'camelot-lancelot',
+          'olympus-ares',
+          'roma-julius-caesar',
+          'sherwood-will-scarlet',
+          'sherwood-robin-hood',
+          'grimmwood-goldilocks',
+          'grimmwood-puss-in-boots',
+          'camelot-mordred',
+          'roma-brutus',
+          'yamato-tomoe-gozen',
+          'takamagahara-amaterasu',
+          'takamagahara-tsukuyomi',
+          'grimmwood-evil-queen',
+          'olympus-zeus',
+          'grimmwood-rapunzel',
+          'yamato-kaguya',
+          'takamagahara-izanami',
+          'takamagahara-inari',
+          'roma-cicero',
+          'sherwood-friar-tuck',
+          'camelot-merlin',
+          'grimmwood-pied-piper',
+          'takamagahara-izanagi',
+          'grimmwood-snow-white',
+          'grimmwood-cinderella',
+          'camelot-guinevere',
+          'olympus-apollo',
+          'sherwood-maid-marian',
         ],
       },
       line: 'In a wall-less library beneath cold stars, an archivist drafts the curve and hoards answers. They burn you out, cleanse themselves clean, and write down everyone who disappoints them.',
       lock: 'Clear The Strategist',
-      banProfile: {},
-      banTell: 'The Chronicler strikes what your story leans on - enough endings read to know a load-bearing hero on sight.',
-      grants: { cards: ['takamagahara-izanami'], legendPack: 'takamagahara-amaterasu', coins: 150 },
-      resultWin: 'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
-      resultLose: '"I have shelved this outcome before," the Chronicler sighs. "Try a different edition."',
+      banProfile: { roles: ['Caster', 'Medic'], stat: 'atk' },
+      banTell:
+        'The Chronicler strikes endings and the hands that revise them - Casters first, then healers, strongest first.',
+      grants: { legendPack: 'takamagahara-amaterasu', coins: 150 },
+      resultWin:
+        'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
+      resultLose:
+        '"I have shelved this outcome before," the Chronicler sighs. "Try a different edition."',
       barks: {
         start: '"You took your time. The Road is patient. I am a schedule."',
         firstBloodYou: '"Noted. Margin, red ink."',
@@ -746,7 +906,8 @@ window.EOL = window.EOL || {};
         foeDown: '"Deceased. Filed. Next."',
         foeHalf: '"You are editing my collection. Stop it."',
         foeLast: '"The last witness. Be careful what you make them watch."',
-        playerLow: '"When does preserving something become changing it? Look at your line and answer."',
+        playerLow:
+          '"When does preserving something become changing it? Look at your line and answer."',
       },
     },
     {
@@ -755,6 +916,7 @@ window.EOL = window.EOL || {};
       rival: 'The Last Guardian',
       portrait: 'assets/rivals/the-last-guardian.png',
       mode: 'set',
+      aiProfile: 'guardian',
       format: 'Unabridged - Three gates',
       terrain: 'Void - Battlefield - Spirit World',
       counsel:
@@ -762,33 +924,35 @@ window.EOL = window.EOL || {};
       fightCard: ['energy-void', 'blood-battlefield', 'spirit-world'],
       line: 'Before the bronze threshold stands a guardian who does not speak. Best of three across the ground you have already walked. Every road has one gate that does not speak.',
       lock: 'Clear The Chronicler',
-      /* 4/4/4 across the late-taught factions (R8). She holds the door;
-         the deck is a wall with two executioners behind it. */
-      /* Soak-tuned 2026-08-09: 23% vs the ~40% target with Abe no Seimei
-         anchoring - the legendary diviner sits out; the door still holds. */
+      /* The last exam is a late-road fortress with enough denial and
+         execution behind it to remain dangerous through a full set. */
       enemy12: [
-        /* The final exam carries the full two protected crowns and a
-           complete front/back plan on every substitution: Abe taxes the
-           player's answers, Constantine converts the Guardian's buffs,
-           and six separate damage/control bodies remain behind them. */
-        'yamato-abe-no-seimei',
-        'yamato-benkei',
-        'yamato-tomoe-gozen',
-        'yamato-kaguya',
+        /* The door is a real fortress: four independent walls and two
+           full healers force substitutions to preserve a front line.
+           Constantine turns that shelter into pressure; Tsukuyomi,
+           Cicero and Morgan deny replies while Guy and Puss finish them.
+           Six attackers/control threats survive any two bans. */
         'roma-constantine-the-great',
-        'roma-julius-caesar',
-        'roma-brutus',
-        'roma-spartacus',
-        'takamagahara-tsukuyomi',
-        'takamagahara-izanami',
+        'yamato-momotaro',
         'takamagahara-susanoo',
+        'sherwood-little-john',
+        'grimmwood-hansel-gretel',
         'takamagahara-izanagi',
+        'grimmwood-snow-white',
+        'takamagahara-tsukuyomi',
+        'roma-cicero',
+        'camelot-morgan-le-fay',
+        'sherwood-guy-of-gisborne',
+        'grimmwood-puss-in-boots',
       ],
-      factionMix: { yamato: 4, roma: 4, takamagahara: 4 },
+      factionMix: { roma: 2, yamato: 1, takamagahara: 3, sherwood: 2, grimmwood: 3, camelot: 1 },
       banProfile: { stat: 'atk' },
       banTell: 'She bans your heaviest hitters, every time. Power draws her eye; bring subtlety.',
       grants: {
-        choice: { count: 2, factions: ['camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'takamagahara'] },
+        choice: {
+          count: 2,
+          factions: ['camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'takamagahara'],
+        },
         coins: 150,
       },
       resultWin: 'The Guardian speaks, voice rough with disuse: "Then carry it." The gate opens.',
@@ -813,6 +977,7 @@ window.EOL = window.EOL || {};
       rival: 'Gilgamesh',
       portrait: 'assets/rivals/gilgamesh.png',
       mode: 'set',
+      aiProfile: 'conqueror',
       format: 'Unabridged - Final judgment',
       terrain: "The Legend's Trial - Ruins - Mirror Realm",
       counsel:
@@ -820,31 +985,38 @@ window.EOL = window.EOL || {};
       fightCard: ['heros-trial', 'ancient-ruins', 'mirror-realm'],
       line: 'The First King stands beside the great scales. He cannot be banned and he will not be benched - and the scales give life back: Isis walks with him. Beat the set, not one deck.',
       lock: 'Clear The Last Guardian',
-      /* Duat's whole court + the wall Duat cannot field itself (§5
-         trap 2) + the boss. Isis IS in the twelve - the chapter's only
-         revive as the intended final twist, telegraphed on the card. */
+      /* Duat's non-Legendary court + prior-road control + the boss.
+         Isis IS in the twelve - the chapter's only revive as the intended
+         final twist, telegraphed on the card. Anubis is the clear reward,
+         not a second protected crown in Gilgamesh's constructed deck. */
       enemy12: [
+        /* Gilgamesh is the deck's sole crown. Duat's non-Legendary court
+           lays Exposed, Burn and resurrection around his judgement;
+           prior-road controllers extend that pressure while four more
+           independent attackers make banning two finishers insufficient. */
         'campaign-gilgamesh',
-        'duat-anubis',
         'duat-horus',
         'duat-maat',
         'duat-sekhmet',
         'duat-isis',
         'duat-nephthys',
-        'roma-spartacus',
         'takamagahara-susanoo',
+        'takamagahara-tsukuyomi',
+        'takamagahara-inari',
         'camelot-lancelot',
         'grimmwood-pied-piper',
         'grimmwood-goldilocks',
       ],
-      factionMix: { 'first-legend': 1, duat: 6, roma: 1, takamagahara: 1, camelot: 1, grimmwood: 2 },
+      factionMix: { 'first-legend': 1, duat: 5, takamagahara: 3, camelot: 1, grimmwood: 2 },
       pinned: ['campaign-gilgamesh'],
       unbannable: ['campaign-gilgamesh'],
       banProfile: { power: true },
-      banTell: 'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
-      grants: { cards: ['duat-isis'], legendPack: 'duat-anubis', coins: 150 },
+      banTell:
+        'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
+      grants: { legendPack: 'duat-anubis', coins: 150 },
       resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
-      resultLose: '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
+      resultLose:
+        '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
       barks: {
         start: '"Power. What you can do. Show me."',
         start2: '"Memory. What remains after you are gone. Show me."',

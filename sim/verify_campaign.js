@@ -136,6 +136,18 @@ S.stages.forEach(function (st) {
     );
     ok(st.mode === 'classic', 'stage ' + st.id + ': scripted six only on single-game lessons');
   }
+  if (st.id > 1) {
+    ok(!!AI.PERSONALITIES[st.aiProfile], 'stage ' + st.id + ': full-depth AI profile resolves');
+  }
+  if (st.enemy12 && st.id > 1) {
+    var threats = st.enemy12.filter(function (id) {
+      return ['Bruiser', 'Sniper', 'Caster', 'Controller'].indexOf(dict[id].card.role) >= 0;
+    }).length;
+    ok(
+      threats >= 6,
+      'stage ' + st.id + ': at least four damage/control threats remain after any two bans'
+    );
+  }
   var bp = st.banProfile || {};
   (bp.ids || []).forEach(function (id) {
     ok(!!dict[id], 'stage ' + st.id + ': ban-profile id ' + id + ' exists');
@@ -178,6 +190,20 @@ S.stages.forEach(function (st) {
     'stage ' + st.id + ': ledger counsel authored (ASCII)'
   );
 });
+ok(AI.SEARCH_DEPTH === 4, 'campaign personalities leave normal gameplay search at depth 4');
+ok(
+  S.stages[1].banProfile.roles.indexOf('Sniper') >= 0 &&
+    S.stages[1].banProfile.roles.indexOf('Caster') >= 0,
+  'the Oathkeeper explicitly prioritizes Snipers and Casters'
+);
+ok(
+  S.stages[3].banProfile.roles.indexOf('Medic') >= 0,
+  'the Anointed explicitly prioritizes Medics'
+);
+ok(
+  S.stages[0].reactiveDialogue && S.stages[0].autoDismissDialogue,
+  'Gate I Recruiter instructions are reactive, dismissible and auto-expiring'
+);
 
 /* the ledger's one-time introduction line */
 ok(
@@ -585,18 +611,13 @@ ok(Object.keys(used).length === EOL.battlefields.length, 'all ten boards appear 
 console.log('D. grant curriculum');
 S.stages.forEach(function (st) {
   var g = st.grants || {};
-  (g.cards || []).forEach(function (id) {
-    ok(!!dict[id], 'stage ' + st.id + ': grant ' + id + ' resolves');
-    ok(
-      dict[id].card.rarity !== 'legendary',
-      'stage ' + st.id + ': named grants stay below legendary (crowns ride Legend Packs)'
-    );
-  });
-  if (g.cards)
-    ok(
-      g.cards.length >= 1 && g.cards.length <= 2,
-      'stage ' + st.id + ': faction grants arrive as one or two cards (R8, revised for Legend Packs)'
-    );
+  ok(!g.cards, 'stage ' + st.id + ': no extra ordinary-card reward between coins and the gate prize');
+  ok(
+    Object.keys(g).every(function (key) {
+      return ['coins', 'legendPack', 'choice'].indexOf(key) >= 0;
+    }),
+    'stage ' + st.id + ': reward contains only coins and its Legendary/Exam prize'
+  );
   if (g.legendPack) {
     ok(!!dict[g.legendPack], 'stage ' + st.id + ': legend pack ' + g.legendPack + ' resolves');
     ok(

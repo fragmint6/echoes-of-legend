@@ -1912,21 +1912,27 @@
       var pool = E.legalTargets(B, sel.unit, sel.ability);
       var forced = E.forcedTarget(B, sel.unit, sel.ability);
       if (forced) pool = [forced];
-      /* THE SCRIPTED MATCH: the line names the victims. */
+      /* THE SCRIPTED MATCH: the line names the victims. A target that
+         was rules-legal but not the instructed one re-speaks that line;
+         never send this tutorial correction to the easy-to-miss toast. */
       var mvT = scriptMove();
       if (mvT && mvT.side === 'player' && !mvT.pass && mvT.targets) {
+        var rulesLegal = pool.some(function (x) {
+          return x.uid === u.uid;
+        });
         pool = pool.filter(function (x) {
           return mvT.targets.some(function (t) {
             return t.side === x.side && t.id === x.card.id;
           });
         });
         if (
+          rulesLegal &&
           !pool.some(function (x) {
             return x.uid === u.uid;
-          }) &&
-          u.side === 'enemy'
+          })
         ) {
-          toast('The Recruiter taps the marked target');
+          scriptDeny('The Recruiter taps the marked target');
+          return;
         }
       }
       if (
@@ -1975,10 +1981,10 @@
     if (!viewOnly && mvU && mvU.side === 'player') {
       if (mvU.pass) {
         viewOnly = true;
-        toast('The Recruiter points at the Pass button - hoarding is also a move');
+        scriptDeny('The Recruiter points at the Pass button - hoarding is also a move');
       } else if (u.card.id !== mvU.unit) {
         viewOnly = true;
-        toast('The Recruiter points at the marked legend');
+        scriptDeny('The Recruiter points at the marked legend');
       }
     }
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
@@ -3173,8 +3179,7 @@
             ? 'ATK ramp begins - +' + Math.round(E.RAMP_STEP * 100) + '% each round'
             : '';
     cine('ROUND ' + B.round, sub, 'round', 2100);
-    if (window.EOL.audio)
-      window.EOL.audio.battle('round', { phase: B.round >= 2 ? 2 : 1 });
+    if (window.EOL.audio) window.EOL.audio.battle('round', { phase: B.round >= 2 ? 2 : 1 });
   }
 
   function announceTurn(side) {
@@ -5163,6 +5168,9 @@
             oddFirst: opts.oddFirst || null,
           });
     }
+    /* Campaign personality changes evaluation priorities only. The rival
+       still enters the exact normal depth-4 bestAction path below. */
+    B.aiProfiles = opts.aiProfiles || null;
     if (window.EOL.audio) {
       window.EOL.audio.setBattlefield(B.field ? B.field.id : 'colosseum');
       window.EOL.audio.scene('battle', { field: B.field ? B.field.id : 'colosseum' });

@@ -14,8 +14,7 @@
 }
 .mode-card-daily {
   border-color: rgba(119, 204, 255, 0.34);
-  background:
-    radial-gradient(
+  background: radial-gradient(
       circle 2.2px at 13px 13px,
       rgba(168, 224, 255, 0.95) 42%,
       rgba(30, 88, 126, 0.7) 58%,
@@ -119,14 +118,49 @@ body[data-gfx='low'] .mode-card-daily.forging .mode-glyph {
   display: grid;
   place-items: center;
   padding: 22px;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(31, 104, 145, 0.2), transparent 43%),
+  background: radial-gradient(circle at 50% 42%, rgba(31, 104, 145, 0.2), transparent 43%),
     rgba(3, 6, 12, 0.86);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 .daily-modal[aria-hidden='true'] {
   display: none;
+}
+/* A short "position arriving" beat makes the Puzzle feel responsive
+   without turning a status surface into another cinematic. Because the
+   hidden modal leaves layout entirely, these animations replay on every
+   deliberate open. */
+.daily-modal:not([aria-hidden='true']) {
+  animation: daily-modal-in 180ms ease-out both;
+}
+.daily-modal:not([aria-hidden='true']) .daily-forge {
+  animation: daily-forge-in 420ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
+}
+.daily-modal:not([aria-hidden='true']) .daily-sigil {
+  animation: daily-sigil-in 520ms 90ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
+}
+@keyframes daily-modal-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes daily-forge-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
+  68% {
+    transform: translateY(-2px) scale(1.004);
+  }
+}
+@keyframes daily-sigil-in {
+  from {
+    opacity: 0;
+    transform: rotate(-12deg) scale(0.72);
+  }
+  72% {
+    transform: rotate(2deg) scale(1.04);
+  }
 }
 .daily-forge {
   position: relative;
@@ -272,8 +306,18 @@ body[data-gfx='low'] .mode-card-daily.forging .mode-glyph {
   font-size: 9px;
   letter-spacing: 0.06em;
 }
-body[data-gfx='low'] .daily-sigil span {
+body[data-gfx='low'] .daily-sigil span,
+body[data-gfx='low'] .daily-modal:not([aria-hidden='true']),
+body[data-gfx='low'] .daily-modal:not([aria-hidden='true']) .daily-forge,
+body[data-gfx='low'] .daily-modal:not([aria-hidden='true']) .daily-sigil {
   animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-modal:not([aria-hidden='true']),
+  .daily-modal:not([aria-hidden='true']) .daily-forge,
+  .daily-modal:not([aria-hidden='true']) .daily-sigil {
+    animation: none;
+  }
 }
 
 /* In-battle provenance. Unlike the battlefield chip, this does not open:

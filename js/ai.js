@@ -61,6 +61,105 @@
      spend the remaining budget only on the survivors. */
   var PRUNE_KEEP = 4; // candidates kept for the deep pass
 
+  /* CAMPAIGN PERSONALITIES
+     -------------------------------------------------------------
+     A profile changes what a rival values inside the SAME depth-4 search;
+     it never changes beam width, rollout count, time budget or depth. The
+     authored decks supply the plan, while these weights make the rival
+     prefer the plan's positional payoffs over a generic good-looking move. */
+  var PERSONALITIES = {
+    sentinel: {
+      roles: { Tank: 1.016, Medic: 1.01, Bruiser: 1.006 },
+      effects: { shield: 1.02, taunt: 1.016, counterStrike: 1.016, heal: 1.008, statUp: 1.008 },
+      energy: 1.004,
+      lethal: 0.998,
+    },
+    hunter: {
+      roles: { Sniper: 1.016, Bruiser: 1.01, Controller: 1.004 },
+      effects: { dmg: 1.012, exposed: 1.014, mark: 1.008, heal: 0.994 },
+      lethal: 1.02,
+    },
+    anointed: {
+      roles: { Caster: 1.014, Controller: 1.012, Medic: 1.008 },
+      effects: { mark: 1.022, exposed: 1.012, statDown: 1.01, heal: 1.01, burn: 1.008 },
+      energy: 1.01,
+      lethal: 1.006,
+    },
+    warden: {
+      roles: { Controller: 1.01, Tank: 1.008, Medic: 1.006 },
+      effects: { exposed: 1.01, statDown: 1.008, shield: 1.006, heal: 1.006, silence: 1.008 },
+      energy: 1.006,
+      lethal: 1.008,
+    },
+    trickster: {
+      roles: { Controller: 1.016, Caster: 1.008 },
+      effects: {
+        silence: 1.02,
+        stealEnergy: 1.022,
+        drainEnergy: 1.022,
+        drainTax: 1.018,
+        costMod: 1.018,
+        delayed: 1.012,
+        exposed: 1.008,
+      },
+      energy: 1.016,
+      lethal: 1.002,
+    },
+    strategist: {
+      roles: { Controller: 1.014, Sniper: 1.012, Bruiser: 1.008 },
+      effects: { silence: 1.016, exposed: 1.014, mark: 1.01, statDown: 1.01, dmg: 1.006 },
+      energy: 1.012,
+      lethal: 1.018,
+    },
+    chronicler: {
+      roles: { Caster: 1.016, Controller: 1.012, Medic: 1.01 },
+      effects: {
+        burn: 1.022,
+        delayed: 1.016,
+        cleanse: 1.014,
+        silence: 1.014,
+        heal: 1.008,
+        exposed: 1.008,
+      },
+      energy: 1.008,
+      lethal: 1.008,
+    },
+    guardian: {
+      roles: { Tank: 1.014, Controller: 1.012, Caster: 1.008 },
+      effects: { shield: 1.016, taunt: 1.012, silence: 1.014, exposed: 1.01, statUp: 1.008 },
+      energy: 1.01,
+      lethal: 1.014,
+    },
+    conqueror: {
+      roles: { Bruiser: 1.016, Caster: 1.012, Sniper: 1.01, Medic: 1.006 },
+      effects: {
+        dmg: 1.014,
+        exposed: 1.016,
+        burn: 1.014,
+        healMod: 1.012,
+        heal: 1.008,
+        revive: 1.02,
+      },
+      energy: 1.012,
+      lethal: 1.024,
+    },
+  };
+
+  function profileFor(B, side) {
+    var raw = B && B.aiProfiles && B.aiProfiles[side];
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    return PERSONALITIES[raw] || null;
+  }
+
+  function effectWeight(B, unit, effect) {
+    var p = profileFor(B, unit.side);
+    if (!p || !p.effects || !effect) return 1;
+    var key = effect.k;
+    if (key === 'stat') key = effect.amt < 0 ? 'statDown' : 'statUp';
+    return p.effects[key] || 1;
+  }
+
   /* Simulation can use a smaller, explicit search budget while retaining
      depth-2 lookahead. Gameplay defaults above remain unchanged. */
   var SIMULATION_BUDGET = null;
@@ -120,6 +219,7 @@
 
   function unitValue(B, u) {
     if (!u.alive) return 0;
+    var profile = profileFor(B, u.side);
 
     // survivability: current HP plus shield, scaled by defence
     var ehp = (u.hp + u.shield) / Math.max(0.25, 1 - E.defOf(u) / 100);
@@ -129,8 +229,11 @@
 
     var v = ehp * 0.55 + threat * 0.75;
 
-    // simply being alive holds a slot and an action
-    v += 900 * (ROLE_VALUE[u.role] || 1);
+    // simply being alive holds a slot and an action. A campaign rival's
+    // profile says which pieces its plan is built to preserve.
+    var roleValue = ROLE_VALUE[u.role] || 1;
+    if (profile && profile.roles && profile.roles[u.role]) roleValue *= profile.roles[u.role];
+    v += 900 * roleValue;
 
     // a hero who can still act this round is worth more than a spent one
     if (!B.acted[u.side][u.uid]) v += 260;
@@ -199,9 +302,12 @@
     if (E.frontRowWiped(B, foe)) s += 500;
     if (E.frontRowWiped(B, side)) s -= 500;
 
-    // Unspent energy has option value, but only up to what you can use
-    s += Math.min(B.energy[side], 100) * 2.4;
-    s -= Math.min(B.energy[foe], 100) * 2.4;
+    // Unspent energy has option value, but only up to what you can use.
+    // Energy-minded rivals deliberately preserve more of that option.
+    var mineProfile = profileFor(B, side);
+    var foeProfile = profileFor(B, foe);
+    s += Math.min(B.energy[side], 100) * 2.4 * (mineProfile ? mineProfile.energy || 1 : 1);
+    s -= Math.min(B.energy[foe], 100) * 2.4 * (foeProfile ? foeProfile.energy || 1 : 1);
 
     return s;
   }
@@ -285,6 +391,7 @@
         }).length;
         if (sc + 1 < e.ifStacks.min) return; // this proc would not reach it
       }
+      var effectStart = s;
       var ft = fxTargets(B, unit, e, targets);
       switch (e.k) {
         case 'dmg': {
@@ -482,12 +589,10 @@
             });
           }
           if (c.targetHasDebuff != null) {
-            pass =
-              pass && targets.length > 0 && E.hasDebuff(targets[0]) === !!c.targetHasDebuff;
+            pass = pass && targets.length > 0 && E.hasDebuff(targets[0]) === !!c.targetHasDebuff;
           }
           if (c.debuffCountAtLeast != null) {
-            pass =
-              pass && targets.length > 0 && E.debuffCount(targets[0]) >= c.debuffCountAtLeast;
+            pass = pass && targets.length > 0 && E.debuffCount(targets[0]) >= c.debuffCountAtLeast;
           }
           if (c.buffCountAtLeast != null) {
             pass = pass && targets.length > 0 && E.buffCount(targets[0]) >= c.buffCountAtLeast;
@@ -506,6 +611,7 @@
         default:
           s += 40;
       }
+      s = effectStart + (s - effectStart) * effectWeight(B, unit, e);
     });
     return s;
   }
@@ -804,7 +910,9 @@
          (so killing a Medic outranks killing a spent Bruiser) plus a
          floor per body. A flat bonus was not enough - rollout variance
          still lost an available finishing blow ~3 times in 20. */
-      v += (rec.act.lethalVal || 0) * 0.6 + (rec.act.lethal || 0) * 600;
+      var profile = profileFor(B, side);
+      var lethalWeight = profile ? profile.lethal || 1 : 1;
+      v += ((rec.act.lethalVal || 0) * 0.6 + (rec.act.lethal || 0) * 600) * lethalWeight;
       return v;
     }
 
@@ -901,6 +1009,8 @@
     unitValue: unitValue,
     rollout: rollout,
     policyAction: policyAction,
+    profileFor: profileFor,
+    PERSONALITIES: PERSONALITIES,
     SEARCH_DEPTH: SEARCH_DEPTH,
     /* Harness hook: temporarily lower the depth for bulk simulation.
        Use resetDepth() when done - gameplay must run at 4. */

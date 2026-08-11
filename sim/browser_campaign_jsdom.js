@@ -144,6 +144,14 @@ const server = http.createServer((req, res) => {
   t(!d.querySelector('.guide-mark'), 'no stray golden pulse anywhere');
   t($('chapter-dialogue-step').textContent.indexOf('01') === 0, 'gate 1 scene starts at line one');
   t(!$('chapter-dialogue-portrait').hidden && $('chapter-dialogue-glyph').hidden, 'portrait clean (no glyph overlay)');
+  // Reproduce the old double-advance exactly: clicking the inner span
+  // used to rewrite/detach that target, then bubble into the dialogue bar.
+  $('chapter-dialogue-next').querySelector('span').click();
+  await sleep(50);
+  t(
+    $('chapter-dialogue-step').textContent.indexOf('02') === 0,
+    'one click on the Continue label advances exactly one dialogue line'
+  );
   for (let i = 0; i < 8 && !$('chapter-dialogue').hidden; i++) {
     $('chapter-dialogue-next').click();
     await sleep(50);
@@ -178,6 +186,17 @@ const server = http.createServer((req, res) => {
   d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-rumpelstiltskin"]').click();
   await sleep(180);
   t(w.EOL.play._prepState().youBans.length === 0, 'Legendary crowns refuse constructed bans');
+  t(
+    $('tutor-text').textContent.indexOf('Hansel & Gretel') >= 0 &&
+      $('tutor-text').textContent.indexOf('Puss in Boots') >= 0,
+    'a wrong Gate I prep click re-shows the relevant Recruiter instruction'
+  );
+  t(
+    !Array.from($('toasts').children).some((node) =>
+      /Rumpelstiltskin|Legendary|cannot be banned/.test(node.textContent)
+    ),
+    'the wrong Gate I prep click produces no bottom toast'
+  );
   d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-hansel-gretel"]').click();
   await sleep(280);
   d.querySelector('#prep-enemy .prep-c[data-cid="grimmwood-puss-in-boots"]').click();
@@ -819,11 +838,27 @@ const server = http.createServer((req, res) => {
     t(w.EOL.campaign.getProgress().pendingLegend === 2, 'with the ceremony queued');
     w.EOL.ui.show('chapter');
     await sleep(1500);
+    t(d.body.dataset.view === 'chapter', 'Legendary reveal opens after the chapter map returns');
+    t(
+      !$('po-campaign-award').hidden &&
+        $('po-campaign-award').textContent.indexOf('Legendary acquired') >= 0 &&
+        $('po-campaign-award-name').textContent.indexOf('King Arthur') >= 0,
+      'the gate popup unmistakably names the acquired Legendary before reveal'
+    );
+    const gate2Rewards = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
+    t(
+      gate2Rewards &&
+        gate2Rewards.querySelectorAll('.sc-reward').length === 2 &&
+        !!gate2Rewards.querySelector('.coin') &&
+        !!gate2Rewards.querySelector('.legendary'),
+      'a standard gate receipt contains only coins and its Legendary'
+    );
     for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
       await sleep(150);
     }
     t(w.EOL.shop.state() === 'summary', 'the Legend Pack ceremony plays to its summary');
+    t(d.querySelector('#po-summary .po-sum-title').textContent === 'Legendary Acquired', 'the reveal ends on an explicit Legendary Acquired receipt');
     t(w.EOL.shop.results().length === 1 && w.EOL.shop.results()[0].card.id === 'camelot-king-arthur', 'one card in the wrapper - THE card');
     t($('po-again').hidden, 'no Open Another on a Legend Pack');
     t(!!d.querySelector('#po-pack .pk-face.pk-legend'), 'and it wears the Legend wrapper');

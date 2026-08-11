@@ -209,6 +209,7 @@
   }
 
   var currentPack = null;
+  var currentAwardMeta = null;
 
   function syncOpenAnother() {
     var again = el('po-again');
@@ -247,6 +248,7 @@
       return;
     }
     if (window.EOL.audio) window.EOL.audio.pack('buy');
+    currentAwardMeta = null;
     results = rollPack(Math.random, pack);
     /* GRANT NOW: the ceremony is theater, the ledger is truth */
     econ.grant(
@@ -261,7 +263,7 @@
      a legendary. The card is already granted by recordClear (a mid-
      ceremony refresh can never eat a crown); this is pure theater -
      one card, no price, no 'open another'. */
-  function openLegendPack(cardId) {
+  function openLegendPack(cardId, meta) {
     var entry = null;
     (window.EOL.factions || []).forEach(function (f) {
       f.cards.forEach(function (c) {
@@ -270,6 +272,7 @@
     });
     if (!entry) return false;
     if (window.EOL.econ) window.EOL.econ.grant([cardId]); // idempotent safety
+    currentAwardMeta = meta || null;
     results = [entry];
     startCeremony(PACKS.legend);
     return true;
@@ -287,8 +290,29 @@
     });
     resetStage();
     syncOpenAnother();
+    var isCampaignLegend = pack.key === 'legend';
+    var award = el('po-campaign-award');
+    if (award) {
+      award.hidden = !isCampaignLegend;
+      var awardName = el('po-campaign-award-name');
+      if (awardName && isCampaignLegend && results[0]) {
+        awardName.textContent =
+          results[0].card.name +
+          ' joined your collection' +
+          (currentAwardMeta && currentAwardMeta.gate ? ' · ' + currentAwardMeta.gate : '');
+      }
+    }
+    var hint = el('po-hint');
+    if (hint)
+      hint.textContent = isCampaignLegend
+        ? 'Click to reveal your Legendary'
+        : 'Click the pack to open it';
+    var summaryTitle = document.querySelector('#po-summary .po-sum-title');
+    if (summaryTitle)
+      summaryTitle.textContent = isCampaignLegend ? 'Legendary Acquired' : 'Pack Contents';
     state = 'intro';
     var overlay = el('pack-opening');
+    overlay.classList.toggle('campaign-legend', isCampaignLegend);
     overlay.classList.add('on');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('pack-open');
@@ -409,6 +433,8 @@
   }
 
   function legendBanner(name) {
+    var award = el('po-campaign-award');
+    if (award) award.hidden = true;
     var b = el('po-legend-banner');
     b.innerHTML =
       '<i data-icon-domain="game" class="ra ra-crown"></i><span>Legendary - ' +
@@ -435,9 +461,12 @@
     state = 'idle';
     results = [];
     var overlay = el('pack-opening');
-    overlay.classList.remove('on');
+    overlay.classList.remove('on', 'campaign-legend');
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('pack-open');
+    var award = el('po-campaign-award');
+    if (award) award.hidden = true;
+    currentAwardMeta = null;
     el('po-cards').classList.remove('settled');
     el('po-summary').classList.remove('show');
     el('po-cards').innerHTML = '';
@@ -461,6 +490,8 @@
     el('po-packwrap').classList.add('gone');
     el('po-flash').classList.remove('on');
     el('po-legend-banner').className = 'po-legend-banner';
+    var award = el('po-campaign-award');
+    if (award) award.hidden = true;
     el('pack-opening').classList.remove('shake');
     el('po-hint').classList.remove('show');
     /* the deal may not have started (skip during intro/charge): make

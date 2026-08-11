@@ -175,8 +175,8 @@
      eol.campaign.ch1.progress:
        cleared   [stageIds]       unlocked  [stageIds]
        clears    {stageId: n}     per-stage clear counts (replay taper)
-       grants    [cardIds]        tier-1 curriculum, applied on FIRST
-                                  clear only (idempotent)
+       grants    [cardIds]        awarded Legendaries and resolved exam
+                                  choices (idempotent)
        coins     n                tier-2 currency, inert until the
                                   economy pass lands
        choices   {stageId:[ids]}  resolved exam choices (R9)
@@ -255,9 +255,6 @@
     prog.clears[stage.id] = (prog.clears[stage.id] || 0) + 1;
     var g = stage.grants || {};
     if (first) {
-      (g.cards || []).forEach(function (id) {
-        if (prog.grants.indexOf(id) < 0) prog.grants.push(id);
-      });
       prog.coins += g.coins || 0;
       if (g.choice) prog.pendingChoice = stage.id;
       /* THE LEGEND PACK (owner ruling 2026-08-10): a gate that ends a
@@ -269,11 +266,11 @@
         if (prog.grants.indexOf(g.legendPack) < 0) prog.grants.push(g.legendPack);
         prog.pendingLegend = stage.id;
       }
-      /* THE ECONOMY (2026-08-10): gate rewards are REAL now - cards
-         into the collection, coins into the one wallet the shop
-         spends. prog keeps its own totals as the road's record. */
+      /* THE ECONOMY: coins enter the wallet and the gate Legendary
+         enters the collection. Exam choices are granted when selected.
+         prog keeps its own totals as the road's record. */
       if (window.EOL.econ) {
-        window.EOL.econ.grant((g.cards || []).concat(g.legendPack ? [g.legendPack] : []));
+        window.EOL.econ.grant(g.legendPack ? [g.legendPack] : []);
         window.EOL.econ.addCoins(g.coins || 0);
       }
     } else {
@@ -754,6 +751,7 @@
         war: 'single',
         botSix: stage.botSix || null,
         botBanProfile: stage.banProfile || null,
+        aiProfile: stage.aiProfile || null,
         rival: rivalOf(stage),
         script: stage.script,
         field: fieldById(stage.field),
@@ -779,6 +777,7 @@
           war: stage.mode === 'set' ? 'set' : 'single',
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
+          aiProfile: stage.aiProfile || null,
           /* the Recruiter's ledger: HOW this rival bans, told BEFORE
              the player commits their own (playtest note 2026-08-09:
              the least-informed call must not stay the blindest one) */
@@ -827,6 +826,7 @@
         field: fieldById(stage.field),
         banProfile: stage.banProfile || null,
         banTell: stage.banTell || null,
+        aiProfile: stage.aiProfile || null,
         rival: rivalOf(stage),
       },
     });
@@ -839,8 +839,9 @@
      engine's observational event hook - never gameplay logic. Later
      rivals self-expire and queue lightweight flavour. Gates I-II are
      different by design: dialogue is attached to actual moves/events,
-     stays until read or dismissed, and a newer context REPLACES the old
-     one so the Recruiter's words can never trail behind the battle.
+     and a newer context REPLACES the old one. Gate II remains reader-
+     paced; Gate I also clears after a generous reading window, so the
+     Recruiter's words can never trail behind the battle.
      Nothing blocks the board or the turn system.
      --------------------------------------------------------- */
   var BARK_GAP = 5200;
@@ -947,10 +948,10 @@
     barkActive = true;
     if (window.EOL.audio) window.EOL.audio.campaign('bark');
     window.clearTimeout(barkTimer);
-    /* Gates I-II are paced by the player's actions, not a reading-time
-       guess. The line remains until it is dismissed or a newer relevant
-       event replaces it. Later rivals keep the lightweight timed bark. */
-    if (paced) return;
+    /* Reactive dialogue follows play rather than a chatter clock. Gate I
+       additionally has a generous expiry: it stays manually dismissible,
+       but never camps over the board after the instruction was read. */
+    if (paced && !b.stage.autoDismissDialogue) return;
     barkTimer = window.setTimeout(
       function () {
         el.classList.remove('show');
@@ -974,9 +975,10 @@
       el.classList.remove('deny');
       void el.offsetWidth;
       el.classList.add('deny');
-      /* Reader-paced lines do not own an expiry clock. For later gates,
-         repeating a line still gives the reader their full time again. */
-      if (!reactiveDialogue(stage)) {
+      /* A refused click replays the complete reading window. Gate II's
+         fully reader-paced counsel still remains until the player acts or
+         dismisses it. */
+      if (!reactiveDialogue(stage) || stage.autoDismissDialogue) {
         window.clearTimeout(barkTimer);
         barkTimer = window.setTimeout(function () {
           el.classList.remove('show');
@@ -1215,6 +1217,16 @@
       (mv && mv.say) ||
       'The Recruiter taps the ledger. "The marked move, Blank - the gold is not a suggestion."';
     sayNow(battleWatch.stage, text);
+  }
+
+  /* Preparation uses the same correction rule as battle: when a Gate I
+     click strays from the gold marks, put the relevant instruction back
+     in the Recruiter's own bubble instead of emitting a bottom toast. */
+  function onPrepScriptDeny(stageId, text) {
+    var stage = stageById(stageId);
+    if (!stage || !stage.script) return false;
+    showTutor(stage, text, false);
+    return true;
   }
 
   function onScriptEnd(B, reason) {
@@ -1515,10 +1527,6 @@
     if (!first) return '+25 coins · Replay reward';
     var g = stage.grants || {};
     var parts = ['+' + (g.coins || 0) + ' coins'];
-    (g.cards || []).forEach(function (id) {
-      var e = cardDict()[id];
-      if (e) parts.push(e.card.name);
-    });
     if (g.choice) parts.push('Choose ' + g.choice.count + ' Echoes');
     if (g.legendPack) {
       var crown = cardDict()[g.legendPack];
@@ -1767,7 +1775,9 @@
     prog.pendingLegend = null;
     saveProgress(prog);
     if (window.EOL.shop && window.EOL.shop.openLegendPack)
-      window.EOL.shop.openLegendPack(stage.grants.legendPack);
+      window.EOL.shop.openLegendPack(stage.grants.legendPack, {
+        gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
+      });
   }
 
   /* ---------------------------------------------------------
@@ -1787,17 +1797,6 @@
     chips.push(
       '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' + (g.coins || 0) + ' coins</span>'
     );
-    (g.cards || []).forEach(function (id) {
-      var e = cardDict()[id];
-      if (e)
-        chips.push(
-          '<span class="sc-reward"><i data-icon-domain="game" class="ra ' +
-            e.card.icon +
-            '"></i>' +
-            (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
-            '</span>'
-        );
-    });
     if (g.choice)
       chips.push(
         '<span class="sc-reward"><i data-icon-domain="game" class="ra ra-locked-fortress"></i>Choose ' +
@@ -2333,7 +2332,15 @@
         if (ev.target.closest && ev.target.closest('#chapter-dialogue-skiptut')) return;
         advanceDialogue();
       });
-    if (next) next.addEventListener('click', advanceDialogue);
+    if (next)
+      next.addEventListener('click', function (ev) {
+        /* renderDialogue rewrites this button's children. Without stopping
+           here, a click that began on the old child can reach the bar as a
+           now-detached target and evade its closest() guard, advancing a
+           second line from the same gesture. */
+        ev.stopPropagation();
+        advanceDialogue();
+      });
 
     /* Skip tutorial - one in the intro scene's footer, one riding the
        wayfinder bubble. Both end the SAME flow the same way. */
@@ -2476,6 +2483,7 @@
     onScriptSay: onScriptSay,
     onScriptEnd: onScriptEnd,
     onScriptDeny: onScriptDeny,
+    onPrepScriptDeny: onPrepScriptDeny,
     onPlayerAction: onPlayerAction,
     onBattleResult: onBattleResult,
     startTutorial: runIntroTutorial,

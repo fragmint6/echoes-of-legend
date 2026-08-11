@@ -696,6 +696,10 @@
       uidMap: {},
       energy: { player: B.energy.player, enemy: B.energy.enemy },
       field: B.field, // battlefields are immutable config - share the reference
+      /* Campaign rivals may value the same legal position differently.
+         Profiles are immutable labels/config, so search clones share them
+         exactly; they never alter rules, RNG or search depth. */
+      aiProfiles: B.aiProfiles || null,
       comeback: { player: B.comeback.player, enemy: B.comeback.enemy },
       deathSeq: B.deathSeq,
       roundEchoUsed:
