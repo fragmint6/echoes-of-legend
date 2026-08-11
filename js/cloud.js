@@ -62,6 +62,7 @@
     ['eol.decks.v1', 'decks', 'json'],
     ['eol.scale', 'settings.scale', 'int'],
     ['eol.gfx', 'settings.gfx', 'str'],
+    ['eol.audio.v1', 'settings.audio', 'json'],
     ['eol.war.length', 'settings.warLength', 'str'],
     ['eol.tips', 'flags.tips', 'json'],
     ['eol.coach.v1', 'flags.coach', 'json'],

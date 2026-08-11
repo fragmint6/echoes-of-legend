@@ -2832,6 +2832,7 @@
     cancelAuto();
     clearSel();
     E.passTurn(B, 'player');
+    if (window.EOL.audio) window.EOL.audio.battle('pass');
     /* CAMPAIGN reaction: an UNPROMPTED pass (not the scripted lesson) */
     if (!mvP && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onPlayerAction) {
       try {
@@ -2968,6 +2969,7 @@
 
     if (!act || !act.unit || !act.ability) {
       E.passTurn(B, 'enemy');
+      if (window.EOL.audio) window.EOL.audio.battle('pass');
       cine('ENEMY PASSES', '', 'enemy', 1100, true);
       await sleep(cineMs(700));
     } else {
@@ -3171,6 +3173,8 @@
             ? 'ATK ramp begins - +' + Math.round(E.RAMP_STEP * 100) + '% each round'
             : '';
     cine('ROUND ' + B.round, sub, 'round', 2100);
+    if (window.EOL.audio)
+      window.EOL.audio.battle('round', { phase: B.round >= 2 ? 2 : 1 });
   }
 
   function announceTurn(side) {
@@ -3185,6 +3189,7 @@
           ? 'The round is yours'
           : '';
     cine(side === 'player' ? 'YOUR TURN' : 'ENEMY TURN', sub, side, 1000, true);
+    if (window.EOL.audio) window.EOL.audio.battle('turn', { side: side });
   }
 
   /* Let the announcements finish before the bot moves. The think time
@@ -3307,6 +3312,13 @@
   function playCast(uid, element, signature) {
     var a = centreOf(uid);
     if (!a) return;
+    var actor = B && B.uidMap ? B.uidMap[uid] : null;
+    if (window.EOL.audio)
+      window.EOL.audio.battle('cast', {
+        role: actor ? actor.role : null,
+        element: element,
+        signature: !!signature,
+      });
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Physical;
 
     var ring = spawn('fx-cast-ring' + (signature ? ' big' : ''), a.x, a.y, fx.color, 700);
@@ -3435,7 +3447,9 @@
     }, 420);
   }
 
-  function playImpact(x, y, fx, crit, element) {
+  function playImpact(x, y, fx, crit, element, silentAudio) {
+    if (!silentAudio && window.EOL.audio)
+      window.EOL.audio.battle('impact', { element: element, crit: !!crit });
     if (crit) {
       playCritImpact(x, y, fx);
     }
@@ -3486,6 +3500,7 @@
   function playAoe(srcUid, targetUids, element) {
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Magic;
     var el = element || 'Magic';
+    if (window.EOL.audio) window.EOL.audio.battle('aoe', { element: el, delay: 120 });
     /* AoE DETONATION SUITE v2 (2026-08).
        The old center was two plain rings and a glow at the CASTER -
        playtesters read it as "lanky" because a thin expanding circle
@@ -3586,7 +3601,9 @@
              not as the endpoint of a beam */
           spawn('fx-blast-mini', t.x, t.y, fx.color, 440);
           setTimeout(function () {
-            playImpact(t.x, t.y, fx, false, element);
+            /* The blast has one shared audio detonation; per-victim
+               impacts stay visual so an AoE never becomes six bangs. */
+            playImpact(t.x, t.y, fx, false, element, true);
           }, 170);
         },
         90 + i * 80
@@ -4041,6 +4058,10 @@
   function playRevive(uid, label) {
     var c = centreOf(uid);
     if (!c) return 0;
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.2, 1.3);
+      window.EOL.audio.battle('revive');
+    }
     var GOLD = '#ffd050';
 
     // the board holds its breath
@@ -4136,6 +4157,10 @@
      Coin flip - a spinning coin that lands on a face
      -------------------------------------------------------- */
   function playCoinFlip(face, label) {
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.18, 1.15);
+      window.EOL.audio.battle('coin', { face: face });
+    }
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
     var z = uiS();
@@ -4197,6 +4222,10 @@
   function playStatus(uid, key, positive, signature) {
     var t = centreOf(uid);
     if (!t) return;
+    /* Shield formation already has its own material cue. All other
+       status glyphs share one restrained up/down vocabulary. */
+    if (key !== 'shield' && window.EOL.audio)
+      window.EOL.audio.battle(positive ? 'buff' : 'debuff', { signature: !!signature });
     var def = STATUS_FX[key] || STATUS_FX.atk;
     var color = positive ? def.color : def.kind === 'buff' ? '#ff9d9d' : def.color;
     var big = signature ? ' big' : '';
@@ -4247,6 +4276,7 @@
   function playBurnTick(uid) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('burn');
     var C = '#ff7a3c';
     spawn('fx-burn-glow', t.x, t.y, C, 760);
     for (var i = 0; i < 9; i++) {
@@ -4267,6 +4297,7 @@
   function playAura(uid, kind) {
     var t = centreOf(uid);
     if (!t) return;
+    if (kind === 'heal' && window.EOL.audio) window.EOL.audio.battle('heal');
     spawn('fx-aura ' + kind, t.x, t.y, null, 640);
     if (kind === 'heal') {
       // a swelling ring of light under the hero
@@ -4289,6 +4320,7 @@
   function playShieldForm(uid) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('shield');
     spawn('fx-barrier', t.x, t.y, '#9fd8ff', 900);
     spawn('fx-barrier d2', t.x, t.y, '#cfe9ff', 900);
     for (var i = 0; i < 6; i++) {
@@ -4304,6 +4336,7 @@
   function playCleanse(uid) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('cleanse');
     spawn('fx-cleanse-ring', t.x, t.y, '#bfe9ff', 760);
     for (var i = 0; i < 7; i++) {
       var p = spawn('fx-cleanse-mote', t.x, t.y, '#e8f6ff', 820);
@@ -4317,6 +4350,7 @@
   function playEnergy(uid, positive) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('energy', { positive: !!positive });
     var c = positive ? '#7fe3ff' : '#ff9d9d';
     spawn('fx-energy-burst', t.x, t.y, c, 720);
     for (var i = 0; i < 5; i++) {
@@ -4494,6 +4528,7 @@
     var deaths = fresh.filter(function (l) {
       return l.type === 'death';
     });
+    if (deaths.length && window.EOL.audio) window.EOL.audio.battle('death');
     if (deaths.length) hold = Math.max(hold, hold + deathMs());
     return hold;
   }
@@ -4742,6 +4777,7 @@
 
   function showResult() {
     var win = B.winner === 'player';
+    if (window.EOL.audio) window.EOL.audio.result(win);
     var ov = $('result');
     ov.className = 'result show ' + (win ? 'win' : 'lose');
     ov.querySelector('.result-title').textContent = win ? 'Victory' : 'Defeat';
@@ -5126,6 +5162,10 @@
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
           });
+    }
+    if (window.EOL.audio) {
+      window.EOL.audio.setBattlefield(B.field ? B.field.id : 'colosseum');
+      window.EOL.audio.scene('battle', { field: B.field ? B.field.id : 'colosseum' });
     }
     /* A forfeit can arrive while it is OUR turn, when no decide()
        promise exists to wake the battle loop. Register an explicit

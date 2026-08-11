@@ -319,16 +319,19 @@
     /* THE ECONOMY: a deck holds only what you OWN. Drafts stay
        whole-roster by design; construction does not. */
     if (window.EOL.econ && !window.EOL.econ.owns(id)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn('Not in your collection yet - the Shop and the Road pay in legends.');
       return false;
     }
     if (count() >= DECK_SIZE) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn('Deck is full - remove a legend first.');
       return false;
     }
     var cand = byId()[id].card;
     var currentEntries = entriesOf(editing);
     if (window.EOL.deckRules.legendaryCapBlocked(currentEntries, cand)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn(
         'Max ' +
           window.EOL.deckRules.MAX_LEGENDARIES +
@@ -337,6 +340,7 @@
       return false;
     }
     if (window.EOL.deckRules.capBlocked(currentEntries, cand)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn(
         'Max ' +
           MAX_PER_ROLE +
@@ -350,6 +354,7 @@
     }
     editing.ids.push(id);
     editing.ts = Date.now();
+    if (window.EOL.audio) window.EOL.audio.card('place');
     save();
     render();
     return true;
@@ -361,6 +366,7 @@
     if (i < 0) return false;
     editing.ids.splice(i, 1);
     editing.ts = Date.now();
+    if (window.EOL.audio) window.EOL.audio.card('remove');
     save();
     render();
     return true;
@@ -789,7 +795,10 @@
          the badge was a second control for the same action sitting on
          top of the art. */
       el.addEventListener('click', function () {
-        if (window.matchMedia('(hover: none)').matches) return; // tap = details
+        if (window.matchMedia('(hover: none)').matches) {
+          if (window.EOL.audio) window.EOL.audio.card('pick');
+          return; // tap = details
+        }
         toggle(e.card.id);
       });
       grid.appendChild(el);

@@ -345,6 +345,7 @@
       }
     }
     setText($('chapter-dialogue-step'), two(dlg.index + 1) + ' / ' + two(dlg.lines.length));
+    if (window.EOL.audio) window.EOL.audio.campaign('dialogue');
     /* Skip tutorial is offered ONLY on the intro scene - gate scenes
        and epilogues are content, and content is walked, not skipped */
     var skipT = $('chapter-dialogue-skiptut');
@@ -397,6 +398,7 @@
     dlg = null;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
+    if (window.EOL.audio) window.EOL.audio.ui('back');
     document.body.dataset.campaignDialogue = '0';
     if (kind !== 'pre') {
       /* Epilogues and the intro tutorial are FLOWS, not scenes: closing
@@ -732,6 +734,10 @@
       launchDraft(stage);
       return;
     }
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.34, 0.9);
+      window.EOL.audio.campaign('gate');
+    }
     if (!window.EOL.play || !window.EOL.play.startPrep) return;
     /* THE SCRIPTED GATE (stage 1): no deck picker - the ledger brings
        the starter twelve, the script marks the bans and the six, and
@@ -939,6 +945,7 @@
     void el.offsetWidth; // restart the slide-in
     el.classList.add('show');
     barkActive = true;
+    if (window.EOL.audio) window.EOL.audio.campaign('bark');
     window.clearTimeout(barkTimer);
     /* Gates I-II are paced by the player's actions, not a reading-time
        guess. The line remains until it is dismissed or a newer relevant
@@ -1651,6 +1658,7 @@
       return;
     }
     var picked = [];
+    if (window.EOL.audio) window.EOL.audio.campaign('reward');
     setText(
       $('grant-choice-sub'),
       stage.rival +
@@ -1685,11 +1693,15 @@
           b.classList.remove('sel');
           b.setAttribute('aria-checked', 'false');
         } else {
-          if (picked.length >= g.count) return;
+          if (picked.length >= g.count) {
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
+            return;
+          }
           picked.push(e.card.id);
           b.classList.add('sel');
           b.setAttribute('aria-checked', 'true');
         }
+        if (window.EOL.audio) window.EOL.audio.card(i >= 0 ? 'remove' : 'pick');
         sync();
       };
       b.addEventListener('click', toggle);
@@ -1714,6 +1726,7 @@
       /* the chosen echoes are OWNED now, not just remembered */
       if (window.EOL.econ) window.EOL.econ.grant(picked);
       modal.hidden = true;
+      if (window.EOL.audio) window.EOL.audio.campaign('reward');
       done();
     };
     modal.hidden = false;
@@ -2202,6 +2215,7 @@
     ledgerSel = best;
     renderLedger();
     box.hidden = false;
+    if (window.EOL.audio) window.EOL.audio.campaign('page');
     box.setAttribute('aria-hidden', 'false');
   }
 
@@ -2433,6 +2447,7 @@
         if (!row) return;
         ledgerSel = parseInt(row.dataset.lg, 10) || 1;
         renderLedger();
+        if (window.EOL.audio) window.EOL.audio.campaign('page');
       });
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && $('ledger') && !$('ledger').hidden) {

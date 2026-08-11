@@ -1037,6 +1037,10 @@
     var open = function () {
       host.classList.add('show');
       host.setAttribute('aria-hidden', 'false');
+      if (window.EOL.audio) {
+        window.EOL.audio.setBattlefield(field.id);
+        window.EOL.audio.battle('battlefield');
+      }
       /* "Field your six" stays locked until the battlefield card's
          entrance finishes (2026-08-05) - the reveal IS the battlefield
          selection animation in single games, and clicking through it
@@ -1270,6 +1274,8 @@
     prepAnim = true;
     renderPrep();
     window.EOL.ui.show('prep');
+    if (window.EOL.audio)
+      window.EOL.audio.card('shuffle', { delay: prep.campaignStage ? 720 : 0 });
     coachShow(
       'prep-ban',
       'ri-forbid-2-line',
@@ -1557,6 +1563,7 @@
           /* Legendary protection (plus any authored exception such as
              Gilgamesh). The grid says so instead of ignoring the click. */
           if (noBan) {
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
             toast(
               e.card.name +
                 (e.card.rarity === 'legendary'
@@ -1576,6 +1583,7 @@
             p.youBans.indexOf(e.card.id) < 0 &&
             p.script.bans.indexOf(e.card.id) < 0
           ) {
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
             toast(
               p.script.hintBan || 'Follow the marked cards - this gate is scripted',
               'ri-quill-pen-line'
@@ -1587,11 +1595,13 @@
           if (i2 >= 0) p.youBans.splice(i2, 1);
           else {
             if (p.youBans.length >= RULES().BANS) {
+              if (window.EOL.audio) window.EOL.audio.ui('deny');
               flashNode('prep-enemy-note');
               return;
             }
             p.youBans.push(e.card.id);
           }
+          if (window.EOL.audio) window.EOL.audio.card(i2 >= 0 ? 'remove' : 'ban');
           /* Patch, don't rebuild: a full grid rebuild re-creates every
              .banpick tile and replays its ban-mark flash, so the second
              ban used to "redo" the first. Toggling the live node means
@@ -1680,6 +1690,7 @@
        formation, so removals and shuffles are refused too. */
     if (prep.script && prep.script.six) {
       if (idx >= 0) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
         toast('The ledger placed that one - the formation stands', 'ri-quill-pen-line');
         flashNode('prep-player-note');
         return;
@@ -1692,6 +1703,7 @@
         }
       }
       if (id !== nextId) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
         toast(
           prep.script.hintSix || 'Field the marked card - this gate is scripted',
           'ri-quill-pen-line'
@@ -1717,6 +1729,7 @@
       else prep.back.splice(prep.back.indexOf(id), 1);
     } else {
       if (all.length >= RULES().FIELD_SIZE) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
         flashNode('prep-player-note');
         return;
       }
@@ -1727,6 +1740,7 @@
       else if (prep.front.length < 3) prep.front.push(id);
       else return;
     }
+    if (window.EOL.audio) window.EOL.audio.card(idx >= 0 ? 'remove' : 'place');
     syncSixChips();
     renderField();
     updatePrepChrome();
@@ -1861,6 +1875,7 @@
     {
       prep.revealed = true;
       renderPrep();
+      if (window.EOL.audio) window.EOL.audio.card('reveal');
       $('prep-sub').textContent = 'Bans locked - both sides revealed';
       toast('Bans locked - both sides revealed', 'ri-eye-line');
       // stamped, seen, then their side folds away for the fielding.
@@ -2585,6 +2600,7 @@
        in multiplayer only the host does, so the guest must start locked
        and waiting or both players would pick from the same pack. */
     draft.busy = packStarter(0) === 'foe';
+    if (window.EOL.audio) window.EOL.audio.card('shuffle');
     renderPack();
     renderDraftHead();
     /* Repaint both squad strips from the NEW (empty) picks. Without this the
@@ -2649,6 +2665,8 @@
       });
       e._wrap = wrap;
       packHost.appendChild(wrap);
+      if (window.EOL.audio)
+        window.EOL.audio.card('deal', { delay: i * 90, pan: (i - 1) * 0.24 });
     });
     updateCaps();
   }
@@ -2676,6 +2694,8 @@
     stamp.className = 'dtake';
     stamp.textContent = who === 'you' ? 'Yours' : 'Enemy';
     e._wrap.appendChild(stamp);
+    if (window.EOL.audio)
+      window.EOL.audio.card('pick', { pan: who === 'you' ? -0.28 : 0.28 });
   }
 
   /* the leftover third of a pack burns away before the next deal */
@@ -2685,6 +2705,7 @@
       e._wrap.classList.add('burnout');
       e._wrap.classList.remove('capped');
     }
+    if (window.EOL.audio) window.EOL.audio.card('burn');
   }
 
   /* Both squads fill in live - freshSide's newest pip is the only one
@@ -2735,6 +2756,7 @@
     if (!d || d.busy || e._taken) return;
     if (RULES().capBlocked(d.picks.you, e.card)) {
       if (anyLegalForYou(d)) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
         flashNode('draft-sub');
         return;
       }

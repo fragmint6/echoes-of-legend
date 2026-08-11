@@ -1042,6 +1042,85 @@
           </p>
         </section>
 
+        <section class="set-block" aria-labelledby="set-audio-h">
+          <h3 class="set-h" id="set-audio-h">
+            <i class="ri-volume-up-line set-h-ico" aria-hidden="true"></i>
+            <span class="set-h-body">
+              Audio
+              <small class="set-h-sub">Original, creator-safe music and sound effects.</small>
+            </span>
+          </h3>
+          <div class="set-row audio-row">
+            <label class="audio-lbl" for="audio-master">
+              <i class="ri-equalizer-2-line" aria-hidden="true"></i><span>Master</span>
+            </label>
+            <input
+              type="range"
+              class="scale-range audio-range"
+              id="audio-master"
+              min="0"
+              max="100"
+              step="1"
+              value="82"
+            />
+            <output class="scale-val audio-val" id="audio-master-val" for="audio-master">
+              82%
+            </output>
+          </div>
+          <div class="set-row audio-row">
+            <label class="audio-lbl" for="audio-music">
+              <i class="ri-music-2-line" aria-hidden="true"></i><span>Music</span>
+            </label>
+            <input
+              type="range"
+              class="scale-range audio-range"
+              id="audio-music"
+              min="0"
+              max="100"
+              step="1"
+              value="42"
+            />
+            <output class="scale-val audio-val" id="audio-music-val" for="audio-music">
+              42%
+            </output>
+          </div>
+          <div class="set-row audio-row">
+            <label class="audio-lbl" for="audio-sfx">
+              <i class="ri-sound-module-line" aria-hidden="true"></i><span>Sound effects</span>
+            </label>
+            <input
+              type="range"
+              class="scale-range audio-range"
+              id="audio-sfx"
+              min="0"
+              max="100"
+              step="1"
+              value="78"
+            />
+            <output class="scale-val audio-val" id="audio-sfx-val" for="audio-sfx">
+              78%
+            </output>
+          </div>
+          <div class="set-row audio-actions">
+            <button
+              type="button"
+              class="btn btn-ghost btn-slim audio-mute"
+              id="audio-mute"
+              aria-pressed="false"
+            >
+              <i class="ri-volume-up-line" aria-hidden="true"></i><span>Mute audio</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-slim" id="audio-test">
+              <i class="ri-play-circle-line" aria-hidden="true"></i><span>Test sound</span>
+            </button>
+          </div>
+          <p class="set-gfx-note audio-note">
+            <i class="ri-information-line"></i>
+            The soundtrack and effects are synthesized by the game itself, with no sampled or
+            licensed recordings. They are safe to use in monetized videos and livestreams.
+          </p>
+        </section>
+
         <section class="set-block" aria-labelledby="set-display-h">
           <h3 class="set-h" id="set-display-h">
             <i class="ri-image-line set-h-ico" aria-hidden="true"></i>
@@ -2765,6 +2844,9 @@
     <script src="data/campaign-ch1.js"></script>
     <script src="data/draft-ai.js"></script>
 
+    <!-- Original procedural score + role/element sound language. Loaded
+         before gameplay modules so every flow can call it safely. -->
+    <script src="js/audio.js"></script>
     <script src="js/economy.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>

@@ -21328,6 +21328,68 @@ html.mqw520 .dm-card .war-length {
   padding: 6px 10px;
 }
 
+/* ---- 3. settings: audio mixer ----
+   Three identical channels keep the hierarchy obvious and touch-safe.
+   The shared scale-range thumb is reused so volume and GUI scale obey
+   one visual law; these rows remain a single line even on narrow cards. */
+.audio-row {
+  display: grid;
+  grid-template-columns: minmax(104px, 0.8fr) minmax(110px, 1.4fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 15px;
+}
+.audio-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--txt-dim);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.audio-lbl i {
+  flex: 0 0 auto;
+  color: var(--r-legendary-1);
+  font-size: 15px;
+}
+.audio-range {
+  grid-area: auto;
+}
+.audio-val {
+  grid-area: auto;
+}
+.audio-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+.audio-actions .btn {
+  justify-content: center;
+}
+.audio-mute.is-muted {
+  color: #ffb0a3;
+  border-color: rgba(255, 122, 100, 0.4);
+  background: rgba(255, 90, 68, 0.08);
+}
+.audio-note {
+  margin-top: 12px;
+}
+html.mqw560 .audio-row {
+  grid-template-columns: minmax(92px, 0.8fr) minmax(84px, 1fr) auto;
+  gap: 9px;
+}
+html.mqw560 .audio-lbl {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+html.mqw560 .audio-actions {
+  grid-template-columns: 1fr;
+}
+
 /* short screens: the masthead compresses so the mode select still
    fits without scrolling (measured: 1366x768 overflowed by 11px) */
 /* Emulated breakpoint (max-height: 820px) measured against the

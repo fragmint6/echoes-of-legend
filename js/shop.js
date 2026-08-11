@@ -232,6 +232,7 @@
     /* the Legend Pack is the Road's to give, never the shelf's to sell */
     if (pack.key === 'legend') return;
     if (!econ.packableEntries().length) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
         window.EOL.ui.toast(
           'Every echo the shelf sells is yours - the legends left walk the Road',
@@ -240,10 +241,12 @@
       return;
     }
     if (!econ.spend(pack.price)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
         window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ri-coin-fill');
       return;
     }
+    if (window.EOL.audio) window.EOL.audio.pack('buy');
     results = rollPack(Math.random, pack);
     /* GRANT NOW: the ceremony is theater, the ledger is truth */
     econ.grant(
@@ -295,6 +298,10 @@
     // restart the drop animation
     void packEl.offsetWidth;
     packEl.classList.add('drop');
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.42, 0.8);
+      window.EOL.audio.pack('drop');
+    }
     later(function () {
       if (state !== 'intro') return;
       state = 'await';
@@ -312,6 +319,7 @@
     var pack = el('po-pack');
     pack.classList.remove('idle');
     pack.classList.add('charging');
+    if (window.EOL.audio) window.EOL.audio.pack('charge');
     later(burst, dur('charge'));
   }
 
@@ -325,6 +333,10 @@
     overlay.classList.add('shake');
     el('po-flash').classList.add('on');
     spawnParticles();
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.28, 0.9);
+      window.EOL.audio.pack('burst');
+    }
     later(function () {
       el('po-flash').classList.remove('on');
       el('po-packwrap').classList.add('gone');
@@ -349,6 +361,8 @@
       later(function () {
         flip.classList.remove('undealt');
         flip.classList.add('dealt');
+        if (window.EOL.audio)
+          window.EOL.audio.pack('deal', { pan: (i - (flips.length - 1) / 2) * 0.22 });
       }, i * DUR.dealStagger);
     });
     later(
@@ -369,6 +383,7 @@
     revealed++;
     flip.classList.add('flipped', 'r-' + entry.card.rarity);
     var isLegend = entry.card.rarity === 'legendary';
+    if (window.EOL.audio) window.EOL.audio.pack(isLegend ? 'legendary' : 'flip');
     if (isLegend) legendBanner(entry.card.name);
     later(
       function () {
@@ -412,6 +427,7 @@
     el('po-cards').classList.add('settled');
     el('po-summary').classList.add('show');
     el('po-skip').classList.remove('show');
+    if (window.EOL.audio) window.EOL.audio.pack('summary');
   }
 
   function close() {
