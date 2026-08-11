@@ -5,7 +5,8 @@ Three ready-to-paste messages, one per channel. Discord markdown throughout
 
 Everything factual below was checked against the shipping build: 63 heroes,
 9 factions, 6 roles, 10 battlefields, 2 bans, teams of 6 from decks of 12,
-and Unabridged (best-of-3 wars) in solo. Updated 2026-08-05.
+and Unabridged (best-of-3 wars) in solo. Launch copy updated 2026-08-05;
+roadmap updated 2026-08-11.
 
 ---
 
@@ -85,23 +86,30 @@ Drop feedback in this server. Every report gets read.
 Roughly in the order I intend to build it. Nothing here is promised, and community feedback moves things around.
 
 ## Next up
-- **Trophies and a real ladder.** The table exists, nothing writes to it yet. Needs server-side verification first, otherwise players can hand themselves rank.
-- **Balance pass on measured data.** I have a simulator that plays thousands of games with bans and draft AI. The demo build has not been through a full run. First one goes out as public notes with actual win rates, not vibes.
-- **Rejoin mid-battle.** Right now a refresh during combat forfeits. Same work as the anti-cheat above.
+
+- **Trophies and a real ladder.** The table exists, nothing writes to it yet. Needs server-side verification first, queueing right now is random.
+
+- **Private rooms.** So you can play with your friends and for testing purposes.
+
+- **Daily puzzle.** One fixed board, same for everyone, one attempt a day.
+
+- **Faction bonuses.** Decks will receive bonuses based on how many legends in the deck are in the same faction.
 
 ## After that
-- **Faction Trials.** Short gauntlets, one per faction, with a fixed deck so you're forced to learn how that faction actually works. Ends by granting you the deck.
-- **Daily Puzzle.** One fixed board, one solution, same for everyone, one attempt a day.
+
 - **Sound.** There is currently none.
-- **Disconnect and reconnect handling** that isn't just a forfeit.
+
+- **Player profiles and statistics.** Favorite heroes, win rates by hero and faction, highest rank, total games, match history, etc.
 
 ## Further out
-- **Campaign.** Deliberately parked. Hand-authored fights get solved once and then never replayed, so it competes for time with the part of the game that has replay value. It comes back only if there's a version worth playing twice.
-- **Packs, currency, unlockable heroes.** Deliberately parked too. Locking the roster behind a grind on a demo with a small player base makes matchmaking worse, not better. Everyone gets all 63 heroes for now.
+
+- **More campaign chapters.** Deliberately parked. Right now there are only enough legends for roughly one chapter with 10 gates, but more campaign chapters will come out as more factions are released.
+
 - **More factions.**
 
 ## Not planned
-- Paid anything. It's free.
+
+- Paid cards. It's free.
 
 Want something moved up this list? Say so. A demo this early is exactly when priorities are cheap to change.
 ```
@@ -112,7 +120,7 @@ Want something moved up this list? Say so. A demo this early is exactly when pri
 
 - Discord renders `#` and `##` as headers only at the **start of a line**, so
   paste each block whole and don't indent it.
-- The three blocks are 1,650 / 1,720 / 1,660 characters, all comfortably under
+- The three blocks are 1,850 / 1,560 / 1,135 characters, all comfortably under
   the 2,000-character message limit. No splitting needed.
 - If you turn `#about` into the channel description instead of a message, the
   short version is: *"A free browser card battler. Six folklore heroes a side,
