@@ -1,15 +1,15 @@
 /* =============================================================
    DAILY PUZZLE
    -------------------------------------------------------------
-   A scheduled Node worker runs this same procedural forge shortly before
-   7:00 AM America/New_York, stages its serialized checkpoint in Supabase,
-   and the database publishes it at reset. Every signed-in player claims
-   the exact same position and deterministic future luck once.
+   At 6:55 AM America/New_York, signed-in browsers compete for one short
+   Supabase generation lease. The winner runs this procedural forge in a
+   Web Worker, stages its serialized checkpoint, and the database publishes
+   it at reset. Every player claims the same position and future RNG once.
 
-   The original browser forge remains available behind `?dailyLab=1` for
-   calibration. It never reads an authored position list: unrestricted
-   legal teams are drawn, depth-4 AI plays into rounds 5-8, and candidate
-   player turns are tested through fresh depth-4 continuations.
+   If no browser is online, the first visitor after reset recovers the job.
+   `?dailyLab=1` keeps a private calibration forge. Neither path reads an
+   authored position list: unrestricted teams are played by depth-4 AI into
+   rounds 5-8, then candidate turns receive depth-4 continuation tests.
    ============================================================= */
 (function () {
   'use strict';
@@ -37,6 +37,9 @@
   var readyPuzzle = null;
   var activePuzzle = false;
   var shownProgress = 0;
+  var generationWorker = null;
+  var generationPromise = null;
+  var generationTimer = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -612,6 +615,189 @@
     return window.EOL.auth && window.EOL.auth.user ? window.EOL.auth.user() : null;
   }
 
+  function delay(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  function easternClock(date) {
+    var out = {};
+    try {
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(date || new Date())
+        .forEach(function (part) {
+          if (part.type !== 'literal') out[part.type] = Number(part.value);
+        });
+    } catch (e) {
+      return null;
+    }
+    return out;
+  }
+
+  function inGenerationWindow() {
+    var p = easternClock(new Date());
+    return !!p && p.hour === 6 && p.minute >= 55;
+  }
+
+  function idleForBackgroundForge() {
+    var view = document.body.dataset.view;
+    return view !== 'battle' && view !== 'prep' && view !== 'draft';
+  }
+
+  function paintSharedForge() {
+    var modal = $('daily-modal');
+    if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
+    modal.classList.remove('ready');
+    if ($('daily-title')) $('daily-title').textContent = 'Forging today’s puzzle';
+    if ($('daily-copy')) {
+      $('daily-copy').textContent =
+        'This is the first visit after reset, so your browser is building the shared position for everyone.';
+    }
+    if ($('daily-enter')) $('daily-enter').hidden = true;
+    if ($('daily-metrics')) $('daily-metrics').hidden = true;
+    progress(62, 'Depth-4 rivals are scouting rounds 5–8…');
+  }
+
+  function generateInWorker(lease) {
+    if (!window.Worker) {
+      return generatePosition(jobSeq, randomSeed()).then(function (rec) {
+        var futureSeed = randomSeed();
+        var metrics = {
+          round: rec.candidate.round,
+          wins: rec.wins,
+          trials: rec.trials,
+          rate: rec.rate,
+          forgeMs: 0,
+        };
+        return {
+          token: lease.token,
+          puzzleDay: lease.puzzle_day,
+          payload: {
+            v: 1,
+            position: serializeBattle(rec.candidate.state, futureSeed),
+            meta: metrics,
+            generatedAt: new Date().toISOString(),
+          },
+          metrics: metrics,
+        };
+      });
+    }
+
+    return new Promise(function (resolve, reject) {
+      var worker = new Worker(new URL('js/daily-worker.js', document.baseURI));
+      generationWorker = worker;
+      worker.onmessage = function (event) {
+        var msg = event.data || {};
+        if (msg.token !== lease.token) return;
+        worker.terminate();
+        generationWorker = null;
+        if (msg.kind === 'complete') resolve(msg);
+        else reject(new Error(msg.message || 'Puzzle generation failed'));
+      };
+      worker.onerror = function (event) {
+        worker.terminate();
+        generationWorker = null;
+        reject(new Error(event.message || 'Puzzle worker failed'));
+      };
+      worker.postMessage({
+        kind: 'generate',
+        token: lease.token,
+        puzzleDay: lease.puzzle_day,
+      });
+    });
+  }
+
+  /* Browser-coordinated publication: the database grants one short lease,
+     so a crowd of open clients still runs exactly one forge. */
+  function maybeForgeShared(recover, visible) {
+    if (generationPromise) return generationPromise;
+    if (!signedInUser()) return Promise.resolve(false);
+    if (!recover && !idleForBackgroundForge()) return Promise.resolve(false);
+    var client = supabaseClient();
+    if (!client) return Promise.resolve(false);
+
+    generationPromise = (async function () {
+      var claim = await client
+        .rpc('claim_daily_generation', { p_recover: !!recover })
+        .maybeSingle();
+      if (claim.error) throw claim.error;
+      if (!claim.data) return false;
+      if (visible) paintSharedForge();
+
+      var candidate = await generateInWorker(claim.data);
+      var submitted = await client.rpc('submit_daily_candidate', {
+        p_token: claim.data.token,
+        p_puzzle_day: claim.data.puzzle_day,
+        p_payload: candidate.payload,
+        p_metrics: candidate.metrics,
+      });
+      if (submitted.error) throw submitted.error;
+      document.dispatchEvent(
+        new CustomEvent('eol:daily-published', { detail: claim.data.puzzle_day })
+      );
+      return true;
+    })()
+      .catch(function (error) {
+        console.warn('[daily puzzle forge]', error && error.message ? error.message : error);
+        return false;
+      })
+      .finally(function () {
+        generationPromise = null;
+      });
+    return generationPromise;
+  }
+
+  function armGenerationClock() {
+    if (generationTimer) clearTimeout(generationTimer);
+    if (!signedInUser()) return;
+
+    var now = Date.now();
+    var next = null;
+    /* Find the next 6:55 Eastern minute. Iterating wall-clock minutes is
+       simple and handles both DST jumps without maintaining an offset. */
+    for (var i = 0; i <= 1500; i++) {
+      var probe = new Date(now + i * 60000);
+      var p = easternClock(probe);
+      if (p && p.hour === 6 && p.minute === 55 && probe.getTime() > now + 1000) {
+        next = probe.getTime();
+        break;
+      }
+    }
+    if (!next) return;
+    generationTimer = setTimeout(
+      async function tick() {
+        if (inGenerationWindow()) {
+          await maybeForgeShared(false, false);
+          generationTimer = setTimeout(tick, 30000);
+        } else {
+          armGenerationClock();
+        }
+      },
+      Math.max(1000, next - now)
+    );
+  }
+
+  function beginClientScheduler(user) {
+    if (generationTimer) {
+      clearTimeout(generationTimer);
+      generationTimer = null;
+    }
+    if (!user) return;
+    /* One cheap server check recovers a missed reset. During 6:55–6:59,
+       follow it with the next-day staging request. */
+    maybeForgeShared(true, false).then(function () {
+      if (inGenerationWindow()) return maybeForgeShared(false, false);
+      return false;
+    });
+    armGenerationClock();
+  }
+
   function askForAccount() {
     var account = $('acct-btn');
     if (account) account.click();
@@ -685,14 +871,40 @@
     }
   }
 
-  async function loadOfficialStatus(job) {
+  async function readOfficialStatus(job) {
     var client = supabaseClient();
     if (!client) throw new Error('Account service is offline');
     var response = await client.rpc('daily_puzzle_status').maybeSingle();
     assertCurrent(job);
     if (response.error) throw response.error;
-    if (!response.data) throw new Error('No Daily Puzzle has been published yet');
-    showOfficialStatus(response.data);
+    return response.data || null;
+  }
+
+  async function loadOfficialStatus(job) {
+    var row = await readOfficialStatus(job);
+    if (row) {
+      showOfficialStatus(row);
+      return;
+    }
+
+    /* No current row means nobody was online for the scheduled forge.
+       Recover in this browser (or wait for the other lease holder), then
+       poll until the server atomically exposes the completed position. */
+    paintSharedForge();
+    await maybeForgeShared(true, true);
+    for (var i = 0; i < 75; i++) {
+      await delay(2000);
+      row = await readOfficialStatus(job);
+      if (row) {
+        showOfficialStatus(row);
+        return;
+      }
+      /* If another browser crashed with the lease, retry periodically;
+         the server awards it only after that lease expires. */
+      if (i > 0 && i % 5 === 0) await maybeForgeShared(true, true);
+      progress(62 + Math.min(30, i), 'Waiting for the shared forge…');
+    }
+    throw new Error('Today’s puzzle is still being forged');
   }
 
   async function startOfficial() {
@@ -849,6 +1061,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     var mode = $('mode-daily');
     if (mode) mode.addEventListener('click', start);
+    if (window.EOL.auth && window.EOL.auth.onChange) {
+      window.EOL.auth.onChange(beginClientScheduler);
+    }
     var close = $('daily-close');
     if (close) close.addEventListener('click', closeModal);
     var enter = $('daily-enter');

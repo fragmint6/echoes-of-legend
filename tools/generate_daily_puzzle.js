@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 /* =============================================================
- * Scheduled Daily Puzzle worker
+ * Daily Puzzle generator smoke test
  * -------------------------------------------------------------
- * Runs the exact browser forge under Node, serializes the winning
- * checkpoint, validates a round-trip, and stages it through Supabase's
- * service-role-only RPC. No service key is ever stored in this repo.
+ * Runs the exact browser/Web Worker forge under Node, serializes the
+ * checkpoint, and validates an exact round-trip. Official staging is done
+ * by a leased signed-in browser; this tool never contacts Supabase.
  *
- * Local smoke test (does not upload):
  *   node tools/generate_daily_puzzle.js --dry-run
  * ============================================================= */
 'use strict';
@@ -16,7 +15,6 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..');
-const DRY_RUN = process.argv.includes('--dry-run');
 const outFlag = process.argv.indexOf('--out');
 const OUT_FILE = outFlag >= 0 ? process.argv[outFlag + 1] : null;
 
@@ -100,37 +98,6 @@ function randomInt32() {
   return crypto.randomBytes(4).readInt32LE(0);
 }
 
-async function stage(packet, metrics, puzzleDay) {
-  const url = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  if (!url || !key) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for upload');
-  }
-  const headers = {
-    apikey: key,
-    'Content-Type': 'application/json',
-  };
-  /* New sb_secret_* keys are opaque and must NOT be sent as Bearer
-     tokens. Legacy service_role JWTs still need Authorization as well as
-     apikey. The API gateway maps either form to Postgres service_role. */
-  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`;
-  const response = await fetch(`${url}/rest/v1/rpc/stage_daily_puzzle`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      p_payload: packet,
-      p_metrics: metrics,
-      p_build_sha: process.env.GITHUB_SHA || 'local',
-      p_puzzle_day: puzzleDay,
-    }),
-  });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`Supabase stage failed (${response.status}): ${text.slice(0, 500)}`);
-  }
-  return text ? JSON.parse(text) : null;
-}
-
 async function main() {
   const generationSeed = process.env.PUZZLE_SEED
     ? Number.parseInt(process.env.PUZZLE_SEED, 10) | 0
@@ -187,12 +154,7 @@ async function main() {
     console.log(`[daily] wrote ${OUT_FILE}`);
   }
 
-  if (DRY_RUN) {
-    console.log('[daily] dry run complete; nothing uploaded');
-    return;
-  }
-  const id = await stage(packet, metrics, puzzleDay);
-  console.log(`[daily] staged puzzle ${id}`);
+  console.log('[daily] smoke test complete; nothing uploaded');
 }
 
 main().catch((err) => {

@@ -106,6 +106,7 @@ async function get(url, opts) {
     'saves',
     'daily_puzzles',
     'daily_puzzle_attempts',
+    'daily_puzzle_jobs',
   ];
   const missing = [];
   for (const t of need) {

@@ -1247,11 +1247,11 @@
       <footer>Echoes of Legend - Prototype</footer>
     </section>
 
-    <!-- DAILY PUZZLE: a scheduled generator stages tomorrow’s real
-         AI-versus-AI checkpoint shortly before reset. The database then
-         publishes one shared position and atomically grants each signed-in
-         player one attempt when they enter the battle. `?dailyLab=1` keeps
-         the original browser forge available for calibration. -->
+    <!-- DAILY PUZZLE: at 6:55 Eastern, one signed-in browser wins a
+         database lease and stages tomorrow’s real AI-versus-AI checkpoint
+         in a Web Worker. The database publishes one shared position and
+         atomically grants each player one attempt. `?dailyLab=1` keeps the
+         private calibration forge. -->
     <div class="daily-modal" id="daily-modal" aria-hidden="true">
       <div class="daily-forge" role="dialog" aria-modal="true" aria-labelledby="daily-title">
         <button class="daily-close" id="daily-close" type="button" aria-label="Close Daily Puzzle">

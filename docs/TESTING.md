@@ -210,9 +210,9 @@ Supabase and needs no secret:
 node tools/generate_daily_puzzle.js --dry-run
 ```
 
-Use `--out /tmp/puzzle.json` when you need to inspect the packet. Without
-`--dry-run`, the worker requires `SUPABASE_URL` and the server-only
-`SUPABASE_SERVICE_ROLE_KEY`, then stages through migration 04's RPC.
+Use `--out /tmp/puzzle.json` when you need to inspect the packet. The tool
+never contacts Supabase; official staging is performed by the leased browser
+Web Worker through migration 04's authenticated RPC.
 
 ### `full.js` - the balance command, ~40 min
 Not a test - it asserts nothing. **This is the one command for a

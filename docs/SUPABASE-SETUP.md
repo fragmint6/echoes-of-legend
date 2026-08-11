@@ -22,18 +22,17 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | `mp_queue`, `mp_matches` tables | **created** |
 | OK | `try_match()` function | **created** |
 | SETUP | Daily Puzzle migration 04 | run section 4d once |
-| SETUP | GitHub `SUPABASE_SERVICE_ROLE_KEY` secret | add in section 4d |
 
 **Accounts and multiplayer are ready.** `node sim/preflight.js` confirms two
 signed-in players can queue and play. Daily Puzzle publication becomes live
-after the two section 4d setup items are completed.
+after the single migration 04 SQL paste in section 4d.
 
 ---
 
 ## THE BACKEND MAP (cleanup 2026-08-10)
 
-Six tables. If the dashboard shows unrelated leftovers, run the cleanup in
-section 9b. Everything the backend holds, in one look:
+Seven tables. If the dashboard shows unrelated leftovers, run the cleanup
+in section 9b. Everything the backend holds, in one look:
 
 | Table | Written by | What it holds |
 | --- | --- | --- |
@@ -41,15 +40,17 @@ section 9b. Everything the backend holds, in one look:
 | `saves` | `js/cloud.js` (THE VAULT) | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
 | `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
 | `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
-| `daily_puzzles` | Scheduled worker + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
+| `daily_puzzles` | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
 | `daily_puzzle_attempts` | Daily Puzzle RPCs | One claim per account for the active puzzle; deleted with yesterday's position. |
+| `daily_puzzle_jobs` | `js/daily.js` | One short generation lease so many open browsers still run only one forge. |
 
 | Function | Called by | Job |
 | --- | --- | --- |
 | `try_match()` | mp.js | Atomic pairing (`for update skip locked`). |
 | `find_my_match()` | mp.js | Rejoin after a refresh. |
 | `touch_match()` / `save_match_state()` / `end_match()` | mp.js | Match lifecycle. |
-| `stage_daily_puzzle()` / `publish_daily_puzzle()` | GitHub Actions + pg_cron | Hold tomorrow's position, then atomically promote it at 7 AM Eastern. |
+| `claim_daily_generation()` / `submit_daily_candidate()` | `js/daily.js` Web Worker | Elect one signed-in browser to forge and stage the shared position. |
+| `publish_daily_puzzle()` | pg_cron / overdue browser | Atomically promote staged at 7 AM Eastern. |
 | `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Check, atomically consume, and finish one official attempt. |
 
 Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
@@ -201,41 +202,32 @@ What it adds:
 ## 4d. Migration 04 - official Daily Puzzle
 
 Run **[`docs/supabase-migration-04.sql`](supabase-migration-04.sql)** in the
-SQL Editor. It creates:
+SQL Editor. That single paste is the whole setup—there is no GitHub Action,
+server secret, Edge Function, or additional hosting.
+
+It creates:
 
 - `daily_puzzles`, hard-capped by its unique `active` / `staged` slots to
   **two positions at most**;
 - `daily_puzzle_attempts`, with `(puzzle_id, user_id)` as its primary key;
-- metadata/status, atomic claim, result, staging, and publication RPCs;
+- `daily_puzzle_jobs`, a tiny expiring lease—not a stored position;
+- generation lease/submission, status, atomic attempt, result, and
+  publication RPCs;
 - a database cron that publishes at **7:00 AM America/New_York**, following
   EST/EDT automatically.
 
-The scheduled generator is [`.github/workflows/daily-puzzle.yml`](../.github/workflows/daily-puzzle.yml).
-It runs the real depth-4 engine at 6:55 AM Eastern, serializes and validates
-the checkpoint, then stages it. At reset, publication deletes yesterday's
-active row and its attempts, promotes staged, and leaves one active row.
-That is the attempt reset; no mass user update is needed.
+At 6:55 AM Eastern, signed-in browsers ask Supabase for the generation
+lease. Exactly one gets it and runs the real depth-4 forge inside
+`js/daily-worker.js`, away from the UI thread. It stages the validated board;
+at 7:00 the database deletes yesterday's active position and attempts,
+promotes staged, and leaves one active position. That deletion is everyone's
+attempt reset—there is no mass user update.
 
-### One required GitHub secret
-
-1. Supabase Dashboard -> **Project Settings -> API Keys**.
-2. Copy a current **secret / service_role** key. Do not use the browser's
-   publishable key and do not paste the secret into any repository file.
-3. GitHub repository -> **Settings -> Secrets and variables -> Actions ->
-   New repository secret**.
-4. Name it exactly `SUPABASE_SERVICE_ROLE_KEY` and paste the value.
-
-Only the scheduled worker receives this secret. The browser can call the
-three authenticated player RPCs but has no table access and cannot stage,
-replace, or inspect tomorrow's position.
-
-### Bootstrap and test
-
-Under GitHub -> **Actions -> Stage Daily Puzzle -> Run workflow**, run it
-manually once. Leave `seed` blank for a fresh position. For an immediate
-same-day bootstrap after 7 AM Eastern, set `puzzle_day` to today's Eastern
-`YYYY-MM-DD`; the staging RPC detects that reset has passed and promotes it
-immediately. Otherwise leave the day blank and it stages the next reset.
+If nobody has the game open at 6:55, the first signed-in browser after reset
+receives the same lease. The Daily Puzzle modal shows the forge, then the
+position publishes immediately when it finishes. This makes the system
+self-healing without an always-on server; the only tradeoff is that the
+first visitor after a completely idle reset may wait for generation.
 
 A player's attempt is consumed inside `claim_daily_puzzle()` immediately
 before the board is returned. Merely opening the Daily Puzzle card does not
