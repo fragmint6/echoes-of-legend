@@ -519,6 +519,52 @@
      One widget serves pre-fight scenes and victory epilogues.
      --------------------------------------------------------- */
   var dlg = null; // { stage, lines, index, kind:'pre'|'epilogue', onDone }
+  var dialogueTypeTimer = null;
+  var isDialogueTyping = false;
+  var currentDialogueFullText = '';
+
+  function stopDialogueTyping() {
+    if (dialogueTypeTimer) {
+      window.clearTimeout(dialogueTypeTimer);
+      dialogueTypeTimer = null;
+    }
+    isDialogueTyping = false;
+    if (window.EOL && window.EOL.audio && window.EOL.audio.stopTalk) {
+      window.EOL.audio.stopTalk();
+    }
+  }
+
+  function startDialogueTypewriter(textEl, fullText, speaker) {
+    stopDialogueTyping();
+    currentDialogueFullText = fullText || '';
+    if (!textEl) return;
+    if (!currentDialogueFullText) {
+      textEl.textContent = '';
+      return;
+    }
+    textEl.textContent = '';
+    isDialogueTyping = true;
+    var charIndex = 0;
+    var totalLen = currentDialogueFullText.length;
+    var speed = 22;
+
+    if (window.EOL && window.EOL.audio && window.EOL.audio.startDialogueTalk) {
+      window.EOL.audio.startDialogueTalk({ speaker: speaker });
+    }
+
+    function tick() {
+      if (!isDialogueTyping) return;
+      charIndex++;
+      textEl.textContent = currentDialogueFullText.slice(0, charIndex);
+      if (charIndex < totalLen) {
+        dialogueTypeTimer = window.setTimeout(tick, speed);
+      } else {
+        stopDialogueTyping();
+      }
+    }
+
+    dialogueTypeTimer = window.setTimeout(tick, speed);
+  }
 
   function portraitFor(speaker, stage) {
     var list = STORY.stages || [];
@@ -536,11 +582,11 @@
     setText($('chapter-dialogue-speaker'), line.speaker);
     var textEl = $('chapter-dialogue-text');
     if (textEl) {
-      textEl.textContent = line.text || '';
       /* restart the per-line fade so each beat visibly lands */
       textEl.classList.remove('line-in');
       void textEl.offsetWidth;
       textEl.classList.add('line-in');
+      startDialogueTypewriter(textEl, line.text || '', line.speaker);
     }
     var kicker = $('chapter-dialogue-kicker');
     if (kicker) {
@@ -566,7 +612,6 @@
       }
     }
     setText($('chapter-dialogue-step'), two(dlg.index + 1) + ' / ' + two(dlg.lines.length));
-    if (window.EOL.audio) window.EOL.audio.campaign('dialogue');
     /* Skip tutorial is offered ONLY on the intro scene - gate scenes
        and epilogues are content, and content is walked, not skipped */
     var skipT = $('chapter-dialogue-skiptut');
@@ -611,6 +656,7 @@
   }
 
   function closeDialogue() {
+    stopDialogueTyping();
     var modal = $('chapter-dialogue');
     if (!modal || !dlg) return;
     var done = dlg.onDone;
@@ -635,6 +681,12 @@
 
   function advanceDialogue() {
     if (!dlg) return;
+    if (isDialogueTyping) {
+      var textEl = $('chapter-dialogue-text');
+      if (textEl) textEl.textContent = currentDialogueFullText;
+      stopDialogueTyping();
+      return;
+    }
     var line = dlg.lines[dlg.index];
     if (dlg.index < dlg.lines.length - 1) {
       dlg.index++;
@@ -1143,6 +1195,7 @@
   }
 
   function hideBark() {
+    stopBarkTyping();
     barkQ.length = 0;
     barkActive = false;
     barkWaits = 0;
@@ -1197,6 +1250,48 @@
     displayBark(b);
   }
 
+  var barkTypeTimer = null;
+
+  function stopBarkTyping() {
+    if (barkTypeTimer) {
+      window.clearTimeout(barkTypeTimer);
+      barkTypeTimer = null;
+    }
+    if (window.EOL && window.EOL.audio && window.EOL.audio.stopTalk) {
+      window.EOL.audio.stopTalk();
+    }
+  }
+
+  function startBarkTypewriter(textEl, fullText, speaker) {
+    stopBarkTyping();
+    if (!textEl) return;
+    var text = fullText || '';
+    if (!text) {
+      textEl.textContent = '';
+      return;
+    }
+    textEl.textContent = '';
+    var charIndex = 0;
+    var totalLen = text.length;
+    var speed = 20;
+
+    if (window.EOL && window.EOL.audio && window.EOL.audio.startDialogueTalk) {
+      window.EOL.audio.startDialogueTalk({ speaker: speaker });
+    }
+
+    function tick() {
+      charIndex++;
+      textEl.textContent = text.slice(0, charIndex);
+      if (charIndex < totalLen) {
+        barkTypeTimer = window.setTimeout(tick, speed);
+      } else {
+        stopBarkTyping();
+      }
+    }
+
+    barkTypeTimer = window.setTimeout(tick, speed);
+  }
+
   /* the shared display path: pumpBark's quiet-queue and sayNow's
      queue-jump both land here */
   function displayBark(b) {
@@ -1212,7 +1307,8 @@
       }
     }
     setText($('rival-bark-name'), b.stage.rival);
-    setText($('rival-bark-text'), b.text);
+    var barkTxt = $('rival-bark-text');
+    startBarkTypewriter(barkTxt, b.text, b.stage.rival);
     var paced = reactiveDialogue(b.stage);
     el.classList.toggle('reactive', paced);
     var dismiss = $('rival-bark-dismiss');
@@ -1222,7 +1318,6 @@
     void el.offsetWidth; // restart the slide-in
     el.classList.add('show');
     barkActive = true;
-    if (window.EOL.audio) window.EOL.audio.campaign('bark');
     window.clearTimeout(barkTimer);
     /* Reactive dialogue follows play rather than a chatter clock. Gate I
        additionally has a generous expiry: it stays manually dismissible,
@@ -1230,6 +1325,7 @@
     if (paced && !b.stage.autoDismissDialogue) return;
     barkTimer = window.setTimeout(
       function () {
+        stopBarkTyping();
         el.classList.remove('show');
         barkActive = false;
         barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
@@ -1288,6 +1384,7 @@
   }
 
   function dismissReactiveBark() {
+    stopBarkTyping();
     var el = $('rival-bark');
     if (!el || !el.classList.contains('reactive')) return;
     el.classList.remove('show');

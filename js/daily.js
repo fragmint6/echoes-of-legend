@@ -450,6 +450,68 @@
     return runContinuationReport(source, seed, E, AI).won;
   }
 
+  function countWinningOpeningLines(source, seed, E, AI) {
+    var moves = AI.candidates ? AI.candidates(source, 'player') : [];
+    var winningMoves = 0;
+    for (var m = 0; m < moves.length; m++) {
+      var act = moves[m];
+      var B = E.cloneBattle(source, rng32(seed));
+      B.rng = rng32(seed);
+      B.simulation = true;
+      B.silent = true;
+      var actor = B.uidMap ? B.uidMap[act.unit.uid] : null;
+      if (!actor) {
+        for (var ui = 0; ui < B.units.length; ui++) {
+          if (B.units[ui].uid === act.unit.uid) {
+            actor = B.units[ui];
+            break;
+          }
+        }
+      }
+      if (!actor) continue;
+      var chosen = (act.chosen || [])
+        .map(function (u) {
+          return B.uidMap ? B.uidMap[u.uid] : null;
+        })
+        .filter(Boolean);
+
+      var res = E.useAbility(B, actor, act.ability, chosen, act.choose);
+      if (!res || !res.ok) continue;
+
+      var steps = 0;
+      while (!B.over && B.round <= ROUND_CAP && steps++ < STEP_CAP) {
+        var side = E.advanceAction(B);
+        if (!side) {
+          if (!B.over) E.nextRound(B);
+          continue;
+        }
+        playAiAction(B, side, E, AI);
+      }
+      if (B.winner === 'player') {
+        winningMoves++;
+        if (winningMoves > 2) return winningMoves;
+      }
+    }
+    var Bpass = E.cloneBattle(source, rng32(seed));
+    Bpass.rng = rng32(seed);
+    Bpass.simulation = true;
+    Bpass.silent = true;
+    E.passTurn(Bpass, 'player');
+    var passSteps = 0;
+    while (!Bpass.over && Bpass.round <= ROUND_CAP && passSteps++ < STEP_CAP) {
+      var pside = E.advanceAction(Bpass);
+      if (!pside) {
+        if (!Bpass.over) E.nextRound(Bpass);
+        continue;
+      }
+      playAiAction(Bpass, pside, E, AI);
+    }
+    if (Bpass.winner === 'player') {
+      winningMoves++;
+    }
+    return winningMoves;
+  }
+
   async function addTrials(rec, total, seed, candidateNo, job, E, AI) {
     rec.winningSeeds = rec.winningSeeds || [];
     while (rec.trials < total) {
@@ -503,16 +565,23 @@
         assertCurrent(job);
         var report = runContinuationReport(rec.candidate.state, seeds[s], E, AI);
         if (report.won) {
-          rec.futureSeed = seeds[s] | 0;
-          rec.certificate = {
-            depth: 4,
-            budget: 'normal',
-            steps: report.steps,
-            playerActions: report.playerActions,
-            enemyActions: report.enemyActions,
-            testedSeeds: s + 1,
-          };
-          return rec;
+          /* Enforce puzzle tightness: exactly 1 or at most 2 winning opening
+             lines against the opponent's best depth-4 defense. If there are
+             more than 2 winning lines the position is too easy. */
+          var winningLines = countWinningOpeningLines(rec.candidate.state, seeds[s], E, AI);
+          if (winningLines >= 1 && winningLines <= 2) {
+            rec.futureSeed = seeds[s] | 0;
+            rec.certificate = {
+              depth: 4,
+              budget: 'normal',
+              steps: report.steps,
+              playerActions: report.playerActions,
+              enemyActions: report.enemyActions,
+              testedSeeds: s + 1,
+              winningLines: winningLines,
+            };
+            return rec;
+          }
         }
         await yieldControl(job);
       }

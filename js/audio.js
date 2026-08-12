@@ -109,9 +109,9 @@
   }
 
   function applyPrefs() {
-    if (masterGain) smoothGain(masterGain, prefs.muted ? 0.0001 : curve(prefs.master), 0.018);
-    if (musicBus) smoothGain(musicBus, curve(prefs.music) * 0.74, 0.025);
-    if (sfxBus) smoothGain(sfxBus, curve(prefs.sfx), 0.018);
+    if (masterGain) smoothGain(masterGain, prefs.muted ? 0.0001 : curve(prefs.master) * 1.35, 0.018);
+    if (musicBus) smoothGain(musicBus, curve(prefs.music) * 1.25, 0.025);
+    if (sfxBus) smoothGain(sfxBus, curve(prefs.sfx) * 1.35, 0.018);
     document.documentElement.classList.toggle('audio-muted', !!prefs.muted);
     syncControls();
   }
@@ -179,6 +179,7 @@
     masterGain.connect(compressor);
     compressor.connect(ctx.destination);
     noiseBuffer = makeNoise(ctx);
+    initDialogueAudio();
     applyPrefs();
     return ctx;
   }
@@ -515,28 +516,28 @@
         tone({ freq: 330, to: 180, when: t, dur: 0.13, gain: 0.03, type: 'triangle', pan: pan });
         break;
       case 'ban':
-        noise({ when: t, dur: 0.16, gain: 0.075, filter: 2600, filterTo: 520, q: 0.9, pan: pan });
+        noise({ when: t, dur: 0.12, gain: 0.035, filter: 1800, filterTo: 480, q: 0.8, pan: pan });
         tone({
-          freq: 105,
-          to: 62,
-          when: t + 0.02,
-          dur: 0.28,
-          gain: 0.085,
+          freq: 120,
+          to: 65,
+          when: t + 0.015,
+          dur: 0.22,
+          gain: 0.045,
           type: 'sawtooth',
-          filter: 700,
+          filter: 650,
         });
-        tone({ freq: 620, to: 180, when: t, dur: 0.18, gain: 0.035, type: 'square', filter: 1800 });
+        tone({ freq: 440, to: 160, when: t, dur: 0.14, gain: 0.024, type: 'triangle', filter: 1200 });
         break;
       case 'burn':
-        noise({ when: t, dur: 0.32, gain: 0.055, filter: 3200, filterTo: 650, q: 0.5, pan: pan });
+        noise({ when: t, dur: 0.22, gain: 0.032, filter: 2400, filterTo: 600, q: 0.6, pan: pan });
         for (var b = 0; b < 3; b++)
           tone({
             freq: 180 + b * 70,
             to: 420 + b * 90,
             when: t + b * 0.045,
-            dur: 0.19,
+            dur: 0.16,
             gain: 0.018,
-            type: 'sawtooth',
+            type: 'triangle',
             filter: 1200,
             pan: pan,
           });
@@ -1014,15 +1015,59 @@
     }
   }
 
+  /* -----------------------------------------------------------
+     Universal Dialogue Audio Player (Audio Files)
+     --------------------------------------------------------- */
+  var dialogueAudioEl = null;
+  var isDialogueAudioPlaying = false;
+
+  function initDialogueAudio() {
+    if (typeof Audio !== 'undefined' && !dialogueAudioEl) {
+      try {
+        dialogueAudioEl = new Audio('assets/audio/dialogue-talk.wav');
+        dialogueAudioEl.loop = true;
+        dialogueAudioEl.volume = Math.min(1.0, (prefs.master / 100) * (prefs.sfx / 100) * 0.9);
+      } catch (e) {}
+    }
+  }
+
+  function startDialogueTalk(meta) {
+    if (!unlocked || prefs.muted) return;
+    initDialogueAudio();
+    if (dialogueAudioEl) {
+      try {
+        dialogueAudioEl.volume = Math.min(1.0, (prefs.master / 100) * (prefs.sfx / 100) * 0.9);
+        dialogueAudioEl.currentTime = 0;
+        var p = dialogueAudioEl.play();
+        if (p && p.catch) p.catch(function () {});
+        isDialogueAudioPlaying = true;
+      } catch (e) {}
+    }
+  }
+
+  function talk(meta) {
+    startDialogueTalk(meta);
+  }
+
+  function stopTalk() {
+    if (dialogueAudioEl) {
+      try {
+        dialogueAudioEl.pause();
+        dialogueAudioEl.currentTime = 0;
+      } catch (e) {}
+    }
+    isDialogueAudioPlaying = false;
+  }
+
   /* ---------------- campaign and pack ceremonies ---------------- */
   function campaign(kind, meta) {
     if (!unlocked) return;
     meta = meta || {};
-    var t = ctx.currentTime + (meta.delay || 0) / 1000 + 0.008;
+    var t = ctx ? ctx.currentTime + (meta.delay || 0) / 1000 + 0.008 : 0;
     switch (kind) {
       case 'dialogue':
-        tone({ freq: 247, to: 294, when: t, dur: 0.12, gain: 0.024, type: 'triangle', wet: 0.25 });
-        noise({ when: t, dur: 0.08, gain: 0.014, filter: 1200 });
+      case 'talk':
+        startDialogueTalk(meta);
         break;
       case 'page':
         noise({ when: t, dur: 0.16, gain: 0.032, filter: 1150, filterTo: 2400, q: 0.8, pan: 0.12 });
@@ -1060,7 +1105,7 @@
         tone({ freq: 110, to: 74, when: t, dur: 0.45, gain: 0.055, type: 'sine' });
         break;
       case 'bark':
-        tone({ freq: 220, to: 260, when: t, dur: 0.16, gain: 0.023, type: 'sine', wet: 0.32 });
+        startDialogueTalk(meta);
         break;
       default:
         campaign('page', meta);
@@ -1174,54 +1219,75 @@
   }
 
   function kick(t, gain, dest) {
+    var g = gain || 0.085;
     tone({
-      freq: 128,
-      to: 43,
+      freq: 145,
+      to: 42,
       when: t,
-      dur: 0.19,
-      gain: gain || 0.065,
+      dur: 0.22,
+      gain: g,
       type: 'sine',
       bus: 'music',
       dest: dest,
       wet: 0,
-    });
-  }
-
-  function snare(t, gain, dest) {
-    noise({
-      when: t,
-      dur: 0.12,
-      gain: gain || 0.035,
-      filter: 1650,
-      q: 0.7,
-      bus: 'music',
-      dest: dest,
-      wet: 0.08,
+      attack: 0.003,
+      release: 0.18,
     });
     tone({
-      freq: 155,
-      to: 110,
+      freq: 185,
+      to: 75,
       when: t,
-      dur: 0.09,
-      gain: (gain || 0.035) * 0.45,
+      dur: 0.055,
+      gain: g * 0.55,
       type: 'triangle',
       bus: 'music',
       dest: dest,
       wet: 0,
+      filter: 450,
+      attack: 0.002,
+      release: 0.045,
+    });
+  }
+
+  function snare(t, gain, dest) {
+    var g = gain || 0.065;
+    noise({
+      when: t,
+      dur: 0.11,
+      gain: g * 0.75,
+      filter: 1650,
+      q: 1.1,
+      bus: 'music',
+      dest: dest,
+      wet: 0.05,
+    });
+    tone({
+      freq: 185,
+      to: 105,
+      when: t,
+      dur: 0.1,
+      gain: g * 0.85,
+      type: 'triangle',
+      bus: 'music',
+      dest: dest,
+      wet: 0,
+      attack: 0.003,
+      release: 0.085,
     });
   }
 
   function hat(t, gain, dest, open) {
+    var g = gain || 0.018;
     noise({
       when: t,
-      dur: open ? 0.16 : 0.045,
-      gain: gain || 0.013,
-      filterType: 'highpass',
-      filter: 6200,
-      q: 0.4,
+      dur: open ? 0.065 : 0.028,
+      gain: g,
+      filterType: 'bandpass',
+      filter: 5800,
+      q: 1.8,
       bus: 'music',
       dest: dest,
-      wet: 0.03,
+      wet: 0.02,
     });
   }
 
@@ -1387,15 +1453,15 @@
         [45, 52, 57],
       ];
       var menuTheme = [74, null, 77, 76, null, 74, 72, null, 69, null, 72, 74, null, 69, 67, null];
-      var menuAnswer = [69, null, 72, 74, null, 77, 76, null, 72, null, 74, 69, null, 67, 69, null];
-      var menuBridge = [62, null, 65, null, 69, null, 67, null, 65, null, 62, 64, null, 65, 69, null];
-      var menuClimb = [74, null, 77, 79, null, 81, 79, null, 77, null, 76, 77, null, 81, 84, null];
+      var menuAnswer = [69, 72, 74, null, 77, 76, 74, null, 72, 74, 77, 69, null, 67, 69, null];
+      var menuBridge = [62, null, 65, 69, null, 67, 65, null, 62, 65, 69, 72, null, 69, 67, null];
+      var menuClimb = [74, null, 77, 79, null, 81, 79, null, 81, 84, 86, 84, null, 81, 84, null];
       var menuReprise = [69, null, null, 72, null, 74, null, null, 67, null, null, 69, null, 72, null, null];
       var menuPart = [menuTheme, menuAnswer, menuTheme, menuReprise];
       if (phraseBar >= 4 && phraseBar < 8)
         menuPart = [menuTheme, menuAnswer, menuClimb, menuAnswer];
       else if (phraseBar >= 8 && phraseBar < 12)
-        menuPart = [menuAnswer, menuReprise, menuAnswer, menuTheme];
+        menuPart = [menuAnswer, menuTheme, menuAnswer, menuClimb];
       else if (phraseBar >= 12 && phraseBar < 16)
         menuPart = [menuClimb, menuAnswer, menuClimb, menuTheme];
       else if (phraseBar >= 16 && phraseBar < 20)
@@ -1410,8 +1476,7 @@
         menuPart = [menuReprise, menuBridge, menuReprise, menuAnswer];
       else if (phraseBar >= 36)
         menuPart = [menuClimb, menuAnswer, menuTheme, menuClimb];
-      /* Each section is itself a four-bar melodic sentence, not one bar
-         copied across four chords. */
+
       var menuMelody = menuPart[phraseBar % 4];
 
       var menuDrop =
@@ -1425,55 +1490,84 @@
       var menuChord = menuChords[chordIndex];
 
       if (s === 0)
-        chord(menuChord, t, stepDur * 15.5, menuDrop ? 0.014 : menuBreak ? 0.009 : 0.011, {
+        chord(menuChord, t, stepDur * 15.5, menuDrop ? 0.016 : menuBreak ? 0.009 : 0.012, {
           dest: dest,
-          wet: menuDrop ? 0.4 : 0.48,
-          filter: menuDrop ? 2050 : menuBreak ? 1350 : 1700,
-          attack: menuDrop ? 0.28 : 0.55,
+          wet: menuDrop ? 0.42 : 0.48,
+          filter: menuDrop ? 2200 : menuBreak ? 1350 : 1700,
+          attack: menuDrop ? 0.22 : 0.55,
           release: menuBreak ? 1.9 : menuDrop ? 1.05 : 1.5,
         });
 
       /* The original bass remains the spine, but every section phrases it
          differently: sustained in the verses, syncopated after each drop,
          and almost absent while the bridge clears the room. */
-      if (s % (menuBreak ? 8 : 4) === 0)
+      if (menuDrop) {
+        if (s % 2 === 0) {
+          var dropBassPitch = menuChord[s === 4 || s === 12 ? 1 : 0] - 12;
+          if (s === 6 || s === 14) dropBassPitch += 7;
+          musicNote(
+            dropBassPitch,
+            t,
+            stepDur * 1.5,
+            menuFinal ? 0.065 : 0.054,
+            'triangle',
+            dest,
+            -0.08,
+            0.05,
+            850
+          );
+          tone({
+            freq: midi(dropBassPitch - 12),
+            when: t,
+            dur: stepDur * 1.4,
+            gain: menuFinal ? 0.078 : 0.065,
+            type: 'sine',
+            bus: 'music',
+            dest: dest,
+            filter: 340,
+            attack: 0.006,
+            release: stepDur * 1.1,
+          });
+        }
+      } else if (s % (menuBreak ? 8 : 4) === 0) {
         musicNote(
           menuChord[0] - 12,
           t,
-          stepDur * (menuDrop ? 1.9 : menuBreak ? 5.8 : 2.8),
-          menuDrop ? 0.033 : menuBreak ? 0.021 : 0.027,
-          menuDrop ? 'sine' : 'triangle',
+          stepDur * (menuBreak ? 5.8 : 2.8),
+          menuBreak ? 0.021 : 0.027,
+          'triangle',
           dest,
           -0.08,
-          menuDrop ? 0.05 : 0.12,
-          menuDrop ? 720 : 900
+          0.12,
+          900
         );
+      }
       if (menuDrop && (s === 6 || s === 14))
-        musicNote(menuChord[1] - 12, t, stepDur * 1.3, 0.024, 'sine', dest, -0.12, 0.03, 680);
+        musicNote(menuChord[1] - 12, t, stepDur * 1.3, 0.038, 'sine', dest, -0.12, 0.03, 680);
 
       if (menuMelody[s] != null) {
         musicNote(
           menuMelody[s],
           t,
           stepDur * (menuDrop ? 1.35 : menuBreak ? 2.1 : 1.6),
-          menuDrop ? 0.021 : menuBreak ? 0.014 : 0.018,
+          menuDrop ? 0.024 : menuBreak ? 0.014 : 0.018,
           'triangle',
           dest,
           0.18,
           menuDrop ? 0.3 : 0.38,
-          menuDrop ? 3500 : 3100
+          menuDrop ? 3600 : 3100
         );
         if (menuDrop)
           musicNote(
             menuMelody[s] - 12,
             t + 0.008,
             stepDur * 1.15,
-            menuFinal ? 0.009 : 0.0065,
+            menuFinal ? 0.012 : 0.0085,
             'sawtooth',
             dest,
             -0.04,
             0.12,
-            1350
+            1450
           );
       }
 
@@ -1482,7 +1576,7 @@
       if ((phraseBar >= 8 && phraseBar < 16) || (phraseBar >= 20 && phraseBar < 24)) {
         var menuCounter = [null, null, 62, null, null, 65, null, null, null, null, 60, null, null, 62, null, null];
         if (menuCounter[s] != null)
-          musicNote(menuCounter[s] + 12, t, stepDur * 2.4, 0.007, 'sine', dest, -0.22, 0.54, 3900);
+          musicNote(menuCounter[s] + 12, t, stepDur * 2.4, 0.0085, 'sine', dest, -0.22, 0.54, 3900);
       }
 
       if (menuDrop) {
@@ -1492,61 +1586,76 @@
             menuChord[menuDrive[s / 2]],
             t,
             stepDur * 0.78,
-            menuFinal ? 0.012 : 0.009,
+            menuFinal ? 0.014 : 0.011,
             'triangle',
             dest,
             -0.16,
             0.08,
-            1250
+            1350
           );
         if ([0, 6, 8, 11].indexOf(s) >= 0 || (menuFinal && (s === 3 || s === 14)))
-          kick(t, s === 0 ? (menuFinal ? 0.072 : 0.064) : 0.047, dest);
-        if (s === 4 || s === 12) snare(t, menuFinal ? 0.032 : 0.027, dest);
-        if (s % 2 === 0) hat(t, menuFinal ? 0.009 : 0.007, dest, s === 14);
+          kick(t, s === 0 ? (menuFinal ? 0.14 : 0.12) : (menuFinal ? 0.095 : 0.082), dest);
+        if (s === 4 || s === 12) snare(t, menuFinal ? 0.085 : 0.072, dest);
+        if (s % 2 === 0) hat(t, menuFinal ? 0.024 : 0.018, dest, s === 14);
         if (menuFinal && s === 8)
-          chord([menuChord[0] + 12, menuChord[1] + 12], t, stepDur * 7.2, 0.0045, {
+          chord([menuChord[0] + 12, menuChord[1] + 12], t, stepDur * 7.2, 0.0055, {
             dest: dest,
             wet: 0.58,
             filter: 4400,
-            attack: 0.4,
+            attack: 0.35,
             release: 1.1,
           });
       } else if (menuBuild) {
-        if (s === 0 || s === 8) kick(t, 0.04, dest);
-        if (s === 12) snare(t, 0.019, dest);
-        if (s % 2 === 0) hat(t, 0.005 + s * 0.0002, dest, s === 14);
-        if (s === 12)
+        if (s === 0 || s === 8) kick(t, 0.045, dest);
+        if (s === 12) snare(t, 0.024, dest);
+        if (s % 2 === 0) hat(t, 0.006 + s * 0.0002, dest, s === 14);
+        if (s === 12) {
+          tone({
+            freq: 130,
+            to: 440,
+            when: t,
+            dur: stepDur * 3.8,
+            gain: 0.022,
+            type: 'triangle',
+            bus: 'music',
+            dest: dest,
+            wet: 0.25,
+            filter: 1100,
+            attack: 0.02,
+            release: stepDur * 2.8,
+          });
           noise({
             when: t,
             dur: stepDur * 3.8,
-            gain: 0.007,
-            filter: 650,
-            filterTo: 4300,
-            q: 0.8,
+            gain: 0.004,
+            filter: 420,
+            filterTo: 1800,
+            q: 1.4,
             bus: 'music',
             dest: dest,
-            wet: 0.18,
+            wet: 0.14,
           });
+        }
       } else if (!menuBreak && (s === 4 || s === 12)) {
-        hat(t, 0.007, dest, true);
+        prepTick(t, 0.0035, dest, false);
       }
 
       /* Every major downbeat lands below the kick so the transition is felt
          on phone speakers before the complete new section becomes obvious. */
       if ([4, 12, 24, 36].indexOf(phraseBar) >= 0 && s === 0)
         tone({
-          freq: 74,
-          to: 36,
+          freq: 88,
+          to: 32,
           when: t,
-          dur: stepDur * 2.4,
-          gain: menuFinal ? 0.075 : 0.065,
+          dur: stepDur * 2.8,
+          gain: menuFinal ? 0.15 : 0.12,
           type: 'sine',
           bus: 'music',
           dest: dest,
-          wet: 0.04,
-          filter: 360,
-          attack: 0.006,
-          release: stepDur * 1.8,
+          wet: 0.05,
+          filter: 320,
+          attack: 0.005,
+          release: stepDur * 2.2,
         });
       return;
     }
@@ -2360,6 +2469,9 @@
     getPrefs: getPrefs,
     setVolume: setVolume,
     setMuted: setMuted,
+    talk: talk,
+    startDialogueTalk: startDialogueTalk,
+    stopTalk: stopTalk,
     test: function () {
       ui('test');
     },

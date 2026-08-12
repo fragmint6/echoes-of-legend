@@ -25949,11 +25949,10 @@ i.coin-ico {
   max-width: none;
   gap: 24px;
   margin: 0;
-  padding: 20px calc((100% - var(--mode-slide)) / 2) 22px;
+  padding: 20px 0 22px;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: calc((100% - var(--mode-slide)) / 2);
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -25975,6 +25974,14 @@ i.coin-ico {
     #000 calc(100% - var(--mode-edge-fade)),
     transparent 100%
   );
+}
+.mode-carousel .mode-grid::before,
+.mode-carousel .mode-grid::after {
+  content: '';
+  flex: 0 0 calc((100% - var(--mode-slide)) / 2);
+  width: calc((100% - var(--mode-slide)) / 2);
+  min-width: calc((100% - var(--mode-slide)) / 2);
+  pointer-events: none;
 }
 .mode-carousel .mode-grid::-webkit-scrollbar {
   display: none;
