@@ -44,10 +44,13 @@ function randomInt32() {
 self.addEventListener('message', async function (event) {
   if (!event.data || event.data.kind !== 'generate') return;
   var generationSeed = randomInt32();
-  var futureSeed = randomInt32();
   var started = Date.now();
   try {
     var rec = await self.EOL.daily._generatePosition(generationSeed);
+    if (rec.futureSeed == null || !rec.certificate) {
+      throw new Error('Daily forge did not return a winning-line certificate');
+    }
+    var futureSeed = rec.futureSeed | 0;
     var position = self.EOL.daily._serializeBattle(rec.candidate.state, futureSeed);
     var rebuilt = self.EOL.daily._deserializeBattle(position);
     var roundTrip = self.EOL.daily._serializeBattle(rebuilt, futureSeed);
@@ -60,6 +63,7 @@ self.addEventListener('message', async function (event) {
       trials: rec.trials,
       rate: rec.rate,
       forgeMs: Date.now() - started,
+      certificate: rec.certificate,
     };
     self.postMessage({
       kind: 'complete',

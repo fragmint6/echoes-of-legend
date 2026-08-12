@@ -65,6 +65,18 @@
      ============================================================= */
   var moveScript = null; // { moves: [...], i: 0 }
 
+  /* Campaign teaching is a Normal-only layer. Keep the difficulty law in
+     campaign.js, but defend every battle-side entry point as well so a
+     stale/retried config can never paint marks or replay instructions on
+     Heroic or Legend. */
+  function campaignTutorialsEnabled(source) {
+    if (!source || !source.campaignStage) return true;
+    if (window.EOL.campaign && window.EOL.campaign.tutorialsEnabled) {
+      return window.EOL.campaign.tutorialsEnabled(source);
+    }
+    return !source.campaignDifficulty || source.campaignDifficulty === 'normal';
+  }
+
   function scriptActive() {
     return !!(moveScript && B && !B.over && moveScript.i < moveScript.moves.length);
   }
@@ -140,7 +152,14 @@
     var et = $('btn-endturn');
     if (et) et.classList.remove('tutor-pick');
     var mv = scriptMove();
-    if (!mv || mv.side !== 'player' || !B || B.turn !== 'player') return;
+    if (
+      !mv ||
+      mv.side !== 'player' ||
+      !B ||
+      B.turn !== 'player' ||
+      !campaignTutorialsEnabled(B)
+    )
+      return;
     var markUid = function (uid) {
       var el = document.querySelector('.bcard[data-uid="' + uid + '"]');
       if (el) el.classList.add('tutor-pick');
@@ -1698,7 +1717,7 @@
       statLine(
         'ra-health',
         'HP',
-        Math.ceil(u.hp + u.shield).toLocaleString() + ' / ' + u.maxHp.toLocaleString(),
+        Math.max(0, Math.ceil((u.hp / u.maxHp) * 100)) + '%',
         (u.hp / u.maxHp) * 100,
         '#ff5f7e'
       ) +
@@ -2062,7 +2081,12 @@
     if (coin) {
       busy = true;
       document.body.dataset.busy = '1';
-      var coinHold = playCoinFlip(coin.meta.coin);
+      var coinHold = playCoinFlip(
+        coin.meta.coin,
+        coin.meta.coin === 'heads'
+          ? s.unit.name + ' returns to full HP and Energy'
+          : s.unit.name + ' is reduced to 1 HP'
+      );
       setTimeout(function () {
         render();
         var h2 = flashRecent();
@@ -2492,6 +2516,10 @@
   function ponderKick() {
     ponderCancel();
     if (!B || B.over || B.turn !== 'player') return;
+    /* A Daily certificate is authored against the normal full depth-4
+       response. Do not replace that exact opponent with the optional
+       depth-5–8 ponder path or a proven line could change after publish. */
+    if (B.puzzle) return;
     /* THE SCRIPTED MATCH: pondering is parked entirely. bestAction()
        draws a seed from B.rng, and one background search would knock
        the pre-computed line off its dice. */
@@ -3029,7 +3057,15 @@
       var coin = B.log.slice(mark).filter(function (l) {
         return l.type === 'coin';
       })[0];
-      if (coin) await sleep(playCoinFlip(coin.meta.coin));
+      if (coin)
+        await sleep(
+          playCoinFlip(
+            coin.meta.coin,
+            coin.meta.coin === 'heads'
+              ? act.unit.name + ' returns to full HP and Energy'
+              : act.unit.name + ' is reduced to 1 HP'
+          )
+        );
       render();
 
       await sleep(flashRecent() || 0);
@@ -4161,46 +4197,62 @@
      Coin flip - a spinning coin that lands on a face
      -------------------------------------------------------- */
   function playCoinFlip(face, label) {
+    var heads = face === 'heads';
+    var reduced =
+      document.body.dataset.gfx === 'low' ||
+      (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var landAt = reduced ? 360 : 1510;
+    var fadeAt = reduced ? 1740 : 2780;
+    var doneAt = reduced ? 1940 : 3000;
     if (window.EOL.audio) {
-      window.EOL.audio.duck(0.18, 1.15);
+      window.EOL.audio.duck(0.18, 1.35);
       window.EOL.audio.battle('coin', { face: face });
     }
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
     var z = uiS();
     var wrap = document.createElement('div');
-    wrap.className = 'fx-coin-wrap';
+    wrap.className = 'fx-coin-wrap ' + face;
     wrap.style.left = lr.width / 2 / z + 'px';
-    wrap.style.top = (lr.height * 0.34) / z + 'px';
+    wrap.style.top = (lr.height * 0.42) / z + 'px';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'Rumpelstiltskin flips a coin');
     var sparks = '';
-    for (var i = 0; i < 8; i++) {
-      sparks += '<span class="fx-coin-spark" style="--a:' + i * 45 + '"></span>';
+    for (var i = 0; i < 12; i++) {
+      sparks += '<span class="fx-coin-spark" style="--a:' + i * 30 + '"></span>';
     }
     wrap.innerHTML =
-      '<div class="fx-coin ' +
-      face +
-      '">' +
-      '<div class="coin-face heads"><i data-icon-domain="game" class="ra ra-crown"></i></div>' +
-      '<div class="coin-face tails"><i data-icon-domain="game" class="ra ra-moon-sun"></i></div>' +
-      '</div>' +
+      '<span class="fx-coin-aura" aria-hidden="true"></span>' +
+      '<span class="fx-coin-shadow" aria-hidden="true"></span>' +
+      '<span class="fx-coin-flight" aria-hidden="true"><span class="fx-coin-spin"><span class="fx-coin">' +
+      '<span class="coin-edge"></span>' +
+      '<span class="coin-face heads"><i data-icon-domain="game" class="ra ra-crown"></i><b>FULL</b></span>' +
+      '<span class="coin-face tails"><i data-icon-domain="game" class="ra ra-moon-sun"></i><b>ONE</b></span>' +
+      '</span></span></span>' +
       sparks +
-      '<div class="fx-coin-label' +
-      (face === 'tails' ? ' tails' : '') +
-      '"></div>';
+      '<span class="fx-coin-label' +
+      (heads ? '' : ' tails') +
+      '" aria-live="polite" aria-hidden="true"><b>' +
+      (heads ? 'HEADS' : 'TAILS') +
+      '</b><span>' +
+      esc(label || (heads ? 'Fortune restores the deal' : 'The bargain takes its due')) +
+      '</span></span>';
     layer.appendChild(wrap);
-    // reveal the result text once the coin settles (spin runs 1.45s)
+    /* Do not expose the result text—even to assistive tech—until the
+       modeled coin has landed. The board repaint remains held by the
+       returned duration, preserving the existing no-spoiler contract. */
     setTimeout(function () {
+      wrap.classList.add('landed');
       var t = wrap.querySelector('.fx-coin-label');
-      t.textContent = face === 'heads' ? 'HEADS' : 'TAILS';
-      t.classList.add('show');
-    }, 1480);
+      if (t) t.setAttribute('aria-hidden', 'false');
+    }, landAt);
     setTimeout(function () {
       wrap.classList.add('out');
-    }, 2320);
+    }, fadeAt);
     setTimeout(function () {
       wrap.remove();
-    }, 2720);
-    return 2450;
+    }, doneAt);
+    return doneAt;
   }
 
   /* --------------------------------------------------------
@@ -5128,6 +5180,12 @@
     E = window.EOL.engine;
     AI = window.EOL.ai;
     opts = opts || {};
+    if (opts.puzzle) {
+      /* Match the forge certificate exactly even if a simulation tool or
+         draft evaluator previously borrowed the global AI settings. */
+      AI.setDepth(4);
+      if (AI.clearSimulationBudget) AI.clearSimulationBudget();
+    }
     if (!opts.puzzle && window.EOL.daily && window.EOL.daily.deactivate) {
       window.EOL.daily.deactivate();
     }
@@ -5141,7 +5199,9 @@
     /* THE SCRIPTED MATCH (campaign gate I): the whole line, both
        sides, pre-computed against this exact seed. */
     moveScript =
-      opts.moveScript && opts.moveScript.length ? { moves: opts.moveScript.slice(), i: 0 } : null;
+      campaignTutorialsEnabled(opts) && opts.moveScript && opts.moveScript.length
+        ? { moves: opts.moveScript.slice(), i: 0 }
+        : null;
     setNetWait(false);
     stopClock();
     disarmForfeit();
@@ -5370,7 +5430,12 @@
        announce+ponder and skip maybeAutoEndTurn, so round 1 was the
        one turn a stalling opponent could sit on forever. */
     startClock('player');
-    if (!B.puzzle && window.EOL.coach && window.EOL.coach.show) {
+    if (
+      !B.puzzle &&
+      campaignTutorialsEnabled(B) &&
+      window.EOL.coach &&
+      window.EOL.coach.show
+    ) {
       window.EOL.coach.show(
         'battle',
         'ri-sword-line',

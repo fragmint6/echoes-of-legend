@@ -259,5 +259,27 @@ ok(
   'all three battle construction paths pass the rival scaling bonus to the engine'
 );
 
+const campaignSource = fs.readFileSync(path.join(__dirname, '../js/campaign.js'), 'utf8');
+ok(
+  C.tutorialsEnabled('normal') &&
+    !C.tutorialsEnabled('heroic') &&
+    !C.tutorialsEnabled('legend'),
+  'the centralized campaign tutorial law enables Normal only'
+);
+ok(
+  /advisor:\s*tutorialsEnabled\(difficulty\.id\)/.test(campaignSource) &&
+    /reactiveDialogue\(stage\) && !tutorialsEnabled\(B\)/.test(campaignSource) &&
+    /if \(!tutorialsEnabled\(\)\) return;[\s\S]*var stage = stageById\(1\)/.test(campaignSource),
+  'Heroic and Legend suppress advisor, early-gate teaching dialogue, and the campaign wayfinder'
+);
+ok(
+  /if \(!campaignTutorialsEnabled\(cfg\)\)[\s\S]*cfg\.script = null;[\s\S]*cfg\.advisor = null;/.test(
+    playSource
+  ) &&
+    /campaignTutorialsEnabled\(p\)[\s\S]*p\.advisor/.test(playSource) &&
+    /campaignTutorialsEnabled\(opts\)[\s\S]*opts\.moveScript/.test(battleSource),
+  'hard-mode prep and battle paths cannot enforce or paint stale tutorial scripts'
+);
+
 console.log('\n' + (fails ? `${fails} OF ${checks} CHECKS FAILED` : `ALL ${checks} CHECKS PASSED`));
 process.exit(fails ? 1 : 0);

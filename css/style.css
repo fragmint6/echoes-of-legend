@@ -3927,19 +3927,18 @@ body[data-turn='player'] .turn-label {
 }
 .pop-critical {
   display: inline-block;
-  margin-left: 9px;
-  padding: 3px 6px 2px;
-  border: 1px solid rgba(255, 222, 128, 0.72);
-  border-radius: 5px;
-  background: rgba(43, 27, 5, 0.9);
-  color: #fff4c2;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+  margin-left: 11px;
+  color: #ffd050;
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   line-height: 1;
-  vertical-align: 0.42em;
-  text-shadow: 0 1px 4px #000;
+  vertical-align: 0.18em;
+  text-shadow:
+    0 0 12px rgba(255, 190, 60, 1),
+    0 0 28px rgba(255, 160, 40, 0.78),
+    0 2px 8px rgba(0, 0, 0, 0.98);
 }
 @keyframes pop-up {
   0% {
@@ -5347,225 +5346,353 @@ body[data-turn='player'] .turn-label {
 }
 
 /* ---- coin flip ----
-   Rumpelstiltskin's Cruel Bargain (and any future coinFlip effect).
-   Restyled 2026-08-09: a heavy minted disc with an engraved rim, a
-   real 3D toss with hang-time, a fate-ring that tightens as it
-   falls, sparks on the landing, and NO SPOILERS - battle.js holds
-   the board's repaint until the coin has landed. */
-.fx-coin-wrap::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 320px;
-  height: 320px;
-  margin: -160px 0 0 -160px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(4, 5, 12, 0.92),
-    rgba(4, 5, 12, 0.55) 46%,
-    transparent 72%
-  );
-  z-index: -1;
-}
-/* the fate ring: a thin gold circle that contracts onto the landing */
-.fx-coin-wrap::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 52px;
-  width: 210px;
-  height: 210px;
-  margin: -105px 0 0 -105px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 215, 130, 0.55);
-  box-shadow:
-    0 0 24px rgba(255, 200, 90, 0.25),
-    inset 0 0 24px rgba(255, 200, 90, 0.12);
-  animation: coin-ring 1.45s cubic-bezier(0.3, 0.6, 0.25, 1) forwards;
-  pointer-events: none;
-}
-@keyframes coin-ring {
-  0% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.62);
-    opacity: 0.9;
-  }
-}
+   Rumpelstiltskin's Cruel Bargain uses three independent layers:
+   FLIGHT controls the arc, SPIN controls the final face, and BODY owns
+   the modeled thickness. Keeping translation and rotation separate makes
+   the toss accelerate naturally without ever changing which face lands.
+   battle.js withholds both this result and the board repaint until impact. */
 .fx-coin-wrap {
+  --coin-warm: #ffd36e;
   position: absolute;
+  width: 0;
+  height: 0;
   transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  perspective: 820px;
+  perspective: 920px;
   z-index: 70;
   transition:
-    opacity 0.34s var(--ease),
-    transform 0.34s var(--ease);
+    opacity 0.3s var(--ease),
+    transform 0.3s var(--ease);
+}
+.fx-coin-wrap.tails {
+  --coin-warm: #c8ddff;
 }
 .fx-coin-wrap.out {
   opacity: 0;
-  transform: translate(-50%, -70%) scale(0.9);
+  transform: translate(-50%, -64%) scale(0.92);
+}
+.fx-coin-wrap::before {
+  content: '';
+  position: absolute;
+  width: 360px;
+  height: 300px;
+  margin: -178px 0 0 -180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(4, 5, 12, 0.94), rgba(4, 5, 12, 0.58) 48%, transparent 73%);
+  z-index: -2;
+}
+.fx-coin-aura {
+  position: absolute;
+  width: 232px;
+  height: 232px;
+  margin: -150px 0 0 -116px;
+  border: 1px solid color-mix(in srgb, var(--coin-warm) 58%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 32px color-mix(in srgb, var(--coin-warm) 24%, transparent),
+    inset 0 0 32px color-mix(in srgb, var(--coin-warm) 12%, transparent);
+  animation: coin-fate-ring 1.51s cubic-bezier(0.24, 0.7, 0.26, 1) forwards;
+  pointer-events: none;
+}
+@keyframes coin-fate-ring {
+  0% {
+    opacity: 0;
+    transform: scale(1.3) rotate(-14deg);
+  }
+  34% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 0.82;
+    transform: scale(0.62) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.53) rotate(12deg);
+  }
+}
+.fx-coin-shadow {
+  position: absolute;
+  left: 0;
+  top: 52px;
+  width: 104px;
+  height: 24px;
+  margin-left: -52px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.82);
+  filter: blur(7px);
+  transform: scale(0.42);
+  opacity: 0.35;
+  animation: coin-shadow-flight 1.51s ease-in-out forwards;
+}
+@keyframes coin-shadow-flight {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.6;
+  }
+  46% {
+    transform: scale(0.24);
+    opacity: 0.18;
+  }
+  82% {
+    transform: scale(0.55);
+    opacity: 0.42;
+  }
+  100% {
+    transform: scale(0.82);
+    opacity: 0.72;
+  }
+}
+.fx-coin-flight {
+  position: absolute;
+  left: -54px;
+  top: -54px;
+  width: 108px;
+  height: 108px;
+  transform-style: preserve-3d;
+  animation: coin-toss-flight 1.51s cubic-bezier(0.2, 0.72, 0.28, 1) forwards;
+}
+@keyframes coin-toss-flight {
+  0% {
+    transform: translate3d(0, 92px, 0) scale(0.58);
+  }
+  18% {
+    transform: translate3d(-8px, 18px, 0) scale(0.84);
+  }
+  48% {
+    transform: translate3d(5px, -142px, 42px) scale(1.13);
+  }
+  70% {
+    transform: translate3d(-3px, -82px, 18px) scale(1.07);
+  }
+  88% {
+    transform: translate3d(1px, 8px, 0) scale(1.02, 0.92);
+  }
+  94% {
+    transform: translate3d(0, -7px, 0) scale(0.98, 1.04);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.fx-coin-spin {
+  display: block;
+  width: 108px;
+  height: 108px;
+  transform-style: preserve-3d;
+  animation: coin-face-heads 1.51s cubic-bezier(0.2, 0.58, 0.26, 1) forwards;
+}
+.fx-coin-wrap.tails .fx-coin-spin {
+  animation-name: coin-face-tails;
+}
+@keyframes coin-face-heads {
+  0% {
+    transform: rotateX(-10deg) rotateY(0deg) rotateZ(-8deg);
+  }
+  48% {
+    transform: rotateX(13deg) rotateY(1260deg) rotateZ(5deg);
+  }
+  82% {
+    transform: rotateX(-5deg) rotateY(1930deg) rotateZ(-2deg);
+  }
+  100% {
+    transform: rotateX(0deg) rotateY(2160deg) rotateZ(0deg);
+  }
+}
+@keyframes coin-face-tails {
+  0% {
+    transform: rotateX(-10deg) rotateY(0deg) rotateZ(-8deg);
+  }
+  48% {
+    transform: rotateX(13deg) rotateY(1260deg) rotateZ(5deg);
+  }
+  82% {
+    transform: rotateX(-5deg) rotateY(2110deg) rotateZ(-2deg);
+  }
+  100% {
+    transform: rotateX(0deg) rotateY(2340deg) rotateZ(0deg);
+  }
 }
 .fx-coin {
   position: relative;
-  width: 104px;
-  height: 104px;
+  display: block;
+  width: 108px;
+  height: 108px;
   transform-style: preserve-3d;
-  animation: coin-spin 1.45s cubic-bezier(0.22, 0.68, 0.3, 1) forwards;
-  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.65));
+  filter: drop-shadow(0 15px 20px rgba(0, 0, 0, 0.7));
 }
-.fx-coin.tails {
-  animation-name: coin-spin-tails;
-}
-@keyframes coin-spin {
-  0% {
-    transform: translateY(30px) rotateY(0deg) rotateZ(-8deg) scale(0.42);
-  }
-  38% {
-    transform: translateY(-96px) rotateY(1260deg) rotateZ(5deg) scale(1.12);
-  }
-  72% {
-    transform: translateY(-18px) rotateY(2000deg) rotateZ(-2deg) scale(1.02);
-  }
-  86% {
-    transform: translateY(6px) rotateY(2140deg) rotateZ(0deg) scale(0.98);
-  }
-  100% {
-    transform: translateY(0) rotateY(2160deg) scale(1);
-  }
-}
-@keyframes coin-spin-tails {
-  0% {
-    transform: translateY(30px) rotateY(0deg) rotateZ(-8deg) scale(0.42);
-  }
-  38% {
-    transform: translateY(-96px) rotateY(1260deg) rotateZ(5deg) scale(1.12);
-  }
-  72% {
-    transform: translateY(-18px) rotateY(2180deg) rotateZ(-2deg) scale(1.02);
-  }
-  86% {
-    transform: translateY(6px) rotateY(2320deg) rotateZ(0deg) scale(0.98);
-  }
-  100% {
-    transform: translateY(0) rotateY(2340deg) scale(1);
-  }
-}
-.coin-face {
+.fx-coin .coin-face {
   position: absolute;
   inset: 0;
   display: grid;
+  grid-template-rows: 1fr auto;
   place-items: center;
+  gap: 0;
+  padding: 24px 0 15px;
+  border: 4px solid rgba(255, 228, 158, 0.96);
   border-radius: 50%;
   backface-visibility: hidden;
-  font-size: 42px;
-  border: 4px solid rgba(255, 228, 158, 0.95);
+  font-size: 38px;
   box-shadow:
-    0 0 44px rgba(255, 200, 90, 0.55),
-    inset 0 3px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.35);
+    0 0 38px color-mix(in srgb, var(--coin-warm) 48%, transparent),
+    inset 0 3px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -5px 9px rgba(0, 0, 0, 0.38);
 }
-/* engraved inner rim + minting notches */
-.coin-face::before {
+.fx-coin .coin-face b {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+}
+.fx-coin .coin-face::before {
   content: '';
   position: absolute;
   inset: 7px;
+  border: 2px solid rgba(80, 54, 14, 0.45);
   border-radius: 50%;
-  border: 2px solid rgba(120, 82, 20, 0.45);
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 0 11px rgba(0, 0, 0, 0.28);
 }
-.coin-face::after {
+.fx-coin .coin-face::after {
   content: '';
   position: absolute;
   inset: 2px;
   border-radius: 50%;
-  background: repeating-conic-gradient(
-    rgba(255, 255, 255, 0.16) 0deg 4deg,
-    transparent 4deg 12deg
-  );
-  -webkit-mask-image: radial-gradient(circle, transparent 62%, #000 66%, #000 74%, transparent 78%);
-  mask-image: radial-gradient(circle, transparent 62%, #000 66%, #000 74%, transparent 78%);
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.2) 0deg 3deg, transparent 3deg 10deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 62%, #000 66%, #000 75%, transparent 79%);
+  mask-image: radial-gradient(circle, transparent 62%, #000 66%, #000 75%, transparent 79%);
 }
-.coin-face.heads {
+.fx-coin .coin-face.heads {
   color: #4a3410;
-  text-shadow: 0 1px 0 rgba(255, 240, 190, 0.8);
-  background: radial-gradient(circle at 36% 28%, #fff2c4, #f4c65e 48%, #cf9832 78%, #9c6d1c);
+  text-shadow: 0 1px 0 rgba(255, 245, 204, 0.85);
+  background: radial-gradient(circle at 36% 27%, #fff4cc, #f4ca63 47%, #cf9630 78%, #895b13);
+  transform: translateZ(6px);
 }
-.coin-face.tails {
-  color: #101f38;
-  text-shadow: 0 1px 0 rgba(230, 240, 255, 0.8);
-  border-color: rgba(206, 224, 255, 0.95);
+.fx-coin .coin-face.tails {
+  color: #13233d;
+  border-color: rgba(214, 230, 255, 0.97);
+  text-shadow: 0 1px 0 rgba(240, 246, 255, 0.88);
+  background: radial-gradient(circle at 36% 27%, #f4f7ff, #afc5e9 47%, #7087b2 78%, #405277);
+  transform: rotateY(180deg) translateZ(6px);
+}
+.fx-coin .coin-face.tails::before {
+  border-color: rgba(33, 52, 91, 0.52);
+}
+/* This cross-section sits between faces. It is a physical 12px edge—not
+   a painted rim—so the coin becomes a ridged metal sliver on every
+   quarter turn instead of collapsing to a one-pixel card. */
+.fx-coin .coin-edge {
+  position: absolute;
+  left: 48px;
+  top: 4px;
+  width: 12px;
+  height: 100px;
+  border-radius: 42%;
+  background: repeating-linear-gradient(0deg, #7c5417 0 3px, #e3b74f 3px 6px, #9a681c 6px 8px);
   box-shadow:
-    0 0 44px rgba(140, 180, 255, 0.5),
-    inset 0 3px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.35);
-  background: radial-gradient(circle at 36% 28%, #eef4ff, #aabfe4 48%, #7186b2 78%, #4a5c85);
-  transform: rotateY(180deg);
+    inset 2px 0 2px rgba(255, 242, 190, 0.6),
+    inset -3px 0 3px rgba(43, 25, 3, 0.62);
+  transform: rotateY(90deg);
 }
-.coin-face.tails::before {
-  border-color: rgba(40, 58, 96, 0.5);
+.fx-coin-wrap.landed .fx-coin {
+  animation: coin-land-pulse 0.42s cubic-bezier(0.2, 1.5, 0.35, 1) both;
 }
-/* landing sparks: eight slivers thrown from the rim the moment the
-   coin settles (delay = the spin's length) */
+@keyframes coin-land-pulse {
+  0% {
+    filter: drop-shadow(0 15px 20px rgba(0, 0, 0, 0.7));
+  }
+  45% {
+    filter: drop-shadow(0 0 28px var(--coin-warm));
+  }
+  100% {
+    filter: drop-shadow(0 11px 16px rgba(0, 0, 0, 0.68));
+  }
+}
 .fx-coin-spark {
   position: absolute;
-  left: 50%;
-  top: 52px;
-  width: 4px;
-  height: 14px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #fff3c8, rgba(255, 190, 80, 0));
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 15px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fff5d0, var(--coin-warm), transparent);
   opacity: 0;
   transform-origin: 50% 0;
-  transform: rotate(calc(var(--a) * 1deg)) translateY(26px);
-  animation: coin-spark 0.55s ease-out 1.42s forwards;
+  transform: rotate(calc(var(--a) * 1deg)) translateY(37px) scaleY(0.4);
   pointer-events: none;
+}
+.fx-coin-wrap.landed .fx-coin-spark {
+  animation: coin-spark 0.58s ease-out forwards;
 }
 @keyframes coin-spark {
   0% {
     opacity: 1;
-    transform: rotate(calc(var(--a) * 1deg)) translateY(26px) scaleY(0.4);
+    transform: rotate(calc(var(--a) * 1deg)) translateY(37px) scaleY(0.4);
   }
   100% {
     opacity: 0;
-    transform: rotate(calc(var(--a) * 1deg)) translateY(74px) scaleY(1.15);
+    transform: rotate(calc(var(--a) * 1deg)) translateY(91px) scaleY(1.12);
   }
 }
 .fx-coin-label {
-  font-family: 'Cinzel', serif;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0.34em;
-  text-indent: 0.34em;
+  position: absolute;
+  top: 72px;
+  left: -150px;
+  display: flex;
+  width: 300px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   color: #ffd98a;
-  text-shadow:
-    0 0 18px rgba(255, 200, 90, 0.85),
-    0 2px 8px rgba(0, 0, 0, 0.9);
   opacity: 0;
-  transform: translateY(8px) scale(0.9);
+  transform: translateY(10px) scale(0.92);
   transition:
-    opacity 0.28s var(--ease),
-    transform 0.28s var(--ease);
+    opacity 0.3s var(--ease),
+    transform 0.3s var(--ease);
 }
-.fx-coin-label.tails {
-  color: #cfe0ff;
+.fx-coin-label b {
+  font-family: 'Cinzel', serif;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
   text-shadow:
-    0 0 18px rgba(140, 180, 255, 0.85),
-    0 2px 8px rgba(0, 0, 0, 0.9);
+    0 0 18px rgba(255, 200, 90, 0.88),
+    0 2px 8px rgba(0, 0, 0, 0.95);
 }
-.fx-coin-label.show {
+.fx-coin-label span {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: #ffe8b7;
+  text-shadow: 0 2px 7px #000;
+}
+.fx-coin-label.tails,
+.fx-coin-label.tails span {
+  color: #d5e4ff;
+}
+.fx-coin-wrap.landed .fx-coin-label {
   opacity: 1;
   transform: none;
+}
+body[data-gfx='low'] .fx-coin-aura,
+body[data-gfx='low'] .fx-coin-shadow,
+body[data-gfx='low'] .fx-coin-flight,
+body[data-gfx='low'] .fx-coin-spin,
+body[data-gfx='low'] .fx-coin-wrap.landed .fx-coin,
+body[data-gfx='low'] .fx-coin-wrap.landed .fx-coin-spark {
+  animation: none;
+}
+body[data-gfx='low'] .fx-coin-flight {
+  transform: translate3d(0, 0, 0);
+}
+body[data-gfx='low'] .fx-coin-wrap.tails .fx-coin-spin {
+  transform: rotateY(180deg);
+}
+body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
+  transform: rotateY(0deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -25552,6 +25679,7 @@ i.coin-ico {
   padding: 0 54px 8px;
 }
 .mode-carousel .mode-grid {
+  --mode-edge-fade: 42px;
   display: flex;
   width: 100%;
   max-width: none;
@@ -25566,6 +25694,23 @@ i.coin-ico {
   scrollbar-width: none;
   -ms-overflow-style: none;
   touch-action: pan-x;
+  /* Fade the peeking neighbours into the frame without placing an
+     overlay over the arrows. A mask follows scrolled content itself, so
+     both singleplayer and multiplayer carousels get the same soft edge. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--mode-edge-fade),
+    #000 calc(100% - var(--mode-edge-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--mode-edge-fade),
+    #000 calc(100% - var(--mode-edge-fade)),
+    transparent 100%
+  );
 }
 .mode-carousel .mode-grid::-webkit-scrollbar {
   display: none;
@@ -25713,6 +25858,7 @@ html.mqw720 .mode-carousel-arrow.next {
   right: 0;
 }
 html.mqw720 .mode-carousel .mode-grid {
+  --mode-edge-fade: 18px;
   gap: 15px;
   padding-block: 13px 18px;
 }
@@ -25737,6 +25883,7 @@ html.mqw720 .mode-carousel-status {
     right: 0;
   }
   .mode-carousel .mode-grid {
+    --mode-edge-fade: 18px;
     gap: 15px;
     padding-block: 13px 18px;
   }

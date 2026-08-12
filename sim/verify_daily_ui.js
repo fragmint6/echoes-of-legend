@@ -161,6 +161,50 @@ ok(/id="mode-mp-guild"[\s\S]*?Coming soon[\s\S]*?Guild Battles/.test(page), 'the
 ok(/scroll-snap-type:\s*x mandatory/.test(css), 'the mode track has touch-friendly horizontal snapping');
 ok(/data-carousel-prev/.test(page) && /data-carousel-next/.test(page), 'each carousel exposes previous and next controls');
 ok(/function showModeCard\(/.test(play) && /ArrowLeft/.test(play) && /ArrowRight/.test(play), 'carousel navigation supports programmatic and keyboard movement');
+ok(/--mode-edge-fade:\s*42px/.test(css) && /mask-image:\s*linear-gradient/.test(css), 'both carousel tracks fade subtly at their left and right edges');
+
+console.log('D. certified publication and battle presentation');
+const worker = fs.readFileSync(path.join(ROOT, 'js/daily-worker.js'), 'utf8');
+const nodeForge = fs.readFileSync(path.join(ROOT, 'tools/generate_daily_puzzle.js'), 'utf8');
+const battle = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
+ok(
+  /function certifyRecord\(/.test(dailySource) &&
+    /AI\.clearSimulationBudget\(\)/.test(dailySource) &&
+    /No full-depth winning line could be certified/.test(dailySource),
+  'the forge rejects every candidate without a full normal-budget depth-4 winning line'
+);
+ok(
+  /var futureSeed = rec\.futureSeed \| 0/.test(worker) &&
+    /const futureSeed = rec\.futureSeed \| 0/.test(nodeForge) &&
+    !/futureSeed = randomInt32\(\)/.test(worker + nodeForge),
+  'worker and Node publication serialize the certified RNG stream, never an unrelated random seed'
+);
+ok(
+  /certificate:\s*rec\.certificate/.test(worker) && /certificate:\s*rec\.certificate/.test(nodeForge),
+  'both publication paths retain certificate metrics'
+);
+ok(
+  /if \(B\.puzzle\) return;[\s\S]*THE SCRIPTED MATCH/.test(battle),
+  'Daily enemies stay on the exact certified depth-4 path instead of deeper optional pondering'
+);
+ok(
+  /Math\.max\(0, Math\.ceil\(\(u\.hp \/ u\.maxHp\) \* 100\)\) \+ '%'/m.test(battle) &&
+    /deadView \? '0' : Math\.ceil\(u\.hp \+ u\.shield\)/.test(battle),
+  'battle flyouts show HP percent while board cards retain actual HP values'
+);
+ok(
+    /\.pop-critical\s*\{[\s\S]*font-family:\s*'Cinzel'[\s\S]*font-size:\s*28px/.test(css) &&
+    !/\.pop-critical\s*\{[^}]*border:/s.test(css),
+  'CRITICAL uses the large damage-number typography without a label box'
+);
+ok(
+  /fx-coin-flight/.test(battle + css) &&
+    /fx-coin-spin/.test(battle + css) &&
+    /coin-edge/.test(battle + css) &&
+    /aria-hidden="true"/.test(battle) &&
+    /returns to full HP and Energy/.test(battle),
+  'the coin ceremony separates toss, spin, thickness, delayed reveal, and readable outcome'
+);
 
 console.log('\n' + (fail ? fail + ' FAILED' : 'ALL ' + pass + ' ASSERTIONS PASSED'));
 process.exit(fail ? 1 : 0);

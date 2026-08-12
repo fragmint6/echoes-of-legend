@@ -95,6 +95,7 @@
   }
 
   function prepScriptDeny(p, message) {
+    if (!campaignTutorialsEnabled(p)) return;
     if (
       p &&
       p.campaignStage &&
@@ -153,6 +154,18 @@
   var prep = null; // active preparation state
   var prepAnim = false; // entrance stagger runs on phase ENTRY only -
   // a re-render mid-phase must not replay it
+
+  function campaignTutorialsEnabled(source) {
+    if (!source || (!source.campaignStage && !source.stage)) return true;
+    var normalized = {
+      campaignStage: source.campaignStage || source.stage,
+      campaignDifficulty: source.campaignDifficulty || source.difficulty || null,
+    };
+    if (window.EOL.campaign && window.EOL.campaign.tutorialsEnabled) {
+      return window.EOL.campaign.tutorialsEnabled(normalized);
+    }
+    return !normalized.campaignDifficulty || normalized.campaignDifficulty === 'normal';
+  }
 
   /* ---------------- bot brains ---------------- */
   /* All three roster decisions (draft pick, ban, field six) route through
@@ -1222,6 +1235,14 @@
 
   function startPrep(cfg) {
     // cfg: { mode, deckId|null, player12:[entries], enemy12:[entries], mp }
+    /* Defense in depth: campaign.js already strips these on hard modes,
+       but retries and harness callers can hand play.js a config directly.
+       Heroic/Legend must never inherit a stale script or advisor. */
+    if (!campaignTutorialsEnabled(cfg)) {
+      cfg.script = null;
+      cfg.advisor = null;
+      document.body.dataset.tutorHold = '0';
+    }
     /* MULTIPLAYER. Against a person there are no bot bans - their two
        arrive over the wire, and neither side sees the other's until
        both have committed. `foeBans` therefore starts empty and is
@@ -1375,13 +1396,15 @@
     renderPrep();
     window.EOL.ui.show('prep');
     if (window.EOL.audio) window.EOL.audio.card('shuffle', { delay: prep.campaignStage ? 720 : 0 });
-    coachShow(
-      'prep-ban',
-      'ri-forbid-2-line',
-      'Phase 1: Ban Two Legends',
-      "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
-        'yours at the same time - their picks stay hidden until you lock yours in.'
-    );
+    if (campaignTutorialsEnabled(prep)) {
+      coachShow(
+        'prep-ban',
+        'ri-forbid-2-line',
+        'Phase 1: Ban Two Legends',
+        "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
+          'yours at the same time - their picks stay hidden until you lock yours in.'
+      );
+    }
   }
 
   /* THE SCRIPT's golden marks: highlight exactly what the gate asks
@@ -1390,7 +1413,7 @@
      the enforcement lives in the click handlers. */
   function syncTutorMarks() {
     var p = prep;
-    if (!p || !p.script) return;
+    if (!p || !p.script || !campaignTutorialsEnabled(p)) return;
     var mark = function (el, on) {
       if (el) el.classList.toggle('tutor-pick', !!on);
     };
@@ -1443,7 +1466,13 @@
      either followed or overruled. */
   function syncAdviceMarks() {
     var p = prep;
-    var on = !!(p && p.advisor && p.advice && !p.script);
+    var on = !!(
+      p &&
+      campaignTutorialsEnabled(p) &&
+      p.advisor &&
+      p.advice &&
+      !p.script
+    );
     var mk = function (el, yes) {
       if (el) el.classList.toggle('advice-pick', !!yes);
     };
@@ -1664,6 +1693,7 @@
              Recruiter's relevant instruction is the only correction in
              this gate. Removing a placed ban stays legal. */
           if (
+            campaignTutorialsEnabled(p) &&
             p.script &&
             p.script.bans &&
             p.youBans.indexOf(e.card.id) < 0 &&
@@ -1788,7 +1818,7 @@
     /* THE SCRIPT (gate I): the six is fielded ONE AT A TIME, in the
        ledger's order - the whole match line depends on the exact
        formation, so removals and shuffles are refused too. */
-    if (prep.script && prep.script.six) {
+    if (campaignTutorialsEnabled(prep) && prep.script && prep.script.six) {
       if (idx >= 0) {
         if (window.EOL.audio) window.EOL.audio.ui('deny');
         prepScriptDeny(prep, 'The ledger placed that one - the formation stands');
@@ -1914,7 +1944,7 @@
   function swapRow(id, from) {
     /* THE SCRIPT (gate I): the ledger set the rows; the match line
        depends on them. */
-    if (prep && prep.script && prep.script.six) {
+    if (prep && campaignTutorialsEnabled(prep) && prep.script && prep.script.six) {
       toast('The ledger set the rows - they stand', 'ri-quill-pen-line');
       flashNode('prep-sub');
       return;
@@ -1991,6 +2021,7 @@
          only appears once the player dismisses it, or immediately if the
          reveal is unavailable. Otherwise the two modals stack. */
       var afterReveal = function () {
+        if (!campaignTutorialsEnabled(prep)) return;
         coachShow(
           'prep-pick',
           'ri-team-line',
@@ -2169,7 +2200,8 @@
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     };
-    var match = cfg.script && cfg.script.match ? cfg.script.match : null;
+    var match =
+      campaignTutorialsEnabled(cfg) && cfg.script && cfg.script.match ? cfg.script.match : null;
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
@@ -2712,13 +2744,15 @@
     paintPiles(null);
     window.EOL.ui.show('draft');
     if (draft.busy) foeOpens();
-    coachShow(
-      'draft',
-      'ri-shuffle-line',
-      'The Snake Draft',
-      'Packs of three, 12 packs. You open the odd packs, the enemy opens the even ones. ' +
-        'One pick each per pack, the third card burns - both squads build to 12, then preparation begins.'
-    );
+    if (campaignTutorialsEnabled(draftCampaign)) {
+      coachShow(
+        'draft',
+        'ri-shuffle-line',
+        'The Snake Draft',
+        'Packs of three, 12 packs. You open the odd packs, the enemy opens the even ones. ' +
+          'One pick each per pack, the third card burns - both squads build to 12, then preparation begins.'
+      );
+    }
   }
 
   /* header text + order chips - cheap enough to refresh on every beat */

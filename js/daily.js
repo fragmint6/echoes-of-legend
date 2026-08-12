@@ -26,6 +26,8 @@
   var ROUND_MAX = 8;
   var ROUND_CAP = 20;
   var STEP_CAP = 700;
+  var CERTIFICATE_EXTRA_SEEDS = 12;
+  var CERTIFICATE_CANDIDATES = 10;
   var FAST_DEPTH4_BUDGET = {
     beamWidth: 3,
     pruneKeep: 1,
@@ -396,35 +398,66 @@
     /* Health alone is not the verdict, but it is a useful queue: positions
        near a slight player disadvantage are tested first. Round distance
        is only a tie-break so the centre of the requested window wins. */
+    var rescue = candidates.reduce(function (best, candidate) {
+      return !best || candidate.strength > best.strength ? candidate : best;
+    }, null);
     candidates.sort(function (a, b) {
       var da = Math.abs(a.strength - 0.47) + Math.abs(a.round - 6.5) * 0.008;
       var db = Math.abs(b.strength - 0.47) + Math.abs(b.round - 6.5) * 0.008;
       return da - db;
     });
-    return candidates.slice(0, CANDIDATES_PER_SCOUT);
+    /* Reserve one slot for the strongest player checkpoint in this scout.
+       It is not preferred for calibration, but gives strict certification
+       a safer last resort instead of making a missed reset likely when all
+       near-30% candidates fail under the full search budget. */
+    var selected = candidates.slice(0, Math.max(1, CANDIDATES_PER_SCOUT - 1));
+    if (rescue && selected.indexOf(rescue) < 0) selected.push(rescue);
+    else if (candidates[selected.length]) selected.push(candidates[selected.length]);
+    return selected;
   }
 
-  function runContinuation(source, seed, E, AI) {
+  function runContinuationReport(source, seed, E, AI) {
     var B = E.cloneBattle(source, rng32(seed));
     B.rng = rng32(seed);
     B.simulation = true;
     B.silent = true;
     var steps = 0;
+    var playerActions = 0;
+    var enemyActions = 0;
     while (!B.over && B.round <= ROUND_CAP && steps++ < STEP_CAP) {
       var side = E.advanceAction(B);
       if (!side) {
         if (!B.over) E.nextRound(B);
         continue;
       }
+      if (side === 'player') playerActions++;
+      else enemyActions++;
+      /* Both sides choose through the same depth-4 bestAction path. In a
+         certificate this means every move in the winning player line has
+         survived the strongest response the shipped enemy AI can choose. */
       playAiAction(B, side, E, AI);
     }
-    return B.winner === 'player';
+    return {
+      won: B.winner === 'player',
+      winner: B.winner || null,
+      steps: steps,
+      playerActions: playerActions,
+      enemyActions: enemyActions,
+    };
+  }
+
+  function runContinuation(source, seed, E, AI) {
+    return runContinuationReport(source, seed, E, AI).won;
   }
 
   async function addTrials(rec, total, seed, candidateNo, job, E, AI) {
+    rec.winningSeeds = rec.winningSeeds || [];
     while (rec.trials < total) {
       var trialSeed = (seed + candidateNo * 104729 + rec.trials * 7919) | 0;
-      if (runContinuation(rec.candidate.state, trialSeed, E, AI)) rec.wins++;
+      if (runContinuation(rec.candidate.state, trialSeed, E, AI)) {
+        rec.wins++;
+        rec.winningSeeds.push(trialSeed);
+      }
       rec.trials++;
       /* A whole continuation is intentionally the largest synchronous
          chunk. Yielding after every trial keeps Cancel responsive between
@@ -436,12 +469,64 @@
     return rec;
   }
 
-  function better(a, b) {
-    if (!a) return b;
-    if (!b) return a;
-    if (b.distance !== a.distance) return b.distance < a.distance ? b : a;
-    if (b.trials !== a.trials) return b.trials > a.trials ? b : a;
-    return Math.abs(b.candidate.round - 6.5) < Math.abs(a.candidate.round - 6.5) ? b : a;
+  /* A sampled win is not enough: scouting deliberately uses a tiny budget,
+     and publishing under an unrelated RNG stream used to invalidate even
+     that evidence. Re-run exact winning seeds first, then deterministic
+     extras, with the override removed so both sides use the full normal
+     depth-4 gameplay budget. Only the seed that wins this strict replay is
+     serialized into the puzzle. */
+  async function certifyRecord(rec, generationSeed, job, E, AI) {
+    if (rec.certificateTested) return null;
+    rec.certificateTested = true;
+    var borrowedBudget = AI.simulationBudget ? AI.simulationBudget() : null;
+    var seeds = (rec.winningSeeds || []).slice();
+    var seen = {};
+    seeds.forEach(function (value) {
+      seen[value | 0] = true;
+    });
+    for (var i = 0; i < CERTIFICATE_EXTRA_SEEDS; i++) {
+      var extra =
+        (generationSeed ^
+          Math.imul((rec.candidateNo || 1) + i + 1, 0x9e3779b1) ^
+          Math.imul(i + 17, 0x85ebca6b)) |
+        0;
+      if (!seen[extra]) {
+        seen[extra] = true;
+        seeds.push(extra);
+      }
+    }
+
+    AI.setDepth(4);
+    AI.clearSimulationBudget();
+    try {
+      for (var s = 0; s < seeds.length; s++) {
+        assertCurrent(job);
+        var report = runContinuationReport(rec.candidate.state, seeds[s], E, AI);
+        if (report.won) {
+          rec.futureSeed = seeds[s] | 0;
+          rec.certificate = {
+            depth: 4,
+            budget: 'normal',
+            steps: report.steps,
+            playerActions: report.playerActions,
+            enemyActions: report.enemyActions,
+            testedSeeds: s + 1,
+          };
+          return rec;
+        }
+        await yieldControl(job);
+      }
+      return null;
+    } finally {
+      if (borrowedBudget) AI.setSimulationBudget(borrowedBudget);
+      else AI.clearSimulationBudget();
+    }
+  }
+
+  function compareRecords(a, b) {
+    if (a.distance !== b.distance) return a.distance - b.distance;
+    if (a.trials !== b.trials) return b.trials - a.trials;
+    return Math.abs(a.candidate.round - 6.5) - Math.abs(b.candidate.round - 6.5);
   }
 
   async function generatePosition(job, seed) {
@@ -453,7 +538,7 @@
 
     var oldDepth = AI.SEARCH_DEPTH || 4;
     var oldBudget = AI.simulationBudget ? AI.simulationBudget() : null;
-    var best = null;
+    var records = [];
     var candidateNo = 0;
 
     AI.setDepth(4);
@@ -466,30 +551,85 @@
           candidateNo++;
           var rec = {
             candidate: candidates[i],
+            candidateNo: candidateNo,
             wins: 0,
             trials: 0,
             rate: 0,
             distance: Infinity,
+            winningSeeds: [],
           };
+          records.push(rec);
           await addTrials(rec, PRELIM_TRIALS, seed ^ (attempt * 65537), candidateNo, job, E, AI);
-          best = better(best, rec);
 
           /* Five trials can express 20% or 40%, both close enough to earn
-             a second sample. Only accept after ten so the displayed rate
-             is never based on the tiny screening pass alone. */
+             a second sample. Only accept after ten—and only after a full
+             depth-4 replay certifies its exact published RNG stream. */
           if (rec.distance <= 0.11) {
             await addTrials(rec, FINAL_TRIALS, seed ^ (attempt * 65537), candidateNo, job, E, AI);
-            best = better(best, rec);
-            if (rec.rate >= 0.2 && rec.rate <= 0.4) return rec;
+            if (rec.rate >= 0.2 && rec.rate <= 0.4) {
+              var certified = await certifyRecord(rec, seed, job, E, AI);
+              if (certified) return certified;
+            }
           }
         }
       }
 
-      if (!best) throw new Error('No stable player checkpoint appeared in rounds 5–8');
-      if (best.trials < FINAL_TRIALS) {
-        await addTrials(best, FINAL_TRIALS, seed ^ 0x51f15e, candidateNo + 1, job, E, AI);
+      if (!records.length) throw new Error('No stable player checkpoint appeared in rounds 5–8');
+      records.sort(compareRecords);
+      /* The old fallback returned the numerically closest rate even when it
+         had zero player wins. A forge may now fail and retry, but it can
+         never publish an impossible or unproven position. */
+      var finalists = records.slice(0, CERTIFICATE_CANDIDATES);
+      for (var f = 0; f < finalists.length; f++) {
+        var finalist = finalists[f];
+        if (finalist.trials < FINAL_TRIALS) {
+          await addTrials(
+            finalist,
+            FINAL_TRIALS,
+            seed ^ 0x51f15e,
+            finalist.candidateNo,
+            job,
+            E,
+            AI
+          );
+        }
       }
-      return best;
+      /* Re-rank after every finalist has the same sample size; otherwise a
+         lucky 2/5 screen could outrank a genuinely closer ten-trial rate. */
+      finalists.sort(compareRecords);
+      for (var c = 0; c < finalists.length; c++) {
+        var fallbackCertificate = await certifyRecord(finalists[c], seed, job, E, AI);
+        if (fallbackCertificate) return fallbackCertificate;
+      }
+
+      /* Calibration remains the first priority. Only after every closest
+         rate fails strict replay do we try each scout's player-strongest
+         checkpoint, which materially improves publication reliability
+         while retaining the same non-negotiable certificate gate. */
+      var rescues = records
+        .filter(function (record) {
+          return !record.certificateTested;
+        })
+        .sort(function (a, b) {
+          return b.candidate.strength - a.candidate.strength;
+        })
+        .slice(0, SCOUT_ATTEMPTS);
+      for (var r = 0; r < rescues.length; r++) {
+        if (rescues[r].trials < FINAL_TRIALS) {
+          await addTrials(
+            rescues[r],
+            FINAL_TRIALS,
+            seed ^ 0x2c1b3c6d,
+            rescues[r].candidateNo,
+            job,
+            E,
+            AI
+          );
+        }
+        var rescueCertificate = await certifyRecord(rescues[r], seed, job, E, AI);
+        if (rescueCertificate) return rescueCertificate;
+      }
+      throw new Error('No full-depth winning line could be certified; puzzle was not published');
     } finally {
       /* AI configuration is global. The forge borrows it, then restores it
          exactly even on Cancel/error so normal matches and sim tools are
@@ -500,11 +640,14 @@
     }
   }
 
-  function showReady(rec, seed) {
+  function showReady(rec) {
+    if (rec.futureSeed == null || !rec.certificate) {
+      throw new Error('Practice puzzle is missing its winning-line certificate');
+    }
     readyPuzzle = {
       state: rec.candidate.state,
       round: rec.candidate.round,
-      seed: seed,
+      liveSeed: rec.futureSeed | 0,
     };
     var modal = $('daily-modal');
     if (modal) modal.classList.add('ready');
@@ -658,13 +801,17 @@
   function generateInWorker(lease) {
     if (!window.Worker) {
       return generatePosition(jobSeq, randomSeed()).then(function (rec) {
-        var futureSeed = randomSeed();
+        if (rec.futureSeed == null || !rec.certificate) {
+          throw new Error('Daily forge did not return a winning-line certificate');
+        }
+        var futureSeed = rec.futureSeed | 0;
         var metrics = {
           round: rec.candidate.round,
           wins: rec.wins,
           trials: rec.trials,
           rate: rec.rate,
           forgeMs: 0,
+          certificate: rec.certificate,
         };
         return {
           token: lease.token,
@@ -821,7 +968,7 @@
       await yieldControl(myJob);
       var rec = await generatePosition(myJob, seed);
       assertCurrent(myJob);
-      showReady(rec, seed);
+      showReady(rec);
     } catch (err) {
       if (err && err.name === 'DailyPuzzleCancelled') return;
       console.error('[daily puzzle]', err);

@@ -337,6 +337,18 @@
     return DIFFICULTIES[id];
   }
 
+  /* One difficulty law governs every teaching surface: dialogue, advisor,
+     wayfinder, scripted clicks, and gold/silver markings. Callers may pass
+     a difficulty id, a campaign battle/prep config, or progress itself. */
+  function tutorialsEnabled(source) {
+    var id = null;
+    if (typeof source === 'string') id = source;
+    else if (source && source.campaignDifficulty) id = source.campaignDifficulty;
+    else if (source && source.selectedDifficulty) id = source.selectedDifficulty;
+    if (!DIFFICULTIES[id]) id = difficultyOf(getProgress()).id;
+    return id === 'normal';
+  }
+
   function introducedFactions(stage) {
     var out = [];
     Object.keys(STAGE_FACTIONS).forEach(function (key) {
@@ -411,6 +423,11 @@
   function setDifficulty(id) {
     if (!DIFFICULTIES[id]) return false;
     var prog = getProgress();
+    if (!tutorialsEnabled(id)) {
+      stopNavGuide();
+      stopPrepTutor();
+      if (dlg && dlg.kind === 'intro') closeDialogue();
+    }
     if (prog.selectedDifficulty === id) {
       paintDifficulty(prog);
       return true;
@@ -636,6 +653,18 @@
     /* any gate answering the door means the wayfinder's work is done */
     stopNavGuide();
     var lines = (STORY.dialogues || {})[stage.id] || [];
+    if (stage.id === 1 && !tutorialsEnabled()) {
+      /* Keep Gate I's story introduction, but replace its final promise to
+         teach every move. Hard runs launch on a clean rival challenge. */
+      lines = lines.slice(0, -1).concat([
+        {
+          speaker: 'The Recruiter',
+          text: 'He closes the ledger and reaches for his six. "The first gate is mine. Let us see what the harder Road makes of a blank line."',
+          battle: true,
+          final: true,
+        },
+      ]);
+    }
     openDialogue(stage, lines, 'pre', null);
   }
 
@@ -668,6 +697,7 @@
   }
 
   function runIntroTutorial() {
+    if (!tutorialsEnabled()) return;
     var stage = stageById(1);
     var lines = STORY.intro || [];
     if (!stage || !lines.length) return;
@@ -676,6 +706,10 @@
   }
 
   function maybeRunFirstBoot() {
+    if (!tutorialsEnabled()) {
+      stopNavGuide();
+      return;
+    }
     if (introSeen()) {
       /* a refresh mid-walk: the pointer survives the reload */
       if (guidePending() && !getProgress().cleared.length && !dlg) startNavGuide();
@@ -846,6 +880,10 @@
 
   function guideTick() {
     if (!navGuide) return;
+    if (!tutorialsEnabled()) {
+      stopNavGuide();
+      return;
+    }
     var view = document.body.dataset.view;
     if (view === 'prep' || view === 'battle' || view === 'draft') {
       /* they are already in a war - the road has clearly been found */
@@ -861,6 +899,10 @@
   }
 
   function startNavGuide() {
+    if (!tutorialsEnabled()) {
+      setGuidePending(false);
+      return;
+    }
     if (navGuide) return;
     setGuidePending(true);
     navGuide = {
@@ -952,7 +994,7 @@
     /* THE SCRIPTED GATE (stage 1): no deck picker - the ledger brings
        the starter twelve, the script marks the bans and the six, and
        the tutor narrates every phase. */
-    if (stage.script && difficulty.id === 'normal') {
+    if (stage.script && tutorialsEnabled(difficulty.id)) {
       var scripted12 = starterEntries();
       if (!scripted12 || scripted12.length !== 12) return;
       window.EOL.play.startPrep({
@@ -972,7 +1014,7 @@
         field: fieldById(stage.field),
         oddFirst: 'player',
       });
-      startPrepTutor(stage);
+      startPrepTutor(stage, difficulty.id);
       return;
     }
     if (!window.EOL.play.openClassicModal) return;
@@ -1000,7 +1042,7 @@
              the least-informed call must not stay the blindest one) */
           banTell: stage.banTell || null,
           banTellBroken: stage.banTellBroken || null,
-          advisor: stage.advisor || null,
+          advisor: tutorialsEnabled(difficulty.id) ? stage.advisor || null : null,
           pinnedEnemy: stage.pinned || null,
           unbannable: stage.unbannable || null,
           rival: rivalOf(stage),
@@ -1016,7 +1058,7 @@
         window.EOL.play.startPrep(cfg);
         /* THE ADVISED GATE: the Recruiter walks one more gate at the
            player's shoulder - counsel in silver, hands in pockets */
-        if (stage.advisor) startPrepTutor(stage);
+        if (stage.advisor && tutorialsEnabled(difficulty.id)) startPrepTutor(stage, difficulty.id);
       },
       {
         isCampaign: true,
@@ -1338,6 +1380,13 @@
     var stage = stageById(B.campaignStage);
     if (!stage) return;
     activeCampaignStage = stage.id;
+    /* Gates I-II use their in-match bark channel as teaching. Heroic and
+       Legend keep rival story scenes, but enter these fights clean: no
+       Recruiter/Oathkeeper instruction, reactions, or tutorial marks. */
+    if (reactiveDialogue(stage) && !tutorialsEnabled(B)) {
+      hideBark();
+      return;
+    }
     battleWatch = {
       stage: stage,
       fired: {},
@@ -1399,7 +1448,7 @@
      Carries the guided gate's round lessons (basics, energy, the
      signature unlock, the ramp) - and nothing outside a tutorial. */
   function onBattleRound(B) {
-    if (!battleWatch) return;
+    if (!battleWatch || !tutorialsEnabled(B)) return;
     var stage = battleWatch.stage;
     /* Early-gate teaching is attached to the player's marked move and
        actual battle events. Round-number timers were the source of stale
@@ -1421,18 +1470,18 @@
      issues the instruction before the hand moves. onScriptSay fires
      as a scripted ENEMY move executes. */
   function onScriptMove(B, mv) {
-    if (!battleWatch || !mv) return;
+    if (!battleWatch || !mv || !tutorialsEnabled(B)) return;
     if (mv.side === 'player' && mv.say) queueBark(battleWatch.stage, mv.say);
   }
   function onScriptSay(B, mv) {
-    if (!battleWatch || !mv || !mv.say) return;
+    if (!battleWatch || !mv || !mv.say || !tutorialsEnabled(B)) return;
     queueBark(battleWatch.stage, mv.say);
   }
   /* An off-script click during the guided opening: repeat the current
      INSTRUCTION where the player's eyes already live, instead of the
      toast chip nobody read (playtest 2026-08-10). */
   function onScriptDeny(B, mv) {
-    if (!battleWatch) return;
+    if (!battleWatch || !tutorialsEnabled(B)) return;
     var text =
       (mv && mv.say) ||
       'The Recruiter taps the ledger. "The marked move, Blank - the gold is not a suggestion."';
@@ -1444,13 +1493,13 @@
      in the Recruiter's own bubble instead of emitting a bottom toast. */
   function onPrepScriptDeny(stageId, text) {
     var stage = stageById(stageId);
-    if (!stage || !stage.script) return false;
+    if (!tutorialsEnabled() || !stage || !stage.script) return false;
     showTutor(stage, text, false);
     return true;
   }
 
   function onScriptEnd(B, reason) {
-    if (!battleWatch) return;
+    if (!battleWatch || !tutorialsEnabled(B)) return;
     battleWatch.rxFree = true; // the Recruiter stops steering either way
     if (reason === 'done') {
       /* THE HANDOFF (2026-08-10): the shortened line ends at the top of
@@ -1478,7 +1527,7 @@
   var RX_COOLDOWN = 6500;
 
   function fireReaction(key, text, opts) {
-    if (!battleWatch || !battleWatch.rxFree || !text) return false;
+    if (!battleWatch || !tutorialsEnabled() || !battleWatch.rxFree || !text) return false;
     if (battleWatch.rxFired[key]) return false;
     var now = Date.now();
     if (!(opts && opts.force) && now < battleWatch.rxCool) return false;
@@ -1489,7 +1538,7 @@
   }
 
   function onPlayerAction(B, info) {
-    if (!battleWatch || !info) return;
+    if (!battleWatch || !info || !tutorialsEnabled(B)) return;
     /* In reader-paced gates, taking the next action is itself an
        acknowledgement. Hide the previous line; a newer event already
        parked in barkQ (for example first blood) is preserved and will
@@ -1550,6 +1599,7 @@
   }
 
   function showTutor(stage, text, withNext, onNext, opts) {
+    if (!tutorialsEnabled()) return;
     opts = opts || {};
     var el = $('tutor');
     if (!el || !text) return;
@@ -1578,9 +1628,9 @@
     el.hidden = false;
   }
 
-  function startPrepTutor(stage) {
+  function startPrepTutor(stage, difficultySource) {
     stopPrepTutor();
-    if (!stage.tutorial && !stage.advisor) return;
+    if (!tutorialsEnabled(difficultySource) || (!stage.tutorial && !stage.advisor)) return;
     tut = { stage: stage, flags: {}, seq: null, timer: window.setInterval(tutorTick, 260) };
     /* claim the battlefield popup's button BEFORE the popup opens:
        play.js's entrance unlock (animationend / 900ms fallback) checks
@@ -2832,6 +2882,7 @@
     difficulty: function () {
       return difficultyOf(getProgress()).id;
     },
+    tutorialsEnabled: tutorialsEnabled,
     rewardFor: rewardFor,
     difficulties: DIFFICULTIES,
     story: STORY,

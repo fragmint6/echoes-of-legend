@@ -102,11 +102,14 @@ async function main() {
   const generationSeed = process.env.PUZZLE_SEED
     ? Number.parseInt(process.env.PUZZLE_SEED, 10) | 0
     : randomInt32();
-  const futureSeed = randomInt32();
   const started = Date.now();
   console.log(`[daily] generating seed=${generationSeed} at depth 4`);
 
   const rec = await EOL.daily._generatePosition(generationSeed);
+  if (rec.futureSeed == null || !rec.certificate) {
+    throw new Error('Daily forge did not return a winning-line certificate');
+  }
+  const futureSeed = rec.futureSeed | 0;
   const forgeMs = Date.now() - started;
   const position = EOL.daily._serializeBattle(rec.candidate.state, futureSeed);
 
@@ -131,6 +134,7 @@ async function main() {
     rate: rec.rate,
     forgeMs,
     generationSeed,
+    certificate: rec.certificate,
   };
   const packet = {
     v: 1,
