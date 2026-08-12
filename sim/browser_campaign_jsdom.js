@@ -85,6 +85,7 @@ const server = http.createServer((req, res) => {
   d.body.dataset.gfx = 'low';
 
   /* ---------- FIRST BOOT: the Recruiter interrupts the menu ---------- */
+  for (let g = 0; g < 40 && d.body.dataset.view !== 'home'; g++) await sleep(200);
   t(d.body.dataset.view === 'home', 'boot lands on home');
   // the intro fires 2.1s after campaign.js runs, and jsdom loads the
   // script chain slowly - poll for it instead of guessing the moment
@@ -284,7 +285,7 @@ const server = http.createServer((req, res) => {
   t($('pf-name-enemy').textContent === 'The Recruiter', 'enemy commander plate shows the rival');
   let ms0 = w.EOL.battle._scriptState();
   t(!!ms0 && ms0.moves.length === 16, 'move script loaded (16 - the ledger owns rounds 1-2 only)');
-  await sleep(600);
+  for (let g = 0; g < 45 && !$('rival-bark').classList.contains('reactive'); g++) await sleep(300);
   t($('rival-bark').classList.contains('reactive'), 'Gate I dialogue uses reader-paced reactive mode');
   t(!$('rival-bark-dismiss').hidden, 'reader-paced dialogue offers an optional Got it control');
   t(
@@ -497,8 +498,8 @@ const server = http.createServer((req, res) => {
   );
   t($('result-stats').textContent.indexOf("The Recruiter's legends") >= 0, "the enemy column carries the rival's name");
   t(
-    !$('result-coins').hidden && $('result-coins').textContent.indexOf('+150 coins') >= 0,
-    'campaign victory shows its exact gate reward receipt'
+    !$('result-coins').hidden && $('result-coins').textContent.indexOf('+100 coins') >= 0,
+    'campaign victory shows its selected-difficulty gate reward receipt'
   );
   await sleep(300);
   let prog = w.EOL.campaign.getProgress();
@@ -777,16 +778,52 @@ const server = http.createServer((req, res) => {
   w.EOL.ui.show('chapter');
   await sleep(700);
 
-  /* ---------- THE ECONOMY: wallet, locks, the shelf ---------- */
-  t(w.EOL.econ.coins() === 150, 'Gate I paid its flat 150 into the ONE wallet (' + w.EOL.econ.coins() + ')');
+  /* ---------- DIFFICULTY RUNS + THE ECONOMY ---------- */
+  t(
+    d.querySelectorAll('#road-difficulty [data-road-difficulty]').length === 3 &&
+      d.querySelector('[data-road-difficulty="normal"]').classList.contains('sel'),
+    'the Road exposes Normal, Heroic, and Legend with Normal selected after migration'
+  );
+  d.querySelector('[data-road-difficulty="heroic"]').click();
+  await sleep(200);
+  t(
+    w.EOL.campaign.difficulty() === 'heroic' &&
+      d.querySelector('[data-campaign-stage="2"]').classList.contains('is-locked'),
+    'Heroic opens as an independent run'
+  );
+  const heroicGate1 = d.querySelector('[data-campaign-stage="1"] .sc-rewards');
+  t(
+    heroicGate1.textContent.indexOf('200') >= 0 &&
+      heroicGate1.textContent.indexOf('Epic') >= 0 &&
+      heroicGate1.textContent.indexOf('Legendary') < 0,
+    'Heroic faction gates advertise only double coins and their Epic'
+  );
+  d.querySelector('[data-road-difficulty="legend"]').click();
+  await sleep(200);
+  const legendGate2Preview = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
+  t(
+    legendGate2Preview.querySelectorAll('.sc-reward').length === 1 &&
+      !!legendGate2Preview.querySelector('.legendary') &&
+      !legendGate2Preview.querySelector('.coin'),
+    'Legend faction gates advertise only their Legendary reward'
+  );
+  d.querySelector('[data-road-difficulty="normal"]').click();
+  await sleep(200);
+  t(
+    w.EOL.campaign.getProgress().cleared.includes(1) &&
+      !d.querySelector('[data-campaign-stage="2"]').classList.contains('locked'),
+    'returning to Normal restores its cleared and unlocked gates'
+  );
+
+  t(w.EOL.econ.coins() === 100, 'Gate I paid its flat 100 into the shared wallet (' + w.EOL.econ.coins() + ')');
   // the home wallet chip rides beside the account pill and tracks eol:coins
   w.EOL.ui.show('home');
   await sleep(400);
-  t($('home-coins-val').textContent === '150', 'the home coin chip shows the wallet (' + $('home-coins-val').textContent + ')');
+  t($('home-coins-val').textContent === '100', 'the home coin chip shows the wallet (' + $('home-coins-val').textContent + ')');
   t(!!d.querySelector('#home-coins .ri-coin-fill'), 'and wears the library coin icon');
   w.EOL.econ.addCoins(5);
   await sleep(100);
-  t($('home-coins-val').textContent === '155', 'the chip moves live on eol:coins');
+  t($('home-coins-val').textContent === '105', 'the chip moves live on eol:coins');
   w.EOL.econ.spend(5);
   await sleep(100);
   w.EOL.ui.show('chapter');
@@ -834,7 +871,7 @@ const server = http.createServer((req, res) => {
   w.EOL.econ.addCoins(1000);
   w.EOL.ui.show('shop');
   await sleep(700);
-  t($('shop-wallet').textContent.indexOf('1,150') >= 0 || $('shop-wallet').textContent.indexOf('1150') >= 0, 'the shop shows the wallet');
+  t($('shop-wallet').textContent.indexOf('1,100') >= 0 || $('shop-wallet').textContent.indexOf('1100') >= 0, 'the shop shows the wallet');
   // the library coin (owner ruling: icon font, never a generated sprite)
   t(!!$('shop-wallet').querySelector('i.ri-coin-fill'), 'the wallet wears the library coin, not the energy bolt');
   t(!$('shop-wallet').querySelector('.ra-lightning-bolt') && !$('shop-wallet').querySelector('img'), 'no lightning bolt and no sprite anywhere near the wallet');
@@ -893,9 +930,10 @@ const server = http.createServer((req, res) => {
     );
     t(w.EOL.cloud && typeof w.EOL.cloud.push === 'function' && w.EOL.cloud.status() === 'off', 'the vault idles signed-out (local play untouched)');
     t(w.EOL.cloud.KEYS.indexOf('eol.wallet.v1') >= 0 && w.EOL.cloud.KEYS.indexOf('eol.campaign.ch1.progress') >= 0 && w.EOL.cloud.KEYS.indexOf('eol.decks.v1') >= 0, 'the vault registry carries wallet, campaign, and decks');
-    // Gate II ends Camelot's road: its ONE legendary arrives at clear
-    // time, then plays a one-card Legend Pack ceremony on the map
-    t(!w.EOL.econ.owns('camelot-king-arthur'), 'the crown is not owned before the gate falls');
+    // On Legend, Gate II ends Camelot's road: its ONE legendary arrives
+    // at clear time, then plays a one-card reward ceremony on the map.
+    w.EOL.campaign.setDifficulty('legend');
+    t(!w.EOL.econ.owns('camelot-king-arthur'), 'the crown is not owned before the Legend gate falls');
     w.EOL.campaign._recordClear(w.EOL.campaign._stageById(2));
     t(w.EOL.econ.owns('camelot-king-arthur'), 'Gate II grants its legend at CLEAR time (refresh-proof)');
     t(w.EOL.campaign.getProgress().pendingLegend === 2, 'with the ceremony queued');
@@ -916,12 +954,12 @@ const server = http.createServer((req, res) => {
     const gate2Rewards = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
     t(
       gate2Rewards &&
-        gate2Rewards.querySelectorAll('.sc-reward').length === 2 &&
-        !!gate2Rewards.querySelector('.coin') &&
+        gate2Rewards.querySelectorAll('.sc-reward').length === 1 &&
+        !gate2Rewards.querySelector('.coin') &&
         !!gate2Rewards.querySelector('.legendary') &&
         gate2Rewards.textContent.indexOf('Legendary reward pack') >= 0 &&
         gate2Rewards.textContent.indexOf('King Arthur') < 0,
-      'a standard gate receipt contains only coins and a spoiler-free Legendary pack'
+      'a Legend gate receipt contains only its spoiler-free Legendary pack'
     );
     for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
@@ -938,6 +976,38 @@ const server = http.createServer((req, res) => {
     t(!!d.querySelector('#po-pack .pk-face.pk-legend'), 'and it wears the Legend wrapper');
     w.EOL.shop.close();
     t(w.EOL.campaign.getProgress().pendingLegend === null, 'the ceremony never replays');
+  }
+
+  /* ---------- HEROIC EPIC REWARD: durable, then visibly confirmed ---------- */
+  {
+    w.EOL.campaign.setDifficulty('heroic');
+    w.EOL.campaign._recordClear(w.EOL.campaign._stageById(1));
+    const pending = w.EOL.campaign.getProgress().pendingEpic;
+    t(
+      pending && pending.stage === 1 && w.EOL.econ.owns(pending.card),
+      'the Heroic Epic is owned immediately and queued safely before its ceremony'
+    );
+    w.EOL.ui.show('home');
+    w.EOL.ui.show('chapter');
+    await sleep(1200);
+    t(
+      $('pack-opening').classList.contains('on') &&
+        !$('po-campaign-award').hidden &&
+        $('po-campaign-award').textContent.indexOf('Epic reward pack') >= 0,
+      'returning to the chapter map visibly confirms the awarded Heroic Epic'
+    );
+    for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
+      if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
+      await sleep(100);
+    }
+    t(
+      w.EOL.shop.state() === 'summary' &&
+        d.querySelector('#po-summary .po-sum-title').textContent === 'Epic Acquired' &&
+        !!d.querySelector('#po-pack .pk-face.pk-epic'),
+      'the Heroic ceremony reveals one Epic in its own wrapper'
+    );
+    w.EOL.shop.close();
+    t(w.EOL.campaign.getProgress().pendingEpic === null, 'the Epic ceremony clears its durable queue');
   }
 
   /* ---------- THE WORKBENCH + the readable vault document ---------- */
@@ -989,6 +1059,7 @@ const server = http.createServer((req, res) => {
     /* A shop purchase before reaching the Warden must remain visible, but
        greyed and unavailable rather than disappearing from her full shelf. */
     w.EOL.econ.grant(['camelot-merlin']);
+    w.EOL.campaign.setDifficulty('legend');
     w.EOL.campaign._recordClear(w.EOL.campaign._stageById(5));
     /* Re-enter as the real result flow does; calling show() on the already
        active chapter view intentionally emits no duplicate transition. */
@@ -1001,12 +1072,12 @@ const server = http.createServer((req, res) => {
       ._flat()
       .filter(
         (entry) =>
-          ['camelot', 'sherwood', 'olympus'].includes(entry.faction.id) &&
+          ['grimmwood', 'camelot', 'sherwood', 'olympus'].includes(entry.faction.id) &&
           entry.card.rarity !== 'legendary'
       );
     t(
-      choices.length === eligible.length && choices.length === 15,
-      'the Warden shows every non-Legendary card from Camelot, Sherwood, and Olympus'
+      choices.length === eligible.length && choices.length === 25,
+      'the Legend Warden shows every non-Legendary card from all four introduced factions'
     );
     t(
       choices.every((el) => el.dataset.cid !== 'camelot-king-arthur' && el.dataset.cid !== 'sherwood-robin-hood' && el.dataset.cid !== 'olympus-zeus'),

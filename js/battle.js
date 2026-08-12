@@ -5163,6 +5163,7 @@
           field: opts.field || null,
           rng: opts.rng || null,
           oddFirst: opts.oddFirst || null,
+          enemyStatBonus: opts.enemyStatBonus || 0,
         }
       );
     } else {
@@ -5176,17 +5177,21 @@
             field: opts.field || null,
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
+            enemyStatBonus: opts.enemyStatBonus || 0,
           })
         : E.createBattle(teams.player, teams.enemy, {
             roleAware: true,
             field: opts.field || null,
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
+            enemyStatBonus: opts.enemyStatBonus || 0,
           });
     }
     /* Campaign personality changes evaluation priorities only. The rival
        still enters the exact normal depth-4 bestAction path below. */
     B.aiProfiles = opts.aiProfiles || null;
+    B.campaignDifficulty = opts.campaignDifficulty || null;
+    B.enemyStatBonus = Math.max(0, +opts.enemyStatBonus || 0);
     if (window.EOL.audio) {
       window.EOL.audio.setBattlefield(B.field ? B.field.id : 'colosseum');
       window.EOL.audio.scene('battle', { field: B.field ? B.field.id : 'colosseum' });

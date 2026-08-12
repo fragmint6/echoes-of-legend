@@ -72,6 +72,16 @@
       odds: [],
       final: null,
     },
+    /* Heroic Road reward: also campaign-only and already granted before
+       this one-card ceremony opens. */
+    epic: {
+      key: 'epic',
+      name: 'Epic Pack',
+      price: 0,
+      size: 1,
+      odds: [],
+      final: null,
+    },
   };
 
   /* Sequence timings (ms) - cinematic pacing; tests set FAST mode.
@@ -232,7 +242,7 @@
     var econ = window.EOL.econ;
     if (!econ) return;
     /* the Legend Pack is the Road's to give, never the shelf's to sell */
-    if (pack.key === 'legend') return;
+    if (pack.key === 'legend' || pack.key === 'epic') return;
     if (!econ.packableEntries().length) {
       if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
@@ -260,11 +270,10 @@
     startCeremony(pack);
   }
 
-  /* THE LEGEND PACK: campaign.js opens this after a gate that grants
-     a legendary. The card is already granted by recordClear (a mid-
-     ceremony refresh can never eat a crown); this is pure theater -
-     one card, no price, no 'open another'. */
-  function openLegendPack(cardId, meta) {
+  /* CAMPAIGN CARD PACKS: campaign.js opens these after a Heroic Epic or
+     Legend crown clear. The card is already granted by recordClear (a
+     mid-ceremony refresh cannot eat it); this is one-card theater only. */
+  function openCampaignReward(cardId, meta) {
     var entry = null;
     (window.EOL.factions || []).forEach(function (f) {
       f.cards.forEach(function (c) {
@@ -272,11 +281,19 @@
       });
     });
     if (!entry) return false;
+    var rarity = meta && meta.rarity === 'epic' ? 'epic' : 'legend';
     if (window.EOL.econ) window.EOL.econ.grant([cardId]); // idempotent safety
-    currentAwardMeta = meta || null;
+    currentAwardMeta = meta || {};
+    currentAwardMeta.rarity = rarity === 'legend' ? 'legendary' : 'epic';
     results = [entry];
-    startCeremony(PACKS.legend);
+    startCeremony(PACKS[rarity]);
     return true;
+  }
+
+  function openLegendPack(cardId, meta) {
+    meta = meta || {};
+    meta.rarity = 'legendary';
+    return openCampaignReward(cardId, meta);
   }
 
   /* the shared curtain-up: stamp the wrapper, reset the stage, drop
@@ -291,12 +308,22 @@
     });
     resetStage();
     syncOpenAnother();
-    var isCampaignLegend = pack.key === 'legend';
+    var isCampaignAward = (pack.key === 'legend' || pack.key === 'epic') && !!currentAwardMeta;
+    var isCampaignLegend = pack.key === 'legend' && isCampaignAward;
     var award = el('po-campaign-award');
     if (award) {
-      award.hidden = !isCampaignLegend;
+      award.hidden = !isCampaignAward;
+      var awardKicker = el('po-campaign-award-kicker');
+      var awardTitle = el('po-campaign-award-title');
+      if (awardKicker && isCampaignAward)
+        awardKicker.innerHTML =
+          '<i data-icon-domain="game" class="ra ' +
+          (isCampaignLegend ? 'ra-crown' : 'ra-gem') +
+          '"></i> Gate reward';
+      if (awardTitle && isCampaignAward)
+        awardTitle.textContent = isCampaignLegend ? 'Legendary reward pack' : 'Epic reward pack';
       var awardName = el('po-campaign-award-name');
-      if (awardName && isCampaignLegend) {
+      if (awardName && isCampaignAward) {
         /* The wrapper is the reveal. Before it tears, confirm only where
            the reward came from—never print the card hiding inside. */
         awardName.textContent =
@@ -308,13 +335,19 @@
     if (hint)
       hint.textContent = isCampaignLegend
         ? 'Click to reveal your Legendary'
-        : 'Click the pack to open it';
+        : isCampaignAward
+          ? 'Click to reveal your Epic'
+          : 'Click the pack to open it';
     var summaryTitle = document.querySelector('#po-summary .po-sum-title');
     if (summaryTitle)
-      summaryTitle.textContent = isCampaignLegend ? 'Legendary Acquired' : 'Pack Contents';
+      summaryTitle.textContent = isCampaignLegend
+        ? 'Legendary Acquired'
+        : isCampaignAward
+          ? 'Epic Acquired'
+          : 'Pack Contents';
     state = 'intro';
     var overlay = el('pack-opening');
-    overlay.classList.toggle('campaign-legend', isCampaignLegend);
+    overlay.classList.toggle('campaign-legend', isCampaignAward);
     overlay.classList.add('on');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('pack-open');
@@ -547,6 +580,7 @@
     echo: { icon: 'ra-spiral-shell' },
     crown: { icon: 'ra-crown' },
     legend: { icon: 'ra-sunbeams' },
+    epic: { icon: 'ra-gem' },
   };
   function buildPackFace(host) {
     if (!host) return;
@@ -677,6 +711,7 @@
     rollPack: rollPack,
     rollRarity: rollRarity,
     begin: begin,
+    openCampaignReward: openCampaignReward,
     openLegendPack: openLegendPack,
     paintShop: paintShop,
     charge: charge,

@@ -867,8 +867,8 @@
           <i class="ri-skip-forward-fill"></i><span>Skip</span>
         </button>
         <div class="po-campaign-award" id="po-campaign-award" hidden>
-          <span><i data-icon-domain="game" class="ra ra-crown"></i> Gate reward</span>
-          <strong>Legendary reward pack</strong>
+          <span id="po-campaign-award-kicker"><i data-icon-domain="game" class="ra ra-crown"></i> Gate reward</span>
+          <strong id="po-campaign-award-title">Legendary reward pack</strong>
           <em id="po-campaign-award-name"></em>
         </div>
         <div class="po-packwrap" id="po-packwrap">
@@ -1695,6 +1695,24 @@
           <i class="ri-file-list-3-line" aria-hidden="true"></i><span>The Ledger</span>
         </button>
       </header>
+
+      <section class="road-difficulty" id="road-difficulty" aria-labelledby="road-difficulty-title">
+        <div class="road-difficulty-copy">
+          <span id="road-difficulty-title">Road difficulty</span>
+          <p id="road-difficulty-note">Standard rivals · coin rewards</p>
+        </div>
+        <div class="road-difficulty-options" role="group" aria-label="Road difficulty">
+          <button type="button" class="road-difficulty-btn sel" data-road-difficulty="normal" aria-pressed="true">
+            <i class="ri-shield-star-line" aria-hidden="true"></i><span>Normal</span>
+          </button>
+          <button type="button" class="road-difficulty-btn" data-road-difficulty="heroic" aria-pressed="false">
+            <i class="ri-sword-line" aria-hidden="true"></i><span>Heroic</span>
+          </button>
+          <button type="button" class="road-difficulty-btn" data-road-difficulty="legend" aria-pressed="false">
+            <i class="ri-trophy-line" aria-hidden="true"></i><span>Legend</span>
+          </button>
+        </div>
+      </section>
 
       <div class="stage-list" aria-label="The ten gates of Chapter 1">
         <!-- Stage 1 -->

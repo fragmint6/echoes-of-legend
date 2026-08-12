@@ -128,18 +128,24 @@ const localStorage = {
 
 let oscillators = 0;
 let noises = 0;
+let maxOscillatorFrequency = 0;
 class Param {
-  constructor(value = 0) {
+  constructor(value = 0, tracksFrequency = false) {
     this.value = value;
+    this.tracksFrequency = tracksFrequency;
+  }
+  record(value) {
+    this.value = value;
+    if (this.tracksFrequency) maxOscillatorFrequency = Math.max(maxOscillatorFrequency, value || 0);
   }
   setValueAtTime(value) {
-    this.value = value;
+    this.record(value);
   }
   exponentialRampToValueAtTime(value) {
-    this.value = value;
+    this.record(value);
   }
   setTargetAtTime(value) {
-    this.value = value;
+    this.record(value);
   }
   cancelScheduledValues() {}
 }
@@ -152,7 +158,7 @@ class AudioNode {
 class Source extends AudioNode {
   constructor() {
     super();
-    this.frequency = new Param(440);
+    this.frequency = new Param(440, true);
     this.detune = new Param(0);
     this.listeners = {};
   }
@@ -303,6 +309,25 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   A.result(true);
   A.result(false);
   ok(oscillators > 100 && noises > 20, 'all cue families synthesize oscillator and noise voices');
+
+  maxOscillatorFrequency = 0;
+  ['Tank', 'Bruiser', 'Sniper', 'Caster', 'Controller', 'Medic'].forEach((role) =>
+    ['Physical', 'Magic', 'Shadow', 'Light', 'Lightning', 'Fire', 'Nature'].forEach((element) =>
+      A.battle('cast', { role, element, signature: true })
+    )
+  );
+  ok(
+    A._characterFreqCeiling <= 900 && maxOscillatorFrequency <= A._characterFreqCeiling,
+    'every shared character cast stays below the piercing high-frequency range'
+  );
+  const lightningSource = fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8');
+  const lightningBlock = (lightningSource.match(/case 'Lightning':([\s\S]*?)case 'Fire':/) || [])[1] || '';
+  ok(
+    /freq: 96,/.test(lightningBlock) &&
+      /freq: 360 - z \* 55/.test(lightningBlock) &&
+      lightningBlock.indexOf('1450') < 0,
+    'Zeus and other Lightning casts use a low thunder voice instead of the old chirp'
+  );
 
   const route = {
     menu: 'menu',

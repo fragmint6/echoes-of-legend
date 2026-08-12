@@ -65,8 +65,8 @@
     },
     resetRoad: function () {
       /* Campaign + tutorial only: the collection and wallet stay.
-         OWNER TOOL, not a player feature - a fresh Road re-pays every
-         gate's 150 and re-runs the Legend Pack ceremonies (grants are
+         OWNER TOOL, not a player feature - a fresh Road re-pays each
+         difficulty's gate rewards and re-runs card ceremonies (grants are
          idempotent, coins are not), so a player-facing reset needs a
          no-re-pay design first. */
       try {

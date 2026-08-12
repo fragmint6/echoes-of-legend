@@ -1263,6 +1263,8 @@
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
       campaignStage: cfg.campaignStage || null,
+      campaignDifficulty: cfg.campaignDifficulty || null,
+      enemyStatBonus: Math.max(0, +cfg.enemyStatBonus || 0),
       /* CAMPAIGN rival behaviour hooks (all optional, all inert
          outside the campaign):
            botSix       scripted fielded six (stages 1-4, §8 dial 2)
@@ -2135,6 +2137,8 @@
       mode: cfg.mode,
       war: setState ? 'unabridged' : 'single',
       campaignStage: cfg.campaignStage,
+      campaignDifficulty: cfg.campaignDifficulty || null,
+      enemyStatBonus: cfg.enemyStatBonus || 0,
       rival: cfg.rival || null,
       aiProfiles: cfg.aiProfile ? { enemy: cfg.aiProfile } : null,
       rng: match ? mulberry(match.seed | 0) : null,
@@ -2962,6 +2966,8 @@
             ? camp.field || null
             : null,
         campaignStage: camp ? camp.stage : null,
+        campaignDifficulty: camp ? camp.difficulty || null : null,
+        enemyStatBonus: camp ? camp.enemyStatBonus || 0 : 0,
         botBanProfile: camp ? camp.banProfile : null,
         banTell: camp ? camp.banTell || null : null,
         aiProfile: camp ? camp.aiProfile || null : null,
@@ -3090,6 +3096,8 @@
       /* CAMPAIGN carry: the set spans three preps, so everything the
          later games need survives here. */
       campaignStage: cfg.campaignStage || null,
+      campaignDifficulty: cfg.campaignDifficulty || null,
+      enemyStatBonus: cfg.enemyStatBonus || 0,
       rival: cfg.rival || null,
       aiProfile: cfg.aiProfile || null,
       pinnedEnemy: cfg.pinnedEnemy ? cfg.pinnedEnemy.slice() : [],
@@ -3632,6 +3640,8 @@
       /* CAMPAIGN carry-through: games 2 and 3 keep the rival's face on
          the HUD, the boss pinned, and the stage id on the battle. */
       campaignStage: setState.campaignStage || null,
+      campaignDifficulty: setState.campaignDifficulty || null,
+      enemyStatBonus: setState.enemyStatBonus || 0,
       rival: setState.rival || null,
       aiProfile: setState.aiProfile || null,
       pinnedEnemy:

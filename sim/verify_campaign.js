@@ -213,20 +213,22 @@ ok(
   'the ledger spotlight line is authored (ASCII, names the LEDGER)'
 );
 
-/* THE ECONOMY (owner ruling 2026-08-10): the chapter pays exactly
-   1500 - the less the campaign gives, the more the other modes
-   matter. Second ruling same day: a FLAT 150 per gate (no curve),
-   and replays pay a flat 25 (enforced in campaign.js). */
-var chapterCoins = 0;
-S.stages.forEach(function (st) {
-  chapterCoins += (st.grants || {}).coins || 0;
+/* NORMAL ECONOMY (owner ruling 2026-08-12): ordinary gates pay 100,
+   the two elites 200, and Gilgamesh 300. Heroic doubles this baseline;
+   Legend pays no coins (the full matrix is exercised separately by
+   verify_campaign_difficulty.js). */
+var normalCoins = S.stages.map(function (st) {
+  return (st.grants || {}).coins || 0;
 });
-ok(chapterCoins === 1500, 'Chapter 1 pays exactly 1500 coins (' + chapterCoins + ')');
 ok(
-  S.stages.every(function (st) {
-    return (st.grants || {}).coins === 150;
-  }),
-  'every gate pays the same flat 150'
+  JSON.stringify(normalCoins) === JSON.stringify([100, 100, 100, 100, 200, 100, 100, 100, 200, 300]),
+  'Normal gate coin baselines follow the ordinary/elite/Gilgamesh law'
+);
+ok(
+  normalCoins.reduce(function (sum, coins) {
+    return sum + coins;
+  }, 0) === 1400,
+  'a complete Normal Road pays exactly 1400 coins'
 );
 
 /* THE RARITY LAW (owner ruling 2026-08-10): one legendary per six

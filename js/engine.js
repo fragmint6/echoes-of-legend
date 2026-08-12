@@ -549,6 +549,21 @@
       u.battle = B;
     });
 
+    /* Campaign difficulty is a transparent rival-side base-stat multiplier.
+       Multiplicative DEF means 20 becomes 22 on Heroic and 24 on Legend;
+       it is not a hidden +10/+20 percentage-point wall. Applied before
+       battlefield champions and standing passives so every consumer reads
+       the same final base stats. */
+    var enemyStatBonus = Math.max(0, +opts.enemyStatBonus || 0);
+    if (enemyStatBonus) {
+      B.units.forEach(function (u) {
+        if (u.side !== 'enemy') return;
+        u.baseAtk = Math.round(u.baseAtk * (1 + enemyStatBonus));
+        u.baseDef = Math.round(u.baseDef * (1 + enemyStatBonus));
+        u.difficultyBonus = enemyStatBonus;
+      });
+    }
+
     /* The Hero's Trial: each side's most expensive signature is the champion
        and gets a stat bump. Resolved once, at battle start, so it cannot
        shift mid-fight when costs are modified. HP is applied here because

@@ -22,6 +22,38 @@
   window.EOL = window.EOL || {};
   var STORY = window.EOL.campaignCh1 || {};
   var PROGRESS_KEY = 'eol.campaign.ch1.progress';
+  var SAVE_VERSION = 3;
+  var DIFFICULTIES = {
+    normal: {
+      id: 'normal',
+      name: 'Normal',
+      bonus: 0,
+      note: 'Standard rivals · coin rewards',
+    },
+    heroic: {
+      id: 'heroic',
+      name: 'Heroic',
+      bonus: 0.1,
+      note: '+10% rival ATK & DEF · double coins · Epic rewards',
+    },
+    legend: {
+      id: 'legend',
+      name: 'Legend',
+      bonus: 0.2,
+      note: '+20% rival ATK & DEF · no coins · Legendary rewards',
+    },
+  };
+  var STAGE_FACTIONS = {
+    1: 'grimmwood',
+    2: 'camelot',
+    3: 'sherwood',
+    4: 'olympus',
+    6: 'yamato',
+    7: 'roma',
+    8: 'takamagahara',
+    10: 'duat',
+  };
+  var ELITE_STAGES = { 5: true, 9: true };
 
   function $(id) {
     return document.getElementById(id);
@@ -172,60 +204,230 @@
 
   /* ---------------------------------------------------------
      Progress + the collection/currency store (§9.14).
-     eol.campaign.ch1.progress:
-       cleared   [stageIds]       unlocked  [stageIds]
-       clears    {stageId: n}     per-stage clear counts (replay taper)
-       grants    [cardIds]        awarded Legendaries and resolved exam
-                                  choices (idempotent)
-       coins     n                tier-2 currency, inert until the
-                                  economy pass lands
-       choices   {stageId:[ids]}  resolved exam choices (R9)
-       pendingChoice stageId|null an unclaimed exam choice
+
+     One save contains three independent Road runs. Legacy saves become the
+     Normal run without losing a gate, while global ownership, coins, rival
+     intel and ledger corrections remain shared. Root-level run fields are
+     retained as live aliases for cloud documents and older tooling.
      --------------------------------------------------------- */
-  function getProgress() {
-    try {
-      var raw = localStorage.getItem(PROGRESS_KEY);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.unlocked)) {
-          parsed.cleared = parsed.cleared || [];
-          parsed.clears = parsed.clears || {};
-          parsed.grants = parsed.grants || [];
-          parsed.coins = parsed.coins || 0;
-          parsed.choices = parsed.choices || {};
-          parsed.tellsBroken = parsed.tellsBroken || [];
-          parsed.fought = parsed.fought || [];
-          return parsed;
-        }
-      }
-    } catch (e) {
-      /* private mode fallback */
-    }
+  var RUN_FIELDS = [
+    'cleared',
+    'unlocked',
+    'clears',
+    'choices',
+    'pendingChoice',
+    'pendingLegend',
+    'pendingEpic',
+  ];
+
+  function emptyRun() {
     return {
       cleared: [],
       unlocked: [1],
       clears: {},
-      grants: [],
-      coins: 0,
       choices: {},
       pendingChoice: null,
-      /* an unopened Legend Pack ceremony (grant already landed) */
       pendingLegend: null,
-      /* stages whose ban-claim tell the player has FALSIFIED - the
-         ledger keeps the correction forever (playtester ruling:
-         that is the match you remember) */
-      tellsBroken: [],
-      /* stages whose rival the player has faced at least once, win
-         or lose - the ledger opens their twelve after first blood */
-      fought: [],
+      pendingEpic: null,
     };
   }
+
+  function normalizeRun(run) {
+    run = run || emptyRun();
+    run.cleared = Array.isArray(run.cleared) ? run.cleared : [];
+    run.unlocked = Array.isArray(run.unlocked) && run.unlocked.length ? run.unlocked : [1];
+    run.clears = run.clears || {};
+    run.choices = run.choices || {};
+    run.pendingChoice = run.pendingChoice || null;
+    run.pendingLegend = run.pendingLegend || null;
+    run.pendingEpic = run.pendingEpic || null;
+    return run;
+  }
+
+  function attachRun(prog) {
+    var id = DIFFICULTIES[prog.selectedDifficulty] ? prog.selectedDifficulty : 'normal';
+    prog.selectedDifficulty = id;
+    var run = normalizeRun(prog.runs[id]);
+    prog.runs[id] = run;
+    RUN_FIELDS.forEach(function (key) {
+      prog[key] = run[key];
+    });
+    return prog;
+  }
+
+  function syncRun(prog) {
+    var id = DIFFICULTIES[prog.selectedDifficulty] ? prog.selectedDifficulty : 'normal';
+    var run = normalizeRun(prog.runs[id]);
+    RUN_FIELDS.forEach(function (key) {
+      run[key] = prog[key];
+    });
+    prog.runs[id] = run;
+  }
+
+  function normalizeProgress(parsed) {
+    parsed = parsed || {};
+    parsed.grants = Array.isArray(parsed.grants) ? parsed.grants : [];
+    parsed.v = SAVE_VERSION;
+    parsed.coins = parsed.coins || 0;
+    parsed.tellsBroken = Array.isArray(parsed.tellsBroken) ? parsed.tellsBroken : [];
+    parsed.fought = Array.isArray(parsed.fought) ? parsed.fought : [];
+    parsed.selectedDifficulty = DIFFICULTIES[parsed.selectedDifficulty]
+      ? parsed.selectedDifficulty
+      : 'normal';
+
+    if (!parsed.runs) {
+      /* Migration: the campaign that existed before difficulty selection is
+         preserved as Normal. Already-granted crowns remain globally owned. */
+      parsed.runs = {
+        normal: normalizeRun({
+          cleared: parsed.cleared,
+          unlocked: parsed.unlocked,
+          clears: parsed.clears,
+          choices: parsed.choices,
+          pendingChoice: parsed.pendingChoice,
+          pendingLegend: parsed.pendingLegend,
+          pendingEpic: parsed.pendingEpic,
+        }),
+        heroic: emptyRun(),
+        legend: emptyRun(),
+      };
+    }
+    Object.keys(DIFFICULTIES).forEach(function (id) {
+      parsed.runs[id] = normalizeRun(parsed.runs[id]);
+    });
+    return attachRun(parsed);
+  }
+
+  function getProgress() {
+    try {
+      var raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) {
+        var decoded = JSON.parse(raw);
+        var migrated = !decoded.runs || decoded.v !== SAVE_VERSION;
+        var normalized = normalizeProgress(decoded);
+        if (migrated) {
+          syncRun(normalized);
+          localStorage.setItem(PROGRESS_KEY, JSON.stringify(normalized));
+        }
+        return normalized;
+      }
+    } catch (e) {
+      /* private mode fallback */
+    }
+    return normalizeProgress({
+      grants: [],
+      coins: 0,
+      tellsBroken: [],
+      fought: [],
+      selectedDifficulty: 'normal',
+    });
+  }
+
   function saveProgress(prog) {
     try {
+      syncRun(prog);
       localStorage.setItem(PROGRESS_KEY, JSON.stringify(prog));
     } catch (e) {
       /* private mode: the session still works, it just forgets */
     }
+  }
+
+  function difficultyOf(prog) {
+    var id = prog && DIFFICULTIES[prog.selectedDifficulty] ? prog.selectedDifficulty : 'normal';
+    return DIFFICULTIES[id];
+  }
+
+  function introducedFactions(stage) {
+    var out = [];
+    Object.keys(STAGE_FACTIONS).forEach(function (key) {
+      var id = parseInt(key, 10);
+      var faction = STAGE_FACTIONS[id];
+      if (id < stage.id && out.indexOf(faction) < 0) out.push(faction);
+    });
+    return out;
+  }
+
+  function factionName(id) {
+    var faction = (window.EOL.factions || []).filter(function (f) {
+      return f.id === id;
+    })[0];
+    return faction ? faction.name : id;
+  }
+
+  function normalCoinReward(stage) {
+    if (stage.grants && typeof stage.grants.coins === 'number') return stage.grants.coins;
+    if (stage.id === 10) return 300;
+    return ELITE_STAGES[stage.id] ? 200 : 100;
+  }
+
+  function rewardFor(stage, difficultyId) {
+    var id = DIFFICULTIES[difficultyId] ? difficultyId : 'normal';
+    var reward = { coins: 0, difficulty: id };
+    if (id === 'normal') {
+      reward.coins = normalCoinReward(stage);
+      return reward;
+    }
+    if (id === 'heroic') {
+      reward.coins = normalCoinReward(stage) * 2;
+      if (ELITE_STAGES[stage.id]) {
+        reward.choice = {
+          count: 2,
+          factions: introducedFactions(stage),
+          rarities: ['common', 'rare'],
+          label: 'Common/Rare',
+        };
+      } else {
+        reward.epicFaction = STAGE_FACTIONS[stage.id] || null;
+      }
+      return reward;
+    }
+    /* Legend: the Road's original crown progression, no coin payout. */
+    if (ELITE_STAGES[stage.id]) {
+      reward.choice = {
+        count: 2,
+        factions: introducedFactions(stage),
+        rarities: ['common', 'rare', 'epic'],
+        label: 'non-Legendary',
+      };
+    } else if (stage.grants && stage.grants.legendPack) {
+      reward.legendPack = stage.grants.legendPack;
+    }
+    return reward;
+  }
+
+  function randomEpic(factionId) {
+    var faction = (window.EOL.factions || []).filter(function (f) {
+      return f.id === factionId;
+    })[0];
+    if (!faction) return null;
+    var pool = faction.cards.filter(function (card) {
+      return card.rarity === 'epic';
+    });
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)].id : null;
+  }
+
+  function setDifficulty(id) {
+    if (!DIFFICULTIES[id]) return false;
+    var prog = getProgress();
+    if (prog.selectedDifficulty === id) {
+      paintDifficulty(prog);
+      return true;
+    }
+    syncRun(prog);
+    prog.selectedDifficulty = id;
+    attachRun(prog);
+    saveProgress(prog);
+    activeCampaignStage = null;
+    updateStageCards();
+    paintDifficulty(prog);
+    if ($('ledger') && !$('ledger').hidden) renderLedger();
+    if (document.body.dataset.view === 'chapter') {
+      window.setTimeout(reofferPendingChoice, 0);
+      window.setTimeout(reofferPendingLegend, 0);
+      window.setTimeout(reofferPendingEpic, 0);
+    }
+    if (window.EOL.audio) window.EOL.audio.ui('toggle');
+    return true;
   }
 
   /* play.js reports the moment a reveal falsifies a role-claim tell. */
@@ -249,37 +451,40 @@
 
   function recordClear(stage, prog) {
     prog = prog || getProgress();
+    var difficulty = difficultyOf(prog);
+    var reward = rewardFor(stage, difficulty.id);
     var first = prog.cleared.indexOf(stage.id) < 0;
     if (first) prog.cleared.push(stage.id);
     if (stage.id < 10 && prog.unlocked.indexOf(stage.id + 1) < 0) prog.unlocked.push(stage.id + 1);
     prog.clears[stage.id] = (prog.clears[stage.id] || 0) + 1;
-    var g = stage.grants || {};
+
     if (first) {
-      prog.coins += g.coins || 0;
-      if (g.choice) prog.pendingChoice = stage.id;
-      /* THE LEGEND PACK (owner ruling 2026-08-10): a gate that ends a
-         faction's road hands over its ONE legendary - granted HERE,
-         at clear time (refresh-proof), with the one-card ceremony
-         queued for the chapter map. Legendaries reach a collection
-         no other way: the shop's tables stop at Epic. */
-      if (g.legendPack) {
-        if (prog.grants.indexOf(g.legendPack) < 0) prog.grants.push(g.legendPack);
+      prog.coins += reward.coins;
+      if (reward.choice) prog.pendingChoice = stage.id;
+      if (reward.legendPack) {
+        if (prog.grants.indexOf(reward.legendPack) < 0) prog.grants.push(reward.legendPack);
         prog.pendingLegend = stage.id;
       }
-      /* THE ECONOMY: coins enter the wallet and the gate Legendary
-         enters the collection. Exam choices are granted when selected.
-         prog keeps its own totals as the road's record. */
+      if (reward.epicFaction) {
+        var epicId = randomEpic(reward.epicFaction);
+        if (epicId) {
+          if (prog.grants.indexOf(epicId) < 0) prog.grants.push(epicId);
+          prog.pendingEpic = { stage: stage.id, card: epicId };
+        }
+      }
       if (window.EOL.econ) {
-        window.EOL.econ.grant(g.legendPack ? [g.legendPack] : []);
-        window.EOL.econ.addCoins(g.coins || 0);
+        var cards = [];
+        if (reward.legendPack) cards.push(reward.legendPack);
+        if (prog.pendingEpic && prog.pendingEpic.stage === stage.id) cards.push(prog.pendingEpic.card);
+        window.EOL.econ.grant(cards);
+        if (reward.coins) window.EOL.econ.addCoins(reward.coins);
       }
     } else {
-      /* Replays pay a FLAT 25 (owner ruling 2026-08-10, replacing
-         the old 25%-of-gate cut): every gate is worth revisiting,
-         none is worth farming. */
-      var replayPay = 25;
+      /* Replay pay follows the tier: Heroic doubles Normal's small replay
+         stipend, while Legend never pays coins. */
+      var replayPay = difficulty.id === 'heroic' ? 50 : difficulty.id === 'legend' ? 0 : 25;
       prog.coins += replayPay;
-      if (window.EOL.econ) window.EOL.econ.addCoins(replayPay);
+      if (replayPay && window.EOL.econ) window.EOL.econ.addCoins(replayPay);
     }
     saveProgress(prog);
     updateStageCards();
@@ -732,8 +937,9 @@
   function launchStage(stage) {
     stopNavGuide();
     activeCampaignStage = stage.id;
+    var difficulty = difficultyOf(getProgress());
     if (stage.mode === 'draft') {
-      launchDraft(stage);
+      launchDraft(stage, difficulty);
       return;
     }
     if (window.EOL.audio) {
@@ -744,7 +950,7 @@
     /* THE SCRIPTED GATE (stage 1): no deck picker - the ledger brings
        the starter twelve, the script marks the bans and the six, and
        the tutor narrates every phase. */
-    if (stage.script) {
+    if (stage.script && difficulty.id === 'normal') {
       var scripted12 = starterEntries();
       if (!scripted12 || scripted12.length !== 12) return;
       window.EOL.play.startPrep({
@@ -753,6 +959,8 @@
         player12: scripted12,
         enemy12: entriesFor(stage.enemy12),
         campaignStage: stage.id,
+        campaignDifficulty: difficulty.id,
+        enemyStatBonus: difficulty.bonus,
         war: 'single',
         botSix: stage.botSix || null,
         botBanProfile: stage.banProfile || null,
@@ -779,6 +987,8 @@
           player12: player12,
           enemy12: enemy12,
           campaignStage: stage.id,
+          campaignDifficulty: difficulty.id,
+          enemyStatBonus: difficulty.bonus,
           war: stage.mode === 'set' ? 'set' : 'single',
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
@@ -820,8 +1030,9 @@
     );
   }
 
-  function launchDraft(stage) {
+  function launchDraft(stage, difficulty) {
     if (!window.EOL.play || !window.EOL.play.startDraft) return;
+    difficulty = difficulty || difficultyOf(getProgress());
     window.EOL.play.startDraft({
       pool: buildPool(stage.pool),
       persona: stage.persona || null,
@@ -829,6 +1040,8 @@
       campaign: {
         stage: stage.id,
         field: fieldById(stage.field),
+        difficulty: difficulty.id,
+        enemyStatBonus: difficulty.bonus,
         banProfile: stage.banProfile || null,
         banTell: stage.banTell || null,
         aiProfile: stage.aiProfile || null,
@@ -1529,14 +1742,22 @@
   var resultInfo = null;
 
   function rewardLine(stage, first) {
-    if (!first) return '+25 coins · Replay reward';
-    var g = stage.grants || {};
-    var parts = ['+' + (g.coins || 0) + ' coins'];
-    if (g.choice) parts.push('Choose ' + g.choice.count + ' Echoes');
+    var prog = getProgress();
+    var difficulty = difficultyOf(prog);
+    var reward = rewardFor(stage, difficulty.id);
+    if (!first) {
+      var replay = difficulty.id === 'heroic' ? 50 : difficulty.id === 'legend' ? 0 : 25;
+      return replay ? '+' + replay + ' coins · Replay reward' : 'Legend replay · No coin reward';
+    }
+    var parts = [];
+    if (reward.coins) parts.push('+' + reward.coins + ' coins');
+    if (reward.epicFaction) parts.push('Random ' + factionName(reward.epicFaction) + ' Epic');
+    if (reward.choice) parts.push('Choose ' + reward.choice.count + ' ' + reward.choice.label + ' cards');
     /* The pack itself is the reveal. The result receipt confirms the
        reward category without naming the card before the wrapper opens. */
-    if (g.legendPack) parts.push('Legendary reward pack');
-    return parts.join(' · ');
+    if (reward.legendPack) parts.push('Legendary reward pack');
+    if (!parts.length) parts.push('Gate cleared · No coin reward');
+    return difficulty.name + ' · ' + parts.join(' · ');
   }
 
   function onBattleResult(win, info) {
@@ -1619,21 +1840,17 @@
      THE CHOICE GRANT (R9) - exams pay out as a choice, resolved at
      claim time against the live roster, never as hardcoded ids.
      --------------------------------------------------------- */
-  function choiceCandidates(stage) {
-    var g = stage.grants && stage.grants.choice;
-    if (!g) return [];
+  function choiceCandidates(stage, grant) {
+    if (!grant) return [];
     var dict = cardDict();
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if ((g.factions || []).indexOf(f.id) < 0) return;
+      if ((grant.factions || []).indexOf(f.id) < 0) return;
       f.cards.forEach(function (c) {
-        /* THE CROWN LAW: legendaries travel only inside Legend Packs -
-           an exam choice never offers one. Every ordinary card remains on
-           the Warden's table, including owned cards, so the reward reads as
-           the complete Camelot / Sherwood / Olympus shelf rather than an
-           unexplained random subset. Ownership is rendered on the card and
-           only the unowned remainder can be selected. */
-        if (c.rarity !== 'legendary') out.push(dict[c.id]);
+        /* Heroic elites offer Common/Rare cards; Legend elites add Epics.
+           Every eligible card stays visible so ownership is explicit rather
+           than turning the reward into an unexplained random subset. */
+        if ((grant.rarities || []).indexOf(c.rarity) >= 0) out.push(dict[c.id]);
       });
     });
     return out;
@@ -1646,14 +1863,22 @@
     return (prog.grants || []).indexOf(entry.card.id) >= 0;
   }
 
+  function pendingChoiceGrant(stage, prog) {
+    var difficulty = difficultyOf(prog);
+    var grant = rewardFor(stage, difficulty.id).choice;
+    /* A pre-difficulty save can be suspended on an old elite choice. Its
+       card grant was promised already, so migration into Normal must not
+       silently discard it even though new Normal clears are coin-only. */
+    if (!grant && difficulty.id === 'normal' && prog.pendingChoice === stage.id) {
+      grant = rewardFor(stage, 'legend').choice;
+    }
+    return grant;
+  }
+
   function maybeOfferChoice(stage, done) {
     var prog = getProgress();
-    if (
-      !stage.grants ||
-      !stage.grants.choice ||
-      prog.choices[stage.id] ||
-      prog.pendingChoice !== stage.id
-    ) {
+    var grant = pendingChoiceGrant(stage, prog);
+    if (!grant || prog.choices[stage.id] || prog.pendingChoice !== stage.id) {
       done();
       return;
     }
@@ -1666,9 +1891,9 @@
       done();
       return;
     }
-    var g = stage.grants.choice;
     var prog = getProgress();
-    var candidates = choiceCandidates(stage);
+    var g = pendingChoiceGrant(stage, prog);
+    var candidates = choiceCandidates(stage, g);
     if (!candidates.length) {
       prog.pendingChoice = null;
       saveProgress(prog);
@@ -1689,19 +1914,14 @@
       $('grant-choice-sub'),
       required
         ? stage.rival +
-            ' opens the complete non-Legendary shelf from ' +
-            (g.factions || [])
-              .map(function (id) {
-                var f = (window.EOL.factions || []).filter(function (x) {
-                  return x.id === id;
-                })[0];
-                return f ? f.name : id;
-              })
-              .join(', ') +
+            ' opens the complete ' +
+            g.label +
+            ' shelf from ' +
+            (g.factions || []).map(factionName).join(', ') +
             '. Choose ' +
             required +
             (required === 1 ? ' unowned echo.' : ' unowned echoes.')
-        : 'Every non-Legendary echo on this table is already yours.'
+        : 'Every eligible echo on this table is already yours.'
     );
     var grid = $('grant-choice-grid');
     grid.innerHTML = '';
@@ -1797,44 +2017,85 @@
     });
   }
 
-  /* THE LEGEND CEREMONY: an unopened Legend Pack plays the one-card
-     opening the next time the chapter map is quiet. The card is
-     already owned (granted at clear time), while the durable queue stays
-     set until the theater accepts it. Waits out any dialogue on screen. */
+  /* Card rewards are granted at clear time and queued only for ceremony,
+     making both Epic and Legendary first clears refresh-proof. */
+  function rewardTheaterReady(retry) {
+    if (dlg) {
+      window.setTimeout(retry, 900);
+      return false;
+    }
+    if (document.body.dataset.view !== 'chapter') return false;
+    if (!(window.EOL.shop && window.EOL.shop.openCampaignReward)) {
+      window.setTimeout(retry, 120);
+      return false;
+    }
+    return true;
+  }
+
   function reofferPendingLegend() {
     var prog = getProgress();
     if (!prog.pendingLegend) return;
     var stage = stageById(prog.pendingLegend);
-    if (!stage || !stage.grants || !stage.grants.legendPack) {
+    var difficulty = difficultyOf(prog);
+    var reward = stage ? rewardFor(stage, difficulty.id) : null;
+    var cardId = reward && reward.legendPack ? reward.legendPack : null;
+    /* Legacy saves can have a granted-but-unopened crown while migrating
+       into Normal. Finish that promised ceremony once; new Normal clears
+       never create this queue. */
+    if (!cardId && stage && difficulty.id === 'normal' && stage.grants) {
+      cardId = stage.grants.legendPack || null;
+    }
+    if (!stage || !cardId) {
       prog.pendingLegend = null;
       saveProgress(prog);
       return;
     }
-    if (dlg) {
-      /* an epilogue is still talking - try again when it is done */
-      window.setTimeout(reofferPendingLegend, 900);
-      return;
-    }
-    if (document.body.dataset.view !== 'chapter') return;
-    /* Do not consume the durable queue until the global theater actually
-       accepts it. Previously the flag was cleared first; if Shop had not
-       mounted yet, the reward was owned but its reveal was silently lost. */
-    if (!(window.EOL.shop && window.EOL.shop.openLegendPack)) {
-      window.setTimeout(reofferPendingLegend, 120);
-      return;
-    }
-    var opened = window.EOL.shop.openLegendPack(stage.grants.legendPack, {
+    if (!rewardTheaterReady(reofferPendingLegend)) return;
+    var opened = window.EOL.shop.openCampaignReward(cardId, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
+      rarity: 'legendary',
     });
     if (!opened) return;
     prog.pendingLegend = null;
     saveProgress(prog);
   }
 
+  function reofferPendingEpic() {
+    var prog = getProgress();
+    var pending = prog.pendingEpic;
+    if (!pending || !pending.card) return;
+    var stage = stageById(pending.stage);
+    if (!stage) {
+      prog.pendingEpic = null;
+      saveProgress(prog);
+      return;
+    }
+    if (!rewardTheaterReady(reofferPendingEpic)) return;
+    var opened = window.EOL.shop.openCampaignReward(pending.card, {
+      gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
+      rarity: 'epic',
+    });
+    if (!opened) return;
+    prog.pendingEpic = null;
+    saveProgress(prog);
+  }
+
   /* ---------------------------------------------------------
      CHAPTER MAP - stage card states and copy.
      --------------------------------------------------------- */
-  function paintStageRewards(card, stage, cleared) {
+  function paintDifficulty(prog) {
+    prog = prog || getProgress();
+    var difficulty = difficultyOf(prog);
+    document.body.dataset.roadDifficulty = difficulty.id;
+    document.querySelectorAll('[data-road-difficulty]').forEach(function (button) {
+      var selected = button.dataset.roadDifficulty === difficulty.id;
+      button.classList.toggle('sel', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    setText($('road-difficulty-note'), difficulty.note);
+  }
+
+  function paintStageRewards(card, stage, cleared, difficulty) {
     var info = card.querySelector('.sc-info');
     if (!info) return;
     var row = info.querySelector('.sc-rewards');
@@ -1843,26 +2104,42 @@
       row.className = 'sc-rewards';
       info.appendChild(row);
     }
-    var g = stage.grants || {};
+    var reward = rewardFor(stage, difficulty.id);
     var chips = [];
-    chips.push(
-      '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' + (g.coins || 0) + ' coins</span>'
-    );
-    if (g.choice)
+    if (reward.coins)
+      chips.push(
+        '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' +
+          reward.coins +
+          ' coins</span>'
+      );
+    if (reward.epicFaction)
+      chips.push(
+        '<span class="sc-reward epic"><i data-icon-domain="game" class="ra ra-gem"></i>Random ' +
+          factionName(reward.epicFaction) +
+          ' Epic</span>'
+      );
+    if (reward.choice)
       chips.push(
         '<span class="sc-reward"><i data-icon-domain="game" class="ra ra-locked-fortress"></i>Choose ' +
-          g.choice.count +
-          ' Echoes</span>'
+          reward.choice.count +
+          ' ' +
+          reward.choice.label +
+          '</span>'
       );
-    if (g.legendPack)
+    if (reward.legendPack)
       chips.push(
         '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>Legendary reward pack</span>'
       );
-    row.innerHTML = '<b>' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
+    if (!chips.length)
+      chips.push('<span class="sc-reward no-coins"><i class="ri-forbid-2-line"></i>No coin reward</span>');
+    row.innerHTML =
+      '<b>' + difficulty.name + ' · ' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
   }
 
   function updateStageCards() {
     var prog = getProgress();
+    var difficulty = difficultyOf(prog);
+    paintDifficulty(prog);
     var unlocked = prog.unlocked || [1];
     var cleared = prog.cleared || [];
 
@@ -1879,7 +2156,7 @@
 
       var state = card.querySelector('.sc-state-badge, .rival-state, .rival-lock');
       var prompt = card.querySelector('.sc-prompt');
-      paintStageRewards(card, stage, isCleared);
+      paintStageRewards(card, stage, isCleared, difficulty);
 
       if (isCleared) {
         if (state) {
@@ -2458,10 +2735,10 @@
       if (ev.detail === 'chapter') {
         updateStageCards();
         window.setTimeout(reofferPendingChoice, 120);
-        /* An unopened Legend Pack appears as soon as the chapter map is
-           back on screen. It is a campaign reward, never something the
-           player should have to visit the Shop to discover. */
+        /* Unopened card rewards appear as soon as the chapter map returns;
+           the player never has to visit the Shop to discover a Road prize. */
         window.setTimeout(reofferPendingLegend, 0);
+        window.setTimeout(reofferPendingEpic, 0);
         /* the one-time ledger introduction, once Gate I has fallen */
         window.setTimeout(maybeSpotLedger, 900);
       }
@@ -2485,6 +2762,14 @@
        veil has settled. */
     var tbtn = $('btn-corner-tutorial');
     if (tbtn) tbtn.addEventListener('click', runIntroTutorial);
+
+    /* Difficulty changes repaint an independent ten-gate run immediately. */
+    document.querySelectorAll('[data-road-difficulty]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        setDifficulty(button.dataset.roadDifficulty);
+      });
+    });
+    paintDifficulty(getProgress());
 
     /* THE LEDGER - open/close, tabs, page selection */
     var lbtn = $('btn-ledger');
@@ -2541,6 +2826,12 @@
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,
     getProgress: getProgress,
+    setDifficulty: setDifficulty,
+    difficulty: function () {
+      return difficultyOf(getProgress()).id;
+    },
+    rewardFor: rewardFor,
+    difficulties: DIFFICULTIES,
     story: STORY,
     /* test hooks */
     _entriesFor: entriesFor,

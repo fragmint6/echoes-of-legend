@@ -593,11 +593,23 @@
   }
 
   /* ---------------- role + element battle language ---------------- */
+  /* Character casts never cross into piercing whistle/chirp territory.
+     This ceiling applies to every shared role and element voice, so fixing
+     Lightning also prevents a future hero combination from recreating the
+     same unpleasant high-frequency stack. */
+  var CHARACTER_FREQ_CEILING = 900;
+  function characterTone(options) {
+    options = options || {};
+    if (options.freq != null) options.freq = Math.min(CHARACTER_FREQ_CEILING, options.freq);
+    if (options.to != null) options.to = Math.min(CHARACTER_FREQ_CEILING, options.to);
+    tone(options);
+  }
+
   function roleVoice(role, t, signature) {
     var boost = signature ? 1.22 : 1;
     switch (role) {
       case 'Tank':
-        tone({
+        characterTone({
           freq: 94,
           to: 55,
           when: t,
@@ -610,7 +622,7 @@
         break;
       case 'Bruiser':
         noise({ when: t, dur: 0.19, gain: 0.065 * boost, filter: 2500, filterTo: 650, q: 0.6 });
-        tone({
+        characterTone({
           freq: 150,
           to: 72,
           when: t + 0.03,
@@ -621,7 +633,7 @@
         });
         break;
       case 'Sniper':
-        tone({
+        characterTone({
           freq: 1250,
           to: 390,
           when: t,
@@ -641,7 +653,7 @@
         break;
       case 'Caster':
         for (var c = 0; c < (signature ? 5 : 3); c++)
-          tone({
+          characterTone({
             freq: midi(62 + c * 4),
             when: t + c * 0.045,
             dur: 0.28,
@@ -652,7 +664,7 @@
           });
         break;
       case 'Controller':
-        tone({
+        characterTone({
           freq: 210,
           to: 420,
           when: t,
@@ -662,7 +674,7 @@
           filter: 1800,
           wet: 0.38,
         });
-        tone({
+        characterTone({
           freq: 217,
           to: 205,
           when: t,
@@ -674,12 +686,12 @@
         });
         break;
       case 'Medic':
-        tone({ freq: 523, when: t, dur: 0.46, gain: 0.035 * boost, type: 'sine', wet: 0.48 });
-        tone({ freq: 659, when: t + 0.06, dur: 0.5, gain: 0.028 * boost, type: 'sine', wet: 0.5 });
-        tone({ freq: 784, when: t + 0.12, dur: 0.52, gain: 0.02 * boost, type: 'sine', wet: 0.52 });
+        characterTone({ freq: 523, when: t, dur: 0.46, gain: 0.035 * boost, type: 'sine', wet: 0.48 });
+        characterTone({ freq: 659, when: t + 0.06, dur: 0.5, gain: 0.028 * boost, type: 'sine', wet: 0.5 });
+        characterTone({ freq: 784, when: t + 0.12, dur: 0.52, gain: 0.02 * boost, type: 'sine', wet: 0.52 });
         break;
       default:
-        tone({ freq: 260, to: 190, when: t, dur: 0.16, gain: 0.045 * boost, type: 'triangle' });
+        characterTone({ freq: 260, to: 190, when: t, dur: 0.16, gain: 0.045 * boost, type: 'triangle' });
     }
   }
 
@@ -687,12 +699,12 @@
     var g = strong ? 1.24 : 1;
     switch (element) {
       case 'Physical':
-        tone({ freq: 115, to: 58, when: t, dur: 0.18, gain: 0.066 * g, type: 'sine' });
+        characterTone({ freq: 115, to: 58, when: t, dur: 0.18, gain: 0.066 * g, type: 'sine' });
         noise({ when: t, dur: 0.11, gain: 0.052 * g, filter: 720, q: 0.7 });
         break;
       case 'Magic':
         for (var m = 0; m < 4; m++)
-          tone({
+          characterTone({
             freq: midi(67 + m * 3),
             when: t + m * 0.035,
             dur: 0.26,
@@ -703,7 +715,7 @@
           });
         break;
       case 'Shadow':
-        tone({
+        characterTone({
           freq: 185,
           to: 74,
           when: t,
@@ -725,27 +737,40 @@
         });
         break;
       case 'Light':
-        tone({ freq: 784, when: t, dur: 0.52, gain: 0.034 * g, type: 'sine', wet: 0.55 });
-        tone({ freq: 1175, when: t + 0.045, dur: 0.42, gain: 0.022 * g, type: 'sine', wet: 0.58 });
+        characterTone({ freq: 784, when: t, dur: 0.52, gain: 0.034 * g, type: 'sine', wet: 0.55 });
+        characterTone({ freq: 1175, when: t + 0.045, dur: 0.42, gain: 0.022 * g, type: 'sine', wet: 0.58 });
         break;
       case 'Lightning':
-        noise({ when: t, dur: 0.18, gain: 0.07 * g, filter: 5400, filterTo: 950, q: 0.8 });
-        for (var z = 0; z < 4; z++)
-          tone({
-            freq: z % 2 ? 920 : 1320,
-            to: z % 2 ? 1450 : 680,
-            when: t + z * 0.027,
-            dur: 0.055,
-            gain: 0.026 * g,
-            type: 'square',
-            filter: 4200,
-            pan: z % 2 ? 0.25 : -0.25,
+        /* Thunder, not a bird chirp: a low body, a short midrange crack and
+           three descending electrical knocks. No square-wave whistle and
+           nothing near the character-frequency ceiling. */
+        characterTone({
+          freq: 96,
+          to: 44,
+          when: t,
+          dur: 0.34,
+          gain: 0.078 * g,
+          type: 'sine',
+          filter: 520,
+          wet: 0.08,
+        });
+        noise({ when: t, dur: 0.2, gain: 0.046 * g, filter: 1350, filterTo: 480, q: 0.55 });
+        for (var z = 0; z < 3; z++)
+          characterTone({
+            freq: 360 - z * 55,
+            to: 170 - z * 25,
+            when: t + 0.035 + z * 0.045,
+            dur: 0.12,
+            gain: 0.024 * g,
+            type: 'triangle',
+            filter: 820,
+            pan: z % 2 ? 0.18 : -0.18,
           });
         break;
       case 'Fire':
         noise({ when: t, dur: 0.38, gain: 0.058 * g, filter: 720, filterTo: 3500, q: 0.5 });
         for (var f = 0; f < 3; f++)
-          tone({
+          characterTone({
             freq: 130 + f * 45,
             to: 360 + f * 80,
             when: t + f * 0.045,
@@ -756,7 +781,7 @@
           });
         break;
       case 'Nature':
-        tone({
+        characterTone({
           freq: 196,
           to: 145,
           when: t,
@@ -765,7 +790,7 @@
           type: 'triangle',
           filter: 1200,
         });
-        tone({ freq: 587, when: t + 0.04, dur: 0.42, gain: 0.025 * g, type: 'sine', wet: 0.48 });
+        characterTone({ freq: 587, when: t + 0.04, dur: 0.42, gain: 0.025 * g, type: 'sine', wet: 0.48 });
         noise({ when: t + 0.02, dur: 0.28, gain: 0.026 * g, filter: 2600, q: 1.3, wet: 0.2 });
         break;
       default:
@@ -2367,6 +2392,7 @@
     _musicState: function () {
       return { track: currentTrack, token: musicToken, step: stepIndex };
     },
+    _characterFreqCeiling: CHARACTER_FREQ_CEILING,
     _prefKey: PREF_KEY,
   };
 })();

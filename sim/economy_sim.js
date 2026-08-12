@@ -6,7 +6,7 @@
    A. INVARIANTS - 400 rolls per pack tier over a fresh (starter-
       only) collection: sizes honoured, guarantees honoured, never
       a Huaxia card, never a duplicate inside one pack.
-   B. THE RUN - a player who clears Chapter 1 (1500 coins), buys
+   B. THE RUN - a player who clears Normal Chapter 1 (1400 coins), buys
       Echoes Packs greedily, then grinds singleplayer at the owner
       rates (50 win / 25 loss, 65% winrate): how many packs and
       matches to a complete collection, and roughly how long?
@@ -92,9 +92,9 @@ ok(
 );
 Object.keys(shop.PACKS).forEach((key) => {
   const pack = shop.PACKS[key];
-  if (key === 'legend') {
-    /* the Road's own wrapper: one card, no price, off the shelf */
-    ok(pack.size === 1 && pack.price === 0, 'Legend Pack: one card, never priced');
+  if (key === 'legend' || key === 'epic') {
+    /* the Road's own wrappers: one card, no price, off the shelf */
+    ok(pack.size === 1 && pack.price === 0, pack.name + ': one card, never priced');
     return;
   }
   const rng = mulberry(1234 + pack.price);
@@ -126,7 +126,8 @@ Object.keys(shop.PACKS).forEach((key) => {
 console.log('B. the run: Chapter 1 coins -> packs -> the grind');
 econ._reset();
 const rng = mulberry(77);
-let wallet = 1500; // chapter total (owner ruling)
+const CHAPTER_COINS = 1400;
+let wallet = CHAPTER_COINS; // complete Normal Road
 let packs = 0,
   matches = 0,
   wins = 0;
@@ -155,7 +156,7 @@ ok(
 );
 const hours = ((matches * 3.5) / 60).toFixed(1);
 console.log(
-  `  chapter coins carried ${Math.min(10, packs)} packs; total ${packs} packs, ` +
+  `  Normal Road coins carried ${Math.floor(CHAPTER_COINS / packDef.price)} packs; total ${packs} packs, ` +
     `${matches} matches (${wins} won) - roughly ${hours}h of play after the campaign`
 );
 /* THE CROWN LAW shortened the shelf ON PURPOSE: 35 sellable echoes

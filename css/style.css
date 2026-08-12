@@ -22344,6 +22344,105 @@ body[data-gfx='low'] .cw-motes {
   text-transform: uppercase;
 }
 
+/* ---------------- Road difficulty ---------------- */
+.road-difficulty {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: min(100%, 920px);
+  margin: 0 auto 8px;
+  padding: 12px 14px 12px 18px;
+  border: 1px solid rgba(224, 210, 170, 0.18);
+  border-radius: 14px;
+  background: rgba(10, 13, 24, 0.7);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.road-difficulty-copy {
+  min-width: 0;
+}
+.road-difficulty-copy > span {
+  color: #f2d694;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.road-difficulty-copy p {
+  margin: 3px 0 0;
+  color: #aaa993;
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+.road-difficulty-options {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.26);
+}
+.road-difficulty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #a9a99d;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+.road-difficulty-btn:hover {
+  color: #f8e6bd;
+  transform: translateY(-1px);
+}
+.road-difficulty-btn.sel {
+  border-color: rgba(255, 215, 130, 0.5);
+  background: linear-gradient(180deg, rgba(111, 78, 28, 0.72), rgba(49, 34, 16, 0.8));
+  color: #ffe2a1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.road-difficulty-btn[data-road-difficulty='heroic'].sel {
+  border-color: rgba(133, 189, 255, 0.5);
+  background: linear-gradient(180deg, rgba(40, 78, 119, 0.72), rgba(18, 36, 61, 0.84));
+  color: #c8e4ff;
+}
+.road-difficulty-btn[data-road-difficulty='legend'].sel {
+  border-color: rgba(202, 153, 255, 0.55);
+  background: linear-gradient(180deg, rgba(88, 47, 126, 0.76), rgba(40, 20, 65, 0.86));
+  color: #e8ccff;
+}
+@media (max-width: 700px) {
+  .road-difficulty {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .road-difficulty-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .road-difficulty-btn {
+    justify-content: center;
+  }
+}
+
 /* ---------------- the horizontal chapter gates ---------------- */
 .stage-list {
   display: flex;
@@ -22482,6 +22581,14 @@ body[data-gfx='low'] .cw-motes {
 }
 .sc-reward.coin i {
   color: #ffd36d;
+}
+.sc-reward.epic {
+  border-color: rgba(188, 126, 255, 0.34);
+  background: rgba(72, 35, 108, 0.24);
+  color: #dec1ff;
+}
+.sc-reward.no-coins {
+  color: #aaa99f;
 }
 .sc-reward.legendary {
   border-color: rgba(255, 209, 105, 0.34);
@@ -25351,9 +25458,20 @@ i.coin-ico {
   color: var(--r-common-1);
 }
 
-/* ---- THE LEGEND PACK skin ----
-   One card, no price: the Road's own wrapper - parchment gold, worn
-   almost white at the center. Never appears on the shelf. */
+/* ---- CAMPAIGN REWARD PACK skins ----
+   One card, no price. Epic uses the Heroic road's violet glass; Legend
+   keeps the Road's parchment-gold crown wrapper. Neither is sold. */
+.pk-face.pk-epic {
+  --pk-hi: #694092;
+  --pk-mid: #3c235d;
+  --pk-lo: #160b27;
+  --pk-a: #dfb8ff;
+  --pk-glow: rgba(188, 118, 255, 0.62);
+  --pk-stud1: #f2ddff;
+  --pk-stud2: #aa72d8;
+  --pk-bgglow: rgba(172, 96, 235, 0.24);
+}
+
 .pk-face.pk-legend {
   --pk-hi: #7d6226;
   --pk-mid: #4c3a12;

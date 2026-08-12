@@ -383,27 +383,31 @@ roulette ever spins).
 (`js/economy.js`), everywhere. Ownership gates deck-building — never
 drafts, which stay whole-roster as the great equalizer. Everyone owns
 the starter Grimmwood twelve forever, and the starter deck itself is
-neither editable nor deletable. Chapter 1 pays exactly **1500 coins**
-(down from 1800 — the less the campaign gives, the more the other
-modes matter), a **flat 150 per gate** — no curve, every gate worth
-the same — plus its named grants, all flowing into the same wallet
-and collection the shop reads. Replays pay a flat 25. Matches pay per
-game: singleplayer 50 win / 25 loss, PvP 75/50; campaign battles pay
-through their gates only. **THE CROWN LAW (2026-08-10):** no pack
-ever sells a Legendary. Each faction carries exactly one (Grimmwood,
-at twelve cards, two — the starter pair), and every obtainable
-faction legendary is granted by its gate as a one-card **Legend
-Pack** ceremony: Arthur at II, Robin at III, Zeus at IV, Seimei at
-VI, Constantine at VII, Amaterasu at VIII, Anubis at X. Money — coins
-today, purchases someday — buys speed toward a full shelf of echoes,
+neither editable nor deletable. The Road now stores three independent
+gate runs while wallet, ownership, and rival intel remain shared.
+**Normal** pays 100 at each ordinary gate, 200 at Gates V and IX, and
+300 for Gilgamesh (**1400 total**). **Heroic** doubles those coins,
+adds a random faction Epic at each faction gate, and lets each elite
+award two Common/Rare cards from every faction introduced so far.
+**Legend** pays no coins: faction gates retain the existing one-card
+Legendary ceremonies, while elites award two non-Legendary cards from
+the full introduced-faction shelf. Normal/Heroic replays pay 25/50;
+Legend replays pay none. Matches pay per game: singleplayer 50 win /
+25 loss, PvP 75/50; campaign battles pay through their gates only.
+**THE CROWN LAW (2026-08-10):** no pack ever sells a Legendary. Each
+faction carries exactly one (Grimmwood, at twelve cards, two — the
+starter pair), and on Legend each obtainable faction Legendary is
+granted by its gate as a one-card reward ceremony: Arthur at II,
+Robin at III, Zeus at IV, Seimei at VI, Constantine at VII, Amaterasu
+at VIII, Anubis at X. Money buys speed toward a full shelf of echoes,
 never crowns. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
 every pack contains **only unowned cards** (duplicates may feed an
 awakening system someday), Huaxia is unobtainable until Chapter 2,
 and — deliberately — the shop does *not* follow the campaign's
 progression law: an early Anubis is a trap purchase, not a broken
-one. Measured by `sim/economy_sim.js`: Chapter 1's coins carry ~5
-Echoes packs; a complete collection lands after roughly 27 more
-matches (~1.6h) at the floor winrate.
+one. Measured by `sim/economy_sim.js`: a Normal clear carries four
+Echoes packs outright; the remaining sellable shelf lands after roughly
+15 more matches (~0.9h in the deterministic economy run).
 
 **The Ledger (2026-08-10).** The Recruiter's book is a real screen now,
 opened from the chapter header and introduced by a one-time spotlight
@@ -419,23 +423,21 @@ ban-claims persist in the progress store (`tellsBroken`) and render as
 struck-through habit lines with the correction beneath — the falsified
 "never once" preserved as the player's own trophy.
 
-Three tiers per gate (design R6):
+Three difficulty reward tracks share one wallet and collection:
 
-1. **Curriculum cards** — 1-2 named echoes from the rival's faction,
-   granted in **pairs** so factions accumulate toward the future
-   4-per-faction Blessing threshold (R8). The grant list *is* the
-   curriculum: you own the wall after the wall lesson, the Marks after
-   the Mark lesson.
-2. **Coin** — a flat 150 per gate (owner ruling 2026-08-10); replays
-   pay a flat 25 so the chapter can't be farmed.
-3. **Choice grants** at the exams (V and IX) — "choose 2", resolved at
-   claim time against the live roster (R9: choice-shaped rewards never
-   go stale), letting a deliberate player complete four-stacks.
+1. **Normal** — 100 coins at ordinary gates, 200 at the two elites,
+   and 300 for Gilgamesh; replays pay 25.
+2. **Heroic** — double Normal's coins; each faction gate grants a
+   random Epic from that faction, while each elite opens the complete
+   introduced-faction Common/Rare shelf and awards two choices; replays
+   pay 50.
+3. **Legend** — no coins or replay pay. Faction gates award their
+   existing Legendary, and each elite opens the complete introduced-
+   faction non-Legendary shelf and awards two choices.
 
-Floor arithmetic: 12 starter cards at Gate I → **30 cards across 8
-factions** after the final clear, comfortably legal under the max-4
-role cap, with the exam choices covering the thin Controller/Medic
-spots.
+All card grants land in ownership at clear time before their visible
+map ceremony, so a refresh cannot eat a reward. Elite choices resolve
+against the live roster and continue to show owned options disabled.
 
 ---
 

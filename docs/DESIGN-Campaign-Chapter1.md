@@ -670,8 +670,8 @@ Only tier 1 is load-bearing for Chapter 1 shipping.
 | **3** | **Rotation-relevant rewards** | Makes clearing the campaign matter to a ranked player | Resolves against the *current* rotation, not a hardcoded list |
 
 > **Their echo walks with you.** Tier 1 is already the framing story (§1),
-> so the mechanic and the fiction are the same sentence. It beats "+150
-> coins" on three axes: the floor stays authored and knowable, the reward
+> so the mechanic and the fiction are the same sentence. It beats a bare
+> coin receipt on three axes: the floor stays authored and knowable, the reward
 > is legible (a face and a name, not a number), and the grant list becomes
 > the **curriculum**.
 
