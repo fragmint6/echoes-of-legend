@@ -306,15 +306,79 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const route = {
     menu: 'menu',
-    campaign: 'campaign',
+    campaign: 'road',
+    road: 'road',
     prep: 'prep',
-    shop: 'shop',
+    shop: 'menu',
     battle: 'battleWar',
   };
   Object.keys(route).forEach((scene) =>
-    ok(A._trackForScene(scene) === route[scene], scene + ' scene has a score arrangement')
+    ok(A._trackForScene(scene) === route[scene], scene + ' routes to the intended score')
   );
-  const noiseBeforeBattle = noises;
+
+  /* All ordinary menus share one live phrase. If a route maps to the same
+     track, startTrack() must leave both its token and scheduler position
+     alone rather than replaying the opening bar. */
+  A.scene('menu');
+  const menuStart = A._musicState();
+  ['play', 'shop', 'collection', 'deck', 'rulebook', 'home'].forEach((view) =>
+    document.dispatchEvent(new CustomEvent('eol:view', { detail: view }))
+  );
+  const menuAfterTour = A._musicState();
+  ok(
+    menuAfterTour.track === 'menu' && menuAfterTour.token === menuStart.token,
+    'the main soundtrack continues uninterrupted through every ordinary menu'
+  );
+
+  document.dispatchEvent(new CustomEvent('eol:view', { detail: 'campaign' }));
+  const roadStart = A._musicState();
+  document.dispatchEvent(new CustomEvent('eol:view', { detail: 'chapter' }));
+  const roadAfterChapter = A._musicState();
+  ok(
+    roadStart.track === 'road' &&
+      roadAfterChapter.track === 'road' &&
+      roadAfterChapter.token === roadStart.token,
+    'the Road of Echoes has one separate score across campaign and chapter screens'
+  );
+
+  document.dispatchEvent(new CustomEvent('eol:view', { detail: 'prep' }));
+  const prepStart = A._musicState();
+  document.dispatchEvent(new CustomEvent('eol:view', { detail: 'draft' }));
+  const prepAfterDraft = A._musicState();
+  ok(
+    prepStart.track === 'prep' &&
+      prepAfterDraft.track === 'prep' &&
+      prepAfterDraft.token === prepStart.token,
+    'preparation and draft phases retain their separate match-phase score'
+  );
+
+  /* Fast-forward the procedural arranger without waiting twelve seconds.
+     Bar five is the first drop: it must schedule a denser oscillator stack
+     and percussion layer than the opening statement. */
+  const introOscBefore = oscillators;
+  const introNoiseBefore = noises;
+  A._scheduleStep('menu', 0);
+  const introVoices = oscillators - introOscBefore;
+  const introNoiseVoices = noises - introNoiseBefore;
+  const dropOscBefore = oscillators;
+  const dropNoiseBefore = noises;
+  A._scheduleStep('menu', 64);
+  const dropVoices = oscillators - dropOscBefore;
+  const dropNoiseVoices = noises - dropNoiseBefore;
+  ok(
+    dropVoices > introVoices && dropNoiseVoices > introNoiseVoices,
+    'the main theme earns a real bar-five beat drop instead of looping unchanged'
+  );
+
+  const prepInfo = A._trackInfo('prep');
+  ['battleWar', 'battleBright', 'battleDark'].forEach((name) => {
+    const info = A._trackInfo(name);
+    ok(
+      info && info.key === prepInfo.key && info.tempo > prepInfo.tempo,
+      name + ' is faster while retaining Preparation’s key signature'
+    );
+  });
+
   A.scene('battle', { field: 'colosseum' });
   A.setBattlefield('mana-spring');
   ok(
@@ -323,7 +387,11 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
   A.setBattlefield('spirit-world');
   ok(A._trackForScene('battle') === 'battleDark', 'dark battlefields select the dark arrangement');
-  ok(noises === noiseBeforeBattle, 'all three match arrangements avoid static/noise voices');
+  const noiseBeforeBattle = noises;
+  ['battleWar', 'battleBright', 'battleDark'].forEach((name) => {
+    for (let step = 0; step < 16; step++) A._scheduleStep(name, step);
+  });
+  ok(noises === noiseBeforeBattle, 'all three complete match arrangements avoid static/noise voices');
 
   const beforeTabSwitch = A._musicState();
   document.hidden = true;
@@ -393,12 +461,20 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     'pack charge, burst, flip, and Legendary reveal beats are connected'
   );
   ok(
-    /battleWar:\s*\{ tempo: 104/.test(audioSource) &&
-      /battleBright:\s*\{ tempo: 108/.test(audioSource) &&
-      /battleDark:\s*\{ tempo: 98/.test(audioSource) &&
+    /menu:\s*\{ tempo: 82[^\n]*phraseBars: 16/.test(audioSource) &&
+      /var menuDrop =/.test(audioSource) &&
+      /phraseBar === 4 \|\| phraseBar === 12/.test(audioSource),
+    'the preserved menu melody now has a long-form build and two drop sections'
+  );
+  ok(
+    /battleWar:\s*\{ tempo: 120[^\n]*key: 'D minor'/.test(audioSource) &&
+      /battleBright:\s*\{ tempo: 124[^\n]*key: 'D minor'/.test(audioSource) &&
+      /battleDark:\s*\{ tempo: 114[^\n]*key: 'D minor'/.test(audioSource) &&
+      /var battleRoot = PREP_ROOTS\[chordIndex\]/.test(audioSource) &&
+      /var battleChord = PREP_CHORDS\[chordIndex\]/.test(audioSource) &&
       /function battleBrass\(/.test(audioSource) &&
       /function battleStrings\(/.test(audioSource),
-    'match scores use the quicker martial brass-and-strings arrangements'
+    'match scores use Preparation’s harmony with faster martial brass-and-strings arrangements'
   );
 
   console.log('\n' + (fail ? fail + ' FAILED' : 'ALL ' + pass + ' ASSERTIONS PASSED'));

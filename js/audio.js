@@ -1107,18 +1107,27 @@
   }
 
   /* --------------------------- music --------------------------- */
+  /* The menu and preparation themes both live in D minor. Battles use
+     preparation's exact D–Bb–C–A harmonic spine, then change orchestration
+     by battlefield instead of wandering into an unrelated key. */
+  var PREP_ROOTS = [50, 46, 48, 45];
+  var PREP_CHORDS = [
+    [50, 53, 57], // D minor
+    [46, 50, 53], // Bb major
+    [48, 52, 55], // C major
+    [45, 48, 52], // A minor
+  ];
   var TRACKS = {
-    menu: { tempo: 82, steps: 16 },
-    campaign: { tempo: 70, steps: 16 },
-    prep: { tempo: 102, steps: 16 },
-    shop: { tempo: 92, steps: 16 },
-    /* Battle keeps its noise-free orchestral language but moves with more
-       urgency than the old half-time bed. These are only a modest lift;
-       the intensity comes mainly from martial pulses, low-string motion
-       and brass-shaped phrases rather than a retro high-register loop. */
-    battleWar: { tempo: 104, steps: 16 },
-    battleBright: { tempo: 108, steps: 16 },
-    battleDark: { tempo: 98, steps: 16 },
+    /* Sixteen bars: statement, build, drop, bridge, then a larger drop. */
+    menu: { tempo: 82, steps: 16, key: 'D minor', phraseBars: 16 },
+    /* The Road is deliberately its own slower, wandering identity. */
+    road: { tempo: 74, steps: 16, key: 'A minor', phraseBars: 4 },
+    prep: { tempo: 102, steps: 16, key: 'D minor', phraseBars: 4 },
+    /* Match variants keep one key/progression while changing pace, register,
+       pulse and voicing to suit bright, dark and neutral battlefields. */
+    battleWar: { tempo: 120, steps: 16, key: 'D minor', phraseBars: 4 },
+    battleBright: { tempo: 124, steps: 16, key: 'D minor', phraseBars: 4 },
+    battleDark: { tempo: 114, steps: 16, key: 'D minor', phraseBars: 4 },
   };
 
   function trackForScene(scene) {
@@ -1129,9 +1138,10 @@
         return 'battleDark';
       return 'battleWar';
     }
-    if (scene === 'shop') return 'shop';
-    if (scene === 'campaign') return 'campaign';
+    if (scene === 'campaign' || scene === 'road') return 'road';
     if (scene === 'prep') return 'prep';
+    /* Shop, Play, Collection, Decks, Rulebook and every overlay all keep
+       the main theme. Returning between them must not restart its phrase. */
     return 'menu';
   }
 
@@ -1221,6 +1231,40 @@
     });
   }
 
+  /* A hand-drum-sized tonal pulse for the Road. Its soft double body and
+     roomy tail distinguish travel from both menu drums and battlefield
+     artillery without introducing a constant noise wash. */
+  function roadDrum(t, gain, dest, accent) {
+    tone({
+      freq: accent ? 94 : 76,
+      to: accent ? 53 : 45,
+      when: t,
+      dur: accent ? 0.3 : 0.24,
+      gain: gain || 0.03,
+      type: 'sine',
+      bus: 'music',
+      dest: dest,
+      wet: 0.18,
+      filter: 480,
+      attack: 0.012,
+      release: 0.2,
+    });
+    tone({
+      freq: accent ? 178 : 148,
+      to: accent ? 112 : 96,
+      when: t + 0.014,
+      dur: 0.13,
+      gain: (gain || 0.03) * 0.22,
+      type: 'triangle',
+      bus: 'music',
+      dest: dest,
+      wet: 0.08,
+      filter: 720,
+      attack: 0.008,
+      release: 0.1,
+    });
+  }
+
   /* Filtered, layered battle voices. A raw square/triangle lead reads as
      an 8-bit oscillator; these slower low-pass attacks suggest brass and
      bowed strings while remaining fully procedural and noise-free. */
@@ -1284,6 +1328,11 @@
     var chordIndex = bar % 4;
 
     if (name === 'menu') {
+      /* Keep the melody the player already likes, but let it become a
+         soundtrack rather than a four-bar wallpaper. The opening states
+         the theme for three bars, bar four pulls upward, and bar five drops
+         into a real rhythm section. A bridge clears space before a larger
+         final drop, then the phrase earns its quiet opening again. */
       var menuChords = [
         [50, 57, 62],
         [46, 53, 58],
@@ -1291,135 +1340,184 @@
         [45, 52, 57],
       ];
       var menuMelody = [74, null, 77, 76, null, 74, 72, null, 69, null, 72, 74, null, 69, 67, null];
+      var phraseBar = bar % 16;
+      var menuDrop =
+        (phraseBar >= 4 && phraseBar <= 7) || (phraseBar >= 12 && phraseBar <= 15);
+      var menuFinal = phraseBar >= 12;
+      var menuBuild = phraseBar === 3 || phraseBar === 11;
+      var menuChord = menuChords[chordIndex];
+
       if (s === 0)
-        chord(menuChords[chordIndex], t, stepDur * 15.5, 0.011, {
+        chord(menuChord, t, stepDur * 15.5, menuDrop ? 0.014 : 0.011, {
           dest: dest,
-          wet: 0.48,
-          filter: 1700,
-          attack: 0.55,
-          release: 1.5,
+          wet: menuDrop ? 0.4 : 0.48,
+          filter: menuDrop ? 2050 : 1700,
+          attack: menuDrop ? 0.28 : 0.55,
+          release: menuDrop ? 1.05 : 1.5,
         });
+
+      /* The original bass remains the spine. The drop shortens its notes
+         and adds the fifth on the offbeats, which is the moment the same
+         harmony starts moving bodies instead of only filling space. */
       if (s % 4 === 0)
         musicNote(
-          menuChords[chordIndex][0] - 12,
+          menuChord[0] - 12,
           t,
-          stepDur * 2.8,
-          0.027,
-          'triangle',
+          stepDur * (menuDrop ? 1.9 : 2.8),
+          menuDrop ? 0.033 : 0.027,
+          menuDrop ? 'sine' : 'triangle',
           dest,
           -0.08,
-          0.12,
-          900
+          menuDrop ? 0.05 : 0.12,
+          menuDrop ? 720 : 900
         );
-      if (menuMelody[s] != null)
-        musicNote(menuMelody[s], t, stepDur * 1.6, 0.018, 'triangle', dest, 0.18, 0.38, 3100);
-      if (s === 4 || s === 12) hat(t, 0.007, dest, true);
+      if (menuDrop && (s === 6 || s === 14))
+        musicNote(menuChord[1] - 12, t, stepDur * 1.3, 0.024, 'sine', dest, -0.12, 0.03, 680);
+
+      if (menuMelody[s] != null) {
+        musicNote(
+          menuMelody[s],
+          t,
+          stepDur * (menuDrop ? 1.35 : 1.6),
+          menuDrop ? 0.021 : 0.018,
+          'triangle',
+          dest,
+          0.18,
+          menuDrop ? 0.3 : 0.38,
+          menuDrop ? 3500 : 3100
+        );
+        if (menuDrop)
+          musicNote(
+            menuMelody[s] - 12,
+            t + 0.008,
+            stepDur * 1.15,
+            menuFinal ? 0.009 : 0.0065,
+            'sawtooth',
+            dest,
+            -0.04,
+            0.12,
+            1350
+          );
+      }
+
+      if (menuDrop) {
+        var menuDrive = [0, 1, 2, 1, 0, 1, 2, 1];
+        if (s % 2 === 0)
+          musicNote(
+            menuChord[menuDrive[s / 2]],
+            t,
+            stepDur * 0.78,
+            menuFinal ? 0.012 : 0.009,
+            'triangle',
+            dest,
+            -0.16,
+            0.08,
+            1250
+          );
+        if ([0, 6, 8, 11].indexOf(s) >= 0)
+          kick(t, s === 0 ? (menuFinal ? 0.072 : 0.064) : 0.047, dest);
+        if (s === 4 || s === 12) snare(t, menuFinal ? 0.032 : 0.027, dest);
+        if (s % 2 === 0) hat(t, menuFinal ? 0.009 : 0.007, dest, s === 14);
+      } else if (menuBuild) {
+        if (s === 0 || s === 8) kick(t, 0.04, dest);
+        if (s === 12) snare(t, 0.019, dest);
+        if (s % 2 === 0) hat(t, 0.005 + s * 0.0002, dest, s === 14);
+        if (s === 12)
+          noise({
+            when: t,
+            dur: stepDur * 3.8,
+            gain: 0.007,
+            filter: 650,
+            filterTo: 4300,
+            q: 0.8,
+            bus: 'music',
+            dest: dest,
+            wet: 0.18,
+          });
+      } else if (s === 4 || s === 12) {
+        hat(t, 0.007, dest, true);
+      }
+
+      /* The downbeat itself lands below the kick so the transition is felt
+         even on phone speakers before the full groove becomes obvious. */
+      if ((phraseBar === 4 || phraseBar === 12) && s === 0)
+        tone({
+          freq: 74,
+          to: 36,
+          when: t,
+          dur: stepDur * 2.4,
+          gain: menuFinal ? 0.075 : 0.065,
+          type: 'sine',
+          bus: 'music',
+          dest: dest,
+          wet: 0.04,
+          filter: 360,
+          attack: 0.006,
+          release: stepDur * 1.8,
+        });
       return;
     }
 
-    if (name === 'campaign') {
-      var campChords = [
+    if (name === 'road') {
+      /* The Road of Echoes does not borrow the menu loop. A minor drones,
+         hand-drum footsteps, a three-note travel figure and a distant bell
+         make it feel older, lonelier and always in motion. */
+      var roadChords = [
         [45, 52, 57],
         [43, 50, 55],
         [41, 48, 53],
         [43, 50, 57],
       ];
-      var campBell = [
-        69,
-        null,
-        null,
-        72,
-        null,
-        null,
-        67,
-        null,
-        64,
-        null,
-        null,
-        67,
-        null,
-        69,
-        null,
-        null,
-      ];
+      var roadChord = roadChords[chordIndex];
+      var roadBell = [69, null, null, 72, null, null, 67, null, 64, null, null, 67, null, 69, null, null];
+      var roadArp = [0, null, 1, null, 2, null, 1, null, 0, null, 2, null, 1, null, 2, null];
+
       if (s === 0)
-        chord(campChords[chordIndex], t, stepDur * 15.8, 0.012, {
+        chord(roadChord, t, stepDur * 15.8, 0.012, {
           dest: dest,
           wet: 0.58,
           filter: 1350,
-          attack: 0.8,
+          attack: 0.82,
           release: 2.2,
         });
       if (s === 0 || s === 8)
         musicNote(
-          campChords[chordIndex][0] - 12,
+          roadChord[0] - 12,
           t,
           stepDur * 6.5,
-          0.025,
+          0.026,
           'sine',
           dest,
           -0.2,
-          0.32,
-          600
+          0.3,
+          580
         );
-      if (campBell[s] != null)
-        musicNote(campBell[s], t, stepDur * 2.4, 0.018, 'sine', dest, 0.22, 0.62, 5000);
-      if (s === 7 || s === 15)
-        noise({
-          when: t,
-          dur: stepDur * 1.6,
-          gain: 0.006,
-          filter: 1600,
-          q: 1.2,
-          bus: 'music',
-          dest: dest,
-          wet: 0.35,
-          pan: s === 7 ? -0.3 : 0.3,
-        });
-      return;
-    }
-
-    if (name === 'shop') {
-      var shopRoots = [50, 55, 53, 57];
-      var shopMelody = [74, 78, 81, null, 79, 78, 74, null, 76, 79, 83, null, 81, 79, 76, null];
-      if (s % 4 === 0)
+      if (roadArp[s] != null)
         musicNote(
-          shopRoots[chordIndex] - 12,
+          roadChord[roadArp[s]] + 12,
           t,
-          stepDur * 2.2,
-          0.025,
+          stepDur * 1.45,
+          0.0085,
           'triangle',
           dest,
-          -0.18,
-          0.08,
-          1000
+          -0.12,
+          0.5,
+          2100
         );
-      if (s % 2 === 0)
-        musicNote(
-          shopRoots[chordIndex] + (s % 4 ? 7 : 0),
-          t,
-          stepDur * 1.35,
-          0.012,
-          'square',
-          dest,
-          -0.05,
-          0.16,
-          1700
-        );
-      if (shopMelody[s] != null)
-        musicNote(shopMelody[s], t, stepDur * 1.45, 0.016, 'triangle', dest, 0.2, 0.38, 3800);
-      if (s === 4 || s === 12) hat(t, 0.008, dest, false);
+      if (roadBell[s] != null)
+        musicNote(roadBell[s], t, stepDur * 2.4, 0.018, 'sine', dest, 0.22, 0.62, 5000);
+      if (s === 0 || s === 10) roadDrum(t, s === 0 ? 0.034 : 0.025, dest, s === 0);
+      if (s === 6) roadDrum(t, 0.019, dest, false);
       return;
     }
 
     if (name === 'prep') {
-      var prepRoots = [50, 46, 48, 45];
       var prepLead = [62, null, 65, 69, null, 67, 65, null, 62, 65, null, 70, 69, null, 65, 67];
       if (s === 0 || s === 8) kick(t, 0.045, dest);
       if (s === 4 || s === 12) snare(t, 0.022, dest);
       if (s % 2 === 0) hat(t, 0.007, dest, s === 14);
       musicNote(
-        prepRoots[chordIndex] - 12 + (s % 4 === 2 ? 7 : 0),
+        PREP_ROOTS[chordIndex] - 12 + (s % 4 === 2 ? 7 : 0),
         t,
         stepDur * 0.85,
         0.024,
@@ -1433,7 +1531,7 @@
         musicNote(prepLead[s] + 12, t, stepDur * 1.2, 0.014, 'triangle', dest, 0.18, 0.26, 2900);
       if (s === 0)
         chord(
-          [prepRoots[chordIndex], prepRoots[chordIndex] + 7, prepRoots[chordIndex] + 12],
+          [PREP_ROOTS[chordIndex], PREP_ROOTS[chordIndex] + 7, PREP_ROOTS[chordIndex] + 12],
           t,
           stepDur * 7.6,
           0.007,
@@ -1443,128 +1541,129 @@
     }
 
     /* -------------------------------------------------------
-       MATCH SCORE v3 - martial, tonal, and deliberately unlike Prep.
+       MATCH SCORE v4 - preparation's key, battle's adrenaline.
 
-       Prep is a planning clock: clipped square bass, snare and hats.
-       Matches use round sine war drums, filtered low strings, layered
-       brass calls and sustained harmony at a slightly quicker pulse.
-       Most importantly, there is NO noise source in any battle
-       arrangement. Combat stays urgent without headphone static or a
-       bright 8-bit lead competing with ability SFX.
+       Every field now follows preparation's D–Bb–C–A progression and
+       D-natural-minor pitch set. The distinction comes from performance:
+       neutral fields drive with war drums and low strings, bright fields
+       climb into heroic brass, and dark fields push the same harmony down
+       into a heavier register. No battle arrangement schedules a noise
+       source, so intensity never turns back into static.
        ------------------------------------------------------- */
+    var battleRoot = PREP_ROOTS[chordIndex];
+    var battleChord = PREP_CHORDS[chordIndex];
+
     if (name === 'battleBright') {
-      var brightRoots = [48, 55, 53, 50];
-      var brightRoot = brightRoots[chordIndex];
-      var brightDrive = [0, 7, 12, 7, 4, 7, 12, 9];
-      var brightCall = [null, null, 67, null, 69, null, 72, 71, null, null, 69, null, 67, null, 64, 67];
-      if (s % 4 === 0) battlePulse(t, s % 8 === 0 ? 0.058 : 0.034, dest, s % 8 !== 0);
+      var brightVoices = [0, 1, 2, 1, 0, 2, 1, 2];
+      var brightCall = [null, 65, null, 69, null, 72, 74, 72, null, 69, null, 72, null, 74, 72, 69];
+      if ([0, 7, 8, 14].indexOf(s) >= 0)
+        battlePulse(t, s === 0 || s === 8 ? 0.062 : 0.039, dest, false);
+      if (s === 4 || s === 12) battlePulse(t, 0.033, dest, true);
       if (s === 0)
-        chord([brightRoot, brightRoot + 4, brightRoot + 7], t, stepDur * 15.5, 0.009, {
+        chord(battleChord, t, stepDur * 15.5, 0.012, {
           dest: dest,
-          wet: 0.16,
-          filter: 1700,
-          attack: 0.38,
-          release: 1.05,
+          wet: 0.18,
+          filter: 1900,
+          attack: 0.24,
+          release: 0.9,
         });
       if (s === 0 || s === 8)
         musicNote(
-          brightRoot - 12 + (s === 8 ? 7 : 0),
+          battleRoot - 12 + (s === 8 ? 7 : 0),
           t,
-          stepDur * 5.2,
-          0.029,
+          stepDur * 4.8,
+          0.032,
           'sine',
           dest,
           -0.2,
-          0.03,
-          600
+          0.025,
+          620
         );
       if (s % 2 === 0)
         battleStrings(
-          brightRoot - 12 + brightDrive[s / 2],
+          battleChord[brightVoices[s / 2]],
           t,
-          stepDur * 1.45,
-          0.017,
+          stepDur * 1.38,
+          0.019,
           dest,
-          -0.1,
+          s % 4 === 0 ? -0.13 : 0.08,
           false
         );
       if (brightCall[s] != null)
         battleBrass(
-          brightCall[s] + (chordIndex === 1 ? 0 : chordIndex === 2 ? -2 : 0),
+          brightCall[s],
           t,
-          stepDur * (s === 7 || s === 15 ? 2.5 : 1.8),
-          0.012,
+          stepDur * (s === 7 || s === 15 ? 2.25 : 1.55),
+          s === 7 || s === 15 ? 0.016 : 0.012,
           dest,
-          0.16,
+          0.17,
           false
         );
       return;
     }
 
     if (name === 'battleDark') {
-      var darkRoots = [38, 41, 36, 33];
-      var darkRoot = darkRoots[chordIndex];
-      var darkDrive = [0, 0, 5, 3, 0, 7, 5, 3];
-      var darkCall = [null, null, 50, null, null, 53, null, 52, null, null, 55, null, 53, null, 50, null];
-      if (s % 4 === 0) battlePulse(t, s % 8 === 0 ? 0.061 : 0.036, dest, s % 8 !== 0);
-      if (s === 6 || s === 14) battlePulse(t, 0.024, dest, true);
+      var darkVoices = [0, 0, 1, 0, 2, 1, 0, 1];
+      var darkCall = [50, null, null, 53, null, null, 57, 55, null, 53, null, null, 50, null, 48, 50];
+      if ([0, 3, 8, 10].indexOf(s) >= 0)
+        battlePulse(t, s === 0 || s === 8 ? 0.068 : 0.043, dest, false);
+      if (s === 4 || s === 12) battlePulse(t, 0.035, dest, true);
       if (s === 0) {
-        chord([darkRoot, darkRoot + 5, darkRoot + 10], t, stepDur * 15.7, 0.01, {
+        chord(battleChord, t, stepDur * 15.6, 0.0125, {
           dest: dest,
-          wet: 0.18,
-          filter: 980,
-          attack: 0.68,
-          release: 1.5,
+          wet: 0.13,
+          filter: 1050,
+          attack: 0.38,
+          release: 1.2,
         });
-        musicNote(darkRoot - 12, t, stepDur * 14.8, 0.032, 'sine', dest, -0.22, 0.02, 400);
+        musicNote(battleRoot - 24, t, stepDur * 14.8, 0.035, 'sine', dest, -0.22, 0.015, 390);
       }
       if (s % 2 === 0)
         battleStrings(
-          darkRoot + darkDrive[s / 2],
+          battleChord[darkVoices[s / 2]] - 12,
           t,
-          stepDur * 1.55,
-          0.018,
+          stepDur * 1.48,
+          0.021,
           dest,
           -0.12,
           true
         );
       if (darkCall[s] != null)
         battleBrass(
-          darkCall[s] + (chordIndex === 2 ? -2 : chordIndex === 3 ? -3 : 0),
+          darkCall[s],
           t,
-          stepDur * (s === 10 ? 2.7 : 2.1),
-          0.014,
+          stepDur * (s === 7 || s === 15 ? 2.35 : 1.75),
+          s === 7 || s === 15 ? 0.018 : 0.014,
           dest,
-          0.14,
+          0.12,
           true
         );
       return;
     }
 
-    /* Neutral and martial fields: a driving low-string figure, four-beat
-       war-drum pattern and a descending brass answer. It leaves the upper
-       spectrum open for casts and impacts instead of competing with them
-       as a bright arcade lead. */
-    var warRoots = [43, 46, 41, 38];
-    var warRoot = warRoots[chordIndex];
-    var warDrive = [0, 7, 0, 10, 0, 7, 12, 10];
-    var warLead = [null, null, 67, null, 70, null, 69, 67, null, null, 65, null, 67, null, 62, 65];
-    if (s % 4 === 0) battlePulse(t, s % 8 === 0 ? 0.064 : 0.038, dest, s % 8 !== 0);
-    if (s === 6 || s === 14) battlePulse(t, 0.026, dest, true);
+    /* Neutral and martial fields: the prep motif has crossed the line from
+       countdown to combat. Syncopated low drums, an eighth-note string
+       engine and a brass answer make the handoff obvious without changing
+       its harmonic world. */
+    var warVoices = [0, 1, 0, 2, 0, 1, 2, 1];
+    var warCall = [null, null, 62, null, 65, null, 69, 67, null, null, 65, null, 62, null, 60, 62];
+    if ([0, 6, 8, 11, 14].indexOf(s) >= 0)
+      battlePulse(t, s === 0 || s === 8 ? 0.07 : 0.044, dest, false);
+    if (s === 4 || s === 12) battlePulse(t, 0.037, dest, true);
     if (s === 0)
-      chord([warRoot, warRoot + 7, warRoot + 10], t, stepDur * 15.5, 0.009, {
+      chord(battleChord, t, stepDur * 15.5, 0.012, {
         dest: dest,
-        wet: 0.13,
-        filter: 1280,
-        attack: 0.42,
-        release: 1.15,
+        wet: 0.14,
+        filter: 1480,
+        attack: 0.28,
+        release: 0.98,
       });
     if (s === 0 || s === 8)
       musicNote(
-        warRoot - 12 + (s === 8 ? 7 : 0),
+        battleRoot - 12 + (s === 8 ? 7 : 0),
         t,
-        stepDur * 5.5,
-        0.031,
+        stepDur * 4.9,
+        0.034,
         'sine',
         dest,
         -0.22,
@@ -1573,24 +1672,25 @@
       );
     if (s % 2 === 0)
       battleStrings(
-        warRoot - 12 + warDrive[s / 2],
+        battleChord[warVoices[s / 2]] - 12,
         t,
-        stepDur * 1.5,
-        0.018,
+        stepDur * 1.42,
+        0.021,
         dest,
-        -0.1,
+        s % 4 === 0 ? -0.14 : 0.04,
         false
       );
-    if (warLead[s] != null)
+    if (warCall[s] != null)
       battleBrass(
-        warLead[s] + (chordIndex === 2 ? -2 : chordIndex === 3 ? -3 : 0),
+        warCall[s],
         t,
-        stepDur * (s === 7 || s === 15 ? 2.5 : 1.9),
-        0.013,
+        stepDur * (s === 7 || s === 15 ? 2.25 : 1.65),
+        s === 7 || s === 15 ? 0.017 : 0.013,
         dest,
-        0.16,
-        chordIndex === 3
+        0.15,
+        false
       );
+    return;
   }
 
   function stopMusic(fade) {
@@ -1832,8 +1932,10 @@
   function viewScene(view) {
     if (view === 'battle') return scene('battle', { field: battleField });
     if (view === 'prep' || view === 'draft') return scene('prep');
-    if (view === 'campaign' || view === 'chapter' || view === 'play') return scene('campaign');
-    if (view === 'shop') return scene('shop');
+    /* Only the actual Road screens leave the main menu soundtrack. Play,
+       Shop, Collection, Decks, Rulebook and their overlays all share one
+       uninterrupted phrase rather than restarting per destination. */
+    if (view === 'campaign' || view === 'chapter') return scene('campaign');
     scene('menu');
   }
 
@@ -1967,6 +2069,24 @@
     },
     /* verification hooks: deterministic shape, never browser secrets */
     _trackForScene: trackForScene,
+    _trackInfo: function (name) {
+      var def = TRACKS[name];
+      return def
+        ? { tempo: def.tempo, steps: def.steps, key: def.key, phraseBars: def.phraseBars }
+        : null;
+    },
+    _scheduleStep: function (name, absoluteStep) {
+      var def = TRACKS[name];
+      if (!ctx || !def) return false;
+      scheduleMusicStep(
+        name,
+        absoluteStep | 0,
+        ctx.currentTime + 0.02,
+        60 / def.tempo / 4,
+        trackGain || musicBus
+      );
+      return true;
+    },
     _musicState: function () {
       return { track: currentTrack, token: musicToken, step: stepIndex };
     },
