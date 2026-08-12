@@ -86,8 +86,9 @@ ok(
   'Heroic doubles every Normal coin reward'
 );
 ok(
-  stages.every((stage) => C.rewardFor(stage, 'legend').coins === 0),
-  'Legend pays no coins at any gate'
+  JSON.stringify(stages.map((stage) => C.rewardFor(stage, 'legend').coins)) ===
+    JSON.stringify([300, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+  'Legend pays 300 coins at Gate I and no coins at later gates'
 );
 
 const introduced = {
@@ -176,11 +177,17 @@ ok(
   'a Heroic first clear pays double coins and persists its random faction Epic'
 );
 C.setDifficulty('legend');
+C._recordClear(stages[0]);
+progress = C.getProgress();
+ok(
+  progress.coins === 600 && progress.cleared.includes(1),
+  'a Legend Gate I first clear pays its one-time 300 coins'
+);
 C._recordClear(stages[1]);
 progress = C.getProgress();
 ok(
-  progress.coins === 300 && progress.pendingLegend === 2 && granted.includes('camelot-king-arthur'),
-  'a Legend faction gate pays no coins and grants its crown at clear time'
+  progress.coins === 600 && progress.pendingLegend === 2 && granted.includes('camelot-king-arthur'),
+  'later Legend faction gates pay no coins and grant their crown at clear time'
 );
 C.setDifficulty('normal');
 ok(C.getProgress().cleared.includes(1), 'switching back restores the saved Normal run');
@@ -191,6 +198,16 @@ const camelot = EOL.factions.find((faction) => faction.id === 'camelot');
 const sherwood = EOL.factions.find((faction) => faction.id === 'sherwood');
 const playerSix = camelot.cards.slice(0, 6).map((card) => ({ card, faction: camelot }));
 const enemySix = sherwood.cards.slice(0, 6).map((card) => ({ card, faction: sherwood }));
+const visibleHeroic = EOL.engine.scaledRivalStats(enemySix[0].card.stats, 0.1);
+const visibleLegend = EOL.engine.scaledRivalStats(enemySix[0].card.stats, 0.2);
+ok(
+  visibleHeroic.atk === Math.round(enemySix[0].card.stats.atk * 1.1) &&
+    visibleHeroic.def === Math.round(enemySix[0].card.stats.def * 1.1) &&
+    visibleLegend.atk === Math.round(enemySix[0].card.stats.atk * 1.2) &&
+    visibleLegend.def === Math.round(enemySix[0].card.stats.def * 1.2) &&
+    visibleHeroic.hp === enemySix[0].card.stats.hp,
+  'the shared visual stat helper exposes the exact Heroic and Legend rival numbers'
+);
 const heroicBattle = EOL.engine.createBattle(playerSix, enemySix, {
   roleAware: false,
   enemyStatBonus: 0.1,
@@ -220,6 +237,13 @@ ok(
 const fs = require('fs');
 const path = require('path');
 const playSource = fs.readFileSync(path.join(__dirname, '../js/play.js'), 'utf8');
+ok(
+  /scaledRivalStats\(card\.stats, bonus\)/.test(playSource) &&
+    playSource.indexOf('prep-scale-chip') >= 0 &&
+    /scaledStatValue\(visibleStats\.atk/.test(playSource) &&
+    /scaledStatValue\(visibleStats\.def/.test(playSource),
+  'Preparation paints boosted rival ATK/DEF values and a visible difficulty chip'
+);
 const draftHandoff = playSource.slice(
   playSource.indexOf('function advancePack'),
   playSource.indexOf('THE SET (best-of-3)')

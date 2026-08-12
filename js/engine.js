@@ -475,6 +475,20 @@
     }
   }
 
+  /* One source of truth for campaign rival scaling. Preparation uses this
+     same helper to paint the numbers players inspect before battle, while
+     createBattle applies them to the actual enemy units. HP is deliberately
+     unchanged on every difficulty. */
+  function scaledRivalStats(stats, bonus) {
+    stats = stats || {};
+    bonus = Math.max(0, +bonus || 0);
+    return {
+      hp: +stats.hp || 0,
+      atk: Math.round((+stats.atk || 0) * (1 + bonus)),
+      def: Math.round((+stats.def || 0) * (1 + bonus)),
+    };
+  }
+
   function createBattle(playerCards, enemyCards, opts) {
     opts = opts || {};
     // Smart role-based formation (Tanks/Bruisers front, rest back) when
@@ -558,8 +572,12 @@
     if (enemyStatBonus) {
       B.units.forEach(function (u) {
         if (u.side !== 'enemy') return;
-        u.baseAtk = Math.round(u.baseAtk * (1 + enemyStatBonus));
-        u.baseDef = Math.round(u.baseDef * (1 + enemyStatBonus));
+        var scaled = scaledRivalStats(
+          { hp: u.maxHp, atk: u.baseAtk, def: u.baseDef },
+          enemyStatBonus
+        );
+        u.baseAtk = scaled.atk;
+        u.baseDef = scaled.def;
         u.difficultyBonus = enemyStatBonus;
       });
     }
@@ -4201,6 +4219,7 @@
     healDecay: healDecay,
     frontRowWiped: frontRowWiped,
     createBattle: createBattle,
+    scaledRivalStats: scaledRivalStats,
     optimizeFormation: optimizeFormation,
     unitsOf: unitsOf,
     unitAt: unitAt,

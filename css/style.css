@@ -2322,6 +2322,29 @@ body[data-turn='player'] .turn-label {
   min-width: 62px;
   text-align: right;
 }
+.dk-scaled-stat {
+  color: #ffd37a;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(255, 172, 72, 0.38);
+}
+.dk-rival-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 184, 92, 0.34);
+  border-radius: 5px;
+  background: rgba(92, 48, 15, 0.32);
+  color: #ffd794;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.dk-rival-scale i {
+  font-size: 9px;
+}
 
 .dk-abs {
   display: flex;
@@ -9873,6 +9896,25 @@ body[data-gfx='low'] .col-thumb {
   height: auto;
   aspect-ratio: 5 / 6;
   align-self: auto;
+}
+.prep-c.scaled-rival .bcard-top {
+  justify-content: space-between;
+}
+.prep-scale-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 2px 5px;
+  border: 1px solid rgba(255, 190, 98, 0.5);
+  border-radius: 5px;
+  background: rgba(39, 20, 8, 0.9);
+  color: #ffd37a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
 }
 .pcard.prep-c {
   animation: pcard-in 0.4s var(--ease) backwards;

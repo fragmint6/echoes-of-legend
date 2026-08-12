@@ -215,7 +215,7 @@ ok(
 
 /* NORMAL ECONOMY (owner ruling 2026-08-12): ordinary gates pay 100,
    the two elites 200, and Gilgamesh 300. Heroic doubles this baseline;
-   Legend pays no coins (the full matrix is exercised separately by
+   Legend pays only at Gate I (the full matrix is exercised separately by
    verify_campaign_difficulty.js). */
 var normalCoins = S.stages.map(function (st) {
   return (st.grants || {}).coins || 0;

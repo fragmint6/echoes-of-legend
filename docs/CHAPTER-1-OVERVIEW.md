@@ -389,11 +389,12 @@ gate runs while wallet, ownership, and rival intel remain shared.
 300 for Gilgamesh (**1400 total**). **Heroic** doubles those coins,
 adds a random faction Epic at each faction gate, and lets each elite
 award two Common/Rare cards from every faction introduced so far.
-**Legend** pays no coins: faction gates retain the existing one-card
-Legendary ceremonies, while elites award two non-Legendary cards from
-the full introduced-faction shelf. Normal/Heroic replays pay 25/50;
-Legend replays pay none. Matches pay per game: singleplayer 50 win /
-25 loss, PvP 75/50; campaign battles pay through their gates only.
+**Legend** pays 300 coins at Gate I and none at later gates: faction
+gates retain the existing one-card Legendary ceremonies, while elites
+award two non-Legendary cards from the full introduced-faction shelf.
+Normal/Heroic replays pay 25/50; Legend replays pay none. Matches pay
+per game: singleplayer 50 win / 25 loss, PvP 75/50; campaign battles
+pay through their gates only.
 **THE CROWN LAW (2026-08-10):** no pack ever sells a Legendary. Each
 faction carries exactly one (Grimmwood, at twelve cards, two — the
 starter pair), and on Legend each obtainable faction Legendary is
@@ -431,9 +432,10 @@ Three difficulty reward tracks share one wallet and collection:
    random Epic from that faction, while each elite opens the complete
    introduced-faction Common/Rare shelf and awards two choices; replays
    pay 50.
-3. **Legend** — no coins or replay pay. Faction gates award their
-   existing Legendary, and each elite opens the complete introduced-
-   faction non-Legendary shelf and awards two choices.
+3. **Legend** — Gate I pays 300 coins; later gates and all replays pay
+   none. Faction gates award their existing Legendary, and each elite
+   opens the complete introduced-faction non-Legendary shelf and awards
+   two choices.
 
 All card grants land in ownership at clear time before their visible
 map ceremony, so a refresh cannot eat a reward. Elite choices resolve

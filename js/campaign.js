@@ -40,7 +40,7 @@
       id: 'legend',
       name: 'Legend',
       bonus: 0.2,
-      note: '+20% rival ATK & DEF · no coins · Legendary rewards',
+      note: '+20% rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
     },
   };
   var STAGE_FACTIONS = {
@@ -381,7 +381,9 @@
       }
       return reward;
     }
-    /* Legend: the Road's original crown progression, no coin payout. */
+    /* Legend: Gate I pays a one-time 300-coin foothold; the remaining
+       Road keeps its crown progression and pays no coins. */
+    if (stage.id === 1) reward.coins = 300;
     if (ELITE_STAGES[stage.id]) {
       reward.choice = {
         count: 2,

@@ -525,6 +525,24 @@
       '</span></div>'
     );
   }
+  function prepRivalBonus(side) {
+    var foe = side === 'foe' || side === 'enemy';
+    if (!foe || !prep) return 0;
+    return Math.max(0, +prep.enemyStatBonus || 0);
+  }
+
+  function prepVisibleStats(card, side) {
+    var bonus = prepRivalBonus(side);
+    var stats = window.EOL.engine.scaledRivalStats(card.stats, bonus);
+    stats.bonus = bonus;
+    return stats;
+  }
+
+  function scaledStatValue(value, suffix, bonus) {
+    var text = value.toLocaleString() + (suffix || '');
+    return bonus ? '<span class="dk-scaled-stat">' + text + '</span>' : text;
+  }
+
   function tipAbRow(a, tag, tagTxt) {
     return (
       '<div class="dk-ab ' +
@@ -655,11 +673,14 @@
     if (!tipEl && !prep) return;
     var c = e.card,
       m = statMax();
+    var visibleStats = prepVisibleStats(c, side);
+    var statBonusPct = Math.round(visibleStats.bonus * 100);
     var sig = c.ability;
     var basic = window.EOL.engine.roleAbility({ role: c.role, element: c.element });
     var fresh = lastTipId !== c.id;
     lastTipId = c.id;
     tip.dataset.rarity = c.rarity;
+    tip.dataset.statBonus = String(statBonusPct);
     tip.innerHTML =
       '<div class="dk-head">' +
       '<div class="dk-portrait" data-rarity="' +
@@ -684,6 +705,11 @@
       '<div class="dk-pos">' +
       esc(e.faction.name) +
       '</div>' +
+      (statBonusPct
+        ? '<div class="dk-rival-scale"><i data-icon-domain="game" class="ra ra-sword"></i>Rival difficulty · +' +
+          statBonusPct +
+          '% ATK &amp; DEF</div>'
+        : '') +
       '</div>' +
       '</div>' +
       '<div class="dk-stats">' +
@@ -697,11 +723,17 @@
       tipLine(
         'ra-sword',
         'ATK',
-        c.stats.atk.toLocaleString(),
-        (c.stats.atk / m.atk) * 100,
+        scaledStatValue(visibleStats.atk, '', visibleStats.bonus),
+        (visibleStats.atk / m.atk) * 100,
         '#ffb347'
       ) +
-      tipLine('ra-shield', 'DEF', c.stats.def + '%', (c.stats.def / m.def) * 100, '#5fb2ff') +
+      tipLine(
+        'ra-shield',
+        'DEF',
+        scaledStatValue(visibleStats.def, '%', visibleStats.bonus),
+        (visibleStats.def / m.def) * 100,
+        '#5fb2ff'
+      ) +
       '</div>' +
       '<div class="dk-abs">' +
       tipAbRow(
@@ -841,13 +873,16 @@
      exactly the shape the fight itself uses. Hover opens the tooltip. */
   function boardCard(e, i, side) {
     var c = e.card;
+    var statBonus = prepRivalBonus(side);
+    var statBonusPct = Math.round(statBonus * 100);
     var wrap = document.createElement('div');
-    wrap.className = 'pcard prep-c';
+    wrap.className = 'pcard prep-c' + (statBonusPct ? ' scaled-rival' : '');
     wrap.dataset.rarity = c.rarity;
     /* The card id on the tile. Ban and formation state are tracked by
        id, so having it in the DOM keeps the markup self-describing and
        lets a test assert on identity instead of on displayed names. */
     wrap.dataset.cid = c.id;
+    if (statBonusPct) wrap.dataset.statBonus = String(statBonusPct);
     wrap.style.setProperty('--fc-primary', e.faction.colors.primary);
     /* The element orb reads var(--el); the battle board sets it per cell
        (battle.js) but prep never did, so every orb rendered white. */
@@ -873,7 +908,11 @@
       '<div class="bcard-frame"></div>' +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
-      '<div class="bcard-top"><span class="borb" title="' +
+      '<div class="bcard-top">' +
+      (statBonusPct
+        ? '<span class="prep-scale-chip">+' + statBonusPct + '% ATK/DEF</span>'
+        : '') +
+      '<span class="borb" title="' +
       esc(c.element) +
       '">' +
       '<i data-icon-domain="game" class="ra ' +
@@ -4327,12 +4366,15 @@
        same little battle card, the same hover panel, rebound onto the
        ledger's own flyout instance (cloning drops the prep-tip hover). */
     tileFor: function (entry, tipEl) {
-      var wrap = boardCard(entry, 0, 'foe');
+      /* Ledger and reward tiles describe the collectible card itself, not
+         a currently selected campaign rival, so they deliberately stay at
+         printed base stats even if a Preparation state still exists. */
+      var wrap = boardCard(entry, 0, 'ledger');
       if (!tipEl) return wrap;
       var tile = wrap.cloneNode(true);
       tile.style.animationDelay = '';
       tile.addEventListener('mouseenter', function () {
-        showPrepTip(entry, 'foe', tile, tipEl);
+        showPrepTip(entry, 'ledger', tile, tipEl);
       });
       tile.addEventListener('mouseleave', function () {
         hidePrepTip(tipEl);

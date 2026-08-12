@@ -14,7 +14,7 @@
      - the shop does NOT follow the campaign's progression law -
        an early Anubis is a trap purchase, not a broken one;
      - the campaign pays difficulty-specific gate coins into this wallet
-       (1400 Normal / 2800 Heroic / 0 Legend), and matches pay per game: singleplayer
+       (1400 Normal / 2800 Heroic / 300 Legend), and matches pay per game: singleplayer
        50 win / 25 loss, PvP 75 win / 50 loss.
 
    Storage:
