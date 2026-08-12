@@ -1139,7 +1139,9 @@
         return 'battleDark';
       return 'battleWar';
     }
-    if (scene === 'campaign' || scene === 'road') return 'road';
+    /* `campaign` is the chapter-select menu and stays on the continuous
+       main theme. Only `road` means the actual Road of Echoes map. */
+    if (scene === 'road') return 'road';
     if (scene === 'prep') return 'prep';
     /* Shop, Play, Collection, Decks, Rulebook and every overlay all keep
        the main theme. Returning between them must not restart its phrase. */
@@ -1198,9 +1200,29 @@
     });
   }
 
-  /* A soft, fully tonal war drum for matches. Unlike Prep's snare and
-     hats, this contains no noise source and no upper-frequency burst;
-     even headphones at high volume hear a rounded pulse, never static. */
+  /* Preparation percussion is fully tonal. Its old filtered-noise hats and
+     snare could read as static on headphones, so the planning score now uses
+     a short wooden triangle click instead of any noise buffer. */
+  function prepTick(t, gain, dest, open) {
+    tone({
+      freq: open ? 780 : 690,
+      to: open ? 540 : 570,
+      when: t,
+      dur: open ? 0.12 : 0.055,
+      gain: gain || 0.008,
+      type: 'triangle',
+      bus: 'music',
+      dest: dest,
+      wet: open ? 0.08 : 0.02,
+      filter: open ? 1550 : 1250,
+      attack: 0.002,
+      release: open ? 0.09 : 0.038,
+    });
+  }
+
+  /* A soft, fully tonal war drum for Preparation and matches. It contains
+     no noise source and no upper-frequency burst; even headphones at high
+     volume hear a rounded pulse, never static. */
   function battlePulse(t, gain, dest, high) {
     tone({
       freq: high ? 112 : 88,
@@ -1635,12 +1657,14 @@
 
       if (prepQuiet) {
         if (s === 0 || s === 8) kick(t, 0.032, dest);
-        if (s === 12 && phraseBar < 48) hat(t, 0.0045, dest, true);
+        if (s === 12 && phraseBar < 48) prepTick(t, 0.0045, dest, true);
       } else {
         if (s === 0 || s === 8 || ((prepPressure || prepPeak) && s === 6))
           kick(t, prepPeak ? 0.054 : 0.045, dest);
-        if (s === 4 || s === 12) snare(t, prepPeak ? 0.027 : 0.022, dest);
-        if (s % 2 === 0) hat(t, prepPeak ? 0.009 : prepBuild ? 0.008 : 0.007, dest, s === 14);
+        if (s === 4 || s === 12)
+          battlePulse(t, prepPeak ? 0.027 : 0.022, dest, true);
+        if (s % 2 === 0)
+          prepTick(t, prepPeak ? 0.009 : prepBuild ? 0.008 : 0.007, dest, s === 14);
       }
 
       if (s % (prepQuiet ? 4 : 2) === 0)
@@ -2179,10 +2203,10 @@
   function viewScene(view) {
     if (view === 'battle') return scene('battle', { field: battleField });
     if (view === 'prep' || view === 'draft') return scene('prep');
-    /* Only the actual Road screens leave the main menu soundtrack. Play,
-       Shop, Collection, Decks, Rulebook and their overlays all share one
-       uninterrupted phrase rather than restarting per destination. */
-    if (view === 'campaign' || view === 'chapter') return scene('campaign');
+    /* Only the actual Road map leaves the main menu soundtrack. The
+       Campaign chapter-select screen is still an ordinary menu; entering
+       Chapter 1 is the exact point where the Road score begins. */
+    if (view === 'chapter') return scene('road');
     scene('menu');
   }
 

@@ -666,6 +666,18 @@ const server = http.createServer((req, res) => {
     $('prep-ledger-tell-text').textContent.indexOf('single point of failure') >= 0,
     'and the tell is the authored one'
   );
+  const yourPrepLayout = w.getComputedStyle($('prep-side-you'));
+  const rivalPrepLayout = w.getComputedStyle($('prep-side-foe'));
+  t(
+    yourPrepLayout.flexGrow === rivalPrepLayout.flexGrow &&
+      yourPrepLayout.flexBasis === rivalPrepLayout.flexBasis &&
+      /^0/.test(yourPrepLayout.flexBasis),
+    'a long ledger cannot give the rival side more than half of the ban board'
+  );
+  t(
+    w.getComputedStyle($('prep-ledger-tell')).overflowWrap === 'anywhere',
+    'long ledger text wraps inside its equal-width side instead of widening it'
+  );
   w.EOL.ui.show('chapter');
   await sleep(700);
 

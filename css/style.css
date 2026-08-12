@@ -9612,7 +9612,16 @@ body[data-gfx='low'] .col-thumb {
    whole phase always fits without scrolling: header + steps, the two
    decks, and the confirm dock. */
 .view.prep {
-  --bcw: clamp(88px, calc((calc(var(--vh1) * 100) - 344px) / 3.6), 140px);
+  /* Cards must fit by BOTH height and width. The width term reserves the
+     centre crest, board gaps, view gutters and six inter-card gaps. */
+  --bcw: clamp(
+    80px,
+    min(
+      calc((calc(var(--vh1) * 100) - 344px) / 3.6),
+      calc((calc(var(--vw1) * 100) - 224px) / 8)
+    ),
+    140px
+  );
 }
 .prep .col-header {
   margin-bottom: 12px;
@@ -9687,6 +9696,15 @@ body[data-gfx='low'] .col-thumb {
 .prep-side {
   min-width: 0;
 }
+/* The two ban ledgers always receive the same flex basis. Without an
+   explicit zero basis, a long Recruiter tell became part of the rival
+   side's intrinsic width and pushed its cards past the screen midpoint. */
+.prep-side.you,
+.prep-side.foe {
+  flex: 1 1 0%;
+  width: 0;
+  max-width: calc(var(--bcw) + var(--bcw) + var(--bcw) + var(--bcw) + 36px);
+}
 .prep-side-tag {
   display: flex;
   align-items: baseline;
@@ -9710,11 +9728,15 @@ body[data-gfx='low'] .col-thumb {
   display: flex;
   align-items: flex-start;
   gap: 9px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 10px 0 0; /* below the enemy grid - never shifts the rows */
   padding: 8px 12px;
   border-left: 3px solid rgba(255, 214, 130, 0.5);
   border-radius: 0 10px 10px 0;
   background: rgba(255, 214, 130, 0.05);
+  overflow-wrap: anywhere;
   pointer-events: none;
 }
 .ledger-tell[hidden] {
@@ -10701,7 +10723,14 @@ body[data-gfx='low'] .col-thumb {
    LOGICAL viewport, so it matches real Ctrl +/- at any GUI scale.
    Toggled as html.mqw980 by paintViewport() in js/app.js. */
 html.mqw980 .view.prep {
-  --bcw: clamp(76px, calc((calc(var(--vh1) * 100) - 344px) / 3.6), 112px);
+  --bcw: clamp(
+    72px,
+    min(
+      calc((calc(var(--vh1) * 100) - 344px) / 3.6),
+      calc((calc(var(--vw1) * 100) - 224px) / 8)
+    ),
+    112px
+  );
 }
 html.mqw980 .deck-slots-12 {
   grid-template-columns: repeat(4, 1fr);
@@ -10729,6 +10758,12 @@ html.mqw780 .draft-order {
 }
 html.mqw780 .prep-board {
   flex-wrap: wrap;
+}
+html.mqw780 .prep-side.you,
+html.mqw780 .prep-side.foe {
+  flex-basis: 100%;
+  width: 100%;
+  max-width: none;
 }
 html.mqw780 .prep-side.field {
   width: 100%;

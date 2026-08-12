@@ -306,7 +306,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const route = {
     menu: 'menu',
-    campaign: 'road',
+    campaign: 'menu',
     road: 'road',
     prep: 'prep',
     shop: 'menu',
@@ -339,6 +339,12 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
 
   document.dispatchEvent(new CustomEvent('eol:view', { detail: 'campaign' }));
+  const campaignMenu = A._musicState();
+  ok(
+    campaignMenu.track === 'menu' && campaignMenu.token === menuStart.token,
+    'the campaign chapter-select menu keeps the continuous main soundtrack'
+  );
+  document.dispatchEvent(new CustomEvent('eol:view', { detail: 'chapter' }));
   const roadStart = A._musicState();
   document.dispatchEvent(new CustomEvent('eol:view', { detail: 'chapter' }));
   const roadAfterChapter = A._musicState();
@@ -346,7 +352,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     roadStart.track === 'road' &&
       roadAfterChapter.track === 'road' &&
       roadAfterChapter.token === roadStart.token,
-    'the Road of Echoes has one separate score across campaign and chapter screens'
+    'the separate Road score begins only on the actual Road of Echoes map'
   );
 
   document.dispatchEvent(new CustomEvent('eol:view', { detail: 'prep' }));
@@ -400,6 +406,12 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
 
   const prepInfo = A._trackInfo('prep');
+  const noiseBeforePrep = noises;
+  for (let step = 0; step < prepInfo.phraseBars * 16; step++) A._scheduleStep('prep', step);
+  ok(
+    noises === noiseBeforePrep,
+    'the full Preparation score uses tonal percussion with no static/noise voices'
+  );
   ['battleWar', 'battleBright', 'battleDark'].forEach((name) => {
     const info = A._trackInfo(name);
     ok(
