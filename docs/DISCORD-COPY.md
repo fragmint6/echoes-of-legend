@@ -6,7 +6,7 @@ Three ready-to-paste messages, one per channel. Discord markdown throughout
 Everything factual below was checked against the shipping build: 63 heroes,
 9 factions, 6 roles, 10 battlefields, 2 bans, teams of 6 from decks of 12,
 and Unabridged (best-of-3 wars) in solo. Launch copy updated 2026-08-05;
-roadmap updated 2026-08-11.
+roadmap updated 2026-08-12.
 
 ---
 
@@ -85,33 +85,45 @@ Drop feedback in this server. Every report gets read.
 
 Roughly in the order I intend to build it. Nothing here is promised, and community feedback moves things around.
 
+## Current focus
+
+- **Demo stabilization and playtest learning.** Keep the live build stable, fix blockers, and use feedback and telemetry before expanding scope.
+
 ## Next up
 
-- **Trophies and a real ladder.** The table exists, nothing writes to it yet. Needs server-side verification first, queueing right now is random.
+- **Trophies and a real ladder.** Matches need server-side verification before rating can be trusted. Queueing remains unranked and random until then.
 
-- **Private rooms.** So you can play with your friends and for testing purposes.
+- **Private rooms.** Invite-based matches for friends, creator sessions, and organized playtests.
 
-- **Daily puzzle.** One fixed board, same for everyone, two attempts a day.
-
-- **Faction bonuses.** Decks will receive bonuses based on how many legends in the deck are in the same faction.
+- **Faction bonuses.** Decks will receive bonuses based on how many legends belong to the same faction, after current balance is reviewed.
 
 ## After that
 
-- **Sound.** There is currently none.
+- **Player profiles and statistics.** Favorite heroes, win rates by hero and faction, highest rank, total games, and match history.
 
-- **Player profiles and statistics.** Favorite heroes, win rates by hero and faction, highest rank, total games, match history, etc.
+- **Guild Battles.** A three-day event every two weeks, open to solo participants. Defenses use player tactical choices, with limited live Unabridged battles.
+
+- **Featured Clash.** The only additional rotating multiplayer mode. Its three formats will be **Blind Six**, **Forked Fates**, and **Regicide**, and none of them will affect Ranked trophies.
 
 ## Further out
 
-- **More campaign chapters.** Deliberately parked. Right now there are only enough legends for roughly one chapter with 10 gates, but more campaign chapters will come out as more factions are released.
+- **More campaign chapters.** Deliberately parked until more factions expand the roster enough to support another full Road.
 
-- **More factions.**
+- **More factions.** New legends, mechanics, and campaign material.
+
+## Shipped
+
+- **Daily Puzzle.** One shared fixed position, two attempts per reset.
+
+- **Sound and music.** Original procedural menu, Road, and battle music plus role, element, and combat effects.
+
+- **Campaign Chapter I.** All ten gates of The Road of Echoes, with Normal, Heroic, and Legend runs.
 
 ## Not planned
 
 - Paid cards. It's free.
 
-Want something moved up this list? Say so. A demo this early is exactly when priorities are cheap to change.
+Want something moved up this list? Say so. A prototype this early is exactly when priorities are cheap to change.
 ```
 
 ---
@@ -120,8 +132,8 @@ Want something moved up this list? Say so. A demo this early is exactly when pri
 
 - Discord renders `#` and `##` as headers only at the **start of a line**, so
   paste each block whole and don't indent it.
-- The three blocks are 1,850 / 1,560 / 1,135 characters, all comfortably under
-  the 2,000-character message limit. No splitting needed.
+- The three blocks are 1,850 / 1,560 / 1,858 characters, all under the
+  2,000-character message limit. No splitting needed.
 - If you turn `#about` into the channel description instead of a message, the
   short version is: *"A free browser card battler. Six folklore heroes a side,
   63 to choose from, ban your opponent's best two, then fight."*
