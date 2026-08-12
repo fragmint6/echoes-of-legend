@@ -73,10 +73,18 @@
   function toast(msg, icon) {
     var host = $('toasts');
     if (!host) return;
-    var cls = icon ? (icon.indexOf('ra-') === 0 ? 'ra ' : 'ri ') + icon : 'ri ri-information-line';
+    var isGameIcon = !!icon && icon.indexOf('ra-') === 0;
+    var cls = icon ? (isGameIcon ? 'ra ' : 'ri ') + icon : 'ri ri-information-line';
     var t = document.createElement('div');
     t.className = 'toast';
-    t.innerHTML = '<i class="' + cls + '"></i><span>' + esc(msg) + '</span>';
+    t.innerHTML =
+      '<i' +
+      (isGameIcon ? ' data-icon-domain="game"' : '') +
+      ' class="' +
+      cls +
+      '"></i><span>' +
+      esc(msg) +
+      '</span>';
     host.appendChild(t);
     setTimeout(function () {
       t.classList.add('out');
@@ -84,6 +92,19 @@
     setTimeout(function () {
       t.remove();
     }, 2450);
+  }
+
+  function prepScriptDeny(p, message) {
+    if (!campaignTutorialsEnabled(p)) return;
+    if (
+      p &&
+      p.campaignStage &&
+      window.EOL.campaign &&
+      window.EOL.campaign.onPrepScriptDeny &&
+      window.EOL.campaign.onPrepScriptDeny(p.campaignStage, message)
+    )
+      return;
+    toast(message, 'ri-quill-pen-line');
   }
 
   /* ---------------- coach overlays (what to do, once per context) ---------------- */
@@ -114,7 +135,7 @@
     if (!forcing && coachSeen().indexOf(key) >= 0) return false;
     var c = $('coach');
     if (!c) return true;
-    $('coach-ico').className = 'ra ' + icon;
+    $('coach-ico').className = icon;
     $('coach-title').textContent = title;
     $('coach-body').textContent = body;
     c.classList.add('show');
@@ -134,6 +155,18 @@
   var prepAnim = false; // entrance stagger runs on phase ENTRY only -
   // a re-render mid-phase must not replay it
 
+  function campaignTutorialsEnabled(source) {
+    if (!source || (!source.campaignStage && !source.stage)) return true;
+    var normalized = {
+      campaignStage: source.campaignStage || source.stage,
+      campaignDifficulty: source.campaignDifficulty || source.difficulty || null,
+    };
+    if (window.EOL.campaign && window.EOL.campaign.tutorialsEnabled) {
+      return window.EOL.campaign.tutorialsEnabled(normalized);
+    }
+    return !normalized.campaignDifficulty || normalized.campaignDifficulty === 'normal';
+  }
+
   /* ---------------- bot brains ---------------- */
   /* All three roster decisions (draft pick, ban, field six) route through
      window.EOL.draftAI - see data/draft-ai.js. It scores measured hero
@@ -148,19 +181,67 @@
   /* The bot's two bans against a 12-hero deck.
      It bans what is strongest IN CONTEXT: raw power, what the rest of
      your deck would unlock with it, and what would punish its own six. */
-  function chooseBans(deckEntries, myPool) {
+  function banCandidates(deckEntries, allowLegendaries) {
+    return (deckEntries || []).filter(function (e) {
+      return allowLegendaries || e.card.rarity !== 'legendary';
+    });
+  }
+
+  /* Only genuine near-ties are allowed to move. A score gap above this
+     window is deterministic, so a standout bomb cannot dodge a ban on a
+     lucky roll; cards inside it get a weighted draw so otherwise-equal
+     decks do not lose the exact same pair every match. denyValue's main
+     strength term is 4.2 * z-score, making 1.1 a deliberately modest
+     window (roughly a quarter of one measured power deviation). */
+  var BAN_VARIATION_WINDOW = 1.1;
+  var BAN_DOMINANT_GAP = BAN_VARIATION_WINDOW * 2;
+
+  function variedBanOrder(scored, count) {
+    var pool = scored.slice();
+    var out = [];
+    while (out.length < count && pool.length) {
+      pool.sort(function (a, b) {
+        if (a.score !== b.score) return b.score - a.score;
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      });
+      var best = pool[0].score;
+      var near = pool.filter(function (candidate) {
+        return best - candidate.score <= BAN_VARIATION_WINDOW;
+      });
+      var total = 0;
+      near.forEach(function (candidate) {
+        /* Keep the best card likelier without making its close neighbours
+           decorative. The lowest eligible edge has weight 1; the leader
+           has 1 + the full near-tie window. */
+        candidate._banWeight = 1 + BAN_VARIATION_WINDOW - (best - candidate.score);
+        total += candidate._banWeight;
+      });
+      var roll = Math.min(0.999999999, Math.max(0, Math.random())) * total;
+      var chosen = near[near.length - 1];
+      for (var i = 0; i < near.length; i++) {
+        roll -= near[i]._banWeight;
+        if (roll < 0) {
+          chosen = near[i];
+          break;
+        }
+      }
+      out.push(chosen);
+      pool.splice(pool.indexOf(chosen), 1);
+    }
+    return out;
+  }
+
+  function chooseBans(deckEntries, myPool, allowLegendaries) {
     var ai = DAI();
-    var scored = deckEntries.map(function (e, i) {
+    var scored = banCandidates(deckEntries, allowLegendaries).map(function (e) {
       return {
-        i: i,
-        v: ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 1.2,
+        id: e.card.id,
+        entry: e,
+        score: ai.denyValue(deckEntries, e, myPool || []),
       };
     });
-    scored.sort(function (a, b) {
-      return b.v - a.v;
-    });
-    return scored.slice(0, RULES().BANS).map(function (x) {
-      return deckEntries[x.i].card.id;
+    return variedBanOrder(scored, RULES().BANS).map(function (x) {
+      return x.id;
     });
   }
 
@@ -176,50 +257,140 @@
                    your back line; the Outlaw takes your protectors)
        stat:'atk'  prefers your hardest hitters
        power:true  prefers your highest-rated cards (Gilgamesh bans
-                   what the scales weigh heaviest) */
-  function personaBans(profile, deckEntries, myPool) {
+                   what the scales weigh heaviest)
+
+     A denyValue outlier still takes one slot before personality filters;
+     character changes close judgment, not whether the AI sees a bomb. */
+  function personaBans(profile, deckEntries, myPool, allowLegendaries) {
+    profile = profile || {};
     var ai = DAI();
     var out = [];
+    var legal = banCandidates(deckEntries, allowLegendaries);
     (profile.ids || []).forEach(function (id) {
       if (out.length >= RULES().BANS || out.indexOf(id) >= 0) return;
-      var owns = deckEntries.some(function (e) {
+      var owns = legal.some(function (e) {
         return e.card.id === id;
       });
       if (owns) out.push(id);
     });
-    if (out.length < RULES().BANS) {
-      var atkMax = 1;
-      deckEntries.forEach(function (e) {
-        atkMax = Math.max(atkMax, e.card.stats.atk);
-      });
-      var scored = deckEntries
+    while (out.length < RULES().BANS) {
+      /* Personality remains a real priority, not flavour noise. First stay
+         inside an authored role whenever one is available. A stat- or
+         power-obsessed rival then considers only cards close to the best
+         remaining target on that axis. Randomness enters only after those
+         promises are met, through the same bounded near-tie draw as stock
+         bans. */
+      var scored = legal
         .filter(function (e) {
           return out.indexOf(e.card.id) < 0;
         })
         .map(function (e) {
-          var v = ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.9;
-          if (profile.roles && profile.roles.indexOf(e.card.role) >= 0) v += 3.5;
-          if (profile.stat === 'atk') v += (e.card.stats.atk / atkMax) * 2.5;
-          if (profile.power) v += ai.powerOf(e.card) * 3.0;
-          return { id: e.card.id, v: v };
+          return {
+            id: e.card.id,
+            entry: e,
+            role: profile.roles && profile.roles.indexOf(e.card.role) >= 0 ? 1 : 0,
+            stat: profile.stat === 'atk' ? e.card.stats.atk : 0,
+            power: profile.power ? ai.powerOf(e.card) : 0,
+            deny: ai.denyValue(deckEntries, e, myPool || []),
+          };
         });
-      scored.sort(function (a, b) {
-        return b.v - a.v;
+      if (!scored.length) break;
+
+      /* A personality bends close decisions; it does not pretend an
+         overwhelming outlier is harmless. Reserve a slot immediately when
+         generic threat value clears the rest by twice the variation window,
+         then let the authored profile decide the other ban. */
+      var byThreat = scored.slice().sort(function (a, b) {
+        return b.deny - a.deny;
       });
-      scored.forEach(function (s) {
-        if (out.length < RULES().BANS) out.push(s.id);
+      if (
+        byThreat.length === 1 ||
+        byThreat[0].deny - byThreat[1].deny > BAN_DOMINANT_GAP
+      ) {
+        out.push(byThreat[0].id);
+        continue;
+      }
+
+      if (profile.roles) {
+        var preferred = scored.filter(function (candidate) {
+          return candidate.role;
+        });
+        if (preferred.length) scored = preferred;
+      }
+      if (profile.stat === 'atk') {
+        var topStat = Math.max.apply(
+          null,
+          scored.map(function (candidate) {
+            return candidate.stat;
+          })
+        );
+        var statWindow = Math.max(90, topStat * 0.08);
+        scored = scored.filter(function (candidate) {
+          return topStat - candidate.stat <= statWindow;
+        });
+        scored.forEach(function (candidate) {
+          candidate.profileTie = 0.6 * (1 - (topStat - candidate.stat) / statWindow);
+        });
+      } else if (profile.power) {
+        var topPower = Math.max.apply(
+          null,
+          scored.map(function (candidate) {
+            return candidate.power;
+          })
+        );
+        var powerWindow = 0.35;
+        scored = scored.filter(function (candidate) {
+          return topPower - candidate.power <= powerWindow;
+        });
+        scored.forEach(function (candidate) {
+          candidate.profileTie = 0.6 * (1 - (topPower - candidate.power) / powerWindow);
+        });
+      }
+      scored.forEach(function (candidate) {
+        candidate.score = candidate.deny + (candidate.profileTie || 0);
       });
+      var pick = variedBanOrder(scored, 1)[0];
+      if (!pick) break;
+      out.push(pick.id);
     }
     return out.slice(0, RULES().BANS);
+  }
+
+  /* Personality-aware FIELDING uses the same competency score, then
+     values the roles/effects an authored rival built around. This is not
+     weaker search or random flavour: it prevents a Trickster from drafting
+     denial and then benching every Controller because a generic tier list
+     prefers one more Bruiser. */
+  function fieldPersonaBonus(profile, entry) {
+    if (!profile || !entry) return 0;
+    var role = entry.card.role;
+    var roles = {
+      sentinel: { Tank: 0.14, Medic: 0.08, Bruiser: 0.04 },
+      hunter: { Sniper: 0.16, Bruiser: 0.1, Controller: 0.04 },
+      anointed: { Caster: 0.14, Controller: 0.12, Medic: 0.06 },
+      warden: { Controller: 0.1, Tank: 0.07, Medic: 0.06 },
+      trickster: { Controller: 0.18, Caster: 0.07 },
+      strategist: { Controller: 0.14, Sniper: 0.1, Bruiser: 0.07 },
+      chronicler: { Caster: 0.16, Controller: 0.12, Medic: 0.08 },
+      guardian: { Tank: 0.14, Controller: 0.1, Caster: 0.06 },
+      conqueror: { Bruiser: 0.15, Caster: 0.12, Sniper: 0.1, Medic: 0.05 },
+    };
+    var v = roles[profile] && roles[profile][role] ? roles[profile][role] : 0;
+    var tags = DAI().tags(entry);
+    if (profile === 'trickster' && (tags.gives.denial || tags.gives.energy)) v += 0.06;
+    if (profile === 'strategist' && (tags.gives.kills || tags.gives.exposed)) v += 0.056;
+    if (profile === 'chronicler' && (tags.gives.burn || tags.gives.cleanse || tags.gives.denial))
+      v += 0.06;
+    if (profile === 'conqueror' && (tags.gives.exposed || tags.gives.kills)) v += 0.056;
+    return v;
   }
 
   /* Greedy best battle six from the surviving pool, with hard rails so a
      six is never fielded without a Tank or Medic when one was available.
      The field carries NO role cap: the deck's max-4 is the only rule.
      `preSeed` (ids or entries) are MUST-KEEPS taken from the pool before
-     the greedy walk fills the rest - the campaign's scripted sixes
-     (stages 1-4) and Gilgamesh's `pinned` hardcode (R5) both ride it. */
-  function chooseSix(pool, enemyPool, preSeed) {
+     the greedy walk fills the rest. */
+  function chooseSix(pool, enemyPool, preSeed, aiProfile) {
     var ai = DAI();
     var team = [],
       rest = pool.slice();
@@ -256,7 +427,10 @@
       for (var pass = 0; pass < 2 && best < 0; pass++) {
         for (var i = 0; i < rest.length; i++) {
           if (forced && pass === 0 && rest[i].card.role !== forced) continue;
-          var v = ai.value(team, rest[i], { size: FIELD }) + Math.random() * 1.5;
+          var v =
+            ai.value(team, rest[i], { size: FIELD }) +
+            fieldPersonaBonus(aiProfile, rest[i]) +
+            Math.random() * (aiProfile ? 0.45 : 1.5);
           /* answer what the opponent is actually bringing */
           if (enemyPool && enemyPool.length) {
             for (var k = 0; k < enemyPool.length; k++) {
@@ -374,22 +548,34 @@
       var v = mine + Math.max(0, theirs - mine) * 0.35 + ai.powerOf(e.card) * 0.8;
       if (draftPersona) {
         var T = ai.tags(e);
+        /* Rivals commit harder to a coherent twelve than the stock drafter.
+           These are valuation priorities, not free cards or a shallower
+           opponent: every offered pick remains legal and contested. */
         if (draftPersona === 'trickster') {
-          v += Math.max(0, theirs - mine) * 0.75;
-          if (T.gives.energy || T.wants.energy) v += 1.1;
+          v += Math.max(0, theirs - mine) * 0.55;
+          if (T.gives.energy) v += 0.7;
+          if (T.gives.denial) v += 0.6;
+          if (T.wants.energy && !T.gives.energy) v -= 0.3; // the Void punishes greed
         } else if (draftPersona === 'strategist') {
           if (foeTeam) {
-            for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.6;
+            for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.65;
           }
-          v += ai.powerOf(e.card) * 0.4;
+          if (T.gives.kills || T.wants.kills) v += 0.65;
+          if (T.gives.denial || T.gives.exposed) v += 0.45;
+          v += ai.powerOf(e.card) * 0.45;
         } else if (draftPersona === 'chronicler') {
-          if (T.gives.burn) v += 1.2;
-          if (T.gives.cleanse) v += 1.0;
-          if (T.gives.denial) v += 0.9;
+          if (T.gives.burn) v += 0.8;
+          if (T.gives.cleanse) v += 0.65;
+          if (T.gives.denial) v += 0.6;
+          if (T.gives.exposed) v += 0.35;
         }
         v += Math.random() * draftPersonaJitter;
       }
-      v += Math.random() * 1.5;
+      /* Campaign rivals draft with intent. Their personaJitter still
+         preserves style and imperfect reads, but the generic 1.5-point
+         wobble no longer stacks on top and turns late-gate picks into
+         coin flips. Ordinary solo draft keeps the wider variance. */
+      v += Math.random() * (draftPersona ? 0.35 : 1.5);
       if (v > bestScore) {
         bestScore = v;
         best = e;
@@ -430,7 +616,7 @@
       '<div class="dk-stat" style="--sc:' +
       color +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       icon +
       '"></i>' +
       '<span class="dk-stat-k">' +
@@ -447,6 +633,24 @@
       '</span></div>'
     );
   }
+  function prepRivalBonus(side) {
+    var foe = side === 'foe' || side === 'enemy';
+    if (!foe || !prep) return 0;
+    return Math.max(0, +prep.enemyStatBonus || 0);
+  }
+
+  function prepVisibleStats(card, side) {
+    var bonus = prepRivalBonus(side);
+    var stats = window.EOL.engine.scaledRivalStats(card.stats, bonus);
+    stats.bonus = bonus;
+    return stats;
+  }
+
+  function scaledStatValue(value, suffix, bonus) {
+    var text = value.toLocaleString() + (suffix || '');
+    return bonus ? '<span class="dk-scaled-stat">' + text + '</span>' : text;
+  }
+
   function tipAbRow(a, tag, tagTxt) {
     return (
       '<div class="dk-ab ' +
@@ -462,7 +666,9 @@
       esc(a.name) +
       '</span>' +
       (a.type === 'Active' && a.cost != null
-        ? '<span class="dk-cost"><i class="ra ra-lightning-bolt"></i>' + a.cost + '</span>'
+        ? '<span class="dk-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+          a.cost +
+          '</span>'
         : '') +
       '</div>' +
       '<div class="dk-ab-text">' +
@@ -575,6 +781,7 @@
     if (!tipEl && !prep) return;
     var c = e.card,
       m = statMax();
+    var visibleStats = prepVisibleStats(c, side);
     var sig = c.ability;
     var basic = window.EOL.engine.roleAbility({ role: c.role, element: c.element });
     var fresh = lastTipId !== c.id;
@@ -586,7 +793,7 @@
       c.rarity +
       '" style="--fc-primary:' +
       e.faction.colors.primary +
-      '"><i class="ra ' +
+      '"><i data-icon-domain="game" class="ra ' +
       c.icon +
       '"></i></div>' +
       '<div class="dk-id">' +
@@ -617,11 +824,17 @@
       tipLine(
         'ra-sword',
         'ATK',
-        c.stats.atk.toLocaleString(),
-        (c.stats.atk / m.atk) * 100,
+        scaledStatValue(visibleStats.atk, '', visibleStats.bonus),
+        (visibleStats.atk / m.atk) * 100,
         '#ffb347'
       ) +
-      tipLine('ra-shield', 'DEF', c.stats.def + '%', (c.stats.def / m.def) * 100, '#5fb2ff') +
+      tipLine(
+        'ra-shield',
+        'DEF',
+        scaledStatValue(visibleStats.def, '%', visibleStats.bonus),
+        (visibleStats.def / m.def) * 100,
+        '#5fb2ff'
+      ) +
       '</div>' +
       '<div class="dk-abs">' +
       tipAbRow(
@@ -684,7 +897,7 @@
       c.rarity +
       '" style="--fc-primary:' +
       e.faction.colors.primary +
-      '"><i class="ra ' +
+      '"><i data-icon-domain="game" class="ra ' +
       c.icon +
       '"></i></div>' +
       '<div class="dk-id">' +
@@ -787,20 +1000,21 @@
         ? '<div class="bart-portrait"><img src="' +
           esc(c.art) +
           '" alt="" draggable="false" /></div>'
-        : '<i class="ra ' + c.icon + '"></i>') +
+        : '<i data-icon-domain="game" class="ra ' + c.icon + '"></i>') +
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
-      '<div class="bcard-top"><span class="borb" title="' +
+      '<div class="bcard-top">' +
+      '<span class="borb" title="' +
       esc(c.element) +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       elIc(c.element) +
       '"></i></span></div>' +
       '<div class="bcard-foot">' +
-      '<div class="bcard-role"><i class="ra ' +
+      '<div class="bcard-role"><i data-icon-domain="game" class="ra ' +
       roleIc(c.role) +
       '"></i>' +
       esc(c.role) +
@@ -1015,6 +1229,10 @@
     var open = function () {
       host.classList.add('show');
       host.setAttribute('aria-hidden', 'false');
+      if (window.EOL.audio) {
+        window.EOL.audio.setBattlefield(field.id);
+        window.EOL.audio.battle('battlefield');
+      }
       /* "Field your six" stays locked until the battlefield card's
          entrance finishes (2026-08-05) - the reveal IS the battlefield
          selection animation in single games, and clicking through it
@@ -1099,6 +1317,14 @@
 
   function startPrep(cfg) {
     // cfg: { mode, deckId|null, player12:[entries], enemy12:[entries], mp }
+    /* Defense in depth: campaign.js already strips these on hard modes,
+       but retries and harness callers can hand play.js a config directly.
+       Heroic/Legend must never inherit a stale script or advisor. */
+    if (!campaignTutorialsEnabled(cfg)) {
+      cfg.script = null;
+      cfg.advisor = null;
+      document.body.dataset.tutorHold = '0';
+    }
     /* MULTIPLAYER. Against a person there are no bot bans - their two
        arrive over the wire, and neither side sees the other's until
        both have committed. `foeBans` therefore starts empty and is
@@ -1108,6 +1334,20 @@
        host rolls it from the shared match rng and it is derived, not
        re-rolled, on the guest. */
     var isMp = !!cfg.mp;
+    /* Legendary cards are protected from bans in constructed formats
+       (Classic singles and Unabridged). Draft's rarity law lives at its
+       36-card table, so draft bans remain ordinary. Merge authored
+       exceptions such as Gilgamesh with every crown in the enemy deck
+       before setBegin snapshots the rule for all games of a set. */
+    var allowLegendBans = cfg.mode === 'draft';
+    if (!allowLegendBans) {
+      var protectedIds = (cfg.unbannable || []).slice();
+      (cfg.enemy12 || []).forEach(function (e) {
+        if (e.card.rarity === 'legendary' && protectedIds.indexOf(e.card.id) < 0)
+          protectedIds.push(e.card.id);
+      });
+      cfg.unbannable = protectedIds;
+    }
     /* THE SET: a fresh prep under warLength 'set' begins a new war
        (fight card drawn here, game 1's board pre-designated). ANY
        non-continuing prep kills a stale set, so quitting mid-set can
@@ -1135,7 +1375,7 @@
       foeBans = null;
     } else if (cfg.botBanProfile) {
       /* CAMPAIGN: the rival bans in character (§9.11). */
-      foeBans = personaBans(cfg.botBanProfile, cfg.player12, cfg.enemy12);
+      foeBans = personaBans(cfg.botBanProfile, cfg.player12, cfg.enemy12, allowLegendBans);
     } else if (cfg.campaignStage === 1) {
       // Legacy fallback: The Recruiter bans Hansel & Gretel and Cinderella
       // (the data-driven profile normally covers this path).
@@ -1149,7 +1389,7 @@
       if (hg) foeBans.push(hg.card.id);
       if (cin) foeBans.push(cin.card.id);
       if (foeBans.length < RULES().BANS) {
-        var normal = chooseBans(cfg.player12, cfg.enemy12);
+        var normal = chooseBans(cfg.player12, cfg.enemy12, allowLegendBans);
         normal.forEach(function (id) {
           if (foeBans.length < RULES().BANS && foeBans.indexOf(id) === -1) {
             foeBans.push(id);
@@ -1157,7 +1397,7 @@
         });
       }
     } else {
-      foeBans = chooseBans(cfg.player12, cfg.enemy12);
+      foeBans = chooseBans(cfg.player12, cfg.enemy12, allowLegendBans);
     }
     prep = {
       mode: cfg.mode,
@@ -1165,6 +1405,8 @@
       seed: cfg.seed != null ? cfg.seed : null,
       deckId: cfg.deckId || null,
       campaignStage: cfg.campaignStage || null,
+      campaignDifficulty: cfg.campaignDifficulty || null,
+      enemyStatBonus: Math.max(0, +cfg.enemyStatBonus || 0),
       /* CAMPAIGN rival behaviour hooks (all optional, all inert
          outside the campaign):
            botSix       scripted fielded six (stages 1-4, §8 dial 2)
@@ -1175,6 +1417,7 @@
       pinnedEnemy: cfg.pinnedEnemy || null,
       unbannable: cfg.unbannable || null,
       rival: cfg.rival || null,
+      aiProfile: cfg.aiProfile || null,
       /* CAMPAIGN: the Recruiter's ledger note on how this rival bans,
          surfaced during the ban phase so the first decision of the
          gate is played with open eyes (playtest note 2026-08-09). */
@@ -1226,19 +1469,24 @@
     /* advised gate: compute the silver ban counsel up front (the six
        counsel waits for the reveal - it depends on what survives) */
     if (prep.advisor && !prep.script) {
-      prep.advice = { bans: chooseBans(prep.enemy12, prep.player12) };
+      prep.advice = {
+        bans: chooseBans(prep.enemy12, prep.player12, prep.mode === 'draft'),
+      };
     }
     if (isMp) window.EOL.netplay.startBans(onFoeBans);
     prepAnim = true;
     renderPrep();
     window.EOL.ui.show('prep');
-    coachShow(
-      'prep-ban',
-      'ra-interdiction',
-      'Phase 1: Ban Two Legends',
-      "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
-        'yours at the same time - their picks stay hidden until you lock yours in.'
-    );
+    if (window.EOL.audio) window.EOL.audio.card('shuffle', { delay: prep.campaignStage ? 720 : 0 });
+    if (campaignTutorialsEnabled(prep)) {
+      coachShow(
+        'prep-ban',
+        'ri-forbid-2-line',
+        'Phase 1: Ban Two Legends',
+        "Tap 2 of the enemy's 12 legends to ban them from the fight. The enemy bans 2 of " +
+          'yours at the same time - their picks stay hidden until you lock yours in.'
+      );
+    }
   }
 
   /* THE SCRIPT's golden marks: highlight exactly what the gate asks
@@ -1247,7 +1495,7 @@
      the enforcement lives in the click handlers. */
   function syncTutorMarks() {
     var p = prep;
-    if (!p || !p.script) return;
+    if (!p || !p.script || !campaignTutorialsEnabled(p)) return;
     var mark = function (el, on) {
       if (el) el.classList.toggle('tutor-pick', !!on);
     };
@@ -1300,7 +1548,13 @@
      either followed or overruled. */
   function syncAdviceMarks() {
     var p = prep;
-    var on = !!(p && p.advisor && p.advice && !p.script);
+    var on = !!(
+      p &&
+      campaignTutorialsEnabled(p) &&
+      p.advisor &&
+      p.advice &&
+      !p.script
+    );
     var mk = function (el, yes) {
       if (el) el.classList.toggle('advice-pick', !!yes);
     };
@@ -1453,7 +1707,15 @@
     $('prep-field').hidden = p.phase !== 'pick';
     $('prep-actions-main').hidden = p.phase === 'pick';
     $('prep-vs').hidden = p.phase === 'pick';
-    if ($('prep-fields')) $('prep-fields').hidden = p.phase !== 'pick';
+    if ($('prep-fields')) {
+      var fieldsButton = $('prep-fields');
+      var showFields = p.phase === 'pick';
+      fieldsButton.hidden = !showFields;
+      /* Some button skins set display explicitly and can beat the UA's
+         [hidden] rule. An inline display guard makes it impossible for
+         See battlefields to leak into the ban phase. */
+      fieldsButton.style.display = showFields ? '' : 'none';
+    }
 
     /* entrance stagger only on phase entry; pick clicks stay snappy */
     youGrid.classList.toggle('quiet', !prepAnim);
@@ -1508,23 +1770,36 @@
         el.classList.toggle('banpick', banned);
         if (noBan) el.classList.add('unbannable');
         el.addEventListener('click', function () {
-          /* R5 hardcode: the boss cannot be banned. The grid says so
-             instead of silently ignoring the click. */
-          if (noBan) {
-            toast(e.card.name + ' cannot be banned - the judgement stands', 'ra-crown');
-            flashNode('prep-enemy-note');
-            return;
-          }
-          /* THE SCRIPT (gate I): only the marked bans may be added.
-             Removing a placed ban stays legal, so a mis-click is
-             always recoverable. */
+          /* THE SCRIPT (gate I) owns EVERY wrong click, including a
+             crown that would normally explain itself with a toast. The
+             Recruiter's relevant instruction is the only correction in
+             this gate. Removing a placed ban stays legal. */
           if (
+            campaignTutorialsEnabled(p) &&
             p.script &&
             p.script.bans &&
             p.youBans.indexOf(e.card.id) < 0 &&
             p.script.bans.indexOf(e.card.id) < 0
           ) {
-            toast(p.script.hintBan || 'Follow the marked cards - this gate is scripted', 'ra-quill-ink');
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
+            prepScriptDeny(
+              p,
+              p.script.hintBan || 'Follow the marked cards - this gate is scripted'
+            );
+            flashNode('prep-enemy-note');
+            return;
+          }
+          /* Legendary protection (plus any authored exception such as
+             Gilgamesh). The grid says so instead of ignoring the click. */
+          if (noBan) {
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
+            toast(
+              e.card.name +
+                (e.card.rarity === 'legendary'
+                  ? ' is Legendary - crown cards cannot be banned'
+                  : ' cannot be banned'),
+              'ra-crown'
+            );
             flashNode('prep-enemy-note');
             return;
           }
@@ -1532,11 +1807,13 @@
           if (i2 >= 0) p.youBans.splice(i2, 1);
           else {
             if (p.youBans.length >= RULES().BANS) {
+              if (window.EOL.audio) window.EOL.audio.ui('deny');
               flashNode('prep-enemy-note');
               return;
             }
             p.youBans.push(e.card.id);
           }
+          if (window.EOL.audio) window.EOL.audio.card(i2 >= 0 ? 'remove' : 'ban');
           /* Patch, don't rebuild: a full grid rebuild re-creates every
              .banpick tile and replays its ban-mark flash, so the second
              ban used to "redo" the first. Toggling the live node means
@@ -1623,9 +1900,10 @@
     /* THE SCRIPT (gate I): the six is fielded ONE AT A TIME, in the
        ledger's order - the whole match line depends on the exact
        formation, so removals and shuffles are refused too. */
-    if (prep.script && prep.script.six) {
+    if (campaignTutorialsEnabled(prep) && prep.script && prep.script.six) {
       if (idx >= 0) {
-        toast('The ledger placed that one - the formation stands', 'ra-quill-ink');
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
+        prepScriptDeny(prep, 'The ledger placed that one - the formation stands');
         flashNode('prep-player-note');
         return;
       }
@@ -1637,7 +1915,11 @@
         }
       }
       if (id !== nextId) {
-        toast(prep.script.hintSix || 'Field the marked card - this gate is scripted', 'ra-quill-ink');
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
+        prepScriptDeny(
+          prep,
+          prep.script.hintSix || 'Field the marked card - this gate is scripted'
+        );
         flashNode('prep-player-note');
         return;
       }
@@ -1659,6 +1941,7 @@
       else prep.back.splice(prep.back.indexOf(id), 1);
     } else {
       if (all.length >= RULES().FIELD_SIZE) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
         flashNode('prep-player-note');
         return;
       }
@@ -1669,6 +1952,7 @@
       else if (prep.front.length < 3) prep.front.push(id);
       else return;
     }
+    if (window.EOL.audio) window.EOL.audio.card(idx >= 0 ? 'remove' : 'place');
     syncSixChips();
     renderField();
     updatePrepChrome();
@@ -1703,13 +1987,13 @@
             pair[2] +
             (s + 1) +
             '</span>' +
-            '<i class="fs-glyph ra ' +
+            '<i data-icon-domain="game" class="fs-glyph ra ' +
             e.card.icon +
             '"></i>' +
             '<span class="fs-name">' +
             esc(e.card.name) +
             '</span>' +
-            '<span class="fs-role"><i class="ra ' +
+            '<span class="fs-role"><i data-icon-domain="game" class="ra ' +
             roleIc(e.card.role) +
             '"></i>' +
             esc(e.card.role) +
@@ -1742,8 +2026,8 @@
   function swapRow(id, from) {
     /* THE SCRIPT (gate I): the ledger set the rows; the match line
        depends on them. */
-    if (prep && prep.script && prep.script.six) {
-      toast('The ledger set the rows - they stand', 'ra-quill-ink');
+    if (prep && campaignTutorialsEnabled(prep) && prep.script && prep.script.six) {
+      toast('The ledger set the rows - they stand', 'ri-quill-pen-line');
       flashNode('prep-sub');
       return;
     }
@@ -1803,6 +2087,7 @@
     {
       prep.revealed = true;
       renderPrep();
+      if (window.EOL.audio) window.EOL.audio.card('reveal');
       $('prep-sub').textContent = 'Bans locked - both sides revealed';
       toast('Bans locked - both sides revealed', 'ri-eye-line');
       // stamped, seen, then their side folds away for the fielding.
@@ -1818,9 +2103,10 @@
          only appears once the player dismisses it, or immediately if the
          reveal is unavailable. Otherwise the two modals stack. */
       var afterReveal = function () {
+        if (!campaignTutorialsEnabled(prep)) return;
         coachShow(
           'prep-pick',
-          'ra-crossed-swords',
+          'ri-team-line',
           'Phase 2: Field Your Six',
           'Pick 6 of your surviving legends and mind the formation: the front row soaks the ' +
             'hits while the back row supports. Tap a slotted legend to swap its row.'
@@ -1952,7 +2238,7 @@
       enemySix =
         setState && setState.lastBotIds.length
           ? setBotSix(survive, predictedSix)
-          : chooseSix(survive, predictedSix, mustKeep);
+          : chooseSix(survive, predictedSix, mustKeep, prep.aiProfile);
     }
     if (setState) {
       /* heroes leaving the six become locked out for the rest of the
@@ -1996,12 +2282,18 @@
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     };
-    var match = cfg.script && cfg.script.match ? cfg.script.match : null;
+    var match =
+      campaignTutorialsEnabled(cfg) && cfg.script && cfg.script.match ? cfg.script.match : null;
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
       field: cfg.field,
+      mode: cfg.mode,
+      war: setState ? 'unabridged' : 'single',
       campaignStage: cfg.campaignStage,
+      campaignDifficulty: cfg.campaignDifficulty || null,
+      enemyStatBonus: cfg.enemyStatBonus || 0,
       rival: cfg.rival || null,
+      aiProfiles: cfg.aiProfile ? { enemy: cfg.aiProfile } : null,
       rng: match ? mulberry(match.seed | 0) : null,
       moveScript: match ? match.moves : null,
       oddFirst: cfg.oddFirst || null,
@@ -2056,6 +2348,8 @@
       teams: { player: playerSix, enemy: enemySix },
       enemyFormed: true,
       field: cfg.field,
+      mode: cfg.mode,
+      war: 'single',
       /* One shared luck stream. Offset from the draft seed so the
          battle does not replay the pack shuffle's numbers. */
       rng: NP.rngFrom((cfg.seed | 0) + 0x5f37),
@@ -2207,7 +2501,7 @@
     if (m.mode === 'classic') {
       var myDeck = toEntries((st.decks || {})[st.mySlot]);
       var foeDeck = toEntries((st.decks || {})[st.foeSlot]);
-      if (myDeck.length !== 12 || foeDeck.length !== 12) return false;
+      if (!RULES().isLegal(myDeck) || !RULES().isLegal(foeDeck)) return false;
       window.EOL.netplay.begin(m);
       startPrep({
         mode: 'classic',
@@ -2354,12 +2648,12 @@
     var subEl = document.querySelector('.dm-sub');
     if (isCampaign) {
       if (titleEl) titleEl.textContent = opts.title || 'Choose your deck';
-      if (subEl)
-        subEl.textContent = opts.sub || 'Select your squad of 12 for the battle ahead.';
+      if (subEl) subEl.textContent = opts.sub || 'Select your squad of 12 for the battle ahead.';
     } else {
       if (titleEl) titleEl.textContent = 'Choose your deck';
       if (subEl)
-        subEl.textContent = 'The enemy builds a squad of 12 - max 4 of a role, like yours.';
+        subEl.textContent =
+          'The enemy builds a squad of 12 - max 4 of a role and max 2 Legendaries, like yours.';
     }
 
     var host = $('dm-list');
@@ -2413,7 +2707,12 @@
           '<span class="dm-meta">' +
           d.ids.length +
           '/12 legends' +
-          (ok ? '' : ' - needs 12 to battle (edit it)') +
+          (ok
+            ? ''
+            : d.ids.length === RULES().DECK_SIZE &&
+                RULES().legendaryCount(window.EOL.decks.entriesOf(d)) > RULES().MAX_LEGENDARIES
+              ? ' - max 2 Legendaries (edit it)'
+              : ' - needs a legal 12 to battle (edit it)') +
           '</span></span>' +
           (ok ? '<i class="dm-go ri-arrow-right-line"></i>' : '');
         if (ok)
@@ -2518,6 +2817,7 @@
        in multiplayer only the host does, so the guest must start locked
        and waiting or both players would pick from the same pack. */
     draft.busy = packStarter(0) === 'foe';
+    if (window.EOL.audio) window.EOL.audio.card('shuffle');
     renderPack();
     renderDraftHead();
     /* Repaint both squad strips from the NEW (empty) picks. Without this the
@@ -2526,13 +2826,15 @@
     paintPiles(null);
     window.EOL.ui.show('draft');
     if (draft.busy) foeOpens();
-    coachShow(
-      'draft',
-      'ra-clovers-card',
-      'The Snake Draft',
-      'Packs of three, 12 packs. You open the odd packs, the enemy opens the even ones. ' +
-        'One pick each per pack, the third card burns - both squads build to 12, then preparation begins.'
-    );
+    if (campaignTutorialsEnabled(draftCampaign)) {
+      coachShow(
+        'draft',
+        'ri-shuffle-line',
+        'The Snake Draft',
+        'Packs of three, 12 packs. You open the odd packs, the enemy opens the even ones. ' +
+          'One pick each per pack, the third card burns - both squads build to 12, then preparation begins.'
+      );
+    }
   }
 
   /* header text + order chips - cheap enough to refresh on every beat */
@@ -2573,7 +2875,7 @@
       var wrap = document.createElement('div');
       wrap.className = 'dpack-card';
       wrap.style.animationDelay = i * 90 + 'ms';
-      var card = window.EOL.ui.buildCard(e.card, e.faction, i);
+      var card = window.EOL.ui.buildCard(e.card, e.faction, i, { markUnowned: false });
       var hint = card.querySelector('.hint-txt');
       if (hint) hint.textContent = 'draft this legend';
       wrap.appendChild(card);
@@ -2582,6 +2884,7 @@
       });
       e._wrap = wrap;
       packHost.appendChild(wrap);
+      if (window.EOL.audio) window.EOL.audio.card('deal', { delay: i * 90, pan: (i - 1) * 0.24 });
     });
     updateCaps();
   }
@@ -2609,6 +2912,7 @@
     stamp.className = 'dtake';
     stamp.textContent = who === 'you' ? 'Yours' : 'Enemy';
     e._wrap.appendChild(stamp);
+    if (window.EOL.audio) window.EOL.audio.card('pick', { pan: who === 'you' ? -0.28 : 0.28 });
   }
 
   /* the leftover third of a pack burns away before the next deal */
@@ -2618,6 +2922,7 @@
       e._wrap.classList.add('burnout');
       e._wrap.classList.remove('capped');
     }
+    if (window.EOL.audio) window.EOL.audio.card('burn');
   }
 
   /* Both squads fill in live - freshSide's newest pip is the only one
@@ -2637,7 +2942,7 @@
           e.card.rarity +
           (cfg[3] === freshSide && idx === cfg[2].length - 1 ? ' fresh' : '');
         pip.title = e.card.name;
-        pip.innerHTML = '<i class="ra ' + e.card.icon + '"></i>';
+        pip.innerHTML = '<i data-icon-domain="game" class="ra ' + e.card.icon + '"></i>';
         pip.addEventListener('mouseenter', function () {
           showDraftTip(e, pip);
         });
@@ -2668,6 +2973,7 @@
     if (!d || d.busy || e._taken) return;
     if (RULES().capBlocked(d.picks.you, e.card)) {
       if (anyLegalForYou(d)) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
         flashNode('draft-sub');
         return;
       }
@@ -2815,8 +3121,11 @@
             ? camp.field || null
             : null,
         campaignStage: camp ? camp.stage : null,
+        campaignDifficulty: camp ? camp.difficulty || null : null,
+        enemyStatBonus: camp ? camp.enemyStatBonus || 0 : 0,
         botBanProfile: camp ? camp.banProfile : null,
         banTell: camp ? camp.banTell || null : null,
+        aiProfile: camp ? camp.aiProfile || null : null,
         rival: camp ? camp.rival : null,
         war: camp ? 'single' : null,
       });
@@ -2942,7 +3251,10 @@
       /* CAMPAIGN carry: the set spans three preps, so everything the
          later games need survives here. */
       campaignStage: cfg.campaignStage || null,
+      campaignDifficulty: cfg.campaignDifficulty || null,
+      enemyStatBonus: cfg.enemyStatBonus || 0,
       rival: cfg.rival || null,
+      aiProfile: cfg.aiProfile || null,
       pinnedEnemy: cfg.pinnedEnemy ? cfg.pinnedEnemy.slice() : [],
       unbannable: cfg.unbannable ? cfg.unbannable.slice() : [],
       pending: null, // 'sideboard' | 'over' after a game ends
@@ -2977,7 +3289,7 @@
       '<span class="setm-slot">' +
       esc(slotLabel) +
       '</span>' +
-      '<span class="setm-stamp" aria-hidden="true"><i class="ra ra-crossed-swords"></i>CALLED</span>' +
+      '<span class="setm-stamp" aria-hidden="true"><i data-icon-domain="game" class="ra ra-crossed-swords"></i>CALLED</span>' +
       '</div>' +
       '<div class="setm-body">' +
       '<span class="setm-name">' +
@@ -3005,7 +3317,7 @@
     var t = $('set-fightcard-title');
     if (t)
       t.innerHTML =
-        '<i class="ra ' +
+        '<i data-icon-domain="game" class="ra ' +
         icon +
         '" aria-hidden="true"></i> ' +
         text +
@@ -3312,7 +3624,7 @@
         return pinnedIds.indexOf(e.card.id) >= 0;
       });
     };
-    var chosen = chooseSix(survive, forecast, pinnedIds);
+    var chosen = chooseSix(survive, forecast, pinnedIds, setState && setState.aiProfile);
     var old = setState.lastBotIds || [];
     if (!old.length) return chosen;
     var fresh = chosen.filter(function (e) {
@@ -3333,7 +3645,12 @@
     });
     /* score bench heroes, best first */
     bench.sort(function (a, b) {
-      return ai.value(chosen, b, { size: 6 }) - ai.value(chosen, a, { size: 6 });
+      return (
+        ai.value(chosen, b, { size: 6 }) +
+        fieldPersonaBonus(setState && setState.aiProfile, b) -
+        ai.value(chosen, a, { size: 6 }) -
+        fieldPersonaBonus(setState && setState.aiProfile, a)
+      );
     });
     var need = fresh < 1 ? 1 : 2 - fresh;
     /* rebuild the six from the old public six + exactly `need` swaps,
@@ -3352,12 +3669,17 @@
       droppable
         .slice()
         .sort(function (a, b) {
-          return ai.value(base, a, { size: 6 }) - ai.value(base, b, { size: 6 });
+          return (
+            ai.value(base, a, { size: 6 }) +
+            fieldPersonaBonus(setState && setState.aiProfile, a) -
+            ai.value(base, b, { size: 6 }) -
+            fieldPersonaBonus(setState && setState.aiProfile, b)
+          );
         })
         .slice(need)
     );
     var pool = half.concat(bench.slice(0, need * 2));
-    oldKeep = chooseSix(pool, forecast, pinnedIds);
+    oldKeep = chooseSix(pool, forecast, pinnedIds, setState && setState.aiProfile);
     return oldKeep;
   }
 
@@ -3473,8 +3795,12 @@
       /* CAMPAIGN carry-through: games 2 and 3 keep the rival's face on
          the HUD, the boss pinned, and the stage id on the battle. */
       campaignStage: setState.campaignStage || null,
+      campaignDifficulty: setState.campaignDifficulty || null,
+      enemyStatBonus: setState.enemyStatBonus || 0,
       rival: setState.rival || null,
-      pinnedEnemy: setState.pinnedEnemy && setState.pinnedEnemy.length ? setState.pinnedEnemy : null,
+      aiProfile: setState.aiProfile || null,
+      pinnedEnemy:
+        setState.pinnedEnemy && setState.pinnedEnemy.length ? setState.pinnedEnemy : null,
       unbannable: setState.unbannable && setState.unbannable.length ? setState.unbannable : null,
       botBans: setState.botBans.slice(),
       youBans: setState.youBans.slice(),
@@ -3524,6 +3850,165 @@
     if (s2 && sub != null) s2.textContent = sub;
   }
 
+  /* ---------------------------------------------------------
+     MODE CAROUSELS
+     -------------------------------------------------------------
+     The mode select is a pair of horizontal, snap-centred carousels
+     instead of a wall of cards. Arrows, dots, swipe/trackpad scrolling,
+     focus, and Left/Right keys all drive the same selected slide. */
+  var modeCarousels = [];
+
+  function carouselCards(shell) {
+    return shell
+      ? Array.prototype.slice.call(shell.querySelectorAll('.mode-grid > .mode-card'))
+      : [];
+  }
+
+  function carouselTitle(card) {
+    var name = card && card.querySelector('.mode-name');
+    return name ? name.textContent.trim() : 'Mode';
+  }
+
+  function carouselLabel(card) {
+    return carouselTitle(card) + (card && card.classList.contains('soon') ? ', coming soon' : '');
+  }
+
+  function paintModeCarousel(shell, index) {
+    if (!shell) return;
+    var cards = carouselCards(shell);
+    if (!cards.length) return;
+    index = Math.max(0, Math.min(cards.length - 1, index | 0));
+    shell.dataset.carouselIndex = String(index);
+    cards.forEach(function (card, i) {
+      var current = i === index;
+      card.classList.toggle('carousel-current', current);
+      card.setAttribute('aria-roledescription', 'slide');
+      card.setAttribute(
+        'aria-label',
+        carouselLabel(card) + ', ' + (i + 1) + ' of ' + cards.length
+      );
+    });
+    var dots = shell.querySelectorAll('[data-carousel-dots] > button');
+    Array.prototype.forEach.call(dots, function (dot, i) {
+      dot.classList.toggle('sel', i === index);
+      dot.setAttribute('aria-current', i === index ? 'true' : 'false');
+    });
+    var prev = shell.querySelector('[data-carousel-prev]');
+    var next = shell.querySelector('[data-carousel-next]');
+    if (prev) prev.disabled = index <= 0;
+    if (next) next.disabled = index >= cards.length - 1;
+    var status = shell.querySelector('[data-carousel-status]');
+    if (status)
+      status.textContent = carouselTitle(cards[index]) + ' · ' + (index + 1) + ' / ' + cards.length;
+  }
+
+  function showModeCard(card, instant, focusCard) {
+    if (!card) return;
+    var shell = card.closest ? card.closest('[data-mode-carousel]') : null;
+    if (!shell) return;
+    var track = shell.querySelector('.mode-grid');
+    var cards = carouselCards(shell);
+    var index = cards.indexOf(card);
+    if (!track || index < 0) return;
+    var left = Math.max(0, card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2);
+    if (typeof track.scrollTo === 'function') {
+      track.scrollTo({ left: left, behavior: instant ? 'auto' : 'smooth' });
+    } else {
+      track.scrollLeft = left;
+    }
+    paintModeCarousel(shell, index);
+    if (focusCard && card.focus) card.focus({ preventScroll: true });
+  }
+
+  function syncModeCarousel(shell) {
+    if (!shell || shell.hidden) return;
+    var track = shell.querySelector('.mode-grid');
+    var cards = carouselCards(shell);
+    if (!track || !cards.length) return;
+    var centre = track.scrollLeft + track.clientWidth / 2;
+    var best = 0;
+    var distance = Infinity;
+    cards.forEach(function (card, i) {
+      var d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - centre);
+      if (d < distance) {
+        distance = d;
+        best = i;
+      }
+    });
+    paintModeCarousel(shell, best);
+  }
+
+  function refreshModeCarousel(shell) {
+    if (!shell || shell.hidden) return;
+    var cards = carouselCards(shell);
+    var index = Number(shell.dataset.carouselIndex || 0);
+    if (cards[index]) showModeCard(cards[index], true, false);
+  }
+
+  function initModeCarousels() {
+    document.querySelectorAll('[data-mode-carousel]').forEach(function (shell) {
+      if (shell.dataset.carouselReady === '1') return;
+      shell.dataset.carouselReady = '1';
+      modeCarousels.push(shell);
+      var cards = carouselCards(shell);
+      var dots = shell.querySelector('[data-carousel-dots]');
+      if (!cards.length) return;
+
+      cards.forEach(function (card, i) {
+        if (dots) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.setAttribute('aria-label', 'Show ' + carouselLabel(card));
+          dot.addEventListener('click', function () {
+            showModeCard(card, false, true);
+          });
+          dots.appendChild(dot);
+        }
+        card.addEventListener('focus', function () {
+          if (!card.classList.contains('carousel-current')) {
+            showModeCard(card, true, false);
+          }
+        });
+      });
+
+      var prev = shell.querySelector('[data-carousel-prev]');
+      var next = shell.querySelector('[data-carousel-next]');
+      function step(delta) {
+        var index = Number(shell.dataset.carouselIndex || 0) + delta;
+        index = Math.max(0, Math.min(cards.length - 1, index));
+        showModeCard(cards[index], false, true);
+      }
+      if (prev) prev.addEventListener('click', function () { step(-1); });
+      if (next) next.addEventListener('click', function () { step(1); });
+
+      var track = shell.querySelector('.mode-grid');
+      var scrollRaf = 0;
+      if (track) {
+        track.addEventListener('scroll', function () {
+          if (scrollRaf) cancelAnimationFrame(scrollRaf);
+          scrollRaf = requestAnimationFrame(function () {
+            scrollRaf = 0;
+            syncModeCarousel(shell);
+          });
+        });
+        track.addEventListener('keydown', function (e) {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          e.preventDefault();
+          step(e.key === 'ArrowLeft' ? -1 : 1);
+        });
+      }
+      paintModeCarousel(shell, 0);
+    });
+
+    window.addEventListener('resize', function () {
+      modeCarousels.forEach(refreshModeCarousel);
+    });
+    document.addEventListener('eol:view', function (ev) {
+      if (ev.detail !== 'play') return;
+      modeCarousels.forEach(refreshModeCarousel);
+    });
+  }
+
   /* Park the sliding highlight exactly over the selected tab.
      The two tabs are different widths (Multiplayer carries the
      "account" badge, which vanishes on sign-in), so the thumb is
@@ -3565,20 +4050,28 @@
          side with a small card stagger. gfx-low swaps instantly. */
       var showEl = which === 'solo' ? solo : mp,
         hideEl = which === 'solo' ? mp : solo,
+        showShell = showEl.closest ? showEl.closest('[data-mode-carousel]') : null,
+        hideShell = hideEl.closest ? hideEl.closest('[data-mode-carousel]') : null,
         dir = which === 'mp' ? '' : '-r';
       clearTimeout(gridAnimT);
       solo.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
       mp.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
       if (document.body.dataset.gfx === 'low' || hideEl.hidden || hideEl === showEl) {
         hideEl.hidden = true;
+        if (hideShell) hideShell.hidden = true;
+        if (showShell) showShell.hidden = false;
         showEl.hidden = false;
+        refreshModeCarousel(showShell);
         return;
       }
       hideEl.classList.add('mg-out' + dir);
       gridAnimT = setTimeout(function () {
         hideEl.hidden = true;
+        if (hideShell) hideShell.hidden = true;
         hideEl.classList.remove('mg-out' + dir);
+        if (showShell) showShell.hidden = false;
         showEl.hidden = false;
+        refreshModeCarousel(showShell);
         showEl.classList.add('mg-in' + dir);
         gridAnimT = setTimeout(function () {
           showEl.classList.remove('mg-in' + dir);
@@ -3620,6 +4113,9 @@
       }
       mpQueueMode = mode;
       mpDeckId = deckId || null;
+      if (window.EOL.telemetry && window.EOL.telemetry.track) {
+        window.EOL.telemetry.track('multiplayer_queue_started', { mode: mode });
+      }
       mmShow(true);
       mmSay('Finding an opponent', 'Searching the queue...');
       var vs = $('mm-vs');
@@ -3672,6 +4168,12 @@
     });
 
     MP.on('matched', function (m) {
+      if (window.EOL.telemetry && window.EOL.telemetry.track) {
+        window.EOL.telemetry.track('multiplayer_match_found', {
+          mode: m.mode || mpQueueMode || 'unknown',
+          resumed: !!m.resumed,
+        });
+      }
       /* REJOINING AN IN-PROGRESS MATCH.
          Draft picks, bans and formations are now persisted, so a
          reconnect can rebuild the board rather than concede it.
@@ -3717,8 +4219,8 @@
               return dict[id];
             })
             .filter(Boolean);
-          if (foe12.length !== RULES().DECK_SIZE) {
-            toast('The opponent sent an unreadable deck', 'ri-error-warning-line');
+          if (foe12.length !== RULES().DECK_SIZE || !RULES().isLegal(foe12)) {
+            toast('The opponent sent an illegal deck', 'ri-error-warning-line');
             leaveMatch();
             return;
           }
@@ -3781,6 +4283,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     initQuitGuard();
+    initModeCarousels();
     initMultiplayer();
     /* Rate the roster while the player is still on the menu.
        -------------------------------------------------------------
@@ -3902,8 +4405,9 @@
     var pf = $('prep-fields');
     if (pf)
       pf.addEventListener('click', function () {
+        if (!prep || prep.phase !== 'pick') return;
         if (setState && showFightCardViewer()) return;
-        if (prep && prep.field) revealBattlefield(prep.field, null);
+        if (prep.field) revealBattlefield(prep.field, null);
       });
 
     var ck = $('coach-ok');
@@ -3949,6 +4453,7 @@
     rematch: rematch,
     openClassicModal: openClassicModal,
     startDraft: startDraft,
+    showModeCard: showModeCard,
     /* the status toast host - EOL.ui.toast delegates here (app.js was
        exporting the bare identifier `toast`, which in a browser is the
        #toast DIV via id-globals: a function-shaped landmine found
@@ -3977,12 +4482,15 @@
        same little battle card, the same hover panel, rebound onto the
        ledger's own flyout instance (cloning drops the prep-tip hover). */
     tileFor: function (entry, tipEl) {
-      var wrap = boardCard(entry, 0, 'foe');
+      /* Ledger and reward tiles describe the collectible card itself, not
+         a currently selected campaign rival, so they deliberately stay at
+         printed base stats even if a Preparation state still exists. */
+      var wrap = boardCard(entry, 0, 'ledger');
       if (!tipEl) return wrap;
       var tile = wrap.cloneNode(true);
       tile.style.animationDelay = '';
       tile.addEventListener('mouseenter', function () {
-        showPrepTip(entry, 'foe', tile, tipEl);
+        showPrepTip(entry, 'ledger', tile, tipEl);
       });
       tile.addEventListener('mouseleave', function () {
         hidePrepTip(tipEl);
@@ -3992,7 +4500,9 @@
     fitTileNames: fitPrepNames,
     /* test hooks */
     _chooseBans: chooseBans,
+    _personaBans: personaBans,
     _chooseSix: chooseSix,
+    _fieldPersonaBonus: fieldPersonaBonus,
     _draftPick: draftPick,
     _prepState: function () {
       return prep;

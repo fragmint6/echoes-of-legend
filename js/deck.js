@@ -1,7 +1,8 @@
 /* =============================================================
    Echoes of Legend - Deck Manager & Deck Editor
    -------------------------------------------------------------
-   Decks are saved squads of TWELVE heroes (max 4 per role). They
+   Decks are saved squads of TWELVE heroes (max 4 per role, max 2
+   Legendaries). They
    live in the Collection's Decks tab; the editor is this screen's
    re-skinned grid (intentionally identical to the Collection, plus
    the deck tray on top). Formation is no longer chosen here: at
@@ -318,15 +319,28 @@
     /* THE ECONOMY: a deck holds only what you OWN. Drafts stay
        whole-roster by design; construction does not. */
     if (window.EOL.econ && !window.EOL.econ.owns(id)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn('Not in your collection yet - the Shop and the Road pay in legends.');
       return false;
     }
     if (count() >= DECK_SIZE) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn('Deck is full - remove a legend first.');
       return false;
     }
     var cand = byId()[id].card;
-    if (window.EOL.deckRules.capBlocked(entriesOf(editing), cand)) {
+    var currentEntries = entriesOf(editing);
+    if (window.EOL.deckRules.legendaryCapBlocked(currentEntries, cand)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
+      hintWarn(
+        'Max ' +
+          window.EOL.deckRules.MAX_LEGENDARIES +
+          ' Legendaries in Classic and Unabridged decks.'
+      );
+      return false;
+    }
+    if (window.EOL.deckRules.capBlocked(currentEntries, cand)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       hintWarn(
         'Max ' +
           MAX_PER_ROLE +
@@ -340,6 +354,7 @@
     }
     editing.ids.push(id);
     editing.ts = Date.now();
+    if (window.EOL.audio) window.EOL.audio.card('place');
     save();
     render();
     return true;
@@ -351,6 +366,7 @@
     if (i < 0) return false;
     editing.ids.splice(i, 1);
     editing.ts = Date.now();
+    if (window.EOL.audio) window.EOL.audio.card('remove');
     save();
     render();
     return true;
@@ -463,7 +479,7 @@
       .sort()
       .map(function (r) {
         return (
-          '<span class="dc-role"><i class="ra ' +
+          '<span class="dc-role"><i data-icon-domain="game" class="ra ' +
           (icons[r] || 'ra-player') +
           '"></i>' +
           cnt[r] +
@@ -491,7 +507,7 @@
             '" title="' +
             esc(e.card.name) +
             '">' +
-            '<i class="ra ' +
+            '<i data-icon-domain="game" class="ra ' +
             e.card.icon +
             '"></i></span>'
           );
@@ -564,13 +580,13 @@
           '<span class="ds-order">' +
           (slot + 1) +
           '</span>' +
-          '<i class="ds-glyph ra ' +
+          '<i data-icon-domain="game" class="ds-glyph ra ' +
           e.card.icon +
           '"></i>' +
           '<span class="ds-name">' +
           esc(e.card.name) +
           '</span>' +
-          '<span class="ds-role"><i class="ra ' +
+          '<span class="ds-role"><i data-icon-domain="game" class="ra ' +
           (window.EOL.ui.ROLE_ICON[e.card.role] || 'ra-player') +
           '"></i>' +
           esc(e.card.role) +
@@ -760,18 +776,29 @@
     var grid = $('deck-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    /* Deck construction is an ownership task, so the usable part of the
+       collection always comes first. Alphabetical order remains stable
+       inside the owned and unowned halves. */
+    var econ = window.EOL.econ;
     var sorted = roster()
       .slice()
       .sort(function (a, b) {
+        if (econ) {
+          var ownedDelta = (econ.owns(b.card.id) ? 1 : 0) - (econ.owns(a.card.id) ? 1 : 0);
+          if (ownedDelta) return ownedDelta;
+        }
         return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
       });
     sorted.forEach(function (e, i) {
-      var el = window.EOL.ui.buildCard(e.card, e.faction, i);
+      var el = window.EOL.ui.buildCard(e.card, e.faction, i, { markUnowned: true });
       /* No +/x button. Clicking the card already adds or removes it, so
          the badge was a second control for the same action sitting on
          top of the art. */
       el.addEventListener('click', function () {
-        if (window.matchMedia('(hover: none)').matches) return; // tap = details
+        if (window.matchMedia('(hover: none)').matches) {
+          if (window.EOL.audio) window.EOL.audio.card('pick');
+          return; // tap = details
+        }
         toggle(e.card.id);
       });
       grid.appendChild(el);
@@ -784,6 +811,14 @@
     buildGrid();
     load();
     render();
+    /* A campaign reward or pack can change ownership without reloading
+       the page. Rebuild so the newly owned card moves into the leading
+       group immediately, while preserving the active filters and deck. */
+    document.addEventListener('eol:owned', function () {
+      buildGrid();
+      render();
+      applyGridFilter();
+    });
 
     var tabH = $('ctab-heroes'),
       tabD = $('ctab-decks');

@@ -30,10 +30,19 @@
      multiplayer battle is the same battle, with a different source of
      enemy decisions. No second engine, no second loop. */
   var netCtl = null;
+  /* endBattle can be reached by the normal turn loop and an asynchronous
+     remote-forfeit notification in the same tick. Keep the result path
+     exactly-once. */
+  var endingBattle = false;
   /* CAMPAIGN rival identity for this battle ({name, img} or null).
      Set fresh on every start(); paints the enemy commander plate and
      anchors the in-battle rival dialogue (js/campaign.js). */
   var rivalInfo = null;
+  /* Coarse, privacy-safe match context for the playtest funnel and the
+     optional diagnostics attached to feedback. Never contains card ids,
+     actions, callsigns or the deterministic seed. */
+  var measurementContext = null;
+  var measurementComplete = false;
 
   /* =============================================================
      THE SCRIPTED MATCH (campaign gate I)
@@ -55,6 +64,18 @@
      battle - a stuck tutorial is worse than an unscripted one.
      ============================================================= */
   var moveScript = null; // { moves: [...], i: 0 }
+
+  /* Campaign teaching is a Normal-only layer. Keep the difficulty law in
+     campaign.js, but defend every battle-side entry point as well so a
+     stale/retried config can never paint marks or replay instructions on
+     Heroic or Legend. */
+  function campaignTutorialsEnabled(source) {
+    if (!source || !source.campaignStage) return true;
+    if (window.EOL.campaign && window.EOL.campaign.tutorialsEnabled) {
+      return window.EOL.campaign.tutorialsEnabled(source);
+    }
+    return !source.campaignDifficulty || source.campaignDifficulty === 'normal';
+  }
 
   function scriptActive() {
     return !!(moveScript && B && !B.over && moveScript.i < moveScript.moves.length);
@@ -131,7 +152,14 @@
     var et = $('btn-endturn');
     if (et) et.classList.remove('tutor-pick');
     var mv = scriptMove();
-    if (!mv || mv.side !== 'player' || !B || B.turn !== 'player') return;
+    if (
+      !mv ||
+      mv.side !== 'player' ||
+      !B ||
+      B.turn !== 'player' ||
+      !campaignTutorialsEnabled(B)
+    )
+      return;
     var markUid = function (uid) {
       var el = document.querySelector('.bcard[data-uid="' + uid + '"]');
       if (el) el.classList.add('tutor-pick');
@@ -496,7 +524,7 @@
         var pop =
           '<span class="st-pop">' +
           '<span class="stp-head">' +
-          '<i class="ra ' +
+          '<i data-icon-domain="game" class="ra ' +
           st.icon +
           '"></i>' +
           '<b>' +
@@ -515,7 +543,7 @@
           '"' +
           (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
           ' tabindex="0">' +
-          '<i class="ra ' +
+          '<i data-icon-domain="game" class="ra ' +
           st.icon +
           '"></i>' +
           (st.count > 1 ? '<b class="st-n">' + st.count + '</b>' : '') +
@@ -533,7 +561,7 @@
       '' +
       '<div class="bstats">' +
       '<div class="bhp">' +
-      '<i class="ra ra-health bhp-ico"></i>' +
+      '<i data-icon-domain="game" class="ra ra-health bhp-ico"></i>' +
       '<span class="bbar">' +
       '<span class="bbar-fill" style="width:' +
       pct +
@@ -552,13 +580,13 @@
       '<span class="bnum' +
       (atkDelta > 0 ? ' up' : atkDelta < 0 ? ' down' : '') +
       '">' +
-      '<i class="ra ra-sword"></i>' +
+      '<i data-icon-domain="game" class="ra ra-sword"></i>' +
       atk +
       '</span>' +
       '<span class="bnum' +
       (defDelta > 0 ? ' up' : defDelta < 0 ? ' down' : '') +
       '">' +
-      '<i class="ra ra-shield"></i>' +
+      '<i data-icon-domain="game" class="ra ra-shield"></i>' +
       def +
       '%</span>' +
       '</div>' +
@@ -575,7 +603,7 @@
         ? '<div class="bart-portrait"><img src="' +
           esc(u.card.art) +
           '" alt="" draggable="false" /></div>'
-        : '<i class="ra ' + u.card.icon + '"></i>') +
+        : '<i data-icon-domain="game" class="ra ' + u.card.icon + '"></i>') +
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
@@ -585,7 +613,7 @@
       '<span class="borb" title="' +
       esc(u.element) +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       (ELEMENT_ICON[u.element] || 'ra-player') +
       '"></i></span>' +
       '</div>' +
@@ -593,7 +621,7 @@
       chips +
       '</div>' +
       '<div class="bcard-foot">' +
-      '<div class="bcard-role"><i class="ra ' +
+      '<div class="bcard-role"><i data-icon-domain="game" class="ra ' +
       (ROLE_ICON[u.role] || 'ra-player') +
       '"></i>' +
       esc(u.role) +
@@ -677,7 +705,9 @@
         esc(a.name) +
         '</span>' +
         (a.type === 'Active'
-          ? '<span class="tip-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>'
+          ? '<span class="tip-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+            cost +
+            '</span>'
           : '') +
         '</div>' +
         '<div class="tip-ab-text">' +
@@ -899,7 +929,7 @@
       if (sp.dataset.k !== sk) {
         sp.dataset.k = sk;
         sp.innerHTML =
-          '<i class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
+          '<i data-icon-domain="game" class="ra ra-scroll-unfurled"></i><span>UNABRIDGED G' +
           setInfo.game +
           '/3 - </span><b>' +
           setInfo.you +
@@ -971,7 +1001,10 @@
       /* rects are screen-scale px under GUI scale; --cardw is a layout
          value, so convert down first */
       var artH = Math.max(40, (rowH - statsH) / uiS() - gap);
-      grid.style.setProperty('--cardw', Math.floor((artH * 250) / 355) + 'px');
+      /* Keep a little vertical breathing room, but use more of each board
+         socket than the old 250/355 portrait ratio. The rendered battle
+         tile is 5:6, so 270/355 remains safely inside the available row. */
+      grid.style.setProperty('--cardw', Math.floor((artH * 270) / 355) + 'px');
     });
     fitNames();
   }
@@ -1186,9 +1219,9 @@
               var lethal = pv.dmg >= u.hp + u.shield;
               chip.classList.toggle('lethal', lethal);
               chip.innerHTML =
-                '<i class="ra ra-sword"></i>' +
+                '<i data-icon-domain="game" class="ra ra-sword"></i>' +
                 pv.dmg.toLocaleString() +
-                (lethal ? '<i class="ra ra-skull dp-skull"></i>' : '');
+                (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
               chip.title =
                 'Estimated damage (before crits). Crit chance ' +
                 pv.critChance +
@@ -1244,9 +1277,11 @@
             var chip = document.createElement('span');
             chip.className = 'dmg-preview' + (pv.dmg >= t.hp + t.shield ? ' lethal' : '');
             chip.innerHTML =
-              '<i class="ra ra-sword"></i>' +
+              '<i data-icon-domain="game" class="ra ra-sword"></i>' +
               pv.dmg.toLocaleString() +
-              (pv.dmg >= t.hp + t.shield ? '<i class="ra ra-skull dp-skull"></i>' : '');
+              (pv.dmg >= t.hp + t.shield
+                ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>'
+                : '');
             el.appendChild(chip);
           }
         }
@@ -1360,7 +1395,9 @@
           '"><i class="ri-lock-fill"></i></span>'
         : '') +
       (isActive && !lockedPhase
-        ? '<span class="dk-cost"><i class="ra ra-lightning-bolt"></i>' + cost + '</span>'
+        ? '<span class="dk-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+          cost +
+          '</span>'
         : '') +
       '</div>' +
       '<div class="dk-ab-text">' +
@@ -1512,12 +1549,12 @@
             '"' +
             (sdef.color ? ' style="--sc:' + sdef.color + '"' : '') +
             ' tabindex="0">' +
-            '<i class="ra ' +
+            '<i data-icon-domain="game" class="ra ' +
             st.icon +
             '"></i>' +
             (st.count > 1 ? '<b class="dk-sn">' + st.count + '</b>' : '') +
             '<span class="dk-spop">' +
-            '<span class="dsp-head"><i class="ra ' +
+            '<span class="dsp-head"><i data-icon-domain="game" class="ra ' +
             st.icon +
             '"></i><b>' +
             esc(st.label) +
@@ -1571,7 +1608,7 @@
       '<div class="dk-stat" style="--sc:' +
       color +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       icon +
       '"></i>' +
       '<span class="dk-stat-k">' +
@@ -1636,7 +1673,7 @@
           (sel.choose === i ? ' sel' : '') +
           '" data-choice="' +
           i +
-          '"><i class="ra ' +
+          '"><i data-icon-domain="game" class="ra ' +
           (c.icon || 'ra-sword') +
           '"></i>' +
           esc(c.label) +
@@ -1654,7 +1691,7 @@
          shaped needs to sit in it. */
       '<div class="dk-portrait" style="--fc-primary:' +
       u.faction.colors.primary +
-      '"><i class="ra ' +
+      '"><i data-icon-domain="game" class="ra ' +
       u.card.icon +
       '"></i></div>' +
       '<div class="dk-id">' +
@@ -1680,7 +1717,7 @@
       statLine(
         'ra-health',
         'HP',
-        Math.ceil(u.hp + u.shield).toLocaleString() + ' / ' + u.maxHp.toLocaleString(),
+        Math.max(0, Math.ceil((u.hp / u.maxHp) * 100)) + '%',
         (u.hp / u.maxHp) * 100,
         '#ff5f7e'
       ) +
@@ -1774,7 +1811,14 @@
         if (sel && sel.ability) return; // a live selection wins
         paintPreview(u, ab, sel ? sel.choose : 0);
       });
-      row.addEventListener('mouseleave', clearPreview);
+      row.addEventListener('mouseleave', function () {
+        /* Clicking a Skill rebuilds the dock. The old hovered row then
+           emits mouseleave; blindly clearing here erased the damage chips
+           paintSelection had just created for the CLICKED selection. A
+           committed selection always wins over the transient hover. */
+        if (sel && sel.ability) paintSelection();
+        else clearPreview();
+      });
     });
     fly.querySelectorAll('.dk-choice').forEach(function (btn) {
       btn.addEventListener('click', function (ev) {
@@ -1844,7 +1888,8 @@
       var wanted = scriptAbilityOf(mvA, u);
       var same =
         u.card.id === mvA.unit &&
-        (ability === wanted || (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
+        (ability === wanted ||
+          (!!ability.basic === !!wanted.basic && ability.name === wanted.name));
       if (!same) {
         scriptDeny('The Recruiter shakes his head - follow the marked move');
         return;
@@ -1889,21 +1934,27 @@
       var pool = E.legalTargets(B, sel.unit, sel.ability);
       var forced = E.forcedTarget(B, sel.unit, sel.ability);
       if (forced) pool = [forced];
-      /* THE SCRIPTED MATCH: the line names the victims. */
+      /* THE SCRIPTED MATCH: the line names the victims. A target that
+         was rules-legal but not the instructed one re-speaks that line;
+         never send this tutorial correction to the easy-to-miss toast. */
       var mvT = scriptMove();
       if (mvT && mvT.side === 'player' && !mvT.pass && mvT.targets) {
+        var rulesLegal = pool.some(function (x) {
+          return x.uid === u.uid;
+        });
         pool = pool.filter(function (x) {
           return mvT.targets.some(function (t) {
             return t.side === x.side && t.id === x.card.id;
           });
         });
         if (
+          rulesLegal &&
           !pool.some(function (x) {
             return x.uid === u.uid;
-          }) &&
-          u.side === 'enemy'
+          })
         ) {
-          toast('The Recruiter taps the marked target');
+          scriptDeny('The Recruiter taps the marked target');
+          return;
         }
       }
       if (
@@ -1952,10 +2003,10 @@
     if (!viewOnly && mvU && mvU.side === 'player') {
       if (mvU.pass) {
         viewOnly = true;
-        toast('The Recruiter points at the Pass button - hoarding is also a move');
+        scriptDeny('The Recruiter points at the Pass button - hoarding is also a move');
       } else if (u.card.id !== mvU.unit) {
         viewOnly = true;
-        toast('The Recruiter points at the marked legend');
+        scriptDeny('The Recruiter points at the marked legend');
       }
     }
     sel = { unit: u, ability: null, needed: 0, chosen: [], choose: 0, view: viewOnly };
@@ -1982,9 +2033,7 @@
        true and scriptMove() would refuse, stranding the final index
        unconsumed. */
     var mvC =
-      moveScript && moveScript.i < moveScript.moves.length
-        ? moveScript.moves[moveScript.i]
-        : null;
+      moveScript && moveScript.i < moveScript.moves.length ? moveScript.moves[moveScript.i] : null;
     if (mvC && mvC.side === 'player' && !mvC.pass && s.unit.card.id === mvC.unit) {
       scriptAdvance();
     }
@@ -2032,7 +2081,12 @@
     if (coin) {
       busy = true;
       document.body.dataset.busy = '1';
-      var coinHold = playCoinFlip(coin.meta.coin);
+      var coinHold = playCoinFlip(
+        coin.meta.coin,
+        coin.meta.coin === 'heads'
+          ? s.unit.name + ' returns to full HP and Energy'
+          : s.unit.name + ' is reduced to 1 HP'
+      );
       setTimeout(function () {
         render();
         var h2 = flashRecent();
@@ -2215,9 +2269,7 @@
          still ticks visually in ranked/solo wars as before. */
       if (
         side === 'player' &&
-        ((window.EOL.coach && window.EOL.coach.open()) ||
-          scriptActive() ||
-          (B && B.campaignStage))
+        ((window.EOL.coach && window.EOL.coach.open()) || scriptActive() || (B && B.campaignStage))
       ) {
         clockEnd = performance.now() + TURN_MS;
         if (num) num.textContent = Math.ceil(TURN_MS / 1000);
@@ -2464,6 +2516,10 @@
   function ponderKick() {
     ponderCancel();
     if (!B || B.over || B.turn !== 'player') return;
+    /* A Daily certificate is authored against the normal full depth-4
+       response. Do not replace that exact opponent with the optional
+       depth-5–8 ponder path or a proven line could change after publish. */
+    if (B.puzzle) return;
     /* THE SCRIPTED MATCH: pondering is parked entirely. bestAction()
        draws a seed from B.rng, and one background search would knock
        the pre-computed line off its dice. */
@@ -2813,6 +2869,7 @@
     cancelAuto();
     clearSel();
     E.passTurn(B, 'player');
+    if (window.EOL.audio) window.EOL.audio.battle('pass');
     /* CAMPAIGN reaction: an UNPROMPTED pass (not the scripted lesson) */
     if (!mvP && B.campaignStage && window.EOL.campaign && window.EOL.campaign.onPlayerAction) {
       try {
@@ -2949,6 +3006,7 @@
 
     if (!act || !act.unit || !act.ability) {
       E.passTurn(B, 'enemy');
+      if (window.EOL.audio) window.EOL.audio.battle('pass');
       cine('ENEMY PASSES', '', 'enemy', 1100, true);
       await sleep(cineMs(700));
     } else {
@@ -2962,7 +3020,13 @@
           if (E.canUse(B, act.unit, basic)) {
             var pool = E.legalTargets(B, act.unit, basic);
             if (pool.length) {
-              act = { unit: act.unit, ability: basic, chosen: [pool[0]], targets: [pool[0]], choose: 0 };
+              act = {
+                unit: act.unit,
+                ability: basic,
+                chosen: [pool[0]],
+                targets: [pool[0]],
+                choose: 0,
+              };
             }
           }
         } else {
@@ -2993,7 +3057,15 @@
       var coin = B.log.slice(mark).filter(function (l) {
         return l.type === 'coin';
       })[0];
-      if (coin) await sleep(playCoinFlip(coin.meta.coin));
+      if (coin)
+        await sleep(
+          playCoinFlip(
+            coin.meta.coin,
+            coin.meta.coin === 'heads'
+              ? act.unit.name + ' returns to full HP and Energy'
+              : act.unit.name + ' is reduced to 1 HP'
+          )
+        );
       render();
 
       await sleep(flashRecent() || 0);
@@ -3146,6 +3218,7 @@
             ? 'ATK ramp begins - +' + Math.round(E.RAMP_STEP * 100) + '% each round'
             : '';
     cine('ROUND ' + B.round, sub, 'round', 2100);
+    if (window.EOL.audio) window.EOL.audio.battle('round', { phase: B.round >= 2 ? 2 : 1 });
   }
 
   function announceTurn(side) {
@@ -3160,6 +3233,7 @@
           ? 'The round is yours'
           : '';
     cine(side === 'player' ? 'YOUR TURN' : 'ENEMY TURN', sub, side, 1000, true);
+    if (window.EOL.audio) window.EOL.audio.battle('turn', { side: side });
   }
 
   /* Let the announcements finish before the bot moves. The think time
@@ -3282,6 +3356,13 @@
   function playCast(uid, element, signature) {
     var a = centreOf(uid);
     if (!a) return;
+    var actor = B && B.uidMap ? B.uidMap[uid] : null;
+    if (window.EOL.audio)
+      window.EOL.audio.battle('cast', {
+        role: actor ? actor.role : null,
+        element: element,
+        signature: !!signature,
+      });
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Physical;
 
     var ring = spawn('fx-cast-ring' + (signature ? ' big' : ''), a.x, a.y, fx.color, 700);
@@ -3289,7 +3370,7 @@
 
     if (signature) {
       var sig = spawn('fx-cast-sigil', a.x, a.y, fx.color, 760);
-      sig.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+      sig.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
     }
 
     // motes gathering inward before the release
@@ -3373,7 +3454,8 @@
   }
 
   /* A critical gets its own sequence: the screen dims, a slashing X
-     tears across the target, then a gold shockwave. */
+     tears across the target, then a gold shockwave. The floating number
+     owns the single, consistent CRITICAL label on every hit path. */
   function playCritImpact(x, y, fx) {
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
@@ -3403,14 +3485,11 @@
     setTimeout(function () {
       bd.classList.remove('shake', 'crit-flash');
     }, 520);
-
-    setTimeout(function () {
-      var word = spawn('fx-crit', x, y - 24, '#ffd050', 1000);
-      word.textContent = 'CRITICAL';
-    }, 420);
   }
 
-  function playImpact(x, y, fx, crit, element) {
+  function playImpact(x, y, fx, crit, element, silentAudio) {
+    if (!silentAudio && window.EOL.audio)
+      window.EOL.audio.battle('impact', { element: element, crit: !!crit });
     if (crit) {
       playCritImpact(x, y, fx);
     }
@@ -3461,6 +3540,7 @@
   function playAoe(srcUid, targetUids, element) {
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Magic;
     var el = element || 'Magic';
+    if (window.EOL.audio) window.EOL.audio.battle('aoe', { element: el, delay: 120 });
     /* AoE DETONATION SUITE v2 (2026-08).
        The old center was two plain rings and a glow at the CASTER -
        playtesters read it as "lanky" because a thin expanding circle
@@ -3561,7 +3641,9 @@
              not as the endpoint of a beam */
           spawn('fx-blast-mini', t.x, t.y, fx.color, 440);
           setTimeout(function () {
-            playImpact(t.x, t.y, fx, false, element);
+            /* The blast has one shared audio detonation; per-victim
+               impacts stay visual so an AoE never becomes six bangs. */
+            playImpact(t.x, t.y, fx, false, element, true);
           }, 170);
         },
         90 + i * 80
@@ -3747,7 +3829,7 @@
           var html = '';
           for (var p = 0; p < 8; p++) {
             html +=
-              '<i class="ra ' +
+              '<i data-icon-domain="game" class="ra ' +
               (p % 2 ? 'ra-leaf' : fx.sigil) +
               '" style="--a:' +
               p * 45 +
@@ -3851,7 +3933,7 @@
         }
         // a glowing rune stamps down over the target
         var st = spawn('fx-rune-stamp', t.x, t.y, fx.color, 620);
-        if (st) st.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+        if (st) st.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
         var col2 = spawn('fx-column', t.x, 0, fx.trail, 500);
         if (col2) {
           col2.style.top = '0px';
@@ -3862,7 +3944,7 @@
         if (!gfxLow()) {
           setTimeout(function () {
             var gh = spawn('fx-rune-ghost', t.x, t.y, fx.color, 1200);
-            if (gh) gh.innerHTML = '<i class="ra ' + fx.sigil + '"></i>';
+            if (gh) gh.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
           }, 260);
         }
         break;
@@ -4016,6 +4098,10 @@
   function playRevive(uid, label) {
     var c = centreOf(uid);
     if (!c) return 0;
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.2, 1.3);
+      window.EOL.audio.battle('revive');
+    }
     var GOLD = '#ffd050';
 
     // the board holds its breath
@@ -4111,42 +4197,62 @@
      Coin flip - a spinning coin that lands on a face
      -------------------------------------------------------- */
   function playCoinFlip(face, label) {
+    var heads = face === 'heads';
+    var reduced =
+      document.body.dataset.gfx === 'low' ||
+      (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var landAt = reduced ? 360 : 1510;
+    var fadeAt = reduced ? 1740 : 2780;
+    var doneAt = reduced ? 1940 : 3000;
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.18, 1.35);
+      window.EOL.audio.battle('coin', { face: face });
+    }
     var layer = fxLayer();
     var lr = layer.getBoundingClientRect();
     var z = uiS();
     var wrap = document.createElement('div');
-    wrap.className = 'fx-coin-wrap';
+    wrap.className = 'fx-coin-wrap ' + face;
     wrap.style.left = lr.width / 2 / z + 'px';
-    wrap.style.top = (lr.height * 0.34) / z + 'px';
+    wrap.style.top = (lr.height * 0.42) / z + 'px';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'Rumpelstiltskin flips a coin');
     var sparks = '';
-    for (var i = 0; i < 8; i++) {
-      sparks += '<span class="fx-coin-spark" style="--a:' + i * 45 + '"></span>';
+    for (var i = 0; i < 12; i++) {
+      sparks += '<span class="fx-coin-spark" style="--a:' + i * 30 + '"></span>';
     }
     wrap.innerHTML =
-      '<div class="fx-coin ' +
-      face +
-      '">' +
-      '<div class="coin-face heads"><i class="ra ra-crown"></i></div>' +
-      '<div class="coin-face tails"><i class="ra ra-moon-sun"></i></div>' +
-      '</div>' +
+      '<span class="fx-coin-aura" aria-hidden="true"></span>' +
+      '<span class="fx-coin-shadow" aria-hidden="true"></span>' +
+      '<span class="fx-coin-flight" aria-hidden="true"><span class="fx-coin-spin"><span class="fx-coin">' +
+      '<span class="coin-edge"></span>' +
+      '<span class="coin-face heads"><i data-icon-domain="game" class="ra ra-crown"></i><b>FULL</b></span>' +
+      '<span class="coin-face tails"><i data-icon-domain="game" class="ra ra-moon-sun"></i><b>ONE</b></span>' +
+      '</span></span></span>' +
       sparks +
-      '<div class="fx-coin-label' +
-      (face === 'tails' ? ' tails' : '') +
-      '"></div>';
+      '<span class="fx-coin-label' +
+      (heads ? '' : ' tails') +
+      '" aria-live="polite" aria-hidden="true"><b>' +
+      (heads ? 'HEADS' : 'TAILS') +
+      '</b><span>' +
+      esc(label || (heads ? 'Fortune restores the deal' : 'The bargain takes its due')) +
+      '</span></span>';
     layer.appendChild(wrap);
-    // reveal the result text once the coin settles (spin runs 1.45s)
+    /* Do not expose the result text—even to assistive tech—until the
+       modeled coin has landed. The board repaint remains held by the
+       returned duration, preserving the existing no-spoiler contract. */
     setTimeout(function () {
+      wrap.classList.add('landed');
       var t = wrap.querySelector('.fx-coin-label');
-      t.textContent = face === 'heads' ? 'HEADS' : 'TAILS';
-      t.classList.add('show');
-    }, 1480);
+      if (t) t.setAttribute('aria-hidden', 'false');
+    }, landAt);
     setTimeout(function () {
       wrap.classList.add('out');
-    }, 2320);
+    }, fadeAt);
     setTimeout(function () {
       wrap.remove();
-    }, 2720);
-    return 2450;
+    }, doneAt);
+    return doneAt;
   }
 
   /* --------------------------------------------------------
@@ -4172,6 +4278,10 @@
   function playStatus(uid, key, positive, signature) {
     var t = centreOf(uid);
     if (!t) return;
+    /* Shield formation already has its own material cue. All other
+       status glyphs share one restrained up/down vocabulary. */
+    if (key !== 'shield' && window.EOL.audio)
+      window.EOL.audio.battle(positive ? 'buff' : 'debuff', { signature: !!signature });
     var def = STATUS_FX[key] || STATUS_FX.atk;
     var color = positive ? def.color : def.kind === 'buff' ? '#ff9d9d' : def.color;
     var big = signature ? ' big' : '';
@@ -4184,7 +4294,7 @@
       color,
       1000
     );
-    g.innerHTML = '<i class="ra ' + def.icon + '"></i>';
+    g.innerHTML = '<i data-icon-domain="game" class="ra ' + def.icon + '"></i>';
 
     // ring sweeping the card
     spawn('fx-stat-ring ' + (positive ? 'up' : 'down') + big, t.x, t.y, color, 720);
@@ -4222,6 +4332,7 @@
   function playBurnTick(uid) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('burn');
     var C = '#ff7a3c';
     spawn('fx-burn-glow', t.x, t.y, C, 760);
     for (var i = 0; i < 9; i++) {
@@ -4242,6 +4353,7 @@
   function playAura(uid, kind) {
     var t = centreOf(uid);
     if (!t) return;
+    if (kind === 'heal' && window.EOL.audio) window.EOL.audio.battle('heal');
     spawn('fx-aura ' + kind, t.x, t.y, null, 640);
     if (kind === 'heal') {
       // a swelling ring of light under the hero
@@ -4264,6 +4376,7 @@
   function playShieldForm(uid) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('shield');
     spawn('fx-barrier', t.x, t.y, '#9fd8ff', 900);
     spawn('fx-barrier d2', t.x, t.y, '#cfe9ff', 900);
     for (var i = 0; i < 6; i++) {
@@ -4279,6 +4392,7 @@
   function playCleanse(uid) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('cleanse');
     spawn('fx-cleanse-ring', t.x, t.y, '#bfe9ff', 760);
     for (var i = 0; i < 7; i++) {
       var p = spawn('fx-cleanse-mote', t.x, t.y, '#e8f6ff', 820);
@@ -4292,6 +4406,7 @@
   function playEnergy(uid, positive) {
     var t = centreOf(uid);
     if (!t) return;
+    if (window.EOL.audio) window.EOL.audio.battle('energy', { positive: !!positive });
     var c = positive ? '#7fe3ff' : '#ff9d9d';
     spawn('fx-energy-burst', t.x, t.y, c, 720);
     for (var i = 0; i < 5; i++) {
@@ -4423,7 +4538,12 @@
         absorbed[l.meta.uid] = { offset: aoff };
         if (l.meta.src) {
           setTimeout(function () {
-            playStrike(l.meta.src, l.meta.uid, 'Light', false);
+            playStrike(
+              l.meta.src,
+              l.meta.uid,
+              l.meta.element || 'Light',
+              !!l.meta.crit
+            );
           }, aoff);
         }
         popNumber(l, aoff + 320);
@@ -4469,6 +4589,7 @@
     var deaths = fresh.filter(function (l) {
       return l.type === 'death';
     });
+    if (deaths.length && window.EOL.audio) window.EOL.audio.battle('death');
     if (deaths.length) hold = Math.max(hold, hold + deathMs());
     return hold;
   }
@@ -4495,7 +4616,19 @@
       if (!c) return;
       var pop = document.createElement('div');
       pop.className = 'pop ' + kind + (l.meta.crit ? ' crit' : '');
-      pop.textContent = sign + Number(l.meta.amount).toLocaleString();
+      var value = document.createElement('span');
+      value.className = 'pop-value';
+      value.textContent = sign + Number(l.meta.amount).toLocaleString();
+      pop.appendChild(value);
+      /* The gold number alone was too easy to miss, and AoE/shielded
+         animation paths do not all run the large impact word. Attach the
+         verdict to the number itself so every logged crit says CRITICAL. */
+      if (l.meta.crit) {
+        var verdict = document.createElement('span');
+        verdict.className = 'pop-critical';
+        verdict.textContent = 'CRITICAL';
+        pop.appendChild(verdict);
+      }
       // stack simultaneous numbers so they don't overlap
       var lane = popLane[l.meta.uid] || 0;
       popLane[l.meta.uid] = lane + 1;
@@ -4553,6 +4686,8 @@
   }
 
   function endBattle() {
+    if (endingBattle) return;
+    endingBattle = true;
     hideTip();
     stopClock();
     disarmForfeit();
@@ -4624,7 +4759,14 @@
           var s = g[side][cid];
           var row =
             out[side][cid] ||
-            (out[side][cid] = { name: s.name, role: s.role, dealt: 0, healed: 0, taken: 0, kills: 0 });
+            (out[side][cid] = {
+              name: s.name,
+              role: s.role,
+              dealt: 0,
+              healed: 0,
+              taken: 0,
+              kills: 0,
+            });
           row.dealt += s.dealt;
           row.healed += s.healed;
           row.taken += s.taken;
@@ -4649,23 +4791,23 @@
         .map(function (r) {
           return (
             '<div class="rs-row">' +
-            '<i class="ra ' +
+            '<i data-icon-domain="game" class="ra ' +
             (ROLE_ICON[r.role] || 'ra-player') +
             '"></i>' +
             '<span class="rs-name">' +
             esc(r.name) +
             '</span>' +
-            '<span class="rs-n" title="Damage dealt"><i class="ra ra-sword"></i>' +
+            '<span class="rs-n" title="Damage dealt"><i data-icon-domain="game" class="ra ra-sword"></i>' +
             r.dealt.toLocaleString() +
             '</span>' +
-            '<span class="rs-n heal" title="Healing done"><i class="ra ra-health"></i>' +
+            '<span class="rs-n heal" title="Healing done"><i data-icon-domain="game" class="ra ra-health"></i>' +
             r.healed.toLocaleString() +
             '</span>' +
-            '<span class="rs-n taken" title="Damage taken"><i class="ra ra-broken-shield"></i>' +
+            '<span class="rs-n taken" title="Damage taken"><i data-icon-domain="game" class="ra ra-broken-shield"></i>' +
             r.taken.toLocaleString() +
             '</span>' +
             '<span class="rs-n ko" title="Kills">' +
-            (r.kills ? '<i class="ra ra-skull"></i>' + r.kills : '') +
+            (r.kills ? '<i data-icon-domain="game" class="ra ra-skull"></i>' + r.kills : '') +
             '</span>' +
             '</div>'
           );
@@ -4694,12 +4836,11 @@
         return agg[side][cid];
       });
     };
-    var foeName =
-      rivalInfo && rivalInfo.name ? rivalInfo.name + "'s legends" : 'Enemy legends';
+    var foeName = rivalInfo && rivalInfo.name ? rivalInfo.name + "'s legends" : 'Enemy legends';
     rs.innerHTML =
       '<div class="rs-head"><i class="ri-bar-chart-2-line"></i><span>Battle report' +
       (sr && sr.over ? ' - full set' : '') +
-      '</span><span class="rs-key"><i class="ra ra-sword"></i> dealt &middot; <i class="ra ra-health"></i> healed &middot; <i class="ra ra-broken-shield"></i> taken &middot; <i class="ra ra-skull"></i> kills</span></div>' +
+      '</span><span class="rs-key"><i data-icon-domain="game" class="ra ra-sword"></i> dealt &middot; <i data-icon-domain="game" class="ra ra-health"></i> healed &middot; <i data-icon-domain="game" class="ra ra-broken-shield"></i> taken &middot; <i data-icon-domain="game" class="ra ra-skull"></i> kills</span></div>' +
       '<div class="rs-cols">' +
       reportColHTML('Your legends', 'you', toRows('you')) +
       reportColHTML(foeName, 'foe', toRows('foe')) +
@@ -4709,6 +4850,7 @@
 
   function showResult() {
     var win = B.winner === 'player';
+    if (window.EOL.audio) window.EOL.audio.result(win);
     var ov = $('result');
     ov.className = 'result show ' + (win ? 'win' : 'lose');
     ov.querySelector('.result-title').textContent = win ? 'Victory' : 'Defeat';
@@ -4721,12 +4863,22 @@
           ? 'Won in a single round'
           : 'Lost in a single round'
         : (win ? 'Won after ' : 'Fell after ') + B.round + ' rounds';
+    var puzzleResult =
+      B.puzzle && window.EOL.daily && window.EOL.daily.onResult
+        ? window.EOL.daily.onResult(win, B)
+        : null;
+    if (puzzleResult) {
+      ov.querySelector('.result-title').textContent = puzzleResult.title;
+      ov.querySelector('.result-sub').textContent = puzzleResult.sub;
+      ov.querySelector('.result-rounds').textContent =
+        'Started in round ' + B.puzzle.startRound + ' · finished in round ' + B.round;
+    }
     /* THE SET: play.js reframes the outcome as set progress (score
        line instead of epitaph, "Sideboard"/"New set" instead of
        "Rematch") and returns null when no set is live - a non-set
        match is untouched. */
     var sr =
-      window.EOL.play && window.EOL.play.setGameResult
+      !B.puzzle && window.EOL.play && window.EOL.play.setGameResult
         ? window.EOL.play.setGameResult(win, gameTallySnapshot())
         : null;
     paintBattleReport(sr);
@@ -4734,8 +4886,11 @@
        75/50, per game. Campaign battles pay through their gates, not
        here. Paid exactly once per battle instance. */
     var coinsEl = $('result-coins');
-    if (coinsEl) coinsEl.hidden = true;
-    if (!B.campaignStage && window.EOL.econ && !B._coinsPaid) {
+    if (coinsEl) {
+      coinsEl.hidden = true;
+      coinsEl.classList.remove('campaign-rewards');
+    }
+    if (!B.campaignStage && !B.puzzle && window.EOL.econ && !B._coinsPaid) {
       B._coinsPaid = true;
       var P = window.EOL.econ.PAY;
       var pay = netCtl ? (win ? P.pvpWin : P.pvpLoss) : win ? P.spWin : P.spLoss;
@@ -4750,6 +4905,16 @@
       var rm = $('btn-rematch');
       if (rm) rm.querySelector('span').textContent = sr.rematchLabel;
     }
+    if (puzzleResult) {
+      var puzzleRematch = $('btn-rematch');
+      if (puzzleRematch && puzzleRematch.querySelector('span')) {
+        puzzleRematch.querySelector('span').textContent = puzzleResult.rematchLabel;
+      }
+      var puzzleHome = $('btn-result-home');
+      if (puzzleHome && puzzleHome.querySelector('span')) {
+        puzzleHome.querySelector('span').textContent = puzzleResult.homeLabel;
+      }
+    }
     /* CAMPAIGN: the road frames its own result - Retry (fight the gate
        again) on the primary button, and a chapter-map exit on the home
        button that plays the stage epilogue after a win. Mid-set the
@@ -4762,10 +4927,31 @@
         : null;
     if (cam && cam.campaign) {
       if (cam.sub) ov.querySelector('.result-sub').textContent = cam.sub;
+      /* Campaign gates pay real rewards too. Put the exact receipt on
+         the victory card instead of making the player infer it later
+         from their wallet or collection. */
+      if (coinsEl && cam.rewards) {
+        coinsEl.innerHTML =
+          '<i data-icon-domain="game" class="ra ra-open-treasure-chest"></i><span>' +
+          esc(cam.rewards) +
+          '</span>';
+        coinsEl.classList.add('campaign-rewards');
+        coinsEl.hidden = false;
+      }
       var rm2 = $('btn-rematch');
       if (rm2) rm2.querySelector('span').textContent = cam.rematchLabel || 'Retry';
       var home2 = $('btn-result-home');
       if (home2) home2.querySelector('span').textContent = cam.homeLabel || 'Map';
+    }
+    if (!measurementComplete) {
+      measurementComplete = true;
+      if (window.EOL.telemetry && window.EOL.telemetry.battleCompleted) {
+        window.EOL.telemetry.battleCompleted({
+          won: !!win,
+          rounds: B.round,
+          set_over: sr ? !!sr.over : true,
+        });
+      }
     }
     /* Mid-set there is no walking away from the war: the result screen
        offers ONLY the sideboard (user law 2026-08-04). Home returns
@@ -4912,7 +5098,11 @@
     if (url) {
       return '<img src="' + esc(url) + '" alt="" referrerpolicy="no-referrer" />';
     }
-    return '<i class="ra ' + fallbackIcon + '"></i>';
+    var isGameIcon = fallbackIcon.indexOf('ri-') !== 0;
+    var iconClass = isGameIcon ? 'ra ' + fallbackIcon : fallbackIcon;
+    return (
+      '<i' + (isGameIcon ? ' data-icon-domain="game"' : '') + ' class="' + iconClass + '"></i>'
+    );
   }
 
   function paintCommanders() {
@@ -4927,7 +5117,7 @@
     var pn = $('pf-name-player');
     if (pn) pn.textContent = youName;
     var pi = $('pf-player');
-    if (pi) pi.innerHTML = avatarHtml(me && me.avatar, 'ra-player');
+    if (pi) pi.innerHTML = avatarHtml(me && me.avatar, 'ri-user-3-line');
 
     /* Against the bot there is no opponent identity to show, so the
        skull and "Enemy Bot" stay - they are correct, not a placeholder.
@@ -4936,7 +5126,11 @@
        rather than a broken image. A CAMPAIGN battle shows the rival:
        the character is the opponent, and the plate should say so. */
     var foeName =
-      netCtl && netCtl.label ? netCtl.label : rivalInfo && rivalInfo.name ? rivalInfo.name : 'Enemy Bot';
+      netCtl && netCtl.label
+        ? netCtl.label
+        : rivalInfo && rivalInfo.name
+          ? rivalInfo.name
+          : 'Enemy Bot';
     var en = $('pf-name-enemy');
     if (en) en.textContent = foeName;
     var ei = $('pf-enemy');
@@ -4944,22 +5138,70 @@
       ei.innerHTML =
         rivalInfo && rivalInfo.img
           ? avatarHtml(rivalInfo.img, 'ra-skull')
-          : avatarHtml(null, netCtl ? 'ra-player' : 'ra-skull');
+          : avatarHtml(null, netCtl ? 'ri-user-3-line' : 'ra-skull');
+  }
+
+  /* A generated puzzle is already several rounds into a real engine
+     battle. Accept that state only through this narrow, validated path,
+     then restore the live-only pieces intentionally omitted by
+     engine.cloneBattle (logging, tallies and non-silent presentation). */
+  function preparePrebuiltBattle(source, opts) {
+    if (!source || !Array.isArray(source.units) || source.units.length !== 12) {
+      throw new Error('Invalid prebuilt battle: expected twelve units');
+    }
+    if (source.over || source.winner || source.round < 1) {
+      throw new Error('Invalid prebuilt battle: position is already finished');
+    }
+    if (!source.passed || !source.turnPassed || !source.acted || !source.energy) {
+      throw new Error('Invalid prebuilt battle: turn state is incomplete');
+    }
+    if (opts.puzzle && (source.round < 5 || source.round > 8 || source.turn !== 'player')) {
+      throw new Error('Invalid puzzle checkpoint: expected a player turn in rounds 5–8');
+    }
+
+    source.rng = opts.rng || source.rng || Math.random;
+    source.simulation = false;
+    source.silent = false;
+    source.log = [];
+    source.tally = {};
+    source.uidMap = {};
+    source.units.forEach(function (u) {
+      if (!u || (u.side !== 'player' && u.side !== 'enemy') || !u.uid) {
+        throw new Error('Invalid prebuilt battle: malformed unit');
+      }
+      u.battle = source;
+      source.uidMap[u.uid] = u;
+    });
+    if (opts.puzzle) source.puzzle = opts.puzzle;
+    return source;
   }
 
   function start(opts) {
     E = window.EOL.engine;
     AI = window.EOL.ai;
     opts = opts || {};
+    if (opts.puzzle) {
+      /* Match the forge certificate exactly even if a simulation tool or
+         draft evaluator previously borrowed the global AI settings. */
+      AI.setDepth(4);
+      if (AI.clearSimulationBudget) AI.clearSimulationBudget();
+    }
+    if (!opts.puzzle && window.EOL.daily && window.EOL.daily.deactivate) {
+      window.EOL.daily.deactivate();
+    }
     /* A multiplayer battle hands us an adaptor for the other player and
        a shared rng seed. Both clients run the identical engine over the
        identical action stream, so they only have to agree on luck. */
     netCtl = opts.net || null;
+    endingBattle = false;
+    measurementComplete = false;
     rivalInfo = opts.rival || null;
     /* THE SCRIPTED MATCH (campaign gate I): the whole line, both
        sides, pre-computed against this exact seed. */
     moveScript =
-      opts.moveScript && opts.moveScript.length ? { moves: opts.moveScript.slice(), i: 0 } : null;
+      campaignTutorialsEnabled(opts) && opts.moveScript && opts.moveScript.length
+        ? { moves: opts.moveScript.slice(), i: 0 }
+        : null;
     setNetWait(false);
     stopClock();
     disarmForfeit();
@@ -4968,7 +5210,10 @@
        out of a lost game - same two-step arm/confirm either way. */
     var fbtn = $('btn-forfeit');
     if (fbtn) fbtn.hidden = false;
-    if (opts.teams && opts.teams.player && opts.teams.enemy) {
+    if (opts.prebuilt) {
+      playerDeck = null;
+      B = preparePrebuiltBattle(opts.prebuilt, opts);
+    } else if (opts.teams && opts.teams.player && opts.teams.enemy) {
       playerDeck = null; // mode flows own their rematch config
       B = E.createBattle(
         opts.teams.player,
@@ -4978,6 +5223,7 @@
           field: opts.field || null,
           rng: opts.rng || null,
           oddFirst: opts.oddFirst || null,
+          enemyStatBonus: opts.enemyStatBonus || 0,
         }
       );
     } else {
@@ -4991,13 +5237,37 @@
             field: opts.field || null,
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
+            enemyStatBonus: opts.enemyStatBonus || 0,
           })
         : E.createBattle(teams.player, teams.enemy, {
             roleAware: true,
             field: opts.field || null,
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
+            enemyStatBonus: opts.enemyStatBonus || 0,
           });
+    }
+    /* Campaign personality changes evaluation priorities only. The rival
+       still enters the exact normal depth-4 bestAction path below. */
+    B.aiProfiles = opts.aiProfiles || null;
+    B.campaignDifficulty = opts.campaignDifficulty || null;
+    B.enemyStatBonus = Math.max(0, +opts.enemyStatBonus || 0);
+    if (window.EOL.audio) {
+      window.EOL.audio.setBattlefield(B.field ? B.field.id : 'colosseum');
+      window.EOL.audio.scene('battle', { field: B.field ? B.field.id : 'colosseum' });
+    }
+    /* A forfeit can arrive while it is OUR turn, when no decide()
+       promise exists to wake the battle loop. Register an explicit
+       terminal callback so Victory is shown immediately in either turn
+       state; endBattle's once-guard handles the waiting-promise path. */
+    if (netCtl && netCtl.onForfeitWin) {
+      netCtl.onForfeitWin(function () {
+        if (!B || !B.over || B.winner !== 'player') return;
+        busy = false;
+        document.body.dataset.busy = '0';
+        render();
+        endBattle();
+      });
     }
     sel = null;
     busy = false;
@@ -5013,6 +5283,14 @@
     cineReset();
     turnBannerSide = null;
     $('result').className = 'result';
+    var rematchLabel = $('btn-rematch');
+    if (rematchLabel && rematchLabel.querySelector('span')) {
+      rematchLabel.querySelector('span').textContent = 'Rematch';
+    }
+    var homeLabel = $('btn-result-home');
+    if (homeLabel && homeLabel.querySelector('span')) {
+      homeLabel.querySelector('span').textContent = 'Home';
+    }
 
     /* Theme the whole arena to the active battlefield. The board carries
        data-field for the per-field particle character and accent colour,
@@ -5058,11 +5336,11 @@
       bfb.hidden = !fld;
       if (fld) {
         var ico = $('bf-chip-ico');
-        if (ico) ico.className = 'ra ' + fld.icon;
+        if (ico) ico.className = 'ra ' + fld.icon; // icon-domain: game
         var nm = $('bf-chip-name');
         if (nm) nm.textContent = fld.name;
         var pico = $('bfp-ico');
-        if (pico) pico.className = 'ra ' + fld.icon;
+        if (pico) pico.className = 'ra ' + fld.icon; // icon-domain: game
         var pnm = $('bfp-name');
         if (pnm) pnm.textContent = fld.name;
         var pd = $('bfp-desc');
@@ -5099,10 +5377,31 @@
       }
     }
 
+    /* Keep only a quiet provenance label in the HUD. Generation details
+       are implementation data, not information the player needs. */
+    var puzzleChip = $('puzzle-chip');
+    if (puzzleChip) puzzleChip.hidden = !B.puzzle;
+
     paintCommanders();
 
     render();
     if (opts.campaignStage) B.campaignStage = opts.campaignStage;
+    measurementContext = {
+      mode: B.puzzle
+        ? 'daily'
+        : B.campaignStage
+          ? 'campaign'
+          : netCtl
+            ? 'online_' + (opts.mode || 'unknown')
+            : 'solo_' + (opts.mode || 'battle'),
+      format: opts.war || 'single',
+      field: B.field ? B.field.id : 'none',
+    };
+    if (B.campaignStage) measurementContext.stage = B.campaignStage;
+    if (B.puzzle) measurementContext.official = !!B.puzzle.official;
+    if (window.EOL.telemetry && window.EOL.telemetry.battleStarted) {
+      window.EOL.telemetry.battleStarted(measurementContext);
+    }
     /* CAMPAIGN: hand the settled battle to the road so the rival can
        speak during the match (non-blocking barks - a blocking overlay
        mid-battle is wrong, design §6). No-op outside the campaign. */
@@ -5131,13 +5430,18 @@
        announce+ponder and skip maybeAutoEndTurn, so round 1 was the
        one turn a stalling opponent could sit on forever. */
     startClock('player');
-    if (window.EOL.coach && window.EOL.coach.show) {
+    if (
+      !B.puzzle &&
+      campaignTutorialsEnabled(B) &&
+      window.EOL.coach &&
+      window.EOL.coach.show
+    ) {
       window.EOL.coach.show(
         'battle',
-        'ra-crossed-swords',
+        'ri-sword-line',
         'Your first battle',
-        'The tall bar is your Energy - every Skill costs some. The round counter above '
-          + 'shows whose turn it is, and Pass ends your move. Tap a legend to fight.'
+        'The tall bar is your Energy - every Skill costs some. The round counter above ' +
+          'shows whose turn it is, and Pass ends your move. Tap a legend to fight.'
       );
     }
   }
@@ -5177,6 +5481,7 @@
     _draft: draftBotTeam,
     _draftValue: draftValue,
     _markSets: markSets,
+    _popNumber: popNumber,
     /* test hook: the scripted-match line state (harness only) */
     _scriptState: function () {
       return moveScript;
@@ -5213,6 +5518,10 @@
     var rm = $('btn-rematch');
     if (rm)
       rm.addEventListener('click', function () {
+        if (B && B.puzzle && window.EOL.daily && window.EOL.daily.start) {
+          window.EOL.daily.start();
+          return;
+        }
         if (window.EOL.play && window.EOL.play.rematch) window.EOL.play.rematch();
         else start();
       });

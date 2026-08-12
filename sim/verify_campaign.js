@@ -77,7 +77,52 @@ S.stages.forEach(function (st) {
   });
   ok(entries.every(Boolean), 'stage ' + st.id + ': every enemy12 id resolves');
   ok(EOL.deckRules.isLegal(entries.filter(Boolean)), 'stage ' + st.id + ': enemy12 is a legal 12');
+  ok(
+    entries.filter(function (e) {
+      return e && e.card.rarity === 'legendary';
+    }).length <= EOL.deckRules.MAX_LEGENDARIES,
+    'stage ' + st.id + ': enemy12 obeys the two-Legendary constructed cap'
+  );
 });
+(function () {
+  var legal = S.stages[0].enemy12.map(function (id) {
+    return dict[id];
+  });
+  var replace = legal.findIndex(function (e) {
+    return e.card.rarity !== 'legendary';
+  });
+  var third = Object.keys(dict)
+    .map(function (id) {
+      return dict[id];
+    })
+    .filter(function (e) {
+      return (
+        e.card.rarity === 'legendary' &&
+        e.card.role === legal[replace].card.role &&
+        legal.indexOf(e) < 0
+      );
+    })[0];
+  var illegal = legal.slice();
+  illegal[replace] = third;
+  ok(!EOL.deckRules.isLegal(illegal), 'a constructed deck with a third Legendary is illegal');
+  var all = Object.keys(dict)
+    .map(function (id) {
+      return dict[id];
+    })
+    .filter(function (e) {
+      return e.card.id !== S.bossCard.id;
+    });
+  var generated = EOL.deckRules.draftPool(all, function () {
+    return 0.37;
+  });
+  ok(generated.length === 36, 'generated Draft tables still contain exactly 36 cards');
+  ok(
+    generated.filter(function (e) {
+      return e.card.rarity === 'legendary';
+    }).length <= EOL.deckRules.DRAFT_MAX_LEGENDARIES,
+    'generated Draft tables obey the global four-Legendary cap'
+  );
+})();
 
 console.log('B. scripted sixes + rival behaviour data');
 S.stages.forEach(function (st) {
@@ -90,6 +135,18 @@ S.stages.forEach(function (st) {
       'stage ' + st.id + ': botSix drawn from its own twelve'
     );
     ok(st.mode === 'classic', 'stage ' + st.id + ': scripted six only on single-game lessons');
+  }
+  if (st.id > 1) {
+    ok(!!AI.PERSONALITIES[st.aiProfile], 'stage ' + st.id + ': full-depth AI profile resolves');
+  }
+  if (st.enemy12 && st.id > 1) {
+    var threats = st.enemy12.filter(function (id) {
+      return ['Bruiser', 'Sniper', 'Caster', 'Controller'].indexOf(dict[id].card.role) >= 0;
+    }).length;
+    ok(
+      threats >= 6,
+      'stage ' + st.id + ': at least four damage/control threats remain after any two bans'
+    );
   }
   var bp = st.banProfile || {};
   (bp.ids || []).forEach(function (id) {
@@ -133,6 +190,20 @@ S.stages.forEach(function (st) {
     'stage ' + st.id + ': ledger counsel authored (ASCII)'
   );
 });
+ok(AI.SEARCH_DEPTH === 4, 'campaign personalities leave normal gameplay search at depth 4');
+ok(
+  S.stages[1].banProfile.roles.indexOf('Sniper') >= 0 &&
+    S.stages[1].banProfile.roles.indexOf('Caster') >= 0,
+  'the Oathkeeper explicitly prioritizes Snipers and Casters'
+);
+ok(
+  S.stages[3].banProfile.roles.indexOf('Medic') >= 0,
+  'the Anointed explicitly prioritizes Medics'
+);
+ok(
+  S.stages[0].reactiveDialogue && S.stages[0].autoDismissDialogue,
+  'Gate I Recruiter instructions are reactive, dismissible and auto-expiring'
+);
 
 /* the ledger's one-time introduction line */
 ok(
@@ -142,20 +213,22 @@ ok(
   'the ledger spotlight line is authored (ASCII, names the LEDGER)'
 );
 
-/* THE ECONOMY (owner ruling 2026-08-10): the chapter pays exactly
-   1500 - the less the campaign gives, the more the other modes
-   matter. Second ruling same day: a FLAT 150 per gate (no curve),
-   and replays pay a flat 25 (enforced in campaign.js). */
-var chapterCoins = 0;
-S.stages.forEach(function (st) {
-  chapterCoins += (st.grants || {}).coins || 0;
+/* NORMAL ECONOMY (owner ruling 2026-08-12): ordinary gates pay 100,
+   the two elites 200, and Gilgamesh 300. Heroic doubles this baseline;
+   Legend pays only at Gate I (the full matrix is exercised separately by
+   verify_campaign_difficulty.js). */
+var normalCoins = S.stages.map(function (st) {
+  return (st.grants || {}).coins || 0;
 });
-ok(chapterCoins === 1500, 'Chapter 1 pays exactly 1500 coins (' + chapterCoins + ')');
 ok(
-  S.stages.every(function (st) {
-    return (st.grants || {}).coins === 150;
-  }),
-  'every gate pays the same flat 150'
+  JSON.stringify(normalCoins) === JSON.stringify([100, 100, 100, 100, 200, 100, 100, 100, 200, 300]),
+  'Normal gate coin baselines follow the ordinary/elite/Gilgamesh law'
+);
+ok(
+  normalCoins.reduce(function (sum, coins) {
+    return sum + coins;
+  }, 0) === 1400,
+  'a complete Normal Road pays exactly 1400 coins'
 );
 
 /* THE RARITY LAW (owner ruling 2026-08-10): one legendary per six
@@ -308,23 +381,23 @@ console.log('B2. the fully scripted first gate');
   var T = st1.tutorial;
   ok(!!T, 'stage 1 carries tutorial copy');
   ok(T.intro && T.intro.length >= 2, 'tutorial: prep intro beats');
-  /* the post-handoff round-3 lessons (owner ruling 2026-08-10): read
-     the sigils (and HOVER them), then the one-two - expose, execute */
+  /* Early-gate dialogue is event-driven and reader-paced. The old
+     round arrays auto-fired independently of play speed and could leave
+     the Recruiter several moves behind a fast player. */
+  ok(st1.reactiveDialogue === true, 'gate 1 opts into reactive, reader-paced battle dialogue');
+  ok(S.stages[1].reactiveDialogue === true, 'gate 2 opts into reactive, reader-paced battle dialogue');
+  ok(!T.rounds, 'gate 1 has no automatic round-number monologue');
+  ok(!((st1.barks || {}).start), 'gate 1 has no time-fired match opener');
+  ok(!((S.stages[1].barks || {}).start), 'gate 2 has no time-fired match opener');
   ok(
-    Array.isArray((T.rounds || {})[3]) && T.rounds[3].length === 2,
-    'tutorial: round-3 carries the status + combo lessons'
+    /HOVER/.test(T.handoff) && /sigils/i.test(T.handoff),
+    'the reactive handoff teaches reading and hovering status sigils'
   );
   ok(
-    /STATUS/i.test(T.rounds[3][0]) && /HOVER/.test(T.rounds[3][0]),
-    'the status lesson teaches sigil-reading and the hover'
+    /compound/i.test(T.handoff) && /expose first and execute second/i.test(T.handoff),
+    'the reactive handoff teaches the setup-then-execute combo'
   );
-  ok(/one-two/i.test(T.rounds[3][1]), 'the combo lesson preaches the one-two');
-  ok(
-    T.rounds[3].every(function (l) {
-      return /^[\x20-\x7E]+$/.test(l);
-    }),
-    'round-3 lessons are pure ASCII'
-  );
+  ok(/^[\x20-\x7E]+$/.test(T.handoff), 'the reactive handoff is pure ASCII');
   ['ban0', 'ban1', 'ban2', 'reveal', 'arena', 'tips', 'field', 'rows', 'toBattle'].forEach(function (k) {
     ok(typeof T[k] === 'string' && T[k].length > 20, 'tutorial: ' + k + ' authored');
   });
@@ -332,9 +405,16 @@ console.log('B2. the fully scripted first gate');
   sc.six.forEach(function (id) {
     ok(T.roles && typeof T.roles[id] === 'string' && T.roles[id].length > 30, 'tutorial: role lesson for ' + id);
   });
-  ok(T.rounds && T.rounds[1] && T.rounds[1].length >= 2, 'tutorial: round-1 lessons');
-  ok(T.rounds[2] && T.rounds[2].length >= 1, 'tutorial: round-2 signature lesson');
-  ok(T.rounds[4] && T.rounds[4].length >= 1, 'tutorial: round-4 ramp lesson (RAMP_FROM=4)');
+  var spokenMoves = sc.match.moves.filter(function (mv) {
+    return mv.say;
+  });
+  ok(spokenMoves.length >= 4, 'the guided opening attaches teaching to specific moves');
+  ok(
+    spokenMoves.every(function (mv) {
+      return mv.side === 'player' || mv.side === 'enemy';
+    }),
+    'every guided line has a concrete acting side/event'
+  );
 })();
 
 console.log('B3. the frozen match line REPLAYS to a clean win');
@@ -533,18 +613,13 @@ ok(Object.keys(used).length === EOL.battlefields.length, 'all ten boards appear 
 console.log('D. grant curriculum');
 S.stages.forEach(function (st) {
   var g = st.grants || {};
-  (g.cards || []).forEach(function (id) {
-    ok(!!dict[id], 'stage ' + st.id + ': grant ' + id + ' resolves');
-    ok(
-      dict[id].card.rarity !== 'legendary',
-      'stage ' + st.id + ': named grants stay below legendary (crowns ride Legend Packs)'
-    );
-  });
-  if (g.cards)
-    ok(
-      g.cards.length >= 1 && g.cards.length <= 2,
-      'stage ' + st.id + ': faction grants arrive as one or two cards (R8, revised for Legend Packs)'
-    );
+  ok(!g.cards, 'stage ' + st.id + ': no extra ordinary-card reward between coins and the gate prize');
+  ok(
+    Object.keys(g).every(function (key) {
+      return ['coins', 'legendPack', 'choice'].indexOf(key) >= 0;
+    }),
+    'stage ' + st.id + ': reward contains only coins and its Legendary/Exam prize'
+  );
   if (g.legendPack) {
     ok(!!dict[g.legendPack], 'stage ' + st.id + ': legend pack ' + g.legendPack + ' resolves');
     ok(
@@ -586,7 +661,13 @@ S.stages.forEach(function (st) {
   ok(scene && scene[scene.length - 1].battle === true, 'stage ' + st.id + ': scene ends on the fight');
   ok(epi && epi.length >= 2, 'stage ' + st.id + ': victory epilogue exists');
   ok(!!st.resultWin && !!st.resultLose, 'stage ' + st.id + ': win and lose result lines');
-  ok(st.barks && !!st.barks.start, 'stage ' + st.id + ': in-battle barks authored');
+  ok(
+    st.barks &&
+      (st.reactiveDialogue
+        ? !!st.barks.firstBloodYou && !!st.barks.firstBloodFoe
+        : !!st.barks.start),
+    'stage ' + st.id + ': in-battle barks authored'
+  );
   if (st.mode === 'set')
     ok(!!st.barks.start2 && !!st.barks.start3, 'stage ' + st.id + ': per-game set barks');
 });
@@ -630,14 +711,23 @@ S.stages.forEach(function (st) {
     }),
     'stage ' + st.id + ': no Huaxia/Duat in the pool'
   );
+  var legendaryN = P.filter(function (id) {
+    return dict[id] && dict[id].card.rarity === 'legendary';
+  }).length;
+  ok(
+    legendaryN <= EOL.deckRules.DRAFT_MAX_LEGENDARIES,
+    'stage ' + st.id + ': no more than 4 Legendaries on the 36-card table (' + legendaryN + ')'
+  );
   ok(!!st.persona, 'stage ' + st.id + ': draft persona set');
 });
 
 console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
 /* Factions enter the Road one gate at a time - Grimmwood at I,
    Camelot II, Sherwood III, Olympus IV, Yamato VI, Roma VII,
-   Takamagahara VIII, Duat only at X. A gate may not field, pool or
-   grant a card from a faction the player has not been shown. */
+   Takamagahara VIII, Duat only at X. Rival decks and grants may not
+   jump that order. Curated Draft tables may preview non-Legendary cards
+   from the next road when a 36-distinct-card table cannot otherwise obey
+   the four-Legendary cap; future crowns must remain hidden. */
 (function () {
   var INTRO = {
     1: 'grimmwood',
@@ -666,7 +756,6 @@ console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
     if (st.id === 10) okSet['first-legend'] = true;
     [
       ['enemy12', st.enemy12 || []],
-      ['pool', (st.pool && st.pool.cards) || []],
       ['grants', (st.grants || {}).cards || []],
     ].forEach(function (pair) {
       var badIds = pair[1].filter(function (id) {
@@ -682,6 +771,16 @@ console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
           (badIds.length ? ' (LEAK: ' + badIds.join(', ') + ')' : '')
       );
     });
+    var futureCrowns = ((st.pool && st.pool.cards) || []).filter(function (id) {
+      return !okSet[facOf[id]] && dict[id] && dict[id].card.rarity === 'legendary';
+    });
+    ok(
+      futureCrowns.length === 0,
+      'stage ' +
+        st.id +
+        ' pool: no Legendary from a future faction' +
+        (futureCrowns.length ? ' (LEAK: ' + futureCrowns.join(', ') + ')' : '')
+    );
   });
 })();
 

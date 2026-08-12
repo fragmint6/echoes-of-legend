@@ -445,6 +445,12 @@
            see it immediately. */
         send('act', { act: encode(B, act), sum: checksum(B) });
       },
+      /* A remote concession is terminal even if it arrives during our
+         own turn (there may be no pending decide() promise to release).
+         battle.js registers this once per board and owns the result UI. */
+      onForfeitWin: function (fn) {
+        if (S) S.onForfeitWin = fn;
+      },
       /* We concede. Sent before the channel is torn down, or they sit
          waiting for a move that never arrives. */
       forfeit: function () {

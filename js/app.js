@@ -85,7 +85,7 @@
       ';--pct:' +
       pct.toFixed(1) +
       '%">' +
-      '<i class="stat-ico ra ' +
+      '<i data-icon-domain="game" class="stat-ico ra ' +
       icon +
       '"></i>' +
       '<span class="stat-key">' +
@@ -99,13 +99,15 @@
     );
   }
 
-  function buildCard(card, faction, index) {
+  function buildCard(card, faction, index, options) {
+    options = options || {};
     var el = document.createElement('article');
     el.className = 'card';
-    /* THE ECONOMY (2026-08-10): unowned legends render locked wherever
-       this builder paints them (collection, deck editor). Refreshed
-       live on eol:owned as packs and gates pay out. */
-    if (window.EOL.econ && !window.EOL.econ.owns(card.id)) el.className += ' unowned';
+    /* Ownership is collection/deck-builder information, not a property of
+       the card itself. Draft and pack surfaces deliberately opt out. */
+    if (options.markUnowned && window.EOL.econ && !window.EOL.econ.owns(card.id)) {
+      el.className += ' unowned';
+    }
     el.dataset.rarity = card.rarity;
     el.dataset.faction = faction.id;
     el.dataset.role = card.role;
@@ -122,7 +124,7 @@
 
     var costTag =
       isActive && card.ability.cost != null
-        ? '<span class="ab-cost"><i class="ra ra-lightning-bolt"></i>' +
+        ? '<span class="ab-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
           card.ability.cost +
           '</span>'
         : '';
@@ -134,7 +136,7 @@
       ? '<div class="art-portrait"><img src="' +
         esc(card.art) +
         '" alt="" draggable="false" /></div>'
-      : '<i class="art-glyph ra ' + card.icon + '"></i>';
+      : '<i data-icon-domain="game" class="art-glyph ra ' + card.icon + '"></i>';
 
     el.innerHTML =
       '<div class="card-art' +
@@ -155,14 +157,14 @@
       '<span class="element-orb" title="' +
       esc(card.element) +
       '">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       (ELEMENT_ICON[card.element] || 'ra-player') +
       '"></i>' +
       '</span>' +
       '</div>' +
       '<div class="card-plate">' +
       '<div class="plate-role">' +
-      '<i class="ra ' +
+      '<i data-icon-domain="game" class="ra ' +
       (ROLE_ICON[card.role] || 'ra-player') +
       '"></i>' +
       esc(card.role) +
@@ -216,7 +218,7 @@
       '</div>' +
       '</div>' +
       '<div class="ov-foot">' +
-      '<span class="role-pill"><i class="ra ' +
+      '<span class="role-pill"><i data-icon-domain="game" class="ra ' +
       (ROLE_ICON[card.role] || 'ra-player') +
       '"></i> ' +
       esc(card.role) +
@@ -344,7 +346,7 @@
     if (!grid || rendered >= filtered.length) return;
     var end = Math.min(rendered + PAGE, filtered.length);
     for (var i = rendered; i < end; i++) {
-      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i));
+      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i, { markUnowned: true }));
     }
     rendered = end;
     var sent = document.getElementById('roster-sentinel');
@@ -394,7 +396,14 @@
   }
 
   /* Build one dropdown.
-     opts: [{value, label, icon}]  onPick: fn(value) */
+     opts: [{value, label, icon}]  onPick: fn(value)
+
+     RPG Awesome is permitted here only when an option itself is a game
+     concept (faction, rarity, role). Mark those nodes so the icon audit
+     can distinguish them from ordinary dropdown chrome. */
+  function iconDomainAttr(icon) {
+    return icon && /(^|\s)ra(\s|$)/.test(icon) ? ' data-icon-domain="game"' : '';
+  }
   function buildDropdown(host, label, opts, onPick) {
     var dd = document.createElement('div');
     dd.className = 'dd';
@@ -419,7 +428,7 @@
         label +
         '</span>' +
         '<span class="dd-value">' +
-        (o.icon ? '<i class="' + o.icon + '"></i>' : '') +
+        (o.icon ? '<i' + iconDomainAttr(o.icon) + ' class="' + o.icon + '"></i>' : '') +
         esc(o.text) +
         '</span>' +
         '<i class="dd-caret ri-arrow-down-s-line"></i>';
@@ -437,7 +446,9 @@
       b.dataset.value = o.value;
       b.setAttribute('role', 'option');
       b.innerHTML =
-        (o.icon ? '<i class="' + o.icon + '"></i>' : '<i class="dd-blank"></i>') +
+        (o.icon
+          ? '<i' + iconDomainAttr(o.icon) + ' class="' + o.icon + '"></i>'
+          : '<i class="dd-blank"></i>') +
         '<span>' +
         esc(o.text) +
         '</span><i class="dd-check ri-check-line"></i>';
@@ -1104,8 +1115,8 @@
       });
       document.getElementById('auth-title').textContent = up ? 'Join the ladder' : 'Welcome back';
       document.getElementById('auth-sub').textContent = up
-        ? 'Create an account to play online matches against other players.'
-        : 'Sign in to play online matches against other players.';
+        ? 'Your progress is saved on this device. Create an account to back it up, carry it across devices, and play online.'
+        : 'Your progress is saved on this device. Sign in to restore your cloud save and play online.';
       document.getElementById('auth-submit-txt').textContent = up ? 'Create account' : 'Sign in';
       document.getElementById('auth-name-field').hidden = !up;
       say('');
@@ -1122,11 +1133,12 @@
       } else if (offline) {
         foot.innerHTML =
           '<i class="ri-information-line"></i>Accounts are not connected yet. ' +
-          'Singleplayer works as normal and your decks are saved on this device.';
+          'Your progress remains saved on this device, but cloud backup is unavailable.';
       } else {
         foot.innerHTML =
-          '<i class="ri-information-line"></i>An account unlocks multiplayer. ' +
-          'Your decks stay on this device.';
+          '<i class="ri-information-line"></i>Signed-out progress stays in this browser. ' +
+          'Create an account for cloud backup; signing into an existing account restores that account’s save. ' +
+          'Accounts also unlock multiplayer and official Daily Puzzles.';
       }
       if (kind) {
         foot.classList.remove('flash');
@@ -1170,6 +1182,13 @@
       e.stopPropagation();
       toggleAcctMenu();
     });
+    var homeCloudBtn = document.getElementById('home-cloud-cta');
+    if (homeCloudBtn) {
+      homeCloudBtn.addEventListener('click', function () {
+        setMode('in');
+        open();
+      });
+    }
     document.getElementById('auth-close').addEventListener('click', close);
     document.getElementById('auth-scrim').addEventListener('click', close);
     document.addEventListener('keydown', function (e) {
@@ -1233,13 +1252,13 @@
           if (av) {
             av.innerHTML = user.avatar
               ? '<img src="' + esc(user.avatar) + '" alt="" />'
-              : '<i class="ra ra-player"></i>';
+              : '<i class="ri-user-3-line"></i>';
           }
           if (!modal.hidden) close();
         } else {
           if (label) label.textContent = 'Sign in';
-          openBtn.title = 'Sign in';
-          if (av) av.innerHTML = '<i class="ra ra-player"></i>';
+          openBtn.title = 'Progress is saved on this device - sign in for cloud backup';
+          if (av) av.innerHTML = '<i class="ri-user-3-line"></i>';
         }
       });
     }
@@ -1713,11 +1732,16 @@
         window.EOL.campaign.closeRecruiterDialogue();
         return;
       }
-goBack();
+      goBack();
       // the shop and the deck picker modal handle Esc themselves
     });
     document.getElementById('btn-result-home').addEventListener('click', function () {
       document.getElementById('result').className = 'result';
+      /* A puzzle's secondary action returns to the singleplayer mode
+         screen; the next launch always forges another position. */
+      if (window.EOL.daily && window.EOL.daily.consumeResult) {
+        if (window.EOL.daily.consumeResult()) return;
+      }
       /* Campaign owns its secondary result button: after Gate I the road
          either plays the victory epilogue or returns to the chapter map. */
       if (window.EOL.campaign && window.EOL.campaign.consumeResult) {
@@ -1728,5 +1752,5 @@ goBack();
 
     show('home');
     console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
-});
+  });
 })();

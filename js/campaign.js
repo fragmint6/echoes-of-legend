@@ -12,9 +12,9 @@
      R1  every rival twelve is authored data, nothing is rolled
      R3  no leaving mid-set; progress commits on stage completion
      R5  the boss is pinned + unbannable by hardcode (js/play.js)
-     §6  mid-fight lore is NON-BLOCKING (the bark widget is
-         pointer-transparent and self-expiring; blocking overlays
-         are for pre-fight and post-fight only)
+     §6  mid-fight lore is NON-BLOCKING (later barks self-expire;
+         Gates I-II are event-driven and reader-paced, with only a
+         small optional dismiss control accepting input)
    ============================================================= */
 (function () {
   'use strict';
@@ -22,6 +22,38 @@
   window.EOL = window.EOL || {};
   var STORY = window.EOL.campaignCh1 || {};
   var PROGRESS_KEY = 'eol.campaign.ch1.progress';
+  var SAVE_VERSION = 3;
+  var DIFFICULTIES = {
+    normal: {
+      id: 'normal',
+      name: 'Normal',
+      bonus: 0,
+      note: 'Standard rivals · coin rewards',
+    },
+    heroic: {
+      id: 'heroic',
+      name: 'Heroic',
+      bonus: 0.1,
+      note: '+10% rival ATK & DEF · double coins · Epic rewards',
+    },
+    legend: {
+      id: 'legend',
+      name: 'Legend',
+      bonus: 0.2,
+      note: '+20% rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
+    },
+  };
+  var STAGE_FACTIONS = {
+    1: 'grimmwood',
+    2: 'camelot',
+    3: 'sherwood',
+    4: 'olympus',
+    6: 'yamato',
+    7: 'roma',
+    8: 'takamagahara',
+    10: 'duat',
+  };
+  var ELITE_STAGES = { 5: true, 9: true };
 
   function $(id) {
     return document.getElementById(id);
@@ -99,11 +131,50 @@
      shuffled deck. The procedural builder below survives purely as
      a fallback for a stage that ships without a frozen list.
      --------------------------------------------------------- */
+  function limitDraftLegendaries(entries, featuredId) {
+    var max = (window.EOL.deckRules && window.EOL.deckRules.DRAFT_MAX_LEGENDARIES) || 4;
+    var crowns = entries.filter(function (e) {
+      return e.card.rarity === 'legendary';
+    });
+    if (crowns.length <= max) return entries;
+
+    /* Keep the featured faction's crown first so an authored promise
+       that the whole faction appears remains true, then keep the first
+       authored crowns up to the table cap. Replace extras with unused
+       non-Legendaries of the same role to preserve all 36 seats. */
+    crowns.sort(function (a, b) {
+      return (b.faction.id === featuredId ? 1 : 0) - (a.faction.id === featuredId ? 1 : 0);
+    });
+    var keep = {};
+    crowns.slice(0, max).forEach(function (e) {
+      keep[e.card.id] = true;
+    });
+    var used = {};
+    entries.forEach(function (e) {
+      used[e.card.id] = true;
+    });
+    var replacements = [];
+    (window.EOL.factions || []).forEach(function (f) {
+      if (f.id === 'huaxia' || f.id === 'duat') return;
+      f.cards.forEach(function (c) {
+        if (c.rarity !== 'legendary' && !used[c.id]) replacements.push({ card: c, faction: f });
+      });
+    });
+    return entries.map(function (e) {
+      if (e.card.rarity !== 'legendary' || keep[e.card.id]) return e;
+      for (var i = 0; i < replacements.length; i++) {
+        if (replacements[i].card.role !== e.card.role) continue;
+        return replacements.splice(i, 1)[0];
+      }
+      return e; // malformed future roster: validation will flag it
+    });
+  }
+
   function buildPool(spec) {
     var featuredId = spec && spec.featured ? spec.featured : spec;
     if (spec && spec.cards && spec.cards.length) {
       var frozen = entriesFor(spec.cards);
-      if (frozen.length === spec.cards.length) return frozen;
+      if (frozen.length === spec.cards.length) return limitDraftLegendaries(frozen, featuredId);
     }
     var byRole = {};
     (window.EOL.factions || []).forEach(function (f) {
@@ -128,65 +199,254 @@
       }
       pool = pool.concat(featured.concat(rest).slice(0, 6));
     });
-    return pool;
+    return limitDraftLegendaries(pool, featuredId);
   }
 
   /* ---------------------------------------------------------
      Progress + the collection/currency store (§9.14).
-     eol.campaign.ch1.progress:
-       cleared   [stageIds]       unlocked  [stageIds]
-       clears    {stageId: n}     per-stage clear counts (replay taper)
-       grants    [cardIds]        tier-1 curriculum, applied on FIRST
-                                  clear only (idempotent)
-       coins     n                tier-2 currency, inert until the
-                                  economy pass lands
-       choices   {stageId:[ids]}  resolved exam choices (R9)
-       pendingChoice stageId|null an unclaimed exam choice
+
+     One save contains three independent Road runs. Legacy saves become the
+     Normal run without losing a gate, while global ownership, coins, rival
+     intel and ledger corrections remain shared. Root-level run fields are
+     retained as live aliases for cloud documents and older tooling.
      --------------------------------------------------------- */
-  function getProgress() {
-    try {
-      var raw = localStorage.getItem(PROGRESS_KEY);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.unlocked)) {
-          parsed.cleared = parsed.cleared || [];
-          parsed.clears = parsed.clears || {};
-          parsed.grants = parsed.grants || [];
-          parsed.coins = parsed.coins || 0;
-          parsed.choices = parsed.choices || {};
-          parsed.tellsBroken = parsed.tellsBroken || [];
-          parsed.fought = parsed.fought || [];
-          return parsed;
-        }
-      }
-    } catch (e) {
-      /* private mode fallback */
-    }
+  var RUN_FIELDS = [
+    'cleared',
+    'unlocked',
+    'clears',
+    'choices',
+    'pendingChoice',
+    'pendingLegend',
+    'pendingEpic',
+  ];
+
+  function emptyRun() {
     return {
       cleared: [],
       unlocked: [1],
       clears: {},
-      grants: [],
-      coins: 0,
       choices: {},
       pendingChoice: null,
-      /* an unopened Legend Pack ceremony (grant already landed) */
       pendingLegend: null,
-      /* stages whose ban-claim tell the player has FALSIFIED - the
-         ledger keeps the correction forever (playtester ruling:
-         that is the match you remember) */
-      tellsBroken: [],
-      /* stages whose rival the player has faced at least once, win
-         or lose - the ledger opens their twelve after first blood */
-      fought: [],
+      pendingEpic: null,
     };
   }
+
+  function normalizeRun(run) {
+    run = run || emptyRun();
+    run.cleared = Array.isArray(run.cleared) ? run.cleared : [];
+    run.unlocked = Array.isArray(run.unlocked) && run.unlocked.length ? run.unlocked : [1];
+    run.clears = run.clears || {};
+    run.choices = run.choices || {};
+    run.pendingChoice = run.pendingChoice || null;
+    run.pendingLegend = run.pendingLegend || null;
+    run.pendingEpic = run.pendingEpic || null;
+    return run;
+  }
+
+  function attachRun(prog) {
+    var id = DIFFICULTIES[prog.selectedDifficulty] ? prog.selectedDifficulty : 'normal';
+    prog.selectedDifficulty = id;
+    var run = normalizeRun(prog.runs[id]);
+    prog.runs[id] = run;
+    RUN_FIELDS.forEach(function (key) {
+      prog[key] = run[key];
+    });
+    return prog;
+  }
+
+  function syncRun(prog) {
+    var id = DIFFICULTIES[prog.selectedDifficulty] ? prog.selectedDifficulty : 'normal';
+    var run = normalizeRun(prog.runs[id]);
+    RUN_FIELDS.forEach(function (key) {
+      run[key] = prog[key];
+    });
+    prog.runs[id] = run;
+  }
+
+  function normalizeProgress(parsed) {
+    parsed = parsed || {};
+    parsed.grants = Array.isArray(parsed.grants) ? parsed.grants : [];
+    parsed.v = SAVE_VERSION;
+    parsed.coins = parsed.coins || 0;
+    parsed.tellsBroken = Array.isArray(parsed.tellsBroken) ? parsed.tellsBroken : [];
+    parsed.fought = Array.isArray(parsed.fought) ? parsed.fought : [];
+    parsed.selectedDifficulty = DIFFICULTIES[parsed.selectedDifficulty]
+      ? parsed.selectedDifficulty
+      : 'normal';
+
+    if (!parsed.runs) {
+      /* Migration: the campaign that existed before difficulty selection is
+         preserved as Normal. Already-granted crowns remain globally owned. */
+      parsed.runs = {
+        normal: normalizeRun({
+          cleared: parsed.cleared,
+          unlocked: parsed.unlocked,
+          clears: parsed.clears,
+          choices: parsed.choices,
+          pendingChoice: parsed.pendingChoice,
+          pendingLegend: parsed.pendingLegend,
+          pendingEpic: parsed.pendingEpic,
+        }),
+        heroic: emptyRun(),
+        legend: emptyRun(),
+      };
+    }
+    Object.keys(DIFFICULTIES).forEach(function (id) {
+      parsed.runs[id] = normalizeRun(parsed.runs[id]);
+    });
+    return attachRun(parsed);
+  }
+
+  function getProgress() {
+    try {
+      var raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) {
+        var decoded = JSON.parse(raw);
+        var migrated = !decoded.runs || decoded.v !== SAVE_VERSION;
+        var normalized = normalizeProgress(decoded);
+        if (migrated) {
+          syncRun(normalized);
+          localStorage.setItem(PROGRESS_KEY, JSON.stringify(normalized));
+        }
+        return normalized;
+      }
+    } catch (e) {
+      /* private mode fallback */
+    }
+    return normalizeProgress({
+      grants: [],
+      coins: 0,
+      tellsBroken: [],
+      fought: [],
+      selectedDifficulty: 'normal',
+    });
+  }
+
   function saveProgress(prog) {
     try {
+      syncRun(prog);
       localStorage.setItem(PROGRESS_KEY, JSON.stringify(prog));
     } catch (e) {
       /* private mode: the session still works, it just forgets */
     }
+  }
+
+  function difficultyOf(prog) {
+    var id = prog && DIFFICULTIES[prog.selectedDifficulty] ? prog.selectedDifficulty : 'normal';
+    return DIFFICULTIES[id];
+  }
+
+  /* One difficulty law governs every teaching surface: dialogue, advisor,
+     wayfinder, scripted clicks, and gold/silver markings. Callers may pass
+     a difficulty id, a campaign battle/prep config, or progress itself. */
+  function tutorialsEnabled(source) {
+    var id = null;
+    if (typeof source === 'string') id = source;
+    else if (source && source.campaignDifficulty) id = source.campaignDifficulty;
+    else if (source && source.selectedDifficulty) id = source.selectedDifficulty;
+    if (!DIFFICULTIES[id]) id = difficultyOf(getProgress()).id;
+    return id === 'normal';
+  }
+
+  function introducedFactions(stage) {
+    var out = [];
+    Object.keys(STAGE_FACTIONS).forEach(function (key) {
+      var id = parseInt(key, 10);
+      var faction = STAGE_FACTIONS[id];
+      if (id < stage.id && out.indexOf(faction) < 0) out.push(faction);
+    });
+    return out;
+  }
+
+  function factionName(id) {
+    var faction = (window.EOL.factions || []).filter(function (f) {
+      return f.id === id;
+    })[0];
+    return faction ? faction.name : id;
+  }
+
+  function normalCoinReward(stage) {
+    if (stage.grants && typeof stage.grants.coins === 'number') return stage.grants.coins;
+    if (stage.id === 10) return 300;
+    return ELITE_STAGES[stage.id] ? 200 : 100;
+  }
+
+  function rewardFor(stage, difficultyId) {
+    var id = DIFFICULTIES[difficultyId] ? difficultyId : 'normal';
+    var reward = { coins: 0, difficulty: id };
+    if (id === 'normal') {
+      reward.coins = normalCoinReward(stage);
+      return reward;
+    }
+    if (id === 'heroic') {
+      reward.coins = normalCoinReward(stage) * 2;
+      if (ELITE_STAGES[stage.id]) {
+        reward.choice = {
+          count: 2,
+          factions: introducedFactions(stage),
+          rarities: ['common', 'rare'],
+          label: 'Common/Rare',
+        };
+      } else {
+        reward.epicFaction = STAGE_FACTIONS[stage.id] || null;
+      }
+      return reward;
+    }
+    /* Legend: Gate I pays a one-time 300-coin foothold; the remaining
+       Road keeps its crown progression and pays no coins. */
+    if (stage.id === 1) reward.coins = 300;
+    if (ELITE_STAGES[stage.id]) {
+      reward.choice = {
+        count: 2,
+        factions: introducedFactions(stage),
+        rarities: ['common', 'rare', 'epic'],
+        label: 'non-Legendary',
+      };
+    } else if (stage.grants && stage.grants.legendPack) {
+      reward.legendPack = stage.grants.legendPack;
+    }
+    return reward;
+  }
+
+  function randomEpic(factionId) {
+    var faction = (window.EOL.factions || []).filter(function (f) {
+      return f.id === factionId;
+    })[0];
+    if (!faction) return null;
+    var pool = faction.cards.filter(function (card) {
+      return card.rarity === 'epic';
+    });
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)].id : null;
+  }
+
+  function setDifficulty(id) {
+    if (!DIFFICULTIES[id]) return false;
+    var prog = getProgress();
+    if (!tutorialsEnabled(id)) {
+      stopNavGuide();
+      stopPrepTutor();
+      if (dlg && dlg.kind === 'intro') closeDialogue();
+    }
+    if (prog.selectedDifficulty === id) {
+      paintDifficulty(prog);
+      return true;
+    }
+    syncRun(prog);
+    prog.selectedDifficulty = id;
+    attachRun(prog);
+    saveProgress(prog);
+    activeCampaignStage = null;
+    updateStageCards();
+    paintDifficulty(prog);
+    if ($('ledger') && !$('ledger').hidden) renderLedger();
+    if (document.body.dataset.view === 'chapter') {
+      window.setTimeout(reofferPendingChoice, 0);
+      window.setTimeout(reofferPendingLegend, 0);
+      window.setTimeout(reofferPendingEpic, 0);
+    }
+    if (window.EOL.audio) window.EOL.audio.ui('toggle');
+    return true;
   }
 
   /* play.js reports the moment a reveal falsifies a role-claim tell. */
@@ -210,40 +470,40 @@
 
   function recordClear(stage, prog) {
     prog = prog || getProgress();
+    var difficulty = difficultyOf(prog);
+    var reward = rewardFor(stage, difficulty.id);
     var first = prog.cleared.indexOf(stage.id) < 0;
     if (first) prog.cleared.push(stage.id);
     if (stage.id < 10 && prog.unlocked.indexOf(stage.id + 1) < 0) prog.unlocked.push(stage.id + 1);
     prog.clears[stage.id] = (prog.clears[stage.id] || 0) + 1;
-    var g = stage.grants || {};
+
     if (first) {
-      (g.cards || []).forEach(function (id) {
-        if (prog.grants.indexOf(id) < 0) prog.grants.push(id);
-      });
-      prog.coins += g.coins || 0;
-      if (g.choice) prog.pendingChoice = stage.id;
-      /* THE LEGEND PACK (owner ruling 2026-08-10): a gate that ends a
-         faction's road hands over its ONE legendary - granted HERE,
-         at clear time (refresh-proof), with the one-card ceremony
-         queued for the chapter map. Legendaries reach a collection
-         no other way: the shop's tables stop at Epic. */
-      if (g.legendPack) {
-        if (prog.grants.indexOf(g.legendPack) < 0) prog.grants.push(g.legendPack);
+      prog.coins += reward.coins;
+      if (reward.choice) prog.pendingChoice = stage.id;
+      if (reward.legendPack) {
+        if (prog.grants.indexOf(reward.legendPack) < 0) prog.grants.push(reward.legendPack);
         prog.pendingLegend = stage.id;
       }
-      /* THE ECONOMY (2026-08-10): gate rewards are REAL now - cards
-         into the collection, coins into the one wallet the shop
-         spends. prog keeps its own totals as the road's record. */
+      if (reward.epicFaction) {
+        var epicId = randomEpic(reward.epicFaction);
+        if (epicId) {
+          if (prog.grants.indexOf(epicId) < 0) prog.grants.push(epicId);
+          prog.pendingEpic = { stage: stage.id, card: epicId };
+        }
+      }
       if (window.EOL.econ) {
-        window.EOL.econ.grant((g.cards || []).concat(g.legendPack ? [g.legendPack] : []));
-        window.EOL.econ.addCoins(g.coins || 0);
+        var cards = [];
+        if (reward.legendPack) cards.push(reward.legendPack);
+        if (prog.pendingEpic && prog.pendingEpic.stage === stage.id) cards.push(prog.pendingEpic.card);
+        window.EOL.econ.grant(cards);
+        if (reward.coins) window.EOL.econ.addCoins(reward.coins);
       }
     } else {
-      /* Replays pay a FLAT 25 (owner ruling 2026-08-10, replacing
-         the old 25%-of-gate cut): every gate is worth revisiting,
-         none is worth farming. */
-      var replayPay = 25;
+      /* Replay pay follows the tier: Heroic doubles Normal's small replay
+         stipend, while Legend never pays coins. */
+      var replayPay = difficulty.id === 'heroic' ? 50 : difficulty.id === 'legend' ? 0 : 25;
       prog.coins += replayPay;
-      if (window.EOL.econ) window.EOL.econ.addCoins(replayPay);
+      if (replayPay && window.EOL.econ) window.EOL.econ.addCoins(replayPay);
     }
     saveProgress(prog);
     updateStageCards();
@@ -288,7 +548,9 @@
       kicker.innerHTML =
         '<i class="ri-book-open-line"></i> Chapter 1 <i class="ri-sword-line kick-sep"></i> Gate ' +
         (ROMAN[dlg.stage ? dlg.stage.id : 1] || '') +
-        (dlg.kind === 'epilogue' ? ' <i class="ri-checkbox-circle-line kick-sep"></i> Cleared' : '');
+        (dlg.kind === 'epilogue'
+          ? ' <i class="ri-checkbox-circle-line kick-sep"></i> Cleared'
+          : '');
     }
     var img = $('chapter-dialogue-portrait');
     var glyph = $('chapter-dialogue-glyph');
@@ -304,6 +566,7 @@
       }
     }
     setText($('chapter-dialogue-step'), two(dlg.index + 1) + ' / ' + two(dlg.lines.length));
+    if (window.EOL.audio) window.EOL.audio.campaign('dialogue');
     /* Skip tutorial is offered ONLY on the intro scene - gate scenes
        and epilogues are content, and content is walked, not skipped */
     var skipT = $('chapter-dialogue-skiptut');
@@ -312,17 +575,13 @@
     if (next) {
       if (line.battle) {
         next.innerHTML =
-          '<i class="ra ra-crossed-swords"></i><span>Fight ' +
+          '<i class="ri-sword-line"></i><span>Fight ' +
           (dlg.stage ? dlg.stage.rival : '') +
           '</span>';
       } else if (dlg.index >= dlg.lines.length - 1) {
         next.innerHTML =
           '<span>' +
-          (dlg.kind === 'epilogue'
-            ? 'Walk on'
-            : dlg.kind === 'intro'
-              ? 'To the Road'
-              : 'Close') +
+          (dlg.kind === 'epilogue' ? 'Walk on' : dlg.kind === 'intro' ? 'To the Road' : 'Close') +
           '</span><i class="ri-check-line"></i>';
       } else {
         next.innerHTML = '<span>Continue</span><i class="ri-arrow-right-line"></i>';
@@ -360,6 +619,7 @@
     dlg = null;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
+    if (window.EOL.audio) window.EOL.audio.ui('back');
     document.body.dataset.campaignDialogue = '0';
     if (kind !== 'pre') {
       /* Epilogues and the intro tutorial are FLOWS, not scenes: closing
@@ -393,6 +653,18 @@
     /* any gate answering the door means the wayfinder's work is done */
     stopNavGuide();
     var lines = (STORY.dialogues || {})[stage.id] || [];
+    if (stage.id === 1 && !tutorialsEnabled()) {
+      /* Keep Gate I's story introduction, but replace its final promise to
+         teach every move. Hard runs launch on a clean rival challenge. */
+      lines = lines.slice(0, -1).concat([
+        {
+          speaker: 'The Recruiter',
+          text: 'He closes the ledger and reaches for his six. "The first gate is mine. Let us see what the harder Road makes of a blank line."',
+          battle: true,
+          final: true,
+        },
+      ]);
+    }
     openDialogue(stage, lines, 'pre', null);
   }
 
@@ -425,6 +697,7 @@
   }
 
   function runIntroTutorial() {
+    if (!tutorialsEnabled()) return;
     var stage = stageById(1);
     var lines = STORY.intro || [];
     if (!stage || !lines.length) return;
@@ -432,7 +705,23 @@
     openDialogue(stage, lines, 'intro', startNavGuide);
   }
 
+  /* The corner button is an explicit request to be taught, so it must
+     never become a dead control just because an account's cloud save last
+     selected Heroic or Legend. Move that account back to its independent
+     Normal run before opening the lesson: hard runs still contain no
+     dialogue, marks, advisor, or scripted tutorial play. Restarting also
+     retires a cloud-restored pending wayfinder so the intro begins cleanly. */
+  function replayIntroTutorial() {
+    stopNavGuide();
+    if (!tutorialsEnabled()) setDifficulty('normal');
+    runIntroTutorial();
+  }
+
   function maybeRunFirstBoot() {
+    if (!tutorialsEnabled()) {
+      stopNavGuide();
+      return;
+    }
     if (introSeen()) {
       /* a refresh mid-walk: the pointer survives the reload */
       if (guidePending() && !getProgress().cleared.length && !dlg) startNavGuide();
@@ -579,6 +868,11 @@
     }
     if (navGuide.lastEl !== el) {
       if (navGuide.lastEl) navGuide.lastEl.classList.remove('guide-mark');
+      /* A carousel slide can be valid but offscreen. Bring the Campaign
+         card into the centred slot before measuring the wayfinder bubble. */
+      if (window.EOL.play && window.EOL.play.showModeCard) {
+        window.EOL.play.showModeCard(el, true, false);
+      }
       el.classList.add('guide-mark');
       navGuide.lastEl = el;
     }
@@ -598,6 +892,10 @@
 
   function guideTick() {
     if (!navGuide) return;
+    if (!tutorialsEnabled()) {
+      stopNavGuide();
+      return;
+    }
     var view = document.body.dataset.view;
     if (view === 'prep' || view === 'battle' || view === 'draft') {
       /* they are already in a war - the road has clearly been found */
@@ -613,6 +911,10 @@
   }
 
   function startNavGuide() {
+    if (!tutorialsEnabled()) {
+      setGuidePending(false);
+      return;
+    }
     if (navGuide) return;
     setGuidePending(true);
     navGuide = {
@@ -661,6 +963,8 @@
   function guideClickTrap(ev) {
     if (!navGuide || !navGuide.lastEl) return;
     if (navGuide.lastEl.contains(ev.target)) return; // the one true click
+    var restart = document.getElementById('btn-corner-tutorial');
+    if (restart && restart.contains(ev.target)) return; // replay/restart is always available
     var skip = document.getElementById('nav-guide-skip');
     if (skip && skip.contains(ev.target)) return; // the way out is always open
     var bar = document.getElementById('chapter-dialogue');
@@ -691,15 +995,20 @@
   function launchStage(stage) {
     stopNavGuide();
     activeCampaignStage = stage.id;
+    var difficulty = difficultyOf(getProgress());
     if (stage.mode === 'draft') {
-      launchDraft(stage);
+      launchDraft(stage, difficulty);
       return;
+    }
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.34, 0.9);
+      window.EOL.audio.campaign('gate');
     }
     if (!window.EOL.play || !window.EOL.play.startPrep) return;
     /* THE SCRIPTED GATE (stage 1): no deck picker - the ledger brings
        the starter twelve, the script marks the bans and the six, and
        the tutor narrates every phase. */
-    if (stage.script) {
+    if (stage.script && tutorialsEnabled(difficulty.id)) {
       var scripted12 = starterEntries();
       if (!scripted12 || scripted12.length !== 12) return;
       window.EOL.play.startPrep({
@@ -708,15 +1017,18 @@
         player12: scripted12,
         enemy12: entriesFor(stage.enemy12),
         campaignStage: stage.id,
+        campaignDifficulty: difficulty.id,
+        enemyStatBonus: difficulty.bonus,
         war: 'single',
         botSix: stage.botSix || null,
         botBanProfile: stage.banProfile || null,
+        aiProfile: stage.aiProfile || null,
         rival: rivalOf(stage),
         script: stage.script,
         field: fieldById(stage.field),
         oddFirst: 'player',
       });
-      startPrepTutor(stage);
+      startPrepTutor(stage, difficulty.id);
       return;
     }
     if (!window.EOL.play.openClassicModal) return;
@@ -733,15 +1045,18 @@
           player12: player12,
           enemy12: enemy12,
           campaignStage: stage.id,
+          campaignDifficulty: difficulty.id,
+          enemyStatBonus: difficulty.bonus,
           war: stage.mode === 'set' ? 'set' : 'single',
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
+          aiProfile: stage.aiProfile || null,
           /* the Recruiter's ledger: HOW this rival bans, told BEFORE
              the player commits their own (playtest note 2026-08-09:
              the least-informed call must not stay the blindest one) */
           banTell: stage.banTell || null,
           banTellBroken: stage.banTellBroken || null,
-          advisor: stage.advisor || null,
+          advisor: tutorialsEnabled(difficulty.id) ? stage.advisor || null : null,
           pinnedEnemy: stage.pinned || null,
           unbannable: stage.unbannable || null,
           rival: rivalOf(stage),
@@ -757,7 +1072,7 @@
         window.EOL.play.startPrep(cfg);
         /* THE ADVISED GATE: the Recruiter walks one more gate at the
            player's shoulder - counsel in silver, hands in pockets */
-        if (stage.advisor) startPrepTutor(stage);
+        if (stage.advisor && tutorialsEnabled(difficulty.id)) startPrepTutor(stage, difficulty.id);
       },
       {
         isCampaign: true,
@@ -765,14 +1080,17 @@
         title: 'Choose your deck to face ' + stage.rival,
         sub:
           stage.mode === 'set'
-            ? 'Unabridged: best of three on ' + stage.terrain + '. Substitutions are law - no retreat once it begins.'
+            ? 'Unabridged: best of three on ' +
+              stage.terrain +
+              '. Substitutions are law - no retreat once it begins.'
             : 'Select your squad of 12 for the battle on ' + stage.terrain + '.',
       }
     );
   }
 
-  function launchDraft(stage) {
+  function launchDraft(stage, difficulty) {
     if (!window.EOL.play || !window.EOL.play.startDraft) return;
+    difficulty = difficulty || difficultyOf(getProgress());
     window.EOL.play.startDraft({
       pool: buildPool(stage.pool),
       persona: stage.persona || null,
@@ -780,8 +1098,11 @@
       campaign: {
         stage: stage.id,
         field: fieldById(stage.field),
+        difficulty: difficulty.id,
+        enemyStatBonus: difficulty.bonus,
         banProfile: stage.banProfile || null,
         banTell: stage.banTell || null,
+        aiProfile: stage.aiProfile || null,
         rival: rivalOf(stage),
       },
     });
@@ -791,15 +1112,13 @@
      IN-BATTLE RIVAL DIALOGUE (barks)
      -------------------------------------------------------------
      A speech card front and centre under the HUD. It rides the
-     engine's observational event hook - never gameplay logic - and
-     self-expires, so it cannot fight the animation queue, the busy
-     gate or the auto-end-turn timer (§6's standing rule against
-     blocking mid-battle lore).
-
-     Lines QUEUE: a burst of dialogue (the Recruiter's guided gate,
-     a round beat landing on a death beat) plays in sequence rather
-     than stomping itself. The queue drains only while the battle
-     view is up, and dies with it.
+     engine's observational event hook - never gameplay logic. Later
+     rivals self-expire and queue lightweight flavour. Gates I-II are
+     different by design: dialogue is attached to actual moves/events,
+     and a newer context REPLACES the old one. Gate II remains reader-
+     paced; Gate I also clears after a generous reading window, so the
+     Recruiter's words can never trail behind the battle.
+     Nothing blocks the board or the turn system.
      --------------------------------------------------------- */
   var BARK_GAP = 5200;
   var barkQ = [];
@@ -807,6 +1126,10 @@
   var barkTimer = null;
   var barkWaits = 0;
   var barkBusyWaits = 0;
+
+  function reactiveDialogue(stage) {
+    return !!(stage && stage.reactiveDialogue);
+  }
 
   function barkMs(text) {
     /* Reading time. Playtest note (2026-08-10, watched live): a player
@@ -826,7 +1149,11 @@
     barkBusyWaits = 0;
     window.clearTimeout(barkTimer);
     var el = $('rival-bark');
-    if (el) el.classList.remove('show');
+    if (el) {
+      el.classList.remove('show', 'reactive');
+      var dismiss = $('rival-bark-dismiss');
+      if (dismiss) dismiss.hidden = true;
+    }
   }
 
   /* A bark must land AFTER what it talks about is visible. Events fire
@@ -886,17 +1213,29 @@
     }
     setText($('rival-bark-name'), b.stage.rival);
     setText($('rival-bark-text'), b.text);
+    var paced = reactiveDialogue(b.stage);
+    el.classList.toggle('reactive', paced);
+    var dismiss = $('rival-bark-dismiss');
+    if (dismiss) dismiss.hidden = !paced;
     el.hidden = false;
     el.classList.remove('show');
     void el.offsetWidth; // restart the slide-in
     el.classList.add('show');
     barkActive = true;
+    if (window.EOL.audio) window.EOL.audio.campaign('bark');
     window.clearTimeout(barkTimer);
-    barkTimer = window.setTimeout(function () {
-      el.classList.remove('show');
-      barkActive = false;
-      barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
-    }, b.ms || barkMs(b.text));
+    /* Reactive dialogue follows play rather than a chatter clock. Gate I
+       additionally has a generous expiry: it stays manually dismissible,
+       but never camps over the board after the instruction was read. */
+    if (paced && !b.stage.autoDismissDialogue) return;
+    barkTimer = window.setTimeout(
+      function () {
+        el.classList.remove('show');
+        barkActive = false;
+        barkTimer = window.setTimeout(pumpBark, 380); // a breath between lines
+      },
+      b.ms || barkMs(b.text)
+    );
   }
 
   /* THE QUEUE-JUMP: an off-script click needs its correction NOW, not
@@ -912,13 +1251,17 @@
       el.classList.remove('deny');
       void el.offsetWidth;
       el.classList.add('deny');
-      /* and give the reader their full time again */
-      window.clearTimeout(barkTimer);
-      barkTimer = window.setTimeout(function () {
-        el.classList.remove('show');
-        barkActive = false;
-        barkTimer = window.setTimeout(pumpBark, 380);
-      }, barkMs(text));
+      /* A refused click replays the complete reading window. Gate II's
+         fully reader-paced counsel still remains until the player acts or
+         dismisses it. */
+      if (!reactiveDialogue(stage) || stage.autoDismissDialogue) {
+        window.clearTimeout(barkTimer);
+        barkTimer = window.setTimeout(function () {
+          el.classList.remove('show');
+          barkActive = false;
+          barkTimer = window.setTimeout(pumpBark, 380);
+        }, barkMs(text));
+      }
       return;
     }
     displayBark({ stage: stage, text: text, ms: null });
@@ -926,9 +1269,34 @@
 
   function queueBark(stage, text, ms) {
     if (!text) return;
+    if (reactiveDialogue(stage)) {
+      /* Never let tutorial speech lag behind play. Keep only the newest
+         observation/instruction, leave the current line visible while an
+         animation is loud, then replace it as soon as the board settles. */
+      barkQ.length = 0;
+      barkQ.push({ stage: stage, text: text, ms: null });
+      if (barkActive) {
+        barkActive = false;
+        window.clearTimeout(barkTimer);
+      }
+      pumpBark();
+      return;
+    }
     if (barkQ.length > 7) return; // dialogue never piles into a backlog
     barkQ.push({ stage: stage, text: text, ms: ms || null });
     pumpBark();
+  }
+
+  function dismissReactiveBark() {
+    var el = $('rival-bark');
+    if (!el || !el.classList.contains('reactive')) return;
+    el.classList.remove('show');
+    barkActive = false;
+    window.clearTimeout(barkTimer);
+    /* If a newer event arrived during an animation, it remains eligible
+       to appear once the board is quiet; dismissing stale text must not
+       discard the current instruction. */
+    barkTimer = window.setTimeout(pumpBark, 180);
   }
 
   function barkLine(stage, key) {
@@ -1026,6 +1394,13 @@
     var stage = stageById(B.campaignStage);
     if (!stage) return;
     activeCampaignStage = stage.id;
+    /* Gates I-II use their in-match bark channel as teaching. Heroic and
+       Legend keep rival story scenes, but enter these fights clean: no
+       Recruiter/Oathkeeper instruction, reactions, or tutorial marks. */
+    if (reactiveDialogue(stage) && !tutorialsEnabled(B)) {
+      hideBark();
+      return;
+    }
     battleWatch = {
       stage: stage,
       fired: {},
@@ -1053,14 +1428,15 @@
         /* barks are flavour; they never break a fight */
       }
     };
-    /* The opening line waits for the view swap + round banner. Set
-       stages greet each game differently. The Recruiter's guided gate
-       skips its generic opener - the round-1 lesson lines ARE its
-       opening dialogue (see onBattleRound). */
-    if (stage.tutorial && stage.tutorial.rounds && stage.tutorial.rounds[1]) {
+    /* Gates I-II have no time-fired opener or round monologue. Their
+       dialogue starts only when the script asks for a move or the battle
+       produces something worth reacting to. This keeps both fast learners
+       and slow readers aligned with the words on screen. */
+    if (reactiveDialogue(stage)) {
       battleWatch.fired.start = true;
       return;
     }
+    /* Later set stages greet each game differently. */
     var key = 'start';
     try {
       var ss = window.EOL.play && window.EOL.play._setState ? window.EOL.play._setState() : null;
@@ -1086,8 +1462,12 @@
      Carries the guided gate's round lessons (basics, energy, the
      signature unlock, the ramp) - and nothing outside a tutorial. */
   function onBattleRound(B) {
-    if (!battleWatch) return;
+    if (!battleWatch || !tutorialsEnabled(B)) return;
     var stage = battleWatch.stage;
+    /* Early-gate teaching is attached to the player's marked move and
+       actual battle events. Round-number timers were the source of stale
+       dialogue and are deliberately silent here. */
+    if (reactiveDialogue(stage)) return;
     var T = stage.tutorial;
     if (!T || !T.rounds) return;
     var lines = T.rounds[B.round];
@@ -1104,26 +1484,36 @@
      issues the instruction before the hand moves. onScriptSay fires
      as a scripted ENEMY move executes. */
   function onScriptMove(B, mv) {
-    if (!battleWatch || !mv) return;
+    if (!battleWatch || !mv || !tutorialsEnabled(B)) return;
     if (mv.side === 'player' && mv.say) queueBark(battleWatch.stage, mv.say);
   }
   function onScriptSay(B, mv) {
-    if (!battleWatch || !mv || !mv.say) return;
+    if (!battleWatch || !mv || !mv.say || !tutorialsEnabled(B)) return;
     queueBark(battleWatch.stage, mv.say);
   }
   /* An off-script click during the guided opening: repeat the current
      INSTRUCTION where the player's eyes already live, instead of the
      toast chip nobody read (playtest 2026-08-10). */
   function onScriptDeny(B, mv) {
-    if (!battleWatch) return;
+    if (!battleWatch || !tutorialsEnabled(B)) return;
     var text =
       (mv && mv.say) ||
       'The Recruiter taps the ledger. "The marked move, Blank - the gold is not a suggestion."';
     sayNow(battleWatch.stage, text);
   }
 
+  /* Preparation uses the same correction rule as battle: when a Gate I
+     click strays from the gold marks, put the relevant instruction back
+     in the Recruiter's own bubble instead of emitting a bottom toast. */
+  function onPrepScriptDeny(stageId, text) {
+    var stage = stageById(stageId);
+    if (!tutorialsEnabled() || !stage || !stage.script) return false;
+    showTutor(stage, text, false);
+    return true;
+  }
+
   function onScriptEnd(B, reason) {
-    if (!battleWatch) return;
+    if (!battleWatch || !tutorialsEnabled(B)) return;
     battleWatch.rxFree = true; // the Recruiter stops steering either way
     if (reason === 'done') {
       /* THE HANDOFF (2026-08-10): the shortened line ends at the top of
@@ -1151,7 +1541,7 @@
   var RX_COOLDOWN = 6500;
 
   function fireReaction(key, text, opts) {
-    if (!battleWatch || !battleWatch.rxFree || !text) return false;
+    if (!battleWatch || !tutorialsEnabled() || !battleWatch.rxFree || !text) return false;
     if (battleWatch.rxFired[key]) return false;
     var now = Date.now();
     if (!(opts && opts.force) && now < battleWatch.rxCool) return false;
@@ -1162,13 +1552,21 @@
   }
 
   function onPlayerAction(B, info) {
-    if (!battleWatch || !info) return;
+    if (!battleWatch || !info || !tutorialsEnabled(B)) return;
+    /* In reader-paced gates, taking the next action is itself an
+       acknowledgement. Hide the previous line; a newer event already
+       parked in barkQ (for example first blood) is preserved and will
+       appear when the action animation settles. Scripted instructions
+       are excluded because scriptAdvance has already installed the next
+       marked move before this callback runs. */
+    if (reactiveDialogue(battleWatch.stage) && battleWatch.rxFree) dismissReactiveBark();
     var T = battleWatch.stage.tutorial || {};
     var rx = T.reactions;
     if (!rx) return;
-    /* (enemy deaths - including their healer - are handled in
-       watchEvent, where the death event lands first; reacting here
-       too would chain two barks off one blow) */
+    /* Enemy deaths - including their healer - are handled in watchEvent.
+       Let that consequence outrank a generic role observation from the
+       same blow instead of replacing it in the reactive slot. */
+    if (info.killedRoles && info.killedRoles.length) return;
     if (info.sig && rx.roles && rx.roles[info.role]) {
       if (fireReaction('role-' + info.role, rx.roles[info.role])) return;
     }
@@ -1215,6 +1613,7 @@
   }
 
   function showTutor(stage, text, withNext, onNext, opts) {
+    if (!tutorialsEnabled()) return;
     opts = opts || {};
     var el = $('tutor');
     if (!el || !text) return;
@@ -1243,9 +1642,9 @@
     el.hidden = false;
   }
 
-  function startPrepTutor(stage) {
+  function startPrepTutor(stage, difficultySource) {
     stopPrepTutor();
-    if (!stage.tutorial && !stage.advisor) return;
+    if (!tutorialsEnabled(difficultySource) || (!stage.tutorial && !stage.advisor)) return;
     tut = { stage: stage, flags: {}, seq: null, timer: window.setInterval(tutorTick, 260) };
     /* claim the battlefield popup's button BEFORE the popup opens:
        play.js's entrance unlock (animationend / 900ms fallback) checks
@@ -1353,8 +1752,7 @@
          your six" button is HELD until both beats are read: without
          this the popup could be dismissed straight past the lesson
          that points at it (user note 2026-08-09). */
-      var gatedBeats =
-        (T.arena && !tut.flags.arena) || (T.tips && !tut.flags.tips);
+      var gatedBeats = (T.arena && !tut.flags.arena) || (T.tips && !tut.flags.tips);
       var bfGo = $('bf-go');
       if (bfGo) {
         if (gatedBeats) {
@@ -1409,6 +1807,25 @@
      --------------------------------------------------------- */
   var resultInfo = null;
 
+  function rewardLine(stage, first) {
+    var prog = getProgress();
+    var difficulty = difficultyOf(prog);
+    var reward = rewardFor(stage, difficulty.id);
+    if (!first) {
+      var replay = difficulty.id === 'heroic' ? 50 : difficulty.id === 'legend' ? 0 : 25;
+      return replay ? '+' + replay + ' coins · Replay reward' : 'Legend replay · No coin reward';
+    }
+    var parts = [];
+    if (reward.coins) parts.push('+' + reward.coins + ' coins');
+    if (reward.epicFaction) parts.push('Random ' + factionName(reward.epicFaction) + ' Epic');
+    if (reward.choice) parts.push('Choose ' + reward.choice.count + ' ' + reward.choice.label + ' cards');
+    /* The pack itself is the reveal. The result receipt confirms the
+       reward category without naming the card before the wrapper opens. */
+    if (reward.legendPack) parts.push('Legendary reward pack');
+    if (!parts.length) parts.push('Gate cleared · No coin reward');
+    return difficulty.name + ' · ' + parts.join(' · ');
+  }
+
   function onBattleResult(win, info) {
     clearBattleWatch();
     hideBark();
@@ -1419,7 +1836,8 @@
        must not be scored as a gate clear. The battle itself knows what
        it is - trust it over our own memory. */
     try {
-      var live = window.EOL.battle && window.EOL.battle.getState ? window.EOL.battle.getState() : null;
+      var live =
+        window.EOL.battle && window.EOL.battle.getState ? window.EOL.battle.getState() : null;
       if (live && live.campaignStage !== activeCampaignStage) {
         activeCampaignStage = null;
         return null;
@@ -1436,14 +1854,16 @@
       activeCampaignStage = null;
       return null;
     }
-    resultInfo = { stage: stage.id, won: win };
+    var firstClear = false;
     /* FIRST BLOOD (owner ruling 2026-08-10): facing a rival once -
        win or lose - opens their forces in the ledger. */
     progFought(stage.id);
-    if (win) recordClear(stage);
+    if (win) firstClear = recordClear(stage);
+    resultInfo = { stage: stage.id, won: win, first: firstClear };
     return {
       campaign: true,
       sub: win ? stage.resultWin : stage.resultLose,
+      rewards: win ? rewardLine(stage, firstClear) : null,
       rematchLabel: 'Retry',
       homeLabel: win ? 'Continue' : 'Map',
     };
@@ -1486,35 +1906,45 @@
      THE CHOICE GRANT (R9) - exams pay out as a choice, resolved at
      claim time against the live roster, never as hardcoded ids.
      --------------------------------------------------------- */
-  function choiceCandidates(stage, prog) {
-    var g = stage.grants && stage.grants.choice;
-    if (!g) return [];
+  function choiceCandidates(stage, grant) {
+    if (!grant) return [];
     var dict = cardDict();
-    var taken = {};
-    (prog.grants || []).forEach(function (id) {
-      taken[id] = true;
-    });
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if ((g.factions || []).indexOf(f.id) < 0) return;
+      if ((grant.factions || []).indexOf(f.id) < 0) return;
       f.cards.forEach(function (c) {
-        /* THE CROWN LAW: legendaries travel only inside Legend Packs -
-           an exam choice never offers one */
-        if (c.rarity === 'legendary') return;
-        if (!taken[c.id]) out.push(dict[c.id]);
+        /* Heroic elites offer Common/Rare cards; Legend elites add Epics.
+           Every eligible card stays visible so ownership is explicit rather
+           than turning the reward into an unexplained random subset. */
+        if ((grant.rarities || []).indexOf(c.rarity) >= 0) out.push(dict[c.id]);
       });
     });
     return out;
   }
 
+  function choiceOwned(entry, prog) {
+    if (window.EOL.econ && window.EOL.econ.owns(entry.card.id)) return true;
+    /* Old pre-economy saves can carry campaign grants before the one-time
+       ownership import has run. Honour that ledger here as well. */
+    return (prog.grants || []).indexOf(entry.card.id) >= 0;
+  }
+
+  function pendingChoiceGrant(stage, prog) {
+    var difficulty = difficultyOf(prog);
+    var grant = rewardFor(stage, difficulty.id).choice;
+    /* A pre-difficulty save can be suspended on an old elite choice. Its
+       card grant was promised already, so migration into Normal must not
+       silently discard it even though new Normal clears are coin-only. */
+    if (!grant && difficulty.id === 'normal' && prog.pendingChoice === stage.id) {
+      grant = rewardFor(stage, 'legend').choice;
+    }
+    return grant;
+  }
+
   function maybeOfferChoice(stage, done) {
     var prog = getProgress();
-    if (
-      !stage.grants ||
-      !stage.grants.choice ||
-      prog.choices[stage.id] ||
-      prog.pendingChoice !== stage.id
-    ) {
+    var grant = pendingChoiceGrant(stage, prog);
+    if (!grant || prog.choices[stage.id] || prog.pendingChoice !== stage.id) {
       done();
       return;
     }
@@ -1527,63 +1957,104 @@
       done();
       return;
     }
-    var g = stage.grants.choice;
     var prog = getProgress();
-    var candidates = choiceCandidates(stage, prog);
+    var g = pendingChoiceGrant(stage, prog);
+    var candidates = choiceCandidates(stage, g);
     if (!candidates.length) {
       prog.pendingChoice = null;
       saveProgress(prog);
       done();
       return;
     }
+    var available = candidates.filter(function (e) {
+      return !choiceOwned(e, prog);
+    });
+    /* A collector who already owns almost everything must never be trapped
+       behind an impossible "choose 2". They take every remaining new card;
+       with none left, the complete greyed shelf is still shown and the
+       button simply acknowledges it. */
+    var required = Math.min(g.count, available.length);
     var picked = [];
+    if (window.EOL.audio) window.EOL.audio.campaign('reward');
     setText(
       $('grant-choice-sub'),
-      stage.rival +
-        ' offers a choice: take ' +
-        g.count +
-        ' echoes from the factions the road has taught. They will walk with you.'
+      required
+        ? stage.rival +
+            ' opens the complete ' +
+            g.label +
+            ' shelf from ' +
+            (g.factions || []).map(factionName).join(', ') +
+            '. Choose ' +
+            required +
+            (required === 1 ? ' unowned echo.' : ' unowned echoes.')
+        : 'Every eligible echo on this table is already yours.'
     );
     var grid = $('grant-choice-grid');
     grid.innerHTML = '';
     var go = $('grant-choice-go');
     var sync = function () {
-      go.disabled = picked.length !== g.count;
+      go.disabled = picked.length !== required;
       go.querySelector('span').textContent =
-        picked.length === g.count ? 'Carry them' : 'Choose ' + (g.count - picked.length) + ' more';
+        required === 0
+          ? 'Continue'
+          : picked.length === required
+            ? 'Carry them'
+            : 'Choose ' + (required - picked.length) + ' more';
     };
     candidates.forEach(function (e) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'gc-tile rarity-' + e.card.rarity;
-      b.style.setProperty('--fc', e.faction.colors.primary);
-      b.innerHTML =
-        '<i class="ra ' +
-        e.card.icon +
-        '"></i><span class="gc-name">' +
-        (window.EOL.ui ? window.EOL.ui.esc(e.card.name) : e.card.name) +
-        '</span><span class="gc-role">' +
-        e.card.role +
-        ' - ' +
-        e.faction.name +
-        '</span>';
-      b.addEventListener('click', function () {
+      /* Reuse the Ledger's actual little battle card and hover panel,
+         rather than reducing a mythic choice to a generic icon button. */
+      var b =
+        window.EOL.play && window.EOL.play.tileFor
+          ? window.EOL.play.tileFor(e, $('grant-choice-tip'))
+          : document.createElement('div');
+      var owned = choiceOwned(e, prog);
+      b.classList.add('gc-card-choice');
+      b.setAttribute('role', 'checkbox');
+      b.setAttribute('aria-checked', 'false');
+      b.setAttribute('aria-label', owned ? e.card.name + ' - Owned' : 'Choose ' + e.card.name);
+      if (owned) {
+        b.classList.add('is-owned');
+        b.setAttribute('aria-disabled', 'true');
+        b.tabIndex = -1;
+        var ownedChip = document.createElement('span');
+        ownedChip.className = 'gc-owned';
+        ownedChip.textContent = 'Owned';
+        b.appendChild(ownedChip);
+      } else {
+        b.tabIndex = 0;
+      }
+      var toggle = function () {
+        if (owned) return;
         var i = picked.indexOf(e.card.id);
         if (i >= 0) {
           picked.splice(i, 1);
           b.classList.remove('sel');
+          b.setAttribute('aria-checked', 'false');
         } else {
-          if (picked.length >= g.count) return;
+          if (picked.length >= required) {
+            if (window.EOL.audio) window.EOL.audio.ui('deny');
+            return;
+          }
           picked.push(e.card.id);
           b.classList.add('sel');
+          b.setAttribute('aria-checked', 'true');
         }
+        if (window.EOL.audio) window.EOL.audio.card(i >= 0 ? 'remove' : 'pick');
         sync();
+      };
+      b.addEventListener('click', toggle);
+      b.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+        toggle();
       });
       grid.appendChild(b);
     });
+    if (window.EOL.play && window.EOL.play.fitTileNames) window.EOL.play.fitTileNames();
     sync();
     go.onclick = function () {
-      if (picked.length !== g.count) return;
+      if (picked.length !== required) return;
       var p2 = getProgress();
       picked.forEach(function (id) {
         if (p2.grants.indexOf(id) < 0) p2.grants.push(id);
@@ -1594,6 +2065,7 @@
       /* the chosen echoes are OWNED now, not just remembered */
       if (window.EOL.econ) window.EOL.econ.grant(picked);
       modal.hidden = true;
+      if (window.EOL.audio) window.EOL.audio.campaign('reward');
       done();
     };
     modal.hidden = false;
@@ -1611,37 +2083,129 @@
     });
   }
 
-  /* THE LEGEND CEREMONY: an unopened Legend Pack plays the one-card
-     opening the next time the chapter map is quiet. The card is
-     already owned (granted at clear time) - this is the handshake,
-     not the handoff, so clearing the flag BEFORE the theater can
-     never cost a card. Waits out any dialogue on the screen. */
+  /* Card rewards are granted at clear time and queued only for ceremony,
+     making both Epic and Legendary first clears refresh-proof. */
+  function rewardTheaterReady(retry) {
+    if (dlg) {
+      window.setTimeout(retry, 900);
+      return false;
+    }
+    if (document.body.dataset.view !== 'chapter') return false;
+    if (!(window.EOL.shop && window.EOL.shop.openCampaignReward)) {
+      window.setTimeout(retry, 120);
+      return false;
+    }
+    return true;
+  }
+
   function reofferPendingLegend() {
     var prog = getProgress();
     if (!prog.pendingLegend) return;
     var stage = stageById(prog.pendingLegend);
-    if (!stage || !stage.grants || !stage.grants.legendPack) {
+    var difficulty = difficultyOf(prog);
+    var reward = stage ? rewardFor(stage, difficulty.id) : null;
+    var cardId = reward && reward.legendPack ? reward.legendPack : null;
+    /* Legacy saves can have a granted-but-unopened crown while migrating
+       into Normal. Finish that promised ceremony once; new Normal clears
+       never create this queue. */
+    if (!cardId && stage && difficulty.id === 'normal' && stage.grants) {
+      cardId = stage.grants.legendPack || null;
+    }
+    if (!stage || !cardId) {
       prog.pendingLegend = null;
       saveProgress(prog);
       return;
     }
-    if (dlg) {
-      /* an epilogue is still talking - try again when it is done */
-      window.setTimeout(reofferPendingLegend, 900);
-      return;
-    }
-    if (document.body.dataset.view !== 'chapter') return;
+    if (!rewardTheaterReady(reofferPendingLegend)) return;
+    var opened = window.EOL.shop.openCampaignReward(cardId, {
+      gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
+      rarity: 'legendary',
+    });
+    if (!opened) return;
     prog.pendingLegend = null;
     saveProgress(prog);
-    if (window.EOL.shop && window.EOL.shop.openLegendPack)
-      window.EOL.shop.openLegendPack(stage.grants.legendPack);
+  }
+
+  function reofferPendingEpic() {
+    var prog = getProgress();
+    var pending = prog.pendingEpic;
+    if (!pending || !pending.card) return;
+    var stage = stageById(pending.stage);
+    if (!stage) {
+      prog.pendingEpic = null;
+      saveProgress(prog);
+      return;
+    }
+    if (!rewardTheaterReady(reofferPendingEpic)) return;
+    var opened = window.EOL.shop.openCampaignReward(pending.card, {
+      gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
+      rarity: 'epic',
+    });
+    if (!opened) return;
+    prog.pendingEpic = null;
+    saveProgress(prog);
   }
 
   /* ---------------------------------------------------------
      CHAPTER MAP - stage card states and copy.
      --------------------------------------------------------- */
+  function paintDifficulty(prog) {
+    prog = prog || getProgress();
+    var difficulty = difficultyOf(prog);
+    document.body.dataset.roadDifficulty = difficulty.id;
+    document.querySelectorAll('[data-road-difficulty]').forEach(function (button) {
+      var selected = button.dataset.roadDifficulty === difficulty.id;
+      button.classList.toggle('sel', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    setText($('road-difficulty-note'), difficulty.note);
+  }
+
+  function paintStageRewards(card, stage, cleared, difficulty) {
+    var info = card.querySelector('.sc-info');
+    if (!info) return;
+    var row = info.querySelector('.sc-rewards');
+    if (!row) {
+      row = document.createElement('span');
+      row.className = 'sc-rewards';
+      info.appendChild(row);
+    }
+    var reward = rewardFor(stage, difficulty.id);
+    var chips = [];
+    if (reward.coins)
+      chips.push(
+        '<span class="sc-reward coin"><i class="ri-coin-fill"></i>' +
+          reward.coins +
+          ' coins</span>'
+      );
+    if (reward.epicFaction)
+      chips.push(
+        '<span class="sc-reward epic"><i data-icon-domain="game" class="ra ra-gem"></i>Random ' +
+          factionName(reward.epicFaction) +
+          ' Epic</span>'
+      );
+    if (reward.choice)
+      chips.push(
+        '<span class="sc-reward"><i data-icon-domain="game" class="ra ra-locked-fortress"></i>Choose ' +
+          reward.choice.count +
+          ' ' +
+          reward.choice.label +
+          '</span>'
+      );
+    if (reward.legendPack)
+      chips.push(
+        '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>Legendary reward pack</span>'
+      );
+    if (!chips.length)
+      chips.push('<span class="sc-reward no-coins"><i class="ri-forbid-2-line"></i>No coin reward</span>');
+    row.innerHTML =
+      '<b>' + difficulty.name + ' · ' + (cleared ? 'Earned' : 'First clear') + '</b>' + chips.join('');
+  }
+
   function updateStageCards() {
     var prog = getProgress();
+    var difficulty = difficultyOf(prog);
+    paintDifficulty(prog);
     var unlocked = prog.unlocked || [1];
     var cleared = prog.cleared || [];
 
@@ -1658,6 +2222,7 @@
 
       var state = card.querySelector('.sc-state-badge, .rival-state, .rival-lock');
       var prompt = card.querySelector('.sc-prompt');
+      paintStageRewards(card, stage, isCleared, difficulty);
 
       if (isCleared) {
         if (state) {
@@ -1665,15 +2230,14 @@
             '<i class="ri-checkbox-circle-fill" style="color:#8fe3b0"></i> Gate Cleared';
         }
         if (prompt) {
-          prompt.innerHTML = '<i class="ra ra-speech-bubble"></i> Click to walk the gate again';
+          prompt.innerHTML = '<i class="ri-chat-3-line"></i> Click to walk the gate again';
         }
       } else if (isUnlocked) {
         if (state) {
           state.innerHTML = '<i class="ri-lock-unlock-line" style="color:#ffd98a"></i> Open Gate';
         }
         if (prompt) {
-          prompt.innerHTML =
-            '<i class="ra ra-speech-bubble"></i> Click to speak with ' + stage.rival;
+          prompt.innerHTML = '<i class="ri-chat-3-line"></i> Click to speak with ' + stage.rival;
         }
       } else {
         if (state) {
@@ -1809,7 +2373,7 @@
                 : '<i class="ri-lock-2-fill lg-lock"></i>';
         var face =
           st === 'sealed'
-            ? '<span class="lg-face lg-face-hood"><i class="ra ra-hood"></i></span>'
+            ? '<span class="lg-face lg-face-hood"><i data-icon-domain="game" class="ra ra-hood"></i></span>'
             : '<span class="lg-face"><img src="' +
               stage.portrait +
               '" alt="" draggable="false" /></span>';
@@ -1842,7 +2406,7 @@
     var st = ledgerStateOf(stage, prog);
     if (st === 'sealed') {
       host.innerHTML =
-        '<div class="lg-sealed"><i class="ra ra-hood"></i>' +
+        '<div class="lg-sealed"><i data-icon-domain="game" class="ra ra-hood"></i>' +
         '<h3>Gate ' +
         ROMAN[stage.id] +
         '</h3>' +
@@ -1922,14 +2486,14 @@
               '</p>'
             : '<p>' + stage.banTell + '</p>'
           : '') +
-        '<p class="lg-prefs"><b>Likes to strike:</b> ' +
+        '<p class="lg-prefs"><b>Likes to ban:</b> ' +
         habitPrefs(stage) +
         '</p>' +
         '</div>';
     }
     if (stage.counsel && (stage.id !== 1 || st === 'full')) {
       html +=
-        '<div class="lg-fact"><span class="lg-label"><i class="ra ra-quill-ink"></i> Counsel</span><p>' +
+        '<div class="lg-fact"><span class="lg-label"><i class="ri-lightbulb-line"></i> Counsel</span><p>' +
         stage.counsel +
         '</p></div>';
     }
@@ -1952,7 +2516,7 @@
             (e.faction.id === (stage.pool && stage.pool.featured) ? ' featured' : '') +
             '" style="--fc:' +
             e.faction.colors.primary +
-            '"><i class="ra ' +
+            '"><i data-icon-domain="game" class="ra ' +
             e.faction.icon +
             '"></i>' +
             e.faction.name +
@@ -1961,7 +2525,9 @@
         html +=
           '<div class="lg-fact"><span class="lg-label"><i class="ri-stack-line"></i> The Table</span>' +
           '<p class="lg-tablenote">No fixed twelve - a draft. The pool draws from these roads' +
-          ((stage.pool || {}).featured ? ' (the bright crest is the featured faction, always whole)' : '') +
+          ((stage.pool || {}).featured
+            ? ' (the bright crest is the featured faction, always whole)'
+            : '') +
           ':</p>' +
           '<div class="lg-factions">' +
           chips +
@@ -2037,6 +2603,7 @@
     ledgerSel = best;
     renderLedger();
     box.hidden = false;
+    if (window.EOL.audio) window.EOL.audio.campaign('page');
     box.setAttribute('aria-hidden', 'false');
   }
 
@@ -2154,7 +2721,15 @@
         if (ev.target.closest && ev.target.closest('#chapter-dialogue-skiptut')) return;
         advanceDialogue();
       });
-    if (next) next.addEventListener('click', advanceDialogue);
+    if (next)
+      next.addEventListener('click', function (ev) {
+        /* renderDialogue rewrites this button's children. Without stopping
+           here, a click that began on the old child can reach the bar as a
+           now-detached target and evade its closest() guard, advancing a
+           second line from the same gesture. */
+        ev.stopPropagation();
+        advanceDialogue();
+      });
 
     /* Skip tutorial - one in the intro scene's footer, one riding the
        wayfinder bubble. Both end the SAME flow the same way. */
@@ -2204,6 +2779,9 @@
     /* A tap on the tutor's shield used to vanish without a trace -
        the first outside playtest stalled exactly there. Now the
        bubble shakes its head, pointing the eye at Continue. */
+    var barkDismiss = $('rival-bark-dismiss');
+    if (barkDismiss) barkDismiss.addEventListener('click', dismissReactiveBark);
+
     var tshield = $('tutor-shield');
     if (tshield)
       tshield.addEventListener('click', function () {
@@ -2222,9 +2800,11 @@
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'chapter') {
         updateStageCards();
-        window.setTimeout(reofferPendingChoice, 400);
-        /* an unopened Legend Pack plays its ceremony first chance */
-        window.setTimeout(reofferPendingLegend, 600);
+        window.setTimeout(reofferPendingChoice, 120);
+        /* Unopened card rewards appear as soon as the chapter map returns;
+           the player never has to visit the Shop to discover a Road prize. */
+        window.setTimeout(reofferPendingLegend, 0);
+        window.setTimeout(reofferPendingEpic, 0);
         /* the one-time ledger introduction, once Gate I has fallen */
         window.setTimeout(maybeSpotLedger, 900);
       }
@@ -2245,9 +2825,18 @@
 
     /* The Tutorial corner button on the main menu replays the intro
        flow on demand; a fresh save gets it unprompted, once the boot
-       veil has settled. */
+       veil has settled. Voluntary replay also works for cloud saves that
+       last selected a hard Road. */
     var tbtn = $('btn-corner-tutorial');
-    if (tbtn) tbtn.addEventListener('click', runIntroTutorial);
+    if (tbtn) tbtn.addEventListener('click', replayIntroTutorial);
+
+    /* Difficulty changes repaint an independent ten-gate run immediately. */
+    document.querySelectorAll('[data-road-difficulty]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        setDifficulty(button.dataset.roadDifficulty);
+      });
+    });
+    paintDifficulty(getProgress());
 
     /* THE LEDGER - open/close, tabs, page selection */
     var lbtn = $('btn-ledger');
@@ -2263,6 +2852,7 @@
         if (!row) return;
         ledgerSel = parseInt(row.dataset.lg, 10) || 1;
         renderLedger();
+        if (window.EOL.audio) window.EOL.audio.campaign('page');
       });
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && $('ledger') && !$('ledger').hidden) {
@@ -2291,9 +2881,10 @@
     onScriptSay: onScriptSay,
     onScriptEnd: onScriptEnd,
     onScriptDeny: onScriptDeny,
+    onPrepScriptDeny: onPrepScriptDeny,
     onPlayerAction: onPlayerAction,
     onBattleResult: onBattleResult,
-    startTutorial: runIntroTutorial,
+    startTutorial: replayIntroTutorial,
     skipTutorial: skipTutorial,
     openLedger: openLedger,
     closeLedger: closeLedger,
@@ -2302,6 +2893,13 @@
     consumeResult: consumeResult,
     updateStageCards: updateStageCards,
     getProgress: getProgress,
+    setDifficulty: setDifficulty,
+    difficulty: function () {
+      return difficultyOf(getProgress()).id;
+    },
+    tutorialsEnabled: tutorialsEnabled,
+    rewardFor: rewardFor,
+    difficulties: DIFFICULTIES,
     story: STORY,
     /* test hooks */
     _entriesFor: entriesFor,

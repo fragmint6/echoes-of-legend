@@ -13,13 +13,14 @@
      - Huaxia is held for Chapter 2 and is NOT obtainable;
      - the shop does NOT follow the campaign's progression law -
        an early Anubis is a trap purchase, not a broken one;
-     - the campaign pays its gate coins into this wallet (1500
-       across Chapter 1), and matches pay per game: singleplayer
+     - the campaign pays difficulty-specific gate coins into this wallet
+       (1400 Normal / 2800 Heroic / 300 Legend), and matches pay per game: singleplayer
        50 win / 25 loss, PvP 75 win / 50 loss.
 
    Storage:
      eol.wallet.v1        number (coins)
      eol.owned.v1         [cardId] beyond the starter twelve
+     eol.shop.codes.v1    [code] one-time shop redemptions
      eol.econ.migrated.v1 one-time import of pre-economy campaign
                           saves (their coins + grants)
    ============================================================= */
@@ -29,7 +30,22 @@
 
   var WALLET_KEY = 'eol.wallet.v1';
   var OWNED_KEY = 'eol.owned.v1';
+  var REDEEMED_CODES_KEY = 'eol.shop.codes.v1';
   var MIGRATED_KEY = 'eol.econ.migrated.v1';
+
+  /* Public codes are mirrored here so signed-out play still works. The
+     boolean is the policy switch requested for future offers:
+
+       singleUserOnly:false  every account/save may claim it once
+       singleUserOnly:true   exactly one signed-in account may claim it
+
+     The second mode is NEVER decided by this client copy. Signed-in claims
+     go through redeem_shop_code(), whose locked database row is the global
+     source of truth. A true code cannot fall back offline. */
+  var REDEMPTION_CODES = {
+    CREATOR5000: { coins: 5000, singleUserOnly: false },
+  };
+  var sessionRedeemed = {};
 
   /* match pay, per game (owner ruling 2026-08-10) */
   var PAY = { spWin: 50, spLoss: 25, pvpWin: 75, pvpLoss: 50 };
@@ -127,6 +143,13 @@
     emitCoins();
     return coins();
   }
+  function setCoins(n) {
+    migrate();
+    n = Math.max(0, Math.round(n || 0));
+    write(WALLET_KEY, String(n));
+    emitCoins();
+    return coins();
+  }
   function spend(n) {
     migrate();
     n = Math.round(n || 0);
@@ -135,6 +158,141 @@
     write(WALLET_KEY, String(have - n));
     emitCoins();
     return true;
+  }
+
+  function normalizeCode(raw) {
+    return String(raw == null ? '' : raw)
+      .trim()
+      .toUpperCase();
+  }
+  function redeemedCodes() {
+    var seen = {};
+    var out = [];
+    readArr(REDEEMED_CODES_KEY).forEach(function (raw) {
+      var code = normalizeCode(raw);
+      if (!code || seen[code]) return;
+      seen[code] = true;
+      out.push(code);
+    });
+    Object.keys(sessionRedeemed).forEach(function (code) {
+      if (!seen[code]) out.push(code);
+    });
+    return out;
+  }
+  function hasRedeemedCode(raw) {
+    var code = normalizeCode(raw);
+    return !!code && redeemedCodes().indexOf(code) >= 0;
+  }
+  function codePolicy(raw) {
+    var reward = REDEMPTION_CODES[normalizeCode(raw)];
+    return reward
+      ? { coins: reward.coins, singleUserOnly: !!reward.singleUserOnly }
+      : null;
+  }
+  function markCodeRedeemed(code) {
+    var redeemed = redeemedCodes();
+    if (redeemed.indexOf(code) < 0) redeemed.push(code);
+    sessionRedeemed[code] = true;
+    write(REDEEMED_CODES_KEY, redeemed);
+  }
+  function grantLocalCode(code, reward) {
+    /* Mark before the coin event. The Vault's immediate push sees the
+       redemption marker and wallet in the same full-save snapshot. */
+    markCodeRedeemed(code);
+    var balance = addCoins(reward.coins);
+    return {
+      ok: true,
+      status: 'granted',
+      code: code,
+      coins: reward.coins,
+      balance: balance,
+      singleUserOnly: false,
+      source: 'local',
+    };
+  }
+  function redemptionClient() {
+    var auth = window.EOL.auth;
+    var user = auth && auth.user ? auth.user() : null;
+    var client = auth && auth.rawClient ? auth.rawClient() : null;
+    return user && client ? client : null;
+  }
+  function missingRedemptionRpc(err) {
+    var msg = String((err && (err.message || err.details || err.code)) || '');
+    return /PGRST202|redeem_shop_code.*schema cache|Could not find the function/i.test(msg);
+  }
+  function redeemCode(raw) {
+    migrate();
+    var code = normalizeCode(raw);
+    if (!code) return { ok: false, status: 'empty', code: '' };
+    if (hasRedeemedCode(code)) return { ok: false, status: 'redeemed', code: code };
+
+    var localReward = REDEMPTION_CODES[code];
+    var client = redemptionClient();
+    if (!client) {
+      if (localReward && !localReward.singleUserOnly) return grantLocalCode(code, localReward);
+      var auth = window.EOL.auth;
+      var canSignIn = auth && auth.configured && auth.configured();
+      var needsAccount = (localReward && localReward.singleUserOnly) || canSignIn;
+      return {
+        ok: false,
+        status: needsAccount ? 'signin' : 'invalid',
+        code: code,
+      };
+    }
+
+    /* The database owns signed-in claims for BOTH modes. Its code row is
+       locked through the insert, so two accounts racing a single-user code
+       cannot both win. p_wallet lets the RPC fold this client-authoritative
+       prototype wallet into the atomic award without discarding unsynced
+       local earnings. */
+    var submittedWallet = coins();
+    var request = client.rpc('redeem_shop_code', {
+      p_code: code,
+      p_wallet: submittedWallet,
+    });
+    if (request && typeof request.single === 'function') request = request.single();
+    return Promise.resolve(request).then(
+      function (response) {
+        if (response && response.error) {
+          if (missingRedemptionRpc(response.error) && localReward && !localReward.singleUserOnly) {
+            if (!redeemCode._missingWarned) {
+              redeemCode._missingWarned = true;
+              console.warn(
+                '[EOL] shop codes: migration 08 is not installed; using per-save redemption.'
+              );
+            }
+            return grantLocalCode(code, localReward);
+          }
+          return { ok: false, status: 'unavailable', code: code };
+        }
+        var row = response && response.data;
+        if (Array.isArray(row)) row = row[0];
+        row = row || {};
+        var status = row.result_status || 'unavailable';
+        var rewardCoins = Math.max(0, Math.round(+row.reward_coins || 0));
+        var serverWallet = Math.max(0, Math.round(+row.wallet_balance || submittedWallet));
+        if (status === 'granted' || status === 'redeemed') {
+          /* Preserve wallet movement that happened while the request was in
+             flight. The RPC started from submittedWallet; only the delta
+             since then belongs on top of its authoritative result. */
+          var localDelta = coins() - submittedWallet;
+          markCodeRedeemed(code);
+          setCoins(Math.max(0, serverWallet + localDelta));
+        }
+        return {
+          ok: status === 'granted',
+          status: status,
+          code: row.result_code || code,
+          coins: rewardCoins,
+          balance: coins(),
+          singleUserOnly: !!row.single_user_only,
+          source: 'server',
+        };
+      },
+      function () {
+        return { ok: false, status: 'unavailable', code: code };
+      }
+    );
   }
 
   function owns(id) {
@@ -196,6 +354,10 @@
     coins: coins,
     addCoins: addCoins,
     spend: spend,
+    redeemCode: redeemCode,
+    hasRedeemedCode: hasRedeemedCode,
+    redeemedCodes: redeemedCodes,
+    codePolicy: codePolicy,
     owns: owns,
     grant: grant,
     starterIds: starterIds,
@@ -207,6 +369,8 @@
     _reset: function () {
       write(WALLET_KEY, '0');
       write(OWNED_KEY, []);
+      write(REDEEMED_CODES_KEY, []);
+      sessionRedeemed = {};
       write(MIGRATED_KEY, '1');
       emitCoins();
       emitOwned();

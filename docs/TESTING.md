@@ -22,9 +22,14 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Buffs, debuffs, comeback | `verify_all` + `verify_buffs` | ~47s |
 | `js/engine.js` (anything) | `verify_all` + `fields` + `buffs` + `mirror` | ~2m |
 | UI / CSS / `js/play.js` | `browser_solo` + `browser_panel` | ~60s |
+| Icon markup or icon choices | `node tools/audit_icons.js` | <1s |
 | Battlefield scenes / animation | `browser_loops` | ~45s |
 | Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
 | Supabase settings | `preflight` | ~5s |
+| Shop codes / redemption SQL | `node sim/verify_code_redemption.js` | <1s |
+| Measurement / feedback | `node sim/verify_telemetry.js` | <1s |
+| Daily attempts / mode carousel | `node sim/verify_daily_ui.js` | <1s |
+| Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
 | About to deploy | see [Before you deploy](#before-you-deploy) | ~3m |
 
 ---
@@ -113,6 +118,13 @@ node sim/verify_mirror.js --games 60      # quick, while iterating
 node sim/verify_mirror.js --games 500     # before shipping engine work
 ```
 
+### `tools/audit_icons.js` - <1s
+Enforces the boundary in [the icon system](icon-system.md): Remix Icon for interface chrome and RPG Awesome only for explicitly marked game-domain concepts. It also rejects Remix class names outside the pinned 4.5.0 catalog.
+
+```bash
+node tools/audit_icons.js
+```
+
 ### `browser_solo.js` - ~45s, needs browser
 Full singleplayer run in a real browser with **no backend configured**:
 draft, bans, formation, battle. Fails on any console error. This is
@@ -194,9 +206,39 @@ worse than none). Fast enough to run any time you touch
 `js/netplay.js`.
 
 ### `preflight.js` - ~5s
-Interrogates your **live** Supabase project: tables, `try_match()`,
-RLS, sign-in settings, and a real Realtime Broadcast round trip. Run
-after any dashboard change. Currently prints **READY**.
+Interrogates your **live** Supabase project: tables, `try_match()`, the
+Daily Puzzle gate, RLS, sign-in settings, and a real Realtime Broadcast
+round trip. Run after any dashboard change. Migration 04 must be installed
+before the Daily Puzzle checks report ready. Preflight cannot exercise the
+signed-in generation lease, so older installs must apply migration 05
+separately. The two-attempt client also requires migration 07. Atomic
+single-user shop codes require migration 08; `verify_code_redemption.js`
+audits that SQL before it is applied.
+
+### `verify_code_redemption.js` - <1s
+Exercises signed-in RPC claims, same-account replay rejection, the global
+single-user loser path, public-code fallback, private-table permissions, and
+the locked migration-08 claim contract.
+
+### `verify_daily_ui.js` - <1s
+Exercises the fresh, one-used, and exhausted two-attempt states against a
+small dependency-free DOM. It also audits migration 07's numbered primary
+key, 1–2 check constraint, concurrent-claim lock, and third-claim rejection,
+then verifies the solo/multiplayer carousel and Guild Battles placeholder.
+
+### `generate_daily_puzzle.js --dry-run` - ~5-60s
+Runs the same depth-4 worker used by the scheduled Daily Puzzle job,
+serializes its rounds 5-8 checkpoint, deserializes it, and requires an
+exact second serialization before succeeding. A dry run never contacts
+Supabase and needs no secret:
+
+```bash
+node tools/generate_daily_puzzle.js --dry-run
+```
+
+Use `--out /tmp/puzzle.json` when you need to inspect the packet. The tool
+never contacts Supabase; official staging is performed by the leased browser
+Web Worker through migration 04's authenticated RPC.
 
 ### `full.js` - the balance command, ~40 min
 Not a test - it asserts nothing. **This is the one command for a

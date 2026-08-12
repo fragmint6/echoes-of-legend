@@ -27,7 +27,7 @@
     trio: {
       key: 'trio',
       name: 'Trio Pack',
-      price: 120,
+      price: 200,
       size: 3,
       odds: [
         ['common', 50],
@@ -39,7 +39,7 @@
     echo: {
       key: 'echo',
       name: 'Echoes Pack',
-      price: 300,
+      price: 500,
       size: 5,
       odds: [
         ['common', 45],
@@ -51,7 +51,7 @@
     crown: {
       key: 'crown',
       name: 'Crown Pack',
-      price: 700,
+      price: 1000,
       size: 5,
       odds: [
         ['common', 15],
@@ -67,6 +67,16 @@
     legend: {
       key: 'legend',
       name: 'Legend Pack',
+      price: 0,
+      size: 1,
+      odds: [],
+      final: null,
+    },
+    /* Heroic Road reward: also campaign-only and already granted before
+       this one-card ceremony opens. */
+    epic: {
+      key: 'epic',
+      name: 'Epic Pack',
       price: 0,
       size: 1,
       odds: [],
@@ -209,6 +219,22 @@
   }
 
   var currentPack = null;
+  var currentAwardMeta = null;
+
+  function syncOpenAnother() {
+    var again = el('po-again');
+    if (!again) return;
+    var econ = window.EOL.econ;
+    var pack = currentPack;
+    var canBuy =
+      !!pack &&
+      pack.price > 0 &&
+      ['trio', 'echo', 'crown'].indexOf(pack.key) >= 0 &&
+      !!econ &&
+      econ.coins() >= pack.price &&
+      econ.packableEntries().length > 0;
+    again.hidden = !canBuy;
+  }
 
   /* 1 - the PURCHASE: price gated, cards granted at roll time */
   function begin(packKey) {
@@ -216,17 +242,24 @@
     var econ = window.EOL.econ;
     if (!econ) return;
     /* the Legend Pack is the Road's to give, never the shelf's to sell */
-    if (pack.key === 'legend') return;
+    if (pack.key === 'legend' || pack.key === 'epic') return;
     if (!econ.packableEntries().length) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
-        window.EOL.ui.toast('Every echo the shelf sells is yours - the legends left walk the Road', 'ra-crown');
+        window.EOL.ui.toast(
+          'Every echo the shelf sells is yours - the legends left walk the Road',
+          'ri-checkbox-circle-line'
+        );
       return;
     }
     if (!econ.spend(pack.price)) {
+      if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
         window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ri-coin-fill');
       return;
     }
+    if (window.EOL.audio) window.EOL.audio.pack('buy');
+    currentAwardMeta = null;
     results = rollPack(Math.random, pack);
     /* GRANT NOW: the ceremony is theater, the ledger is truth */
     econ.grant(
@@ -237,11 +270,10 @@
     startCeremony(pack);
   }
 
-  /* THE LEGEND PACK: campaign.js opens this after a gate that grants
-     a legendary. The card is already granted by recordClear (a mid-
-     ceremony refresh can never eat a crown); this is pure theater -
-     one card, no price, no 'open another'. */
-  function openLegendPack(cardId) {
+  /* CAMPAIGN CARD PACKS: campaign.js opens these after a Heroic Epic or
+     Legend crown clear. The card is already granted by recordClear (a
+     mid-ceremony refresh cannot eat it); this is one-card theater only. */
+  function openCampaignReward(cardId, meta) {
     var entry = null;
     (window.EOL.factions || []).forEach(function (f) {
       f.cards.forEach(function (c) {
@@ -249,10 +281,19 @@
       });
     });
     if (!entry) return false;
+    var rarity = meta && meta.rarity === 'epic' ? 'epic' : 'legend';
     if (window.EOL.econ) window.EOL.econ.grant([cardId]); // idempotent safety
+    currentAwardMeta = meta || {};
+    currentAwardMeta.rarity = rarity === 'legend' ? 'legendary' : 'epic';
     results = [entry];
-    startCeremony(PACKS.legend);
+    startCeremony(PACKS[rarity]);
     return true;
+  }
+
+  function openLegendPack(cardId, meta) {
+    meta = meta || {};
+    meta.rarity = 'legendary';
+    return openCampaignReward(cardId, meta);
   }
 
   /* the shared curtain-up: stamp the wrapper, reset the stage, drop
@@ -266,10 +307,47 @@
       buildPackFace(h);
     });
     resetStage();
-    var again = el('po-again');
-    if (again) again.hidden = pack.key === 'legend';
+    syncOpenAnother();
+    var isCampaignAward = (pack.key === 'legend' || pack.key === 'epic') && !!currentAwardMeta;
+    var isCampaignLegend = pack.key === 'legend' && isCampaignAward;
+    var award = el('po-campaign-award');
+    if (award) {
+      award.hidden = !isCampaignAward;
+      var awardKicker = el('po-campaign-award-kicker');
+      var awardTitle = el('po-campaign-award-title');
+      if (awardKicker && isCampaignAward)
+        awardKicker.innerHTML =
+          '<i data-icon-domain="game" class="ra ' +
+          (isCampaignLegend ? 'ra-crown' : 'ra-gem') +
+          '"></i> Gate reward';
+      if (awardTitle && isCampaignAward)
+        awardTitle.textContent = isCampaignLegend ? 'Legendary reward pack' : 'Epic reward pack';
+      var awardName = el('po-campaign-award-name');
+      if (awardName && isCampaignAward) {
+        /* The wrapper is the reveal. Before it tears, confirm only where
+           the reward came from—never print the card hiding inside. */
+        awardName.textContent =
+          (currentAwardMeta && currentAwardMeta.gate ? currentAwardMeta.gate + ' · ' : '') +
+          'Open the pack to discover who answered';
+      }
+    }
+    var hint = el('po-hint');
+    if (hint)
+      hint.textContent = isCampaignLegend
+        ? 'Click to reveal your Legendary'
+        : isCampaignAward
+          ? 'Click to reveal your Epic'
+          : 'Click the pack to open it';
+    var summaryTitle = document.querySelector('#po-summary .po-sum-title');
+    if (summaryTitle)
+      summaryTitle.textContent = isCampaignLegend
+        ? 'Legendary Acquired'
+        : isCampaignAward
+          ? 'Epic Acquired'
+          : 'Pack Contents';
     state = 'intro';
     var overlay = el('pack-opening');
+    overlay.classList.toggle('campaign-legend', isCampaignAward);
     overlay.classList.add('on');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('pack-open');
@@ -279,6 +357,10 @@
     // restart the drop animation
     void packEl.offsetWidth;
     packEl.classList.add('drop');
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.42, 0.8);
+      window.EOL.audio.pack('drop');
+    }
     later(function () {
       if (state !== 'intro') return;
       state = 'await';
@@ -296,6 +378,7 @@
     var pack = el('po-pack');
     pack.classList.remove('idle');
     pack.classList.add('charging');
+    if (window.EOL.audio) window.EOL.audio.pack('charge');
     later(burst, dur('charge'));
   }
 
@@ -309,6 +392,10 @@
     overlay.classList.add('shake');
     el('po-flash').classList.add('on');
     spawnParticles();
+    if (window.EOL.audio) {
+      window.EOL.audio.duck(0.28, 0.9);
+      window.EOL.audio.pack('burst');
+    }
     later(function () {
       el('po-flash').classList.remove('on');
       el('po-packwrap').classList.add('gone');
@@ -333,6 +420,8 @@
       later(function () {
         flip.classList.remove('undealt');
         flip.classList.add('dealt');
+        if (window.EOL.audio)
+          window.EOL.audio.pack('deal', { pan: (i - (flips.length - 1) / 2) * 0.22 });
       }, i * DUR.dealStagger);
     });
     later(
@@ -353,6 +442,7 @@
     revealed++;
     flip.classList.add('flipped', 'r-' + entry.card.rarity);
     var isLegend = entry.card.rarity === 'legendary';
+    if (window.EOL.audio) window.EOL.audio.pack(isLegend ? 'legendary' : 'flip');
     if (isLegend) legendBanner(entry.card.name);
     later(
       function () {
@@ -369,7 +459,7 @@
     flip.innerHTML =
       '<div class="po-flip-inner">' +
       '<div class="po-back"><div class="po-back-ring"></div>' +
-      '<i class="ra ra-crossed-swords"></i></div>' +
+      '<i data-icon-domain="game" class="ra ra-crossed-swords"></i></div>' +
       '<div class="po-front"></div>' +
       '</div>';
     var front = flip.querySelector('.po-front');
@@ -378,9 +468,13 @@
   }
 
   function legendBanner(name) {
+    var award = el('po-campaign-award');
+    if (award) award.hidden = true;
     var b = el('po-legend-banner');
     b.innerHTML =
-      '<i class="ra ra-crown"></i><span>Legendary - ' + window.EOL.ui.esc(name) + '</span>';
+      '<i data-icon-domain="game" class="ra ra-crown"></i><span>Legendary - ' +
+      window.EOL.ui.esc(name) +
+      '</span>';
     b.classList.add('show');
     later(function () {
       b.classList.remove('show');
@@ -390,9 +484,11 @@
   /* 4 - fan settles, actions appear */
   function summary() {
     state = 'summary';
+    syncOpenAnother();
     el('po-cards').classList.add('settled');
     el('po-summary').classList.add('show');
     el('po-skip').classList.remove('show');
+    if (window.EOL.audio) window.EOL.audio.pack('summary');
   }
 
   function close() {
@@ -400,9 +496,12 @@
     state = 'idle';
     results = [];
     var overlay = el('pack-opening');
-    overlay.classList.remove('on');
+    overlay.classList.remove('on', 'campaign-legend');
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('pack-open');
+    var award = el('po-campaign-award');
+    if (award) award.hidden = true;
+    currentAwardMeta = null;
     el('po-cards').classList.remove('settled');
     el('po-summary').classList.remove('show');
     el('po-cards').innerHTML = '';
@@ -426,6 +525,8 @@
     el('po-packwrap').classList.add('gone');
     el('po-flash').classList.remove('on');
     el('po-legend-banner').className = 'po-legend-banner';
+    var award = el('po-campaign-award');
+    if (award) award.hidden = true;
     el('pack-opening').classList.remove('shake');
     el('po-hint').classList.remove('show');
     /* the deal may not have started (skip during intro/charge): make
@@ -479,6 +580,7 @@
     echo: { icon: 'ra-spiral-shell' },
     crown: { icon: 'ra-crown' },
     legend: { icon: 'ra-sunbeams' },
+    epic: { icon: 'ra-gem' },
   };
   function buildPackFace(host) {
     if (!host) return;
@@ -507,12 +609,16 @@
       '<div class="pk-ring inner"></div>' +
       '<span class="pk-stud n"></span><span class="pk-stud e"></span>' +
       '<span class="pk-stud s"></span><span class="pk-stud w"></span>' +
-      '<i class="ra ' + PK_STYLE[key].icon + '"></i>' +
+      '<i data-icon-domain="game" class="ra ' +
+      PK_STYLE[key].icon +
+      '"></i>' +
       '</div>' +
-      '<div class="pk-pips">' + pips + '</div>' +
+      '<div class="pk-pips">' +
+      pips +
+      '</div>' +
       '<div class="pk-wordmark"><span>' +
       pack.name.split(' ')[0] +
-      '</span><i class="ra ra-crossed-swords"></i><span>Pack</span></div>';
+      '</span><i data-icon-domain="game" class="ra ra-crossed-swords"></i><span>Pack</span></div>';
   }
 
   /* the shelf: prices, balance, and what is left to pull.
@@ -548,7 +654,106 @@
     });
   }
 
+  function setCodeStatus(message, stateName) {
+    var status = el('shop-code-status');
+    if (!status) return;
+    status.textContent = message || '';
+    if (stateName) status.dataset.state = stateName;
+    else status.removeAttribute('data-state');
+  }
+
+  function openCodeModal() {
+    var modal = el('shop-code-modal');
+    var input = el('shop-code-input');
+    if (!modal || !modal.hidden) return;
+    if (!codeBusy) {
+      if (input) input.value = '';
+      setCodeStatus('', '');
+    }
+    modal.hidden = false;
+    document.body.dataset.modal = '1';
+    if (input) input.focus();
+  }
+  function closeCodeModal(restoreFocus) {
+    var modal = el('shop-code-modal');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    delete document.body.dataset.modal;
+    if (restoreFocus !== false) {
+      var trigger = el('shop-code-open');
+      if (trigger) trigger.focus();
+    }
+  }
+
+  var codeBusy = false;
+  function setCodeBusy(busy) {
+    codeBusy = !!busy;
+    var input = el('shop-code-input');
+    var button = el('shop-code-submit');
+    if (input) input.disabled = codeBusy;
+    if (button) {
+      button.disabled = codeBusy;
+      button.setAttribute('aria-busy', codeBusy ? 'true' : 'false');
+    }
+  }
+  function finishCode(result, input) {
+    setCodeBusy(false);
+    result = result || { ok: false, status: 'unavailable' };
+    if (result.ok) {
+      input.value = '';
+      setCodeStatus(
+        result.code + ' redeemed - ' + result.coins.toLocaleString() + ' coins added.',
+        'success'
+      );
+      if (window.EOL.audio) window.EOL.audio.ui('toggle');
+      if (window.EOL.ui && window.EOL.ui.toast)
+        window.EOL.ui.toast(
+          result.code + ' redeemed - ' + result.coins.toLocaleString() + ' coins added',
+          'ri-coin-fill'
+        );
+      return;
+    }
+    var messages = {
+      empty: 'Enter a code first.',
+      redeemed: 'That code has already been redeemed by this account.',
+      claimed: 'That single-user code has already been claimed.',
+      signin: 'Sign in to redeem account and single-user codes.',
+      unavailable: 'Code redemption is unavailable right now. Try again shortly.',
+      invalid: "That code isn't recognized.",
+    };
+    setCodeStatus(messages[result.status] || messages.invalid, 'error');
+    if (window.EOL.audio) window.EOL.audio.ui('deny');
+  }
+  function submitCode() {
+    var econ = window.EOL.econ;
+    var input = el('shop-code-input');
+    if (codeBusy || !econ || !input || typeof econ.redeemCode !== 'function') return;
+    var result = econ.redeemCode(input.value);
+    if (result && typeof result.then === 'function') {
+      setCodeBusy(true);
+      setCodeStatus('Checking code…', '');
+      result.then(
+        function (resolved) {
+          finishCode(resolved, input);
+        },
+        function () {
+          finishCode({ ok: false, status: 'unavailable' }, input);
+        }
+      );
+    } else {
+      finishCode(result, input);
+    }
+  }
+
   function mount() {
+    /* The ceremony is shared by Shop purchases and campaign rewards. It
+       was authored inside the Shop section, so opening it from the chapter
+       map only set state on an ancestor hidden with the inactive view—the
+       player did not actually see it until visiting Shop. Promote the one
+       overlay to the document layer before any route can open it. */
+    var ceremony = el('pack-opening');
+    if (ceremony && ceremony.parentNode !== document.body) document.body.appendChild(ceremony);
+
     document.querySelectorAll('.pk-host').forEach(buildPackFace);
 
     document.querySelectorAll('.buy-pack').forEach(function (btn) {
@@ -556,6 +761,30 @@
         begin(btn.dataset.pack);
       });
     });
+    var codeOpen = el('shop-code-open');
+    var codeClose = el('shop-code-close');
+    var codeScrim = el('shop-code-scrim');
+    if (codeOpen) codeOpen.addEventListener('click', openCodeModal);
+    if (codeClose)
+      codeClose.addEventListener('click', function () {
+        closeCodeModal(true);
+      });
+    if (codeScrim)
+      codeScrim.addEventListener('click', function () {
+        closeCodeModal(true);
+      });
+    var codeForm = el('shop-code-form');
+    if (codeForm)
+      codeForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitCode();
+      });
+    var codeInput = el('shop-code-input');
+    if (codeInput)
+      codeInput.addEventListener('input', function () {
+        var status = el('shop-code-status');
+        if (status && status.dataset.state === 'error') setCodeStatus('', '');
+      });
     el('po-again').addEventListener('click', function () {
       begin(currentPack ? currentPack.key : 'echo');
     });
@@ -570,15 +799,28 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      if (document.body.dataset.view !== 'shop') return;
+      var codeModal = el('shop-code-modal');
+      if (codeModal && !codeModal.hidden) {
+        closeCodeModal(true);
+        return;
+      }
+      /* The theater is global now: a campaign reward opens over Chapter,
+         while paid packs open over Shop. Escape must work in both places. */
       if (!el('pack-opening').classList.contains('on')) return;
       if (state === 'summary') close();
       else skip();
     });
-    document.addEventListener('eol:coins', paintShop);
-    document.addEventListener('eol:owned', paintShop);
+    document.addEventListener('eol:coins', function () {
+      paintShop();
+      syncOpenAnother();
+    });
+    document.addEventListener('eol:owned', function () {
+      paintShop();
+      syncOpenAnother();
+    });
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'shop') paintShop();
+      else closeCodeModal(false);
     });
     paintShop();
   }
@@ -590,6 +832,7 @@
     rollPack: rollPack,
     rollRarity: rollRarity,
     begin: begin,
+    openCampaignReward: openCampaignReward,
     openLegendPack: openLegendPack,
     paintShop: paintShop,
     charge: charge,

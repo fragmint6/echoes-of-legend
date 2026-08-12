@@ -159,8 +159,9 @@ window.EOL.rules = (function () {
 /* =============================================================
    GAME DECK RULES (post pass-12 model - Classic & Draft modes)
    -------------------------------------------------------------
-   A game deck is 12 distinct heroes, at most 4 of any one role.
-   Every battle opens with the PREPARATION phase: each side bans
+   A constructed game deck is 12 distinct heroes, at most 4 of any
+   one role and at most 2 Legendaries. Every battle opens with the
+   PREPARATION phase: each side bans
    BANS heroes from the opponent's 12 (chosen simultaneously,
    revealed together), then fields FIELD_SIZE = 6 of their own
    remaining (12 - BANS) heroes. Per the 2026-07-30 ruling the
@@ -172,15 +173,32 @@ window.EOL.rules = (function () {
 window.EOL.deckRules = (function () {
   var DECK_SIZE = 12;
   var MAX_PER_ROLE = 4;
+  /* Constructed formats (Classic singles and Unabridged) may carry at
+     most two crown cards. Draft controls rarity at the 36-card table
+     instead, so its live picks continue to use capBlocked() for the
+     role law only. */
+  var MAX_LEGENDARIES = 2;
+  var DRAFT_MAX_LEGENDARIES = 4;
   var BANS = 2;
   var FIELD_SIZE = 6;
 
-  /* True when a list of entries/ids is a legal deck: full size,
-     every hero distinct, at most MAX_PER_ROLE of any role. */
+  function legendaryCount(entries) {
+    var n = 0;
+    (entries || []).forEach(function (e) {
+      var card = e && (e.card || e);
+      if (card && card.rarity === 'legendary') n++;
+    });
+    return n;
+  }
+
+  /* True when a list of entries/ids is a legal CONSTRUCTED deck: full
+     size, every hero distinct, at most MAX_PER_ROLE of any role, and
+     no more than two Legendaries. */
   function isLegal(entries) {
     if (!entries || entries.length !== DECK_SIZE) return false;
     var seen = {},
-      cnt = {};
+      cnt = {},
+      crowns = 0;
     for (var i = 0; i < entries.length; i++) {
       var card = entries[i].card || entries[i];
       if (!card || !card.id) return false;
@@ -188,11 +206,14 @@ window.EOL.deckRules = (function () {
       seen[card.id] = true;
       cnt[card.role] = (cnt[card.role] || 0) + 1;
       if (cnt[card.role] > MAX_PER_ROLE) return false;
+      if (card.rarity === 'legendary' && ++crowns > MAX_LEGENDARIES) return false;
     }
     return true;
   }
 
-  /* Would adding `card` to a partial deck breach the role cap? */
+  /* Would adding `card` to a partial deck breach the role cap? This is
+     intentionally role-only because Draft uses it while choosing its
+     twelve. Constructed builders additionally call legendaryCapBlocked. */
   function capBlocked(entries, card) {
     var n = 0;
     entries.forEach(function (e) {
@@ -201,8 +222,13 @@ window.EOL.deckRules = (function () {
     return n >= MAX_PER_ROLE;
   }
 
-  /* Draw a random legal deck of 12 distinct heroes (max 4/role) from
-     an entry pool ({card,faction}). Used for the Classic bot. */
+  function legendaryCapBlocked(entries, card) {
+    return card.rarity === 'legendary' && legendaryCount(entries) >= MAX_LEGENDARIES;
+  }
+
+  /* Draw a random legal constructed deck of 12 distinct heroes
+     (max 4/role, max 2 Legendary) from an entry pool. Used for the
+     Classic bot and the Surprise Me row. */
   function randomDeck(pool, rng) {
     rng = rng || Math.random;
     var idx = pool.map(function (_, i) {
@@ -215,20 +241,35 @@ window.EOL.deckRules = (function () {
       idx[j] = t;
     }
     var out = [],
-      cnt = {};
+      cnt = {},
+      crowns = 0;
     for (var k = 0; k < idx.length && out.length < DECK_SIZE; k++) {
       var e = pool[idx[k]];
       var role = e.card.role;
       if ((cnt[role] || 0) >= MAX_PER_ROLE) continue;
+      if (e.card.rarity === 'legendary' && crowns >= MAX_LEGENDARIES) continue;
       cnt[role] = (cnt[role] || 0) + 1;
+      if (e.card.rarity === 'legendary') crowns++;
       out.push(e);
     }
     return out.length === DECK_SIZE ? out : null;
   }
 
-  /* Draft pool: the full 36-hero roster. Once every role has at
-     least 6 heroes in the game, the pool becomes 6-per-role snapshotted
-     from the roster - the draft law the pool is designed around. */
+  function shuffle(list, rng) {
+    for (var i = list.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      var t = list[i];
+      list[i] = list[j];
+      list[j] = t;
+    }
+    return list;
+  }
+
+  /* Draft table law: exactly 36 cards (six per role where the roster
+     supports it), with no more than four Legendaries visible across the
+     whole table. Pick those four crowns globally first, then fill each
+     role with ordinary cards; this avoids accidentally drawing one crown
+     per role/faction and flooding a draft with six or seven of them. */
   function draftPool(pool, rng) {
     var byRole = {};
     pool.forEach(function (e) {
@@ -238,18 +279,41 @@ window.EOL.deckRules = (function () {
     var canSnap = roles.every(function (r) {
       return byRole[r].length >= 6;
     });
-    if (!canSnap) return pool.slice(); // current roster: just use every card
+    if (!canSnap) {
+      /* Small/custom pools are still rarity-capped, even when they cannot
+         satisfy the normal six-per-role table shape. */
+      var crowns = 0;
+      return pool.filter(function (e) {
+        if (e.card.rarity !== 'legendary') return true;
+        return crowns++ < DRAFT_MAX_LEGENDARIES;
+      });
+    }
     rng = rng || Math.random;
+    var legends = shuffle(
+      pool.filter(function (e) {
+        return e.card.rarity === 'legendary';
+      }),
+      rng
+    ).slice(0, DRAFT_MAX_LEGENDARIES);
+    var keepLegend = {};
+    legends.forEach(function (e) {
+      keepLegend[e.card.id] = true;
+    });
     var out = [];
     roles.forEach(function (r) {
-      var list = byRole[r].slice();
-      for (var i = list.length - 1; i > 0; i--) {
-        var j = Math.floor(rng() * (i + 1));
-        var t = list[i];
-        list[i] = list[j];
-        list[j] = t;
-      }
-      out = out.concat(list.slice(0, 6));
+      var chosenCrowns = shuffle(
+        byRole[r].filter(function (e) {
+          return keepLegend[e.card.id];
+        }),
+        rng
+      );
+      var ordinary = shuffle(
+        byRole[r].filter(function (e) {
+          return e.card.rarity !== 'legendary';
+        }),
+        rng
+      );
+      out = out.concat(chosenCrowns.concat(ordinary).slice(0, 6));
     });
     return out;
   }
@@ -257,10 +321,14 @@ window.EOL.deckRules = (function () {
   return {
     DECK_SIZE: DECK_SIZE,
     MAX_PER_ROLE: MAX_PER_ROLE,
+    MAX_LEGENDARIES: MAX_LEGENDARIES,
+    DRAFT_MAX_LEGENDARIES: DRAFT_MAX_LEGENDARIES,
     BANS: BANS,
     FIELD_SIZE: FIELD_SIZE,
     isLegal: isLegal,
     capBlocked: capBlocked,
+    legendaryCount: legendaryCount,
+    legendaryCapBlocked: legendaryCapBlocked,
     randomDeck: randomDeck,
     draftPool: draftPool,
   };

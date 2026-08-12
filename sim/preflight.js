@@ -4,7 +4,8 @@
    node sim/preflight.js
 
    Reads js/supabase-config.js and interrogates the REAL project.
-   Answers one question: can two people queue and play right now?
+   Answers three questions: can two people queue and play, are the
+   Daily Puzzle gates installed, and can shop codes be claimed atomically?
 
    Every check reports what it actually observed, so a failure names
    the fix instead of just saying "something is wrong".
@@ -95,11 +96,22 @@ async function get(url, opts) {
 
   /* ---------- 3. schema ---------- */
   console.log('\n  Database schema');
-  /* THE BACKEND MAP (cleanup 2026-08-10): exactly four tables.
-     profiles (identity) + saves (THE VAULT) + mp_queue/mp_matches
-     (matchmaking). `decks` and `ladders` were dead weight and have a
-     graveyard check below. */
-  const need = ['profiles', 'mp_queue', 'mp_matches', 'saves'];
+  /* THE BACKEND MAP: identity + vault + two matchmaking tables +
+     the active/staged Daily Puzzle store and its atomic attempt claims.
+     `decks` and `ladders` remain dead weight and have a graveyard check. */
+  const need = [
+    'profiles',
+    'mp_queue',
+    'mp_matches',
+    'saves',
+    'shop_codes',
+    'shop_code_redemptions',
+    'daily_puzzles',
+    'daily_puzzle_attempts',
+    'daily_puzzle_jobs',
+    'telemetry_events',
+    'player_feedback',
+  ];
   const missing = [];
   for (const t of need) {
     const r = await get(U + '/rest/v1/' + t + '?select=*&limit=1', { headers: H });
@@ -143,11 +155,148 @@ async function get(url, opts) {
     pass('try_match() exists (HTTP ' + rpc.status + ': ' + (rpc.body && rpc.body.message) + ')');
   }
 
+  /* ---------- 4b. Daily Puzzle gate ---------- */
+  console.log('\n  Daily Puzzle function');
+  const dailyRpc = await get(U + '/rest/v1/rpc/daily_puzzle_status', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, H),
+    body: '{}',
+  });
+  if (dailyRpc.body && dailyRpc.body.code === 'PGRST202') {
+    fail('daily_puzzle_status() is missing - run Supabase migration 04');
+  } else if (
+    dailyRpc.status === 401 ||
+    dailyRpc.status === 403 ||
+    (dailyRpc.body && /authentication|required|permission/i.test(dailyRpc.body.message || ''))
+  ) {
+    pass('daily_puzzle_status() exists and requires a signed-in account');
+  } else if (dailyRpc.status === 200) {
+    warn('daily_puzzle_status() exposed data to an anonymous caller');
+  } else {
+    pass(
+      'daily_puzzle_status() exists (HTTP ' +
+        dailyRpc.status +
+        ': ' +
+        (dailyRpc.body && dailyRpc.body.message) +
+        ')'
+    );
+  }
+
+  /* ---------- 4c. atomic shop-code claims ---------- */
+  console.log('\n  Shop code redemption');
+  const codeRpc = await get(U + '/rest/v1/rpc/redeem_shop_code', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, H),
+    body: JSON.stringify({ p_code: 'PREFLIGHT', p_wallet: 0 }),
+  });
+  if (codeRpc.body && codeRpc.body.code === 'PGRST202') {
+    fail('redeem_shop_code() is missing - run Supabase migration 08');
+  } else if (
+    codeRpc.status === 401 ||
+    codeRpc.status === 403 ||
+    (codeRpc.body && /authentication|required|permission/i.test(codeRpc.body.message || ''))
+  ) {
+    pass('redeem_shop_code() exists and requires a signed-in account');
+  } else if (codeRpc.status === 200) {
+    fail('redeem_shop_code() accepted an anonymous caller');
+  } else {
+    pass(
+      'redeem_shop_code() exists (HTTP ' +
+        codeRpc.status +
+        ': ' +
+        (codeRpc.body && codeRpc.body.message) +
+        ')'
+    );
+  }
+
+  /* ---------- 4d. measurement + feedback RPCs ---------- */
+  console.log('\n  Playtest measurement');
+  const measurementRpcs = [
+    {
+      name: 'record_telemetry',
+      migration: '06',
+      body: {
+        p_visitor: '00000000-0000-4000-8000-000000000006',
+        p_session: '00000000-0000-4000-8000-000000000006',
+        p_event: 'preflight_invalid',
+        p_context: {},
+      },
+      expected: /unsupported measurement event/i,
+    },
+    {
+      name: 'submit_player_feedback',
+      migration: '06',
+      body: {
+        p_visitor: '00000000-0000-4000-8000-000000000006',
+        p_session: '00000000-0000-4000-8000-000000000006',
+        p_category: 'preflight_invalid',
+        p_message: 'probe',
+        p_context: {},
+      },
+      expected: /unsupported feedback category/i,
+    },
+  ];
+  for (const probe of measurementRpcs) {
+    const r = await get(U + '/rest/v1/rpc/' + probe.name, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, H),
+      body: JSON.stringify(probe.body),
+    });
+    if (r.body && r.body.code === 'PGRST202') {
+      fail(probe.name + '() is missing - run Supabase migration ' + probe.migration);
+    } else if (r.body && probe.expected.test(r.body.message || '')) {
+      pass(probe.name + '() exists and validates anonymous input');
+    } else {
+      warn(
+        probe.name +
+          '() returned HTTP ' +
+          r.status +
+          ': ' +
+          ((r.body && r.body.message) || 'no message')
+      );
+    }
+  }
+
   /* ---------- 5. RLS really is on ---------- */
   console.log('\n  Row Level Security');
   const probes = [
     ['profiles', { id: '00000000-0000-0000-0000-000000000009', handle: 'preflight' }],
     ['saves', { user_id: '00000000-0000-0000-0000-000000000009', data: { v: 2, wallet: 9999 } }],
+    ['shop_codes', { code: 'PREFLIGHT', coins: 9999, single_user_only: true }],
+    [
+      'shop_code_redemptions',
+      {
+        code: 'CREATOR5000',
+        user_id: '00000000-0000-0000-0000-000000000009',
+        coins: 5000,
+      },
+    ],
+    [
+      'daily_puzzles',
+      {
+        slot: 'active',
+        puzzle_day: '2099-01-01',
+        payload: { v: 1 },
+        metrics: {},
+      },
+    ],
+    [
+      'telemetry_events',
+      {
+        visitor_id: '00000000-0000-4000-8000-000000000006',
+        session_id: '00000000-0000-4000-8000-000000000006',
+        event_name: 'session_started',
+      },
+    ],
+    [
+      'player_feedback',
+      {
+        visitor_id: '00000000-0000-4000-8000-000000000006',
+        session_id: '00000000-0000-4000-8000-000000000006',
+        category: 'bug',
+        message: 'preflight direct-write probe',
+      },
+    ],
   ];
   for (const [t, row] of probes) {
     if (missing.indexOf(t) >= 0) continue;

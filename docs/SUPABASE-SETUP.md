@@ -1,8 +1,9 @@
-# Supabase setup - accounts and multiplayer draft
+# Supabase setup - accounts, multiplayer, and Daily Puzzles
 
-The goal: **two people on two different computers queue for Online Draft
-(or Online Classic) and play each other.** Nothing here is ranked yet -
-the ladder is ROADMAP Phase 4; these are the unranked online modes.
+The goal: **two people on different computers can play online, saves follow
+an account, and every signed-in player receives the same Daily Puzzle with
+two attempts.** Nothing here is ranked yet - the ladder is ROADMAP Phase 4;
+the online modes remain unranked.
 
 ---
 
@@ -20,30 +21,48 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | `profiles`, `saves` tables | present |
 | OK | `mp_queue`, `mp_matches` tables | **created** |
 | OK | `try_match()` function | **created** |
+| OK | Daily Puzzle migration 04 | installed |
+| OK | Daily Puzzle RPC hotfix 05 | installed |
+| ADD | Measurement + feedback migration 06 | run section 4f |
+| ADD | Two-attempt Daily Puzzle migration 07 | run section 4g |
+| ADD | Atomic shop-code redemption migration 08 | run section 4h |
 
-**The backend is READY.** `node sim/preflight.js` confirms two signed-in
-players can queue and play. The setup steps below are kept as reference
-and for setting the project up again from scratch.
+**Accounts and multiplayer are ready.** Run migration 06 for the anonymous
+playtest funnel, migration 07 before deploying the two-attempt Daily Puzzle
+client, and migration 08 before issuing globally single-user shop codes.
 
 ---
 
 ## THE BACKEND MAP (cleanup 2026-08-10)
 
-Four tables. If the dashboard shows more, run the cleanup in section
-9b. Everything the backend holds, in one look:
+Eleven tables. If the dashboard shows unrelated leftovers, run the cleanup
+in section 9b. Everything the backend holds, in one look:
 
 | Table | Written by | What it holds |
 | --- | --- | --- |
 | `profiles` | `js/auth.js` | Identity: the callsign your opponent sees. One row per user. |
 | `saves` | `js/cloud.js` (THE VAULT) | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
+| `shop_codes` | Owner via Dashboard/SQL | Coin amount, active state, and the `single_user_only` policy boolean for each code. |
+| `shop_code_redemptions` | `redeem_shop_code()` only | Durable once-per-account claims; for single-user codes the first row closes the offer globally. |
 | `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
 | `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
+| `daily_puzzles` | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
+| `daily_puzzle_attempts` | Daily Puzzle RPCs | Up to two numbered claims per account for the active puzzle; deleted with yesterday's position. |
+| `daily_puzzle_jobs` | `js/daily.js` | One short generation lease so many open browsers still run only one forge. |
+| `telemetry_events` | `js/telemetry.js` | Privacy-light anonymous views, queue/match milestones, battle starts/results, and coarse errors; raw rows retain 180 days. |
+| `player_feedback` | `js/telemetry.js` | Voluntary bug, balance, confusion, and suggestion reports sent from the game. |
 
 | Function | Called by | Job |
 | --- | --- | --- |
 | `try_match()` | mp.js | Atomic pairing (`for update skip locked`). |
 | `find_my_match()` | mp.js | Rejoin after a refresh. |
 | `touch_match()` / `save_match_state()` / `end_match()` | mp.js | Match lifecycle. |
+| `claim_daily_generation()` / `submit_daily_candidate()` | `js/daily.js` Web Worker | Elect one signed-in browser to forge and stage the shared position. |
+| `publish_daily_puzzle()` | pg_cron / overdue browser | Atomically promote staged at 7 AM Eastern. |
+| `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Count, atomically consume, and finish either of two official attempts. |
+| `record_telemetry()` | `js/telemetry.js` | Validate and rate-limit one anonymous funnel event without attaching account identity. |
+| `submit_player_feedback()` | `js/telemetry.js` | Validate and rate-limit an anonymous voluntary feedback message with optional coarse diagnostics. |
+| `redeem_shop_code()` | `js/economy.js` | Lock and claim a code atomically, enforcing once per account or one account globally. |
 
 Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
 no code referenced it) and `ladders` (nothing wrote it; it returns
@@ -190,6 +209,123 @@ What it adds:
 | `mp_match_state` | Stores a snapshot of the match at each phase boundary. |
 | `save_match_state()` | Writes the current game state (called by the host after every phase change). |
 | `find_my_match()` | Returns the persisted state so the rejoining client resumes where it left off. |
+
+## 4d. Migration 04 - official Daily Puzzle
+
+Run **[`docs/supabase-migration-04.sql`](supabase-migration-04.sql)** in the
+SQL Editor. That single paste is the whole setup—there is no GitHub Action,
+server secret, Edge Function, or additional hosting. Fresh installs use the
+corrected RPC definitions already included in migration 04.
+
+It creates:
+
+- `daily_puzzles`, hard-capped by its unique `active` / `staged` slots to
+  **two positions at most**;
+- `daily_puzzle_attempts`, initially one row per puzzle/account (migration 07
+  adds the numbered second attempt);
+- `daily_puzzle_jobs`, a tiny expiring lease—not a stored position;
+- generation lease/submission, status, atomic attempt, result, and
+  publication RPCs;
+- a database cron that publishes at **7:00 AM America/New_York**, following
+  EST/EDT automatically.
+
+At 6:55 AM Eastern, signed-in browsers ask Supabase for the generation
+lease. Exactly one gets it and runs the real depth-4 forge inside
+`js/daily-worker.js`, away from the UI thread. It stages the validated board;
+at 7:00 the database deletes yesterday's active position and attempts,
+promotes staged, and leaves one active position. That deletion is everyone's
+attempt reset—there is no mass user update.
+
+If nobody has the game open at 6:55, the first signed-in browser after reset
+receives the same lease. The Daily Puzzle modal shows the forge, then the
+position publishes immediately when it finishes. This makes the system
+self-healing without an always-on server; the only tradeoff is that the
+first visitor after a completely idle reset may wait for generation.
+
+Each of a player's two attempts is consumed inside `claim_daily_puzzle()`
+immediately before the board is returned. Merely opening the Daily Puzzle
+card does not consume one; once a battle opens, closing or refreshing cannot
+restore that numbered attempt. Official Daily Puzzles therefore require a
+signed-in account. The original interactive generator remains available to
+developers at `?dailyLab=1`.
+
+## 4e. Migration 05 - Daily Puzzle RPC hotfix
+
+If migration 04 was installed before **2026-08-11**, run
+**[`docs/supabase-migration-05.sql`](supabase-migration-05.sql)** once in the
+SQL Editor. It fixes PostgreSQL treating the `puzzle_day` and `puzzle_id`
+RETURNS TABLE variables as ambiguous inside `ON CONFLICT` targets.
+
+The hotfix only replaces `claim_daily_generation()` and
+`claim_daily_puzzle()`. It does not delete puzzle rows, attempts, jobs, or
+cron configuration, and it is safe to run more than once. Fresh installations
+that use the current migration 04 file already contain the fix.
+
+## 4f. Migration 06 - playtest measurement and feedback
+
+Run **[`docs/supabase-migration-06.sql`](supabase-migration-06.sql)** once in
+the SQL Editor after deploying `js/telemetry.js`.
+
+It adds two owner-readable, browser-private tables:
+
+- `telemetry_events` for anonymous screens, mode choices, queue/match
+  milestones, battle starts/results, acquisition tags, and coarse client
+  errors. Raw rows retain 180 days.
+- `player_feedback` for messages deliberately submitted through the new
+  Feedback form.
+
+Browser roles have no direct table access. Two narrow RPCs validate payloads,
+cap their size, and rate-limit anonymous visitor ids. Neither funnel events
+nor feedback messages attach account identity. The funnel never sends email,
+callsign, card choices, actions, full URLs, full user-agent strings, or stack
+traces. Players can turn measurement off under **Settings -> Privacy**.
+
+See **[`docs/MEASUREMENT.md`](MEASUREMENT.md)** for the exact stored fields,
+retention, UTM links, feedback workflow, and ready-to-run dashboard queries.
+The game remains fully playable if this migration is missing or Supabase is
+offline; measurement fails quietly and the feedback form offers a copy plus
+Discord fallback.
+
+## 4g. Migration 07 - two Daily Puzzle attempts
+
+Run **[`docs/supabase-migration-07.sql`](supabase-migration-07.sql)** once in
+the SQL Editor before deploying the current `js/daily.js`.
+
+It preserves existing attempts as attempt 1, changes the attempt key to
+`(puzzle_id, user_id, attempt_no)`, and replaces the three player-facing
+Daily RPCs. Claims are serialized per puzzle/account, so simultaneous tabs
+can receive attempts 1 and 2 but can never mint a third. Result reporting is
+also tied to the numbered claim instead of updating both rows.
+
+The puzzle position and seeded future remain identical on both attempts.
+Opening the modal is still free; opening each battle consumes one allowance.
+Publication still deletes the old puzzle and both attempt rows at the 7:00 AM
+Eastern reset.
+
+## 4h. Migration 08 - account and single-user shop codes
+
+Run **[`docs/supabase-migration-08.sql`](supabase-migration-08.sql)** once in
+the SQL Editor before issuing globally single-user codes. It creates the
+private `shop_codes` catalog, the claim ledger, and `redeem_shop_code()`.
+The RPC locks each code row while claiming it, so simultaneous requests
+cannot both win a single-user code.
+
+Every code is once per account. The boolean chooses its wider scope:
+
+```sql
+-- Every account may redeem this once.
+insert into public.shop_codes(code, coins, single_user_only)
+values ('PUBLIC500', 500, false);
+
+-- Exactly one account globally may redeem this once.
+insert into public.shop_codes(code, coins, single_user_only)
+values ('ONE-WINNER', 5000, true);
+```
+
+`CREATOR5000` is seeded as a public, once-per-account code. Signed-out players
+can still redeem public codes once in their local save; a globally single-user
+code always requires a signed-in account and the RPC. Direct browser access to
+both tables is revoked, and RLS has no client policies.
 
 ## 5. Realtime - nothing to do
 
@@ -348,9 +484,9 @@ whether two people can actually queue right now:
 node sim/preflight.js
 ```
 
-It checks the config shape, that the key authenticates, that all four
-tables and `try_match()` exist, that RLS really is blocking anonymous
-writes, and that sign-up is open. A failure names the fix.
+It checks the config shape, that the key authenticates, that every required
+table and RPC (including `redeem_shop_code()`) exists, that RLS blocks
+anonymous writes, and that sign-up is open. A failure names the fix.
 
 > For which of the other test files to run and when, see
 > **[TESTING.md](TESTING.md)**. You rarely need all of them.
@@ -377,14 +513,16 @@ browsers and checks the board checksum after every action.
 | "Accounts are not configured yet" | `js/supabase-config.js` is still blank. |
 | Console: "REFUSING TO START SUPABASE" | You pasted a secret key. Use the publishable one. |
 | "Multiplayer tables are missing" | The SQL in steps 2-3 has not been run. |
+| Single-user code says redemption is unavailable | Run migration 08; these claims deliberately have no offline fallback. |
 | Sign-in does nothing on `file://` | Serve over http (step 7). |
 | Stuck at "Looking for an opponent" | Only one player is queued, or the two are signed in as the same account. |
 | Paired but the draft never starts | Realtime is off for the project (step 5). |
 
 ## 9b. CLEANUP - drop the dead tables (2026-08-10)
 
-The dashboard had six tables; only four earn their place (see THE
-BACKEND MAP at the top). Run this once in **SQL Editor**:
+These two pre-vault tables are still dead; the Daily Puzzle tables in the
+backend map are intentional and must not be removed. Run this cleanup once
+in **SQL Editor**:
 
 ```sql
 -- the pre-vault deck-sync experiment: no code references it
@@ -401,7 +539,8 @@ table still exists.
 ## 10. THE VAULT - cloud saves (added 2026-08-10)
 
 Signed-in players carry their whole save with the account: wallet,
-owned cards, campaign progress, decks, settings, tutorial flags.
+owned cards, redeemed shop codes, campaign progress, decks, settings,
+and tutorial flags.
 `js/cloud.js` stores it as ONE **readable** json document per user
 (format v2 - the original v1 stored raw localStorage strings and was
 impossible to hand-edit; v1 rows migrate themselves on next sign-in):
@@ -414,7 +553,7 @@ impossible to hand-edit; v1 rows migrate themselves on next sign-in):
   "campaign": { "cleared": [1, 2], "fought": [1, 2, 3], "coins": 450 },
   "decks": { "...": "..." },
   "settings": { "scale": 100, "gfx": "high", "warLength": "set" },
-  "flags": { "tutorialIntro": "1", "tips": {} }
+  "flags": { "tutorialIntro": "1", "tips": {}, "shopCodes": ["CREATOR5000"] }
 }
 ```
 

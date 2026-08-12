@@ -20,8 +20,10 @@
  *     only touch the signed-in user's own rows. See
  *     docs/SUPABASE-SETUP.md for the schema and policies.
  *
- *  3. NOTHING LOCAL IS EVER OVERWRITTEN. Signing in and out cannot
- *     touch a deck, because nothing is uploaded in the first place.
+ *  3. THE ACCOUNT IS THE CLOUD SAVE. Signed-out progress remains in
+ *     localStorage. A new account adopts that device save; signing into
+ *     an account with an existing Vault restores the account's save.
+ *     js/cloud.js owns that synchronization and its reload guard.
  * ============================================================= */
 (function () {
   'use strict';

@@ -32,11 +32,19 @@
 global.window = { EOL: {} };
 require('../data/_schema.js');
 require('../data/roles.js');
-['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'takamagahara', 'yamato'].forEach(
-  function (f) {
-    require('../data/' + f + '.js');
-  }
-);
+[
+  'camelot',
+  'duat',
+  'grimmwood',
+  'huaxia',
+  'olympus',
+  'roma',
+  'sherwood',
+  'takamagahara',
+  'yamato',
+].forEach(function (f) {
+  require('../data/' + f + '.js');
+});
 require('../data/battlefields.js');
 require('../data/campaign-ch1.js');
 require('../data/draft-ai.js');
@@ -60,6 +68,7 @@ var ONLY = (function () {
   var i = args.indexOf('--gate');
   return i >= 0 ? parseInt(args[i + 1], 10) : null;
 })();
+var TRACE = args.indexOf('--trace') >= 0;
 
 var dict = {};
 EOL.factions.forEach(function (f) {
@@ -91,7 +100,31 @@ function counterBonus(mine, theirs) {
   return s;
 }
 
-function chooseSix(pool, enemyPool, preSeed, jitter) {
+function fieldPersonaBonus(profile, entry) {
+  if (!profile || !entry) return 0;
+  var role = entry.card.role;
+  var roles = {
+    sentinel: { Tank: 0.14, Medic: 0.08, Bruiser: 0.04 },
+    hunter: { Sniper: 0.16, Bruiser: 0.1, Controller: 0.04 },
+    anointed: { Caster: 0.14, Controller: 0.12, Medic: 0.06 },
+    warden: { Controller: 0.1, Tank: 0.07, Medic: 0.06 },
+    trickster: { Controller: 0.18, Caster: 0.07 },
+    strategist: { Controller: 0.14, Sniper: 0.1, Bruiser: 0.07 },
+    chronicler: { Caster: 0.16, Controller: 0.12, Medic: 0.08 },
+    guardian: { Tank: 0.14, Controller: 0.1, Caster: 0.06 },
+    conqueror: { Bruiser: 0.15, Caster: 0.12, Sniper: 0.1, Medic: 0.05 },
+  };
+  var v = roles[profile] && roles[profile][role] ? roles[profile][role] : 0;
+  var tags = DAI.tags(entry);
+  if (profile === 'trickster' && (tags.gives.denial || tags.gives.energy)) v += 0.3;
+  if (profile === 'strategist' && (tags.gives.kills || tags.gives.exposed)) v += 0.28;
+  if (profile === 'chronicler' && (tags.gives.burn || tags.gives.cleanse || tags.gives.denial))
+    v += 0.3;
+  if (profile === 'conqueror' && (tags.gives.exposed || tags.gives.kills)) v += 0.28;
+  return v;
+}
+
+function chooseSix(pool, enemyPool, preSeed, jitter, aiProfile) {
   var team = [],
     rest = pool.slice();
   var FIELD = RULES.FIELD_SIZE;
@@ -123,7 +156,10 @@ function chooseSix(pool, enemyPool, preSeed, jitter) {
     for (var pass = 0; pass < 2 && best < 0; pass++) {
       for (var i = 0; i < rest.length; i++) {
         if (forced && pass === 0 && rest[i].card.role !== forced) continue;
-        var v = DAI.value(team, rest[i], { size: FIELD }) + Math.random() * (jitter == null ? 1.5 : jitter);
+        var v =
+          DAI.value(team, rest[i], { size: FIELD }) +
+          fieldPersonaBonus(aiProfile, rest[i]) +
+          Math.random() * (jitter == null ? (aiProfile ? 0.45 : 1.5) : jitter);
         if (enemyPool && enemyPool.length) {
           for (var k = 0; k < enemyPool.length; k++) v += counterBonus(rest[i], enemyPool[k]);
         }
@@ -143,56 +179,137 @@ function predictSix(pool) {
   return chooseSix(pool, null, null, 3.0);
 }
 
-function personaBans(profile, deckEntries, myPool) {
+/* Mirrors play.js: randomize only inside a genuine near-tie so a clear
+   outlier remains a deterministic ban. */
+var BAN_VARIATION_WINDOW = 1.1;
+var BAN_DOMINANT_GAP = BAN_VARIATION_WINDOW * 2;
+function variedBanOrder(scored, count) {
+  var pool = scored.slice();
+  var out = [];
+  while (out.length < count && pool.length) {
+    pool.sort(function (a, b) {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+    var best = pool[0].score;
+    var near = pool.filter(function (candidate) {
+      return best - candidate.score <= BAN_VARIATION_WINDOW;
+    });
+    var total = 0;
+    near.forEach(function (candidate) {
+      candidate._banWeight = 1 + BAN_VARIATION_WINDOW - (best - candidate.score);
+      total += candidate._banWeight;
+    });
+    var roll = Math.min(0.999999999, Math.max(0, Math.random())) * total;
+    var chosen = near[near.length - 1];
+    for (var i = 0; i < near.length; i++) {
+      roll -= near[i]._banWeight;
+      if (roll < 0) {
+        chosen = near[i];
+        break;
+      }
+    }
+    out.push(chosen);
+    pool.splice(pool.indexOf(chosen), 1);
+  }
+  return out;
+}
+
+function personaBans(profile, deckEntries, myPool, allowLegendaries) {
   profile = profile || {};
+  var legal = deckEntries.filter(function (e) {
+    return allowLegendaries || e.card.rarity !== 'legendary';
+  });
   var out = [];
   (profile.ids || []).forEach(function (id) {
     if (out.length >= RULES.BANS || out.indexOf(id) >= 0) return;
     if (
-      deckEntries.some(function (e) {
+      legal.some(function (e) {
         return e.card.id === id;
       })
     )
       out.push(id);
   });
-  if (out.length < RULES.BANS) {
-    var atkMax = 1;
-    deckEntries.forEach(function (e) {
-      atkMax = Math.max(atkMax, e.card.stats.atk);
-    });
-    var scored = deckEntries
+  while (out.length < RULES.BANS) {
+    var scored = legal
       .filter(function (e) {
         return out.indexOf(e.card.id) < 0;
       })
       .map(function (e) {
-        var v = DAI.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.9;
-        if (profile.roles && profile.roles.indexOf(e.card.role) >= 0) v += 3.5;
-        if (profile.stat === 'atk') v += (e.card.stats.atk / atkMax) * 2.5;
-        if (profile.power) v += DAI.powerOf(e.card) * 3.0;
-        return { id: e.card.id, v: v };
+        return {
+          id: e.card.id,
+          entry: e,
+          role: profile.roles && profile.roles.indexOf(e.card.role) >= 0 ? 1 : 0,
+          stat: profile.stat === 'atk' ? e.card.stats.atk : 0,
+          power: profile.power ? DAI.powerOf(e.card) : 0,
+          deny: DAI.denyValue(deckEntries, e, myPool || []),
+        };
       });
-    scored.sort(function (a, b) {
-      return b.v - a.v;
+    if (!scored.length) break;
+    var byThreat = scored.slice().sort(function (a, b) {
+      return b.deny - a.deny;
     });
-    scored.forEach(function (x) {
-      if (out.length < RULES.BANS) out.push(x.id);
+    if (byThreat.length === 1 || byThreat[0].deny - byThreat[1].deny > BAN_DOMINANT_GAP) {
+      out.push(byThreat[0].id);
+      continue;
+    }
+    if (profile.roles) {
+      var preferred = scored.filter(function (candidate) {
+        return candidate.role;
+      });
+      if (preferred.length) scored = preferred;
+    }
+    if (profile.stat === 'atk') {
+      var topStat = Math.max.apply(
+        null,
+        scored.map(function (candidate) {
+          return candidate.stat;
+        })
+      );
+      var statWindow = Math.max(90, topStat * 0.08);
+      scored = scored.filter(function (candidate) {
+        return topStat - candidate.stat <= statWindow;
+      });
+      scored.forEach(function (candidate) {
+        candidate.profileTie = 0.6 * (1 - (topStat - candidate.stat) / statWindow);
+      });
+    } else if (profile.power) {
+      var topPower = Math.max.apply(
+        null,
+        scored.map(function (candidate) {
+          return candidate.power;
+        })
+      );
+      var powerWindow = 0.35;
+      scored = scored.filter(function (candidate) {
+        return topPower - candidate.power <= powerWindow;
+      });
+      scored.forEach(function (candidate) {
+        candidate.profileTie = 0.6 * (1 - (topPower - candidate.power) / powerWindow);
+      });
+    }
+    scored.forEach(function (candidate) {
+      candidate.score = candidate.deny + (candidate.profileTie || 0);
     });
+    var pick = variedBanOrder(scored, 1)[0];
+    if (!pick) break;
+    out.push(pick.id);
   }
   return out.slice(0, RULES.BANS);
 }
 
-function playerBans(enemyDeck, myDeck, unbannable) {
+function playerBans(enemyDeck, myDeck, unbannable, allowLegendaries) {
   var scored = enemyDeck
     .filter(function (e) {
-      return !unbannable || unbannable.indexOf(e.card.id) < 0;
+      return (
+        (allowLegendaries || e.card.rarity !== 'legendary') &&
+        (!unbannable || unbannable.indexOf(e.card.id) < 0)
+      );
     })
     .map(function (e) {
-      return { id: e.card.id, v: DAI.denyValue(enemyDeck, e, myDeck) + Math.random() * 1.2 };
+      return { id: e.card.id, score: DAI.denyValue(enemyDeck, e, myDeck) };
     });
-  scored.sort(function (a, b) {
-    return b.v - a.v;
-  });
-  return scored.slice(0, RULES.BANS).map(function (x) {
+  return variedBanOrder(scored, RULES.BANS).map(function (x) {
     return x.id;
   });
 }
@@ -211,19 +328,25 @@ function draftPick(team, offered, foeTeam, persona, personaJitter) {
     if (persona) {
       var T = DAI.tags(e.card);
       if (persona === 'trickster') {
-        v += Math.max(0, theirs - mine) * 0.75;
-        if (T.gives.energy || T.wants.energy) v += 1.1;
+        v += Math.max(0, theirs - mine) * 0.55;
+        if (T.gives.energy) v += 0.7;
+        if (T.gives.denial) v += 0.6;
+        if (T.wants.energy && !T.gives.energy) v -= 0.3;
       } else if (persona === 'strategist') {
-        if (foeTeam) for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.6;
-        v += DAI.powerOf(e.card) * 0.4;
+        if (foeTeam)
+          for (var c = 0; c < foeTeam.length; c++) v += counterBonus(e, foeTeam[c]) * 0.65;
+        if (T.gives.kills || T.wants.kills) v += 0.65;
+        if (T.gives.denial || T.gives.exposed) v += 0.45;
+        v += DAI.powerOf(e.card) * 0.45;
       } else if (persona === 'chronicler') {
-        if (T.gives.burn) v += 1.2;
-        if (T.gives.cleanse) v += 1.0;
-        if (T.gives.denial) v += 0.9;
+        if (T.gives.burn) v += 0.8;
+        if (T.gives.cleanse) v += 0.65;
+        if (T.gives.denial) v += 0.6;
+        if (T.gives.exposed) v += 0.35;
       }
       v += Math.random() * (personaJitter || 0);
     }
-    v += Math.random() * 1.5;
+    v += Math.random() * (persona ? 0.35 : 1.5);
     if (v > bestScore) {
       bestScore = v;
       best = e;
@@ -241,6 +364,7 @@ function buildDeck(collection) {
       bestScore = -Infinity;
     for (var i = 0; i < rest.length; i++) {
       if (RULES.capBlocked(team, rest[i].card)) continue;
+      if (RULES.legendaryCapBlocked(team, rest[i].card)) continue;
       var v = DAI.value(team, rest[i], { size: RULES.DECK_SIZE }) + DAI.powerOf(rest[i].card) * 0.8;
       if (v > bestScore) {
         bestScore = v;
@@ -258,11 +382,12 @@ function buildDeck(collection) {
    --------------------------------------------------------- */
 function playBattle(playerSix, enemySix, field, opts) {
   opts = opts || {};
-  var B = E.createBattle(
-    E.optimizeFormation(playerSix),
-    E.optimizeFormation(enemySix),
-    { roleAware: false, field: field || null, oddFirst: opts.oddFirst || null }
-  );
+  var B = E.createBattle(E.optimizeFormation(playerSix), E.optimizeFormation(enemySix), {
+    roleAware: false,
+    field: field || null,
+    oddFirst: opts.oddFirst || null,
+  });
+  B.aiProfiles = opts.aiProfile ? { enemy: opts.aiProfile } : null;
   var steps = 0;
   while (!B.over && B.round <= 30 && steps++ < 5000) {
     var side = E.advanceAction(B);
@@ -294,9 +419,7 @@ function floorBefore(stageId) {
   S.stages.forEach(function (st) {
     if (st.id >= stageId) return;
     var g = st.grants || {};
-    (g.cards || []).forEach(function (id) {
-      if (ids.indexOf(id) < 0) ids.push(id);
-    });
+    if (g.legendPack && ids.indexOf(g.legendPack) < 0) ids.push(g.legendPack);
     if (g.choice) {
       /* the exam choices: pick the 2 highest-rated candidates from the
          allowed factions the floor does not own yet */
@@ -304,7 +427,7 @@ function floorBefore(stageId) {
       EOL.factions.forEach(function (f) {
         if (g.choice.factions.indexOf(f.id) < 0) return;
         f.cards.forEach(function (c) {
-          if (ids.indexOf(c.id) < 0) cands.push(c);
+          if (c.rarity !== 'legendary' && ids.indexOf(c.id) < 0) cands.push(c);
         });
       });
       cands.sort(function (a, b) {
@@ -355,17 +478,34 @@ function playClassicGate(st, playerDeck) {
     st.enemy12.forEach(take);
     if (enemySix.length < RULES.FIELD_SIZE) enemySix = null;
   }
-  if (!enemySix) enemySix = chooseSix(foeSurv, predicted, st.pinned || null);
+  if (!enemySix)
+    enemySix = chooseSix(foeSurv, predicted, st.pinned || null, null, st.aiProfile || null);
   var playerSix = chooseSix(mySurv, predictSix(foeSurv));
+  if (TRACE) {
+    var names = function (xs) {
+      return xs
+        .map(function (e) {
+          return e.card.name;
+        })
+        .join(', ');
+    };
+    console.log('\n[Gate ' + st.id + ' trace]');
+    console.log('player deck: ' + names(playerDeck));
+    console.log('rival bans: ' + botBans.join(', '));
+    console.log('player bans: ' + youBans.join(', '));
+    console.log('player six: ' + names(playerSix));
+    console.log('rival six: ' + names(enemySix));
+  }
   var r = playBattle(playerSix, enemySix, fieldById(st.field), {
     oddFirst: st.id === 1 ? 'player' : null,
+    aiProfile: st.aiProfile || null,
   });
   return { win: r.win, games: 1, rounds: r.rounds };
 }
 
-function sideboard(oldIds, survive, forecast, pinnedIds) {
+function sideboard(oldIds, survive, forecast, pinnedIds, aiProfile) {
   /* re-run chooseSix, then hold the 1-2 swap law exactly like play.js */
-  var chosen = chooseSix(survive, forecast, pinnedIds);
+  var chosen = chooseSix(survive, forecast, pinnedIds, null, aiProfile || null);
   if (!oldIds.length) return chosen;
   var fresh = chosen.filter(function (e) {
     return oldIds.indexOf(e.card.id) < 0;
@@ -378,7 +518,12 @@ function sideboard(oldIds, survive, forecast, pinnedIds) {
     return oldIds.indexOf(e.card.id) < 0;
   });
   bench.sort(function (a, b) {
-    return DAI.value(chosen, b, { size: 6 }) - DAI.value(chosen, a, { size: 6 });
+    return (
+      DAI.value(chosen, b, { size: 6 }) +
+      fieldPersonaBonus(aiProfile, b) -
+      DAI.value(chosen, a, { size: 6 }) -
+      fieldPersonaBonus(aiProfile, a)
+    );
   });
   var need = fresh < 1 ? 1 : 2 - fresh;
   var pinnedIn = base.filter(function (e) {
@@ -391,11 +536,22 @@ function sideboard(oldIds, survive, forecast, pinnedIds) {
     droppable
       .slice()
       .sort(function (a, b) {
-        return DAI.value(base, a, { size: 6 }) - DAI.value(base, b, { size: 6 });
+        return (
+          DAI.value(base, a, { size: 6 }) +
+          fieldPersonaBonus(aiProfile, a) -
+          DAI.value(base, b, { size: 6 }) -
+          fieldPersonaBonus(aiProfile, b)
+        );
       })
       .slice(need)
   );
-  return chooseSix(half.concat(bench.slice(0, need * 2)), forecast, pinnedIds);
+  return chooseSix(
+    half.concat(bench.slice(0, need * 2)),
+    forecast,
+    pinnedIds,
+    null,
+    aiProfile || null
+  );
 }
 
 function playSetGate(st, playerDeck) {
@@ -429,10 +585,26 @@ function playSetGate(st, playerDeck) {
     });
     var predicted = predictSix(mPool);
     var eSix = foeLast
-      ? sideboard(foeLast, fPool, predicted, st.pinned || [])
-      : chooseSix(fPool, predicted, st.pinned || null);
-    var pSix = myLast ? sideboard(myLast, mPool, predictSix(fPool), []) : chooseSix(mPool, predictSix(fPool));
-    var r = playBattle(pSix, eSix, field);
+      ? sideboard(foeLast, fPool, predicted, st.pinned || [], st.aiProfile || null)
+      : chooseSix(fPool, predicted, st.pinned || null, null, st.aiProfile || null);
+    var pSix = myLast
+      ? sideboard(myLast, mPool, predictSix(fPool), [])
+      : chooseSix(mPool, predictSix(fPool));
+    if (TRACE) {
+      var setNames = function (xs) {
+        return xs
+          .map(function (e) {
+            return e.card.name;
+          })
+          .join(', ');
+      };
+      console.log('\n[Gate ' + st.id + ' set game ' + games + ' trace]');
+      console.log('rival bans: ' + botBans.join(', '));
+      console.log('player bans: ' + youBans.join(', '));
+      console.log('player six: ' + setNames(pSix));
+      console.log('rival six: ' + setNames(eSix));
+    }
+    var r = playBattle(pSix, eSix, field, { aiProfile: st.aiProfile || null });
     roundsTotal += r.rounds;
     /* lockouts: whoever left the six sits out the rest of the set */
     if (myLast)
@@ -467,7 +639,12 @@ function playSetGate(st, playerDeck) {
       used.push(slots.splice(Math.floor(Math.random() * slots.length), 1)[0]);
     }
   }
-  return { win: wins.you === 2, games: games, rounds: roundsTotal, score: wins.you + '-' + wins.foe };
+  return {
+    win: wins.you === 2,
+    games: games,
+    rounds: roundsTotal,
+    score: wins.you + '-' + wins.foe,
+  };
 }
 
 function playDraftGate(st) {
@@ -498,17 +675,35 @@ function playDraftGate(st) {
     take(youOpen ? 'foe' : 'you');
     /* third card burns */
   });
-  var botBans = personaBans(st.banProfile, you, foe);
-  var youBans = playerBans(foe, you, null);
+  var botBans = personaBans(st.banProfile, you, foe, true);
+  var youBans = playerBans(foe, you, null, true);
   var mySurv = you.filter(function (e) {
     return botBans.indexOf(e.card.id) < 0;
   });
   var foeSurv = foe.filter(function (e) {
     return youBans.indexOf(e.card.id) < 0;
   });
-  var eSix = chooseSix(foeSurv, predictSix(mySurv));
+  var eSix = chooseSix(foeSurv, predictSix(mySurv), null, null, st.aiProfile || null);
   var pSix = chooseSix(mySurv, predictSix(foeSurv));
-  var r = playBattle(pSix, eSix, fieldById(st.field));
+  if (TRACE) {
+    var draftNames = function (xs) {
+      return xs
+        .map(function (e) {
+          return e.card.name;
+        })
+        .join(', ');
+    };
+    console.log('\n[Gate ' + st.id + ' draft trace]');
+    console.log('player twelve: ' + draftNames(you));
+    console.log('rival twelve: ' + draftNames(foe));
+    console.log('rival bans: ' + botBans.join(', '));
+    console.log('player bans: ' + youBans.join(', '));
+    console.log('player six: ' + draftNames(pSix));
+    console.log('rival six: ' + draftNames(eSix));
+  }
+  var r = playBattle(pSix, eSix, fieldById(st.field), {
+    aiProfile: st.aiProfile || null,
+  });
   return { win: r.win, games: 1, rounds: r.rounds };
 }
 
@@ -527,7 +722,9 @@ function playGate(st) {
 /* ---------------------------------------------------------
    modes
    --------------------------------------------------------- */
-var TARGETS = { 1: 95, 2: 90, 3: 85, 4: 75, 5: 70, 6: 65, 7: 60, 8: 55, 9: 40, 10: 25 };
+/* After the guided Gate I, the road starts near an even fight and then
+   closes steadily toward Gilgamesh's roughly one-in-twenty judgment. */
+var TARGETS = { 1: 100, 2: 50, 3: 44, 4: 38, 5: 32, 6: 26, 7: 21, 8: 16, 9: 10, 10: 5 };
 
 function pct(x, n) {
   return ((100 * x) / n).toFixed(0) + '%';
@@ -570,7 +767,9 @@ if (MODE === 'run') {
   S.stages.forEach(function (st) {
     if (ONLY && st.id !== ONLY) return;
     if (st.id === 1) {
-      console.log('   1  The Recruiter               100%*     ~95%     scripted line (proven in verify_campaign)');
+      console.log(
+        '   1  The Recruiter               100%*    ~100%     scripted line (proven in verify_campaign)'
+      );
       return;
     }
     var w = 0,

@@ -289,7 +289,20 @@
         if (typeof turns === 'number' && typeof hit.turns === 'number') {
           hit.turns = Math.max(hit.turns, turns);
         }
-        if (amt !== undefined && hit.parts) hit.parts.push({ amt: amt, turns: turns });
+        if (amt !== undefined && hit.parts) {
+          /* Equal effects on the same clock are one real stack in the
+             hover breakdown. Lancelot's three permanent +10% ATK gains
+             should read +30% for the battle, not three separate +10%
+             lines. Different clocks stay separate so temporary help is
+             never presented as permanent. */
+          var part = hit.parts.filter(function (p) {
+            return p.turns === turns;
+          })[0];
+          if (part) {
+            part.amt += amt;
+            part.count += count || 1;
+          } else hit.parts.push({ amt: amt, turns: turns, count: count || 1 });
+        }
         return;
       }
       out.push({
@@ -299,7 +312,7 @@
         label: def.label,
         turns: turns,
         count: count || 1,
-        parts: amt !== undefined ? [{ amt: amt, turns: turns }] : null,
+        parts: amt !== undefined ? [{ amt: amt, turns: turns, count: count || 1 }] : null,
       });
     }
 

@@ -1,6 +1,6 @@
 /* FX regression proof (durable home in sim/ since 2026-08-05 - it used
    to live in /tmp and died with every sandbox reset).
-     A. enemy-side burn tick floats a damage number (non-lethal)
+     A. enemy-side burn tick floats damage and paints HP at impact (non-lethal)
      B. a LETHAL burn tick still floats the number BEFORE #result appears
      C. player-side burn tick floats the number too
      D. Spirit World: the two-part Sniper basic's follow-up REGISTERS -
@@ -81,15 +81,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /* ---------- A: enemy-side burn tick floats (non-lethal) ---------- */
   await boot('colosseum', P6, E6);
-  await p.evaluate(() => {
+  const burnProbe = await p.evaluate(() => {
     const B = window.EOL.battle.getState();
     const foe = B.units.find((u) => u.side === 'enemy' && u.alive);
     foe.flags.burn = 2;
     foe.flags.burnSrc = null;
+    return { uid: foe.uid, displayedBefore: Math.ceil(foe.hp + foe.shield) };
   });
   await p.evaluate(() => document.getElementById('btn-endturn').click());
   let pops = await pollPop('.pop.burn', 2500);
   t(!!pops && pops.some((x) => /^-\d/.test(x)), 'A: enemy burn tick shows a damage number ' + JSON.stringify(pops));
+  const burnSync = await p.evaluate((uid) => {
+    const B = window.EOL.battle.getState();
+    const unit = B.units.find((u) => u.uid === uid);
+    const card = document.querySelector('.bcard[data-uid="' + uid + '"]');
+    const text = card && card.closest('.bcell-wrap').querySelector('.bhp-txt');
+    return {
+      model: Math.ceil(unit.hp + unit.shield),
+      painted: text ? Number(text.textContent.replace(/,/g, '')) : null,
+    };
+  }, burnProbe.uid);
+  t(
+    burnSync.model < burnProbe.displayedBefore && burnSync.painted === burnSync.model,
+    'A: HP bar/text update during the Burn flames ' + JSON.stringify(burnSync)
+  );
   await p.screenshot({ path: '/tmp/fx_burn_enemy.png' });
   await sleep(6000); // let the bot act & hand back
 

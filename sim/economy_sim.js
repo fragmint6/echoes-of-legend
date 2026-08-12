@@ -6,7 +6,7 @@
    A. INVARIANTS - 400 rolls per pack tier over a fresh (starter-
       only) collection: sizes honoured, guarantees honoured, never
       a Huaxia card, never a duplicate inside one pack.
-   B. THE RUN - a player who clears Chapter 1 (1500 coins), buys
+   B. THE RUN - a player who clears Normal Chapter 1 (1400 coins), buys
       Echoes Packs greedily, then grinds singleplayer at the owner
       rates (50 win / 25 loss, 65% winrate): how many packs and
       matches to a complete collection, and roughly how long?
@@ -76,6 +76,22 @@ function mulberry(seed) {
 
 console.log('A. pack invariants (400 rolls per tier, starter-only collection)');
 econ._reset();
+const creatorPolicy = econ.codePolicy('creator5000');
+ok(
+  creatorPolicy && creatorPolicy.coins === 5000 && creatorPolicy.singleUserOnly === false,
+  'CREATOR5000 explicitly uses the every-account-once code mode'
+);
+const redemption = econ.redeemCode('  creator5000  ');
+ok(
+  redemption.ok && redemption.code === 'CREATOR5000' && redemption.coins === 5000,
+  'CREATOR5000 is case-insensitive, trims pasted whitespace, and grants 5,000 coins'
+);
+ok(econ.coins() === 5000, 'the creator-code reward lands in the shared wallet');
+const repeated = econ.redeemCode('CREATOR5000');
+ok(!repeated.ok && repeated.status === 'redeemed' && econ.coins() === 5000, 'a code can be redeemed only once');
+const invalid = econ.redeemCode('NOT-A-CODE');
+ok(!invalid.ok && invalid.status === 'invalid' && econ.coins() === 5000, 'an unknown code grants nothing');
+econ._reset();
 const fresh = econ.unownedEntries();
 ok(fresh.length === 42, `obtainable-and-unowned at start is 42 (${fresh.length})`);
 ok(
@@ -90,11 +106,15 @@ ok(
   packable.every((e) => e.card.rarity !== 'legendary'),
   'the packable pool holds no legendary'
 );
+ok(
+  shop.PACKS.trio.price === 200 && shop.PACKS.echo.price === 500 && shop.PACKS.crown.price === 1000,
+  'shelf prices are Trio 200 / Echoes 500 / Crown 1,000'
+);
 Object.keys(shop.PACKS).forEach((key) => {
   const pack = shop.PACKS[key];
-  if (key === 'legend') {
-    /* the Road's own wrapper: one card, no price, off the shelf */
-    ok(pack.size === 1 && pack.price === 0, 'Legend Pack: one card, never priced');
+  if (key === 'legend' || key === 'epic') {
+    /* the Road's own wrappers: one card, no price, off the shelf */
+    ok(pack.size === 1 && pack.price === 0, pack.name + ': one card, never priced');
     return;
   }
   const rng = mulberry(1234 + pack.price);
@@ -126,7 +146,8 @@ Object.keys(shop.PACKS).forEach((key) => {
 console.log('B. the run: Chapter 1 coins -> packs -> the grind');
 econ._reset();
 const rng = mulberry(77);
-let wallet = 1500; // chapter total (owner ruling)
+const CHAPTER_COINS = 1400;
+let wallet = CHAPTER_COINS; // complete Normal Road
 let packs = 0,
   matches = 0,
   wins = 0;
@@ -155,7 +176,7 @@ ok(
 );
 const hours = ((matches * 3.5) / 60).toFixed(1);
 console.log(
-  `  chapter coins carried ${Math.min(10, packs)} packs; total ${packs} packs, ` +
+  `  Normal Road coins carried ${Math.floor(CHAPTER_COINS / packDef.price)} packs; total ${packs} packs, ` +
     `${matches} matches (${wins} won) - roughly ${hours}h of play after the campaign`
 );
 /* THE CROWN LAW shortened the shelf ON PURPOSE: 35 sellable echoes
