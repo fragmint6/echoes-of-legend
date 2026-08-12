@@ -972,8 +972,11 @@ const server = http.createServer((req, res) => {
     await sleep(200);
   }
 
-  /* ---------- WARDEN REWARD: Ledger-style miniature cards ---------- */
+  /* ---------- WARDEN REWARD: complete, ownership-aware road shelf ---------- */
   {
+    /* A shop purchase before reaching the Warden must remain visible, but
+       greyed and unavailable rather than disappearing from her full shelf. */
+    w.EOL.econ.grant(['camelot-merlin']);
     w.EOL.campaign._recordClear(w.EOL.campaign._stageById(5));
     /* Re-enter as the real result flow does; calling show() on the already
        active chapter view intentionally emits no duplicate transition. */
@@ -982,26 +985,52 @@ const server = http.createServer((req, res) => {
     await sleep(350);
     t(!$('grant-choice').hidden, "the Warden's two-Echo reward reopens on the chapter map");
     const choices = Array.from(d.querySelectorAll('#grant-choice-grid .gc-card-choice'));
-    t(choices.length > 2, 'the Warden offers a real selection of Echoes');
+    const eligible = w.EOL.play
+      ._flat()
+      .filter(
+        (entry) =>
+          ['camelot', 'sherwood', 'olympus'].includes(entry.faction.id) &&
+          entry.card.rarity !== 'legendary'
+      );
+    t(
+      choices.length === eligible.length && choices.length === 15,
+      'the Warden shows every non-Legendary card from Camelot, Sherwood, and Olympus'
+    );
+    t(
+      choices.every((el) => el.dataset.cid !== 'camelot-king-arthur' && el.dataset.cid !== 'sherwood-robin-hood' && el.dataset.cid !== 'olympus-zeus'),
+      'the Warden never includes Legendary cards'
+    );
     t(
       choices.length > 0 &&
         choices.every((el) => el.classList.contains('prep-c') && !!el.querySelector('.bcard-art') && !!el.querySelector('.bcard-role')),
       'every Warden option uses the Ledger miniature-card language'
     );
-    if (choices.length >= 2) {
-      choices[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      choices[1].click();
+    const owned = d.querySelector('#grant-choice-grid [data-cid="camelot-merlin"]');
+    t(
+      !!owned &&
+        owned.classList.contains('is-owned') &&
+        owned.getAttribute('aria-disabled') === 'true' &&
+        owned.textContent.indexOf('Owned') >= 0,
+      'already-owned Warden cards stay visible, greyed, and marked Owned'
+    );
+    owned.click();
+    t(owned.getAttribute('aria-checked') === 'false', 'an owned Warden card cannot be selected again');
+    const available = choices.filter((el) => !el.classList.contains('is-owned'));
+    if (available.length >= 2) {
+      available[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      available[1].click();
       t(
-        choices[0].getAttribute('aria-checked') === 'true' && choices[1].getAttribute('aria-checked') === 'true',
-        'Warden cards support keyboard and pointer selection semantics'
+        available[0].getAttribute('aria-checked') === 'true' &&
+          available[1].getAttribute('aria-checked') === 'true',
+        'unowned Warden cards support keyboard and pointer selection semantics'
       );
-      t(!$('grant-choice-go').disabled, 'the reward unlocks only after two cards are selected');
+      t(!$('grant-choice-go').disabled, 'the reward unlocks only after two unowned cards are selected');
       $('grant-choice-go').click();
       await sleep(100);
       t($('grant-choice').hidden, 'claiming the Warden cards closes the reward');
     } else {
-      t(false, 'Warden cards support keyboard and pointer selection semantics');
-      t(false, 'the reward unlocks only after two cards are selected');
+      t(false, 'unowned Warden cards support keyboard and pointer selection semantics');
+      t(false, 'the reward unlocks only after two unowned cards are selected');
       t(false, 'claiming the Warden cards closes the reward');
     }
   }

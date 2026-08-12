@@ -1619,25 +1619,31 @@
      THE CHOICE GRANT (R9) - exams pay out as a choice, resolved at
      claim time against the live roster, never as hardcoded ids.
      --------------------------------------------------------- */
-  function choiceCandidates(stage, prog) {
+  function choiceCandidates(stage) {
     var g = stage.grants && stage.grants.choice;
     if (!g) return [];
     var dict = cardDict();
-    var taken = {};
-    (prog.grants || []).forEach(function (id) {
-      taken[id] = true;
-    });
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
       if ((g.factions || []).indexOf(f.id) < 0) return;
       f.cards.forEach(function (c) {
         /* THE CROWN LAW: legendaries travel only inside Legend Packs -
-           an exam choice never offers one */
-        if (c.rarity === 'legendary') return;
-        if (!taken[c.id]) out.push(dict[c.id]);
+           an exam choice never offers one. Every ordinary card remains on
+           the Warden's table, including owned cards, so the reward reads as
+           the complete Camelot / Sherwood / Olympus shelf rather than an
+           unexplained random subset. Ownership is rendered on the card and
+           only the unowned remainder can be selected. */
+        if (c.rarity !== 'legendary') out.push(dict[c.id]);
       });
     });
     return out;
+  }
+
+  function choiceOwned(entry, prog) {
+    if (window.EOL.econ && window.EOL.econ.owns(entry.card.id)) return true;
+    /* Old pre-economy saves can carry campaign grants before the one-time
+       ownership import has run. Honour that ledger here as well. */
+    return (prog.grants || []).indexOf(entry.card.id) >= 0;
   }
 
   function maybeOfferChoice(stage, done) {
@@ -1662,29 +1668,52 @@
     }
     var g = stage.grants.choice;
     var prog = getProgress();
-    var candidates = choiceCandidates(stage, prog);
+    var candidates = choiceCandidates(stage);
     if (!candidates.length) {
       prog.pendingChoice = null;
       saveProgress(prog);
       done();
       return;
     }
+    var available = candidates.filter(function (e) {
+      return !choiceOwned(e, prog);
+    });
+    /* A collector who already owns almost everything must never be trapped
+       behind an impossible "choose 2". They take every remaining new card;
+       with none left, the complete greyed shelf is still shown and the
+       button simply acknowledges it. */
+    var required = Math.min(g.count, available.length);
     var picked = [];
     if (window.EOL.audio) window.EOL.audio.campaign('reward');
     setText(
       $('grant-choice-sub'),
-      stage.rival +
-        ' offers a choice: take ' +
-        g.count +
-        ' echoes from the factions the road has taught. They will walk with you.'
+      required
+        ? stage.rival +
+            ' opens the complete non-Legendary shelf from ' +
+            (g.factions || [])
+              .map(function (id) {
+                var f = (window.EOL.factions || []).filter(function (x) {
+                  return x.id === id;
+                })[0];
+                return f ? f.name : id;
+              })
+              .join(', ') +
+            '. Choose ' +
+            required +
+            (required === 1 ? ' unowned echo.' : ' unowned echoes.')
+        : 'Every non-Legendary echo on this table is already yours.'
     );
     var grid = $('grant-choice-grid');
     grid.innerHTML = '';
     var go = $('grant-choice-go');
     var sync = function () {
-      go.disabled = picked.length !== g.count;
+      go.disabled = picked.length !== required;
       go.querySelector('span').textContent =
-        picked.length === g.count ? 'Carry them' : 'Choose ' + (g.count - picked.length) + ' more';
+        required === 0
+          ? 'Continue'
+          : picked.length === required
+            ? 'Carry them'
+            : 'Choose ' + (required - picked.length) + ' more';
     };
     candidates.forEach(function (e) {
       /* Reuse the Ledger's actual little battle card and hover panel,
@@ -1693,19 +1722,31 @@
         window.EOL.play && window.EOL.play.tileFor
           ? window.EOL.play.tileFor(e, $('grant-choice-tip'))
           : document.createElement('div');
+      var owned = choiceOwned(e, prog);
       b.classList.add('gc-card-choice');
       b.setAttribute('role', 'checkbox');
       b.setAttribute('aria-checked', 'false');
-      b.setAttribute('aria-label', 'Choose ' + e.card.name);
-      b.tabIndex = 0;
+      b.setAttribute('aria-label', owned ? e.card.name + ' - Owned' : 'Choose ' + e.card.name);
+      if (owned) {
+        b.classList.add('is-owned');
+        b.setAttribute('aria-disabled', 'true');
+        b.tabIndex = -1;
+        var ownedChip = document.createElement('span');
+        ownedChip.className = 'gc-owned';
+        ownedChip.textContent = 'Owned';
+        b.appendChild(ownedChip);
+      } else {
+        b.tabIndex = 0;
+      }
       var toggle = function () {
+        if (owned) return;
         var i = picked.indexOf(e.card.id);
         if (i >= 0) {
           picked.splice(i, 1);
           b.classList.remove('sel');
           b.setAttribute('aria-checked', 'false');
         } else {
-          if (picked.length >= g.count) {
+          if (picked.length >= required) {
             if (window.EOL.audio) window.EOL.audio.ui('deny');
             return;
           }
@@ -1727,7 +1768,7 @@
     if (window.EOL.play && window.EOL.play.fitTileNames) window.EOL.play.fitTileNames();
     sync();
     go.onclick = function () {
-      if (picked.length !== g.count) return;
+      if (picked.length !== required) return;
       var p2 = getProgress();
       picked.forEach(function (id) {
         if (p2.grants.indexOf(id) < 0) p2.grants.push(id);

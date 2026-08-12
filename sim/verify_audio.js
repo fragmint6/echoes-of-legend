@@ -316,6 +316,14 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     ok(A._trackForScene(scene) === route[scene], scene + ' routes to the intended score')
   );
 
+  ['menu', 'road', 'prep', 'battleWar', 'battleBright', 'battleDark'].forEach((name) => {
+    const info = A._trackInfo(name);
+    ok(
+      info && info.phraseSeconds >= 108 && info.phraseSeconds <= 128 && info.phraseBars >= 36,
+      name + ' has a complete roughly two-minute form before repeating'
+    );
+  });
+
   /* All ordinary menus share one live phrase. If a route maps to the same
      track, startTrack() must leave both its token and scheduler position
      alone rather than replaying the opening bar. */
@@ -370,6 +378,27 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     'the main theme earns a real bar-five beat drop instead of looping unchanged'
   );
 
+  function barShape(name, bar) {
+    const oscBefore = oscillators;
+    const noiseBefore = noises;
+    for (let step = 0; step < 16; step++) A._scheduleStep(name, bar * 16 + step);
+    return oscillators - oscBefore + ':' + (noises - noiseBefore);
+  }
+  const formSamples = {
+    menu: [0, 4, 16, 24, 36],
+    road: [0, 8, 16, 28, 32],
+    prep: [0, 8, 24, 40, 48],
+    battleWar: [0, 8, 24, 48, 56],
+    battleBright: [0, 8, 32, 48, 60],
+    battleDark: [0, 8, 24, 40, 52],
+  };
+  ok(
+    Object.keys(formSamples).every(
+      (name) => new Set(formSamples[name].map((bar) => barShape(name, bar))).size >= 3
+    ),
+    'every two-minute score moves through at least three distinctly orchestrated sections'
+  );
+
   const prepInfo = A._trackInfo('prep');
   ['battleWar', 'battleBright', 'battleDark'].forEach((name) => {
     const info = A._trackInfo(name);
@@ -389,9 +418,13 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   ok(A._trackForScene('battle') === 'battleDark', 'dark battlefields select the dark arrangement');
   const noiseBeforeBattle = noises;
   ['battleWar', 'battleBright', 'battleDark'].forEach((name) => {
-    for (let step = 0; step < 16; step++) A._scheduleStep(name, step);
+    const steps = A._trackInfo(name).phraseBars * 16;
+    for (let step = 0; step < steps; step++) A._scheduleStep(name, step);
   });
-  ok(noises === noiseBeforeBattle, 'all three complete match arrangements avoid static/noise voices');
+  ok(
+    noises === noiseBeforeBattle,
+    'all three full two-minute match arrangements avoid static/noise voices'
+  );
 
   const beforeTabSwitch = A._musicState();
   document.hidden = true;
@@ -461,10 +494,11 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     'pack charge, burst, flip, and Legendary reveal beats are connected'
   );
   ok(
-    /menu:\s*\{ tempo: 82[^\n]*phraseBars: 16/.test(audioSource) &&
-      /var menuDrop =/.test(audioSource) &&
-      /phraseBar === 4 \|\| phraseBar === 12/.test(audioSource),
-    'the preserved menu melody now has a long-form build and two drop sections'
+    /menu:\s*\{ tempo: 82[^\n]*phraseBars: 40/.test(audioSource) &&
+      /road:\s*\{ tempo: 74[^\n]*phraseBars: 36/.test(audioSource) &&
+      /prep:\s*\{ tempo: 102[^\n]*phraseBars: 52/.test(audioSource) &&
+      /\[4, 12, 24, 36\]\.indexOf\(phraseBar\)/.test(audioSource),
+    'the preserved menu melody now has a full multi-part form with four major drops'
   );
   ok(
     /battleWar:\s*\{ tempo: 120[^\n]*key: 'D minor'/.test(audioSource) &&

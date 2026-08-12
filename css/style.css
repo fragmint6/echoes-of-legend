@@ -23683,11 +23683,37 @@ html.mqw640 .nav-guide-text {
     transform 0.18s ease,
     filter 0.18s ease;
 }
-.grant-choice-grid .gc-card-choice:hover,
-.grant-choice-grid .gc-card-choice:focus-visible {
+.grant-choice-grid .gc-card-choice:not(.is-owned):hover,
+.grant-choice-grid .gc-card-choice:not(.is-owned):focus-visible {
   z-index: 3;
   outline: none;
   transform: translateY(-3px);
+}
+.grant-choice-grid .gc-card-choice.is-owned {
+  cursor: var(--cur-default);
+}
+.grant-choice-grid .gc-card-choice.is-owned .bcard-inner {
+  filter: grayscale(1) brightness(0.54);
+  opacity: 0.66;
+}
+.grant-choice-grid .gc-owned {
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  left: 50%;
+  padding: 4px 8px;
+  border: 1px solid rgba(223, 228, 237, 0.5);
+  border-radius: 5px;
+  background: rgba(20, 23, 29, 0.94);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.55);
+  color: #e0e4eb;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 .grant-choice-grid .gc-card-choice.sel .bcard-inner {
   border-color: #ffd98a;

@@ -1118,16 +1118,17 @@
     [45, 48, 52], // A minor
   ];
   var TRACKS = {
-    /* Sixteen bars: statement, build, drop, bridge, then a larger drop. */
-    menu: { tempo: 82, steps: 16, key: 'D minor', phraseBars: 16 },
-    /* The Road is deliberately its own slower, wandering identity. */
-    road: { tempo: 74, steps: 16, key: 'A minor', phraseBars: 4 },
-    prep: { tempo: 102, steps: 16, key: 'D minor', phraseBars: 4 },
+    /* Every score now travels for roughly two minutes before returning to
+       bar one. The different bar counts compensate for tempo, keeping each
+       complete form near 120 seconds rather than stretching one tiny loop. */
+    menu: { tempo: 82, steps: 16, key: 'D minor', phraseBars: 40 },
+    road: { tempo: 74, steps: 16, key: 'A minor', phraseBars: 36 },
+    prep: { tempo: 102, steps: 16, key: 'D minor', phraseBars: 52 },
     /* Match variants keep one key/progression while changing pace, register,
        pulse and voicing to suit bright, dark and neutral battlefields. */
-    battleWar: { tempo: 120, steps: 16, key: 'D minor', phraseBars: 4 },
-    battleBright: { tempo: 124, steps: 16, key: 'D minor', phraseBars: 4 },
-    battleDark: { tempo: 114, steps: 16, key: 'D minor', phraseBars: 4 },
+    battleWar: { tempo: 120, steps: 16, key: 'D minor', phraseBars: 60 },
+    battleBright: { tempo: 124, steps: 16, key: 'D minor', phraseBars: 64 },
+    battleDark: { tempo: 114, steps: 16, key: 'D minor', phraseBars: 56 },
   };
 
   function trackForScene(scene) {
@@ -1326,45 +1327,74 @@
     var s = absoluteStep % 16;
     var bar = Math.floor(absoluteStep / 16);
     var chordIndex = bar % 4;
+    var phraseBar = bar % TRACKS[name].phraseBars;
 
     if (name === 'menu') {
-      /* Keep the melody the player already likes, but let it become a
-         soundtrack rather than a four-bar wallpaper. The opening states
-         the theme for three bars, bar four pulls upward, and bar five drops
-         into a real rhythm section. A bridge clears space before a larger
-         final drop, then the phrase earns its quiet opening again. */
+      /* Forty bars / ~117 seconds. The preserved theme now moves through an
+         opening statement, first drop, answering verse, bridge, long second
+         drop, stripped reprise and final drop before it circles home. */
       var menuChords = [
         [50, 57, 62],
         [46, 53, 58],
         [48, 55, 60],
         [45, 52, 57],
       ];
-      var menuMelody = [74, null, 77, 76, null, 74, 72, null, 69, null, 72, 74, null, 69, 67, null];
-      var phraseBar = bar % 16;
+      var menuTheme = [74, null, 77, 76, null, 74, 72, null, 69, null, 72, 74, null, 69, 67, null];
+      var menuAnswer = [69, null, 72, 74, null, 77, 76, null, 72, null, 74, 69, null, 67, 69, null];
+      var menuBridge = [62, null, 65, null, 69, null, 67, null, 65, null, 62, 64, null, 65, 69, null];
+      var menuClimb = [74, null, 77, 79, null, 81, 79, null, 77, null, 76, 77, null, 81, 84, null];
+      var menuReprise = [69, null, null, 72, null, 74, null, null, 67, null, null, 69, null, 72, null, null];
+      var menuPart = [menuTheme, menuAnswer, menuTheme, menuReprise];
+      if (phraseBar >= 4 && phraseBar < 8)
+        menuPart = [menuTheme, menuAnswer, menuClimb, menuAnswer];
+      else if (phraseBar >= 8 && phraseBar < 12)
+        menuPart = [menuAnswer, menuReprise, menuAnswer, menuTheme];
+      else if (phraseBar >= 12 && phraseBar < 16)
+        menuPart = [menuClimb, menuAnswer, menuClimb, menuTheme];
+      else if (phraseBar >= 16 && phraseBar < 20)
+        menuPart = [menuBridge, menuReprise, menuBridge, menuAnswer];
+      else if (phraseBar >= 20 && phraseBar < 24)
+        menuPart = [menuAnswer, menuTheme, menuReprise, menuClimb];
+      else if (phraseBar >= 24 && phraseBar < 28)
+        menuPart = [menuTheme, menuAnswer, menuClimb, menuTheme];
+      else if (phraseBar >= 28 && phraseBar < 32)
+        menuPart = [menuClimb, menuTheme, menuAnswer, menuClimb];
+      else if (phraseBar >= 32 && phraseBar < 36)
+        menuPart = [menuReprise, menuBridge, menuReprise, menuAnswer];
+      else if (phraseBar >= 36)
+        menuPart = [menuClimb, menuAnswer, menuTheme, menuClimb];
+      /* Each section is itself a four-bar melodic sentence, not one bar
+         copied across four chords. */
+      var menuMelody = menuPart[phraseBar % 4];
+
       var menuDrop =
-        (phraseBar >= 4 && phraseBar <= 7) || (phraseBar >= 12 && phraseBar <= 15);
-      var menuFinal = phraseBar >= 12;
-      var menuBuild = phraseBar === 3 || phraseBar === 11;
+        (phraseBar >= 4 && phraseBar <= 7) ||
+        (phraseBar >= 12 && phraseBar <= 15) ||
+        (phraseBar >= 24 && phraseBar <= 31) ||
+        phraseBar >= 36;
+      var menuFinal = (phraseBar >= 24 && phraseBar <= 31) || phraseBar >= 36;
+      var menuBuild = [3, 11, 23, 35].indexOf(phraseBar) >= 0;
+      var menuBreak = (phraseBar >= 16 && phraseBar <= 19) || (phraseBar >= 32 && phraseBar <= 34);
       var menuChord = menuChords[chordIndex];
 
       if (s === 0)
-        chord(menuChord, t, stepDur * 15.5, menuDrop ? 0.014 : 0.011, {
+        chord(menuChord, t, stepDur * 15.5, menuDrop ? 0.014 : menuBreak ? 0.009 : 0.011, {
           dest: dest,
           wet: menuDrop ? 0.4 : 0.48,
-          filter: menuDrop ? 2050 : 1700,
+          filter: menuDrop ? 2050 : menuBreak ? 1350 : 1700,
           attack: menuDrop ? 0.28 : 0.55,
-          release: menuDrop ? 1.05 : 1.5,
+          release: menuBreak ? 1.9 : menuDrop ? 1.05 : 1.5,
         });
 
-      /* The original bass remains the spine. The drop shortens its notes
-         and adds the fifth on the offbeats, which is the moment the same
-         harmony starts moving bodies instead of only filling space. */
-      if (s % 4 === 0)
+      /* The original bass remains the spine, but every section phrases it
+         differently: sustained in the verses, syncopated after each drop,
+         and almost absent while the bridge clears the room. */
+      if (s % (menuBreak ? 8 : 4) === 0)
         musicNote(
           menuChord[0] - 12,
           t,
-          stepDur * (menuDrop ? 1.9 : 2.8),
-          menuDrop ? 0.033 : 0.027,
+          stepDur * (menuDrop ? 1.9 : menuBreak ? 5.8 : 2.8),
+          menuDrop ? 0.033 : menuBreak ? 0.021 : 0.027,
           menuDrop ? 'sine' : 'triangle',
           dest,
           -0.08,
@@ -1378,8 +1408,8 @@
         musicNote(
           menuMelody[s],
           t,
-          stepDur * (menuDrop ? 1.35 : 1.6),
-          menuDrop ? 0.021 : 0.018,
+          stepDur * (menuDrop ? 1.35 : menuBreak ? 2.1 : 1.6),
+          menuDrop ? 0.021 : menuBreak ? 0.014 : 0.018,
           'triangle',
           dest,
           0.18,
@@ -1400,6 +1430,14 @@
           );
       }
 
+      /* The answering verse introduces a distant counterline. It disappears
+         during the bridge so the later return feels like a new movement. */
+      if ((phraseBar >= 8 && phraseBar < 16) || (phraseBar >= 20 && phraseBar < 24)) {
+        var menuCounter = [null, null, 62, null, null, 65, null, null, null, null, 60, null, null, 62, null, null];
+        if (menuCounter[s] != null)
+          musicNote(menuCounter[s] + 12, t, stepDur * 2.4, 0.007, 'sine', dest, -0.22, 0.54, 3900);
+      }
+
       if (menuDrop) {
         var menuDrive = [0, 1, 2, 1, 0, 1, 2, 1];
         if (s % 2 === 0)
@@ -1414,10 +1452,18 @@
             0.08,
             1250
           );
-        if ([0, 6, 8, 11].indexOf(s) >= 0)
+        if ([0, 6, 8, 11].indexOf(s) >= 0 || (menuFinal && (s === 3 || s === 14)))
           kick(t, s === 0 ? (menuFinal ? 0.072 : 0.064) : 0.047, dest);
         if (s === 4 || s === 12) snare(t, menuFinal ? 0.032 : 0.027, dest);
         if (s % 2 === 0) hat(t, menuFinal ? 0.009 : 0.007, dest, s === 14);
+        if (menuFinal && s === 8)
+          chord([menuChord[0] + 12, menuChord[1] + 12], t, stepDur * 7.2, 0.0045, {
+            dest: dest,
+            wet: 0.58,
+            filter: 4400,
+            attack: 0.4,
+            release: 1.1,
+          });
       } else if (menuBuild) {
         if (s === 0 || s === 8) kick(t, 0.04, dest);
         if (s === 12) snare(t, 0.019, dest);
@@ -1434,13 +1480,13 @@
             dest: dest,
             wet: 0.18,
           });
-      } else if (s === 4 || s === 12) {
+      } else if (!menuBreak && (s === 4 || s === 12)) {
         hat(t, 0.007, dest, true);
       }
 
-      /* The downbeat itself lands below the kick so the transition is felt
-         even on phone speakers before the full groove becomes obvious. */
-      if ((phraseBar === 4 || phraseBar === 12) && s === 0)
+      /* Every major downbeat lands below the kick so the transition is felt
+         on phone speakers before the complete new section becomes obvious. */
+      if ([4, 12, 24, 36].indexOf(phraseBar) >= 0 && s === 0)
         tone({
           freq: 74,
           to: 36,
@@ -1459,9 +1505,9 @@
     }
 
     if (name === 'road') {
-      /* The Road of Echoes does not borrow the menu loop. A minor drones,
-         hand-drum footsteps, a three-note travel figure and a distant bell
-         make it feel older, lonelier and always in motion. */
+      /* Thirty-six bars / ~117 seconds. Departure grows into a travelling
+         pulse, falls quiet among the ruins, climbs again, opens onto a wide
+         vista, then reprises the lonely first figure for a seamless return. */
       var roadChords = [
         [45, 52, 57],
         [43, 50, 55],
@@ -1469,122 +1515,257 @@
         [43, 50, 57],
       ];
       var roadChord = roadChords[chordIndex];
-      var roadBell = [69, null, null, 72, null, null, 67, null, 64, null, null, 67, null, 69, null, null];
-      var roadArp = [0, null, 1, null, 2, null, 1, null, 0, null, 2, null, 1, null, 2, null];
+      var roadBellA = [69, null, null, 72, null, null, 67, null, 64, null, null, 67, null, 69, null, null];
+      var roadBellB = [72, null, 74, null, null, 76, null, 74, 72, null, null, 69, null, 67, 69, null];
+      var roadBellRuins = [64, null, null, null, 67, null, null, null, 60, null, null, null, 64, null, null, null];
+      var roadBellVista = [69, null, 72, null, 76, null, 74, null, 72, null, 76, null, 79, null, 76, null];
+      var roadBellPart = [roadBellA, roadBellA, roadBellB, roadBellA];
+      if (phraseBar >= 8 && phraseBar < 16)
+        roadBellPart = [roadBellA, roadBellB, roadBellB, roadBellA];
+      else if (phraseBar >= 16 && phraseBar < 20)
+        roadBellPart = [roadBellRuins, roadBellA, roadBellRuins, roadBellB];
+      else if (phraseBar >= 20 && phraseBar < 28)
+        roadBellPart = [roadBellB, roadBellA, roadBellB, roadBellVista];
+      else if (phraseBar >= 28 && phraseBar < 32)
+        roadBellPart = [roadBellVista, roadBellB, roadBellVista, roadBellA];
+      else if (phraseBar >= 32)
+        roadBellPart = [roadBellA, roadBellRuins, roadBellB, roadBellA];
+      var roadBell = roadBellPart[phraseBar % 4];
+
+      var roadRuins = phraseBar >= 16 && phraseBar < 20;
+      var roadTravelling = (phraseBar >= 8 && phraseBar < 16) || (phraseBar >= 20 && phraseBar < 28);
+      var roadVista = phraseBar >= 28 && phraseBar < 32;
+      var roadReturn = phraseBar >= 32;
+      var roadArpA = [0, null, 1, null, 2, null, 1, null, 0, null, 2, null, 1, null, 2, null];
+      var roadArpB = [0, 1, 2, null, 1, 2, 0, null, 2, 1, 0, null, 1, 2, 1, null];
+      var roadArp = roadTravelling || roadVista ? roadArpB : roadArpA;
 
       if (s === 0)
-        chord(roadChord, t, stepDur * 15.8, 0.012, {
+        chord(roadChord, t, stepDur * 15.8, roadVista ? 0.015 : roadRuins ? 0.009 : 0.012, {
           dest: dest,
-          wet: 0.58,
-          filter: 1350,
-          attack: 0.82,
-          release: 2.2,
+          wet: roadRuins ? 0.68 : 0.58,
+          filter: roadVista ? 1950 : roadRuins ? 1050 : 1350,
+          attack: roadRuins ? 1.15 : 0.82,
+          release: roadRuins ? 2.7 : 2.2,
         });
-      if (s === 0 || s === 8)
+      if (s === 0 || (!roadRuins && s === 8))
         musicNote(
           roadChord[0] - 12,
           t,
-          stepDur * 6.5,
-          0.026,
+          stepDur * (roadRuins ? 14.5 : 6.5),
+          roadVista ? 0.03 : roadRuins ? 0.021 : 0.026,
           'sine',
           dest,
           -0.2,
           0.3,
           580
         );
-      if (roadArp[s] != null)
+      if (!roadRuins && roadArp[s] != null)
         musicNote(
           roadChord[roadArp[s]] + 12,
           t,
-          stepDur * 1.45,
-          0.0085,
+          stepDur * (roadTravelling ? 1.05 : 1.45),
+          roadTravelling ? 0.0095 : 0.0085,
           'triangle',
           dest,
           -0.12,
           0.5,
-          2100
+          roadVista ? 2800 : 2100
         );
       if (roadBell[s] != null)
-        musicNote(roadBell[s], t, stepDur * 2.4, 0.018, 'sine', dest, 0.22, 0.62, 5000);
-      if (s === 0 || s === 10) roadDrum(t, s === 0 ? 0.034 : 0.025, dest, s === 0);
-      if (s === 6) roadDrum(t, 0.019, dest, false);
+        musicNote(
+          roadBell[s],
+          t,
+          stepDur * (roadVista ? 3.1 : roadRuins ? 3.6 : 2.4),
+          roadVista ? 0.021 : roadRuins ? 0.014 : 0.018,
+          'sine',
+          dest,
+          0.22,
+          roadRuins ? 0.72 : 0.62,
+          5000
+        );
+
+      if (roadTravelling) {
+        var roadCounter = [null, null, 57, null, null, 60, null, 62, null, null, 60, null, null, 57, null, 55];
+        if (roadCounter[s] != null)
+          musicNote(roadCounter[s] + 12, t, stepDur * 1.8, 0.0065, 'sine', dest, 0.1, 0.48, 3200);
+      }
+      if (roadVista && (s === 0 || s === 8))
+        chord([roadChord[1] + 12, roadChord[2] + 12], t, stepDur * 7.4, 0.006, {
+          dest: dest,
+          wet: 0.7,
+          filter: 3800,
+          attack: 0.9,
+          release: 2.1,
+        });
+
+      if (s === 0 || (!roadRuins && s === 10)) roadDrum(t, s === 0 ? 0.034 : 0.025, dest, s === 0);
+      if (!roadRuins && (s === 6 || (roadTravelling && s === 14)))
+        roadDrum(t, roadTravelling ? 0.024 : 0.019, dest, false);
+      if (roadReturn && s === 10) roadDrum(t, 0.017, dest, false);
       return;
     }
 
     if (name === 'prep') {
-      var prepLead = [62, null, 65, 69, null, 67, 65, null, 62, 65, null, 70, 69, null, 65, 67];
-      if (s === 0 || s === 8) kick(t, 0.045, dest);
-      if (s === 4 || s === 12) snare(t, 0.022, dest);
-      if (s % 2 === 0) hat(t, 0.007, dest, s === 14);
-      musicNote(
-        PREP_ROOTS[chordIndex] - 12 + (s % 4 === 2 ? 7 : 0),
-        t,
-        stepDur * 0.85,
-        0.024,
-        'square',
-        dest,
-        -0.15,
-        0.05,
-        1000
-      );
+      /* Fifty-two bars / ~122 seconds. The planning theme surveys the board,
+         assembles, tightens, breathes, rebuilds and finally reaches a full
+         readiness peak instead of repeating the same four-bar countdown. */
+      var prepLeadA = [62, null, 65, 69, null, 67, 65, null, 62, 65, null, 70, 69, null, 65, 67];
+      var prepLeadB = [65, null, 69, 70, null, 72, 69, null, 67, null, 65, 67, null, 69, 65, null];
+      var prepLeadC = [69, null, 72, 74, null, 77, 76, null, 72, 74, null, 77, 76, null, 72, 69];
+      var prepHush = [62, null, null, 65, null, null, 69, null, 57, null, null, 60, null, 62, null, null];
+      var prepQuiet = phraseBar < 4 || (phraseBar >= 24 && phraseBar < 28) || phraseBar >= 48;
+      var prepPressure = phraseBar >= 16 && phraseBar < 24;
+      var prepBuild = phraseBar >= 28 && phraseBar < 40;
+      var prepPeak = phraseBar >= 40 && phraseBar < 48;
+      var prepPart = [prepLeadA, prepHush, prepLeadA, prepLeadB];
+      if (phraseBar >= 8 && phraseBar < 16)
+        prepPart = [prepLeadB, prepLeadA, prepLeadB, prepLeadC];
+      else if (prepPressure)
+        prepPart = [prepLeadB, prepLeadC, prepLeadB, prepLeadC];
+      else if (phraseBar >= 24 && phraseBar < 28)
+        prepPart = [prepHush, prepLeadA, prepHush, prepLeadB];
+      else if (prepBuild)
+        prepPart = [prepLeadA, prepLeadB, prepLeadA, prepLeadC];
+      else if (prepPeak)
+        prepPart = [prepLeadC, prepLeadB, prepLeadC, prepLeadA];
+      else if (phraseBar >= 48)
+        prepPart = [prepHush, prepLeadA, prepHush, prepLeadA];
+      var prepLead = prepPart[phraseBar % 4];
+
+      if (prepQuiet) {
+        if (s === 0 || s === 8) kick(t, 0.032, dest);
+        if (s === 12 && phraseBar < 48) hat(t, 0.0045, dest, true);
+      } else {
+        if (s === 0 || s === 8 || ((prepPressure || prepPeak) && s === 6))
+          kick(t, prepPeak ? 0.054 : 0.045, dest);
+        if (s === 4 || s === 12) snare(t, prepPeak ? 0.027 : 0.022, dest);
+        if (s % 2 === 0) hat(t, prepPeak ? 0.009 : prepBuild ? 0.008 : 0.007, dest, s === 14);
+      }
+
+      if (s % (prepQuiet ? 4 : 2) === 0)
+        musicNote(
+          PREP_ROOTS[chordIndex] - 12 + (s % 4 === 2 ? 7 : 0),
+          t,
+          stepDur * (prepQuiet ? 2.8 : 0.85),
+          prepPeak ? 0.03 : prepQuiet ? 0.019 : 0.024,
+          prepPeak ? 'sawtooth' : 'square',
+          dest,
+          -0.15,
+          0.05,
+          prepPeak ? 1250 : 1000
+        );
       if (prepLead[s] != null)
-        musicNote(prepLead[s] + 12, t, stepDur * 1.2, 0.014, 'triangle', dest, 0.18, 0.26, 2900);
+        musicNote(
+          prepLead[s] + 12,
+          t,
+          stepDur * (prepQuiet ? 1.8 : 1.2),
+          prepPeak ? 0.018 : prepQuiet ? 0.011 : 0.014,
+          'triangle',
+          dest,
+          0.18,
+          prepQuiet ? 0.38 : 0.26,
+          prepPeak ? 3600 : 2900
+        );
       if (s === 0)
         chord(
           [PREP_ROOTS[chordIndex], PREP_ROOTS[chordIndex] + 7, PREP_ROOTS[chordIndex] + 12],
           t,
-          stepDur * 7.6,
-          0.007,
-          { dest: dest, wet: 0.32, filter: 1400, attack: 0.2, release: 0.8 }
+          stepDur * 15.4,
+          prepPeak ? 0.0095 : prepQuiet ? 0.0055 : 0.007,
+          {
+            dest: dest,
+            wet: prepQuiet ? 0.46 : 0.32,
+            filter: prepPeak ? 1800 : prepQuiet ? 1150 : 1400,
+            attack: prepQuiet ? 0.52 : 0.2,
+            release: prepQuiet ? 1.5 : 0.8,
+          }
+        );
+      if ((prepBuild || prepPeak) && (s === 3 || s === 11))
+        musicNote(
+          PREP_CHORDS[chordIndex][(s === 3 ? 1 : 2)] + 12,
+          t,
+          stepDur * 1.3,
+          prepPeak ? 0.009 : 0.006,
+          'sine',
+          dest,
+          0.08,
+          0.34,
+          3300
         );
       return;
     }
 
     /* -------------------------------------------------------
-       MATCH SCORE v4 - preparation's key, battle's adrenaline.
+       MATCH SCORE v5 - preparation's key, battle's adrenaline.
 
-       Every field now follows preparation's D–Bb–C–A progression and
-       D-natural-minor pitch set. The distinction comes from performance:
-       neutral fields drive with war drums and low strings, bright fields
-       climb into heroic brass, and dark fields push the same harmony down
-       into a heavier register. No battle arrangement schedules a noise
-       source, so intensity never turns back into static.
+       Every field follows preparation's D-Bb-C-A progression and D-natural
+       minor pitch set. Each now has a complete two-minute form with opening,
+       contrasting middle, breakdown and final assault. Distinction comes
+       from performance: neutral fields drive with war drums and low strings,
+       bright fields climb into heroic brass, and dark fields push the same
+       harmony down into a heavier register. No battle arrangement schedules
+       a noise source, so intensity never turns back into static.
        ------------------------------------------------------- */
     var battleRoot = PREP_ROOTS[chordIndex];
     var battleChord = PREP_CHORDS[chordIndex];
 
     if (name === 'battleBright') {
-      var brightVoices = [0, 1, 2, 1, 0, 2, 1, 2];
-      var brightCall = [null, 65, null, 69, null, 72, 74, 72, null, 69, null, 72, null, 74, 72, 69];
-      if ([0, 7, 8, 14].indexOf(s) >= 0)
-        battlePulse(t, s === 0 || s === 8 ? 0.062 : 0.039, dest, false);
-      if (s === 4 || s === 12) battlePulse(t, 0.033, dest, true);
+      var brightPhrase = phraseBar;
+      var brightInterlude = brightPhrase >= 32 && brightPhrase < 36;
+      var brightPeak = brightPhrase >= 48 && brightPhrase < 60;
+      var brightTurn = brightPhrase >= 60;
+      var brightLift =
+        (brightPhrase >= 8 && brightPhrase < 32) || (brightPhrase >= 36 && brightPhrase < 60);
+      var brightVoicesA = [0, 1, 2, 1, 0, 2, 1, 2];
+      var brightVoicesB = [2, 1, 0, 1, 2, 0, 1, 0];
+      var brightVoices = Math.floor(brightPhrase / 8) % 2 ? brightVoicesB : brightVoicesA;
+      var brightCallA = [null, 65, null, 69, null, 72, 74, 72, null, 69, null, 72, null, 74, 72, 69];
+      var brightCallB = [69, null, 72, null, 74, 76, null, 77, 76, null, 74, null, 72, 74, 69, null];
+      var brightCallC = [72, null, 74, 76, null, 77, 81, null, 79, null, 77, 79, null, 81, 84, 81];
+      var brightCallQuiet = [null, null, 65, null, null, null, 69, null, null, null, 67, null, null, 65, null, null];
+      var brightCallPart = [brightCallA, brightCallA, brightCallB, brightCallA];
+      if (brightInterlude)
+        brightCallPart = [brightCallQuiet, brightCallA, brightCallQuiet, brightCallB];
+      else if (brightPeak)
+        brightCallPart = [brightCallC, brightCallB, brightCallC, brightCallC];
+      else if (brightLift)
+        brightCallPart = [brightCallB, brightCallA, brightCallB, brightCallC];
+      var brightCall = brightCallPart[brightPhrase % 4];
+
+      if (brightInterlude) {
+        if (s === 0 || s === 8) battlePulse(t, 0.036, dest, false);
+      } else {
+        if ([0, 7, 8, 14].indexOf(s) >= 0 || (brightPeak && (s === 3 || s === 11)))
+          battlePulse(t, s === 0 || s === 8 ? (brightPeak ? 0.07 : 0.062) : 0.039, dest, false);
+        if (s === 4 || s === 12) battlePulse(t, brightPeak ? 0.039 : 0.033, dest, true);
+      }
       if (s === 0)
-        chord(battleChord, t, stepDur * 15.5, 0.012, {
+        chord(battleChord, t, stepDur * 15.5, brightInterlude ? 0.008 : brightPeak ? 0.015 : 0.012, {
           dest: dest,
-          wet: 0.18,
-          filter: 1900,
-          attack: 0.24,
-          release: 0.9,
+          wet: brightInterlude ? 0.34 : 0.18,
+          filter: brightPeak ? 2400 : brightInterlude ? 1450 : 1900,
+          attack: brightInterlude ? 0.52 : 0.24,
+          release: brightInterlude ? 1.5 : 0.9,
         });
-      if (s === 0 || s === 8)
+      if (s === 0 || (!brightInterlude && s === 8))
         musicNote(
           battleRoot - 12 + (s === 8 ? 7 : 0),
           t,
-          stepDur * 4.8,
-          0.032,
+          stepDur * (brightInterlude ? 7.6 : 4.8),
+          brightPeak ? 0.038 : brightInterlude ? 0.024 : 0.032,
           'sine',
           dest,
           -0.2,
           0.025,
           620
         );
-      if (s % 2 === 0)
+      if (s % (brightInterlude ? 4 : 2) === 0)
         battleStrings(
-          battleChord[brightVoices[s / 2]],
+          battleChord[brightVoices[s / (brightInterlude ? 4 : 2)]] + (brightPeak ? 12 : 0),
           t,
-          stepDur * 1.38,
-          0.019,
+          stepDur * (brightInterlude ? 2.8 : 1.38),
+          brightPeak ? 0.021 : brightInterlude ? 0.013 : 0.019,
           dest,
           s % 4 === 0 ? -0.13 : 0.08,
           false
@@ -1593,37 +1774,75 @@
         battleBrass(
           brightCall[s],
           t,
-          stepDur * (s === 7 || s === 15 ? 2.25 : 1.55),
-          s === 7 || s === 15 ? 0.016 : 0.012,
+          stepDur * (s === 7 || s === 15 ? 2.25 : brightInterlude ? 2.4 : 1.55),
+          brightPeak ? 0.016 : s === 7 || s === 15 ? 0.016 : 0.012,
           dest,
           0.17,
           false
         );
+      if (brightPeak && brightCall[s] != null && (s === 6 || s === 14))
+        battleBrass(brightCall[s] - 12, t, stepDur * 1.5, 0.008, dest, -0.04, false);
+      if (brightTurn && s === 0)
+        musicNote(battleRoot + 12, t, stepDur * 7.2, 0.008, 'triangle', dest, 0.12, 0.42, 3600);
       return;
     }
 
     if (name === 'battleDark') {
-      var darkVoices = [0, 0, 1, 0, 2, 1, 0, 1];
-      var darkCall = [50, null, null, 53, null, null, 57, 55, null, 53, null, null, 50, null, 48, 50];
-      if ([0, 3, 8, 10].indexOf(s) >= 0)
-        battlePulse(t, s === 0 || s === 8 ? 0.068 : 0.043, dest, false);
-      if (s === 4 || s === 12) battlePulse(t, 0.035, dest, true);
-      if (s === 0) {
-        chord(battleChord, t, stepDur * 15.6, 0.0125, {
-          dest: dest,
-          wet: 0.13,
-          filter: 1050,
-          attack: 0.38,
-          release: 1.2,
-        });
-        musicNote(battleRoot - 24, t, stepDur * 14.8, 0.035, 'sine', dest, -0.22, 0.015, 390);
+      var darkPhrase = phraseBar;
+      var darkAbyss = darkPhrase >= 24 && darkPhrase < 28;
+      var darkPeak = darkPhrase >= 40 && darkPhrase < 52;
+      var darkTurn = darkPhrase >= 52;
+      var darkHeavy =
+        (darkPhrase >= 8 && darkPhrase < 24) || (darkPhrase >= 28 && darkPhrase < 52);
+      var darkVoicesA = [0, 0, 1, 0, 2, 1, 0, 1];
+      var darkVoicesB = [0, 2, 0, 1, 0, 2, 1, 0];
+      var darkVoices = Math.floor(darkPhrase / 8) % 2 ? darkVoicesB : darkVoicesA;
+      var darkCallA = [50, null, null, 53, null, null, 57, 55, null, 53, null, null, 50, null, 48, 50];
+      var darkCallB = [50, null, 53, null, 55, null, 57, null, 58, null, 57, 55, null, 53, 50, null];
+      var darkCallC = [50, null, 53, 55, null, 57, 58, 57, 53, null, 55, 57, null, 58, 62, 58];
+      var darkCallQuiet = [38, null, null, null, 41, null, null, null, 43, null, null, null, 41, null, 38, null];
+      var darkCallPart = [darkCallA, darkCallB, darkCallA, darkCallQuiet];
+      if (darkAbyss)
+        darkCallPart = [darkCallQuiet, darkCallA, darkCallQuiet, darkCallB];
+      else if (darkPeak)
+        darkCallPart = [darkCallC, darkCallB, darkCallC, darkCallC];
+      else if (darkHeavy)
+        darkCallPart = [darkCallB, darkCallA, darkCallB, darkCallC];
+      var darkCall = darkCallPart[darkPhrase % 4];
+
+      if (darkAbyss) {
+        if (s === 0 || s === 10) battlePulse(t, 0.039, dest, false);
+      } else {
+        if ([0, 3, 8, 10].indexOf(s) >= 0 || (darkPeak && (s === 6 || s === 14)))
+          battlePulse(t, s === 0 || s === 8 ? (darkPeak ? 0.076 : 0.068) : 0.043, dest, false);
+        if (s === 4 || s === 12) battlePulse(t, darkPeak ? 0.041 : 0.035, dest, true);
       }
-      if (s % 2 === 0)
-        battleStrings(
-          battleChord[darkVoices[s / 2]] - 12,
+      if (s === 0) {
+        chord(battleChord, t, stepDur * 15.6, darkAbyss ? 0.008 : darkPeak ? 0.015 : 0.0125, {
+          dest: dest,
+          wet: darkAbyss ? 0.28 : 0.13,
+          filter: darkPeak ? 1250 : darkAbyss ? 760 : 1050,
+          attack: darkAbyss ? 0.72 : 0.38,
+          release: darkAbyss ? 1.8 : 1.2,
+        });
+        musicNote(
+          battleRoot - 24,
           t,
-          stepDur * 1.48,
-          0.021,
+          stepDur * 14.8,
+          darkPeak ? 0.043 : darkAbyss ? 0.029 : 0.035,
+          'sine',
+          dest,
+          -0.22,
+          0.015,
+          390
+        );
+      }
+      if (s % (darkAbyss ? 4 : 2) === 0)
+        battleStrings(
+          battleChord[darkVoices[s / (darkAbyss ? 4 : 2)]] - 12,
+          t,
+          stepDur * (darkAbyss ? 3.1 : 1.48),
+          darkPeak ? 0.025 : darkAbyss ? 0.014 : 0.021,
           dest,
           -0.12,
           true
@@ -1632,50 +1851,74 @@
         battleBrass(
           darkCall[s],
           t,
-          stepDur * (s === 7 || s === 15 ? 2.35 : 1.75),
-          s === 7 || s === 15 ? 0.018 : 0.014,
+          stepDur * (s === 7 || s === 15 ? 2.35 : darkAbyss ? 2.7 : 1.75),
+          darkPeak ? 0.019 : s === 7 || s === 15 ? 0.018 : 0.014,
           dest,
           0.12,
           true
         );
+      if (darkPeak && (s === 2 || s === 10))
+        musicNote(battleRoot - 12, t, stepDur * 1.7, 0.025, 'square', dest, -0.18, 0.02, 740);
+      if (darkTurn && s === 8)
+        musicNote(battleRoot - 5, t, stepDur * 6.8, 0.018, 'sine', dest, 0.06, 0.22, 620);
       return;
     }
 
-    /* Neutral and martial fields: the prep motif has crossed the line from
-       countdown to combat. Syncopated low drums, an eighth-note string
-       engine and a brass answer make the handoff obvious without changing
-       its harmonic world. */
-    var warVoices = [0, 1, 0, 2, 0, 1, 2, 1];
-    var warCall = [null, null, 62, null, 65, null, 69, 67, null, null, 65, null, 62, null, 60, 62];
-    if ([0, 6, 8, 11, 14].indexOf(s) >= 0)
-      battlePulse(t, s === 0 || s === 8 ? 0.07 : 0.044, dest, false);
-    if (s === 4 || s === 12) battlePulse(t, 0.037, dest, true);
+    /* Neutral fields: sixty bars / exactly two minutes. The preparation
+       motif crosses into an opening march, a charging answer, a mid-battle
+       clash, four-bar breath, second advance, counterattack and final siege. */
+    var warPhrase = phraseBar;
+    var warBreak = warPhrase >= 24 && warPhrase < 28;
+    var warPeak = warPhrase >= 48 && warPhrase < 56;
+    var warTurn = warPhrase >= 56;
+    var warAdvance =
+      (warPhrase >= 8 && warPhrase < 24) || (warPhrase >= 28 && warPhrase < 48);
+    var warVoicesA = [0, 1, 0, 2, 0, 1, 2, 1];
+    var warVoicesB = [0, 2, 1, 0, 2, 1, 0, 1];
+    var warVoices = Math.floor(warPhrase / 8) % 2 ? warVoicesB : warVoicesA;
+    var warCallA = [null, null, 62, null, 65, null, 69, 67, null, null, 65, null, 62, null, 60, 62];
+    var warCallB = [62, null, 65, null, 67, null, 69, null, 70, 69, null, 67, null, 65, 62, null];
+    var warCallC = [62, null, 65, 67, null, 69, 72, 70, 69, null, 72, 74, null, 72, 69, 67];
+    var warCallQuiet = [null, null, 50, null, null, null, 53, null, null, null, 55, null, null, 53, null, null];
+    var warCallPart = [warCallA, warCallB, warCallA, warCallQuiet];
+    if (warBreak) warCallPart = [warCallQuiet, warCallA, warCallQuiet, warCallB];
+    else if (warPeak) warCallPart = [warCallC, warCallB, warCallC, warCallC];
+    else if (warAdvance) warCallPart = [warCallB, warCallA, warCallB, warCallC];
+    var warCall = warCallPart[warPhrase % 4];
+
+    if (warBreak) {
+      if (s === 0 || s === 8) battlePulse(t, 0.038, dest, false);
+    } else {
+      if ([0, 6, 8, 11, 14].indexOf(s) >= 0 || (warPeak && (s === 3 || s === 9)))
+        battlePulse(t, s === 0 || s === 8 ? (warPeak ? 0.078 : 0.07) : 0.044, dest, false);
+      if (s === 4 || s === 12) battlePulse(t, warPeak ? 0.043 : 0.037, dest, true);
+    }
     if (s === 0)
-      chord(battleChord, t, stepDur * 15.5, 0.012, {
+      chord(battleChord, t, stepDur * 15.5, warBreak ? 0.008 : warPeak ? 0.015 : 0.012, {
         dest: dest,
-        wet: 0.14,
-        filter: 1480,
-        attack: 0.28,
-        release: 0.98,
+        wet: warBreak ? 0.3 : 0.14,
+        filter: warPeak ? 1850 : warBreak ? 1050 : 1480,
+        attack: warBreak ? 0.58 : 0.28,
+        release: warBreak ? 1.6 : 0.98,
       });
-    if (s === 0 || s === 8)
+    if (s === 0 || (!warBreak && s === 8))
       musicNote(
         battleRoot - 12 + (s === 8 ? 7 : 0),
         t,
-        stepDur * 4.9,
-        0.034,
+        stepDur * (warBreak ? 7.6 : 4.9),
+        warPeak ? 0.04 : warBreak ? 0.023 : 0.034,
         'sine',
         dest,
         -0.22,
         0.02,
         540
       );
-    if (s % 2 === 0)
+    if (s % (warBreak ? 4 : 2) === 0)
       battleStrings(
-        battleChord[warVoices[s / 2]] - 12,
+        battleChord[warVoices[s / (warBreak ? 4 : 2)]] - 12,
         t,
-        stepDur * 1.42,
-        0.021,
+        stepDur * (warBreak ? 2.9 : 1.42),
+        warPeak ? 0.025 : warBreak ? 0.014 : 0.021,
         dest,
         s % 4 === 0 ? -0.14 : 0.04,
         false
@@ -1684,12 +1927,16 @@
       battleBrass(
         warCall[s],
         t,
-        stepDur * (s === 7 || s === 15 ? 2.25 : 1.65),
-        s === 7 || s === 15 ? 0.017 : 0.013,
+        stepDur * (s === 7 || s === 15 ? 2.25 : warBreak ? 2.6 : 1.65),
+        warPeak ? 0.019 : s === 7 || s === 15 ? 0.017 : 0.013,
         dest,
         0.15,
         false
       );
+    if (warPeak && warCall[s] != null && (s === 6 || s === 14))
+      battleBrass(warCall[s] - 12, t, stepDur * 1.45, 0.008, dest, -0.08, true);
+    if (warTurn && (s === 0 || s === 8))
+      musicNote(battleRoot, t, stepDur * 6.6, 0.009, 'triangle', dest, 0.08, 0.38, 2600);
     return;
   }
 
@@ -2072,7 +2319,13 @@
     _trackInfo: function (name) {
       var def = TRACKS[name];
       return def
-        ? { tempo: def.tempo, steps: def.steps, key: def.key, phraseBars: def.phraseBars }
+        ? {
+            tempo: def.tempo,
+            steps: def.steps,
+            key: def.key,
+            phraseBars: def.phraseBars,
+            phraseSeconds: (def.phraseBars * 4 * 60) / def.tempo,
+          }
         : null;
     },
     _scheduleStep: function (name, absoluteStep) {
