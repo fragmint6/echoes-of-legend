@@ -801,31 +801,17 @@
            wallet, packs pay only unowned legends. -->
       <div class="shop-wallet-row">
         <span class="shop-wallet" id="shop-wallet"></span>
+        <button
+          class="shop-wallet shop-code-open"
+          id="shop-code-open"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="shop-code-modal"
+        >
+          <i class="ri-gift-line" aria-hidden="true"></i><span>Redeem a code</span>
+        </button>
         <span class="shop-progress" id="shop-progress"></span>
       </div>
-      <form class="shop-code" id="shop-code-form" novalidate>
-        <label class="shop-code-label" for="shop-code-input">
-          <i class="ri-gift-line" aria-hidden="true"></i><span>Redeem a code</span>
-        </label>
-        <div class="shop-code-controls">
-          <input
-            id="shop-code-input"
-            name="code"
-            type="text"
-            inputmode="text"
-            autocomplete="off"
-            autocapitalize="characters"
-            spellcheck="false"
-            maxlength="32"
-            placeholder="Enter code"
-            aria-describedby="shop-code-status"
-          />
-          <button class="btn btn-ghost btn-slim" id="shop-code-submit" type="submit">
-            <i class="ri-check-line" aria-hidden="true"></i><span>Redeem</span>
-          </button>
-        </div>
-        <p class="shop-code-status" id="shop-code-status" aria-live="polite"></p>
-      </form>
       <div class="shop-body shop-shelf">
         <article class="product">
           <div class="product-pack pk-host" data-pack="trio">
@@ -927,6 +913,48 @@
         </div>
       </div>
     </section>
+
+    <div
+      class="shop-code-modal"
+      id="shop-code-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shop-code-title"
+    >
+      <div class="shop-code-scrim" id="shop-code-scrim"></div>
+      <div class="shop-code-card" role="document">
+        <button type="button" class="shop-code-close" id="shop-code-close" aria-label="Close">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+        <div class="shop-code-head">
+          <div class="shop-code-emblem"><i class="ri-gift-line" aria-hidden="true"></i></div>
+          <h2 id="shop-code-title">Redeem a code</h2>
+          <p>Enter your code to add its reward to your account.</p>
+        </div>
+        <form class="shop-code-form" id="shop-code-form" novalidate>
+          <label class="shop-code-label" for="shop-code-input">Code</label>
+          <div class="shop-code-controls">
+            <input
+              id="shop-code-input"
+              name="code"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              maxlength="32"
+              placeholder="Enter code"
+              aria-describedby="shop-code-status"
+            />
+            <button class="btn btn-primary btn-slim" id="shop-code-submit" type="submit">
+              <i class="ri-check-line" aria-hidden="true"></i><span>Redeem</span>
+            </button>
+          </div>
+          <p class="shop-code-status" id="shop-code-status" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
 
     <div
       class="auth-modal"

@@ -930,6 +930,21 @@ const server = http.createServer((req, res) => {
   w.EOL.ui.show('shop');
   await sleep(700);
   t(
+    $('shop-code-modal').hidden &&
+      $('shop-code-form').closest('#shop-code-modal') === $('shop-code-modal'),
+    'the code form starts hidden inside its popup instead of occupying the shop shelf'
+  );
+  t(
+    $('shop-code-open').classList.contains('shop-wallet') &&
+      $('shop-code-open').previousElementSibling === $('shop-wallet'),
+    'the Redeem code button is a wallet-style chip directly beside the coin balance'
+  );
+  $('shop-code-open').click();
+  t(
+    !$('shop-code-modal').hidden && d.activeElement === $('shop-code-input'),
+    'clicking the Redeem code chip opens the popup and focuses its input'
+  );
+  t(
     w.EOL.econ.codePolicy('CREATOR5000').singleUserOnly === false,
     'CREATOR5000 is explicitly configured for every-account-once redemption'
   );
@@ -952,6 +967,11 @@ const server = http.createServer((req, res) => {
   t(
     w.EOL.econ.coins() === 5100 && $('shop-code-status').textContent.indexOf('Sign in') >= 0,
     'an online-only or unknown code pays nothing and asks for account verification'
+  );
+  $('shop-code-close').click();
+  t(
+    $('shop-code-modal').hidden && d.activeElement === $('shop-code-open'),
+    'closing the code popup returns focus to its wallet chip'
   );
   t(
     w.EOL.shop.PACKS.trio.price === 200 &&

@@ -662,6 +662,29 @@
     else status.removeAttribute('data-state');
   }
 
+  function openCodeModal() {
+    var modal = el('shop-code-modal');
+    var input = el('shop-code-input');
+    if (!modal || !modal.hidden) return;
+    if (!codeBusy) {
+      if (input) input.value = '';
+      setCodeStatus('', '');
+    }
+    modal.hidden = false;
+    document.body.dataset.modal = '1';
+    if (input) input.focus();
+  }
+  function closeCodeModal(restoreFocus) {
+    var modal = el('shop-code-modal');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    delete document.body.dataset.modal;
+    if (restoreFocus !== false) {
+      var trigger = el('shop-code-open');
+      if (trigger) trigger.focus();
+    }
+  }
+
   var codeBusy = false;
   function setCodeBusy(busy) {
     codeBusy = !!busy;
@@ -738,6 +761,18 @@
         begin(btn.dataset.pack);
       });
     });
+    var codeOpen = el('shop-code-open');
+    var codeClose = el('shop-code-close');
+    var codeScrim = el('shop-code-scrim');
+    if (codeOpen) codeOpen.addEventListener('click', openCodeModal);
+    if (codeClose)
+      codeClose.addEventListener('click', function () {
+        closeCodeModal(true);
+      });
+    if (codeScrim)
+      codeScrim.addEventListener('click', function () {
+        closeCodeModal(true);
+      });
     var codeForm = el('shop-code-form');
     if (codeForm)
       codeForm.addEventListener('submit', function (event) {
@@ -764,6 +799,11 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
+      var codeModal = el('shop-code-modal');
+      if (codeModal && !codeModal.hidden) {
+        closeCodeModal(true);
+        return;
+      }
       /* The theater is global now: a campaign reward opens over Chapter,
          while paid packs open over Shop. Escape must work in both places. */
       if (!el('pack-opening').classList.contains('on')) return;
@@ -780,6 +820,7 @@
     });
     document.addEventListener('eol:view', function (ev) {
       if (ev.detail === 'shop') paintShop();
+      else closeCodeModal(false);
     });
     paintShop();
   }
