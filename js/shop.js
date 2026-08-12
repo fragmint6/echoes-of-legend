@@ -27,7 +27,7 @@
     trio: {
       key: 'trio',
       name: 'Trio Pack',
-      price: 120,
+      price: 200,
       size: 3,
       odds: [
         ['common', 50],
@@ -39,7 +39,7 @@
     echo: {
       key: 'echo',
       name: 'Echoes Pack',
-      price: 300,
+      price: 500,
       size: 5,
       odds: [
         ['common', 45],
@@ -51,7 +51,7 @@
     crown: {
       key: 'crown',
       name: 'Crown Pack',
-      price: 700,
+      price: 1000,
       size: 5,
       odds: [
         ['common', 15],
@@ -654,6 +654,43 @@
     });
   }
 
+  function setCodeStatus(message, stateName) {
+    var status = el('shop-code-status');
+    if (!status) return;
+    status.textContent = message || '';
+    if (stateName) status.dataset.state = stateName;
+    else status.removeAttribute('data-state');
+  }
+
+  function submitCode() {
+    var econ = window.EOL.econ;
+    var input = el('shop-code-input');
+    if (!econ || !input || typeof econ.redeemCode !== 'function') return;
+    var result = econ.redeemCode(input.value);
+    if (result.ok) {
+      input.value = '';
+      setCodeStatus(
+        result.code + ' redeemed - ' + result.coins.toLocaleString() + ' coins added.',
+        'success'
+      );
+      if (window.EOL.audio) window.EOL.audio.ui('toggle');
+      if (window.EOL.ui && window.EOL.ui.toast)
+        window.EOL.ui.toast(
+          result.code + ' redeemed - ' + result.coins.toLocaleString() + ' coins added',
+          'ri-coin-fill'
+        );
+      return;
+    }
+    var message =
+      result.status === 'empty'
+        ? 'Enter a code first.'
+        : result.status === 'redeemed'
+          ? 'That code has already been redeemed.'
+          : "That code isn't recognized.";
+    setCodeStatus(message, 'error');
+    if (window.EOL.audio) window.EOL.audio.ui('deny');
+  }
+
   function mount() {
     /* The ceremony is shared by Shop purchases and campaign rewards. It
        was authored inside the Shop section, so opening it from the chapter
@@ -670,6 +707,18 @@
         begin(btn.dataset.pack);
       });
     });
+    var codeForm = el('shop-code-form');
+    if (codeForm)
+      codeForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitCode();
+      });
+    var codeInput = el('shop-code-input');
+    if (codeInput)
+      codeInput.addEventListener('input', function () {
+        var status = el('shop-code-status');
+        if (status && status.dataset.state === 'error') setCodeStatus('', '');
+      });
     el('po-again').addEventListener('click', function () {
       begin(currentPack ? currentPack.key : 'echo');
     });

@@ -20,6 +20,7 @@
    Storage:
      eol.wallet.v1        number (coins)
      eol.owned.v1         [cardId] beyond the starter twelve
+     eol.shop.codes.v1    [code] one-time shop redemptions
      eol.econ.migrated.v1 one-time import of pre-economy campaign
                           saves (their coins + grants)
    ============================================================= */
@@ -29,7 +30,18 @@
 
   var WALLET_KEY = 'eol.wallet.v1';
   var OWNED_KEY = 'eol.owned.v1';
+  var REDEEMED_CODES_KEY = 'eol.shop.codes.v1';
   var MIGRATED_KEY = 'eol.econ.migrated.v1';
+
+  /* Shop codes live beside the wallet rather than in the presentation
+     layer: the one-time claim and its coins are one economy operation,
+     and the Vault can carry both to every signed-in device. Codes are
+     normalized before lookup so pasted whitespace and letter case do not
+     turn one offer into several claims. */
+  var REDEMPTION_CODES = {
+    CREATOR5000: { coins: 5000 },
+  };
+  var sessionRedeemed = {};
 
   /* match pay, per game (owner ruling 2026-08-10) */
   var PAY = { spWin: 50, spLoss: 25, pvpWin: 75, pvpLoss: 50 };
@@ -137,6 +149,55 @@
     return true;
   }
 
+  function normalizeCode(raw) {
+    return String(raw == null ? '' : raw)
+      .trim()
+      .toUpperCase();
+  }
+  function redeemedCodes() {
+    var seen = {};
+    var out = [];
+    readArr(REDEEMED_CODES_KEY).forEach(function (raw) {
+      var code = normalizeCode(raw);
+      if (!code || seen[code]) return;
+      seen[code] = true;
+      out.push(code);
+    });
+    Object.keys(sessionRedeemed).forEach(function (code) {
+      if (!seen[code]) out.push(code);
+    });
+    return out;
+  }
+  function hasRedeemedCode(raw) {
+    var code = normalizeCode(raw);
+    return !!code && redeemedCodes().indexOf(code) >= 0;
+  }
+  function redeemCode(raw) {
+    migrate();
+    var code = normalizeCode(raw);
+    if (!code) return { ok: false, status: 'empty', code: '' };
+    var reward = REDEMPTION_CODES[code];
+    if (!reward) return { ok: false, status: 'invalid', code: code };
+    if (hasRedeemedCode(code)) return { ok: false, status: 'redeemed', code: code };
+
+    /* Mark the claim before emitting the wallet event. The Vault's
+       immediate economy push therefore sees the redemption marker and
+       its coins in the same full-save snapshot. The in-memory marker keeps
+       the one-claim law for this session even if storage is unavailable. */
+    var redeemed = redeemedCodes();
+    redeemed.push(code);
+    sessionRedeemed[code] = true;
+    write(REDEEMED_CODES_KEY, redeemed);
+    var balance = addCoins(reward.coins);
+    return {
+      ok: true,
+      status: 'granted',
+      code: code,
+      coins: reward.coins,
+      balance: balance,
+    };
+  }
+
   function owns(id) {
     migrate();
     if (starterIds().indexOf(id) >= 0) return true;
@@ -196,6 +257,9 @@
     coins: coins,
     addCoins: addCoins,
     spend: spend,
+    redeemCode: redeemCode,
+    hasRedeemedCode: hasRedeemedCode,
+    redeemedCodes: redeemedCodes,
     owns: owns,
     grant: grant,
     starterIds: starterIds,
@@ -207,6 +271,8 @@
     _reset: function () {
       write(WALLET_KEY, '0');
       write(OWNED_KEY, []);
+      write(REDEEMED_CODES_KEY, []);
+      sessionRedeemed = {};
       write(MIGRATED_KEY, '1');
       emitCoins();
       emitOwned();

@@ -58,6 +58,7 @@
   var MAP = [
     ['eol.wallet.v1', 'wallet', 'int'],
     ['eol.owned.v1', 'owned', 'json'],
+    ['eol.shop.codes.v1', 'flags.shopCodes', 'json'],
     ['eol.campaign.ch1.progress', 'campaign', 'json'],
     ['eol.decks.v1', 'decks', 'json'],
     ['eol.scale', 'settings.scale', 'int'],

@@ -509,7 +509,8 @@ table still exists.
 ## 10. THE VAULT - cloud saves (added 2026-08-10)
 
 Signed-in players carry their whole save with the account: wallet,
-owned cards, campaign progress, decks, settings, tutorial flags.
+owned cards, redeemed shop codes, campaign progress, decks, settings,
+and tutorial flags.
 `js/cloud.js` stores it as ONE **readable** json document per user
 (format v2 - the original v1 stored raw localStorage strings and was
 impossible to hand-edit; v1 rows migrate themselves on next sign-in):
@@ -522,7 +523,7 @@ impossible to hand-edit; v1 rows migrate themselves on next sign-in):
   "campaign": { "cleared": [1, 2], "fought": [1, 2, 3], "coins": 450 },
   "decks": { "...": "..." },
   "settings": { "scale": 100, "gfx": "high", "warLength": "set" },
-  "flags": { "tutorialIntro": "1", "tips": {} }
+  "flags": { "tutorialIntro": "1", "tips": {}, "shopCodes": ["CREATOR5000"] }
 }
 ```
 

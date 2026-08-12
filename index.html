@@ -803,6 +803,29 @@
         <span class="shop-wallet" id="shop-wallet"></span>
         <span class="shop-progress" id="shop-progress"></span>
       </div>
+      <form class="shop-code" id="shop-code-form" novalidate>
+        <label class="shop-code-label" for="shop-code-input">
+          <i class="ri-gift-line" aria-hidden="true"></i><span>Redeem a code</span>
+        </label>
+        <div class="shop-code-controls">
+          <input
+            id="shop-code-input"
+            name="code"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            maxlength="32"
+            placeholder="Enter code"
+            aria-describedby="shop-code-status"
+          />
+          <button class="btn btn-ghost btn-slim" id="shop-code-submit" type="submit">
+            <i class="ri-check-line" aria-hidden="true"></i><span>Redeem</span>
+          </button>
+        </div>
+        <p class="shop-code-status" id="shop-code-status" aria-live="polite"></p>
+      </form>
       <div class="shop-body shop-shelf">
         <article class="product">
           <div class="product-pack pk-host" data-pack="trio">

@@ -239,10 +239,12 @@ const path = require('path');
 const playSource = fs.readFileSync(path.join(__dirname, '../js/play.js'), 'utf8');
 ok(
   /scaledRivalStats\(card\.stats, bonus\)/.test(playSource) &&
-    playSource.indexOf('prep-scale-chip') >= 0 &&
+    playSource.indexOf('prep-scale-chip') < 0 &&
+    playSource.indexOf('dk-rival-scale') < 0 &&
+    playSource.indexOf('% ATK/DEF') < 0 &&
     /scaledStatValue\(visibleStats\.atk/.test(playSource) &&
     /scaledStatValue\(visibleStats\.def/.test(playSource),
-  'Preparation paints boosted rival ATK/DEF values and a visible difficulty chip'
+  'Preparation paints boosted raw rival ATK/DEF values without a difficulty-bonus chip'
 );
 const draftHandoff = playSource.slice(
   playSource.indexOf('function advancePack'),

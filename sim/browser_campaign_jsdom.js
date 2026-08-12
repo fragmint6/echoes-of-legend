@@ -867,11 +867,95 @@ const server = http.createServer((req, res) => {
     t(!!starter && !!starter.querySelector('.dc-locked'), "the starter deck wears the Road's padlock");
     t(!!starter && !starter.querySelector('.dc-del') && !starter.querySelector('.dc-edit'), 'and offers neither Delete nor Edit');
   }
-  // the shelf: buy a Trio pack for real
-  w.EOL.econ.addCoins(1000);
+  /* Bans vary only inside a measured near-tie. A real outlier remains a
+     lock, while campaign role priorities still fence the variation into
+     the rival's authored personality. */
+  {
+    const oldDeny = w.EOL.draftAI.denyValue;
+    const oldRandom = w.Math.random;
+    const entry = (id, role = 'Sniper', atk = 1800) => ({
+      card: { id, rarity: 'common', role, stats: { hp: 5000, atk, def: 12 } },
+      faction: { id: 'test' },
+    });
+    const scores = {};
+    w.EOL.draftAI.denyValue = (_deck, candidate) => scores[candidate.card.id] || 0;
+    let roll = 0;
+    w.Math.random = () => ((roll++ * 37) % 100) / 100;
+    try {
+      const close = [entry('close-a'), entry('close-b'), entry('close-c'), entry('low')];
+      Object.assign(scores, { 'close-a': 10, 'close-b': 9.8, 'close-c': 9.7, low: 2 });
+      const closePairs = new Set();
+      for (let i = 0; i < 30; i++)
+        closePairs.add(w.EOL.play._chooseBans(close, [], true).slice().sort().join('|'));
+      t(closePairs.size > 1, 'similarly valued cards produce more than one AI ban pair');
+
+      const dominant = [entry('bomb'), entry('runner-a'), entry('runner-b'), entry('weak')];
+      Object.assign(scores, { bomb: 20, 'runner-a': 10, 'runner-b': 9.8, weak: 1 });
+      let bombHeld = true;
+      for (let i = 0; i < 30; i++)
+        if (w.EOL.play._chooseBans(dominant, [], true).indexOf('bomb') < 0) bombHeld = false;
+      t(bombHeld, 'a clearly dominant card is reliably banned through every random roll');
+
+      const personaDeck = [
+        entry('aim-a', 'Sniper', 2000),
+        entry('aim-b', 'Sniper', 1960),
+        entry('aim-c', 'Sniper', 1920),
+        entry('off-role', 'Tank', 2400),
+      ];
+      Object.assign(scores, { 'aim-a': 10, 'aim-b': 9.9, 'aim-c': 9.8, 'off-role': 10.5 });
+      const personaPairs = new Set();
+      let stayedInRole = true;
+      for (let i = 0; i < 30; i++) {
+        const bans = w.EOL.play._personaBans({ roles: ['Sniper'], stat: 'atk' }, personaDeck, [], true);
+        personaPairs.add(bans.slice().sort().join('|'));
+        if (bans.indexOf('off-role') >= 0) stayedInRole = false;
+      }
+      t(personaPairs.size > 1, 'campaign personalities also vary among close preferred targets');
+      t(stayedInRole, 'persona variation never abandons an available authored role priority');
+
+      Object.assign(scores, { 'aim-a': 10, 'aim-b': 9.9, 'aim-c': 9.8, 'off-role': 20 });
+      let personaBombHeld = true;
+      for (let i = 0; i < 30; i++) {
+        const bans = w.EOL.play._personaBans({ roles: ['Sniper'] }, personaDeck, [], true);
+        if (bans.indexOf('off-role') < 0) personaBombHeld = false;
+      }
+      t(personaBombHeld, 'even a campaign personality always removes a true threat outlier');
+    } finally {
+      w.EOL.draftAI.denyValue = oldDeny;
+      w.Math.random = oldRandom;
+    }
+  }
+
+  // the shelf: redeem the launch creator code, then buy a Trio pack for real
   w.EOL.ui.show('shop');
   await sleep(700);
-  t($('shop-wallet').textContent.indexOf('1,100') >= 0 || $('shop-wallet').textContent.indexOf('1100') >= 0, 'the shop shows the wallet');
+  $('shop-code-input').value = '  creator5000  ';
+  $('shop-code-submit').click();
+  t(w.EOL.econ.coins() === 5100, 'CREATOR5000 grants 5,000 coins into the shared wallet');
+  t(
+    $('shop-code-status').dataset.state === 'success' &&
+      $('shop-code-status').textContent.indexOf('5,000 coins added') >= 0,
+    'the shop visibly confirms a successful code redemption'
+  );
+  $('shop-code-input').value = 'CREATOR5000';
+  $('shop-code-submit').click();
+  t(
+    w.EOL.econ.coins() === 5100 && $('shop-code-status').textContent.indexOf('already been redeemed') >= 0,
+    'the same code cannot pay twice'
+  );
+  $('shop-code-input').value = 'NOPE';
+  $('shop-code-submit').click();
+  t(
+    w.EOL.econ.coins() === 5100 && $('shop-code-status').textContent.indexOf("isn't recognized") >= 0,
+    'an invalid code pays nothing and gets useful feedback'
+  );
+  t(
+    w.EOL.shop.PACKS.trio.price === 200 &&
+      w.EOL.shop.PACKS.echo.price === 500 &&
+      w.EOL.shop.PACKS.crown.price === 1000,
+    'the shelf uses the 200 / 500 / 1,000 pack prices'
+  );
+  t($('shop-wallet').textContent.indexOf('5,100') >= 0 || $('shop-wallet').textContent.indexOf('5100') >= 0, 'the shop shows the wallet');
   // the library coin (owner ruling: icon font, never a generated sprite)
   t(!!$('shop-wallet').querySelector('i.ri-coin-fill'), 'the wallet wears the library coin, not the energy bolt');
   t(!$('shop-wallet').querySelector('.ra-lightning-bolt') && !$('shop-wallet').querySelector('img'), 'no lightning bolt and no sprite anywhere near the wallet');
@@ -906,13 +990,13 @@ const server = http.createServer((req, res) => {
     t(w.EOL.shop.state() === 'summary', 'the pack opens to its summary');
     t($('po-summary').textContent.indexOf('Preview only') < 0, "the demo-era 'Preview only' note is DEAD");
     t($('po-summary').textContent.indexOf('Yours now') >= 0, 'the summary tells the truth: the cards are owned');
-    t(w.EOL.econ.coins() === coinsBefore - 120, 'the Trio pack cost 120 coins');
+    t(w.EOL.econ.coins() === coinsBefore - 200, 'the Trio pack cost 200 coins');
     t(w.EOL.econ.unownedEntries().length === before - 3, 'three NEW legends joined the collection');
     t(w.EOL.shop.results().every((e) => e.faction.id !== 'huaxia'), 'no Huaxia in the pull');
     t(w.EOL.shop.results().every((e) => e.card.rarity !== 'legendary'), 'and no legendary - the Crown Law holds in the pull');
     t(w.EOL.shop.results().every((e) => w.EOL.econ.owns(e.card.id)), 'the pull is OWNED (granted at roll time)');
     t(!$('po-again').hidden, 'Open Another appears while another Trio pack is affordable');
-    const drain = w.EOL.econ.coins() - 119;
+    const drain = w.EOL.econ.coins() - 199;
     w.EOL.econ.spend(drain);
     t($('po-again').hidden, 'Open Another hides immediately when the pack is no longer affordable');
     w.EOL.econ.addCoins(drain);
@@ -929,7 +1013,13 @@ const server = http.createServer((req, res) => {
       'no odds table anywhere names a legendary'
     );
     t(w.EOL.cloud && typeof w.EOL.cloud.push === 'function' && w.EOL.cloud.status() === 'off', 'the vault idles signed-out (local play untouched)');
-    t(w.EOL.cloud.KEYS.indexOf('eol.wallet.v1') >= 0 && w.EOL.cloud.KEYS.indexOf('eol.campaign.ch1.progress') >= 0 && w.EOL.cloud.KEYS.indexOf('eol.decks.v1') >= 0, 'the vault registry carries wallet, campaign, and decks');
+    t(
+      w.EOL.cloud.KEYS.indexOf('eol.wallet.v1') >= 0 &&
+        w.EOL.cloud.KEYS.indexOf('eol.shop.codes.v1') >= 0 &&
+        w.EOL.cloud.KEYS.indexOf('eol.campaign.ch1.progress') >= 0 &&
+        w.EOL.cloud.KEYS.indexOf('eol.decks.v1') >= 0,
+      'the vault registry carries wallet, redeemed codes, campaign, and decks'
+    );
     // On Legend, Gate II ends Camelot's road: its ONE legendary arrives
     // at clear time, then plays a one-card reward ceremony on the map.
     w.EOL.campaign.setDifficulty('legend');
@@ -1023,6 +1113,10 @@ const server = http.createServer((req, res) => {
     t(doc.v === 2, 'the vault document is format v2');
     t(typeof doc.wallet === 'number' && doc.wallet === w.EOL.econ.coins(), 'wallet is a NUMBER a human can edit in the dashboard');
     t(Array.isArray(doc.owned), 'owned is a plain list of card ids');
+    t(
+      doc.flags && Array.isArray(doc.flags.shopCodes) && doc.flags.shopCodes.indexOf('CREATOR5000') >= 0,
+      'the redeemed-code marker travels in the same Vault document as its coins'
+    );
     t(doc.campaign && typeof doc.campaign === 'object' && Array.isArray(doc.campaign.cleared), 'campaign progress is a readable object');
     t(doc.settings && typeof doc.settings === 'object', 'settings are grouped, not scattered');
     t(!w.EOL.auth.pushDeck && !w.EOL.auth.deleteDeck, 'the dead per-deck sync hooks are gone with their table');

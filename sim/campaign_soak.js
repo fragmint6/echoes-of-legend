@@ -179,6 +179,42 @@ function predictSix(pool) {
   return chooseSix(pool, null, null, 3.0);
 }
 
+/* Mirrors play.js: randomize only inside a genuine near-tie so a clear
+   outlier remains a deterministic ban. */
+var BAN_VARIATION_WINDOW = 1.1;
+var BAN_DOMINANT_GAP = BAN_VARIATION_WINDOW * 2;
+function variedBanOrder(scored, count) {
+  var pool = scored.slice();
+  var out = [];
+  while (out.length < count && pool.length) {
+    pool.sort(function (a, b) {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+    var best = pool[0].score;
+    var near = pool.filter(function (candidate) {
+      return best - candidate.score <= BAN_VARIATION_WINDOW;
+    });
+    var total = 0;
+    near.forEach(function (candidate) {
+      candidate._banWeight = 1 + BAN_VARIATION_WINDOW - (best - candidate.score);
+      total += candidate._banWeight;
+    });
+    var roll = Math.min(0.999999999, Math.max(0, Math.random())) * total;
+    var chosen = near[near.length - 1];
+    for (var i = 0; i < near.length; i++) {
+      roll -= near[i]._banWeight;
+      if (roll < 0) {
+        chosen = near[i];
+        break;
+      }
+    }
+    out.push(chosen);
+    pool.splice(pool.indexOf(chosen), 1);
+  }
+  return out;
+}
+
 function personaBans(profile, deckEntries, myPool, allowLegendaries) {
   profile = profile || {};
   var legal = deckEntries.filter(function (e) {
@@ -194,7 +230,7 @@ function personaBans(profile, deckEntries, myPool, allowLegendaries) {
     )
       out.push(id);
   });
-  if (out.length < RULES.BANS) {
+  while (out.length < RULES.BANS) {
     var scored = legal
       .filter(function (e) {
         return out.indexOf(e.card.id) < 0;
@@ -202,21 +238,62 @@ function personaBans(profile, deckEntries, myPool, allowLegendaries) {
       .map(function (e) {
         return {
           id: e.card.id,
+          entry: e,
           role: profile.roles && profile.roles.indexOf(e.card.role) >= 0 ? 1 : 0,
           stat: profile.stat === 'atk' ? e.card.stats.atk : 0,
           power: profile.power ? DAI.powerOf(e.card) : 0,
-          deny: DAI.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.35,
+          deny: DAI.denyValue(deckEntries, e, myPool || []),
         };
       });
-    scored.sort(function (a, b) {
-      if (a.role !== b.role) return b.role - a.role;
-      if (a.stat !== b.stat) return b.stat - a.stat;
-      if (a.power !== b.power) return b.power - a.power;
+    if (!scored.length) break;
+    var byThreat = scored.slice().sort(function (a, b) {
       return b.deny - a.deny;
     });
-    scored.forEach(function (x) {
-      if (out.length < RULES.BANS) out.push(x.id);
+    if (byThreat.length === 1 || byThreat[0].deny - byThreat[1].deny > BAN_DOMINANT_GAP) {
+      out.push(byThreat[0].id);
+      continue;
+    }
+    if (profile.roles) {
+      var preferred = scored.filter(function (candidate) {
+        return candidate.role;
+      });
+      if (preferred.length) scored = preferred;
+    }
+    if (profile.stat === 'atk') {
+      var topStat = Math.max.apply(
+        null,
+        scored.map(function (candidate) {
+          return candidate.stat;
+        })
+      );
+      var statWindow = Math.max(90, topStat * 0.08);
+      scored = scored.filter(function (candidate) {
+        return topStat - candidate.stat <= statWindow;
+      });
+      scored.forEach(function (candidate) {
+        candidate.profileTie = 0.6 * (1 - (topStat - candidate.stat) / statWindow);
+      });
+    } else if (profile.power) {
+      var topPower = Math.max.apply(
+        null,
+        scored.map(function (candidate) {
+          return candidate.power;
+        })
+      );
+      var powerWindow = 0.35;
+      scored = scored.filter(function (candidate) {
+        return topPower - candidate.power <= powerWindow;
+      });
+      scored.forEach(function (candidate) {
+        candidate.profileTie = 0.6 * (1 - (topPower - candidate.power) / powerWindow);
+      });
+    }
+    scored.forEach(function (candidate) {
+      candidate.score = candidate.deny + (candidate.profileTie || 0);
     });
+    var pick = variedBanOrder(scored, 1)[0];
+    if (!pick) break;
+    out.push(pick.id);
   }
   return out.slice(0, RULES.BANS);
 }
@@ -230,12 +307,9 @@ function playerBans(enemyDeck, myDeck, unbannable, allowLegendaries) {
       );
     })
     .map(function (e) {
-      return { id: e.card.id, v: DAI.denyValue(enemyDeck, e, myDeck) + Math.random() * 1.2 };
+      return { id: e.card.id, score: DAI.denyValue(enemyDeck, e, myDeck) };
     });
-  scored.sort(function (a, b) {
-    return b.v - a.v;
-  });
-  return scored.slice(0, RULES.BANS).map(function (x) {
+  return variedBanOrder(scored, RULES.BANS).map(function (x) {
     return x.id;
   });
 }

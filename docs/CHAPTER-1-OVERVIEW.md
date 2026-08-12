@@ -401,14 +401,15 @@ starter pair), and on Legend each obtainable faction Legendary is
 granted by its gate as a one-card reward ceremony: Arthur at II,
 Robin at III, Zeus at IV, Seimei at VI, Constantine at VII, Amaterasu
 at VIII, Anubis at X. Money buys speed toward a full shelf of echoes,
-never crowns. The shop sells three tiers (Trio 120 / Echoes 300 / Crown 700),
-every pack contains **only unowned cards** (duplicates may feed an
+never crowns. The shop sells three tiers (Trio 200 / Echoes 500 / Crown 1,000),
+and accepts the one-time launch code `CREATOR5000` for 5,000 coins.
+Every pack contains **only unowned cards** (duplicates may feed an
 awakening system someday), Huaxia is unobtainable until Chapter 2,
 and — deliberately — the shop does *not* follow the campaign's
 progression law: an early Anubis is a trap purchase, not a broken
-one. Measured by `sim/economy_sim.js`: a Normal clear carries four
+one. Measured by `sim/economy_sim.js`: a Normal clear carries two
 Echoes packs outright; the remaining sellable shelf lands after roughly
-15 more matches (~0.9h in the deterministic economy run).
+46 more matches (~2.7h in the deterministic economy run).
 
 **The Ledger (2026-08-10).** The Recruiter's book is a real screen now,
 opened from the chapter header and introduced by a one-time spotlight

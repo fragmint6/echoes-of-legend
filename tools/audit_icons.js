@@ -37,7 +37,7 @@ var remix45 = new Set(
     'ri-checkbox-circle-line ri-close-line ri-cloud-line ri-coin-fill ri-cursor-line ' +
     'ri-delete-bin-line ri-discord-fill ri-edit-line ri-equalizer-2-line ' +
     'ri-error-warning-line ri-eye-line ri-eye-off-line ri-file-list-3-line ri-flag-line ' +
-    'ri-forbid-2-line ri-gamepad-line ' +
+    'ri-forbid-2-line ri-gamepad-line ri-gift-line ' +
     'ri-graduation-cap-line ri-hammer-line ri-home-4-line ri-image-line ri-inbox-2-line ' +
     'ri-information-line ri-landscape-line ri-leaf-line ri-lightbulb-line ri-links-line ' +
     'ri-loader-4-line ri-lock-2-fill ri-lock-2-line ri-lock-fill ri-lock-line ' +

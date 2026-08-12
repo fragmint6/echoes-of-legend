@@ -187,20 +187,61 @@
     });
   }
 
+  /* Only genuine near-ties are allowed to move. A score gap above this
+     window is deterministic, so a standout bomb cannot dodge a ban on a
+     lucky roll; cards inside it get a weighted draw so otherwise-equal
+     decks do not lose the exact same pair every match. denyValue's main
+     strength term is 4.2 * z-score, making 1.1 a deliberately modest
+     window (roughly a quarter of one measured power deviation). */
+  var BAN_VARIATION_WINDOW = 1.1;
+  var BAN_DOMINANT_GAP = BAN_VARIATION_WINDOW * 2;
+
+  function variedBanOrder(scored, count) {
+    var pool = scored.slice();
+    var out = [];
+    while (out.length < count && pool.length) {
+      pool.sort(function (a, b) {
+        if (a.score !== b.score) return b.score - a.score;
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      });
+      var best = pool[0].score;
+      var near = pool.filter(function (candidate) {
+        return best - candidate.score <= BAN_VARIATION_WINDOW;
+      });
+      var total = 0;
+      near.forEach(function (candidate) {
+        /* Keep the best card likelier without making its close neighbours
+           decorative. The lowest eligible edge has weight 1; the leader
+           has 1 + the full near-tie window. */
+        candidate._banWeight = 1 + BAN_VARIATION_WINDOW - (best - candidate.score);
+        total += candidate._banWeight;
+      });
+      var roll = Math.min(0.999999999, Math.max(0, Math.random())) * total;
+      var chosen = near[near.length - 1];
+      for (var i = 0; i < near.length; i++) {
+        roll -= near[i]._banWeight;
+        if (roll < 0) {
+          chosen = near[i];
+          break;
+        }
+      }
+      out.push(chosen);
+      pool.splice(pool.indexOf(chosen), 1);
+    }
+    return out;
+  }
+
   function chooseBans(deckEntries, myPool, allowLegendaries) {
     var ai = DAI();
-    var legal = banCandidates(deckEntries, allowLegendaries);
-    var scored = legal.map(function (e) {
+    var scored = banCandidates(deckEntries, allowLegendaries).map(function (e) {
       return {
+        id: e.card.id,
         entry: e,
-        v: ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 1.2,
+        score: ai.denyValue(deckEntries, e, myPool || []),
       };
     });
-    scored.sort(function (a, b) {
-      return b.v - a.v;
-    });
-    return scored.slice(0, RULES().BANS).map(function (x) {
-      return x.entry.card.id;
+    return variedBanOrder(scored, RULES().BANS).map(function (x) {
+      return x.id;
     });
   }
 
@@ -216,8 +257,12 @@
                    your back line; the Outlaw takes your protectors)
        stat:'atk'  prefers your hardest hitters
        power:true  prefers your highest-rated cards (Gilgamesh bans
-                   what the scales weigh heaviest) */
+                   what the scales weigh heaviest)
+
+     A denyValue outlier still takes one slot before personality filters;
+     character changes close judgment, not whether the AI sees a bomb. */
   function personaBans(profile, deckEntries, myPool, allowLegendaries) {
+    profile = profile || {};
     var ai = DAI();
     var out = [];
     var legal = banCandidates(deckEntries, allowLegendaries);
@@ -228,13 +273,13 @@
       });
       if (owns) out.push(id);
     });
-    if (out.length < RULES().BANS) {
-      /* Personality is a PRIORITY, not a small suggestion added to the
-         stock deny score. Compare the authored tells lexicographically:
-         preferred roles first, then the named stat/power obsession, and
-         only then generic deck denial. This makes the ledger honest - an
-         Oathkeeper with legal Snipers/Casters actually strikes them, and
-         the Anointed never overlooks a Medic for a generically good card. */
+    while (out.length < RULES().BANS) {
+      /* Personality remains a real priority, not flavour noise. First stay
+         inside an authored role whenever one is available. A stat- or
+         power-obsessed rival then considers only cards close to the best
+         remaining target on that axis. Randomness enters only after those
+         promises are met, through the same bounded near-tie draw as stock
+         bans. */
       var scored = legal
         .filter(function (e) {
           return out.indexOf(e.card.id) < 0;
@@ -242,21 +287,71 @@
         .map(function (e) {
           return {
             id: e.card.id,
+            entry: e,
             role: profile.roles && profile.roles.indexOf(e.card.role) >= 0 ? 1 : 0,
             stat: profile.stat === 'atk' ? e.card.stats.atk : 0,
             power: profile.power ? ai.powerOf(e.card) : 0,
-            deny: ai.denyValue(deckEntries, e, myPool || []) + Math.random() * 0.35,
+            deny: ai.denyValue(deckEntries, e, myPool || []),
           };
         });
-      scored.sort(function (a, b) {
-        if (a.role !== b.role) return b.role - a.role;
-        if (a.stat !== b.stat) return b.stat - a.stat;
-        if (a.power !== b.power) return b.power - a.power;
+      if (!scored.length) break;
+
+      /* A personality bends close decisions; it does not pretend an
+         overwhelming outlier is harmless. Reserve a slot immediately when
+         generic threat value clears the rest by twice the variation window,
+         then let the authored profile decide the other ban. */
+      var byThreat = scored.slice().sort(function (a, b) {
         return b.deny - a.deny;
       });
-      scored.forEach(function (s) {
-        if (out.length < RULES().BANS) out.push(s.id);
+      if (
+        byThreat.length === 1 ||
+        byThreat[0].deny - byThreat[1].deny > BAN_DOMINANT_GAP
+      ) {
+        out.push(byThreat[0].id);
+        continue;
+      }
+
+      if (profile.roles) {
+        var preferred = scored.filter(function (candidate) {
+          return candidate.role;
+        });
+        if (preferred.length) scored = preferred;
+      }
+      if (profile.stat === 'atk') {
+        var topStat = Math.max.apply(
+          null,
+          scored.map(function (candidate) {
+            return candidate.stat;
+          })
+        );
+        var statWindow = Math.max(90, topStat * 0.08);
+        scored = scored.filter(function (candidate) {
+          return topStat - candidate.stat <= statWindow;
+        });
+        scored.forEach(function (candidate) {
+          candidate.profileTie = 0.6 * (1 - (topStat - candidate.stat) / statWindow);
+        });
+      } else if (profile.power) {
+        var topPower = Math.max.apply(
+          null,
+          scored.map(function (candidate) {
+            return candidate.power;
+          })
+        );
+        var powerWindow = 0.35;
+        scored = scored.filter(function (candidate) {
+          return topPower - candidate.power <= powerWindow;
+        });
+        scored.forEach(function (candidate) {
+          candidate.profileTie = 0.6 * (1 - (topPower - candidate.power) / powerWindow);
+        });
+      }
+      scored.forEach(function (candidate) {
+        candidate.score = candidate.deny + (candidate.profileTie || 0);
       });
+      var pick = variedBanOrder(scored, 1)[0];
+      if (!pick) break;
+      out.push(pick.id);
     }
     return out.slice(0, RULES().BANS);
   }
@@ -687,13 +782,11 @@
     var c = e.card,
       m = statMax();
     var visibleStats = prepVisibleStats(c, side);
-    var statBonusPct = Math.round(visibleStats.bonus * 100);
     var sig = c.ability;
     var basic = window.EOL.engine.roleAbility({ role: c.role, element: c.element });
     var fresh = lastTipId !== c.id;
     lastTipId = c.id;
     tip.dataset.rarity = c.rarity;
-    tip.dataset.statBonus = String(statBonusPct);
     tip.innerHTML =
       '<div class="dk-head">' +
       '<div class="dk-portrait" data-rarity="' +
@@ -718,11 +811,6 @@
       '<div class="dk-pos">' +
       esc(e.faction.name) +
       '</div>' +
-      (statBonusPct
-        ? '<div class="dk-rival-scale"><i data-icon-domain="game" class="ra ra-sword"></i>Rival difficulty · +' +
-          statBonusPct +
-          '% ATK &amp; DEF</div>'
-        : '') +
       '</div>' +
       '</div>' +
       '<div class="dk-stats">' +
@@ -886,16 +974,13 @@
      exactly the shape the fight itself uses. Hover opens the tooltip. */
   function boardCard(e, i, side) {
     var c = e.card;
-    var statBonus = prepRivalBonus(side);
-    var statBonusPct = Math.round(statBonus * 100);
     var wrap = document.createElement('div');
-    wrap.className = 'pcard prep-c' + (statBonusPct ? ' scaled-rival' : '');
+    wrap.className = 'pcard prep-c';
     wrap.dataset.rarity = c.rarity;
     /* The card id on the tile. Ban and formation state are tracked by
        id, so having it in the DOM keeps the markup self-describing and
        lets a test assert on identity instead of on displayed names. */
     wrap.dataset.cid = c.id;
-    if (statBonusPct) wrap.dataset.statBonus = String(statBonusPct);
     wrap.style.setProperty('--fc-primary', e.faction.colors.primary);
     /* The element orb reads var(--el); the battle board sets it per cell
        (battle.js) but prep never did, so every orb rendered white. */
@@ -922,9 +1007,6 @@
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
       '<div class="bcard-top">' +
-      (statBonusPct
-        ? '<span class="prep-scale-chip">+' + statBonusPct + '% ATK/DEF</span>'
-        : '') +
       '<span class="borb" title="' +
       esc(c.element) +
       '">' +

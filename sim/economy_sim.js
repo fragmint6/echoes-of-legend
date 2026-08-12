@@ -76,6 +76,17 @@ function mulberry(seed) {
 
 console.log('A. pack invariants (400 rolls per tier, starter-only collection)');
 econ._reset();
+const redemption = econ.redeemCode('  creator5000  ');
+ok(
+  redemption.ok && redemption.code === 'CREATOR5000' && redemption.coins === 5000,
+  'CREATOR5000 is case-insensitive, trims pasted whitespace, and grants 5,000 coins'
+);
+ok(econ.coins() === 5000, 'the creator-code reward lands in the shared wallet');
+const repeated = econ.redeemCode('CREATOR5000');
+ok(!repeated.ok && repeated.status === 'redeemed' && econ.coins() === 5000, 'a code can be redeemed only once');
+const invalid = econ.redeemCode('NOT-A-CODE');
+ok(!invalid.ok && invalid.status === 'invalid' && econ.coins() === 5000, 'an unknown code grants nothing');
+econ._reset();
 const fresh = econ.unownedEntries();
 ok(fresh.length === 42, `obtainable-and-unowned at start is 42 (${fresh.length})`);
 ok(
@@ -89,6 +100,10 @@ ok(packable.length === 35, `packable (unowned, sub-legendary) at start is 35 (${
 ok(
   packable.every((e) => e.card.rarity !== 'legendary'),
   'the packable pool holds no legendary'
+);
+ok(
+  shop.PACKS.trio.price === 200 && shop.PACKS.echo.price === 500 && shop.PACKS.crown.price === 1000,
+  'shelf prices are Trio 200 / Echoes 500 / Crown 1,000'
 );
 Object.keys(shop.PACKS).forEach((key) => {
   const pack = shop.PACKS[key];
