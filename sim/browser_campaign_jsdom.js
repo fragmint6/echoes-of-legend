@@ -692,6 +692,23 @@ const server = http.createServer((req, res) => {
   t(JSON.stringify(poolCards) === JSON.stringify(frozen), 'draft pool is EXACTLY the frozen 36');
   t(poolCards.every((id) => id.indexOf('huaxia-') !== 0 && id.indexOf('duat-') !== 0), 'no Huaxia/Duat in the pool');
 
+  /* ---------- Signed-in hard save: Tutorial is never a dead button ---------- */
+  // Account vaults preserve the last selected Road. Before the fix, a cloud
+  // save on Heroic/Legend made runIntroTutorial's Normal-only guard silently
+  // reject the explicit Tutorial-button click.
+  w.EOL.campaign.setDifficulty('legend');
+  d.body.dataset.auth = 'in';
+  w.EOL.ui.show('home');
+  await sleep(700);
+  $('btn-corner-tutorial').click();
+  await sleep(250);
+  t(w.EOL.campaign.difficulty() === 'normal', 'signed-in hard save moves to Normal for the tutorial');
+  t(!$('chapter-dialogue').hidden, 'Tutorial button opens for a signed-in account');
+  t(!$('chapter-dialogue-skiptut').hidden, 'signed-in replay is the skippable intro flow');
+  $('chapter-dialogue-skiptut').click();
+  await sleep(300);
+  d.body.dataset.auth = 'out';
+
   /* ---------- Tutorial corner button replays the intro ---------- */
   w.EOL.ui.show('chapter');
   await sleep(700);
@@ -742,8 +759,26 @@ const server = http.createServer((req, res) => {
     await sleep(120);
   }
   await sleep(700);
-  t(!!w.EOL.campaign._navGuide(), 'wayfinder running for the bubble-skip test');
+  t(!!w.EOL.campaign._navGuide(), 'wayfinder running for the restart test');
   t(!$('nav-guide').hidden, 'bubble up (with its skip pill riding along)');
+  // A cloud-restored pending guide installs the capture-phase click trap.
+  // Tutorial itself must remain an escape hatch instead of being swallowed.
+  $('btn-corner-tutorial').click();
+  await sleep(250);
+  t(!$('chapter-dialogue').hidden, 'Tutorial button restarts an already-pending cloud wayfinder');
+  t(!w.EOL.campaign._navGuide(), 'restarting retires the old wayfinder before opening the intro');
+  $('chapter-dialogue-skiptut').click();
+  await sleep(400);
+
+  // Start once more to retain direct coverage of the bubble's own Skip control.
+  $('btn-corner-tutorial').click();
+  await sleep(250);
+  for (let i = 0; i < 3 && !$('chapter-dialogue').hidden; i++) {
+    $('chapter-dialogue-next').click();
+    await sleep(120);
+  }
+  await sleep(700);
+  t(!!w.EOL.campaign._navGuide(), 'wayfinder running for the bubble-skip test');
   $('nav-guide-skip').click();
   await sleep(500);
   t(!w.EOL.campaign._navGuide(), 'bubble skip retires the wayfinder');

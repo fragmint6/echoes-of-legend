@@ -705,6 +705,18 @@
     openDialogue(stage, lines, 'intro', startNavGuide);
   }
 
+  /* The corner button is an explicit request to be taught, so it must
+     never become a dead control just because an account's cloud save last
+     selected Heroic or Legend. Move that account back to its independent
+     Normal run before opening the lesson: hard runs still contain no
+     dialogue, marks, advisor, or scripted tutorial play. Restarting also
+     retires a cloud-restored pending wayfinder so the intro begins cleanly. */
+  function replayIntroTutorial() {
+    stopNavGuide();
+    if (!tutorialsEnabled()) setDifficulty('normal');
+    runIntroTutorial();
+  }
+
   function maybeRunFirstBoot() {
     if (!tutorialsEnabled()) {
       stopNavGuide();
@@ -951,6 +963,8 @@
   function guideClickTrap(ev) {
     if (!navGuide || !navGuide.lastEl) return;
     if (navGuide.lastEl.contains(ev.target)) return; // the one true click
+    var restart = document.getElementById('btn-corner-tutorial');
+    if (restart && restart.contains(ev.target)) return; // replay/restart is always available
     var skip = document.getElementById('nav-guide-skip');
     if (skip && skip.contains(ev.target)) return; // the way out is always open
     var bar = document.getElementById('chapter-dialogue');
@@ -2811,9 +2825,10 @@
 
     /* The Tutorial corner button on the main menu replays the intro
        flow on demand; a fresh save gets it unprompted, once the boot
-       veil has settled. */
+       veil has settled. Voluntary replay also works for cloud saves that
+       last selected a hard Road. */
     var tbtn = $('btn-corner-tutorial');
-    if (tbtn) tbtn.addEventListener('click', runIntroTutorial);
+    if (tbtn) tbtn.addEventListener('click', replayIntroTutorial);
 
     /* Difficulty changes repaint an independent ten-gate run immediately. */
     document.querySelectorAll('[data-road-difficulty]').forEach(function (button) {
@@ -2869,7 +2884,7 @@
     onPrepScriptDeny: onPrepScriptDeny,
     onPlayerAction: onPlayerAction,
     onBattleResult: onBattleResult,
-    startTutorial: runIntroTutorial,
+    startTutorial: replayIntroTutorial,
     skipTutorial: skipTutorial,
     openLedger: openLedger,
     closeLedger: closeLedger,

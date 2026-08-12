@@ -268,6 +268,15 @@ ok(
     !C.tutorialsEnabled('legend'),
   'the centralized campaign tutorial law enables Normal only'
 );
+C.setDifficulty('legend');
+document.body.dataset.auth = 'in';
+C.startTutorial();
+ok(
+  C.difficulty() === 'normal',
+  'an explicit signed-in tutorial replay leaves the cloud-selected hard Road and opens on Normal'
+);
+C.skipTutorial();
+document.body.dataset.auth = 'out';
 ok(
   /advisor:\s*tutorialsEnabled\(difficulty\.id\)/.test(campaignSource) &&
     /reactiveDialogue\(stage\) && !tutorialsEnabled\(B\)/.test(campaignSource) &&
