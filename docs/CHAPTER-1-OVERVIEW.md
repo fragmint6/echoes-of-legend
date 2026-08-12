@@ -402,7 +402,7 @@ granted by its gate as a one-card reward ceremony: Arthur at II,
 Robin at III, Zeus at IV, Seimei at VI, Constantine at VII, Amaterasu
 at VIII, Anubis at X. Money buys speed toward a full shelf of echoes,
 never crowns. The shop sells three tiers (Trio 200 / Echoes 500 / Crown 1,000),
-and accepts the one-time launch code `CREATOR5000` for 5,000 coins.
+and accepts the once-per-account/save launch code `CREATOR5000` for 5,000 coins.
 Every pack contains **only unowned cards** (duplicates may feed an
 awakening system someday), Huaxia is unobtainable until Chapter 2,
 and — deliberately — the shop does *not* follow the campaign's

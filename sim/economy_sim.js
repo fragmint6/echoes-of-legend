@@ -76,6 +76,11 @@ function mulberry(seed) {
 
 console.log('A. pack invariants (400 rolls per tier, starter-only collection)');
 econ._reset();
+const creatorPolicy = econ.codePolicy('creator5000');
+ok(
+  creatorPolicy && creatorPolicy.coins === 5000 && creatorPolicy.singleUserOnly === false,
+  'CREATOR5000 explicitly uses the every-account-once code mode'
+);
 const redemption = econ.redeemCode('  creator5000  ');
 ok(
   redemption.ok && redemption.code === 'CREATOR5000' && redemption.coins === 5000,

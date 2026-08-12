@@ -25,22 +25,25 @@ Measured by `node sim/preflight.js`, not assumed:
 | OK | Daily Puzzle RPC hotfix 05 | installed |
 | ADD | Measurement + feedback migration 06 | run section 4f |
 | ADD | Two-attempt Daily Puzzle migration 07 | run section 4g |
+| ADD | Atomic shop-code redemption migration 08 | run section 4h |
 
 **Accounts and multiplayer are ready.** Run migration 06 for the anonymous
-playtest funnel and migration 07 before deploying the two-attempt Daily
-Puzzle client.
+playtest funnel, migration 07 before deploying the two-attempt Daily Puzzle
+client, and migration 08 before issuing globally single-user shop codes.
 
 ---
 
 ## THE BACKEND MAP (cleanup 2026-08-10)
 
-Nine tables. If the dashboard shows unrelated leftovers, run the cleanup
+Eleven tables. If the dashboard shows unrelated leftovers, run the cleanup
 in section 9b. Everything the backend holds, in one look:
 
 | Table | Written by | What it holds |
 | --- | --- | --- |
 | `profiles` | `js/auth.js` | Identity: the callsign your opponent sees. One row per user. |
 | `saves` | `js/cloud.js` (THE VAULT) | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
+| `shop_codes` | Owner via Dashboard/SQL | Coin amount, active state, and the `single_user_only` policy boolean for each code. |
+| `shop_code_redemptions` | `redeem_shop_code()` only | Durable once-per-account claims; for single-user codes the first row closes the offer globally. |
 | `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
 | `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
 | `daily_puzzles` | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
@@ -59,6 +62,7 @@ in section 9b. Everything the backend holds, in one look:
 | `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Count, atomically consume, and finish either of two official attempts. |
 | `record_telemetry()` | `js/telemetry.js` | Validate and rate-limit one anonymous funnel event without attaching account identity. |
 | `submit_player_feedback()` | `js/telemetry.js` | Validate and rate-limit an anonymous voluntary feedback message with optional coarse diagnostics. |
+| `redeem_shop_code()` | `js/economy.js` | Lock and claim a code atomically, enforcing once per account or one account globally. |
 
 Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
 no code referenced it) and `ladders` (nothing wrote it; it returns
@@ -298,6 +302,31 @@ Opening the modal is still free; opening each battle consumes one allowance.
 Publication still deletes the old puzzle and both attempt rows at the 7:00 AM
 Eastern reset.
 
+## 4h. Migration 08 - account and single-user shop codes
+
+Run **[`docs/supabase-migration-08.sql`](supabase-migration-08.sql)** once in
+the SQL Editor before issuing globally single-user codes. It creates the
+private `shop_codes` catalog, the claim ledger, and `redeem_shop_code()`.
+The RPC locks each code row while claiming it, so simultaneous requests
+cannot both win a single-user code.
+
+Every code is once per account. The boolean chooses its wider scope:
+
+```sql
+-- Every account may redeem this once.
+insert into public.shop_codes(code, coins, single_user_only)
+values ('PUBLIC500', 500, false);
+
+-- Exactly one account globally may redeem this once.
+insert into public.shop_codes(code, coins, single_user_only)
+values ('ONE-WINNER', 5000, true);
+```
+
+`CREATOR5000` is seeded as a public, once-per-account code. Signed-out players
+can still redeem public codes once in their local save; a globally single-user
+code always requires a signed-in account and the RPC. Direct browser access to
+both tables is revoked, and RLS has no client policies.
+
 ## 5. Realtime - nothing to do
 
 **Skip this step.** Realtime Broadcast is on by default for every
@@ -455,9 +484,9 @@ whether two people can actually queue right now:
 node sim/preflight.js
 ```
 
-It checks the config shape, that the key authenticates, that all four
-tables and `try_match()` exist, that RLS really is blocking anonymous
-writes, and that sign-up is open. A failure names the fix.
+It checks the config shape, that the key authenticates, that every required
+table and RPC (including `redeem_shop_code()`) exists, that RLS blocks
+anonymous writes, and that sign-up is open. A failure names the fix.
 
 > For which of the other test files to run and when, see
 > **[TESTING.md](TESTING.md)**. You rarely need all of them.
@@ -484,6 +513,7 @@ browsers and checks the board checksum after every action.
 | "Accounts are not configured yet" | `js/supabase-config.js` is still blank. |
 | Console: "REFUSING TO START SUPABASE" | You pasted a secret key. Use the publishable one. |
 | "Multiplayer tables are missing" | The SQL in steps 2-3 has not been run. |
+| Single-user code says redemption is unavailable | Run migration 08; these claims deliberately have no offline fallback. |
 | Sign-in does nothing on `file://` | Serve over http (step 7). |
 | Stuck at "Looking for an opponent" | Only one player is queued, or the two are signed in as the same account. |
 | Paired but the draft never starts | Realtime is off for the project (step 5). |

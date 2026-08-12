@@ -662,11 +662,20 @@
     else status.removeAttribute('data-state');
   }
 
-  function submitCode() {
-    var econ = window.EOL.econ;
+  var codeBusy = false;
+  function setCodeBusy(busy) {
+    codeBusy = !!busy;
     var input = el('shop-code-input');
-    if (!econ || !input || typeof econ.redeemCode !== 'function') return;
-    var result = econ.redeemCode(input.value);
+    var button = el('shop-code-submit');
+    if (input) input.disabled = codeBusy;
+    if (button) {
+      button.disabled = codeBusy;
+      button.setAttribute('aria-busy', codeBusy ? 'true' : 'false');
+    }
+  }
+  function finishCode(result, input) {
+    setCodeBusy(false);
+    result = result || { ok: false, status: 'unavailable' };
     if (result.ok) {
       input.value = '';
       setCodeStatus(
@@ -681,14 +690,36 @@
         );
       return;
     }
-    var message =
-      result.status === 'empty'
-        ? 'Enter a code first.'
-        : result.status === 'redeemed'
-          ? 'That code has already been redeemed.'
-          : "That code isn't recognized.";
-    setCodeStatus(message, 'error');
+    var messages = {
+      empty: 'Enter a code first.',
+      redeemed: 'That code has already been redeemed by this account.',
+      claimed: 'That single-user code has already been claimed.',
+      signin: 'Sign in to redeem account and single-user codes.',
+      unavailable: 'Code redemption is unavailable right now. Try again shortly.',
+      invalid: "That code isn't recognized.",
+    };
+    setCodeStatus(messages[result.status] || messages.invalid, 'error');
     if (window.EOL.audio) window.EOL.audio.ui('deny');
+  }
+  function submitCode() {
+    var econ = window.EOL.econ;
+    var input = el('shop-code-input');
+    if (codeBusy || !econ || !input || typeof econ.redeemCode !== 'function') return;
+    var result = econ.redeemCode(input.value);
+    if (result && typeof result.then === 'function') {
+      setCodeBusy(true);
+      setCodeStatus('Checking code…', '');
+      result.then(
+        function (resolved) {
+          finishCode(resolved, input);
+        },
+        function () {
+          finishCode({ ok: false, status: 'unavailable' }, input);
+        }
+      );
+    } else {
+      finishCode(result, input);
+    }
   }
 
   function mount() {

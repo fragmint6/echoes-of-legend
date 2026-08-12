@@ -929,6 +929,10 @@ const server = http.createServer((req, res) => {
   // the shelf: redeem the launch creator code, then buy a Trio pack for real
   w.EOL.ui.show('shop');
   await sleep(700);
+  t(
+    w.EOL.econ.codePolicy('CREATOR5000').singleUserOnly === false,
+    'CREATOR5000 is explicitly configured for every-account-once redemption'
+  );
   $('shop-code-input').value = '  creator5000  ';
   $('shop-code-submit').click();
   t(w.EOL.econ.coins() === 5100, 'CREATOR5000 grants 5,000 coins into the shared wallet');
@@ -946,8 +950,8 @@ const server = http.createServer((req, res) => {
   $('shop-code-input').value = 'NOPE';
   $('shop-code-submit').click();
   t(
-    w.EOL.econ.coins() === 5100 && $('shop-code-status').textContent.indexOf("isn't recognized") >= 0,
-    'an invalid code pays nothing and gets useful feedback'
+    w.EOL.econ.coins() === 5100 && $('shop-code-status').textContent.indexOf('Sign in') >= 0,
+    'an online-only or unknown code pays nothing and asks for account verification'
   );
   t(
     w.EOL.shop.PACKS.trio.price === 200 &&

@@ -4,8 +4,8 @@
    node sim/preflight.js
 
    Reads js/supabase-config.js and interrogates the REAL project.
-   Answers two questions: can two people queue and play, and is the
-   Daily Puzzle gate installed?
+   Answers three questions: can two people queue and play, are the
+   Daily Puzzle gates installed, and can shop codes be claimed atomically?
 
    Every check reports what it actually observed, so a failure names
    the fix instead of just saying "something is wrong".
@@ -104,6 +104,8 @@ async function get(url, opts) {
     'mp_queue',
     'mp_matches',
     'saves',
+    'shop_codes',
+    'shop_code_redemptions',
     'daily_puzzles',
     'daily_puzzle_attempts',
     'daily_puzzle_jobs',
@@ -180,7 +182,34 @@ async function get(url, opts) {
     );
   }
 
-  /* ---------- 4c. measurement + feedback RPCs ---------- */
+  /* ---------- 4c. atomic shop-code claims ---------- */
+  console.log('\n  Shop code redemption');
+  const codeRpc = await get(U + '/rest/v1/rpc/redeem_shop_code', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, H),
+    body: JSON.stringify({ p_code: 'PREFLIGHT', p_wallet: 0 }),
+  });
+  if (codeRpc.body && codeRpc.body.code === 'PGRST202') {
+    fail('redeem_shop_code() is missing - run Supabase migration 08');
+  } else if (
+    codeRpc.status === 401 ||
+    codeRpc.status === 403 ||
+    (codeRpc.body && /authentication|required|permission/i.test(codeRpc.body.message || ''))
+  ) {
+    pass('redeem_shop_code() exists and requires a signed-in account');
+  } else if (codeRpc.status === 200) {
+    fail('redeem_shop_code() accepted an anonymous caller');
+  } else {
+    pass(
+      'redeem_shop_code() exists (HTTP ' +
+        codeRpc.status +
+        ': ' +
+        (codeRpc.body && codeRpc.body.message) +
+        ')'
+    );
+  }
+
+  /* ---------- 4d. measurement + feedback RPCs ---------- */
   console.log('\n  Playtest measurement');
   const measurementRpcs = [
     {
@@ -233,6 +262,15 @@ async function get(url, opts) {
   const probes = [
     ['profiles', { id: '00000000-0000-0000-0000-000000000009', handle: 'preflight' }],
     ['saves', { user_id: '00000000-0000-0000-0000-000000000009', data: { v: 2, wallet: 9999 } }],
+    ['shop_codes', { code: 'PREFLIGHT', coins: 9999, single_user_only: true }],
+    [
+      'shop_code_redemptions',
+      {
+        code: 'CREATOR5000',
+        user_id: '00000000-0000-0000-0000-000000000009',
+        coins: 5000,
+      },
+    ],
     [
       'daily_puzzles',
       {

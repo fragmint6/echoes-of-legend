@@ -26,6 +26,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Battlefield scenes / animation | `browser_loops` | ~45s |
 | Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
 | Supabase settings | `preflight` | ~5s |
+| Shop codes / redemption SQL | `node sim/verify_code_redemption.js` | <1s |
 | Measurement / feedback | `node sim/verify_telemetry.js` | <1s |
 | Daily attempts / mode carousel | `node sim/verify_daily_ui.js` | <1s |
 | Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
@@ -210,8 +211,14 @@ Daily Puzzle gate, RLS, sign-in settings, and a real Realtime Broadcast
 round trip. Run after any dashboard change. Migration 04 must be installed
 before the Daily Puzzle checks report ready. Preflight cannot exercise the
 signed-in generation lease, so older installs must apply migration 05
-separately. The two-attempt client also requires migration 07; use the focused
-contract below to audit that SQL before applying it.
+separately. The two-attempt client also requires migration 07. Atomic
+single-user shop codes require migration 08; `verify_code_redemption.js`
+audits that SQL before it is applied.
+
+### `verify_code_redemption.js` - <1s
+Exercises signed-in RPC claims, same-account replay rejection, the global
+single-user loser path, public-code fallback, private-table permissions, and
+the locked migration-08 claim contract.
 
 ### `verify_daily_ui.js` - <1s
 Exercises the fresh, one-used, and exhausted two-attempt states against a
