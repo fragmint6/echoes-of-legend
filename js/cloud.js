@@ -83,6 +83,30 @@
   var uid = null; // signed-in user id, null when out
   var pulling = false;
   var timer = null;
+  /* Set before the reload that follows an account restore. Read once at
+     module boot, before app.js consumes the same marker for its toast.
+     If deterministic client migrations then make localStorage newer than
+     the just-restored cloud document, the upgraded local snapshot must go
+     UP to Supabase—not be overwritten and reloaded forever. */
+  var restoredBoot = false;
+  var restoredDigest = null;
+  try {
+    restoredBoot = sessionStorage.getItem('eol.cloud.restored') === '1';
+    restoredDigest = sessionStorage.getItem('eol.cloud.restoreDigest');
+  } catch (e) {
+    /* fine */
+  }
+
+  function clearRestoreGuard() {
+    restoredBoot = false;
+    restoredDigest = null;
+    try {
+      sessionStorage.removeItem('eol.cloud.restored');
+      sessionStorage.removeItem('eol.cloud.restoreDigest');
+    } catch (e) {
+      /* fine */
+    }
+  }
 
   function client() {
     return window.EOL.auth && window.EOL.auth.rawClient ? window.EOL.auth.rawClient() : null;
@@ -212,13 +236,24 @@
           var snap = res.data.data;
           lastPushed = digest(snap);
           if (digest(collect()) !== lastPushed) {
+            if (restoredBoot && (!restoredDigest || restoredDigest === lastPushed)) {
+              /* The previous boot already applied this exact account save.
+                 Any difference now is a deterministic client migration
+                 (for example campaign v2 -> three difficulty runs). Push
+                 that upgrade once instead of restoring the old shape and
+                 entering an infinite reload loop. The digest check keeps a
+                 genuinely newer write from another device authoritative. */
+              clearRestoreGuard();
+              return push();
+            }
             var changed = apply(snap);
             if (changed) {
-              /* one clean boot so every module reads the restored
-                 state; guard key prevents any possibility of a loop
-                 (after reload the digests match and nothing applies) */
+              /* one clean boot so every module reads the restored state;
+                 the marker also lets the next boot promote any client-side
+                 save migration back to the vault without another reload */
               try {
                 sessionStorage.setItem('eol.cloud.restored', '1');
+                sessionStorage.setItem('eol.cloud.restoreDigest', lastPushed);
               } catch (e) {
                 /* fine */
               }
@@ -226,6 +261,7 @@
               return;
             }
           }
+          clearRestoreGuard();
         } else {
           /* a brand-new vault: adopt the device state */
           return push();
