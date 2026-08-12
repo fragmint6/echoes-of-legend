@@ -172,11 +172,17 @@ async function scenario(options) {
 
   const appSource = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
   const indexSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  const styleSource = fs.readFileSync(path.join(__dirname, '../css/style.css'), 'utf8');
   ok(
     /Progress saved on this device/.test(indexSource) &&
       /Sign in or create an account for cloud backup/.test(indexSource) &&
+      /id="home-cloud-cta"/.test(indexSource) &&
+      /Sign in to save progress to the cloud/.test(indexSource) &&
+      /Guest progress is saved in this browser only/.test(indexSource) &&
+      /homeCloudBtn\.addEventListener\('click'/.test(appSource) &&
+      /body\[data-auth='out'\] \.home-cloud-cta/.test(styleSource) &&
       /Signed-out progress stays in this browser/.test(appSource),
-    'signed-out account surfaces explain that progress is local and cloud backup is optional'
+    'signed-out account surfaces visibly explain local progress and open cloud sign-in'
   );
   ok(
     /signing into an existing account restores that account’s save/.test(appSource),

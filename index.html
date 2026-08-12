@@ -201,7 +201,7 @@
                to create an account beside the Sign in action instead of
                implying that guests lose progress after every session. -->
           <div class="acct-save-note" id="acct-save-note" role="none">
-            <i class="ri-device-line" aria-hidden="true"></i>
+            <i class="ri-save-3-line" aria-hidden="true"></i>
             <span><b>Progress saved on this device</b><small>Sign in or create an account for cloud backup.</small></span>
           </div>
           <!-- shown only signed-out (body[data-auth] != 'in') -->
@@ -294,6 +294,16 @@
             <span>Collection</span>
           </button>
         </div>
+
+        <!-- Visible guest-save callout. The account menu and auth modal
+             carry the detailed semantics; this is the main-menu promise
+             that signed-out progress is local and cloud backup is one
+             click away. Auth CSS hides it while connecting or signed in. -->
+        <button type="button" class="home-cloud-cta" id="home-cloud-cta">
+          <i class="ri-cloud-line" aria-hidden="true"></i>
+          <span><b>Sign in to save progress to the cloud</b><small>Guest progress is saved in this browser only.</small></span>
+          <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+        </button>
       </div>
 
     </section>

@@ -1182,6 +1182,13 @@
       e.stopPropagation();
       toggleAcctMenu();
     });
+    var homeCloudBtn = document.getElementById('home-cloud-cta');
+    if (homeCloudBtn) {
+      homeCloudBtn.addEventListener('click', function () {
+        setMode('in');
+        open();
+      });
+    }
     document.getElementById('auth-close').addEventListener('click', close);
     document.getElementById('auth-scrim').addEventListener('click', close);
     document.addEventListener('keydown', function (e) {

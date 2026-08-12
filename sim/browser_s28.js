@@ -66,7 +66,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     ),
     'A: scale defaults to 100% with no zoom property at all'
   );
+  t(
+    await p.evaluate(() => {
+      var callout = document.getElementById('home-cloud-cta');
+      return (
+        callout &&
+        getComputedStyle(callout).display !== 'none' &&
+        /sign in to save progress to the cloud/i.test(callout.textContent) &&
+        /saved in this browser only/i.test(callout.textContent)
+      );
+    }),
+    'A: main menu visibly offers cloud saves while preserving the guest-save truth'
+  );
   await p.evaluate(() => {
+    document.getElementById('home-cloud-cta').click();
+  });
+  t(
+    await p.evaluate(() => !document.getElementById('auth-modal').hidden),
+    'A: main-menu cloud-save callout opens Sign in directly'
+  );
+  await p.evaluate(() => {
+    document.getElementById('auth-close').click();
     document.getElementById('acct-btn').click();
   });
   t(

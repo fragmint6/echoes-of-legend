@@ -21004,6 +21004,80 @@ body[data-gfx='low'] .deck::before {
   gap: 14px;
   justify-content: center;
 }
+/* A persistent, low-pressure cloud-save invitation for guests. It sits
+   under the primary menu actions instead of hiding the save model inside
+   account chrome. No auth-state flash: absent/wait/in all stay hidden and
+   only the settled signed-out state opts it in. */
+.home-cloud-cta {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  width: min(430px, calc(100% - 24px));
+  margin-top: 13px;
+  padding: 8px 13px;
+  border: 1px solid rgba(143, 227, 176, 0.2);
+  border-radius: 11px;
+  background: rgba(8, 14, 19, 0.48);
+  color: var(--txt-faint);
+  font-family: inherit;
+  text-align: left;
+  cursor: var(--cur-pointer);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  transition:
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    color 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+body[data-auth='out'] .home-cloud-cta {
+  display: inline-flex;
+}
+.home-cloud-cta:hover,
+.home-cloud-cta:focus-visible {
+  border-color: rgba(143, 227, 176, 0.5);
+  background: rgba(16, 30, 31, 0.68);
+  color: #eef8f2;
+  transform: translateY(-1px);
+}
+.home-cloud-cta:focus-visible {
+  outline: 2px solid rgba(143, 227, 176, 0.72);
+  outline-offset: 2px;
+}
+.home-cloud-cta:active {
+  transform: scale(0.985);
+}
+.home-cloud-cta > i:first-child {
+  flex: 0 0 auto;
+  color: #8fe3b0;
+  font-size: 17px;
+}
+.home-cloud-cta > i:last-child {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 16px;
+  transition: transform 0.2s var(--ease);
+}
+.home-cloud-cta:hover > i:last-child {
+  transform: translateX(2px);
+}
+.home-cloud-cta b,
+.home-cloud-cta small {
+  display: block;
+}
+.home-cloud-cta b {
+  color: #e8f2eb;
+  font-size: 11px;
+  line-height: 1.25;
+}
+.home-cloud-cta small {
+  margin-top: 1px;
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+body[data-gfx='low'] .home-cloud-cta,
+body[data-gfx='low'] .home-cloud-cta > i:last-child {
+  transition: none;
+}
 .btn-hero {
   grid-column: 1 / -1;
   padding: 21px 40px;
