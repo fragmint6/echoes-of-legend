@@ -170,6 +170,19 @@ async function scenario(options) {
     'a genuinely newer cloud document still wins over a stale restore guard'
   );
 
+  const appSource = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
+  const indexSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  ok(
+    /Progress saved on this device/.test(indexSource) &&
+      /Sign in or create an account for cloud backup/.test(indexSource) &&
+      /Signed-out progress stays in this browser/.test(appSource),
+    'signed-out account surfaces explain that progress is local and cloud backup is optional'
+  );
+  ok(
+    /signing into an existing account restores that account’s save/.test(appSource),
+    'the cloud-save copy warns truthfully that an existing account restores its own vault'
+  );
+
   console.log('\n' + (fails ? `${fails} OF ${checks} CHECKS FAILED` : `ALL ${checks} CHECKS PASSED`));
   process.exit(fails ? 1 : 0);
 })();

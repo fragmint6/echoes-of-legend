@@ -18985,6 +18985,46 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.62);
   animation: acct-menu-in 0.16s var(--ease);
 }
+/* Guests already have a real save; the account is the backup and
+   cross-device layer. This note is deliberately inside the account menu,
+   immediately above Sign in, so local play never reads as disposable. */
+.acct-save-note {
+  display: none;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 3px 5px;
+  padding: 8px 7px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--txt-faint);
+  text-align: left;
+}
+body[data-auth='out'] .acct-menu {
+  min-width: 244px;
+}
+body[data-auth='out'] .acct-save-note {
+  display: flex;
+}
+.acct-save-note > i {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #8fe3b0;
+  font-size: 15px;
+}
+.acct-save-note b,
+.acct-save-note small {
+  display: block;
+}
+.acct-save-note b {
+  color: #e7eaf5;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.acct-save-note small {
+  margin-top: 2px;
+  max-width: 198px;
+  font-size: 9.5px;
+  line-height: 1.4;
+}
 @keyframes acct-menu-in {
   from {
     opacity: 0;

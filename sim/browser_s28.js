@@ -68,6 +68,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   );
   await p.evaluate(() => {
     document.getElementById('acct-btn').click();
+  });
+  t(
+    await p.evaluate(() => {
+      var note = document.getElementById('acct-save-note');
+      return (
+        note &&
+        getComputedStyle(note).display !== 'none' &&
+        /saved on this device/i.test(note.textContent) &&
+        /cloud backup/i.test(note.textContent)
+      );
+    }),
+    'A: signed-out account menu explains local progress and cloud backup'
+  );
+  await p.evaluate(() => {
     document.getElementById('acct-settings').click();
   });
   await sleep(350);

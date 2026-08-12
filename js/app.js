@@ -1115,8 +1115,8 @@
       });
       document.getElementById('auth-title').textContent = up ? 'Join the ladder' : 'Welcome back';
       document.getElementById('auth-sub').textContent = up
-        ? 'Create an account for online matches, cloud saves, and official Daily Puzzles.'
-        : 'Sign in for online matches, cloud saves, and official Daily Puzzles.';
+        ? 'Your progress is saved on this device. Create an account to back it up, carry it across devices, and play online.'
+        : 'Your progress is saved on this device. Sign in to restore your cloud save and play online.';
       document.getElementById('auth-submit-txt').textContent = up ? 'Create account' : 'Sign in';
       document.getElementById('auth-name-field').hidden = !up;
       say('');
@@ -1133,11 +1133,12 @@
       } else if (offline) {
         foot.innerHTML =
           '<i class="ri-information-line"></i>Accounts are not connected yet. ' +
-          'Singleplayer works as normal and your decks are saved on this device.';
+          'Your progress remains saved on this device, but cloud backup is unavailable.';
       } else {
         foot.innerHTML =
-          '<i class="ri-information-line"></i>An account unlocks multiplayer, cloud saves, ' +
-          'and one official Daily Puzzle attempt per reset.';
+          '<i class="ri-information-line"></i>Signed-out progress stays in this browser. ' +
+          'Create an account for cloud backup; signing into an existing account restores that account’s save. ' +
+          'Accounts also unlock multiplayer and official Daily Puzzles.';
       }
       if (kind) {
         foot.classList.remove('flash');
@@ -1249,7 +1250,7 @@
           if (!modal.hidden) close();
         } else {
           if (label) label.textContent = 'Sign in';
-          openBtn.title = 'Sign in';
+          openBtn.title = 'Progress is saved on this device - sign in for cloud backup';
           if (av) av.innerHTML = '<i class="ri-user-3-line"></i>';
         }
       });

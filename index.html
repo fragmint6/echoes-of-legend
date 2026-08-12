@@ -177,7 +177,13 @@
           <i class="ri-coin-fill coin-ico" aria-hidden="true"></i>
           <span id="home-coins-val">0</span>
         </button>
-        <button type="button" class="acct-btn" id="acct-btn" aria-haspopup="dialog">
+        <button
+          type="button"
+          class="acct-btn"
+          id="acct-btn"
+          aria-haspopup="dialog"
+          title="Progress is saved on this device - sign in for cloud backup"
+        >
           <span class="acct-avatar" aria-hidden="true"><i class="ri-user-3-line"></i></span>
           <span class="acct-label">Sign in</span>
           <!-- shown only while body[data-auth='wait'] - the gap between
@@ -191,6 +197,13 @@
         <!-- Signed-in account menu: clicking the profile button no longer
              dumps you straight out - it offers the choice. -->
         <div class="acct-menu" id="acct-menu" hidden role="menu">
+          <!-- Signed-out saves are real, but browser-local. Put the reason
+               to create an account beside the Sign in action instead of
+               implying that guests lose progress after every session. -->
+          <div class="acct-save-note" id="acct-save-note" role="none">
+            <i class="ri-device-line" aria-hidden="true"></i>
+            <span><b>Progress saved on this device</b><small>Sign in or create an account for cloud backup.</small></span>
+          </div>
           <!-- shown only signed-out (body[data-auth] != 'in') -->
           <button type="button" class="acct-menu-item" id="acct-login" role="menuitem">
             <i class="ri-login-box-line"></i><span>Sign in</span>
@@ -974,13 +987,13 @@
           <div class="auth-emblem"><i class="ri-shield-user-line"></i></div>
           <h2 class="auth-title" id="auth-title">Welcome back</h2>
           <p class="auth-sub" id="auth-sub">
-            Sign in to play online matches against other players.
+            Progress is saved on this device. Sign in to restore your cloud save and play online.
           </p>
         </div>
 
         <p class="auth-foot" id="auth-foot">
           <i class="ri-information-line"></i>
-          An account unlocks multiplayer. Your decks stay on this device.
+          Signed-out progress stays in this browser. Create an account to back it up to the cloud.
         </p>
 
         <div class="auth-tabs" role="tablist">
@@ -1094,7 +1107,7 @@
             </button>
           </form>
           <p class="set-out-note" id="set-out-note" hidden>
-            <i class="ri-information-line"></i> Sign in to edit your username or password.
+            <i class="ri-information-line"></i> Progress is saved on this device. Sign in for cloud backup and account settings.
           </p>
         </section>
 
