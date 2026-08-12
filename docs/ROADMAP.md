@@ -4,7 +4,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 ## Current focus
 
-- **Demo stabilization and playtest learning.** Keep the live build steady, fix blockers quickly, and use feedback and telemetry to find the earliest point where players get confused or leave. No major scope expansion during the first outreach response window.
+- **Creator outreach and audience growth.** The current build is complete and tested. Keep it stable during the first creator-response window, support anyone who wants to cover it, and gather real-player evidence before deciding whether the existing feature order should change.
 
 ## Next up
 

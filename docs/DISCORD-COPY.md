@@ -87,7 +87,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 ## Current focus
 
-- **Demo stabilization and playtest learning.** Keep the live build stable, fix blockers, and use feedback and telemetry before expanding scope.
+- **Creator outreach and audience growth.** The current build is complete and tested. Keep it stable during the response window and support anyone who wants to cover it.
 
 ## Next up
 
@@ -132,7 +132,7 @@ Want something moved up this list? Say so. A prototype this early is exactly whe
 
 - Discord renders `#` and `##` as headers only at the **start of a line**, so
   paste each block whole and don't indent it.
-- The three blocks are 1,850 / 1,560 / 1,858 characters, all under the
+- The three blocks are 1,850 / 1,560 / 1,883 characters, all under the
   2,000-character message limit. No splitting needed.
 - If you turn `#about` into the channel description instead of a message, the
   short version is: *"A free browser card battler. Six folklore heroes a side,
