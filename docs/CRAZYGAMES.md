@@ -132,8 +132,32 @@ while the SDK is still loading is still reported once it arrives, and a
 `loadingStop` is never sent without its matching start. If the SDK never
 loads, the game plays normally and reports nothing.
 
-Regression: `node sim/verify_crazygames_sdk.js` (41 assertions, covering
-the blocked, rejecting, throwing, and slow-arrival paths).
+**Audio muting** is wired and is a Full Implementation requirement for
+HTML5 games. CrazyGames can mute the game from its own chrome, and that
+setting **outranks** the in-game control: a player who presses Unmute in
+Settings still hears nothing while the portal holds the mute. `js/audio.js`
+keeps it in a separate `externalMute` flag rather than folding it into
+`prefs.muted`, so the portal's choice is never written into the player's
+saved preferences and their own setting returns intact when the mute is
+released. `muted()` is the effective answer used at every playback gate.
+`disableChat` is read for completeness; the game has no chat.
+
+Regression: `node sim/verify_crazygames_sdk.js` (60 assertions, covering
+the blocked, rejecting, throwing, and slow-arrival paths, plus the mute
+priority rule driven against the real `js/audio.js`).
+
+### Submission form answers
+
+- **Progress save** — "Yes, using LocalStorage (Automatic Progress Save)".
+  The game saves to `localStorage`; APS backs that up to the player's
+  CrazyGames account with no code. Valid only while there are **no
+  real-money purchases** (the shop is priced in coins from `pack.price`),
+  and only because the portal build hides Google/email sign-in. Do NOT
+  claim the backend-linked option until the user module is integrated.
+- **Audio muting through SDK** — yes, see above.
+- **Online multiplayer** — no; the portal build hides the arena entirely.
+- **Mobile** — not yet. The CSS has breakpoints, but `deck.js` and
+  `play.js` register no touch/pointer handlers.
 
 ## Full Launch (later)
 

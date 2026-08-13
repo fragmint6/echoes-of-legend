@@ -57,7 +57,17 @@ function makeWorld(opts) {
   const w = dom.window;
   const calls = [];
 
+  const settingsListeners = [];
+  const audio = {
+    externalMute: null,
+    playerMuted: false,
+    setExternalMute(on) {
+      if (opts.audioThrows) throw new Error('audio boom');
+      audio.externalMute = !!on;
+    },
+  };
   w.EOL = { platform: { sdk: opts.sdk !== false, isCrazyGames: true } };
+  if (!opts.noAudio) w.EOL.audio = audio;
 
   /* Stand in for the CDN: createElement('script') for the SDK URL
      resolves to our fake instead of a network fetch. */
@@ -86,6 +96,13 @@ function makeWorld(opts) {
               },
               game: {
                 environment: 'crazygames',
+                settings: opts.settings || { muteAudio: false, disableChat: false },
+                addSettingsChangeListener(fn) {
+                  if (mode === 'throws') throw new Error('boom');
+                  calls.push('addSettingsChangeListener');
+                  settingsListeners.push(fn);
+                },
+                removeSettingsChangeListener() {},
                 loadingStart() {
                   if (mode === 'throws') throw new Error('boom');
                   calls.push('loadingStart');
@@ -120,6 +137,12 @@ function makeWorld(opts) {
     w,
     calls,
     api: () => w.EOL.crazygames,
+    audio,
+    /* the portal changing its mute after load */
+    portalSetMute(on) {
+      settingsListeners.forEach((fn) => fn({ muteAudio: on, disableChat: false }));
+    },
+    listeners: () => settingsListeners.length,
     view(v) {
       w.document.body.dataset.view = v;
       w.document.dispatchEvent(new w.CustomEvent('eol:view', { detail: v }));
@@ -260,6 +283,103 @@ function makeWorld(opts) {
       threw = true;
     }
     ok(!threw, 'an SDK that throws on every call cannot break the game');
+  }
+
+  section('D2. the portal can mute the game, and outranks the player');
+  {
+    /* A mute already set before the game finished loading must be
+       honoured on arrival, not only on later changes. */
+    const world = makeWorld({ mode: 'ok', settings: { muteAudio: true, disableChat: false } });
+    await sleep(60);
+    ok(world.audio.externalMute === true, 'a mute set before load is applied on init');
+    ok(world.listeners() === 1, 'and a change listener is registered');
+  }
+  {
+    const world = makeWorld({ mode: 'ok' });
+    await sleep(60);
+    ok(world.audio.externalMute === false, 'an unmuted portal leaves audio alone');
+    world.portalSetMute(true);
+    ok(world.audio.externalMute === true, 'the portal muting later is followed');
+    world.portalSetMute(false);
+    ok(world.audio.externalMute === false, 'and unmuting is followed too');
+  }
+  {
+    /* The requirement in one assertion: the portal's mute is not a
+       suggestion. It must survive the player pressing Unmute. */
+    const world = makeWorld({ mode: 'ok', settings: { muteAudio: true, disableChat: false } });
+    await sleep(60);
+    const src = fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8');
+    ok(
+      /function muted\(\)\s*\{[\s\S]{0,120}prefs\.muted \|\| externalMute/.test(src),
+      'audio.js mutes when EITHER the player or the portal says so'
+    );
+    ok(
+      /setMuted[\s\S]{0,400}if \(muted\(\)\) stopMusic/.test(src),
+      'the in-game unmute cannot override the portal mute'
+    );
+    ok(
+      !/persistPrefs[\s\S]{0,80}externalMute/.test(src),
+      "the portal's mute is never written into the player's saved prefs"
+    );
+    ok(world.audio.playerMuted === false, "and never alters the player's own setting");
+  }
+  {
+    /* Audio is a separate module that may be absent or broken; muting
+       must never be able to take the game down with it. */
+    const world = makeWorld({ mode: 'ok', noAudio: true });
+    await sleep(60);
+    ok(world.api().isReady() === true, 'a missing audio module does not break the bridge');
+    let threw = false;
+    try {
+      world.portalSetMute(true);
+    } catch (e) {
+      threw = true;
+    }
+    ok(!threw, 'and a mute arriving with no audio module is survivable');
+
+    const bad = makeWorld({ mode: 'ok', audioThrows: true });
+    await sleep(60);
+    let threw2 = false;
+    try {
+      bad.portalSetMute(true);
+    } catch (e) {
+      threw2 = true;
+    }
+    ok(!threw2, 'an audio module that throws cannot break the game');
+  }
+
+  section('D3. the real js/audio.js honours the priority rule');
+  {
+    /* Source patterns above prove the shape; this drives the ACTUAL
+       audio module, because the rule only matters if it holds in the
+       code that ships. */
+    const adom = new JSDOM('<!doctype html><html><body></body></html>', {
+      url: 'https://games.crazygames.com/',
+      runScripts: 'dangerously',
+    });
+    const aw = adom.window;
+    aw.EOL = { platform: { sdk: true, isCrazyGames: true } };
+    const t = aw.document.createElement('script');
+    t.textContent = fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8');
+    aw.document.body.appendChild(t);
+    const A = aw.EOL.audio;
+
+    ok(A.isMuted() === false, 'starts unmuted');
+    A.setExternalMute(true);
+    ok(A.isMuted() === true, 'the portal mute silences the game');
+    ok(A.getPrefs().muted === false, "the player's own preference is untouched");
+    A.setMuted(false);
+    ok(A.isMuted() === true, 'pressing Unmute in game CANNOT override the portal');
+    A.setMuted(true);
+    A.setExternalMute(false);
+    ok(A.isMuted() === true, "releasing the portal mute respects the player's own mute");
+    A.setMuted(false);
+    ok(A.isMuted() === false, 'and the player is in control again afterwards');
+    ok(
+      (aw.localStorage.getItem('eol.audio.v1') || '').indexOf('external') === -1,
+      "the portal's mute is never persisted"
+    );
+    aw.close();
   }
 
   section('E. the web build never loads it');

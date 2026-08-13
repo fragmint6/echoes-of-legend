@@ -211,6 +211,57 @@
   }
 
   /* --------------------------------------------------------------
+     GAME SETTINGS. CrazyGames can mute a game from its own chrome,
+     and that setting OUTRANKS our in-game control - a player who hits
+     Unmute in Settings must still hear nothing while the portal has
+     us muted. js/audio.js keeps this separate from the player's own
+     preference so nothing is written over and the original setting
+     returns intact when the portal releases the mute.
+
+     `disableChat` is read for completeness but the game has no chat
+     to disable, so there is nothing to act on. */
+  function applySettings(settings) {
+    if (!settings) return;
+    var A = window.EOL.audio;
+    if (A && A.setExternalMute) {
+      try {
+        A.setExternalMute(!!settings.muteAudio);
+      } catch (e) {
+        log('applying muteAudio failed', e);
+      }
+    }
+  }
+
+  function readSettings() {
+    if (!ready || !sdk || !sdk.game) return null;
+    try {
+      return sdk.game.settings || null;
+    } catch (e) {
+      log('reading settings failed', e);
+      return null;
+    }
+  }
+
+  /* Audio may not exist yet when the SDK answers (audio.js mounts on
+     DOMContentLoaded), so the first apply is retried once the DOM is
+     ready rather than dropped. */
+  function syncSettings() {
+    var s = readSettings();
+    if (!s) return;
+    if (window.EOL.audio && window.EOL.audio.setExternalMute) {
+      applySettings(s);
+    } else {
+      document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+          applySettings(readSettings());
+        },
+        { once: true }
+      );
+    }
+  }
+
+  /* --------------------------------------------------------------
      WIRING. The listener is attached IMMEDIATELY - before init()
      resolves - so a view change during startup is not missed. The
      calls no-op until `ready`, and the current view is replayed once
@@ -261,6 +312,12 @@
       var view = (document.body && document.body.dataset.view) || 'home';
       syncToView(view);
       flush();
+      /* Honour a mute that was already set before the game loaded, then
+         follow every later change the portal makes. */
+      syncSettings();
+      call('addSettingsChangeListener', function () {
+        sdk.game.addSettingsChangeListener(applySettings);
+      });
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', watchVeil, { once: true });
@@ -283,6 +340,7 @@
     loadingStop: loadingStop,
     /* test hooks */
     _syncToView: syncToView,
+    _applySettings: applySettings,
     _playing: function () {
       return playing;
     },
