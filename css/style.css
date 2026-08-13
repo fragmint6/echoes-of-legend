@@ -15134,15 +15134,15 @@ body[data-auth='in'] .acct-avatar {
   position: relative;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: 1px solid var(--line-2);
   background: linear-gradient(180deg, rgba(14, 17, 28, 0.9), rgba(8, 10, 18, 0.82));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #9aa3c4;
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1;
   text-decoration: none;
   cursor: var(--cur-pointer);
@@ -18860,10 +18860,15 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
 /* Discord chip, TOP-LEFT of the home view (moved in session 24 - the
    bottom-left corner is free and the top corners now balance:
    community left, account right) */
+/* TOP-LEFT STACK (session 25): Tutorial / Rulebook / Feedback ride at
+   the top, with Discord LAST - the three in-game actions matter more
+   than the off-site link, so they get the reachable slot. Discord's
+   top offset is the stack's top (20px) + three 46px buttons + three
+   10px gaps, so the four circles read as one evenly spaced column. */
 .home-discord {
   position: absolute;
   left: 22px;
-  top: 20px;
+  top: 188px;
   z-index: 30;
   animation: corner-drop 0.7s var(--ease) 1.05s backwards;
 }
@@ -18905,7 +18910,7 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
 .home-corner-btns {
   position: absolute;
   left: 22px;
-  top: 68px;
+  top: 20px;
   z-index: 30;
   display: flex;
   flex-direction: column;
@@ -18916,8 +18921,8 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   position: relative;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 50%;
@@ -18925,7 +18930,7 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: rgba(220, 224, 240, 0.65);
-  font-size: 16px;
+  font-size: 19px;
   cursor: var(--cur-pointer);
   transition:
     color 0.2s var(--ease),
