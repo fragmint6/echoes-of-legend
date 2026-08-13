@@ -1247,7 +1247,22 @@
       A.onChange(function (user) {
         var label = openBtn.querySelector('.acct-label');
         var av = openBtn.querySelector('.acct-avatar');
-        if (user && user.anonymous) {
+        /* css/platform.css hides the pill's label on the portal build;
+           a real CrazyGames identity is the one case that un-hides it. */
+        document.body.toggleAttribute('data-portal-user', !!(user && user.portal));
+        if (user && user.portal) {
+          /* Signed in on CrazyGames. The portal owns the name and the
+             avatar, so show theirs - and never offer to edit them,
+             which css/platform.css already enforces. */
+          if (label) label.textContent = user.name;
+          openBtn.title = 'Signed in as ' + user.name + ' - settings';
+          if (av) {
+            av.innerHTML = user.avatar
+              ? '<img src="' + esc(user.avatar) + '" alt="" />'
+              : '<i class="ri-user-3-line"></i>';
+          }
+          if (!modal.hidden) close();
+        } else if (user && user.anonymous) {
           /* Portal build: a real uid (so the Daily Puzzle's shared board
              and two-attempt ledger work) but not an account. Do not
              advertise a sign-in this build cannot perform - the pill is

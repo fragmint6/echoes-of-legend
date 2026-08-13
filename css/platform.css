@@ -65,8 +65,11 @@ body[data-platform='crazygames'] .acct-save-note {
   display: none !important;
 }
 
-/* The account pill's label and avatar advertise a sign-in that this
-   build cannot perform. Collapse it to a settings affordance. */
-body[data-platform='crazygames'] .acct-btn .acct-label {
+/* The account pill's label advertises a sign-in this build cannot
+   perform, so it is collapsed to a settings affordance - UNLESS the
+   player is signed in on CrazyGames, in which case the portal has
+   given us a real name and avatar to show. js/app.js sets
+   body[data-portal-user] when that identity arrives. */
+body[data-platform='crazygames']:not([data-portal-user]) .acct-btn .acct-label {
   display: none;
 }

@@ -328,6 +328,13 @@
           log('progress save setup failed - the local save still works', e);
         }
       }
+      /* Identity last: it only affects what is displayed, so it must
+         never delay loading or saving. */
+      try {
+        initUser();
+      } catch (e) {
+        log('identity setup failed - continuing as guest', e);
+      }
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', watchVeil, { once: true });
@@ -488,6 +495,99 @@
   }
 
   /* --------------------------------------------------------------
+     IDENTITY (the user module)
+     -------------------------------------------------------------
+     The portal owns the player's name and avatar, so the game shows
+     theirs instead of inventing one. Three rules from the docs shape
+     this:
+
+       1. `isUserAccountAvailable` is false when the game is embedded
+          on a third-party domain. Check it before anything else -
+          the module is simply not there in that case.
+       2. A null user is a GUEST, and that is a normal, supported
+          state. Never block on it, and never pop the auth prompt
+          automatically: the docs are explicit that it confuses
+          people. A login button is allowed, but not as a main CTA.
+       3. Ask on every start, because devices are shared and people
+          rename themselves. The auth listener covers logins during
+          play; logout refreshes the whole page, so there is nothing
+          to handle for it.
+
+     `__dangerousUserId` is deliberately not touched. It is forgeable
+     from the console and must never authenticate anything - that is
+     what getUserToken() plus server-side verification is for, and
+     that only becomes necessary if progress ever moves to our own
+     backend. Today progress lives in the Data module, which is
+     already keyed on the account by the SDK. */
+  var userModule = null;
+
+  function users() {
+    if (!ready || !sdk) return null;
+    try {
+      if (!sdk.user || !sdk.user.isUserAccountAvailable) return null;
+      return sdk.user;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function tellGame(user) {
+    var A = window.EOL.auth;
+    if (!A || !A.setPortalIdentity) return;
+    try {
+      A.setPortalIdentity(user || null);
+    } catch (e) {
+      log('publishing identity failed', e);
+    }
+  }
+
+  function onUser(user) {
+    tellGame(user);
+    if (user) log('signed in as ' + user.username);
+    /* A login mid-session means a different account's progress may
+       now be behind the Data module, so re-read it. The SDK reloads
+       the page itself for data-module games, but doing this makes
+       the behaviour correct even if that changes. */
+    if (user && P.dataModule) {
+      try {
+        if (pullSave()) log('progress reloaded for the new account');
+      } catch (e) {
+        log('reloading progress after login failed', e);
+      }
+    }
+  }
+
+  function initUser() {
+    userModule = users();
+    if (!userModule) {
+      /* Embedded off-portal, or an SDK without the module: the game
+         carries on exactly as it does for a guest. */
+      return;
+    }
+    /* Ask every start - shared devices, renames, new logins. */
+    Promise.resolve()
+      .then(function () {
+        return userModule.getUser();
+      })
+      .then(
+        function (user) {
+          onUser(user || null);
+        },
+        function (err) {
+          /* userNotAuthenticated is the ordinary guest case. */
+          if (!err || err.code !== 'userNotAuthenticated') {
+            log('getUser failed - continuing as guest', err);
+          }
+          tellGame(null);
+        }
+      );
+
+    call('addAuthListener', function () {
+      userModule.addAuthListener(onUser);
+    });
+  }
+
+  /* --------------------------------------------------------------
      Public surface. Kept small on purpose: the rest of the codebase
      should not learn SDK vocabulary, and nothing here is required
      for the game to run. */
@@ -503,6 +603,8 @@
     _syncToView: syncToView,
     _applySettings: applySettings,
     _initSave: initSave,
+    _initUser: initUser,
+    _onUser: onUser,
     _pushSave: pushSave,
     _pullSave: pullSave,
     _playing: function () {

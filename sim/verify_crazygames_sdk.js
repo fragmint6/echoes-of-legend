@@ -58,6 +58,8 @@ function makeWorld(opts) {
   const calls = [];
 
   const settingsListeners = [];
+  const authListeners = [];
+  const identity = { current: undefined, calls: 0 };
   const audio = {
     externalMute: null,
     playerMuted: false,
@@ -76,6 +78,15 @@ function makeWorld(opts) {
   };
   /* cloud.js is the single source of truth for which keys are progress */
   w.EOL.cloud = { KEYS: ['eol.wallet.v1', 'eol.owned.v1', 'eol.campaign.ch1.progress'] };
+  if (!opts.noAuth) {
+    w.EOL.auth = {
+      setPortalIdentity(u) {
+        if (opts.authThrows) throw new Error('auth boom');
+        identity.calls++;
+        identity.current = u;
+      },
+    };
+  }
   Object.keys(opts.local || {}).forEach((k) => w.localStorage.setItem(k, opts.local[k]));
   if (!opts.noAudio) w.EOL.audio = audio;
 
@@ -103,6 +114,28 @@ function makeWorld(opts) {
                 calls.push('init');
                 if (mode === 'initRejects') return Promise.reject(new Error('nope'));
                 return Promise.resolve();
+              },
+              user: {
+                isUserAccountAvailable: opts.accountAvailable !== false,
+                getUser() {
+                  calls.push('getUser');
+                  if (opts.userThrows) return Promise.reject({ code: 'unexpectedError' });
+                  if (!opts.portalUser) return Promise.reject({ code: 'userNotAuthenticated' });
+                  return Promise.resolve(opts.portalUser);
+                },
+                addAuthListener(fn) {
+                  calls.push('addAuthListener');
+                  authListeners.push(fn);
+                },
+                removeAuthListener() {},
+                showAuthPrompt() {
+                  calls.push('showAuthPrompt');
+                  return Promise.resolve(null);
+                },
+                getUserToken() {
+                  calls.push('getUserToken');
+                  return Promise.resolve('jwt');
+                },
               },
               data: {
                 _store: Object.assign({}, opts.remoteSave || {}),
@@ -166,6 +199,9 @@ function makeWorld(opts) {
     calls,
     api: () => w.EOL.crazygames,
     audio,
+    identity,
+    portalLogin: (u) => authListeners.forEach((fn) => fn(u)),
+    authListeners: () => authListeners.length,
     remote: () => (w.CrazyGames ? w.CrazyGames.SDK.data._store : null),
     local: (k) => w.localStorage.getItem(k),
     setLocal: (k, v) => w.localStorage.setItem(k, v),
@@ -548,6 +584,128 @@ function makeWorld(opts) {
     cw.close();
   }
 
+  section('D6. the portal owns the player identity');
+  {
+    const CG_USER = {
+      __dangerousUserId: 'GAR5irLOPebfbol3QXww2WL1Ja61',
+      username: 'SingingCheese.TLNU',
+      profilePictureUrl: 'https://images.crazygames.com/userportal/avatars/4.png',
+    };
+    const world = makeWorld({ mode: 'ok', portalUser: CG_USER });
+    await sleep(60);
+    ok(world.identity.current !== null, 'a signed-in CrazyGames player is detected');
+    ok(world.identity.current.username === 'SingingCheese.TLNU', 'their username is published');
+    ok(
+      world.identity.current.profilePictureUrl.indexOf('avatars/4.png') !== -1,
+      'their avatar is published'
+    );
+    ok(world.authListeners() === 1, 'a login during play will be noticed');
+    ok(world.calls.indexOf('showAuthPrompt') === -1, 'the auth prompt is NEVER opened by itself');
+  }
+  {
+    /* A guest is a normal, supported state - not an error. */
+    const world = makeWorld({ mode: 'ok', portalUser: null });
+    await sleep(60);
+    ok(world.identity.current === null, 'a guest publishes no identity');
+    ok(world.api().isReady() === true, 'and the game runs perfectly well as a guest');
+    ok(world.calls.indexOf('showAuthPrompt') === -1, 'still no auth prompt for guests');
+
+    /* Logging in mid-session must be picked up. */
+    world.portalLogin({ username: 'LaterLogin.AB12', profilePictureUrl: 'x.png' });
+    ok(
+      world.identity.current && world.identity.current.username === 'LaterLogin.AB12',
+      'signing in during play updates the identity'
+    );
+  }
+  {
+    /* isUserAccountAvailable is false when embedded off-portal. */
+    const world = makeWorld({ mode: 'ok', portalUser: {}, accountAvailable: false });
+    await sleep(60);
+    ok(world.calls.indexOf('getUser') === -1, 'no user calls when accounts are unavailable');
+    ok(world.identity.calls === 0, 'and no identity is published');
+  }
+  {
+    const world = makeWorld({ mode: 'ok', userThrows: true });
+    await sleep(60);
+    ok(world.identity.current === null, 'a failing getUser falls back to guest');
+    const w2 = makeWorld({ mode: 'ok', portalUser: { username: 'x' }, noAuth: true });
+    await sleep(60);
+    ok(w2.api().isReady() === true, 'a missing auth module cannot break the bridge');
+    const w3 = makeWorld({ mode: 'ok', portalUser: { username: 'x' }, authThrows: true });
+    await sleep(60);
+    ok(w3.api().isReady() === true, 'an auth module that throws cannot break the bridge');
+  }
+  {
+    /* THE IDENTITY MUST NOT DEPEND ON SUPABASE.
+       Inside the portal iframe the Supabase SDK often never loads at
+       all (blocked CDN, no network), so there is no session. A
+       CrazyGames player is still signed in, and an early
+       `if (!session) return null` threw that away - the pill fell
+       back to "Sign in" for a player who was already signed in. */
+    const adom = new JSDOM('<!doctype html><html><body></body></html>', {
+      url: 'https://games.crazygames.com/',
+      runScripts: 'dangerously',
+    });
+    const aw = adom.window;
+    aw.EOL = { platform: { id: 'crazygames', isCrazyGames: true, canEditIdentity: false } };
+    aw.EOL.supabaseConfig = { url: '', anonKey: '' }; // nothing to connect to
+    const at = aw.document.createElement('script');
+    at.textContent = fs.readFileSync(path.join(ROOT, 'js/auth.js'), 'utf8');
+    aw.document.body.appendChild(at);
+
+    ok(aw.EOL.auth.user() === null, 'no session and no portal identity means no user');
+    aw.EOL.auth.setPortalIdentity({ username: 'NoSupabase.9Q', profilePictureUrl: 'p.png' });
+    const u = aw.EOL.auth.user();
+    ok(!!u, 'a CrazyGames identity survives having NO Supabase session');
+    ok(u && u.name === 'NoSupabase.9Q', 'and carries the portal username');
+    ok(u && u.portal === true && u.anonymous === false, 'and is a real player, not a guest');
+    aw.EOL.auth.setPortalIdentity(null);
+    ok(aw.EOL.auth.user() === null, 'clearing the identity returns to signed-out');
+    aw.close();
+  }
+  {
+    /* THE SECURITY PROPERTY. __dangerousUserId is forgeable from the
+       console; it must never be used to identify or authenticate. */
+    ok(
+      !/__dangerousUserId/.test(bridgeSrc) ||
+        /never authenticate|forgeable|deliberately not touched/.test(bridgeSrc),
+      '__dangerousUserId is not used as an identifier'
+    );
+    const auth = fs.readFileSync(path.join(ROOT, 'js/auth.js'), 'utf8');
+    /* Mentioning it in a warning comment is fine; READING it is not. */
+    const authCode = auth.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    ok(
+      !/__dangerousUserId/.test(authCode),
+      'auth.js never reads the dangerous id (comments aside)'
+    );
+    const bridgeCode = bridgeSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    ok(
+      !/getUserToken\s*\(/.test(bridgeCode),
+      'no token is fetched while there is no server to verify it'
+    );
+    ok(
+      /portalIdentity/.test(auth) && /display only|Display only/.test(auth),
+      'the portal identity is documented as display-only'
+    );
+  }
+  {
+    /* The identity must reach the UI as a real user, not a guest. */
+    const auth = fs.readFileSync(path.join(ROOT, 'js/auth.js'), 'utf8');
+    ok(/anonymous: false,\s*\n\s*portal: true/.test(auth), 'a portal player is not anonymous');
+    const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+    ok(/user && user\.portal/.test(app), 'app.js renders the CrazyGames name on the pill');
+    ok(/data-portal-user/.test(app), 'and un-hides the label for it');
+    const pcss = fs.readFileSync(path.join(ROOT, 'css/platform.css'), 'utf8');
+    ok(
+      /:not\(\[data-portal-user\]\) \.acct-btn \.acct-label/.test(pcss),
+      'the CSS only hides the label while there is no portal identity'
+    );
+    ok(
+      /acct-login|auth-modal/.test(pcss),
+      'external sign-in controls stay hidden on the portal build'
+    );
+  }
+
   section('E. the web build never loads it');
   {
     const off = makeWorld({ sdk: false });
@@ -572,7 +730,8 @@ function makeWorld(opts) {
   {
     const src = bridgeSrc;
     ok(!/requestAd|requestBanner|showBanner/.test(src), 'no ad calls (disabled in Basic Launch)');
-    ok(!/SDK\.user|getXsollaUserToken\(/.test(src), 'no user/purchase calls (Full Launch work)');
+    ok(!/getXsollaUserToken\(/.test(src), 'no purchase calls (Xsolla is invite-only)');
+    ok(/sdk\.user/.test(src), 'the user module IS integrated (identity)');
     ok(/gameplayStart|gameplayStop/.test(src), 'gameplay timing IS integrated');
     ok(/loadingStart|loadingStop/.test(src), 'loading timing IS integrated');
     ok(/crazygames-sdk-v3\.js/.test(src), 'targets the v3 SDK');

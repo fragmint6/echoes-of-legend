@@ -170,6 +170,38 @@ survives the browser); the local save is adopted only when the account is
 empty, which is the guest-then-signs-in case. Writes are debounced 1.2 s
 on top of the SDK's own ~1 s, and flushed when the tab hides.
 
+### Identity
+
+The portal owns the player's name and avatar. `js/crazygames-sdk.js`
+reads them from the user module and hands them to `EOL.auth`, which
+overlays them in `publicUser()` - so every existing call site (the
+account pill, the battle HUD, the Daily) shows the CrazyGames name with
+no changes of its own.
+
+Rules this follows, from the docs:
+
+- `isUserAccountAvailable` is false when the game is embedded on a
+  third-party domain; the module is skipped entirely in that case.
+- A null user is a **guest**, which is a normal supported state. The
+  auth prompt is never opened automatically.
+- The user is fetched on every start (devices get shared, people
+  rename), and an auth listener catches logins during play. Logout
+  refreshes the whole page, so there is nothing to handle for it.
+
+**The identity does not depend on Supabase.** Inside the iframe the
+Supabase SDK frequently never loads, so there is no session; a
+CrazyGames player is still signed in and must still see their name.
+`publicUser()` therefore checks the portal identity _before_ the
+session. This was a real bug caught by a live-page test after the unit
+tests passed.
+
+`__dangerousUserId` is deliberately never read. It is forgeable from
+the browser console and must never authenticate anything - that is what
+`getUserToken()` plus server-side verification against
+`https://sdk.crazygames.com/publicKey.json` is for, and it only becomes
+necessary if progress ever moves to our own backend. Today progress
+lives in the Data module, which the SDK already keys on the account.
+
 ### Submission form answers
 
 - **Progress save** — "Yes, using the Data Module from the CrazyGames SDK".

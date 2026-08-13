@@ -236,7 +236,54 @@
     return !u.email && Array.isArray(u.identities) && u.identities.length === 0;
   }
 
+  /* ---------------------------------------------------------
+     THE PORTAL OWNS THE PLAYER'S IDENTITY
+     -------------------------------------------------------------
+     On CrazyGames the name and avatar belong to the CrazyGames
+     account, not to us. js/crazygames-sdk.js reads them from the
+     user module and parks them here, and they are overlaid onto
+     whatever the Supabase session says.
+
+     Two reasons this is an overlay rather than a write into the
+     session: the portal's session is anonymous and has nothing to
+     write to, and the player can rename themselves on CrazyGames at
+     any moment - the auth listener then updates this and the UI
+     follows, with no stale copy of a username anywhere in our code.
+
+     This is display only. `__dangerousUserId` is exactly what its
+     name says: it is trivially forged from the browser console and
+     must never authenticate anything. Anything server-side needs
+     getUserToken() verified against CrazyGames' public key. */
+  var portalIdentity = null;
+
+  function setPortalIdentity(user) {
+    portalIdentity =
+      user && user.username
+        ? { name: String(user.username), avatar: String(user.profilePictureUrl || '') }
+        : null;
+    notify();
+  }
+
   function publicUser() {
+    /* THE PORTAL IDENTITY DOES NOT DEPEND ON SUPABASE.
+       A CrazyGames player is signed in whether or not we ever got a
+       Supabase session - and on the portal we frequently will not,
+       because the anonymous sign-in needs a CDN and a network that
+       an embedded iframe may not have. Checking the session first
+       would throw away a perfectly good identity for a reason the
+       player cannot see. The Supabase uid is still used when it
+       exists (the Daily Puzzle needs it); it is simply not required
+       in order to have a name. */
+    if (portalIdentity) {
+      return {
+        id: session && session.user ? session.user.id : '',
+        email: '',
+        name: portalIdentity.name,
+        avatar: portalIdentity.avatar,
+        anonymous: false,
+        portal: true,
+      };
+    }
     if (!session || !session.user) return null;
     var u = session.user;
     var meta = u.user_metadata || {};
@@ -255,6 +302,7 @@
           (u.email || '').split('@')[0],
       avatar: anon ? '' : meta.avatar_url || meta.picture || '',
       anonymous: anon,
+      portal: false,
     };
   }
 
@@ -358,6 +406,9 @@
   window.EOL.auth = {
     init: init,
     configured: configured,
+    /* js/crazygames-sdk.js calls this with the CrazyGames user (or
+       null for a guest). Display only - see setPortalIdentity. */
+    setPortalIdentity: setPortalIdentity,
     isReady: function () {
       return !!client;
     },
