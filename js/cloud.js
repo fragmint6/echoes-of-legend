@@ -35,6 +35,14 @@
       snapshot in one upsert. There is no per-key merging to tear a
       wallet away from the collection it paid for.
 
+   A NOTE ON COMPARING SAVES. Every question this module asks - is
+   there a collision, is a push needed, is it safe to wipe - is
+   answered by digest(). `saves.data` is jsonb, and Postgres reorders
+   object keys on the way in, so a digest built with a plain
+   JSON.stringify finds a difference between a save and itself after
+   one round trip. digest() therefore canonicalizes (keys sorted at
+   every level) and must keep doing so.
+
    Pushes ride a light loop: a 4s dirty-check (localStorage string
    compare is cheap at ~15 keys), an immediate nudge on the economy
    events, and a flush when the tab hides. Failures are silent and
@@ -164,8 +172,41 @@
     return doc;
   }
 
+  /* THE DIGEST MUST BE CANONICAL.
+     -------------------------------------------------------------
+     This answers one question - "is the vault holding exactly this
+     state?" - and every collision prompt, every skipped push, and
+     the sign-out wipe's safety check all rest on the answer.
+
+     Plain JSON.stringify cannot be that answer. The column is
+     `jsonb`, and Postgres does not store an object as the bytes we
+     sent it: jsonb keeps keys in its own order (shortest first, then
+     bytewise), so a document that makes the round trip comes back
+     semantically identical and textually different. Comparing the
+     raw strings therefore reported a conflict between a save and
+     ITSELF - which is exactly what put the override prompt in front
+     of signed-in players on every single boot.
+
+     Sorting keys at every level makes the digest depend on what the
+     save MEANS rather than on the order a database happened to
+     return it in. Array order is preserved: [1,2,3] and [3,2,1] are
+     genuinely different saves. */
+  function canonical(v) {
+    if (Array.isArray(v)) return v.map(canonical);
+    if (v && typeof v === 'object') {
+      var out = {};
+      Object.keys(v)
+        .sort()
+        .forEach(function (k) {
+          out[k] = canonical(v[k]);
+        });
+      return out;
+    }
+    return v;
+  }
+
   function digest(snap) {
-    return JSON.stringify(snap);
+    return JSON.stringify(canonical(snap));
   }
 
   /* ---------------------------------------------------------
@@ -223,11 +264,7 @@
     }
 
     out.any =
-      out.coins > 0 ||
-      out.cards > starterSize ||
-      out.gates > 0 ||
-      out.fought > 0 ||
-      out.decks > 0;
+      out.coins > 0 || out.cards > starterSize || out.gates > 0 || out.fought > 0 || out.decks > 0;
     return out;
   }
 
@@ -289,7 +326,10 @@
     if (d === lastPushed) return Promise.resolve(false);
     return c
       .from(TABLE)
-      .upsert({ user_id: uid, data: snap, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      .upsert(
+        { user_id: uid, data: snap, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      )
       .then(function (res) {
         if (res.error) throw res.error;
         lastPushed = d;

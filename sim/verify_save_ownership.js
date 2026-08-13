@@ -78,6 +78,24 @@ function freshSave() {
 /* ---------------------------------------------------------------
    Boot js/cloud.js with a fake auth + fake `saves` table.
    --------------------------------------------------------------- */
+/* Postgres jsonb normalization: object keys come back ordered by
+   length and then bytewise, never in insertion order. Arrays and
+   scalars are untouched. Modelling this is what makes the fake table
+   honest about round trips. */
+function jsonb(v) {
+  if (Array.isArray(v)) return v.map(jsonb);
+  if (v && typeof v === 'object') {
+    const out = {};
+    Object.keys(v)
+      .sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0))
+      .forEach((k) => {
+        out[k] = jsonb(v[k]);
+      });
+    return out;
+  }
+  return v;
+}
+
 function makeWorld(opts) {
   opts = opts || {};
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
@@ -89,7 +107,7 @@ function makeWorld(opts) {
   Object.keys(opts.local || {}).forEach((k) => w.localStorage.setItem(k, opts.local[k]));
 
   const state = {
-    row: opts.cloud ? { data: opts.cloud } : null,
+    row: opts.cloud ? { data: jsonb(opts.cloud) } : null,
     upserts: 0,
     /* replaced below by a getter reading the restore marker */
     failUpsert: !!opts.failUpsert,
@@ -112,7 +130,14 @@ function makeWorld(opts) {
       return Promise.resolve().then(() => {
         if (state.failUpsert) return { error: { message: 'offline' } };
         state.upserts++;
-        state.row = { data: rowIn.data };
+        /* Store it the way Postgres actually would. `saves.data` is
+           jsonb, which does NOT keep the key order it was handed - it
+           reorders by key length, then bytewise. An earlier version of
+           this harness echoed the object back untouched, so every test
+           here passed while signed-in players were shown the override
+           prompt on every boot. A fake that is kinder than the database
+           is not a test. */
+        state.row = { data: jsonb(rowIn.data) };
         return { error: null };
       });
     },
@@ -166,6 +191,10 @@ function makeWorld(opts) {
     C,
     state,
     signIn: (id) => authCb && authCb({ id: id || 'user-1' }),
+    /* Drop the session WITHOUT running leave()'s wipe. This is what a
+       page reload looks like to cloud.js: the module re-inits with no
+       uid and then auth hands the same user straight back. */
+    signOutQuiet: () => authCb && authCb(null),
     keys: () => Object.keys(w.localStorage).filter((k) => k.indexOf('eol.') === 0),
     get: (k) => w.localStorage.getItem(k),
   };
@@ -274,6 +303,64 @@ function makeWorld(opts) {
     world.signIn();
     await sleep(80);
     ok(world.get('eol.wallet.v1') === '777', 'an async choice is awaited, not ignored');
+  }
+
+  section('B2. the returning player is NOT interrogated every boot');
+  {
+    /* THE REGRESSION. Sign in once, then boot again as the same player
+       on the same device with nothing changed. The vault now holds this
+       exact save, so there is no collision and nothing to ask about.
+
+       This shipped broken: digest() was a raw JSON.stringify, but the
+       column is jsonb and Postgres hands objects back with their keys
+       reordered. The save was compared against a re-serialized copy of
+       ITSELF, mismatched, and the override prompt fired on every load. */
+    const world = makeWorld({ local: playedSave(), cloud: null, onConflict: () => 'local' });
+    world.signIn();
+    await sleep(30);
+    ok(world.state.conflictAsked === 0, 'first sign-in adopts the save silently');
+
+    for (let boot = 2; boot <= 4; boot++) {
+      world.signOutQuiet();
+      world.signIn();
+      await sleep(30);
+      ok(world.state.conflictAsked === 0, 'boot ' + boot + ': still no prompt');
+    }
+    ok(world.state.reloaded === 0, 'and no reload loop either');
+    ok(world.get('eol.wallet.v1') === '1200', 'the save is untouched throughout');
+  }
+  {
+    /* The same guarantee for a player whose vault predates this session:
+       an account save that MEANS the same thing as the device save must
+       not prompt, however the database chose to order its keys. */
+    const world = makeWorld({
+      local: playedSave(),
+      cloud: null,
+      onConflict: () => 'local',
+    });
+    world.signIn();
+    await sleep(30);
+    const stored = world.state.row.data;
+    const shuffled = {};
+    Object.keys(stored)
+      .reverse()
+      .forEach((k) => {
+        shuffled[k] = stored[k];
+      });
+    const world2 = makeWorld({ local: playedSave(), cloud: shuffled, onConflict: () => 'local' });
+    world2.signIn();
+    await sleep(30);
+    ok(world2.state.conflictAsked === 0, 'key order alone is never a conflict');
+    ok(world2.state.reloaded === 0, 'and never triggers a restore');
+  }
+  {
+    /* The guard must not have been loosened into uselessness: a save
+       that genuinely differs still has to stop and ask. */
+    const cloud = { v: 2, wallet: 5000, owned: ['x'], campaign: { runs: {} } };
+    const world = makeWorld({ local: playedSave(), cloud, onConflict: () => 'local' });
+    world.signIn();
+    await sleep(30);
+    ok(world.state.conflictAsked === 1, 'a genuinely different save STILL prompts');
   }
 
   section('C. signing out clears the device');
