@@ -1,0 +1,72 @@
+/* =============================================================
+   PLATFORM BUILD DIFFERENCES
+   -------------------------------------------------------------
+   Everything the CrazyGames build hides. Loaded last so it wins on
+   equal specificity, and keyed on body[data-platform] which
+   js/platform.js writes before first paint.
+
+   Hiding is deliberately CSS-first: the markup and the JS behind
+   these controls stay in the build, unchanged and still exercised by
+   the web build, so there is exactly one codebase to maintain. The
+   handful of places where hiding is not enough on its own (a mode
+   that could still be reached by keyboard, a puzzle lease that must
+   not be taken) are guarded in JS as well - grep EOL.platform.
+   ============================================================= */
+
+/* ---- Community links -------------------------------------------
+   Off-site links count as cross-promotion under the portal's
+   gameplay requirements. There are two: the Discord button top-left
+   on the main menu, and the "Open Discord" fallback in the feedback
+   panel - which carries none of the first one's classes. Both are
+   tagged [data-community] in the markup so this stays ONE rule and a
+   third link added later is covered by tagging it, not by editing
+   this file. */
+body[data-platform='crazygames'] [data-community] {
+  display: none !important;
+}
+
+/* The feedback panel's action row would be left with a lone "Copy
+   note" button pushed to one side once its sibling link is gone. */
+body[data-platform='crazygames'] .feedback-fallback {
+  justify-content: center;
+}
+
+/* ---- Multiplayer ------------------------------------------------
+   Online play needs an account, and Google OAuth cannot redirect
+   inside the portal iframe. Rather than hide the three online mode
+   cards (which would leave the multiplayer carousel with dead dots
+   and arrows paging an empty track), hide the ENTIRE arena switch
+   and the multiplayer carousel with it. The Singleplayer carousel is
+   a separate subtree with its own dots, so it is untouched and needs
+   no index fixing. js/play.js keeps the solo arena selected. */
+body[data-platform='crazygames'] #play-tabs,
+body[data-platform='crazygames'] #mode-carousel-mp {
+  display: none !important;
+}
+
+/* The tab bar carried the top margin that separated the play header
+   from the mode cards. With the bar gone the carousel would ride up
+   against the masthead, so give it back that breathing room. */
+body[data-platform='crazygames'] #mode-carousel-solo {
+  margin-top: 18px;
+}
+
+/* ---- Account controls -------------------------------------------
+   The portal build's session is anonymous: it exists only so the
+   Daily Puzzle's server-side attempt ledger keeps working. There is
+   no email, no password, and no name to change, so every control
+   that edits or ends an identity is removed. The account BUTTON
+   itself stays - it still opens Settings, which is where graphics,
+   audio, and privacy live. */
+body[data-platform='crazygames'] #acct-login,
+body[data-platform='crazygames'] #acct-logout,
+body[data-platform='crazygames'] #auth-modal,
+body[data-platform='crazygames'] .acct-save-note {
+  display: none !important;
+}
+
+/* The account pill's label and avatar advertise a sign-in that this
+   build cannot perform. Collapse it to a settings affordance. */
+body[data-platform='crazygames'] .acct-btn .acct-label {
+  display: none;
+}

@@ -122,11 +122,66 @@
     });
 
     client.auth.getSession().then(function (res) {
-      handleSession(res && res.data ? res.data.session : null);
+      var s = res && res.data ? res.data.session : null;
+      handleSession(s);
+      if (!s) maybeSignInAnonymously();
     });
     client.auth.onAuthStateChange(function (_evt, s) {
       handleSession(s);
     });
+  }
+
+  /* ---------------------------------------------------------
+     ANONYMOUS SESSIONS (portal builds)
+     -------------------------------------------------------------
+     The Daily Puzzle is enforced in Postgres, not in the client: one
+     shared `active` board per day, and a (puzzle_id, user_id,
+     attempt_no) ledger capped at two. Every one of those RPCs opens
+     with `auth.uid()` and raises 'authentication required' when it is
+     null, and the tables themselves are REVOKEd from anon.
+
+     Inside the CrazyGames iframe, Google cannot redirect and there is
+     no account to sign into - so without a session the Daily is simply
+     gone. signInAnonymously() creates a REAL auth.users row, which
+     means auth.uid() is non-null and every existing RPC, grant, and
+     policy keeps working with no schema change at all. The player gets
+     the genuine shared board and a genuine two-attempt limit.
+
+     Two things this deliberately does NOT do:
+       - it never runs on the web build, where a real account is
+         offered and anonymous rows would just be litter;
+       - it never grants a generation lease (js/daily.js), so portal
+         tabs consume the Daily and never publish it.
+     --------------------------------------------------------- */
+  function wantsAnonymous() {
+    var p = window.EOL.platform;
+    return !!(p && p.anonymousAuth);
+  }
+
+  function maybeSignInAnonymously() {
+    if (!client || !wantsAnonymous()) return;
+    if (!client.auth.signInAnonymously) {
+      console.warn('[EOL] Supabase build has no signInAnonymously; Daily Puzzle stays locked.');
+      return;
+    }
+    setState('wait');
+    client.auth
+      .signInAnonymously()
+      .then(function (res) {
+        if (res.error) throw res.error;
+      })
+      .catch(function (err) {
+        /* Anonymous sign-ins are a project-level toggle in the Supabase
+           dashboard. If it is off, say so precisely rather than leaving
+           a silent 'wait' spinner - the rest of the game is unaffected,
+           only the Daily Puzzle needs the session. */
+        console.warn(
+          '[EOL] Anonymous sign-in failed (enable it in Supabase -> ' +
+            'Authentication -> Sign In / Providers -> Anonymous): ' +
+            ((err && err.message) || err)
+        );
+        setState(null);
+      });
   }
 
   function handleSession(s) {
@@ -170,16 +225,36 @@
     });
   }
 
+  /* An anonymous session is a real auth.users row with no email and no
+     identities - it exists so the Daily Puzzle's server-side ledger has
+     a uid to key on. Supabase marks it is_anonymous; the identities
+     fallback covers older SDK builds. */
+  function sessionIsAnonymous() {
+    var u = session && session.user;
+    if (!u) return false;
+    if (typeof u.is_anonymous === 'boolean') return u.is_anonymous;
+    return !u.email && Array.isArray(u.identities) && u.identities.length === 0;
+  }
+
   function publicUser() {
     if (!session || !session.user) return null;
     var u = session.user;
     var meta = u.user_metadata || {};
+    var anon = sessionIsAnonymous();
     return {
       id: u.id,
       email: u.email || '',
-      name:
-        (profile && profile.handle) || meta.full_name || meta.name || (u.email || '').split('@')[0],
-      avatar: meta.avatar_url || meta.picture || '',
+      /* No email to derive a name from, and nothing the player can
+         rename, so anonymous sessions carry a fixed label rather than
+         an empty string that the UI would render as a blank pill. */
+      name: anon
+        ? 'Guest'
+        : (profile && profile.handle) ||
+          meta.full_name ||
+          meta.name ||
+          (u.email || '').split('@')[0],
+      avatar: anon ? '' : meta.avatar_url || meta.picture || '',
+      anonymous: anon,
     };
   }
 
@@ -188,6 +263,14 @@
      --------------------------------------------------------- */
   function ensureProfile() {
     if (!client || !session) return Promise.resolve(null);
+    /* profiles is the table matchmaking reads to show your opponent a
+       name. An anonymous portal session never queues, so it needs no
+       row - skip the upsert instead of seeding thousands of identical
+       'Guest' profiles that nothing will ever read. */
+    if (sessionIsAnonymous()) {
+      profile = null;
+      return Promise.resolve(null);
+    }
     var u = session.user;
     var meta = u.user_metadata || {};
     return client
@@ -260,6 +343,11 @@
      (see app.js) stays on them until this is false. */
   function needsHandle() {
     if (!session || !session.user) return false;
+    /* Never stalk an anonymous session for a callsign: there is nobody
+       to show it to, and the portal build has no way to set one. */
+    if (sessionIsAnonymous()) return false;
+    var p = window.EOL.platform;
+    if (p && p.canEditIdentity === false) return false;
     var meta = session.user.user_metadata || {};
     return !meta.handle_chosen;
   }
@@ -329,6 +417,9 @@
     setHandle: setHandle,
     updatePassword: updatePassword,
     needsHandle: needsHandle,
+    /* Lets the UI ask "is this a real account?" without knowing which
+       build it is running in. */
+    isAnonymous: sessionIsAnonymous,
 
     /* js/mp.js borrows the configured client rather than creating a
        second one, so both share a single auth session and socket. */

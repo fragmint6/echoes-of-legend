@@ -773,6 +773,13 @@
     return window.EOL.auth && window.EOL.auth.user ? window.EOL.auth.user() : null;
   }
 
+  /* May THIS build take a generation lease and publish the shared board?
+     Only builds with real accounts may: see maybeForgeShared. */
+  function canForgeDaily() {
+    var p = window.EOL.platform;
+    return !p || p.canForgeDaily !== false;
+  }
+
   function delay(ms) {
     return new Promise(function (resolve) {
       setTimeout(resolve, ms);
@@ -925,6 +932,13 @@
   function maybeForgeShared(recover, visible) {
     if (generationPromise) return generationPromise;
     if (!signedInUser()) return Promise.resolve(false);
+    /* PORTAL BUILDS NEVER FORGE. The CrazyGames build signs in
+       anonymously so the shared board and the two-attempt ledger keep
+       working - but an anonymous session satisfies signedInUser(), which
+       would let portal tabs win the 6:55 lease and generate the puzzle
+       THE WHOLE PLAYERBASE receives. They consume the Daily; they do not
+       produce it. */
+    if (!canForgeDaily()) return Promise.resolve(false);
     if (!recover && !idleForBackgroundForge()) return Promise.resolve(false);
     var client = supabaseClient();
     if (!client) return Promise.resolve(false);
@@ -969,6 +983,8 @@
   function armGenerationClock() {
     if (generationTimer) clearTimeout(generationTimer);
     if (!signedInUser()) return;
+    /* No lease, no need for the 6:55 alarm either (maybeForgeShared). */
+    if (!canForgeDaily()) return;
 
     var now = Date.now();
     var next = null;

@@ -842,10 +842,13 @@
     }
     if (view === 'play') {
       var soloGrid = document.getElementById('mode-grid-solo');
-      if (soloGrid && soloGrid.hidden) {
+      var canFlip = !window.EOL.platform || window.EOL.platform.canPlayOnline !== false;
+      if (canFlip && soloGrid && soloGrid.hidden) {
         /* they flipped to Multiplayer - point back at the solo tab */
         return { el: document.querySelector('.play-tab[data-arena="solo"]'), key: 'solo' };
       }
+      /* Portal build: there is no arena switch to flip, so never point
+         at a hidden tab - the Campaign card is always the next step. */
       return { el: document.getElementById('mode-campaign'), key: 'play' };
     }
     if (view === 'campaign') {

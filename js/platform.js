@@ -1,0 +1,139 @@
+/* =============================================================
+   PLATFORM FLAG
+   -------------------------------------------------------------
+   ONE boot-time decision that the rest of the app reads instead of
+   sniffing the environment in a dozen places.
+
+   Echoes of Legend ships to two destinations from ONE codebase:
+
+     web         fragmint6.web.app - the full game. Accounts, online
+                 modes, the Discord community link, the dev console.
+
+     crazygames  the portal build. Uploaded to CrazyGames and served
+                 from their CDN inside a 16:9 iframe. Single-player
+                 only, no community links, no dev console, and the
+                 Daily Puzzle runs on an anonymous Supabase session
+                 because Google OAuth cannot redirect inside a frame.
+
+   Nothing is deleted for the portal build. Every difference is a
+   capability flag read at runtime, so a balance change, a hero fix,
+   or a new gate lands in BOTH builds automatically. This is the same
+   trick body[data-auth] and body[data-gfx] already use.
+
+   DETECTION. `document.referrer` is the top frame that embedded us.
+   CrazyGames serves games from crazygames.com and its regional and
+   preview hosts, so the hostname is matched by suffix rather than
+   equality. `?platform=` forces either build for local testing:
+
+       index.html?platform=crazygames    the portal build
+       index.html?platform=web           the normal build
+
+   The override is checked FIRST so a developer can always reproduce
+   either build regardless of how the page was reached.
+
+   LOAD ORDER. This file must run before every module that reads a
+   capability - it is the first script tag in index.html, ahead of
+   the data files. It writes body[data-platform] immediately so the
+   stylesheet never paints a control it is about to hide.
+   ============================================================= */
+(function () {
+  'use strict';
+
+  window.EOL = window.EOL || {};
+
+  /* Hosts that embed the portal build. Suffix-matched, so
+     www.crazygames.com, de.crazygames.com, and the developer QA tool
+     on games.crazygames.com all resolve to the same build. */
+  var CG_HOSTS = ['crazygames.com', 'crazygames.co.uk', '1001juegos.com'];
+
+  function hostOf(url) {
+    if (!url) return '';
+    try {
+      return new URL(url).hostname.toLowerCase();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function hostIsCrazyGames(host) {
+    if (!host) return false;
+    for (var i = 0; i < CG_HOSTS.length; i++) {
+      var h = CG_HOSTS[i];
+      if (host === h || host.slice(-(h.length + 1)) === '.' + h) return true;
+    }
+    return false;
+  }
+
+  function override() {
+    try {
+      return new URLSearchParams(window.location.search).get('platform');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function detect() {
+    var forced = override();
+    if (forced === 'crazygames' || forced === 'cg') return 'crazygames';
+    if (forced === 'web') return 'web';
+    if (hostIsCrazyGames(hostOf(document.referrer))) return 'crazygames';
+    /* An iframe whose parent we cannot read is NOT assumed to be the
+       portal: a stricter default would strip accounts from anyone who
+       embeds the public build. Only a recognised referrer counts. */
+    return 'web';
+  }
+
+  var id = detect();
+  var isCG = id === 'crazygames';
+
+  /* CAPABILITIES, not platform checks. Call sites ask what they are
+     allowed to do; they never ask where they are running. When the
+     CrazyGames SDK arrives at Full Launch, `canEditIdentity` flips
+     back on for a CG-linked account and no call site changes. */
+  window.EOL.platform = {
+    id: id,
+    isCrazyGames: isCG,
+
+    /* The portal owns the player's name and avatar (the SDK token
+       carries both), so in-game renaming would silently diverge from
+       the profile CrazyGames shows. Also false today because the
+       anonymous session HAS no name to edit. */
+    canEditIdentity: !isCG,
+
+    /* Online play needs a durable account. Google OAuth cannot
+       redirect inside the portal iframe, so multiplayer is hidden
+       there rather than left as a button that dead-ends. */
+    canPlayOnline: !isCG,
+
+    /* Community links off-site are cross-promotion under the portal's
+       gameplay requirements. */
+    canLinkOut: !isCG,
+
+    /* The owner console (js/dev.js) grants coins and cards. Harmless
+       on the public build - there is no ladder to cheat - but it has
+       no business in a build under quality review. */
+    devConsole: !isCG,
+
+    /* The Daily Puzzle's shared board and two-attempt allowance are
+       enforced by Postgres against auth.uid(). The portal build signs
+       in anonymously so those RPCs keep working unchanged; it must
+       NOT take a generation lease (see js/daily.js). */
+    anonymousAuth: isCG,
+    canForgeDaily: !isCG,
+  };
+
+  /* Paint the attribute before first layout. document.body does not
+     exist yet while <head> scripts run, so fall back to <html> and
+     copy it across the moment the body appears. */
+  function paint() {
+    if (document.body) {
+      document.body.dataset.platform = id;
+      return true;
+    }
+    return false;
+  }
+  if (!paint()) {
+    document.documentElement.setAttribute('data-platform', id);
+    document.addEventListener('DOMContentLoaded', paint, { once: true });
+  }
+})();

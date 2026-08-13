@@ -29,6 +29,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Shop codes / redemption SQL | `node sim/verify_code_redemption.js` | <1s |
 | Measurement / feedback | `node sim/verify_telemetry.js` | <1s |
 | Daily attempts / mode carousel | `node sim/verify_daily_ui.js` | <1s |
+| Platform flags / the CrazyGames build | `node sim/verify_platform.js` | <2s |
 | Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
 | About to deploy | see [Before you deploy](#before-you-deploy) | ~3m |
 

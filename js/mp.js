@@ -359,6 +359,14 @@
       return !!(match && match.host);
     },
     available: function () {
+      /* An anonymous session (portal builds - see js/auth.js) is a real
+         auth.uid() for the Daily Puzzle's ledger, but it is NOT an
+         account: no callsign for an opponent to see, and no way to
+         recover it. It must never read as multiplayer-ready. */
+      var A = window.EOL.auth;
+      if (A && A.isAnonymous && A.isAnonymous()) return false;
+      var p = window.EOL.platform;
+      if (p && p.canPlayOnline === false) return false;
       return !!client() && !!me();
     },
   };

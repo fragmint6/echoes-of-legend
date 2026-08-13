@@ -4030,6 +4030,34 @@
     var MP = window.EOL.mp;
     if (!MP) return;
 
+    /* THE PORTAL BUILD HAS NO ONLINE ARENA.
+       css/platform.css hides the Singleplayer/Multiplayer switch and the
+       multiplayer carousel, but hiding is not reaching: the arena could
+       still be flipped by a stale keyboard focus or anything that calls
+       setArena('mp'). Pin the whole module to solo instead, and leave the
+       rest of initMultiplayer unbound so no queue, no lock badge, and no
+       auth listener exist in that build at all. */
+    var PLAT = window.EOL.platform;
+    if (PLAT && !PLAT.canPlayOnline) {
+      var soloGrid = $('mode-grid-solo');
+      var mpGrid = $('mode-grid-mp');
+      var mpShell = $('mode-carousel-mp');
+      if (soloGrid) soloGrid.hidden = false;
+      if (mpGrid) mpGrid.hidden = true;
+      if (mpShell) mpShell.hidden = true;
+      document.querySelectorAll('.play-tab').forEach(function (t) {
+        var on = t.dataset.arena === 'solo';
+        t.classList.toggle('sel', on);
+        t.setAttribute('aria-selected', String(on));
+        /* hidden AND unreachable by Tab */
+        if (!on) t.tabIndex = -1;
+      });
+      var tabsHome = $('play-tabs');
+      if (tabsHome) tabsHome.dataset.arena = 'solo';
+      refreshModeCarousel($('mode-carousel-solo'));
+      return;
+    }
+
     /* tab switching */
     var tabs = document.querySelectorAll('.play-tab');
     var gridAnimT = 0;

@@ -89,8 +89,16 @@
     <link rel="apple-touch-icon" href="assets/icon-128.png" />
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/daily.css" />
+    <!-- Build differences (CrazyGames portal build). Last, so it wins on
+         equal specificity. Paired with js/platform.js below. -->
+    <link rel="stylesheet" href="css/platform.css" />
   </head>
   <body>
+    <!-- PLATFORM FLAG. Must run before any module reads a capability and
+         before first paint, so css/platform.css never flashes a control
+         it is about to hide. Sets body[data-platform] + EOL.platform. -->
+    <script src="js/platform.js"></script>
+
     <div class="bg-layer"></div>
     <div class="bg-grid"></div>
 
@@ -274,6 +282,7 @@
            bottom-right). -->
       <a
         class="discord-btn home-discord"
+        data-community
         href="https://discord.gg/HFFk6wc7Ha"
         target="_blank"
         rel="noopener noreferrer"
@@ -1403,8 +1412,11 @@
           <button type="button" class="btn btn-ghost btn-slim" id="feedback-copy">
             <i class="ri-file-list-3-line"></i><span>Copy note</span>
           </button>
+          <!-- data-community marks every off-site link so the portal
+               build can hide them in one rule (css/platform.css). -->
           <a
             class="btn btn-ghost btn-slim"
+            data-community
             href="https://discord.gg/HFFk6wc7Ha"
             target="_blank"
             rel="noopener noreferrer"
@@ -3100,7 +3112,17 @@
     <!-- THE WORKBENCH: EOL.dev console commands (coins, grantAll,
          openRoad, reset). Harmless in production until the economy
          is server-side - see the header of the file. -->
-    <script src="js/dev.js"></script>
+    <!-- THE WORKBENCH (owner console: EOL.dev.coins, grantAll, openRoad).
+         Deliberately shipped on the public build - with no ladder and no
+         trading, a player with the console open can only cheat themselves.
+         The portal build is a different matter: a live cheat console in a
+         build under quality review is a risk with no upside, so it is not
+         loaded there at all. -->
+    <script>
+      if (!window.EOL || !window.EOL.platform || window.EOL.platform.devConsole) {
+        document.write('<script src="js/dev.js"><\/script>');
+      }
+    </script>
     <script src="js/mp.js"></script>
     <script src="js/netplay.js"></script>
     <script src="js/app.js"></script>

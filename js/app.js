@@ -1246,7 +1246,16 @@
       A.onChange(function (user) {
         var label = openBtn.querySelector('.acct-label');
         var av = openBtn.querySelector('.acct-avatar');
-        if (user) {
+        if (user && user.anonymous) {
+          /* Portal build: a real uid (so the Daily Puzzle's shared board
+             and two-attempt ledger work) but not an account. Do not
+             advertise a sign-in this build cannot perform - the pill is
+             just the way into Settings here. */
+          if (label) label.textContent = '';
+          openBtn.title = 'Settings';
+          if (av) av.innerHTML = '<i class="ri-settings-4-line"></i>';
+          if (!modal.hidden) close();
+        } else if (user) {
           if (label) label.textContent = user.name;
           openBtn.title = 'Signed in as ' + (user.email || user.name) + ' - account menu';
           if (av) {
