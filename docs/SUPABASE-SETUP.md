@@ -634,3 +634,93 @@ next tick retries.
 **Monetization note:** RLS protects players from each other, not from
 themselves. Before coins are ever sold for money, wallet writes must
 move server-side (Edge Function) - see the list above.
+
+## 11. CRAZYGAMES ACCOUNTS - real identities on the portal (2026-08-13)
+
+This is what makes **multiplayer work on the CrazyGames build**. Without
+it the portal only ever had an anonymous session: a per-browser uid, no
+`profiles` row, and `try_match()` naming every portal opponent `'Player'`.
+
+Three steps. The game keeps working after each one, so you can stop
+partway without breaking anything.
+
+### 11.1 Run the migration
+
+Dashboard -> SQL Editor -> New query -> paste
+**`docs/supabase-migration-09.sql`** -> Run. Idempotent, so re-running is
+safe. It creates `cg_link`, adds `profiles.is_portal`, and revises
+`try_match()` so a portal player queues under their CrazyGames username.
+
+### 11.2 Deploy the Edge Function
+
+Needs the Supabase CLI (`npm i -g supabase`), once per machine:
+
+```bash
+supabase login
+supabase link --project-ref ghchcvrojojrlbgqbvga
+supabase functions deploy cg-auth --no-verify-jwt
+```
+
+**`--no-verify-jwt` is required and is not a weakening.** The caller has
+no Supabase session yet - obtaining one is the entire point of the
+endpoint. The request is authenticated by the CrazyGames token instead,
+whose RS256 signature the function verifies against
+`https://sdk.crazygames.com/publicKey.json` before it trusts a single
+field.
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the
+platform - you do **not** need to set them, and the service-role key must
+never appear in browser code. (`js/auth.js` refuses to boot if one is
+pasted into `js/supabase-config.js`.)
+
+### 11.3 Check it
+
+Open the portal build logged in to CrazyGames:
+
+```
+index.html?platform=crazygames
+```
+
+The console should print
+`CrazyGames account linked - multiplayer available`, the account pill
+should show your CrazyGames name and avatar, and the
+Singleplayer/Multiplayer switch should have no lock badge.
+
+Then confirm the database agrees:
+
+```sql
+select cg_user_id, username, created_at, last_seen from public.cg_link;
+select id, handle, is_portal from public.profiles where is_portal;
+```
+
+### If you skip or delay this
+
+Everything degrades to exactly what shipped before: the token exchange
+fails, the anonymous fallback takes over, the Daily Puzzle keeps working,
+and multiplayer stays locked with the lock badge on it. Nothing breaks -
+verified in `sim/verify_cg_accounts.js` section C.
+
+### What is deliberately NOT here
+
+- **Progress does not move to Supabase.** Saves stay in the SDK's Data
+  module, which is what the submission form declares and what CrazyGames
+  syncs across the player's devices. The Supabase account is for identity
+  and matchmaking only. Two cloud saves writing the same localStorage keys
+  would be a data-loss bug.
+- **No account linking prompt.** CrazyGames' `showAccountLinkPrompt` is
+  for joining a CG account to a pre-existing in-game account. There is no
+  in-game account on the portal build to join it to.
+
+### Sweeping the old anonymous rows
+
+Every portal visitor used to leave an anonymous `auth.users` row behind.
+They are harmless but they accumulate. Count, then delete - the
+`not exists` guard protects migrated portal players:
+
+```sql
+select count(*) from auth.users where is_anonymous;
+
+delete from auth.users u
+ where u.is_anonymous
+   and not exists (select 1 from public.cg_link l where l.user_id = u.id);
+```

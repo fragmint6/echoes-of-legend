@@ -114,7 +114,11 @@ section('B. the portal build is detected and stripped');
   );
 
   const p = bootPlatform({ referrer: 'https://www.crazygames.com/' }).EOL.platform;
-  ok(p.canPlayOnline === false, 'online modes are off');
+  /* Online play is ON for the portal build now that a CrazyGames
+     login buys a real account (js/auth.js signInWithCrazyGames).
+     Whether a given PLAYER may queue is a session question, and
+     js/mp.js answers it by refusing anonymous sessions. */
+  ok(p.canPlayOnline === true, 'online modes are available on the portal build');
   ok(p.canLinkOut === false, 'community links are off');
   ok(p.canEditIdentity === false, 'identity editing is off');
   ok(p.devConsole === false, 'the owner console is off');
@@ -139,8 +143,13 @@ section('C. the hidden controls are actually hidden');
     offsite.every((a) => a.hasAttribute('data-community')),
     'every off-site Discord link is tagged [data-community]'
   );
-  ok(sel('#play-tabs'), 'the Singleplayer/Multiplayer switch is hidden');
-  ok(sel('#mode-carousel-mp'), 'the multiplayer carousel is hidden');
+  /* The arena switch and the multiplayer carousel are NO LONGER
+     hidden: a CrazyGames account can queue. A portal guest sees
+     exactly what a signed-out web player sees - the switch, the lock
+     badge, and a login offer. Assert the rules are GONE, so nobody
+     reinstates them by habit. */
+  ok(!sel('#play-tabs'), 'the Singleplayer/Multiplayer switch is NOT hidden any more');
+  ok(!sel('#mode-carousel-mp'), 'the multiplayer carousel is NOT hidden any more');
   ok(
     !css.includes('#mode-carousel-solo,\n') || css.includes('#mode-carousel-solo {'),
     'the SINGLEPLAYER carousel is never hidden'
@@ -208,14 +217,42 @@ section('D. the Daily Puzzle keeps its server-enforced rules');
 
 section('E. an anonymous session is not an account');
 {
-  const mp = read('js/mp.js');
+  /* These used to grep js/mp.js for a substring within N characters
+     of `available:`, which broke the moment the comment above it grew.
+     Run the real function instead - it is the behaviour that matters,
+     not how close two tokens sit in the source. */
+  const mpSrc = read('js/mp.js');
+  const mpAvailable = (auth, platform) => {
+    const w = bootPlatform({ referrer: 'https://www.crazygames.com/' });
+    w.EOL.auth = auth;
+    if (platform) Object.assign(w.EOL.platform, platform);
+    /* eval inside the same window the platform flag was booted in, so
+       js/mp.js sees the real window.EOL it expects. */
+    w.eval(mpSrc);
+    return w.EOL.mp.available();
+  };
+
+  const anonAuth = {
+    isReady: () => true,
+    rawClient: () => ({}),
+    isAnonymous: () => true,
+    user: () => ({ id: 'anon' }),
+  };
+  const acctAuth = {
+    isReady: () => true,
+    rawClient: () => ({}),
+    isAnonymous: () => false,
+    user: () => ({ id: 'real' }),
+  };
+
+  ok(mpAvailable(anonAuth) === false, 'multiplayer reports unavailable for an anonymous session');
   ok(
-    /available:[\s\S]{0,400}isAnonymous\(\)/.test(mp),
-    'multiplayer reports unavailable for an anonymous session'
+    mpAvailable(acctAuth, { canPlayOnline: false }) === false,
+    'canPlayOnline === false still forces multiplayer off'
   );
   ok(
-    /available:[\s\S]{0,800}canPlayOnline === false/.test(mp),
-    'multiplayer reports unavailable on the portal build'
+    mpAvailable(acctAuth) === true,
+    'a real (CrazyGames-backed) account CAN queue on the portal build'
   );
 
   const play = read('js/play.js');

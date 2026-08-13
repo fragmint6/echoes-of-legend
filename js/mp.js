@@ -362,7 +362,13 @@
       /* An anonymous session (portal builds - see js/auth.js) is a real
          auth.uid() for the Daily Puzzle's ledger, but it is NOT an
          account: no callsign for an opponent to see, and no way to
-         recover it. It must never read as multiplayer-ready. */
+         recover it. It must never read as multiplayer-ready.
+
+         A CrazyGames account is the opposite: signInWithCrazyGames()
+         mints a durable session keyed on the verified CrazyGames id,
+         with a profiles row carrying the player's real username. It
+         is not anonymous, so it falls through this check and queues
+         normally - no special case needed. */
       var A = window.EOL.auth;
       if (A && A.isAnonymous && A.isAnonymous()) return false;
       var p = window.EOL.platform;

@@ -541,9 +541,45 @@
     }
   }
 
+  /* THE TOKEN NEVER TOUCHES ANYTHING BUT THE EXCHANGE.
+     -------------------------------------------------------------
+     getUserToken() is the only trustworthy identifier CrazyGames
+     gives us: a JWT they signed. It is passed as a THUNK so it is
+     fetched inside auth.js at the moment of use and never parked in
+     a variable here. It is never decoded, never stored, never
+     logged - the Edge Function verifies the signature server-side
+     against CrazyGames' published key.
+
+     `__dangerousUserId` is not read anywhere. It is forgeable from
+     the console and authenticates nothing. */
+  function upgradeToAccount() {
+    var A = window.EOL.auth;
+    if (!A || !A.signInWithCrazyGames) return;
+    if (!userModule || !userModule.getUserToken) return;
+    try {
+      A.signInWithCrazyGames(function () {
+        return userModule.getUserToken();
+      }).then(function (session) {
+        if (session) log('CrazyGames account linked - multiplayer available');
+      });
+    } catch (e) {
+      log('account link failed - continuing as a local player', e);
+    }
+  }
+
   function onUser(user) {
     tellGame(user);
     if (user) log('signed in as ' + user.username);
+    /* A CrazyGames login is worth a real account: it is what gives
+       the player a stable uid, a name their opponents can see, and
+       multiplayer. A guest releases auth.js's boot gate instead so
+       the Daily Puzzle still gets its anonymous session. */
+    if (user) {
+      upgradeToAccount();
+    } else {
+      var A = window.EOL.auth;
+      if (A && A.portalIsGuest) A.portalIsGuest();
+    }
     /* A login mid-session means a different account's progress may
        now be behind the Data module, so re-read it. The SDK reloads
        the page itself for data-module games, but doing this makes
@@ -561,7 +597,11 @@
     userModule = users();
     if (!userModule) {
       /* Embedded off-portal, or an SDK without the module: the game
-         carries on exactly as it does for a guest. */
+         carries on exactly as it does for a guest. Release auth.js's
+         boot gate immediately rather than making the Daily Puzzle
+         wait out the timeout for an answer that will never come. */
+      var A0 = window.EOL.auth;
+      if (A0 && A0.portalIsGuest) A0.portalIsGuest();
       return;
     }
     /* Ask every start - shared devices, renames, new logins. */
@@ -579,6 +619,8 @@
             log('getUser failed - continuing as guest', err);
           }
           tellGame(null);
+          var A1 = window.EOL.auth;
+          if (A1 && A1.portalIsGuest) A1.portalIsGuest();
         }
       );
 
@@ -594,6 +636,42 @@
   window.EOL.crazygames = {
     isReady: function () {
       return ready;
+    },
+
+    /* Is CrazyGames' own login popup available? False off-portal and
+       for an SDK without the user module, so callers can fall back
+       to whatever the web build offers. */
+    canPromptLogin: function () {
+      var u = users();
+      return !!(u && u.showAuthPrompt);
+    },
+
+    /* Open CrazyGames' login/register popup. ONLY on an explicit
+       player action - the docs warn that prompting unasked confuses
+       people, and it must never be a main call to action.
+
+       Resolves with the user, or null if they cancelled or it could
+       not open. A successful login runs the same onUser() path as a
+       login detected at boot, so the account is minted exactly once. */
+    promptLogin: function () {
+      var u = users();
+      if (!u || !u.showAuthPrompt) return Promise.resolve(null);
+      return Promise.resolve()
+        .then(function () {
+          return u.showAuthPrompt();
+        })
+        .then(
+          function (user) {
+            if (user) onUser(user);
+            return user || null;
+          },
+          function (err) {
+            /* userCancelled is the player changing their mind, which
+               is not a problem worth logging as one. */
+            if (err && err.code !== 'userCancelled') log('auth prompt failed', err);
+            return null;
+          }
+        );
     },
     gameplayStart: gameplayStart,
     gameplayStop: gameplayStop,

@@ -117,6 +117,19 @@
     }
 
     setState('wait');
+
+    /* Arm the boot gate before the first session lookup, on builds
+       where the SDK owns identity and an anonymous fallback exists. */
+    var P0 = window.EOL.platform;
+    if (P0 && P0.sdk && P0.anonymousAuth) {
+      portalGate = true;
+      portalGateTimer = setTimeout(function () {
+        /* The SDK never answered. Fall back rather than leaving the
+           Daily Puzzle without a session forever. */
+        openPortalGate();
+      }, 9000);
+    }
+
     client = window.supabase.createClient(cfg().url, cfg().anonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
@@ -155,11 +168,166 @@
      --------------------------------------------------------- */
   function wantsAnonymous() {
     var p = window.EOL.platform;
-    return !!(p && p.anonymousAuth);
+    if (!p || !p.anonymousAuth) return false;
+    /* A CrazyGames sign-in is in flight, or has already produced a
+       real account. Creating an anonymous row now would race it and
+       leave the player on a throwaway identity. See signInWithCrazyGames. */
+    if (portalExchange) return false;
+    return true;
+  }
+
+  /* THE BOOT RACE.
+     -------------------------------------------------------------
+     init() runs from app.js the moment the page is ready, but the
+     CrazyGames SDK resolves asynchronously and may take seconds (it
+     has its own 8s timeout). Left alone, the anonymous sign-in
+     always won, and the player was stranded on a throwaway identity
+     a few hundred milliseconds before their real account arrived.
+
+     So on a build that has BOTH the SDK and the anonymous fallback,
+     the fallback waits for the SDK to say which it is: an account
+     (signInWithCrazyGames) or a guest (portalIsGuest). The timeout
+     is the backstop for an SDK that never answers at all - the
+     Daily Puzzle still gets its session, just a little later. */
+  var portalGate = false;
+  var portalGateTimer = 0;
+
+  function openPortalGate() {
+    if (!portalGate) return;
+    portalGate = false;
+    clearTimeout(portalGateTimer);
+    if (!session) maybeSignInAnonymously();
+  }
+
+  /* js/crazygames-sdk.js calls this when the player is NOT logged in
+     to CrazyGames. A guest is a normal, supported state. */
+  function portalIsGuest() {
+    openPortalGate();
+  }
+
+  /* ---------------------------------------------------------
+     CRAZYGAMES ACCOUNTS
+     -------------------------------------------------------------
+     A REAL account for a portal player, so multiplayer works.
+
+     The anonymous session above is not an account: its uid is
+     per-browser, it has no profiles row (so opponents saw the
+     literal name 'Player'), and nothing ties it to the person
+     playing. This exchanges the SDK's signed token for a durable
+     Supabase account keyed on the CrazyGames id.
+
+     WHAT IS TRUSTED. Only getUserToken(), and only after the Edge
+     Function has checked its RS256 signature against CrazyGames'
+     published key. `__dangerousUserId` is never sent - it is
+     forgeable from the console. The token is never stored, never
+     decoded here, and never logged: it goes straight to the
+     function and is dropped.
+
+     WHY THE FUNCTION RETURNS CREDENTIALS. Minting a session
+     server-side would mean hand-managing access and refresh tokens
+     in the client. Instead the function returns the shadow
+     account's email and password, the normal SDK sign-in runs, and
+     session persistence and refresh work exactly as they do for an
+     email account. Those credentials are derived from the service
+     role key and are unobtainable without a valid CrazyGames token.
+
+     DEGRADING. Every failure path leaves the player exactly where
+     they were: a guest with local progress. The Daily Puzzle's
+     anonymous fallback still runs, because a portal player who is
+     not logged in to CrazyGames is a perfectly normal case.
+     --------------------------------------------------------- */
+  var portalExchange = false;
+
+  function cgAuthEndpoint() {
+    var c = cfg();
+    if (c.cgAuthUrl) return c.cgAuthUrl;
+    if (!c.url) return '';
+    return c.url.replace(/\/+$/, '') + '/functions/v1/cg-auth';
+  }
+
+  /* True once a CrazyGames-backed session is live. The UI asks this
+     to tell a real portal account from the anonymous fallback. */
+  function isPortalAccount() {
+    var u = session && session.user;
+    if (!u) return false;
+    var meta = u.user_metadata || {};
+    return !!meta.cg_user_id;
+  }
+
+  function signInWithCrazyGames(getToken) {
+    if (!client) return Promise.resolve(null);
+    if (portalExchange) return Promise.resolve(null);
+    if (isPortalAccount()) return Promise.resolve(session);
+
+    var endpoint = cgAuthEndpoint();
+    if (!endpoint) return Promise.resolve(null);
+
+    portalExchange = true;
+    /* We are answering the gate, so its timeout is no longer needed -
+       but leave the gate itself closed so the anonymous fallback
+       cannot fire underneath the exchange. */
+    clearTimeout(portalGateTimer);
+    portalGate = true;
+    setState('wait');
+
+    return Promise.resolve()
+      .then(getToken)
+      .then(function (token) {
+        if (!token) throw new Error('no token');
+        return fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            /* The function runs with --no-verify-jwt, but the
+               platform's gateway still wants an apikey header. */
+            apikey: cfg().anonKey || '',
+          },
+          body: JSON.stringify({ token: token }),
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error('cg-auth ' + res.status + ': ' + t.slice(0, 200));
+          });
+        }
+        return res.json();
+      })
+      .then(function (creds) {
+        if (!creds || !creds.email || !creds.password)
+          throw new Error('cg-auth gave no credentials');
+        /* An anonymous session may already be live from a previous
+           boot. Signing in replaces it; the anonymous row is left
+           behind and migration 09 documents how to sweep those. */
+        return client.auth.signInWithPassword({
+          email: creds.email,
+          password: creds.password,
+        });
+      })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        /* A real account is live: the gate has served its purpose and
+           the anonymous fallback must never run now. */
+        portalGate = false;
+        clearTimeout(portalGateTimer);
+        return res.data && res.data.session ? res.data.session : null;
+      })
+      .catch(function (err) {
+        /* A guest, an undeployed function, or a portal outage all
+           land here, and none of them should break the game. */
+        console.warn('[EOL] CrazyGames sign-in unavailable:', (err && err.message) || err);
+        portalExchange = false;
+        /* The anonymous fallback was suppressed while this ran, so
+           give the Daily Puzzle its session back. */
+        openPortalGate();
+        return null;
+      });
   }
 
   function maybeSignInAnonymously() {
     if (!client || !wantsAnonymous()) return;
+    /* Hold for the SDK's verdict - see THE BOOT RACE above. */
+    if (portalGate) return;
     if (!client.auth.signInAnonymously) {
       console.warn('[EOL] Supabase build has no signInAnonymously; Daily Puzzle stays locked.');
       return;
@@ -282,6 +450,13 @@
         avatar: portalIdentity.avatar,
         anonymous: false,
         portal: true,
+        /* A CrazyGames NAME is not a CrazyGames ACCOUNT. The name
+           arrives from the SDK the moment the page loads; the
+           account only exists once the token has been verified and
+           a session minted. Multiplayer, the vault and anything
+           else that needs a durable uid must read this, not
+           `portal`. */
+        portalAccount: isPortalAccount(),
       };
     }
     if (!session || !session.user) return null;
@@ -409,6 +584,16 @@
     /* js/crazygames-sdk.js calls this with the CrazyGames user (or
        null for a guest). Display only - see setPortalIdentity. */
     setPortalIdentity: setPortalIdentity,
+    /* Exchanges a CrazyGames token for a REAL account (multiplayer,
+       a stable uid, a profiles row). Takes a function returning the
+       token so the token never has to sit in a variable here. */
+    signInWithCrazyGames: signInWithCrazyGames,
+    /* The player is not logged in to CrazyGames - release the boot
+       gate so the Daily Puzzle's anonymous session can be created. */
+    portalIsGuest: portalIsGuest,
+    /* True when the live session is a CrazyGames-backed account, as
+       opposed to the anonymous Daily-Puzzle fallback. */
+    isPortalAccount: isPortalAccount,
     isReady: function () {
       return !!client;
     },

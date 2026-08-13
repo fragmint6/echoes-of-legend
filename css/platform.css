@@ -32,24 +32,20 @@ body[data-platform='crazygames'] .feedback-fallback {
 }
 
 /* ---- Multiplayer ------------------------------------------------
-   Online play needs an account, and Google OAuth cannot redirect
-   inside the portal iframe. Rather than hide the three online mode
-   cards (which would leave the multiplayer carousel with dead dots
-   and arrows paging an empty track), hide the ENTIRE arena switch
-   and the multiplayer carousel with it. The Singleplayer carousel is
-   a separate subtree with its own dots, so it is untouched and needs
-   no index fixing. js/play.js keeps the solo arena selected. */
-body[data-platform='crazygames'] #play-tabs,
-body[data-platform='crazygames'] #mode-carousel-mp {
-  display: none !important;
-}
+   ONLINE PLAY IS AVAILABLE ON THE PORTAL BUILD.
 
-/* The tab bar carried the top margin that separated the play header
-   from the mode cards. With the bar gone the carousel would ride up
-   against the masthead, so give it back that breathing room. */
-body[data-platform='crazygames'] #mode-carousel-solo {
-  margin-top: 18px;
-}
+   It used to be hidden here, because the only session this build
+   could get was anonymous: no name for an opponent to see, and a
+   uid that died with the browser's cookies. The CrazyGames SDK's
+   token now buys a real account (js/auth.js signInWithCrazyGames,
+   docs/supabase-migration-04.sql), so a logged-in portal player
+   queues under their own CrazyGames username.
+
+   Nothing is hidden any more. A portal GUEST is handled exactly the
+   way a signed-out player is handled on the web build: the arena
+   switch is visible, the lock badge is on it, and js/mp.js refuses
+   the queue. That is a session state, not a platform difference,
+   which is why it no longer belongs in this stylesheet. */
 
 /* ---- Account controls -------------------------------------------
    The portal build's session is anonymous: it exists only so the

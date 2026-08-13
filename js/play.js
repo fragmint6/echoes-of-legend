@@ -4130,11 +4130,57 @@
       if (ev.detail === 'play') moveTabThumb();
     });
 
+    /* The account is minted asynchronously after a portal login:
+       getUserToken -> verify -> session. Poll briefly rather than
+       guessing a delay, and give up rather than hang if the exchange
+       fails (the caller shows a retry message). */
+    function waitForAccount(done) {
+      var tries = 0;
+      var t = setInterval(function () {
+        if (MP.available()) {
+          clearInterval(t);
+          done(true);
+          return;
+        }
+        if (++tries > 40) {
+          /* ~10s: enough for the token round trip on a slow link. */
+          clearInterval(t);
+          done(false);
+        }
+      }, 250);
+    }
+
     /* Which online mode we are queueing for. Draft builds its squad
        in-game; Classic brings a saved deck, so it has to pick one
        first and carry it into the match. */
     function queueFor(mode, deckId) {
       if (!MP.available()) {
+        /* ON THE PORTAL, "sign in from the main menu" IS A DEAD END:
+           that build has no sign-in form, because CrazyGames owns the
+           identity. The SDK's own login popup is the only route, so
+           offer that instead of instructions the player cannot
+           follow. Guests are never prompted unasked - the docs are
+           explicit about that - but this IS the player asking. */
+        var CG = window.EOL.crazygames;
+        if (CG && CG.canPromptLogin && CG.canPromptLogin()) {
+          mmShow(true);
+          mmSay('Account required', 'Opening the CrazyGames login...');
+          CG.promptLogin().then(function (user) {
+            if (!user) {
+              mmSay('Account required', 'Log in to CrazyGames to play online.');
+              return;
+            }
+            /* The account arrives asynchronously (token -> verify ->
+               session), so wait for mp to actually be ready rather
+               than queueing into a session that does not exist yet. */
+            mmSay('Signing in', 'Setting up your account...');
+            waitForAccount(function (ok) {
+              if (ok) queueFor(mode, deckId);
+              else mmSay('Account required', 'Could not reach the account service. Try again.');
+            });
+          });
+          return;
+        }
         mmShow(true);
         mmSay('Account required', 'Sign in from the main menu to play multiplayer.');
         return;

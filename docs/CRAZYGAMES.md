@@ -210,10 +210,16 @@ lives in the Data module, which the SDK already keys on the account.
   for games with in-game purchases (coins/cosmetics are planned) and
   because APS syncs the WHOLE of localStorage - including the Supabase
   auth token at `sb-<ref>-auth-token`, which must never be copied to
-  another device. Do NOT claim the backend-linked option until the user
-  module is integrated.
+  another device. Progress still belongs to the Data module even though
+  the game now has a Supabase account for the player: the account is for
+  IDENTITY and matchmaking, not for saves, and two cloud saves writing the
+  same keys would be a data-loss bug.
 - **Audio muting through SDK** — yes, see above.
-- **Online multiplayer** — no; the portal build hides the arena entirely.
+- **Online multiplayer** — **yes.** A CrazyGames login is exchanged for a
+  real Supabase account (see *CrazyGames accounts* below), so a logged-in
+  portal player queues under their own username. A portal GUEST is treated
+  exactly like a signed-out web player: the arena switch is visible, the
+  lock badge is on it, and `js/mp.js` refuses the queue until they log in.
 - **Mobile** — not yet. The CSS has breakpoints, but `deck.js` and
   `play.js` register no touch/pointer handlers.
 
@@ -226,10 +232,46 @@ resume on **both** `adFinished` and `adError`; midgame ads have a ~3 min
 cooldown. Do **not** call `gameplayStop` on focus loss or on leaving the
 game area — CrazyGames handles that itself.
 
-Only if CrazyGames invites the game onward. The SDK's `getUserToken()`
-returns a JWT (`userId`, `username`, `profilePictureUrl`) verified
-server-side against `https://sdk.crazygames.com/publicKey.json`. Bridge
-it to Supabase with an Edge Function that mints a session for a profile
-keyed on a new `crazygames_id` column, then swap the anonymous sign-in
-for that call inside `js/auth.js`. `canEditIdentity` stays false because
-CrazyGames owns the player's name and avatar. No call site changes.
+## CrazyGames accounts (shipped)
+
+A CrazyGames login buys a REAL Supabase account, which is what makes
+multiplayer work on the portal build.
+
+**Why it was needed.** The portal used to sign in anonymously. That is
+enough for the Daily Puzzle (which only needs some `auth.uid()` to key a
+ledger on) but it is not an account: the uid is per-browser, so clearing
+cookies loses everything, and `ensureProfile()` skips anonymous sessions,
+so there was no `profiles` row and `try_match()` fell back to a literal
+`'Player'` — every portal opponent would have had the same name.
+
+**The flow.**
+
+1. `js/crazygames-sdk.js` sees a logged-in user and calls
+   `auth.signInWithCrazyGames()`, passing `getUserToken` as a thunk.
+2. `js/auth.js` POSTs that token to `supabase/functions/cg-auth`.
+3. The function verifies the RS256 signature against
+   `https://sdk.crazygames.com/publicKey.json`, upserts `cg_link` +
+   `profiles` with the service-role key, and returns credentials for a
+   shadow account.
+4. The client signs in with them, so session persistence and refresh work
+   exactly as they do for an email account.
+
+**The security boundary.** `__dangerousUserId` is forgeable from the
+console and is never read, never sent, and asserted absent in
+`sim/verify_cg_accounts.js`. The token is never decoded client-side,
+never stored, and never logged. `cg_link` has RLS on and NO insert
+policy, so a browser physically cannot claim a CrazyGames id it does not
+own. RS256 is pinned in the verifier, which blocks `alg:none` and
+HS256-with-the-public-key forgeries.
+
+**Deploying it** — see `docs/SUPABASE-SETUP.md` §11. Until it is deployed
+the game degrades to exactly what shipped before: a guest with local
+progress and a working Daily Puzzle.
+
+`canEditIdentity` stays false because CrazyGames owns the name and avatar.
+
+## Full Launch (later)
+
+Only if CrazyGames invites the game onward: ads, banners, and Xsolla
+purchases. The account work above is already done and is the
+IAP-compatible path.

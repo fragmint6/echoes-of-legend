@@ -100,10 +100,19 @@
        anonymous session HAS no name to edit. */
     canEditIdentity: !isCG,
 
-    /* Online play needs a durable account. Google OAuth cannot
-       redirect inside the portal iframe, so multiplayer is hidden
-       there rather than left as a button that dead-ends. */
-    canPlayOnline: !isCG,
+    /* Online play needs a durable account, and the portal build now
+       has one: js/crazygames-sdk.js exchanges the SDK's signed token
+       for a real Supabase session (see js/auth.js
+       signInWithCrazyGames and docs/supabase-migration-09.sql), so a
+       logged-in CrazyGames player queues under their own name.
+
+       This flag is now about the BUILD, not the player. A portal
+       GUEST still cannot queue - but that is a session question, and
+       js/mp.js already answers it by refusing anonymous sessions.
+       Keeping the arena switch visible and letting the lock badge
+       explain itself is what the web build has always done for a
+       signed-out player, and the portal now behaves the same. */
+    canPlayOnline: true,
 
     /* Community links off-site are cross-promotion under the portal's
        gameplay requirements. */

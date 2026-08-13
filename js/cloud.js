@@ -496,14 +496,17 @@
   }
 
   function init() {
-    /* THE PORTAL BUILD DOES NOT USE THIS VAULT.
-       Its Supabase session is anonymous - it exists only to give the
-       Daily Puzzle's attempt ledger a uid to key on. It is not an
-       account: no email, no password, nothing to sign back into. A
-       save pushed to it could never be recovered by the player, and
-       every portal visitor would leave another orphan row behind.
-       Progress there belongs to the CrazyGames account instead, via
-       the SDK's Data module. See js/crazygames-sdk.js. */
+    /* THE PORTAL BUILD DOES NOT USE THIS VAULT - STILL.
+       A CrazyGames player now has a real Supabase account (see
+       js/auth.js signInWithCrazyGames), so the old reason - that the
+       session was anonymous and unrecoverable - no longer applies.
+       The vault stays off anyway, and deliberately: progress there
+       belongs to the SDK's Data module, which CrazyGames syncs
+       across the player's devices and which the submission form
+       declares. Two cloud saves writing the same localStorage keys
+       is a data-loss bug, so exactly one owns them.
+       The Supabase account is for IDENTITY and matchmaking here,
+       not for progress. See js/crazygames-sdk.js. */
     var P = window.EOL.platform;
     if (P && P.cloudVault === false) return;
     if (!window.EOL.auth || !window.EOL.auth.configured || !window.EOL.auth.configured()) return;

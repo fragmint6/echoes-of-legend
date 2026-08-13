@@ -679,9 +679,30 @@ function makeWorld(opts) {
       'auth.js never reads the dangerous id (comments aside)'
     );
     const bridgeCode = bridgeSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    /* There IS a server now (supabase/functions/cg-auth), so the token
+       is fetched - that is the whole point. What must stay true is how
+       it is handled: obtained from the SDK, handed straight to the
+       exchange, and never decoded or persisted in the client. */
+    ok(/getUserToken\s*\(/.test(bridgeCode), 'the signed token IS fetched (it buys the account)');
     ok(
-      !/getUserToken\s*\(/.test(bridgeCode),
-      'no token is fetched while there is no server to verify it'
+      !/atob\s*\(|JSON\.parse\s*\([^)]*token|jwtDecode|split\s*\(\s*['"]\.['"]\s*\)/.test(
+        bridgeCode
+      ),
+      'the bridge never decodes the token client-side'
+    );
+    ok(
+      !/localStorage[\s\S]{0,40}token|sessionStorage[\s\S]{0,40}token/i.test(bridgeCode),
+      'the token is never stored'
+    );
+    const authCode2 = auth.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    ok(
+      !/atob\s*\(\s*token|jwtDecode/.test(authCode2),
+      'auth.js never decodes the token either - the server verifies it'
+    );
+    /* The exchange must post to our own function, not anywhere else. */
+    ok(
+      /functions\/v1\/cg-auth/.test(authCode2),
+      'the token goes to the cg-auth function for RS256 verification'
     );
     ok(
       /portalIdentity/.test(auth) && /display only|Display only/.test(auth),
