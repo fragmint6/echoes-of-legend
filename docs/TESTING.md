@@ -31,6 +31,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
 | Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |
 | Cloud saves, sign-in/sign-out, save collisions | `node sim/verify_save_ownership.js`               | <2s    |
+| CrazyGames SDK / gameplay timing               | `node sim/verify_crazygames_sdk.js`               | <2s    |
 | Daily Puzzle generation / serialization        | `generate_daily_puzzle --dry-run`                 | ~5-60s |
 | About to deploy                                | see [Before you deploy](#before-you-deploy)       | ~3m    |
 

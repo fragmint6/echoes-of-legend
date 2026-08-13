@@ -97,7 +97,52 @@ download cap and the 1,500 file limit. Compressing the ten ~2 MB board
 PNGs to WebP is not required but would materially improve load time,
 which feeds the Basic Launch engagement review.
 
+## The SDK (`js/crazygames-sdk.js`)
+
+Loaded only on the portal build, gated on `EOL.platform.sdk`, via the
+same conditional `document.write` pattern as `dev.js`. It is the **last**
+script in the body: the game is fully wired before a third-party CDN is
+even contacted, so a blocked or slow SDK cannot delay boot.
+
+**Scope is deliberately the game module only** — `loadingStart/Stop` and
+`gameplayStart/Stop`. That is not a stopgap, it is the whole of what is
+useful right now:
+
+- **Ads are disabled during Basic Launch.** `requestAd()` answers with
+  the `adsDisabledBasicLaunch` error. Placements written today could not
+  be tested, tuned, or revenue-checked — only guessed at.
+- **Gameplay timing is exactly what the trial measures.** CrazyGames
+  decides Full Launch on engagement. Without this, four minutes in a
+  battle and four minutes idling in the Rulebook look identical. With it,
+  they don't.
+
+What counts as gameplay: `battle`, `draft`, `prep`. Every other view is a
+menu break. The bridge listens on the existing `eol:view` event, so it
+stays consistent with `js/telemetry.js` without coupling to it.
+`loadingStop` is driven by a `MutationObserver` on `#veil` — the honest
+"the game is up" moment, since the veil waits on art and fonts, not
+merely on scripts.
+
+Failure is designed for, because an SDK inside an iframe behind an ad
+blocker is a normal condition, not an edge case. The script load resolves
+`null` (never rejects) on error or after 8 s; `init()` rejection is
+caught; every call is wrapped. State is tracked in two layers — what the
+game is doing versus what the SDK has been told — so a battle entered
+while the SDK is still loading is still reported once it arrives, and a
+`loadingStop` is never sent without its matching start. If the SDK never
+loads, the game plays normally and reports nothing.
+
+Regression: `node sim/verify_crazygames_sdk.js` (41 assertions, covering
+the blocked, rejecting, throwing, and slow-arrival paths).
+
 ## Full Launch (later)
+
+Ads (midgame + rewarded), banners, Xsolla purchases, and the user module
+all belong here — none can be exercised during Basic Launch. Per the
+docs, an ad must mute audio and pause on `adStarted`, and unmute and
+resume on **both** `adFinished` and `adError`; midgame ads have a ~3 min
+cooldown. Do **not** call `gameplayStop` on focus loss or on leaving the
+game area — CrazyGames handles that itself.
 
 Only if CrazyGames invites the game onward. The SDK's `getUserToken()`
 returns a JWT (`userId`, `username`, `profilePictureUrl`) verified

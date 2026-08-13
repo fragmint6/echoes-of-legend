@@ -120,6 +120,13 @@
        NOT take a generation lease (see js/daily.js). */
     anonymousAuth: isCG,
     canForgeDaily: !isCG,
+
+    /* Load the CrazyGames SDK bridge (js/crazygames-sdk.js). During
+       Basic Launch this reports loading and gameplay timing, which is
+       exactly what the trial measures. Ads, banners, and the user
+       module are Full Launch work - video ads are disabled during
+       Basic Launch anyway. */
+    sdk: isCG,
   };
 
   /* Paint the attribute before first layout. document.body does not

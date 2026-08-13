@@ -3206,5 +3206,16 @@
     <script src="js/mp.js"></script>
     <script src="js/netplay.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the
+         game is fully wired before a third-party CDN script is even
+         requested - a blocked or slow SDK must never delay the game. It
+         reports loading and gameplay timing, which is precisely what
+         Basic Launch measures. See docs/CRAZYGAMES.md. -->
+    <script>
+      if (window.EOL && window.EOL.platform && window.EOL.platform.sdk) {
+        document.write('<script src="js/crazygames-sdk.js"><\/script>');
+      }
+    </script>
   </body>
 </html>
