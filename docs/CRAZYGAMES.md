@@ -146,14 +146,40 @@ Regression: `node sim/verify_crazygames_sdk.js` (60 assertions, covering
 the blocked, rejecting, throwing, and slow-arrival paths, plus the mute
 priority rule driven against the real `js/audio.js`).
 
+### Where progress is saved
+
+Exactly one cloud save is active per build, chosen by `js/platform.js`:
+
+| build      | flag         | backend                                              |
+| ---------- | ------------ | ---------------------------------------------------- |
+| web        | `cloudVault` | Supabase `saves`, keyed on a real account            |
+| crazygames | `dataModule` | the SDK Data module, keyed on the CrazyGames account |
+
+`js/cloud.js` returns immediately when `cloudVault` is false. This is not
+a tidiness measure: the portal's Supabase session is **anonymous** - no
+email, no password, nothing to sign back into - so a save pushed to it
+could never be recovered by the player, and every visitor would leave
+another orphan row in `saves`. That session exists only to give the Daily
+Puzzle's attempt ledger a `auth.uid()` to key on.
+
+The Data module mirror reuses `EOL.cloud.KEYS` as its key list, so
+`MAP` in `js/cloud.js` stays the single source of truth for what counts
+as progress and a new persisted key is picked up by both builds at once.
+At boot the account wins when it holds anything (it is the only copy that
+survives the browser); the local save is adopted only when the account is
+empty, which is the guest-then-signs-in case. Writes are debounced 1.2 s
+on top of the SDK's own ~1 s, and flushed when the tab hides.
+
 ### Submission form answers
 
-- **Progress save** — "Yes, using LocalStorage (Automatic Progress Save)".
-  The game saves to `localStorage`; APS backs that up to the player's
-  CrazyGames account with no code. Valid only while there are **no
-  real-money purchases** (the shop is priced in coins from `pack.price`),
-  and only because the portal build hides Google/email sign-in. Do NOT
-  claim the backend-linked option until the user module is integrated.
+- **Progress save** — "Yes, using the Data Module from the CrazyGames SDK".
+  Selecting this is REQUIRED or the module is disabled and every write
+  fails with `dataModuleDisabled`. Chosen over APS because APS is banned
+  for games with in-game purchases (coins/cosmetics are planned) and
+  because APS syncs the WHOLE of localStorage - including the Supabase
+  auth token at `sb-<ref>-auth-token`, which must never be copied to
+  another device. Do NOT claim the backend-linked option until the user
+  module is integrated.
 - **Audio muting through SDK** — yes, see above.
 - **Online multiplayer** — no; the portal build hides the arena entirely.
 - **Mobile** — not yet. The CSS has breakpoints, but `deck.js` and

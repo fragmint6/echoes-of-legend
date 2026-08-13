@@ -121,6 +121,25 @@
     anonymousAuth: isCG,
     canForgeDaily: !isCG,
 
+    /* WHERE PROGRESS IS SAVED.
+       -------------------------------------------------------------
+       Exactly one of these is true, because two cloud saves fighting
+       over the same localStorage would be a data-loss bug.
+
+       web         the Supabase vault (js/cloud.js), keyed on a real
+                   account the player can sign back into.
+
+       crazygames  the SDK's Data module (js/crazygames-sdk.js),
+                   keyed on the player's CrazyGames account and
+                   synced across their devices by the portal.
+
+       The portal build must NOT use the Supabase vault. Its session
+       there is anonymous - no email, no password, no way back in -
+       so every such row is an unrecoverable write-only copy of a
+       save, and the browser holding the only key to it. */
+    cloudVault: !isCG,
+    dataModule: isCG,
+
     /* Load the CrazyGames SDK bridge (js/crazygames-sdk.js). During
        Basic Launch this reports loading and gameplay timing, which is
        exactly what the trial measures. Ads, banners, and the user

@@ -318,6 +318,16 @@
       call('addSettingsChangeListener', function () {
         sdk.game.addSettingsChangeListener(applySettings);
       });
+      /* Progress save. Only when platform.js says this build owns it,
+         so the Supabase vault and the Data module can never both be
+         writing the same keys. */
+      if (P.dataModule) {
+        try {
+          initSave();
+        } catch (e) {
+          log('progress save setup failed - the local save still works', e);
+        }
+      }
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', watchVeil, { once: true });
@@ -325,6 +335,157 @@
       watchVeil();
     }
   });
+
+  /* --------------------------------------------------------------
+     PROGRESS SAVE (the Data module)
+     -------------------------------------------------------------
+     On the portal, progress belongs to the player's CrazyGames
+     account, and the SDK syncs it across their devices. The module's
+     API is deliberately identical to localStorage - getItem,
+     setItem, removeItem, clear - so this is a mirror, not a rewrite
+     of how the game saves.
+
+     WHICH KEYS. js/cloud.js's MAP is already the single source of
+     truth for "what counts as progress", and it is exported as
+     EOL.cloud.KEYS. Reusing it means a new persisted key is picked
+     up here automatically, exactly as it is by the web build's
+     vault. There is no second list to forget to update.
+
+     DIRECTION AT BOOT. The account wins when it has anything,
+     because it is the only copy that survives this browser. The
+     local save is adopted only when the account has nothing - which
+     is precisely the guest-plays-then-signs-in case, and the SDK
+     also does this transfer itself for guests. When the account
+     already holds progress it is written down to localStorage and
+     the game reads it normally from there.
+
+     WHY NOT ALSO THE SUPABASE VAULT. Two cloud saves writing the
+     same keys would race and lose data. js/platform.js picks exactly
+     one: cloudVault on web, dataModule on the portal. */
+  var SAVE_DEBOUNCE_MS = 1200; // the SDK debounces ~1s of its own
+  var saveTimer = null;
+  var mirroring = false;
+
+  function dataModule() {
+    if (!ready || !sdk) return null;
+    try {
+      return sdk.data || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function progressKeys() {
+    var C = window.EOL.cloud;
+    if (C && C.KEYS && C.KEYS.length) return C.KEYS;
+    return [];
+  }
+
+  /* account -> this device. Returns true if anything landed. */
+  function pullSave() {
+    var data = dataModule();
+    if (!data) return false;
+    var keys = progressKeys();
+    var landed = 0;
+    keys.forEach(function (k) {
+      var remote;
+      try {
+        remote = data.getItem(k);
+      } catch (e) {
+        return;
+      }
+      if (remote === null || remote === undefined) return;
+      try {
+        if (localStorage.getItem(k) !== remote) localStorage.setItem(k, String(remote));
+        landed++;
+      } catch (e) {
+        /* private mode: nothing we can do, play on */
+      }
+    });
+    return landed > 0;
+  }
+
+  /* this device -> account. Whole snapshot, never a partial write. */
+  function pushSave() {
+    var data = dataModule();
+    if (!data || mirroring) return;
+    mirroring = true;
+    try {
+      progressKeys().forEach(function (k) {
+        var local;
+        try {
+          local = localStorage.getItem(k);
+        } catch (e) {
+          return;
+        }
+        try {
+          if (local === null) data.removeItem(k);
+          else data.setItem(k, local);
+        } catch (e) {
+          /* dataLimitExcedeed / dataModuleDisabled / other - the game
+             keeps its local save either way, so this is not fatal. */
+          log('data module write failed for ' + k, e);
+        }
+      });
+    } finally {
+      mirroring = false;
+    }
+  }
+
+  function scheduleSave() {
+    if (!dataModule()) return;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      saveTimer = null;
+      pushSave();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
+  function initSave() {
+    var data = dataModule();
+    if (!data) return;
+
+    /* Does the account already hold a save? */
+    var hasRemote = false;
+    var keys = progressKeys();
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        if (data.getItem(keys[i]) !== null && data.getItem(keys[i]) !== undefined) {
+          hasRemote = true;
+          break;
+        }
+      } catch (e) {
+        /* keep looking */
+      }
+    }
+
+    if (hasRemote) {
+      /* The account is the save. Write it down and let the game boot
+         from it - the veil is still up at this point, so no module
+         has read a stale value yet. */
+      pullSave();
+      log('progress restored from the CrazyGames account');
+    } else {
+      /* Nothing up there yet: this device's save becomes the first. */
+      pushSave();
+      log('local progress adopted by the CrazyGames account');
+    }
+
+    /* Mirror on the same signals the Supabase vault uses, so the two
+       builds stay behaviourally identical. */
+    document.addEventListener('eol:coins', scheduleSave);
+    document.addEventListener('eol:owned', scheduleSave);
+    document.addEventListener('eol:view', scheduleSave);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        if (saveTimer) {
+          clearTimeout(saveTimer);
+          saveTimer = null;
+        }
+        pushSave(); // last reliable moment to write
+      }
+    });
+  }
 
   /* --------------------------------------------------------------
      Public surface. Kept small on purpose: the rest of the codebase
@@ -341,6 +502,9 @@
     /* test hooks */
     _syncToView: syncToView,
     _applySettings: applySettings,
+    _initSave: initSave,
+    _pushSave: pushSave,
+    _pullSave: pullSave,
     _playing: function () {
       return playing;
     },

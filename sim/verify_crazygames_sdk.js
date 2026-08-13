@@ -66,7 +66,17 @@ function makeWorld(opts) {
       audio.externalMute = !!on;
     },
   };
-  w.EOL = { platform: { sdk: opts.sdk !== false, isCrazyGames: true } };
+  w.EOL = {
+    platform: {
+      sdk: opts.sdk !== false,
+      isCrazyGames: true,
+      dataModule: opts.dataModule !== false,
+      cloudVault: false,
+    },
+  };
+  /* cloud.js is the single source of truth for which keys are progress */
+  w.EOL.cloud = { KEYS: ['eol.wallet.v1', 'eol.owned.v1', 'eol.campaign.ch1.progress'] };
+  Object.keys(opts.local || {}).forEach((k) => w.localStorage.setItem(k, opts.local[k]));
   if (!opts.noAudio) w.EOL.audio = audio;
 
   /* Stand in for the CDN: createElement('script') for the SDK URL
@@ -93,6 +103,24 @@ function makeWorld(opts) {
                 calls.push('init');
                 if (mode === 'initRejects') return Promise.reject(new Error('nope'));
                 return Promise.resolve();
+              },
+              data: {
+                _store: Object.assign({}, opts.remoteSave || {}),
+                getItem(k) {
+                  if (opts.dataThrows) throw new Error('dataModuleDisabled');
+                  return k in this._store ? this._store[k] : null;
+                },
+                setItem(k, v) {
+                  if (opts.dataThrows) throw new Error('dataLimitExcedeed');
+                  this._store[k] = String(v);
+                },
+                removeItem(k) {
+                  if (opts.dataThrows) throw new Error('dataModuleDisabled');
+                  delete this._store[k];
+                },
+                clear() {
+                  this._store = {};
+                },
               },
               game: {
                 environment: 'crazygames',
@@ -138,6 +166,9 @@ function makeWorld(opts) {
     calls,
     api: () => w.EOL.crazygames,
     audio,
+    remote: () => (w.CrazyGames ? w.CrazyGames.SDK.data._store : null),
+    local: (k) => w.localStorage.getItem(k),
+    setLocal: (k, v) => w.localStorage.setItem(k, v),
     /* the portal changing its mute after load */
     portalSetMute(on) {
       settingsListeners.forEach((fn) => fn({ muteAudio: on, disableChat: false }));
@@ -380,6 +411,141 @@ function makeWorld(opts) {
       "the portal's mute is never persisted"
     );
     aw.close();
+  }
+
+  section('D4. progress syncs to the CrazyGames account');
+  {
+    /* Guest played, then signed in: the account has nothing, so this
+       device's save becomes its first. Nothing may be destroyed. */
+    const world = makeWorld({
+      mode: 'ok',
+      local: { 'eol.wallet.v1': '1200', 'eol.owned.v1': '["a","b"]' },
+      remoteSave: null,
+    });
+    await sleep(60);
+    ok(world.remote()['eol.wallet.v1'] === '1200', 'an empty account adopts the local save');
+    ok(world.remote()['eol.owned.v1'] === '["a","b"]', 'the whole snapshot goes up');
+    ok(world.local('eol.wallet.v1') === '1200', 'and the device keeps playing its own save');
+  }
+  {
+    /* Returning on a second device: the account is the only copy that
+       survives a browser, so it wins and is written down locally. */
+    const world = makeWorld({
+      mode: 'ok',
+      local: { 'eol.wallet.v1': '5' },
+      remoteSave: { 'eol.wallet.v1': '9000', 'eol.owned.v1': '["x"]' },
+    });
+    await sleep(60);
+    ok(world.local('eol.wallet.v1') === '9000', 'the account save is restored to the device');
+    ok(world.local('eol.owned.v1') === '["x"]', 'every progress key is restored');
+  }
+  {
+    /* Ongoing play must reach the account, debounced. */
+    const world = makeWorld({ mode: 'ok', local: { 'eol.wallet.v1': '10' } });
+    await sleep(60);
+    world.setLocal('eol.wallet.v1', '75');
+    world.w.document.dispatchEvent(new world.w.CustomEvent('eol:coins'));
+    ok(world.remote()['eol.wallet.v1'] === '10', 'writes are debounced, not one-per-coin');
+    await sleep(1500);
+    ok(world.remote()['eol.wallet.v1'] === '75', 'and land after the debounce');
+  }
+  {
+    /* Only the keys cloud.js calls progress - never the auth token. */
+    const world = makeWorld({ mode: 'ok', local: { 'eol.wallet.v1': '1' } });
+    world.setLocal('sb-ghchcvrojojrlbgqbvga-auth-token', 'SECRET');
+    await sleep(60);
+    world.w.document.dispatchEvent(new world.w.CustomEvent('eol:coins'));
+    await sleep(1500);
+    const keys = Object.keys(world.remote());
+    ok(
+      keys.every((k) => k.indexOf('eol.') === 0),
+      'only eol.* progress keys are synced: ' + keys.join(',')
+    );
+    ok(
+      keys.indexOf('sb-ghchcvrojojrlbgqbvga-auth-token') === -1,
+      'the Supabase auth token is NEVER sent to the account'
+    );
+  }
+  {
+    /* The module can refuse (1MB cap, or not enabled on the form).
+       The local save must survive that completely. */
+    const world = makeWorld({
+      mode: 'ok',
+      local: { 'eol.wallet.v1': '1200' },
+      dataThrows: true,
+    });
+    await sleep(60);
+    ok(world.local('eol.wallet.v1') === '1200', 'a failing data module never harms the save');
+    let threw = false;
+    try {
+      world.w.document.dispatchEvent(new world.w.CustomEvent('eol:coins'));
+      await sleep(1500);
+    } catch (e) {
+      threw = true;
+    }
+    ok(!threw, 'and cannot throw into the game');
+  }
+
+  section('D5. exactly one cloud save is ever active');
+  {
+    const plat = fs.readFileSync(path.join(ROOT, 'js/platform.js'), 'utf8');
+    ok(/cloudVault: !isCG/.test(plat), 'the Supabase vault is web-only');
+    ok(/dataModule: isCG/.test(plat), 'the Data module is portal-only');
+
+    const cloud = fs.readFileSync(path.join(ROOT, 'js/cloud.js'), 'utf8');
+    ok(/cloudVault === false\) return;/.test(cloud), 'cloud.js refuses to run on the portal build');
+    ok(
+      /if \(P\.dataModule\)/.test(bridgeSrc),
+      'the bridge only saves when the platform says it owns saving'
+    );
+
+    /* The bug this prevents: the portal's ANONYMOUS Supabase session
+       is not an account - no email, no password, nothing to sign back
+       into - so a save pushed to it could never be recovered, and
+       every visitor would leave an orphan row behind. */
+    const cdom = new JSDOM('<!doctype html><html><body></body></html>', {
+      url: 'https://games.crazygames.com/',
+      runScripts: 'dangerously',
+    });
+    const cw = cdom.window;
+    cw.localStorage.setItem('eol.wallet.v1', '1200');
+    let upserts = 0;
+    let authCb = null;
+    cw.EOL = {
+      platform: { id: 'crazygames', isCrazyGames: true, anonymousAuth: true, cloudVault: false },
+      auth: {
+        configured: () => true,
+        rawClient: () => ({
+          from: () => ({
+            upsert() {
+              upserts++;
+              return Promise.resolve({ error: null });
+            },
+            select() {
+              return {
+                eq() {
+                  return { maybeSingle: () => Promise.resolve({ data: null, error: null }) };
+                },
+              };
+            },
+          }),
+        }),
+        onChange(fn) {
+          authCb = fn;
+        },
+        isAnonymous: () => true,
+      },
+      economy: { starterIds: () => ['s1'] },
+    };
+    const ct = cw.document.createElement('script');
+    ct.textContent = fs.readFileSync(path.join(ROOT, 'js/cloud.js'), 'utf8');
+    cw.document.body.appendChild(ct);
+    cw.EOL.cloud.init();
+    if (authCb) authCb({ id: 'anon-uuid' });
+    await sleep(80);
+    ok(upserts === 0, 'an anonymous portal session writes NOTHING to the Supabase vault');
+    ok(cw.EOL.cloud.status() === 'off', 'and the vault reports itself off');
+    cw.close();
   }
 
   section('E. the web build never loads it');
