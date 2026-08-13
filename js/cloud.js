@@ -13,13 +13,23 @@
       account, no network, no Supabase SDK - nothing here runs, and
       localStorage remains the only save, exactly as before.
 
-   2. THE ACCOUNT IS THE SAVE. On sign-in, if the account already
-      holds a vault, it WINS: it is applied over the device and the
-      page reloads once so every module reads the restored state
-      from a clean boot (no half-migrated UI). If the account has no
-      vault yet, the device's current save becomes its first one.
-      Signing out changes nothing locally - the device keeps the
-      state it had, which at that moment equals the account's.
+   2. THE ACCOUNT IS THE SAVE. Progress belongs to the account, not
+      to the browser.
+
+      SIGNING IN. If the account has no vault yet, the device's
+      current save becomes its first one - somebody who played as a
+      guest and then registered keeps everything. If the account
+      already holds a vault and the device is carrying real progress
+      of its own, the two cannot both survive, so the player is ASKED
+      which one to keep instead of one silently winning. With nothing
+      meaningful on the device (a fresh browser, or a save identical
+      to the account's) the account is restored without a prompt.
+
+      SIGNING OUT. The device is returned to a clean slate: the final
+      state is flushed to the vault, every local key is erased, and
+      the page reloads to first-boot. The account keeps everything;
+      the browser keeps nothing. This is what makes a shared computer
+      safe, and it is why sign-out asks for confirmation.
 
    3. THE VAULT IS NEVER HALF-WRITTEN. Pushes send the entire
       snapshot in one upsert. There is no per-key merging to tear a
@@ -91,6 +101,10 @@
      UP to Supabase—not be overwritten and reloaded forever. */
   var restoredBoot = false;
   var restoredDigest = null;
+  /* app.js installs this: (summaries) -> 'local' | 'cloud' | null,
+     possibly as a promise. Without a handler the account still wins,
+     which is the pre-existing behaviour. */
+  var conflictHandler = null;
   try {
     restoredBoot = sessionStorage.getItem('eol.cloud.restored') === '1';
     restoredDigest = sessionStorage.getItem('eol.cloud.restoreDigest');
@@ -152,6 +166,81 @@
 
   function digest(snap) {
     return JSON.stringify(snap);
+  }
+
+  /* ---------------------------------------------------------
+     IS THERE ANYTHING HERE WORTH KEEPING?
+     -------------------------------------------------------------
+     Sign-in must only interrupt a player who would actually LOSE
+     something. A first boot is not empty - deck.js seeds a 12-card
+     Grimmwood starter and campaign.js writes its tutorial flags
+     before anyone has played a single battle - so "does localStorage
+     have keys" is the wrong question. Ask instead whether the player
+     has any of the things a session PRODUCES:
+
+       - coins earned or spent
+       - cards beyond the seeded starter
+       - any gate cleared on any difficulty
+       - any battle fought
+       - a deck they built or edited themselves
+
+     Everything else (settings, tutorial flags, the starter deck) is
+     replaceable and never worth a prompt.
+     --------------------------------------------------------- */
+  function summarize(doc) {
+    var out = { coins: 0, cards: 0, gates: 0, fought: 0, decks: 0, any: false };
+    if (!doc) return out;
+
+    out.coins = Math.max(0, parseInt(doc.wallet, 10) || 0);
+    out.cards = Array.isArray(doc.owned) ? doc.owned.length : 0;
+
+    var camp = doc.campaign || {};
+    var runs = camp.runs || {};
+    Object.keys(runs).forEach(function (id) {
+      var run = runs[id] || {};
+      if (Array.isArray(run.cleared)) out.gates += run.cleared.length;
+    });
+    /* pre-difficulty saves kept `cleared` at the top level */
+    if (!camp.runs && Array.isArray(camp.cleared)) out.gates += camp.cleared.length;
+    out.fought = Array.isArray(camp.fought) ? camp.fought.length : 0;
+
+    /* The seeded starter is not an achievement; a deck the player made
+       or renamed is. */
+    var decks = doc.decks;
+    if (Array.isArray(decks)) {
+      out.decks = decks.filter(function (d) {
+        return d && d.id !== 'starter-grimmwood';
+      }).length;
+    }
+
+    /* Owned cards only count as progress BEYOND the seeded starter. */
+    var starterSize = 0;
+    try {
+      var ids = window.EOL.economy && window.EOL.economy.starterIds;
+      starterSize = ids ? ids().length : 0;
+    } catch (e) {
+      /* economy not loaded (tests) - treat every card as earned */
+    }
+
+    out.any =
+      out.coins > 0 ||
+      out.cards > starterSize ||
+      out.gates > 0 ||
+      out.fought > 0 ||
+      out.decks > 0;
+    return out;
+  }
+
+  /* Erase every local key this module knows about. Used by sign-out:
+     the vault has the state, the browser must not keep a copy. */
+  function wipeLocal() {
+    KEYS.forEach(function (k) {
+      try {
+        localStorage.removeItem(k);
+      } catch (e) {
+        /* private mode */
+      }
+    });
   }
 
   /* the v2 document -> localStorage; returns true if anything changed.
@@ -219,8 +308,27 @@
       });
   }
 
+  /* Write an account save over this device and reboot into it. Returns
+     true when a reload was scheduled. One clean boot means every module
+     reads the restored state instead of half-migrating a live UI; the
+     marker also lets the next boot promote any client-side save
+     migration back to the vault without another reload. */
+  function restore(snap) {
+    var changed = apply(snap);
+    if (!changed) return false;
+    try {
+      sessionStorage.setItem('eol.cloud.restored', '1');
+      sessionStorage.setItem('eol.cloud.restoreDigest', digest(snap));
+    } catch (e) {
+      /* fine */
+    }
+    window.location.reload();
+    return true;
+  }
+
   /* sign-in: pull the vault. Account save present -> apply + one clean
-     reload. Absent -> this device's save becomes the account's first. */
+     reload, or ask first when the device is carrying its own progress.
+     Absent -> this device's save becomes the account's first. */
   function pull() {
     var c = client();
     if (!c || !uid) return Promise.resolve();
@@ -237,6 +345,35 @@
           var snap = res.data.data;
           lastPushed = digest(snap);
           if (digest(collect()) !== lastPushed) {
+            /* THE COLLISION. The account holds a save AND this device is
+               carrying progress of its own that is not already in it.
+               Whichever way this resolves, one of them is destroyed, so
+               it is not a decision this module may take by itself: hand
+               both summaries to the UI and wait. Declining leaves the
+               device untouched and signs back out, which is the only
+               outcome that loses nothing. */
+            var localDoc = collect();
+            if (!restoredBoot && summarize(localDoc).any && conflictHandler) {
+              var decision = conflictHandler({
+                local: summarize(localDoc),
+                cloud: summarize(snap),
+              });
+              return Promise.resolve(decision).then(function (choice) {
+                if (choice === 'local') {
+                  /* keep playing this device's save and overwrite the
+                     account with it */
+                  lastPushed = null;
+                  return push();
+                }
+                if (choice === 'cloud') {
+                  return restore(snap);
+                }
+                /* cancelled: no local change, and the session ends so the
+                   player is exactly where they were before they signed in */
+                if (window.EOL.auth && window.EOL.auth.signOut) window.EOL.auth.signOut();
+                return false;
+              });
+            }
             if (restoredBoot && (!restoredDigest || restoredDigest === lastPushed)) {
               /* The previous boot already applied this exact account save.
                  Any difference now is a deterministic client migration
@@ -247,20 +384,8 @@
               clearRestoreGuard();
               return push();
             }
-            var changed = apply(snap);
-            if (changed) {
-              /* one clean boot so every module reads the restored state;
-                 the marker also lets the next boot promote any client-side
-                 save migration back to the vault without another reload */
-              try {
-                sessionStorage.setItem('eol.cloud.restored', '1');
-                sessionStorage.setItem('eol.cloud.restoreDigest', lastPushed);
-              } catch (e) {
-                /* fine */
-              }
-              window.location.reload();
-              return;
-            }
+            var changed = restore(snap);
+            if (changed) return;
           }
           clearRestoreGuard();
         } else {
@@ -288,6 +413,46 @@
       window.clearInterval(timer);
       timer = null;
     }
+  }
+
+  /* SIGNING OUT CLEARS THE DEVICE.
+     The account is the save, so a browser that is no longer signed in
+     must not keep a copy of it - otherwise the next person on this
+     computer inherits the last player's coins, cards, and campaign,
+     and a guest session silently continues from a stranger's state.
+
+     Order matters and is not negotiable:
+       1. flush, so nothing earned in the last few seconds is lost
+       2. only then erase, and only if the flush resolved
+       3. reload to a genuine first boot
+
+     A failed flush ABORTS the wipe. Losing the network must never
+     also lose the save; the player stays signed in with their
+     progress intact. leave() runs BEFORE auth clears the session,
+     because push() needs the uid it is about to drop. */
+  function leave() {
+    if (!uid) return Promise.resolve(false);
+    return push()
+      .then(function () {
+        /* DO NOT trust push()'s return value here. It resolves false for
+           two very different reasons - "nothing had changed" and "the
+           upsert failed" - and erasing the device on the second one
+           would destroy the save. `lastPushed` only advances on a
+           CONFIRMED write, so comparing it to what is on disk right now
+           is the honest question: does the vault provably hold this
+           exact state? If not, keep everything. */
+        if (lastPushed !== digest(collect())) return false;
+        wipeLocal();
+        try {
+          sessionStorage.setItem('eol.cloud.cleared', '1');
+        } catch (e) {
+          /* fine */
+        }
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
   }
 
   function init() {
@@ -319,11 +484,28 @@
   window.EOL.cloud = {
     init: init,
     push: push,
+    leave: leave,
     KEYS: KEYS.slice(),
-    /* test hook: the exact document a push would store */
+    /* test hooks */
     _collect: collect,
+    _summarize: summarize,
+    onConflict: function (fn) {
+      conflictHandler = fn;
+    },
     status: function () {
       return uid ? 'on' : 'off';
+    },
+    /* true on the first boot after a sign-out wipe - app.js may greet */
+    cleared: function () {
+      try {
+        if (sessionStorage.getItem('eol.cloud.cleared') === '1') {
+          sessionStorage.removeItem('eol.cloud.cleared');
+          return true;
+        }
+      } catch (e) {
+        /* fine */
+      }
+      return false;
     },
     /* true on the first boot after a vault restore - app.js may greet */
     restored: function () {

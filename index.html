@@ -270,8 +270,10 @@
           <button type="button" class="acct-menu-item" id="acct-settings" role="menuitem">
             <i class="ri-settings-4-line"></i><span>Settings</span>
           </button>
+          <!-- Sign-out saves to the account and then CLEARS this browser,
+               so the label has to say so before the dialog does. -->
           <button type="button" class="acct-menu-item danger" id="acct-logout" role="menuitem">
-            <i class="ri-logout-box-r-line"></i><span>Log out</span>
+            <i class="ri-logout-box-r-line"></i><span>Log out and clear this device</span>
           </button>
         </div>
       </div>
@@ -1423,6 +1425,84 @@
           >
             <i class="ri-discord-fill"></i><span>Open Discord</span>
           </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAVE COLLISION. Shown only when signing into an account that
+         already holds a save WHILE this device is carrying progress of
+         its own. One of the two is about to be destroyed, so the player
+         chooses which - nothing here happens silently. Closing the
+         dialog keeps the device save and signs back out, the only
+         outcome that loses nothing. -->
+    <div
+      class="auth-modal"
+      id="merge-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="merge-title"
+    >
+      <div class="auth-scrim" id="merge-scrim"></div>
+      <div class="auth-card" role="document">
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ri-save-3-line"></i></div>
+          <h2 class="auth-title" id="merge-title">Two saves, one account</h2>
+          <p class="auth-sub">
+            This account already has progress saved, and so does this device. Keeping one
+            <b>replaces</b> the other. This cannot be undone.
+          </p>
+        </div>
+        <div class="merge-choices">
+          <button type="button" class="merge-choice" id="merge-keep-cloud">
+            <span class="merge-choice-head">
+              <i class="ri-cloud-line"></i><span>Keep the account save</span>
+            </span>
+            <span class="merge-stats" id="merge-cloud-stats"></span>
+            <span class="merge-note">This device's progress is discarded.</span>
+          </button>
+          <button type="button" class="merge-choice" id="merge-keep-local">
+            <span class="merge-choice-head">
+              <i class="ri-gamepad-line"></i><span>Keep this device's save</span>
+            </span>
+            <span class="merge-stats" id="merge-local-stats"></span>
+            <span class="merge-note">The account's saved progress is overwritten.</span>
+          </button>
+        </div>
+        <button type="button" class="btn btn-ghost uname-skip" id="merge-cancel">
+          <i class="ri-arrow-go-back-line"></i><span>Cancel and stay signed out</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SIGN OUT. Destructive on purpose: the account is the save, so a
+         signed-out browser must not keep a copy of it. -->
+    <div
+      class="auth-modal"
+      id="signout-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="signout-title"
+    >
+      <div class="auth-scrim" id="signout-scrim"></div>
+      <div class="auth-card" role="document">
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ri-logout-box-r-line"></i></div>
+          <h2 class="auth-title" id="signout-title">Sign out of this device?</h2>
+          <p class="auth-sub" id="signout-sub">
+            Your progress is saved to your account first, then cleared from this browser. Sign back
+            in anywhere to pick it up again.
+          </p>
+        </div>
+        <p class="auth-foot" id="signout-foot"></p>
+        <div class="merge-actions">
+          <button type="button" class="btn btn-primary auth-submit" id="signout-confirm">
+            <i class="ri-check-line"></i><span>Save and sign out</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="signout-cancel">
+            <i class="ri-close-line"></i><span>Stay signed in</span>
+          </button>
         </div>
       </div>
     </div>

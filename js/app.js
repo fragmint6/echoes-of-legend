@@ -1137,7 +1137,8 @@
       } else {
         foot.innerHTML =
           '<i class="ri-information-line"></i>Signed-out progress stays in this browser. ' +
-          'Create an account for cloud backup; signing into an existing account restores that account’s save. ' +
+          'Create an account for cloud backup; signing into an existing account restores that account’s save, ' +
+          'and you choose which to keep if this device already has progress. ' +
           'Accounts also unlock multiplayer and official Daily Puzzles.';
       }
       if (kind) {
@@ -1288,7 +1289,7 @@
     if (acctMenu) {
       document.getElementById('acct-logout').addEventListener('click', function () {
         toggleAcctMenu(false);
-        A.signOut();
+        confirmSignOut();
       });
       document.getElementById('acct-login').addEventListener('click', function () {
         toggleAcctMenu(false);
@@ -1306,6 +1307,150 @@
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') toggleAcctMenu(false);
       });
+    }
+
+    /* ---------------------------------------------------------
+       SAVE COLLISION
+       ---------------------------------------------------------
+       js/cloud.js calls this when signing in would destroy one of two
+       real saves. It must RESOLVE with the player's choice:
+
+         'local'  keep this device, overwrite the account
+         'cloud'  restore the account, discard this device
+         null     cancel - change nothing and sign back out
+
+       Nothing is decided here; the vault performs the write. Rendering
+       the numbers is the whole job, because they are the only reason a
+       player can answer the question at all. */
+    function describeSave(s) {
+      if (!s) return '<span class="merge-empty">nothing saved</span>';
+      var bits = [];
+      if (s.coins) bits.push('<b>' + s.coins.toLocaleString() + '</b> coins');
+      if (s.cards) bits.push('<b>' + s.cards + '</b> cards');
+      if (s.gates) bits.push('<b>' + s.gates + '</b> gates cleared');
+      if (s.decks) bits.push('<b>' + s.decks + '</b> decks');
+      if (!bits.length) return '<span class="merge-empty">no progress yet</span>';
+      return bits
+        .map(function (b) {
+          return '<span>' + b + '</span>';
+        })
+        .join('');
+    }
+
+    function askSaveConflict(summaries) {
+      var modal = document.getElementById('merge-modal');
+      /* No dialog in the document (headless tests): fall back to the
+         historical behaviour rather than blocking the sign-in. */
+      if (!modal) return 'cloud';
+
+      document.getElementById('merge-cloud-stats').innerHTML = describeSave(summaries.cloud);
+      document.getElementById('merge-local-stats').innerHTML = describeSave(summaries.local);
+
+      modal.hidden = false;
+      document.body.dataset.modal = '1';
+
+      return new Promise(function (resolve) {
+        var done = false;
+        function finish(choice) {
+          if (done) return;
+          done = true;
+          modal.hidden = true;
+          delete document.body.dataset.modal;
+          document.removeEventListener('keydown', onKey);
+          resolve(choice);
+        }
+        function onKey(e) {
+          if (e.key === 'Escape') finish(null);
+        }
+        document.getElementById('merge-keep-cloud').onclick = function () {
+          finish('cloud');
+        };
+        document.getElementById('merge-keep-local').onclick = function () {
+          finish('local');
+        };
+        document.getElementById('merge-cancel').onclick = function () {
+          finish(null);
+        };
+        document.getElementById('merge-scrim').onclick = function () {
+          finish(null);
+        };
+        document.addEventListener('keydown', onKey);
+        document.getElementById('merge-keep-cloud').focus();
+      });
+    }
+    if (window.EOL.cloud && window.EOL.cloud.onConflict) {
+      window.EOL.cloud.onConflict(askSaveConflict);
+    }
+
+    /* ---------------------------------------------------------
+       SIGN OUT
+       ---------------------------------------------------------
+       Destructive by design: the account is the save, so a browser
+       that is no longer signed in must not keep a copy of it. The
+       vault flushes first and only erases if that flush succeeded,
+       so this can be confirmed without risking the save. */
+    function confirmSignOut() {
+      var modal = document.getElementById('signout-modal');
+      var C = window.EOL.cloud;
+      if (!modal) {
+        /* headless: preserve the old direct path */
+        if (C && C.leave) return C.leave().then(reloadAfterSignOut);
+        return A.signOut();
+      }
+      var foot = document.getElementById('signout-foot');
+      var confirm = document.getElementById('signout-confirm');
+      var cancel = document.getElementById('signout-cancel');
+      if (foot) foot.innerHTML = '';
+      confirm.disabled = false;
+      modal.hidden = false;
+      document.body.dataset.modal = '1';
+
+      function close() {
+        modal.hidden = true;
+        delete document.body.dataset.modal;
+        document.removeEventListener('keydown', onKey);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          close();
+        }
+      }
+      document.addEventListener('keydown', onKey);
+      cancel.onclick = close;
+      document.getElementById('signout-scrim').onclick = close;
+      confirm.onclick = function () {
+        confirm.disabled = true;
+        if (foot) {
+          foot.className = 'auth-foot';
+          foot.innerHTML = '<i class="ri-loader-4-line"></i>Saving to your account...';
+        }
+        var job = C && C.leave ? C.leave() : Promise.resolve(true);
+        job.then(function (okToLeave) {
+          if (!okToLeave) {
+            /* The flush failed, so the wipe never ran. Staying signed in
+               with the save intact is strictly better than signing out
+               and losing whatever had not reached the vault. */
+            confirm.disabled = false;
+            if (foot) {
+              foot.className = 'auth-foot warn';
+              foot.innerHTML =
+                '<i class="ri-error-warning-line"></i>' +
+                'Could not reach your account, so nothing was cleared. ' +
+                'Check your connection and try again.';
+            }
+            return;
+          }
+          close();
+          A.signOut().then(reloadAfterSignOut, reloadAfterSignOut);
+        });
+      };
+    }
+
+    /* One clean boot after the wipe: every module re-seeds its own
+       first-run state (starter deck, tutorial) instead of reading the
+       emptied keys mid-session. */
+    function reloadAfterSignOut() {
+      window.location.reload();
     }
 
     /* ---------------------------------------------------------
@@ -1644,10 +1789,17 @@
     initScale();
     initMenuParticles();
     if (window.EOL.auth) window.EOL.auth.init();
+    /* initAuth FIRST: it installs the save-collision handler that
+       cloud.init()'s very first pull may need. Registering it after the
+       vault has already started would let a sign-in that is restoring a
+       session at boot resolve the collision silently. */
+    initAuth();
     if (window.EOL.cloud) window.EOL.cloud.init();
     if (window.EOL.cloud && window.EOL.cloud.restored() && window.EOL.ui && window.EOL.ui.toast)
       window.EOL.ui.toast('Your save was restored from your account', 'ri-cloud-line');
-    initAuth();
+    if (window.EOL.cloud && window.EOL.cloud.cleared && window.EOL.cloud.cleared())
+      if (window.EOL.ui && window.EOL.ui.toast)
+        window.EOL.ui.toast('Signed out - this device was cleared', 'ri-logout-box-r-line');
     if (!ROSTER.length) {
       console.error('[EOL] No faction data loaded.');
       return;

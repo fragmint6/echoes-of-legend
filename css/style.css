@@ -19369,6 +19369,98 @@ html.mqw560 .set-block {
 }
 
 /* =============================================================
+   SAVE COLLISION + SIGN OUT
+   -------------------------------------------------------------
+   Two dialogs that destroy progress, so both state the cost in the
+   control itself rather than in fine print underneath it. They
+   borrow .auth-modal / .auth-card wholesale; only the choice tiles
+   and the stat lines are new.
+   ============================================================= */
+.merge-choices {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.merge-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+.merge-choice:hover,
+.merge-choice:focus-visible {
+  border-color: var(--gold, #d9b45a);
+  background: rgba(217, 180, 90, 0.1);
+  transform: translateY(-1px);
+}
+
+.merge-choice-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.merge-choice-head i {
+  font-size: 1.15em;
+  color: var(--gold, #d9b45a);
+}
+
+/* The evidence the choice is made on: coins, cards, gates, decks. */
+.merge-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.86em;
+  opacity: 0.9;
+}
+.merge-stats b {
+  font-variant-numeric: tabular-nums;
+}
+.merge-stats .merge-empty {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+.merge-note {
+  font-size: 0.8em;
+  opacity: 0.62;
+}
+
+.merge-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+.merge-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merge-choice {
+    transition: none;
+  }
+  .merge-choice:hover,
+  .merge-choice:focus-visible {
+    transform: none;
+  }
+}
+
+/* =============================================================
    AOE DETONATION SUITE v2 (2026-08)
    -------------------------------------------------------------
    Rebuild of the area-of-effect presentation. The old blast was a
