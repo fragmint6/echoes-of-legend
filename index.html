@@ -2,6 +2,55 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      /* GOOGLE OAUTH POPUP RELAY.
+         Google sends the player back to this same page inside the popup
+         window js/auth.js opened. Without this, that popup would boot a
+         whole second copy of the game and the original tab would never
+         learn the sign-in succeeded.
+
+         This must be the FIRST script in the document: it has to run
+         before any stylesheet, font or module starts loading, since all
+         of that work is wasted in a window that is about to close.
+
+         It only acts inside our own named popup that also carries an
+         OAuth result, so a normal page load is completely untouched. */
+      (function () {
+        try {
+          if (window.name !== 'eol-oauth' || !window.opener || window.opener.closed) return;
+          var q = new URLSearchParams(window.location.search);
+          var h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+          var msg = null;
+          if (q.get('error') || h.get('error')) {
+            msg = {
+              source: 'eol-oauth',
+              error:
+                q.get('error_description') ||
+                h.get('error_description') ||
+                q.get('error') ||
+                h.get('error'),
+            };
+          } else if (q.get('code')) {
+            /* PKCE: the opener holds the verifier, so it does the exchange. */
+            msg = { source: 'eol-oauth', code: q.get('code') };
+          } else if (h.get('access_token')) {
+            msg = {
+              source: 'eol-oauth',
+              access_token: h.get('access_token'),
+              refresh_token: h.get('refresh_token'),
+            };
+          }
+          if (!msg) return; /* not an OAuth return - let the page boot */
+          document.documentElement.innerHTML = '';
+          window.opener.postMessage(msg, window.location.origin);
+          window.close();
+          /* If the browser refuses to close us, at least stop the boot. */
+          window.stop && window.stop();
+        } catch (e) {
+          /* Never let this break a normal load. */
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Echoes of Legend</title>
     <meta
@@ -1063,11 +1112,6 @@
           </p>
         </div>
 
-        <p class="auth-foot" id="auth-foot">
-          <i class="ri-information-line"></i>
-          Signed-out progress stays in this browser. Create an account to back it up to the cloud.
-        </p>
-
         <div class="auth-tabs" role="tablist">
           <button type="button" class="auth-tab sel" data-mode="in" role="tab" aria-selected="true">
             Sign in
@@ -1119,6 +1163,15 @@
             <i class="ri-login-box-line"></i><span id="auth-submit-txt">Sign in</span>
           </button>
         </form>
+
+        <!-- The footnote lives BELOW the form, like every other modal in
+             the game. It used to sit between the header and the tabs,
+             where a two-line message shoved the tabs, Google button and
+             fields together and made the whole card read as cramped. -->
+        <p class="auth-foot" id="auth-foot">
+          <i class="ri-information-line"></i>
+          Signed-out progress stays in this browser. Create an account to back it up to the cloud.
+        </p>
       </div>
     </div>
     <div

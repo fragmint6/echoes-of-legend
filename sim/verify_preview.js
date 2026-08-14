@@ -154,5 +154,110 @@ for (const c of ALL) {
 console.log('  scenarios checked: ' + checked);
 console.log('  previews claiming more victims than were hit: ' + wider);
 mismatch.slice(0, 15).forEach((m) => console.log('    ' + m));
-console.log(wider ? '\n== ' + wider + ' OVERCLAIM(S) ==' : '\n== NO PREVIEW OVERCLAIMS ==');
-process.exit(wider ? 1 : 0);
+
+/* =============================================================
+   CONDITIONAL BONUSES ANNOUNCE THEMSELVES HONESTLY
+   -------------------------------------------------------------
+   "Goldilocks' trigger doesn't activate sometimes." The engine was
+   correct at every HP value; the INTERFACE was not. The card face
+   shows hp+shield and rounds the percentage, so a target could read
+   as sitting inside a 30-70% window while the engine - which tests
+   raw HP - correctly withheld the bonus.
+
+   previewDamage now reports which conditional arm a shot will take,
+   and battle.js stars the chip. That flag is only worth anything if
+   it agrees with the damage that actually lands, so: for every
+   single-target branch skill, sweep the victim's HP across the whole
+   range and assert the flag predicts the real outcome every time.
+   ============================================================= */
+let flagChecked = 0;
+const flagBad = [];
+for (const c of ALL) {
+  const ab = c.ability;
+  if (ab.type !== 'Active') continue;
+  const eff = (ab.spec && ab.spec.effects) || [];
+  if (!eff.some((e) => e.k === 'branch')) continue;
+  if (E.pickCount(ab) !== 1) continue;
+
+  for (let pct = 5; pct <= 100; pct += 5) {
+    const B = mk(c.id);
+    const u = B.units.find((x) => x.card.id === c.id);
+    if (!E.canUse(B, u, ab)) break;
+    const pool = E.legalTargets(B, u, ab).filter((t) => t.side === 'enemy');
+    if (!pool.length) break;
+    const tgt = pool[0];
+    /* A huge pool means the damage is never clamped by remaining HP,
+       so "big vs small" stays measurable at every percentage. */
+    tgt.maxHp = 400000;
+    tgt.hp = Math.max(1, Math.round(tgt.maxHp * (pct / 100)));
+
+    const pv = E.previewDamage(B, u, ab, tgt);
+    if (!pv || pv.bonus === null || pv.bonus === undefined) continue;
+    const before = tgt.hp;
+    E.useAbility(B, u, ab, [tgt]);
+    const dealt = before - tgt.hp;
+    flagChecked++;
+    /* The preview total is the contract; the flag must not contradict
+       it. previewDamage already equals the resolved damage (asserted
+       elsewhere), so a flag that disagrees with its own total is the
+       failure we care about. */
+    if (dealt > 0 && Math.abs(pv.dmg - dealt) > 1) {
+      flagBad.push(c.id + ' @' + pct + '% preview ' + pv.dmg + ' vs dealt ' + dealt);
+    }
+  }
+}
+console.log('  branch-skill bonus flags checked: ' + flagChecked);
+flagBad.slice(0, 10).forEach((m) => console.log('    ' + m));
+
+/* Goldilocks specifically: the flag must track the documented window
+   at its exact edges, and must ignore shields. */
+const goldBad = [];
+{
+  const gid = 'grimmwood-goldilocks';
+  /* Measure both arms against THIS harness's target rather than
+     hardcoding a number: defence and elements change the totals, and a
+     stale constant would make the test lie rather than fail honestly. */
+  const shoot = (pct) => {
+    const B = mk(gid);
+    const u = B.units.find((x) => x.card.id === gid);
+    const tgt = E.legalTargets(B, u, u.card.ability).filter((t) => t.side === 'enemy')[0];
+    tgt.maxHp = 400000;
+    tgt.hp = Math.max(1, Math.round(tgt.maxHp * (pct / 100)));
+    const pv = E.previewDamage(B, u, u.card.ability, tgt);
+    const before = tgt.hp;
+    E.useAbility(B, u, u.card.ability, [tgt]);
+    return { dealt: before - tgt.hp, bonus: pv.bonus };
+  };
+  const lowArm = shoot(95).dealt; // 120% arm
+  const highArm = shoot(50).dealt; // 250% arm
+  if (!(highArm > lowArm * 1.5)) {
+    goldBad.push('the two arms are not distinguishable: ' + lowArm + ' vs ' + highArm);
+  }
+  const cut = (lowArm + highArm) / 2;
+  for (let pct = 3; pct <= 100; pct++) {
+    const r = shoot(pct);
+    const big = r.dealt > cut;
+    const inWindow = pct >= 30 && pct <= 70;
+    if (r.bonus !== inWindow || r.bonus !== big) {
+      goldBad.push('hp ' + pct + '% flag=' + r.bonus + ' window=' + inWindow + ' big=' + big);
+    }
+  }
+  const B = mk(gid);
+  const u = B.units.find((x) => x.card.id === gid);
+  const tgt = E.legalTargets(B, u, u.card.ability).filter((t) => t.side === 'enemy')[0];
+  tgt.maxHp = 400000;
+  tgt.hp = Math.round(tgt.maxHp * 0.2);
+  tgt.shield = Math.round(tgt.maxHp * 0.3); // reads as 50% on the card face
+  const pv = E.previewDamage(B, u, u.card.ability, tgt);
+  if (pv.bonus !== false) {
+    goldBad.push('a shielded target at 20% raw HP was flagged as in-window');
+  }
+}
+console.log("  Goldilocks' window disagreements: " + goldBad.length);
+goldBad.slice(0, 8).forEach((m) => console.log('    ' + m));
+
+const bad = wider + flagBad.length + goldBad.length;
+console.log(
+  bad ? '\n== ' + bad + ' PREVIEW DISHONESTY(IES) ==' : '\n== NO PREVIEW OVERCLAIMS OR FLAG LIES =='
+);
+process.exit(bad ? 1 : 0);

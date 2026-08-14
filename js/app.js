@@ -1231,7 +1231,8 @@
 
     document.getElementById('auth-google').addEventListener('click', function () {
       if (!guard()) return;
-      run(A.signInWithGoogle(), 'Redirecting to Google...');
+      /* A popup now, not a redirect - the game keeps running behind it. */
+      run(A.signInWithGoogle(), 'Waiting for Google...');
     });
 
     document.getElementById('auth-form').addEventListener('submit', function (e) {

@@ -352,6 +352,67 @@ section('E. an anonymous session is not an account');
     /:not\(\[data-portal-user\]\) \.acct-btn \{[\s\S]{0,160}border-radius: 50%/.test(platformCss),
     'a signed-out portal player gets a plain settings button, not a hollow profile pill'
   );
+
+  /* ---- GOOGLE SIGN-IN IS A POPUP ---------------------------------
+     A full-page redirect tore down the running game to sign in. The
+     popup must be opened synchronously inside the click (or the
+     browser blocks it), must survive being blocked, and the relay in
+     index.html must never disturb an ordinary page load. */
+  const auth = read('js/auth.js');
+  ok(
+    /window\.open\('', 'eol-oauth'/.test(auth),
+    'Google sign-in opens a popup rather than navigating the game away'
+  );
+  ok(
+    auth.indexOf("window.open('', 'eol-oauth'") <
+      auth.indexOf('skipBrowserRedirect: true'),
+    'the popup is opened BEFORE awaiting the provider URL, so it is not treated as unrequested'
+  );
+  ok(
+    /if \(!popup \|\| popup\.closed\)[\s\S]{0,320}signInWithOAuth/.test(auth),
+    'a blocked popup falls back to the old full-page redirect instead of failing'
+  );
+  ok(
+    /ev\.origin !== origin/.test(auth),
+    'the opener only accepts an OAuth message from its own origin'
+  );
+  ok(
+    /exchangeCodeForSession/.test(auth) && /setSession/.test(auth),
+    'both the PKCE code and implicit-token shapes are handled'
+  );
+  ok(
+    /gone = !popup \|\| popup\.closed/.test(auth) &&
+      /Google sign-in was cancelled/.test(auth),
+    'closing the popup rejects instead of leaving the modal spinning forever'
+  );
+  ok(
+    /getSession\(\)[\s\S]{0,400}Google sign-in was cancelled/.test(auth),
+    'but a session that landed as the popup closed is still honoured, not called a cancel'
+  );
+
+  const page = read('index.html');
+  ok(
+    page.indexOf("window.name !== 'eol-oauth'") < page.indexOf('js/platform.js'),
+    'the OAuth relay runs before any game module loads'
+  );
+  ok(
+    /window\.name !== 'eol-oauth' \|\| !window\.opener/.test(page),
+    'and does nothing at all in a normal (non-popup) page load'
+  );
+  ok(
+    /postMessage\(msg, window\.location\.origin\)/.test(page),
+    'the relay posts to its own origin, never a wildcard'
+  );
+
+  /* ---- THE AUTH MODAL IS NOT CRAMPED ------------------------------
+     The footnote used to sit between the header and the tabs, so a
+     two-line message squeezed the tabs, Google button and fields
+     together. It belongs at the bottom, like every other modal. */
+  const authCard = page.slice(page.indexOf('id="auth-modal"'), page.indexOf('id="settings-modal"'));
+  ok(
+    authCard.indexOf('id="auth-foot"') > authCard.indexOf('id="auth-form"'),
+    'the sign-in footnote sits below the form, not wedged into the header'
+  );
 }
 
 console.log('\n================================================================');

@@ -768,16 +768,151 @@
       fn(publicUser());
     },
 
+    /* GOOGLE SIGN-IN OPENS A POPUP, NOT A FULL-PAGE REDIRECT.
+       Navigating the whole tab away mid-session tears down the running
+       game: an unsaved battle, an open prep screen and the boot cost of
+       coming back. The popup keeps the game alive underneath.
+
+       The popup is opened SYNCHRONOUSLY inside the click handler -
+       browsers only allow that inside a user gesture, and awaiting the
+       provider URL first is exactly what gets a popup blocked. If the
+       browser blocks it anyway (or we are inside an iframe that
+       forbids popups) we fall back to the old full-page redirect, so
+       sign-in still works everywhere it used to. */
     signInWithGoogle: function () {
       if (!client) return Promise.reject(new Error('offline'));
+      var origin = window.location.origin;
+      var back = cfg().redirectTo || window.location.href.split('#')[0];
+
+      var popup = null;
+      try {
+        /* The name is the handshake: index.html's early boot script
+           looks for it and hands the result back instead of booting
+           a second copy of the game inside the popup. */
+        popup = window.open('', 'eol-oauth', 'width=520,height=640,noopener=no,noreferrer=no');
+      } catch (e) {
+        popup = null;
+      }
+
+      if (!popup || popup.closed) {
+        /* Blocked. Do what we have always done. */
+        return client.auth
+          .signInWithOAuth({ provider: 'google', options: { redirectTo: back } })
+          .then(function (res) {
+            if (res.error) throw res.error;
+            return res;
+          });
+      }
+
+      try {
+        popup.document.write(
+          '<!doctype html><meta charset="utf-8"><title>Signing in...</title>' +
+            '<body style="margin:0;display:grid;place-items:center;height:100vh;' +
+            'background:#0b0e18;color:#8b93ad;font:14px system-ui,sans-serif">' +
+            'Connecting to Google...</body>'
+        );
+      } catch (e) {
+        /* cross-origin already, or a browser that will not let us write
+           into a blank popup - harmless, the navigation below still runs */
+      }
+
       return client.auth
         .signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: cfg().redirectTo || window.location.href.split('#')[0] },
+          options: { redirectTo: back, skipBrowserRedirect: true },
         })
         .then(function (res) {
           if (res.error) throw res.error;
-          return res;
+          var url = res.data && res.data.url;
+          if (!url) throw new Error('Google sign-in is unavailable right now.');
+          popup.location.href = url;
+
+          return new Promise(function (resolve, reject) {
+            var settled = false;
+            var poll = null;
+
+            function cleanup() {
+              settled = true;
+              window.removeEventListener('message', onMsg);
+              if (poll) clearInterval(poll);
+              try {
+                if (popup && !popup.closed) popup.close();
+              } catch (e) {
+                /* already gone */
+              }
+            }
+
+            function onMsg(ev) {
+              if (settled) return;
+              /* The popup is same-origin: anything else is not ours. */
+              if (ev.origin !== origin) return;
+              var d = ev.data;
+              if (!d || d.source !== 'eol-oauth') return;
+
+              if (d.error) {
+                cleanup();
+                reject(new Error(d.error));
+                return;
+              }
+              /* Two shapes, because the provider flow decides which:
+                 PKCE returns a one-time ?code=, implicit returns the
+                 tokens directly in the hash. The code is exchanged HERE
+                 rather than in the popup, because the matching verifier
+                 lives in this window's client. */
+              var done = d.code
+                ? client.auth.exchangeCodeForSession(d.code)
+                : d.access_token
+                  ? client.auth.setSession({
+                      access_token: d.access_token,
+                      refresh_token: d.refresh_token,
+                    })
+                  : null;
+              if (!done) return;
+              cleanup();
+              done
+                .then(function (r) {
+                  if (r && r.error) throw r.error;
+                  resolve(r);
+                })
+                .catch(reject);
+            }
+
+            window.addEventListener('message', onMsg);
+
+            /* The player closed the window, or it died. Do not leave the
+               modal spinning "Signing in..." forever. */
+            poll = setInterval(function () {
+              var gone = false;
+              try {
+                gone = !popup || popup.closed;
+              } catch (e) {
+                gone = false;
+              }
+              if (!gone || settled) return;
+              cleanup();
+              /* A session may still have arrived via storage if the
+                 popup completed just as it closed - check before
+                 calling it a failure. */
+              client.auth
+                .getSession()
+                .then(function (r) {
+                  var s = r && r.data ? r.data.session : null;
+                  if (s) resolve({ data: { session: s }, error: null });
+                  else reject(new Error('Google sign-in was cancelled.'));
+                })
+                .catch(function () {
+                  reject(new Error('Google sign-in was cancelled.'));
+                });
+            }, 500);
+          });
+        })
+        .catch(function (err) {
+          try {
+            if (popup && !popup.closed) popup.close();
+          } catch (e) {
+            /* nothing to close */
+          }
+          throw err;
         });
     },
 

@@ -416,6 +416,12 @@
       }
       var total = 0;
       var found = false;
+      /* Did a conditional arm decide this number, and did it pass? The
+         UI surfaces this so a player can see WHY the damage is what it
+         is - an HP window that reads as "should have fired" from the
+         card face is the single most-reported confusion (Goldilocks).
+         Null when the ability has no branch at all. */
+      var bonusArm = null;
       /* Walk conditional branches as the resolver does. Previously the
          preview only saw top-level `dmg` entries, so branch-based
          executes (Anubis/Gilgamesh, and now Goldilocks) showed no number
@@ -430,6 +436,7 @@
                   return u.side === unit.side && !u.alive;
                 }) === !!e.cond.anyAllyFallen;
             }
+            if (bonusArm === null) bonusArm = !!pass;
             scan(pass ? e.then : e.other || e.else);
             return;
           }
@@ -469,6 +476,9 @@
         dmg: total,
         crit: Math.round(total * CRIT_MULT),
         critChance: Math.max(0, Math.round(critOf(unit))),
+        /* true = the ability's conditional bonus applies to THIS target
+           right now, false = it does not, null = no conditional. */
+        bonus: bonusArm,
       };
     } catch (e) {
       return null; // a broken preview must never break a fight

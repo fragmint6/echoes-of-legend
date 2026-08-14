@@ -570,9 +570,34 @@
         ? '<span class="bbar-shield" style="width:' + shieldPct + '%"></span>'
         : '') +
       '</span>' +
+      /* The number shown is HP + SHIELD (what you must chew through),
+         but every HP-percentage condition in the game tests RAW HP. A
+         shielded hero can therefore read as "half health" while the
+         engine sees them near death. The title spells out the split so
+         the difference is inspectable rather than a trap. */
       '<span class="bhp-txt' +
       (!deadView && u.shield > 0 ? ' shielded' : '') +
-      '">' +
+      '"' +
+      (deadView
+        ? ''
+        : ' title="' +
+          esc(
+            u.shield > 0
+              ? Math.ceil(u.hp).toLocaleString() +
+                ' HP + ' +
+                Math.ceil(u.shield).toLocaleString() +
+                ' shield (' +
+                Math.round((u.hp / u.maxHp) * 100) +
+                '% HP - shields do not count toward HP conditions)'
+              : Math.ceil(u.hp).toLocaleString() +
+                ' / ' +
+                Math.ceil(u.maxHp).toLocaleString() +
+                ' HP (' +
+                Math.round((u.hp / u.maxHp) * 100) +
+                '%)'
+          ) +
+          '"') +
+      '>' +
       (deadView ? '0' : Math.ceil(u.hp + u.shield).toLocaleString()) +
       '</span>' +
       '</div>' +
@@ -1218,16 +1243,37 @@
               }
               var lethal = pv.dmg >= u.hp + u.shield;
               chip.classList.toggle('lethal', lethal);
+              /* CONDITIONAL BONUSES ANNOUNCE THEMSELVES. Goldilocks'
+                 "between 30% and 70% HP" (and every other branch skill)
+                 was invisible until after the cast, and the HP a player
+                 reads off the card includes SHIELD - so a target could
+                 look squarely inside the window while the engine, which
+                 tests raw HP, correctly refused the bonus. The star says
+                 which arm this exact shot will take, before committing. */
+              chip.classList.toggle('bonus', pv.bonus === true);
               chip.innerHTML =
                 '<i data-icon-domain="game" class="ra ra-sword"></i>' +
                 pv.dmg.toLocaleString() +
+                (pv.bonus === true
+                  ? '<i data-icon-domain="game" class="ra ra-star-formation dp-bonus"></i>'
+                  : '') +
                 (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
               chip.title =
                 'Estimated damage (before crits). Crit chance ' +
                 pv.critChance +
                 '%: ' +
                 pv.crit.toLocaleString() +
-                (lethal ? '. Lethal.' : '.');
+                (lethal ? '. Lethal.' : '.') +
+                (pv.bonus === true
+                  ? ' This Skill’s bonus condition is met on this target.'
+                  : pv.bonus === false
+                    ? ' This Skill’s bonus condition is NOT met on this target' +
+                      (u.shield > 0
+                        ? ' - HP conditions ignore shields, and this target has ' +
+                          Math.ceil(u.shield).toLocaleString() +
+                          ' shield.'
+                        : '.')
+                    : '');
             }
           }
         }
@@ -1717,7 +1763,13 @@
       statLine(
         'ra-health',
         'HP',
-        Math.max(0, Math.ceil((u.hp / u.maxHp) * 100)) + '%',
+        /* ROUND, DO NOT CEIL. Math.ceil turned 29.01% into "30%", which
+           put the displayed number inside Goldilocks' 30-70% window
+           while the engine (correctly) read 29.01% and withheld the
+           bonus - the card said the trigger should fire and it did not.
+           Rounding is off by at most half a point and never crosses a
+           threshold the engine has not also crossed. */
+        Math.max(0, Math.round((u.hp / u.maxHp) * 100)) + '%',
         (u.hp / u.maxHp) * 100,
         '#ff5f7e'
       ) +
@@ -4201,7 +4253,12 @@
     var reduced =
       document.body.dataset.gfx === 'low' ||
       (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    var landAt = reduced ? 360 : 1510;
+    /* IMPACT IS AT 1450ms, NOT 1510ms. The flight keyframes put the
+       coin on the table at 96% of a 1.51s animation, and js/audio.js
+       already rings its landing tone at t+1.45s. Firing the land pulse,
+       sparks and result label at 1510 left them 60ms late - just enough
+       to read as a separate event from the impact. */
+    var landAt = reduced ? 360 : 1450;
     var fadeAt = reduced ? 1740 : 2780;
     var doneAt = reduced ? 1940 : 3000;
     if (window.EOL.audio) {
