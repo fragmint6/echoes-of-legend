@@ -232,25 +232,42 @@ resume on **both** `adFinished` and `adError`; midgame ads have a ~3 min
 cooldown. Do **not** call `gameplayStop` on focus loss or on leaving the
 game area — CrazyGames handles that itself.
 
-## Making the upload zip
+## Making the upload build
 
-`./tools/make_cg_build.sh` writes `../echoes-of-legend-cg.zip` containing
-exactly what the game loads - `index.html`, `assets`, `css`, `data`,
-`js` - with `index.html` at the ZIP ROOT, which CrazyGames requires.
+```bash
+./tools/make_cg_build.sh          # -> ../echoes-of-legend-cg/   (folder, default)
+./tools/make_cg_build.sh --zip    # -> ../echoes-of-legend-cg.zip
+```
 
-It leaves out `.git`, `sim`, `docs`, `tools`, `rune-lab.html`, and the
-unreferenced `assets/rivals-src` working art (~2 MB saved).
+Either is accepted by the dashboard. The script copies exactly what the
+game loads - `index.html`, `assets`, `css`, `data`, `js` - with
+**index.html at the top level**, which CrazyGames requires.
 
-**`supabase/` is not part of the upload.** The Edge Function runs on
-Supabase's servers, not in the browser: the game reaches it over https
-at `<project>/functions/v1/cg-auth`. So `supabase functions deploy` is
-run ONCE from the git repo against your project - not per upload, and
-never from the copied build folder. Re-uploading the game does not
-require redeploying the function, and vice versa.
+Left out: `.git`, `sim`, `docs`, `tools`, `supabase`, `rune-lab.html`,
+and `assets/rivals-src` (~1.2 MB of unreferenced source art).
 
 `js/dev.js` IS included and that is correct: `index.html` only injects
 it when `platform.devConsole` is true, which is false on the portal
-build, so it never loads there.
+build, so it never loads there. Removing it would break the web build.
+
+Before it declares success the script checks that every local `src`/
+`href` in `index.html` resolves inside the build (including the two
+scripts injected via `document.write`, which a naive scan misses), that
+no `.sql`/`.md` leaked in, and that no secret key is present. Any of
+those aborts the build.
+
+### The Edge Function is NOT part of the build
+
+`supabase/functions/cg-auth` runs on **Supabase's servers**, not in the
+browser - the game calls it over https at
+`<project>/functions/v1/cg-auth`.
+
+So `supabase functions deploy` is a **one-time** step, run from the git
+repo against your project. It is not repeated per copy, per upload, or
+per build, and it is never run from the build folder (which has no
+`supabase/` directory at all). Re-uploading the game never requires
+redeploying the function; changing the function never requires
+re-uploading the game.
 
 ## CrazyGames accounts (shipped)
 
