@@ -1284,6 +1284,19 @@
         pv.crit.toLocaleString() +
         '</b></div>';
     }
+    /* WHY A BIGGER NUMBER THAN THEIR HP STILL WILL NOT KILL.
+       Provoke recovery heals the target before the blow lands, so the
+       pool this hit must beat is larger than the HP bar shows. Saying
+       so is the difference between "the tank cheated" and "their
+       Skill is doing what it says". */
+    if (pv.preHeal > 0) {
+      foot +=
+        '<div class="dpb-note">Recovers <b>' +
+        Math.round(pv.preHeal).toLocaleString() +
+        '</b> HP before this hit lands, so it must beat <b>' +
+        Math.round(pv.effectiveHp).toLocaleString() +
+        '</b>.</div>';
+    }
     if (lethal) foot += '<div class="dpb-note kill">This is lethal.</div>';
     if (pv.bonus === true) {
       foot += '<div class="dpb-note good">The Skill\u2019s bonus condition is met.</div>';
@@ -1339,7 +1352,10 @@
                 chip.className = 'dmg-preview';
                 el.appendChild(chip);
               }
-              var lethal = pv.dmg >= u.hp + u.shield;
+              /* Ask the engine, do not re-derive it. Some targets heal
+                 BEFORE the blow lands (Provoke recovery), so hp+shield
+                 is not the pool this hit has to beat. */
+              var lethal = pv.lethal;
               chip.classList.toggle('lethal', lethal);
               /* CONDITIONAL BONUSES ANNOUNCE THEMSELVES. Goldilocks'
                  "between 30% and 70% HP" (and every other branch skill)
@@ -1415,13 +1431,11 @@
           var pv = E.previewDamage(B, u, ability, t, choose || 0);
           if (pv) {
             var chip = document.createElement('span');
-            chip.className = 'dmg-preview' + (pv.dmg >= t.hp + t.shield ? ' lethal' : '');
+            chip.className = 'dmg-preview' + (pv.lethal ? ' lethal' : '');
             chip.innerHTML =
               '<i data-icon-domain="game" class="ra ra-sword"></i>' +
               pv.dmg.toLocaleString() +
-              (pv.dmg >= t.hp + t.shield
-                ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>'
-                : '');
+              (pv.lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
             el.appendChild(chip);
           }
         }

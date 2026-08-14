@@ -3837,6 +3837,14 @@
       back: setState.lastSix.back.slice(),
       lockouts: setState.lockedOut.slice(),
       setContinues: true,
+      /* THE LOSER OPENS THE NEXT GAME.
+         Moving first is a real edge - the opener picks the first
+         trade and spends energy into an empty board - so handing it
+         to the player who just lost is the standard concession, and
+         it matches the other consolation this set already gives them:
+         the loser also calls the next battlefield (see setAdvance).
+         Game 1 has no previous game, so it keeps the 50/50 roll. */
+      oddFirst: setState.lastWinner === 'you' ? 'enemy' : 'player',
     };
     prepAnim = true;
     window.EOL.ui.show('prep');

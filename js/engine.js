@@ -531,6 +531,28 @@
       }
       scan(effects);
       if (!found) return null;
+
+      /* THE EFFECTIVE HP THIS BLOW HAS TO GET THROUGH.
+         Provoke recovery (Hansel & Gretel's Lost in the Woods, Run
+         Run Run) heals the target BEFORE the hit resolves - see
+         dealDamage. A preview that reported only `dmg` therefore let
+         the UI compare it against the CURRENT hp and paint a skull on
+         a blow that visibly leaves the target standing at ~4% - which
+         reads as the tank cheating death rather than as the ability
+         doing exactly what its card says.
+
+         The heal is capped at maxHp like any other, so a target near
+         full gains less than the nominal percentage. Reporting the
+         effective pool keeps every caller honest without asking any
+         of them to know this rule. */
+      var preHeal = 0;
+      if (tgt.flags.taunt > 0 && tgt.flags.tauntHeal) {
+        preHeal = Math.min(
+          tgt.maxHp * (tgt.flags.tauntHeal / 100),
+          Math.max(0, tgt.maxHp - tgt.hp)
+        );
+        preHeal = Math.round(preHeal);
+      }
       return {
         dmg: total,
         crit: Math.round(total * CRIT_MULT),
@@ -540,6 +562,11 @@
         bonus: bonusArm,
         /* the arithmetic behind `dmg`, for the hover breakdown */
         hits: hits,
+        /* HP the target recovers before this blow lands (0 for almost
+           everyone), and the total this hit must beat to kill. */
+        preHeal: preHeal,
+        effectiveHp: tgt.hp + tgt.shield + preHeal,
+        lethal: total >= tgt.hp + tgt.shield + preHeal,
       };
     } catch (e) {
       return null; // a broken preview must never break a fight

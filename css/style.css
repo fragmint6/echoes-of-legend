@@ -24409,8 +24409,15 @@ html.mqw640 .nav-guide-text {
   font-size: 13px;
   font-weight: 900;
 }
+/* ABOVE EVERY DECORATION IN THE GRID, NOT JUST THE CARDS.
+   The hover card is the topmost thing in this dialog - it is what the
+   player asked to see. At z-index 7 it tied with the selected tick and
+   lost outright to the "Owned" chip (8), which painted its little grey
+   pill straight through the middle of the panel. The flyout is a
+   sibling of the grid, so one value clears all of them; anything new
+   inside a tile must stay below this. */
 .grant-choice-flyout {
-  z-index: 7;
+  z-index: 20;
 }
 .gc-tile {
   display: flex;
