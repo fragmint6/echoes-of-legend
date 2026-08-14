@@ -1363,78 +1363,6 @@
       });
     }
 
-    /* ---------------------------------------------------------
-       SAVE COLLISION
-       ---------------------------------------------------------
-       js/cloud.js calls this when signing in would destroy one of two
-       real saves. It must RESOLVE with the player's choice:
-
-         'local'  keep this device, overwrite the account
-         'cloud'  restore the account, discard this device
-         null     cancel - change nothing and sign back out
-
-       Nothing is decided here; the vault performs the write. Rendering
-       the numbers is the whole job, because they are the only reason a
-       player can answer the question at all. */
-    function describeSave(s) {
-      if (!s) return '<span class="merge-empty">nothing saved</span>';
-      var bits = [];
-      if (s.coins) bits.push('<b>' + s.coins.toLocaleString() + '</b> coins');
-      if (s.cards) bits.push('<b>' + s.cards + '</b> cards');
-      if (s.gates) bits.push('<b>' + s.gates + '</b> gates cleared');
-      if (s.decks) bits.push('<b>' + s.decks + '</b> decks');
-      if (!bits.length) return '<span class="merge-empty">no progress yet</span>';
-      return bits
-        .map(function (b) {
-          return '<span>' + b + '</span>';
-        })
-        .join('');
-    }
-
-    function askSaveConflict(summaries) {
-      var modal = document.getElementById('merge-modal');
-      /* No dialog in the document (headless tests): fall back to the
-         historical behaviour rather than blocking the sign-in. */
-      if (!modal) return 'cloud';
-
-      document.getElementById('merge-cloud-stats').innerHTML = describeSave(summaries.cloud);
-      document.getElementById('merge-local-stats').innerHTML = describeSave(summaries.local);
-
-      modal.hidden = false;
-      document.body.dataset.modal = '1';
-
-      return new Promise(function (resolve) {
-        var done = false;
-        function finish(choice) {
-          if (done) return;
-          done = true;
-          modal.hidden = true;
-          delete document.body.dataset.modal;
-          document.removeEventListener('keydown', onKey);
-          resolve(choice);
-        }
-        function onKey(e) {
-          if (e.key === 'Escape') finish(null);
-        }
-        document.getElementById('merge-keep-cloud').onclick = function () {
-          finish('cloud');
-        };
-        document.getElementById('merge-keep-local').onclick = function () {
-          finish('local');
-        };
-        document.getElementById('merge-cancel').onclick = function () {
-          finish(null);
-        };
-        document.getElementById('merge-scrim').onclick = function () {
-          finish(null);
-        };
-        document.addEventListener('keydown', onKey);
-        document.getElementById('merge-keep-cloud').focus();
-      });
-    }
-    if (window.EOL.cloud && window.EOL.cloud.onConflict) {
-      window.EOL.cloud.onConflict(askSaveConflict);
-    }
 
     /* ---------------------------------------------------------
        SIGN OUT
@@ -1837,6 +1765,88 @@
     }
   }
 
+  /* ---------------------------------------------------------
+     SAVE COLLISION
+     ---------------------------------------------------------
+     js/cloud.js calls this when signing in would destroy one of two
+     real saves. It must RESOLVE with the player's choice:
+
+       'local'  keep this device, overwrite the account
+       'cloud'  restore the account, discard this device
+       null     cancel - change nothing and sign back out
+
+     Nothing is decided here; the vault performs the write. Rendering
+     the numbers is the whole job, because they are the only reason a
+     player can answer the question at all. */
+  function describeSave(s) {
+    if (!s) return '<span class="merge-empty">nothing saved</span>';
+    var bits = [];
+    if (s.coins) bits.push('<b>' + s.coins.toLocaleString() + '</b> coins');
+    if (s.cards) bits.push('<b>' + s.cards + '</b> cards');
+    if (s.gates) bits.push('<b>' + s.gates + '</b> gates cleared');
+    if (s.decks) bits.push('<b>' + s.decks + '</b> decks');
+    if (!bits.length) return '<span class="merge-empty">no progress yet</span>';
+    return bits
+      .map(function (b) {
+        return '<span>' + b + '</span>';
+      })
+      .join('');
+  }
+
+  function askSaveConflict(summaries) {
+    var modal = document.getElementById('merge-modal');
+    /* No dialog in the document (headless tests): fall back to the
+       historical behaviour rather than blocking the sign-in. */
+    if (!modal) return 'cloud';
+
+    document.getElementById('merge-cloud-stats').innerHTML = describeSave(summaries.cloud);
+    document.getElementById('merge-local-stats').innerHTML = describeSave(summaries.local);
+
+    modal.hidden = false;
+    document.body.dataset.modal = '1';
+
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish(choice) {
+        if (done) return;
+        done = true;
+        modal.hidden = true;
+        delete document.body.dataset.modal;
+        document.removeEventListener('keydown', onKey);
+        resolve(choice);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') finish(null);
+      }
+      document.getElementById('merge-keep-cloud').onclick = function () {
+        finish('cloud');
+      };
+      document.getElementById('merge-keep-local').onclick = function () {
+        finish('local');
+      };
+      document.getElementById('merge-cancel').onclick = function () {
+        finish(null);
+      };
+      document.getElementById('merge-scrim').onclick = function () {
+        finish(null);
+      };
+      document.addEventListener('keydown', onKey);
+      document.getElementById('merge-keep-cloud').focus();
+    });
+  }
+
+  /* Installed unconditionally at boot. It used to be registered
+     from inside initAuth(), which returns early when the account
+     UI is absent - and a build without #acct-btn therefore left
+     js/cloud.js with no handler at all, so a sign-in that would
+     destroy a local save took the silent "account wins" fallback.
+     The prompt is a data-safety control and must not depend on
+     whether a button rendered. */
+  function installSaveConflictHandler() {
+    if (window.EOL.cloud && window.EOL.cloud.onConflict)
+      window.EOL.cloud.onConflict(askSaveConflict);
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
     initTips();
@@ -1848,6 +1858,7 @@
        vault has already started would let a sign-in that is restoring a
        session at boot resolve the collision silently. */
     initAuth();
+    installSaveConflictHandler();
     if (window.EOL.cloud) window.EOL.cloud.init();
     if (window.EOL.cloud && window.EOL.cloud.restored() && window.EOL.ui && window.EOL.ui.toast)
       window.EOL.ui.toast('Your save was restored from your account', 'ri-cloud-line');

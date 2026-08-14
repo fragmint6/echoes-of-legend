@@ -167,7 +167,11 @@ function makeWorld(opts) {
         return Promise.resolve();
       },
     },
-    economy: { starterIds: () => ['s1', 's2', 's3'] },
+    /* The module is EOL.econ. This fixture said EOL.economy, which
+       matched a typo in js/cloud.js and so agreed with the bug: the
+       starter cards counted as earned progress and a fresh device was
+       prompted about a save it did not have. */
+    econ: { starterIds: () => ['s1', 's2', 's3'] },
   };
 
   /* A real <script> element, so `window` resolves the way it does in a

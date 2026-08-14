@@ -257,7 +257,13 @@
     /* Owned cards only count as progress BEYOND the seeded starter. */
     var starterSize = 0;
     try {
-      var ids = window.EOL.economy && window.EOL.economy.starterIds;
+      /* The module is EOL.econ. This read used to say EOL.economy,
+         which is nothing: starterSize stayed 0, so the twelve seeded
+         Grimmwood cards counted as earned progress and a brand-new
+         browser announced a save collision the first time anyone
+         signed in. A prompt that cries wolf on a fresh install is
+         how players learn to dismiss the one that matters. */
+      var ids = window.EOL.econ && window.EOL.econ.starterIds;
       starterSize = ids ? ids().length : 0;
     } catch (e) {
       /* economy not loaded (tests) - treat every card as earned */
@@ -393,7 +399,33 @@
                device untouched and signs back out, which is the only
                outcome that loses nothing. */
             var localDoc = collect();
-            if (!restoredBoot && summarize(localDoc).any && conflictHandler) {
+            /* THE MIGRATION PROMOTION, and nothing else.
+               The previous boot applied THIS EXACT account save
+               (restoredDigest proves which one), so any difference
+               now is a deterministic client-side migration - campaign
+               v2 growing three difficulty runs, say. Push the upgrade
+               instead of restoring the old shape and reloading
+               forever.
+
+               The digest must be present AND match. It used to be
+               accepted when MISSING too, which let a guard left over
+               from an unrelated restore push this device's save over
+               the account without asking. An unproven guard is not a
+               guard. */
+            if (restoredBoot && restoredDigest && restoredDigest === lastPushed) {
+              clearRestoreGuard();
+              return push();
+            }
+            /* THE GUARD MAY NOT SUPPRESS THE PROMPT.
+               restoredBoot only means "the previous boot restored a
+               save"; it is a session flag, and a session outlives the
+               sign-out that follows it. A player who restored an
+               account, signed out, played as a guest, and signed back
+               in still carried the marker - and it silently skipped
+               the collision prompt and overwrote what they had just
+               played. The guard exists to stop a reload LOOP, so it
+               may only skip the RESTORE, never the question. */
+            if (summarize(localDoc).any && conflictHandler) {
               var decision = conflictHandler({
                 local: summarize(localDoc),
                 cloud: summarize(snap),
@@ -413,16 +445,6 @@
                 if (window.EOL.auth && window.EOL.auth.signOut) window.EOL.auth.signOut();
                 return false;
               });
-            }
-            if (restoredBoot && (!restoredDigest || restoredDigest === lastPushed)) {
-              /* The previous boot already applied this exact account save.
-                 Any difference now is a deterministic client migration
-                 (for example campaign v2 -> three difficulty runs). Push
-                 that upgrade once instead of restoring the old shape and
-                 entering an infinite reload loop. The digest check keeps a
-                 genuinely newer write from another device authoritative. */
-              clearRestoreGuard();
-              return push();
             }
             var changed = restore(snap);
             if (changed) return;
