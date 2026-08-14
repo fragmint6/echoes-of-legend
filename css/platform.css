@@ -69,3 +69,68 @@ body[data-platform='crazygames'] .acct-save-note {
 body[data-platform='crazygames']:not([data-portal-user]) .acct-btn .acct-label {
   display: none;
 }
+
+/* ---- Signed-out portal: a settings button, not a hollow profile ---
+   Collapsing the account pill left a gear sitting inside the profile
+   button's frame - an avatar circle wrapped around a settings icon,
+   which reads as a broken profile rather than a control. A signed-out
+   portal player has no profile to show, so present the honest thing:
+   a plain settings button matching the other corner buttons.
+
+   The BUTTON is kept (it still opens Settings) and only its
+   appearance changes, so no handler moves and the web build is
+   untouched. */
+body[data-platform='crazygames']:not([data-portal-user]) .acct-btn {
+  padding: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  gap: 0;
+  justify-content: center;
+}
+body[data-platform='crazygames']:not([data-portal-user]) .acct-btn .acct-avatar {
+  width: auto;
+  height: auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 20px;
+}
+/* The gear glyph itself is swapped in js/app.js (the anonymous branch
+   of the auth onChange handler already sets ri-settings-4-line), so
+   nothing here hardcodes an icon codepoint. */
+
+/* ---- Account settings ------------------------------------------
+   CrazyGames owns the player's identity: the name and avatar come
+   from their token and are theirs to change, not ours. The whole
+   Account block in Settings - username, password, and the signed-out
+   note pointing at a sign-in this build does not offer - is therefore
+   removed rather than shown as a form that cannot be honoured.
+   Graphics, audio and the rest of Settings are untouched. */
+body[data-platform='crazygames'] #set-account {
+  display: none !important;
+}
+
+/* ---- The guest save notice --------------------------------------
+   A signed-out portal player SHOULD still be told their progress is
+   local - that promise matters more here, not less. What they must
+   not get is a button that offers a sign-in flow this build cannot
+   run. So the callout stays, fully legible, and stops being
+   interactive: no pointer, no hover lift, no chevron implying
+   somewhere to go. Note pointer-events does NOT remove it from the
+   tab order - js/app.js sets tabindex=-1 and aria-disabled on the
+   portal build so a keyboard user cannot reach it either. */
+body[data-platform='crazygames']:not([data-portal-user]) .home-cloud-cta {
+  pointer-events: none;
+  cursor: default;
+}
+body[data-platform='crazygames']:not([data-portal-user]) .home-cloud-cta > i:last-child {
+  display: none;
+}
+
+/* Signed IN on CrazyGames there is nothing local about the save - the
+   Data module has it - so the notice goes entirely. */
+body[data-platform='crazygames'][data-portal-user] .home-cloud-cta {
+  display: none !important;
+}

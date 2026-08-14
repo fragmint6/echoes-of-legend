@@ -312,6 +312,46 @@ section('E. an anonymous session is not an account');
 
   const app = read('js/app.js');
   ok(/user && user\.anonymous/.test(app), 'the account pill has a distinct anonymous state');
+
+  /* GUI SCALE. The portal inset is smaller than a browser window, so
+     the portal build defaults to 80% - as a DEFAULT, never an
+     override: a stored value must still win. */
+  ok(
+    /isCrazyGames \? 80 : SCALE_DEF/.test(app),
+    'the portal build defaults the GUI scale to 80%'
+  );
+  ok(
+    /applyScale\(def\)/.test(app),
+    'and "reset" returns to that default rather than always 100%'
+  );
+
+  /* The guest-save notice must survive on the portal - a player still
+     needs telling their progress is local - but it must not act like a
+     button, including for keyboard users. */
+  ok(
+    /isCrazyGames[\s\S]{0,200}tabindex', '-1'[\s\S]{0,120}aria-disabled/.test(app),
+    'the portal guest-save notice is inert for keyboard and AT users too'
+  );
+
+  const platformCss = read('css/platform.css');
+  ok(
+    /#set-account\s*\{[\s\S]{0,80}display: none/.test(platformCss),
+    'Settings > Account is hidden on the portal build'
+  );
+  ok(
+    /:not\(\[data-portal-user\]\) \.home-cloud-cta \{[\s\S]{0,120}pointer-events: none/.test(
+      platformCss
+    ),
+    'the save notice is shown but not clickable for a portal guest'
+  );
+  ok(
+    /\[data-portal-user\] \.home-cloud-cta \{[\s\S]{0,80}display: none/.test(platformCss),
+    'and disappears entirely once signed in on CrazyGames'
+  );
+  ok(
+    /:not\(\[data-portal-user\]\) \.acct-btn \{[\s\S]{0,160}border-radius: 50%/.test(platformCss),
+    'a signed-out portal player gets a plain settings button, not a hollow profile pill'
+  );
 }
 
 console.log('\n================================================================');

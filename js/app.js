@@ -1041,12 +1041,22 @@
     } catch (e2) {}
   }
   function initScale() {
+    /* THE PORTAL DEFAULTS SMALLER. CrazyGames runs the game in an
+       iframe inset in a page of their own chrome, so the usable area
+       is meaningfully smaller than a full browser window and 100%
+       crowds it. 80% is the default there.
+
+       This is a DEFAULT, not an override: a stored value always wins,
+       so a portal player who picks their own scale keeps it. */
+    var P = window.EOL.platform;
+    var def = P && P.isCrazyGames ? 80 : SCALE_DEF;
+    scalePct = def;
     try {
       var raw = parseInt(localStorage.getItem(SCALE_KEY), 10);
       if (raw) {
         /* legacy migrations: v2 stored levels 1-4, v1 (zoom era)
            stored a percent 60-130; both land on the 5% grid below */
-        scalePct = raw <= 4 ? { 1: 80, 2: 85, 3: 95, 4: 100 }[raw] || SCALE_DEF : raw;
+        scalePct = raw <= 4 ? { 1: 80, 2: 85, 3: 95, 4: 100 }[raw] || def : raw;
       }
     } catch (e) {
       /* private mode */
@@ -1072,7 +1082,9 @@
     var res = document.getElementById('scale-reset');
     if (res)
       res.addEventListener('click', function () {
-        applyScale(SCALE_DEF);
+        /* "Reset" means back to this build's default, which is 80% on
+           the portal - not 100%, which was never the default there. */
+        applyScale(def);
       });
     window.addEventListener('resize', paintViewport);
   }
@@ -1185,10 +1197,26 @@
     });
     var homeCloudBtn = document.getElementById('home-cloud-cta');
     if (homeCloudBtn) {
-      homeCloudBtn.addEventListener('click', function () {
-        setMode('in');
-        open();
-      });
+      /* ON THE PORTAL THIS IS A NOTICE, NOT A BUTTON.
+         A CrazyGames player still needs telling that guest progress is
+         local - that is more important here, not less - but there is
+         no in-game sign-in to send them to, so it must not behave like
+         a control. css/platform.css removes the affordances; this
+         removes the behaviour, including for keyboard and assistive
+         users, whom pointer-events alone would not stop.
+
+         Signed IN on CrazyGames the notice is hidden outright, so this
+         only ever applies to a portal guest. */
+      var P = window.EOL.platform;
+      if (P && P.isCrazyGames) {
+        homeCloudBtn.setAttribute('tabindex', '-1');
+        homeCloudBtn.setAttribute('aria-disabled', 'true');
+      } else {
+        homeCloudBtn.addEventListener('click', function () {
+          setMode('in');
+          open();
+        });
+      }
     }
     document.getElementById('auth-close').addEventListener('click', close);
     document.getElementById('auth-scrim').addEventListener('click', close);
