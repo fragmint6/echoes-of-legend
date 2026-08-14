@@ -464,7 +464,8 @@
           }
           var outM = outgoingMult(B, unit, tgt);
           B._multTrail = null;
-          var inM = incomingMult(B, unit, tgt, ctx.signature === true);
+          /* dryRun: this is previewDamage - report, never consume. */
+          var inM = incomingMult(B, unit, tgt, ctx.signature === true, true);
           B._multTrail = null;
           var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
           var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
@@ -1751,7 +1752,25 @@
 
   /* Athena: the first enemy Skill each round deals 40% less, and any
      Marked attacker deals 15% less. Both live on the DEFENDING side. */
-  function incomingMult(B, attacker, defender, isAbilityDamage) {
+  /* `dryRun` means "tell me the number, change nothing".
+     -------------------------------------------------------------
+     THIS FUNCTION USED TO MUTATE THE BATTLE. The firstPerRound gate
+     below consumes a once-per-round flag (Athena's Divine Strategy),
+     and previewDamage() calls straight into here - so merely ASKING
+     what a move would do burned the flag on the live board.
+
+     Two ways that reached players:
+
+       - js/ai.js:342,356 previews against the LIVE battle while
+         searching, so the AI thinking about a move spent the real
+         Athena charge;
+       - js/battle.js:1334,1415 previews on hover, so a human simply
+         MOUSING OVER a target consumed it - and in multiplayer only
+         on the hovering player's client, which desyncs the two
+         boards. That is the mirror harness's 37/200 divergence.
+
+     The flag now moves only when damage is actually dealt. */
+  function incomingMult(B, attacker, defender, isAbilityDamage, dryRun) {
     var m = 1;
     unitsOf(B, defender.side).forEach(function (u) {
       var p = passiveOf(u);
@@ -1769,7 +1788,9 @@
           // only signature Skills, and only the first one each round
           if (!isAbilityDamage) return;
           if (u.roundFlags.athenaFirst) return;
-          u.roundFlags.athenaFirst = true;
+          /* A preview must not spend the charge - it only reports what
+             WOULD happen. Only a real hit consumes it. */
+          if (!dryRun) u.roundFlags.athenaFirst = true;
           m *= e.mult;
           applied = true;
           logMsg(B, 'passive', u.name + "'s Divine Strategy blunts the attack.", { uid: u.uid });
