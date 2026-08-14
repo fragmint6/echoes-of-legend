@@ -762,8 +762,17 @@ entry in the dashboard at all.
 4. Run exactly that command.
 
 ```bash
-npx supabase secrets set CG_GAME_ID=20267   # your number, not this one
+npx supabase secrets set CG_GAME_ID=109847
 ```
+
+Secrets belong to the **project**, not to a deployment, and the function
+reads `CG_GAME_ID` per request rather than at module load - so setting
+it takes effect on the next invocation with no redeploy. `secrets set`
+also accepts `--project-ref ghchcvrojojrlbgqbvga` if you have not run
+`supabase link`.
+
+Confirm it landed with `npx supabase secrets list`; the value is shown
+only as a digest, which is expected.
 
 The id is not a secret - it identifies the game, not a player - so it is
 safe to print in logs and to paste around.
