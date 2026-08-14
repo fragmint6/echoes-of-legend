@@ -52,14 +52,20 @@ function section(t) {
    --------------------------------------------------------------- */
 const platformSrc = read('js/platform.js');
 
-function bootPlatform({ referrer = '', search = '' } = {}) {
+function bootPlatform({ referrer = '', search = '', host = 'fragmint6.web.app' } = {}) {
   /* runScripts lets the file execute exactly as the browser runs it -
      a real <script> in a real document, not an eval with a rebound
-     scope. That is what makes the document.referrer path meaningful. */
+     scope. That is what makes the document.referrer path meaningful.
+
+     `host` matters as much as the referrer: CrazyGames serves uploaded
+     builds from *.game-files.crazygames.com AND frames them with a
+     referrer policy that can strip document.referrer entirely. A
+     harness that only ever varied the referrer could not see that
+     case at all. */
   const dom = new JSDOM(
     '<!doctype html><html><body><script>' + platformSrc + '<\/script></body></html>',
     {
-      url: 'https://fragmint6.web.app/echoes-of-legend/' + search,
+      url: 'https://' + host + '/echoes-of-legend/' + search,
       referrer: referrer || undefined,
       runScripts: 'dangerously',
     }
@@ -102,6 +108,32 @@ section('B. the portal build is detected and stripped');
   ok(
     bootPlatform({ referrer: 'https://notcrazygames.com/' }).EOL.platform.id === 'web',
     'a lookalike hostname does NOT match'
+  );
+
+  /* THE UPLOADED BUILD, WITH NO REFERRER.
+     CrazyGames hosts uploaded games on *.game-files.crazygames.com and
+     frames them with a referrer policy that strips document.referrer
+     cross-origin. Detection used to rest on the referrer alone, so the
+     real portal build fell through to 'web': the SDK bridge was never
+     injected (their QA panel showed "SDK not currently detected"), no
+     CrazyGames account was minted, multiplayer stayed locked, and the
+     Supabase vault wrongly took over progress. The document's own
+     hostname is the signal that cannot be stripped. */
+  const uploaded = bootPlatform({
+    host: 'echoes-of-legend.game-files.crazygames.com',
+  }).EOL.platform;
+  ok(uploaded.id === 'crazygames', 'an uploaded build with NO referrer is still the portal build');
+  ok(uploaded.sdk === true, 'so the SDK bridge is injected and can init');
+  ok(uploaded.cloudVault === false, 'and the Supabase vault stays off the portal build');
+  ok(uploaded.dataModule === true, 'progress belongs to the CrazyGames Data module');
+
+  ok(
+    bootPlatform({ host: 'crazygames.com.evil.net' }).EOL.platform.id === 'web',
+    'a suffix-spoofed hostname does NOT match'
+  );
+  ok(
+    bootPlatform({ host: 'echoesoflegend.example.com' }).EOL.platform.id === 'web',
+    'a self-hosted build on its own domain is still the web build'
   );
   ok(
     bootPlatform({ search: '?platform=crazygames' }).EOL.platform.isCrazyGames,

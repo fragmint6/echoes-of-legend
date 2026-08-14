@@ -55,6 +55,17 @@
     }
   }
 
+  /* The hostname this document is actually served from. Unlike the
+     referrer this survives every referrer policy, and unlike reading
+     window.parent it never trips the same-origin policy. */
+  function selfHost() {
+    try {
+      return String(window.location.hostname || '').toLowerCase();
+    } catch (e) {
+      return '';
+    }
+  }
+
   function hostIsCrazyGames(host) {
     if (!host) return false;
     for (var i = 0; i < CG_HOSTS.length; i++) {
@@ -76,10 +87,30 @@
     var forced = override();
     if (forced === 'crazygames' || forced === 'cg') return 'crazygames';
     if (forced === 'web') return 'web';
+
+    /* OUR OWN HOSTNAME FIRST, and it is the only signal that cannot be
+       taken away from us. CrazyGames serves uploaded builds from
+       <game>.game-files.crazygames.com, so when the document itself is
+       on a portal domain this IS the portal build - no inference
+       required.
+
+       The referrer check below used to be the only test, and it is not
+       reliable: the portal frames the game with a referrer policy that
+       strips document.referrer to '' cross-origin. When that happened
+       detect() fell through to 'web', which set platform.sdk false, so
+       index.html never injected js/crazygames-sdk.js - the SDK never
+       initialised (CrazyGames' QA panel reported "SDK not currently
+       detected"), no CrazyGames login could be observed, no account was
+       minted, and multiplayer stayed locked behind the anonymous-session
+       guard. It also turned the Supabase cloud vault back ON for portal
+       players, which is the wrong save system for that build. */
+    if (hostIsCrazyGames(selfHost())) return 'crazygames';
+
+    /* Then the referrer, which still catches portal domains that serve
+       the game from somewhere else. An iframe whose parent we cannot
+       read is NOT assumed to be the portal: a stricter default would
+       strip accounts from anyone who embeds the public build. */
     if (hostIsCrazyGames(hostOf(document.referrer))) return 'crazygames';
-    /* An iframe whose parent we cannot read is NOT assumed to be the
-       portal: a stricter default would strip accounts from anyone who
-       embeds the public build. Only a recognised referrer counts. */
     return 'web';
   }
 
