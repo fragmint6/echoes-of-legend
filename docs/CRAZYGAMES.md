@@ -232,6 +232,26 @@ resume on **both** `adFinished` and `adError`; midgame ads have a ~3 min
 cooldown. Do **not** call `gameplayStop` on focus loss or on leaving the
 game area — CrazyGames handles that itself.
 
+## Making the upload zip
+
+`./tools/make_cg_build.sh` writes `../echoes-of-legend-cg.zip` containing
+exactly what the game loads - `index.html`, `assets`, `css`, `data`,
+`js` - with `index.html` at the ZIP ROOT, which CrazyGames requires.
+
+It leaves out `.git`, `sim`, `docs`, `tools`, `rune-lab.html`, and the
+unreferenced `assets/rivals-src` working art (~2 MB saved).
+
+**`supabase/` is not part of the upload.** The Edge Function runs on
+Supabase's servers, not in the browser: the game reaches it over https
+at `<project>/functions/v1/cg-auth`. So `supabase functions deploy` is
+run ONCE from the git repo against your project - not per upload, and
+never from the copied build folder. Re-uploading the game does not
+require redeploying the function, and vice versa.
+
+`js/dev.js` IS included and that is correct: `index.html` only injects
+it when `platform.devConsole` is true, which is false on the portal
+build, so it never loads there.
+
 ## CrazyGames accounts (shipped)
 
 A CrazyGames login buys a REAL Supabase account, which is what makes
