@@ -653,16 +653,32 @@ safe. It creates `cg_link`, adds `profiles.is_portal`, and revises
 
 ### 11.2 Deploy the Edge Function
 
-Needs the Supabase CLI (`npm i -g supabase`). Run these from the
-**repository root** - the CLI looks for `supabase/functions/cg-auth/`
-relative to where you are, and there is no `supabase/config.toml` in
-this repo, so `link` is what creates the local project binding:
+**First, get the CLI.** It is a Go binary, not a JavaScript package -
+`npm i -g supabase` is explicitly unsupported and the postinstall script
+aborts with *"Installing Supabase CLI as a global module is not
+supported"* on some package managers. Use one of:
+
+```bash
+npx supabase@latest --version          # no install at all - prefix every command with npx
+brew install supabase/tap/supabase     # macOS / Linuxbrew
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git && scoop install supabase   # Windows
+npm i -D supabase                      # per-project dev dependency, then `npx supabase ...`
+```
+
+`npx` is the least-effort route: no install, always current. Everything
+below works the same, just prefixed - `npx supabase login`, and so on.
+If you use npx or the dev dependency, you need **Node 20+**.
+
+Then run these from the **repository root** - the CLI looks for
+`supabase/functions/cg-auth/` relative to where you are, and there is no
+`supabase/config.toml` in this repo, so `link` is what creates the local
+project binding:
 
 ```bash
 cd /path/to/echoes-of-legend     # the folder containing supabase/
-supabase login                   # opens a browser, once per machine
-supabase link --project-ref ghchcvrojojrlbgqbvga
-supabase functions deploy cg-auth --no-verify-jwt
+npx supabase login               # opens a browser, once per machine
+npx supabase link --project-ref ghchcvrojojrlbgqbvga
+npx supabase functions deploy cg-auth --no-verify-jwt
 ```
 
 `login` and `link` are one-time; only the `deploy` line is repeated when
@@ -732,7 +748,7 @@ entry in the dashboard at all.
 4. Run exactly that command.
 
 ```bash
-supabase secrets set CG_GAME_ID=20267    # your number, not this one
+npx supabase secrets set CG_GAME_ID=20267   # your number, not this one
 ```
 
 The id is not a secret - it identifies the game, not a player - so it is
