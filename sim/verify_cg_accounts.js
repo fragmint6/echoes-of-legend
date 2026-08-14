@@ -425,6 +425,25 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       /\(Deno\.env\.get\('CG_GAME_ID'\) \?\? ''\)\.trim\(\)/.test(fnSrc),
       'the secret is trimmed, so stray whitespace cannot cause a silent 401'
     );
+
+    /* THE KEY FORMAT. sdk.crazygames.com/publicKey.json returns
+         { "publicKey": "-----BEGIN RSA PUBLIC KEY-----..." }
+       - a PKCS#1 PEM, NOT the JWK the docs imply. Passing that body to
+       importJWK() fails on every token and surfaces as a bare 401, which
+       is indistinguishable from a wrong CG_GAME_ID. WebCrypto only
+       imports SPKI, so PKCS#1 must be wrapped first. */
+    ok(
+      /typeof body\?\.publicKey === 'string'/.test(fnSrc),
+      'the PEM shape the endpoint really returns is handled'
+    );
+    ok(
+      /BEGIN RSA PUBLIC KEY/.test(fnSrc) && /pkcs1ToSpki/.test(fnSrc),
+      'and PKCS#1 is converted to SPKI before importKey'
+    );
+    ok(
+      /importJWK/.test(fnSrc) && /jwk\.kty/.test(fnSrc),
+      'a real JWK/JWKS is still accepted, and a bodiless object is now rejected'
+    );
   }
 
   /* ===========================================================

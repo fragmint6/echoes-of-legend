@@ -49,6 +49,46 @@ const CG_PUBLIC_KEY_URL = 'https://sdk.crazygames.com/publicKey.json';
 const KEY_TTL_MS = 10 * 60 * 1000;
 let keyCache: { key: CryptoKey; at: number } | null = null;
 
+/* DER helpers for the PKCS#1 -> SPKI wrap below. */
+function derLength(n: number): number[] {
+  if (n < 0x80) return [n];
+  const bytes: number[] = [];
+  let x = n;
+  while (x > 0) {
+    bytes.unshift(x & 0xff);
+    x >>= 8;
+  }
+  return [0x80 | bytes.length, ...bytes];
+}
+
+/* WebCrypto imports SPKI ("BEGIN PUBLIC KEY"). CrazyGames publishes
+   PKCS#1 ("BEGIN RSA PUBLIC KEY"), which is just the bare
+   SEQUENCE { modulus, exponent } with no algorithm identifier. Wrap it:
+
+     SEQUENCE {
+       SEQUENCE { OID rsaEncryption, NULL }
+       BIT STRING { <the PKCS#1 body> }
+     }
+
+   Verified byte-identical to the SPKI WebCrypto exports for the same
+   key, and a full RS256 sign/verify round trip passes through it. */
+function pkcs1ToSpki(pkcs1: Uint8Array): Uint8Array {
+  const algorithmId = [
+    0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00,
+  ];
+  const bitString = [0x03, ...derLength(pkcs1.length + 1), 0x00, ...pkcs1];
+  const inner = [...algorithmId, ...bitString];
+  return new Uint8Array([0x30, ...derLength(inner.length), ...inner]);
+}
+
+function pemToDer(pem: string): Uint8Array {
+  const b64 = pem.replace(/-----(BEGIN|END)[^-]+-----/g, '').replace(/\s+/g, '');
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
 async function crazyGamesKey(force = false): Promise<CryptoKey> {
   const fresh = keyCache && Date.now() - keyCache.at < KEY_TTL_MS;
   if (fresh && !force) return keyCache!.key;
@@ -56,13 +96,45 @@ async function crazyGamesKey(force = false): Promise<CryptoKey> {
   const res = await fetch(CG_PUBLIC_KEY_URL, { headers: { accept: 'application/json' } });
   if (!res.ok) throw new Error(`public key fetch failed: ${res.status}`);
 
-  /* The endpoint returns a JWK. Accept either a bare key or the
-     first entry of a JWKS, so a change in shape does not break us. */
   const body = await res.json();
-  const jwk: JWK = Array.isArray(body?.keys) ? body.keys[0] : body;
-  if (!jwk || typeof jwk !== 'object') throw new Error('public key malformed');
 
-  const key = (await importJWK(jwk, 'RS256')) as CryptoKey;
+  /* WHAT THIS ENDPOINT ACTUALLY RETURNS.
+     Not a JWK, and not a JWKS - it is
+
+       { "publicKey": "-----BEGIN RSA PUBLIC KEY-----\n..." }
+
+     a PKCS#1 PEM string. This code previously passed the whole body to
+     importJWK(), which cannot read it: the object has no kty/n/e, but
+     it IS an object, so the malformed-body guard let it through and
+     every single token failed signature verification. The caller saw
+     nothing but 401 "invalid token", which looks exactly like a bad
+     CG_GAME_ID or an expired token and sent us chasing both.
+
+     A JWK/JWKS is still accepted, because the docs describe the key as
+     one and CrazyGames may yet publish that shape. */
+  let key: CryptoKey;
+  const pem = typeof body?.publicKey === 'string' ? body.publicKey : null;
+
+  if (pem) {
+    const der = pemToDer(pem);
+    const spki = /BEGIN RSA PUBLIC KEY/.test(pem) ? pkcs1ToSpki(der) : der;
+    key = await crypto.subtle.importKey(
+      'spki',
+      spki,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      true,
+      ['verify']
+    );
+  } else {
+    const jwk: JWK = Array.isArray(body?.keys) ? body.keys[0] : body;
+    if (!jwk || typeof jwk !== 'object' || !jwk.kty) {
+      throw new Error(
+        'public key is neither a PEM nor a JWK - got keys: ' + Object.keys(body ?? {}).join(',')
+      );
+    }
+    key = (await importJWK(jwk, 'RS256')) as CryptoKey;
+  }
+
   keyCache = { key, at: Date.now() };
   return key;
 }
