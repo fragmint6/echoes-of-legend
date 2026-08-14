@@ -358,6 +358,46 @@ What it adds:
 
 Rooms are swept after 30 minutes without a heartbeat.
 
+## 4j. Migration 12 - match history
+
+Run **[`docs/supabase-migration-12.sql`](supabase-migration-12.sql)** once in
+the SQL Editor. It needs migration 02. Idempotent.
+
+**Migration 11 is not a prerequisite, and the two can be run in either
+order.** 11 adds `mp_matches.settings` and 12 archives that column, so an
+earlier draft of 12 failed with `ERROR: 42703: column m.settings does not
+exist` on a project that had not run 11 yet. Both files now declare the
+column with `add column if not exists`, using the same definition, so
+neither depends on the other.
+
+Until 12 is run, the **Match history** item in the account menu reports that
+history could not be loaded. Nothing else is affected: finishing a match
+falls back to `end_match`, so no one is ever stranded in a decided game.
+
+What it adds:
+
+- **`mp_history`** - the archive. One row per match, holding the result and
+  a `replay` jsonb: the opening position plus the ordered action stream.
+  Because the engine is deterministic, that is enough to reconstruct the
+  whole battle - the same property the netcode already relies on - so a long
+  match costs a few kilobytes rather than a frame-by-frame dump.
+- **`archive_match`** - the only way a match becomes history. It copies the
+  row into `mp_history` and then **deletes it from `mp_matches`**, so the
+  live table only ever holds live games. Idempotent: both clients archive
+  the same match and the second is absorbed, which is what makes the record
+  survive one player disconnecting.
+- **`my_history` / `match_replay`** - the read side. `my_history` resolves
+  win/loss from the caller's own seat and deliberately omits the big
+  `replay` column; `match_replay` fetches one match in full.
+- **`sweep_matches`, revised** - migration 02's sweeper marked abandoned
+  matches `done` and left them in place. It now archives them with
+  `ending='disconnect'` and deletes them, along with any legacy `done` rows.
+- **A backfill** - every finished match already sitting in `mp_matches` is
+  archived and removed, which is the clutter that prompted this migration.
+
+RLS: you may read only matches you played in, and there is no client write
+policy at all - only the `security definer` functions write.
+
 ## 5. Realtime - nothing to do
 
 **Skip this step.** Realtime Broadcast is on by default for every

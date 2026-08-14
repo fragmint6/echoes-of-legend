@@ -3,7 +3,16 @@
 -- MATCH HISTORY: archive finished matches, then delete them
 -- -------------------------------------------------------------
 -- Paste into: Dashboard -> SQL Editor -> New query -> Run.
--- Safe to run more than once. Requires migrations 02 and 11.
+-- Safe to run more than once. Requires migration 02.
+--
+-- Migration 11 is NOT a prerequisite. It adds mp_matches.settings, and
+-- this migration archives that column - but ordering the two would
+-- make a history feature fail on any project that has not adopted
+-- private rooms yet, with an error (42703: column m.settings does not
+-- exist) that says nothing about the real cause. The column is
+-- created here too if it is missing. Both definitions are identical
+-- and both use `if not exists`, so 11 and 12 can be run in either
+-- order, or only one of them.
 --
 -- WHY THIS EXISTS
 --
@@ -41,6 +50,16 @@
 --   match from their own side; `p1`/`p2` say who was who and the
 --   client flips perspective, exactly as it does live.
 -- =============================================================
+
+
+-- ============ the column this migration archives ============
+-- Normally added by migration 11 (private rooms), where it carries the
+-- party leader's chosen terms into the match. Declared here as well so
+-- that archiving does not depend on rooms having been adopted first.
+-- Identical definition, `if not exists`, so running 11 before or after
+-- this is a no-op either way.
+alter table public.mp_matches
+  add column if not exists settings jsonb not null default '{}'::jsonb;
 
 
 -- ============ the archive ============
