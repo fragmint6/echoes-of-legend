@@ -1945,9 +1945,56 @@
     document.getElementById('btn-shop-back').addEventListener('click', function () {
       goBack();
     });
+    /* IS ANYTHING LAYERED OVER THE VIEW RIGHT NOW?
+       -------------------------------------------------------------
+       Escape means "close the thing in front of me", and only when
+       there is nothing in front of you does it mean "go back a
+       screen". The handler below used to skip that first question
+       entirely, so Escape inside a dialog closed the dialog AND
+       navigated the view out from under it - press it in the draft
+       pool builder and you landed on the main menu with the room
+       gone.
+
+       Asking the DOM which overlays are visible is deliberate: the
+       alternative is every modal remembering to announce itself, and
+       the two that forgot (the room panel and the pool builder) are
+       exactly the ones that broke. A dialog that is on screen is on
+       screen, whether or not it opted in. */
+    function overlayOpen() {
+      if (document.body.dataset.modal) return true;
+      var sel =
+        '.auth-modal, .room-modal, .mm-modal, .quit-modal, .daily-modal,' +
+        '.shop-code-modal, .grant-choice, .ledger, [role="dialog"]';
+      var found = false;
+      document.querySelectorAll(sel).forEach(function (el) {
+        if (found || el.hidden) return;
+        /* Three conventions are in use across these dialogs - the
+           `hidden` attribute, aria-hidden, and CSS - so all three are
+           consulted rather than trusting whichever one this dialog
+           happened to pick. The Daily overlay, for instance, is
+           driven entirely by aria-hidden and would otherwise read as
+           permanently open. */
+        if (el.getAttribute('aria-hidden') === 'true') return;
+        /* An inner dialog card (.daily-forge is one) inherits its
+           visibility from the overlay wrapping it, so walk up: a
+           dialog inside a closed overlay is closed. */
+        var p = el.parentElement;
+        while (p && p !== document.body) {
+          if (p.hidden || p.getAttribute('aria-hidden') === 'true') return;
+          p = p.parentElement;
+        }
+        var cs = window.getComputedStyle(el);
+        if (cs.display !== 'none' && cs.visibility !== 'hidden') found = true;
+      });
+      return found;
+    }
+
     // No Leave buttons on these screens - Esc backs out one level.
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
+      /* Whatever is on top owns Escape and closes itself; the view
+         must not also slide out behind it. */
+      if (overlayOpen()) return;
       /* Campaign dialogue owns Escape while it is open; do not let the
          shared view-back handler strand an open scene on another screen. */
       if (

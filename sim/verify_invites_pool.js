@@ -374,8 +374,24 @@ function phase5() {
       'only the party leader sees the Build button'
     );
     ok(
-      /cpRow\.hidden = s\.mode !== 'draft'/.test(play),
+      /poolRow\.hidden = s\.mode !== 'draft'/.test(play),
       'and the row only exists in Draft, where a pool means anything'
+    );
+
+    /* ONE CONTROL, AND IT IS MANDATORY. The preset dropdown offered a
+       single option ("Random") next to a separate "Custom pool" row -
+       two controls for one decision, one of which could not decide
+       anything. */
+    ok(!/id="room-pool"[^-]/.test(html), 'the one-option draft-pool dropdown is gone');
+    ok(!/data-opt="custom-pool"/.test(html), 'and the separate "custom pool" row is folded into it');
+    ok(
+      /poolReady = s\.mode !== 'draft' \|\| \(s\.pool36 && s\.pool36\.length\) === POOL36/.test(play),
+      'a draft cannot start until the pool is actually built'
+    );
+    ok(/Build the draft pool/.test(play), 'and the Start button says what is missing');
+    ok(
+      /pool36: \(s\.pool36 && s\.pool36\.slice\(\)\) \|\| null/.test(play),
+      'settingsOf carries pool36, so changing another setting cannot delete the pool'
     );
   }
 

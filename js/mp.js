@@ -613,7 +613,11 @@
     mode: 'draft', // 'draft' | 'classic'
     length: 'single', // 'single' | 'unabridged'
     field: null, // battlefield id, or null = random
-    pool: null, // draft pool / faction id, or null = random
+    /* The 36 card ids a draft is dealt from. Null until the leader
+       builds it, and a draft cannot start until they have - there is
+       no "random pool" preset any more, because the builder's Fill
+       random is that, and better. */
+    pool36: null,
   };
 
   function roomDefaults() {

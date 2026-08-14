@@ -27287,9 +27287,14 @@ body[data-gfx='low'] .mode-carousel-dots > button {
 }
 /* 36 slots. auto-fill rather than a fixed count so the tray reflows
    on a narrow window instead of overflowing its card. */
+/* FOUR ROWS OF NINE. Fixed at 9 columns rather than auto-fill: the
+   36 slots are a shape the player learns to read at a glance, and a
+   tray that reflowed to 7 or 11 across on a different window turned
+   "how full am I" into a counting exercise. The slots shrink with the
+   tray instead of rewrapping. */
 .pool-slots {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  grid-template-columns: repeat(9, 1fr);
   gap: 6px;
 }
 .pool-slot {

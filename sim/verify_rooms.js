@@ -131,13 +131,13 @@ console.log('LIFECYCLE: leader creates, guest joins, leader starts');
   const cgL=makeCG({}),cgG=makeCG({});
   const L=loadMP(db,'u-leader','Leader',cgL);
   const G=loadMP(db,'u-guest','Guest',cgG);
-  const r=await L.createRoom({mode:'classic',length:'unabridged',field:null,pool:null});
+  const r=await L.createRoom({mode:'classic',length:'unabridged',field:null,pool36:null});
   ok(!!r.code,'leader got a room code ('+r.code+')');
   ok(L.isLeader(),'creator is the party leader');
   const gr=await G.joinRoom(r.code);
   ok(gr.guest==='u-guest','guest occupies the second seat');
   ok(!G.isLeader(),'joiner is NOT the party leader');
-  await L.setRoomSettings({mode:'classic',length:'unabridged',field:'colosseum',pool:null});
+  await L.setRoomSettings({mode:'classic',length:'unabridged',field:'colosseum',pool36:null});
   ok(db.rooms.get(r.code).settings.field==='colosseum','leader can set the battlefield');
   let denied=false;
   try{await G.setRoomSettings({mode:'draft'});}catch(e){denied=true;}
@@ -249,7 +249,7 @@ ids.forEach(id=>ok(doc.getElementById(id),'#'+id+' exists in index.html'));
 });
 
 /* 3. every data-set pill must name a real setting key */
-const keys=['mode','length','field','pool'];
+const keys=['mode','length','field','pool36'];
 [...doc.querySelectorAll('.room-pill')].forEach(b=>{
   ok(keys.includes(b.dataset.set),'pill data-set="'+b.dataset.set+'" is a known setting');
   ok(!!b.dataset.val,'pill for '+b.dataset.set+' has a value');

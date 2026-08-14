@@ -4633,16 +4633,11 @@
           sel.appendChild(o);
         });
       });
-      var pSel = $('room-pool');
-      if (pSel && window.EOL.factions) {
-        window.EOL.factions.forEach(function (f) {
-          var o = document.createElement('option');
-          o.value = f.id;
-          o.textContent = f.name || f.id;
-          pSel.appendChild(o);
-        });
-      }
     }
+
+    /* One source of truth for the pool size, read from the builder so
+       the two can never disagree about what "complete" means. */
+    var POOL36 = (window.EOL.poolBuilder && window.EOL.poolBuilder.SIZE) || 36;
 
     function settingsOf(r) {
       var d = MP.roomDefaults();
@@ -4653,7 +4648,12 @@
         field: s.field || null,
         field2: s.field2 || null,
         field3: s.field3 || null,
-        pool: s.pool || null,
+        /* The hand-built draft pool MUST be carried through. push()
+           rebuilds the settings object from this function, so a key
+           omitted here is a key deleted from the room the next time
+           anyone touches any other setting - changing the
+           battlefield would have silently thrown the pool away. */
+        pool36: (s.pool36 && s.pool36.slice()) || null,
       };
     }
 
@@ -4707,44 +4707,47 @@
       var fk = $('room-field-k');
       if (fk) fk.textContent = set3 ? 'Battlefield 1' : 'Battlefield';
 
-      var pSel = $('room-pool');
-      if (pSel) {
-        pSel.value = s.pool || '';
-        pSel.disabled = !lead;
-      }
       /* THE DRAFT POOL ONLY EXISTS IN A DRAFT. In Classic both players
          bring a deck they built, so there is no pool to choose from -
          the row is removed rather than greyed, because a disabled
          control still reads as "this applies to you". */
       var poolRow = modal.querySelector('.room-opt[data-opt="pool"]');
       if (poolRow) poolRow.hidden = s.mode !== 'draft';
-
-      /* THE CUSTOM POOL ROW. Draft-only for the same reason, and
-         leader-only like every other setting - hidden rather than
-         disabled for a guest, since they can never act on it. The
-         count is the whole status: a guest still sees whether a
-         custom pool is in play, they just cannot change it. */
-      var cpRow = modal.querySelector('.room-opt[data-opt="custom-pool"]');
-      if (cpRow) cpRow.hidden = s.mode !== 'draft';
+      /* The count IS the status, and it is the reason Start is
+         disabled, so a guest reads it too - they just cannot act on
+         it, which is why only the button is leader-only. */
       var cpCount = $('room-pool-count');
       if (cpCount) {
         var n = (s.pool36 && s.pool36.length) || 0;
-        cpCount.textContent = n ? n + ' cards' : 'Off';
-        cpCount.classList.toggle('on', !!n);
+        cpCount.textContent = n ? n + ' cards' : 'Not built';
+        cpCount.classList.toggle('on', n === POOL36);
       }
       var cpBtn = $('room-pool-edit');
-      if (cpBtn) cpBtn.hidden = !lead;
+      if (cpBtn) {
+        cpBtn.hidden = !lead;
+        cpBtn.querySelector('span').textContent =
+          (s.pool36 && s.pool36.length) === POOL36 ? 'Edit' : 'Build';
+      }
 
       var hint = $('room-leader-hint');
       if (hint) hint.textContent = lead ? 'You decide' : 'The party leader decides';
 
-      /* Only the leader may start, and only with someone to play. */
+      /* Only the leader may start, with someone to play, and - in a
+         draft - only once the pool actually exists. A draft cannot be
+         dealt from a half-built pool, and the button says which of
+         the three is missing rather than sitting dead. */
       var start = $('room-start');
       if (start) {
+        var poolReady = s.mode !== 'draft' || (s.pool36 && s.pool36.length) === POOL36;
         start.hidden = !lead;
-        start.disabled = !lead || !r.guest;
+        start.disabled = !lead || !r.guest || !poolReady;
         var lbl = start.querySelector('span');
-        if (lbl) lbl.textContent = r.guest ? 'Start match' : 'Waiting for a challenger';
+        if (lbl)
+          lbl.textContent = !r.guest
+            ? 'Waiting for a challenger'
+            : !poolReady
+              ? 'Build the draft pool'
+              : 'Start match';
       }
     }
 
@@ -4986,9 +4989,6 @@
         push(p);
       });
     });
-    var pSel = $('room-pool');
-    if (pSel) pSel.addEventListener('change', function () { push({ pool: pSel.value || null }); });
-
     /* Open the 36-slot builder, seeded with whatever the room already
        has so reopening it edits rather than restarts. The chosen pool
        rides in the room settings like every other term, which is what
