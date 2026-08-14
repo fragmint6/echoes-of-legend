@@ -416,6 +416,8 @@
       }
       var total = 0;
       var found = false;
+      /* one entry per damaging effect that lands on this target */
+      var hits = [];
       /* Did a conditional arm decide this number, and did it pass? The
          UI surfaces this so a player can see WHY the damage is what it
          is - an HP window that reads as "should have fired" from the
@@ -466,8 +468,64 @@
           B._multTrail = null;
           var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
           var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
-          total += Math.max(1, Math.round(afterDef));
+          var hit = Math.max(1, Math.round(afterDef));
+          total += hit;
           found = true;
+
+          /* THE WORKING-OUT. Every factor above is recorded in the order
+             it was applied, so the UI can show a player how the number
+             was reached instead of asking them to trust it. Only factors
+             that actually did something are listed - a row of "x1" tells
+             nobody anything. `steps` is presentation only; the arithmetic
+             above is untouched and remains the single source of truth. */
+          var st = [];
+          st.push({ k: 'atk', label: 'Attack', value: atkOf(unit) });
+          st.push({ k: 'power', label: 'Skill power', mult: e.power });
+          if (provokeM !== 1) st.push({ k: 'provoke', label: 'Provoke tax', mult: provokeM });
+          if ((ctx.scale || 1) !== 1) st.push({ k: 'scale', label: 'Scaling', mult: ctx.scale });
+          if (e.ifMult) {
+            e.ifMult.forEach(function (m) {
+              if (condMet(B, m.when, condCtx(ctx, tgt)))
+                st.push({ k: 'ifMult', label: 'Conditional bonus', mult: m.mult });
+            });
+          }
+          if (e.perDebuff) {
+            var dn2 = debuffCount(tgt);
+            if (e.perDebuffMax != null) dn2 = Math.min(dn2, e.perDebuffMax);
+            if (dn2)
+              st.push({
+                k: 'perDebuff',
+                label: 'Per debuff (' + dn2 + ')',
+                add: atkOf(unit) * e.perDebuff * dn2 * (ctx.scale || 1) * provokeM,
+              });
+          }
+          if (e.perBuff) {
+            var bn2 = buffCount(tgt);
+            if (e.perBuffMax != null) bn2 = Math.min(bn2, e.perBuffMax);
+            if (bn2)
+              st.push({
+                k: 'perBuff',
+                label: 'Per buff (' + bn2 + ')',
+                add: atkOf(unit) * e.perBuff * bn2 * (ctx.scale || 1) * provokeM,
+              });
+          }
+          st.push({ k: 'raw', label: 'Base damage', value: raw, subtotal: true });
+          if (outM !== 1) st.push({ k: 'outgoing', label: 'Attacker bonus', mult: outM });
+          if (inM !== 1) st.push({ k: 'incoming', label: 'Target damage taken', mult: inM });
+          if (resistM !== 1)
+            st.push({
+              k: 'resist',
+              label: 'Resistance (' + Math.min(90, tgt.flags.resistPct) + '%)',
+              mult: resistM,
+            });
+          if (defOf(tgt))
+            st.push({
+              k: 'def',
+              label: 'Defence (' + defOf(tgt) + ')',
+              mult: 1 - defOf(tgt) / 100,
+            });
+          st.push({ k: 'total', label: 'Damage', value: hit, subtotal: true });
+          hits.push({ steps: st, dmg: hit });
         });
       }
       scan(effects);
@@ -479,6 +537,8 @@
         /* true = the ability's conditional bonus applies to THIS target
            right now, false = it does not, null = no conditional. */
         bonus: bonusArm,
+        /* the arithmetic behind `dmg`, for the hover breakdown */
+        hits: hits,
       };
     } catch (e) {
       return null; // a broken preview must never break a fight

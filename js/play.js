@@ -4442,6 +4442,319 @@
       clearDraftMarks();
       window.EOL.ui.show('play');
     });
+
+    initRooms(MP);
+  }
+
+  /* =============================================================
+     PRIVATE ROOMS - the UI
+     -------------------------------------------------------------
+     js/mp.js owns the room; this renders it. The whole panel is
+     driven from the `room` event, so the leader's client and the
+     guest's client run the SAME render path and cannot disagree
+     about what is on screen - the only difference is that the
+     guest's controls are disabled.
+     ============================================================= */
+  function initRooms(MP) {
+    if (!MP.createRoom) return; // older mp.js - nothing to bind
+
+    var modal = $('room-modal');
+    if (!modal) return;
+
+    var door = $('room-door');
+    var lobby = $('room-lobby');
+
+    function roomShow(on) {
+      modal.hidden = !on;
+      if (on) {
+        fillRoomChoices();
+        var r = MP.room && MP.room();
+        renderRoom(r || null);
+      }
+    }
+
+    function face(inRoom) {
+      if (door) door.hidden = !!inRoom;
+      if (lobby) lobby.hidden = !inRoom;
+    }
+
+    function say(id, text) {
+      var n = $(id);
+      if (!n) return;
+      n.textContent = text || '';
+      n.hidden = !text;
+    }
+
+    /* The battlefield and pool lists come from the data files rather
+       than being written twice - a hardcoded list here would rot the
+       moment a board or faction is added. */
+    var choicesFilled = false;
+    function fillRoomChoices() {
+      if (choicesFilled) return;
+      choicesFilled = true;
+      var fSel = $('room-field');
+      if (fSel && window.EOL.battlefields) {
+        window.EOL.battlefields.forEach(function (b) {
+          var o = document.createElement('option');
+          o.value = b.id;
+          o.textContent = b.name || b.id;
+          fSel.appendChild(o);
+        });
+      }
+      var pSel = $('room-pool');
+      if (pSel && window.EOL.factions) {
+        window.EOL.factions.forEach(function (f) {
+          var o = document.createElement('option');
+          o.value = f.id;
+          o.textContent = f.name || f.id;
+          pSel.appendChild(o);
+        });
+      }
+    }
+
+    function settingsOf(r) {
+      var d = MP.roomDefaults();
+      var s = (r && r.settings) || {};
+      return {
+        mode: s.mode || d.mode,
+        length: s.length || d.length,
+        field: s.field || null,
+        pool: s.pool || null,
+      };
+    }
+
+    function renderRoom(r) {
+      if (!r) {
+        face(false);
+        say('room-door-err', '');
+        return;
+      }
+      face(true);
+
+      var code = $('room-code');
+      if (code) code.textContent = r.code;
+
+      var n1 = $('room-seat-1-name');
+      if (n1) n1.textContent = r.leaderName || 'Leader';
+      var n2 = $('room-seat-2-name');
+      var t2 = $('room-seat-2-tag');
+      var s2 = $('room-seat-2');
+      if (n2) n2.textContent = r.guest ? r.guestName || 'Challenger' : 'Waiting...';
+      if (t2) t2.textContent = r.guest ? 'Challenger' : 'Empty';
+      if (s2) s2.classList.toggle('filled', !!r.guest);
+
+      var lead = !!r.isLeader;
+      var s = settingsOf(r);
+
+      /* pills */
+      modal.querySelectorAll('.room-pill').forEach(function (b) {
+        var k = b.dataset.set;
+        b.classList.toggle('on', s[k] === b.dataset.val);
+        b.disabled = !lead;
+      });
+      /* selects */
+      var fSel = $('room-field');
+      if (fSel) {
+        fSel.value = s.field || '';
+        fSel.disabled = !lead;
+      }
+      var pSel = $('room-pool');
+      if (pSel) {
+        pSel.value = s.pool || '';
+        pSel.disabled = !lead;
+      }
+      /* the pool only means anything in a draft */
+      var poolRow = modal.querySelector('.room-opt[data-opt="pool"]');
+      if (poolRow) poolRow.classList.toggle('off', s.mode !== 'draft');
+
+      var hint = $('room-leader-hint');
+      if (hint) hint.textContent = lead ? 'You decide' : 'The party leader decides';
+
+      /* Only the leader may start, and only with someone to play. */
+      var start = $('room-start');
+      if (start) {
+        start.hidden = !lead;
+        start.disabled = !lead || !r.guest;
+        var lbl = start.querySelector('span');
+        if (lbl) lbl.textContent = r.guest ? 'Start match' : 'Waiting for a challenger';
+      }
+    }
+
+    function push(patch) {
+      var r = MP.room && MP.room();
+      if (!r || !r.isLeader) return;
+      var s = settingsOf(r);
+      for (var k in patch) if (patch.hasOwnProperty(k)) s[k] = patch[k];
+      MP.setRoomSettings(s).catch(function () {});
+    }
+
+    MP.on('room', function (r) {
+      if (!modal.hidden) renderRoom(r);
+    });
+    MP.on('roomError', function (e) {
+      say(modal.hidden || (lobby && lobby.hidden) ? 'room-door-err' : 'room-lobby-err', e.text);
+    });
+
+    /* ---- entry ---- */
+    var open = $('mode-mp-room');
+    if (open)
+      open.addEventListener('click', function () {
+        if (!MP.available()) {
+          mmShow(true);
+          mmSay('Account required', 'Sign in from the main menu to play multiplayer.', 'account');
+          return;
+        }
+        roomShow(true);
+      });
+
+    var close = $('room-close');
+    if (close) close.addEventListener('click', function () { roomShow(false); });
+    var scrim = $('room-scrim');
+    if (scrim) scrim.addEventListener('click', function () { roomShow(false); });
+
+    var create = $('room-create');
+    if (create)
+      create.addEventListener('click', function () {
+        say('room-door-err', '');
+        create.disabled = true;
+        MP.createRoom(MP.roomDefaults())
+          .catch(function () {})
+          .then(function () {
+            create.disabled = false;
+          });
+      });
+
+    var joinForm = $('room-join-form');
+    if (joinForm)
+      joinForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var inp = $('room-code-in');
+        var v = ((inp && inp.value) || '').trim().toUpperCase();
+        if (!v) return;
+        say('room-door-err', '');
+        MP.joinRoom(v).catch(function () {});
+      });
+
+    /* Codes are upper-case and unambiguous; typing is forgiving. */
+    var codeIn = $('room-code-in');
+    if (codeIn)
+      codeIn.addEventListener('input', function () {
+        codeIn.value = codeIn.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      });
+
+    /* ---- sharing ---- */
+    function copy(text, okMsg) {
+      if (!text) return;
+      var done = function () {
+        toast(okMsg, 'ri-check-line');
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {
+            toast('Could not copy - the code is ' + text, 'ri-error-warning-line');
+          });
+          return;
+        }
+      } catch (e) {
+        /* fall through to the manual path */
+      }
+      toast('Copy this: ' + text, 'ri-file-copy-line');
+    }
+
+    var cc = $('room-copy-code');
+    if (cc)
+      cc.addEventListener('click', function () {
+        var r = MP.room && MP.room();
+        copy(r && r.code, 'Room code copied');
+      });
+    var cl = $('room-copy-link');
+    if (cl)
+      cl.addEventListener('click', function () {
+        copy(MP.inviteLink && MP.inviteLink(), 'Invite link copied');
+      });
+
+    var invForm = $('room-invite-form');
+    if (invForm)
+      invForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var inp = $('room-invite-name');
+        var name = ((inp && inp.value) || '').trim();
+        if (!name) return;
+        say('room-invite-note', 'Checking...');
+        MP.playerExists(name).then(function (found) {
+          var r = MP.room && MP.room();
+          say(
+            'room-invite-note',
+            found
+              ? 'Found ' + name + '. Send them the code ' + ((r && r.code) || '') + '.'
+              : 'No player called ' + name + '.'
+          );
+        });
+      });
+
+    /* ---- settings ---- */
+    modal.querySelectorAll('.room-pill').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var p = {};
+        p[b.dataset.set] = b.dataset.val;
+        push(p);
+      });
+    });
+    var fSel = $('room-field');
+    if (fSel) fSel.addEventListener('change', function () { push({ field: fSel.value || null }); });
+    var pSel = $('room-pool');
+    if (pSel) pSel.addEventListener('change', function () { push({ pool: pSel.value || null }); });
+
+    /* ---- start / leave ---- */
+    var start = $('room-start');
+    if (start)
+      start.addEventListener('click', function () {
+        say('room-lobby-err', '');
+        start.disabled = true;
+        MP.startRoom().catch(function () {
+          start.disabled = false;
+        });
+      });
+
+    var leave = $('room-leave');
+    if (leave)
+      leave.addEventListener('click', function () {
+        MP.leaveRoom();
+        roomShow(false);
+      });
+
+    /* A room match starts like any other match, so the existing
+       `matched` handler takes it from here - all this has to do is
+       get the lobby out of the way. */
+    MP.on('matched', function () {
+      roomShow(false);
+    });
+
+    /* ---- arriving from an invite, or from Instant Multiplayer ---- */
+    var booted = false;
+    function boot() {
+      if (booted || !MP.available() || !MP.bootstrap) return;
+      booted = true;
+      MP.bootstrap().then(function (res) {
+        if (!res || res.action === 'none') return;
+        if (res.action === 'joined' || res.action === 'leading') {
+          roomShow(true);
+          if (res.instant) {
+            toast('Private room ready - invite a friend', 'ri-group-line');
+          }
+        } else if (res.action === 'joinFailed') {
+          roomShow(true);
+          say('room-door-err', 'That invite has expired or the room is full.');
+        }
+      });
+    }
+    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(boot);
+    boot();
+
+    /* someone accepted an invite while we were already in the game */
+    MP.on('roomJoined', function () {
+      roomShow(true);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function () {

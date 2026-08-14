@@ -1747,6 +1747,17 @@
             <span class="mode-cta">Find a match <i class="ri-arrow-right-line"></i></span>
           </button>
 
+          <button class="mode-card" id="mode-mp-room">
+            <i class="mode-wm ri-group-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-group-line"></i>
+            <span class="mode-name">Private Room</span>
+            <span class="mode-desc">
+              Play a friend, not a stranger. Send them a link or their callsign, pick the format,
+              the arena and the pool, then start when they arrive.
+            </span>
+            <span class="mode-cta">Create or join <i class="ri-arrow-right-line"></i></span>
+          </button>
+
           <button
             type="button"
             class="mode-card mode-card-guild soon"
@@ -1885,6 +1896,159 @@
         <button class="btn btn-ghost btn-slim" id="mm-cancel">
           <i class="ri-close-line"></i><span>Cancel</span>
         </button>
+      </div>
+    </div>
+
+    <!-- ==================== PRIVATE ROOM ====================
+         Two faces, one modal. The DOOR (#room-door) is what you see
+         before you are in a room: create one, or type a code. The
+         LOBBY (#room-lobby) is the room itself - the code to share,
+         who is in it, and the settings.
+
+         Only the party leader's controls are live: the guest sees the
+         same panel with everything disabled, because they should know
+         what they are about to play even though they do not choose it.
+         The server enforces this too; the UI is a courtesy. -->
+    <div class="room-modal" id="room-modal" hidden>
+      <div class="room-scrim" id="room-scrim"></div>
+      <div class="room-card">
+        <button type="button" class="room-x" id="room-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <!-- ---- the door ---- -->
+        <div class="room-face" id="room-door">
+          <h3 class="room-title"><i class="ri-group-line"></i> Private Room</h3>
+          <p class="room-sub">Play someone you know. No queue, no strangers.</p>
+
+          <button class="btn btn-gold room-big" id="room-create">
+            <i class="ri-add-circle-line"></i><span>Create a room</span>
+          </button>
+
+          <div class="room-or"><span>or join one</span></div>
+
+          <form class="room-join" id="room-join-form">
+            <input
+              class="room-input"
+              id="room-code-in"
+              type="text"
+              inputmode="latin"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="6"
+              placeholder="ROOM CODE"
+              aria-label="Room code"
+            />
+            <button class="btn btn-ghost" id="room-join" type="submit">
+              <i class="ri-login-box-line"></i><span>Join</span>
+            </button>
+          </form>
+          <p class="room-err" id="room-door-err" role="alert" hidden></p>
+        </div>
+
+        <!-- ---- the lobby ---- -->
+        <div class="room-face" id="room-lobby" hidden>
+          <h3 class="room-title"><i class="ri-group-line"></i> Your room</h3>
+
+          <div class="room-code-row">
+            <span class="room-code-k">Room code</span>
+            <code class="room-code" id="room-code">------</code>
+            <button type="button" class="btn btn-ghost btn-slim" id="room-copy-code">
+              <i class="ri-file-copy-line"></i><span>Copy</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-slim" id="room-copy-link">
+              <i class="ri-link"></i><span>Copy invite link</span>
+            </button>
+          </div>
+
+          <!-- invite by callsign: checks the name exists, then hands
+               over the code to send. We never message anyone on the
+               player's behalf. -->
+          <form class="room-invite" id="room-invite-form">
+            <input
+              class="room-input"
+              id="room-invite-name"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="24"
+              placeholder="Invite by callsign"
+              aria-label="Invite a player by callsign"
+            />
+            <button class="btn btn-ghost btn-slim" id="room-invite-go" type="submit">
+              <i class="ri-user-add-line"></i><span>Check</span>
+            </button>
+          </form>
+          <p class="room-note" id="room-invite-note" role="status" hidden></p>
+
+          <div class="room-seats">
+            <div class="room-seat filled" id="room-seat-1">
+              <i class="ri-vip-crown-line"></i>
+              <span class="room-seat-name" id="room-seat-1-name">Leader</span>
+              <span class="room-seat-tag">Party leader</span>
+            </div>
+            <span class="room-vs"><i class="ri-sword-line"></i></span>
+            <div class="room-seat" id="room-seat-2">
+              <i class="ri-user-line"></i>
+              <span class="room-seat-name" id="room-seat-2-name">Waiting...</span>
+              <span class="room-seat-tag" id="room-seat-2-tag">Empty</span>
+            </div>
+          </div>
+
+          <div class="room-settings" id="room-settings">
+            <p class="room-settings-head">
+              <span>Settings</span>
+              <span class="room-leader-only" id="room-leader-hint">The party leader decides</span>
+            </p>
+
+            <div class="room-opt" data-opt="mode">
+              <span class="room-opt-k">Format</span>
+              <div class="room-opt-v" role="group" aria-label="Format">
+                <button type="button" class="room-pill" data-set="mode" data-val="draft">Draft</button>
+                <button type="button" class="room-pill" data-set="mode" data-val="classic">Classic</button>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="length">
+              <span class="room-opt-k">Length</span>
+              <div class="room-opt-v" role="group" aria-label="Length">
+                <button type="button" class="room-pill" data-set="length" data-val="single">Single</button>
+                <button type="button" class="room-pill" data-set="length" data-val="unabridged">
+                  Unabridged
+                </button>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="field">
+              <span class="room-opt-k">Battlefield</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-field" aria-label="Battlefield">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="pool">
+              <span class="room-opt-k">Draft pool</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-pool" aria-label="Draft pool">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <p class="room-err" id="room-lobby-err" role="alert" hidden></p>
+
+          <div class="room-actions">
+            <button class="btn btn-ghost btn-slim" id="room-leave">
+              <i class="ri-logout-box-line"></i><span>Leave</span>
+            </button>
+            <button class="btn btn-gold" id="room-start" disabled>
+              <i class="ri-play-line"></i><span>Start match</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

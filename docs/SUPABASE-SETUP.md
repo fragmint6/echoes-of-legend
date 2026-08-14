@@ -327,6 +327,37 @@ can still redeem public codes once in their local save; a globally single-user
 code always requires a signed-in account and the RPC. Direct browser access to
 both tables is revoked, and RLS has no client policies.
 
+## 4i. Migration 11 - private rooms
+
+Run **[`docs/supabase-migration-11.sql`](supabase-migration-11.sql)** once in
+the SQL Editor. It needs migrations 02, 03 and 09 first. Idempotent.
+
+Until it is run, the Private Room card reports *"Private rooms are not set up
+on the server yet"* and everything else - the queue, the Daily Puzzle,
+campaign - is unaffected.
+
+What it adds:
+
+- **`mp_rooms`** - a room that exists BEFORE an opponent does. A six
+  character code from an unambiguous alphabet (no `O`/`0`, no `I`/`1`/`L`),
+  a leader, an optional guest, and the leader's chosen settings as jsonb.
+- **`create_room` / `join_room` / `leave_room`** - the lifecycle.
+  `join_room` is `security definer` because the joiner cannot read the room
+  until they are in it, which also stops anyone enumerating open rooms.
+  It locks the row, so two people racing for the last seat cannot both win.
+- **`set_room_settings`** - **only the party leader**, enforced by
+  `and leader = me` in the update rather than by the UI.
+- **`start_room`** - mints an ordinary `mp_matches` row and closes the room.
+  This is the important bit: the draft, heartbeat, `save_match_state`,
+  resume and `end_match` are all reused untouched. The leader becomes `p1`,
+  which is also the host, so the player who chose the settings is the
+  authority for host-decided rolls.
+- **`find_my_room`** - the reconnect path, mirroring `find_my_match`.
+- **`player_exists`** - backs "invite by callsign". It returns only a
+  boolean, never a user id, so it cannot be used to enumerate accounts.
+
+Rooms are swept after 30 minutes without a heartbeat.
+
 ## 5. Realtime - nothing to do
 
 **Skip this step.** Realtime Broadcast is on by default for every

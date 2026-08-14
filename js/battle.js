@@ -1207,6 +1207,104 @@
     });
   }
 
+  /* ---------------------------------------------------------
+     THE DAMAGE BREAKDOWN
+     -------------------------------------------------------------
+     The chip answers "how much?"; hovering it answers "why that
+     much?". Players could see a number but not the attack stat,
+     skill power, defence reduction and conditional arm behind it,
+     so a preview that disagreed with their mental maths looked like
+     a bug rather than a defence stat they had forgotten about.
+
+     Every row comes from engine.previewDamage's `hits[].steps`,
+     which records each factor AS IT IS APPLIED - the panel cannot
+     drift from the arithmetic because it is not recomputing any of
+     it. Multi-hit skills get one block per hit plus a grand total.
+     --------------------------------------------------------- */
+  function fmtMult(m) {
+    /* 0.7 -> "x0.7", 2.5 -> "x2.5", and never "x0.7000000000000001" */
+    return '\u00d7' + (Math.round(m * 1000) / 1000).toLocaleString();
+  }
+
+  function stepRowHTML(s) {
+    var right;
+    if (s.mult != null) right = fmtMult(s.mult);
+    else if (s.add != null) right = '+' + Math.round(s.add).toLocaleString();
+    else right = Math.round(s.value).toLocaleString();
+    return (
+      '<div class="dpb-row' +
+      (s.subtotal ? ' sub' : '') +
+      (s.k === 'total' ? ' tot' : '') +
+      '"><span class="dpb-k">' +
+      esc(s.label) +
+      '</span><span class="dpb-v">' +
+      right +
+      '</span></div>'
+    );
+  }
+
+  /* Open downward when there is not enough room above. Measured
+     against the board rect, not the window: the board is what the
+     panel would visually escape from, and the game is scaled, so
+     window coordinates alone would misjudge it. */
+  var DPB_H = 190; /* generous estimate; only decides the side */
+  function flipBreakdown(chip) {
+    try {
+      var r = chip.getBoundingClientRect();
+      var host = document.getElementById('board');
+      var top = host ? host.getBoundingClientRect().top : 0;
+      chip.classList.toggle('flip', r.top - top < DPB_H);
+    } catch (e) {
+      /* positioning is a nicety - never let it break targeting */
+    }
+  }
+
+  function dmgBreakdownHTML(pv, tgt, lethal) {
+    var hits = pv && pv.hits;
+    if (!hits || !hits.length) return '';
+    var multi = hits.length > 1;
+    var body = '';
+    hits.forEach(function (h, i) {
+      if (multi) body += '<div class="dpb-hit">Hit ' + (i + 1) + '</div>';
+      h.steps.forEach(function (s) {
+        /* on a multi-hit skill the per-hit "Damage" line is the hit,
+           not the answer - the grand total below is the answer */
+        body += stepRowHTML(s);
+      });
+    });
+    if (multi) {
+      body += stepRowHTML({ k: 'total', label: 'Total damage', value: pv.dmg, subtotal: true });
+    }
+    var foot = '';
+    if (pv.critChance > 0) {
+      foot +=
+        '<div class="dpb-note">On a crit (' +
+        pv.critChance +
+        '% chance): <b>' +
+        pv.crit.toLocaleString() +
+        '</b></div>';
+    }
+    if (lethal) foot += '<div class="dpb-note kill">This is lethal.</div>';
+    if (pv.bonus === true) {
+      foot += '<div class="dpb-note good">The Skill\u2019s bonus condition is met.</div>';
+    } else if (pv.bonus === false) {
+      foot +=
+        '<div class="dpb-note bad">The Skill\u2019s bonus condition is not met' +
+        (tgt && tgt.shield > 0
+          ? ' \u2013 HP conditions ignore shields, and this target has ' +
+            Math.ceil(tgt.shield).toLocaleString() +
+            ' shield.'
+          : '.') +
+        '</div>';
+    }
+    return (
+      '<span class="dmg-breakdown"><span class="dpb-title">How this is calculated</span>' +
+      body +
+      foot +
+      '</span>'
+    );
+  }
+
   /* highlight selected unit + legal targets */
   function paintSelection() {
     document.querySelectorAll('.bcard').forEach(function (c) {
@@ -1257,23 +1355,19 @@
                 (pv.bonus === true
                   ? '<i data-icon-domain="game" class="ra ra-star-formation dp-bonus"></i>'
                   : '') +
-                (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
-              chip.title =
-                'Estimated damage (before crits). Crit chance ' +
-                pv.critChance +
-                '%: ' +
-                pv.crit.toLocaleString() +
-                (lethal ? '. Lethal.' : '.') +
-                (pv.bonus === true
-                  ? ' This Skill’s bonus condition is met on this target.'
-                  : pv.bonus === false
-                    ? ' This Skill’s bonus condition is NOT met on this target' +
-                      (u.shield > 0
-                        ? ' - HP conditions ignore shields, and this target has ' +
-                          Math.ceil(u.shield).toLocaleString() +
-                          ' shield.'
-                        : '.')
-                    : '');
+                (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '') +
+                dmgBreakdownHTML(pv, u, lethal);
+              /* No `title`: the hover panel above says all of this and
+                 more, and a native tooltip on top of it would cover the
+                 breakdown the player opened it to read. */
+              chip.removeAttribute('title');
+              /* The panel opens upward by default. For a unit on the top
+                 row that would run off the board, so those flip below.
+                 Enemies occupy the top of the board, and they are exactly
+                 who wears this chip, so this is the common case - it is
+                 decided per chip from its real position rather than
+                 assumed from the side. */
+              flipBreakdown(chip);
             }
           }
         }

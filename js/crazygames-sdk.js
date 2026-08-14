@@ -630,6 +630,132 @@
   }
 
   /* --------------------------------------------------------------
+     MULTIPLAYER: ROOMS, INVITES, INSTANT MULTIPLAYER
+     ----------------------------------------------------------------
+     CrazyGames requires all of this before a game may appear on the
+     Multiplayer landing page, so these are compliance features, not
+     nice-to-haves:
+
+       * Room Data - updateRoom({roomId, isJoinable, inviteParams})
+         tells the portal which room the player is in and whether
+         anyone else may join it. leftRoom() on the way out.
+       * Invite Link - a copyable link that drops the recipient into
+         this exact room.
+       * Invite Button - the portal's own button. The docs mark it
+         deprecated in favour of Room Data, but it is still required
+         of us, so we ship both and keep them consistent.
+       * Instant Multiplayer - when the portal launches us with
+         `isInstantMultiplayer`, the player must land in a playable
+         private room immediately, not on the main menu.
+
+     Everything below is a no-op on the web build, so callers never
+     have to ask which platform they are on. */
+
+  /* The portal wants a room id unique across the whole game. Match
+     ids are uuids, which already are. */
+  function updateRoom(info) {
+    call('game.updateRoom', function () {
+      if (!sdk.game || !sdk.game.updateRoom) return;
+      sdk.game.updateRoom(info);
+    });
+  }
+
+  function leftRoom() {
+    call('game.leftRoom', function () {
+      if (!sdk.game || !sdk.game.leftRoom) return;
+      sdk.game.leftRoom();
+    });
+  }
+
+  /* Returns the invite link, or null when the SDK cannot make one
+     (web build, or the portal is not hosting us). */
+  function inviteLink(params) {
+    var out = null;
+    call('game.inviteLink', function () {
+      if (!sdk.game || !sdk.game.inviteLink) return;
+      out = sdk.game.inviteLink(params || {});
+    });
+    return out;
+  }
+
+  function showInviteButton(params) {
+    var out = null;
+    call('game.showInviteButton', function () {
+      if (!sdk.game || !sdk.game.showInviteButton) return;
+      out = sdk.game.showInviteButton(params || {});
+    });
+    return out;
+  }
+
+  function hideInviteButton() {
+    call('game.hideInviteButton', function () {
+      if (!sdk.game || !sdk.game.hideInviteButton) return;
+      sdk.game.hideInviteButton();
+    });
+  }
+
+  /* THE TWO ENTRY PATHS, which the docs are emphatic are distinct:
+       1. the game was STARTED from an invite link -> read
+          game.inviteParams once at boot;
+       2. the game was ALREADY RUNNING and the player accepted an
+          invite -> the join-room listener fires.
+     Miss the second and the portal expects a page reload, which
+     would throw away the session. */
+  function inviteParams() {
+    var out = null;
+    call('game.inviteParams', function () {
+      if (!sdk.game) return;
+      out = sdk.game.inviteParams || null;
+    });
+    return out;
+  }
+
+  function inviteParam(key) {
+    var out = null;
+    call('game.getInviteParam', function () {
+      if (!sdk.game || !sdk.game.getInviteParam) return;
+      out = sdk.game.getInviteParam(key);
+    });
+    return out;
+  }
+
+  var joinListeners = [];
+  function onJoinRoom(fn) {
+    if (typeof fn !== 'function') return function () {};
+    joinListeners.push(fn);
+    var wrapped = function (params) {
+      try {
+        fn(params || null);
+      } catch (e) {
+        log('join-room handler threw', e);
+      }
+    };
+    fn.__wrapped = wrapped;
+    call('game.addJoinRoomListener', function () {
+      if (!sdk.game || !sdk.game.addJoinRoomListener) return;
+      sdk.game.addJoinRoomListener(wrapped);
+    });
+    return function () {
+      call('game.removeJoinRoomListener', function () {
+        if (!sdk.game || !sdk.game.removeJoinRoomListener) return;
+        sdk.game.removeJoinRoomListener(wrapped);
+      });
+    };
+  }
+
+  /* True when the portal launched us straight into multiplayer. The
+     property was called isInstantJoin in older SDKs; both are read so
+     an older embed still behaves. */
+  function isInstantMultiplayer() {
+    var out = false;
+    call('game.isInstantMultiplayer', function () {
+      if (!sdk.game) return;
+      out = !!(sdk.game.isInstantMultiplayer || sdk.game.isInstantJoin);
+    });
+    return out;
+  }
+
+  /* --------------------------------------------------------------
      Public surface. Kept small on purpose: the rest of the codebase
      should not learn SDK vocabulary, and nothing here is required
      for the game to run. */
@@ -675,6 +801,17 @@
     },
     gameplayStart: gameplayStart,
     gameplayStop: gameplayStop,
+
+    /* multiplayer rooms + invites (no-ops off-portal) */
+    updateRoom: updateRoom,
+    leftRoom: leftRoom,
+    inviteLink: inviteLink,
+    showInviteButton: showInviteButton,
+    hideInviteButton: hideInviteButton,
+    inviteParams: inviteParams,
+    inviteParam: inviteParam,
+    onJoinRoom: onJoinRoom,
+    isInstantMultiplayer: isInstantMultiplayer,
     loadingStart: loadingStart,
     loadingStop: loadingStop,
     /* test hooks */

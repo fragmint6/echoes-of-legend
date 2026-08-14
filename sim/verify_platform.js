@@ -413,6 +413,128 @@ section('E. an anonymous session is not an account');
     authCard.indexOf('id="auth-foot"') > authCard.indexOf('id="auth-form"'),
     'the sign-in footnote sits below the form, not wedged into the header'
   );
+
+  /* ---- CRAZYGAMES MULTIPLAYER REQUIREMENTS ------------------------
+     These are not preferences. A game that does not report room data,
+     offer an invite link/button, and honour isInstantMultiplayer is
+     REJECTED from the CrazyGames Multiplayer category, so each of
+     these is a release blocker and belongs in the permanent suite. */
+  const sdkSrc = read('js/crazygames-sdk.js');
+  const mpRoomSrc = read('js/mp.js');
+
+  ok(/updateRoom/.test(sdkSrc), 'the SDK bridge exposes updateRoom (Room Data)');
+  ok(/leftRoom/.test(sdkSrc), 'the SDK bridge exposes leftRoom');
+  ok(/inviteLink/.test(sdkSrc), 'the SDK bridge exposes inviteLink');
+  ok(/showInviteButton/.test(sdkSrc), 'the SDK bridge exposes showInviteButton');
+  ok(/hideInviteButton/.test(sdkSrc), 'the SDK bridge exposes hideInviteButton');
+  ok(
+    /isInstantMultiplayer/.test(sdkSrc),
+    'the SDK bridge reads isInstantMultiplayer'
+  );
+  ok(
+    /addJoinRoomListener/.test(sdkSrc),
+    'the SDK bridge registers a join-room listener (no reload on invite)'
+  );
+  ok(
+    /isInstantJoin/.test(sdkSrc),
+    'the deprecated isInstantJoin alias is still read for older embeds'
+  );
+
+  /* Every new room/invite method must be reachable from the public
+     surface, otherwise mp.js silently no-ops on the portal. */
+  const publicBlock = sdkSrc.slice(sdkSrc.indexOf('window.EOL.crazygames = {'));
+  ['updateRoom', 'leftRoom', 'inviteLink', 'showInviteButton', 'hideInviteButton',
+   'onJoinRoom', 'isInstantMultiplayer', 'inviteParam'].forEach((m) => {
+    ok(
+      new RegExp('\\n\\s*' + m + ':').test(publicBlock),
+      m + ' is exported on window.EOL.crazygames'
+    );
+  });
+
+  ok(
+    /reportRoom\(/.test(mpRoomSrc),
+    'mp.js reports room state to the portal from one place'
+  );
+  ok(
+    /isJoinable/.test(mpRoomSrc),
+    'mp.js reports an isJoinable flag'
+  );
+  ok(
+    /function bootstrap\(/.test(mpRoomSrc),
+    'mp.js has a bootstrap() covering the invite/instant entry paths'
+  );
+
+  /* ---- PRIVATE ROOMS ---------------------------------------------
+     The party leader owns the settings, and that must be enforced by
+     the SERVER - a UI-only rule is not a rule. */
+  const mig = read('docs/supabase-migration-11.sql');
+  ok(/create table if not exists public\.mp_rooms/.test(mig), 'migration 11 creates mp_rooms');
+  ['create_room', 'join_room', 'set_room_settings', 'start_room', 'leave_room'].forEach((fn) => {
+    ok(
+      new RegExp('function public\\.' + fn + '\\(').test(mig),
+      'migration 11 defines ' + fn + '()'
+    );
+  });
+  ok(
+    /not the party leader/.test(mig),
+    'the server rejects a non-leader changing settings'
+  );
+  ok(
+    /and leader = me/.test(mig),
+    'set_room_settings is filtered on the leader, not just checked in the UI'
+  );
+  ok(/enable row level security/.test(mig), 'mp_rooms has RLS enabled');
+
+  /* the room UI */
+  const roomDoc = new JSDOM(page).window.document;
+  ok(!!roomDoc.getElementById('room-modal'), 'the private-room modal exists');
+  ok(!!roomDoc.getElementById('mode-mp-room'), 'a Private Room mode card exists');
+  ok(
+    roomDoc.getElementById('room-modal').hasAttribute('hidden'),
+    'the private-room modal starts hidden'
+  );
+  ok(
+    roomDoc.getElementById('room-start').hasAttribute('disabled'),
+    'Start match is disabled until someone joins'
+  );
+
+  /* ---- FIXED-SIZE TILES -------------------------------------------
+     `1fr` floors a track at min-content, so a long unbreakable name
+     (Rumpelstiltskin) widened its own tile and shrank its neighbours.
+     Every card grid must use minmax(0, 1fr). */
+  const styleCss = read('css/style.css');
+  ['.deck-slots', '.dp-slots', '.deck-slots-12', '.field-slots'].forEach((sel) => {
+    const i = styleCss.indexOf('\n' + sel + ' {');
+    const rule = i < 0 ? '' : styleCss.slice(i, styleCss.indexOf('}', i));
+    const cols = (rule.match(/grid-template-columns:([^;]*);/) || [, ''])[1];
+    ok(
+      /minmax\(\s*0/.test(cols),
+      sel + ' uses minmax(0, 1fr) so one long name cannot stretch a tile'
+    );
+  });
+  ['.deck-slot', '.dp-slot', '.field-slot'].forEach((sel) => {
+    const i = styleCss.indexOf('\n' + sel + ' {');
+    const rule = i < 0 ? '' : styleCss.slice(i, styleCss.indexOf('}', i));
+    ok(/min-width:\s*0/.test(rule), sel + ' carries min-width:0 so it cannot overflow its track');
+  });
+
+  /* ---- THE DAMAGE BREAKDOWN ---------------------------------------
+     The hover must show HOW the number was reached. */
+  const engineSrc = read('js/engine.js');
+  const battleSrc = read('js/battle.js');
+  ok(/hits: hits/.test(engineSrc), 'previewDamage returns the per-hit arithmetic');
+  ok(
+    /st\.push\(\{ k: 'atk'/.test(engineSrc),
+    'the breakdown starts from the attacker\u2019s Attack'
+  );
+  ok(/k: 'def'/.test(engineSrc), 'the breakdown records the defence reduction');
+  ok(/dmgBreakdownHTML/.test(battleSrc), 'the damage chip renders a breakdown panel');
+  ok(
+    /pointer-events: auto/.test(
+      styleCss.slice(styleCss.indexOf('.dmg-preview {'), styleCss.indexOf('.dmg-preview i {'))
+    ),
+    'the damage chip is hoverable so the breakdown can be read'
+  );
 }
 
 console.log('\n================================================================');
