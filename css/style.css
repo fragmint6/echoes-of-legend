@@ -27016,8 +27016,10 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   display: grid;
   gap: 8px;
   /* Long histories scroll inside the card rather than growing a modal
-     taller than the window. */
-  max-height: min(52vh, 460px);
+     taller than the window. --vh1 rather than a raw vh: js/app.js
+     rewrites it to account for the GUI zoom, so the cap still means
+     "just over half the window" at 80% scale instead of overflowing. */
+  max-height: min(calc(52 * var(--vh1)), 460px);
   overflow-y: auto;
 }
 .hist-row {
