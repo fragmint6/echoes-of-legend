@@ -89,10 +89,21 @@ async function verifyToken(token: string): Promise<CgClaims> {
   } catch (_first) {
     /* A rotated key looks exactly like a bad signature. Re-fetch
        once and retry before calling it a forgery. */
-    payload = (await jwtVerify(token, await crazyGamesKey(true), opts)).payload as Record<
-      string,
-      unknown
-    >;
+    try {
+      payload = (await jwtVerify(token, await crazyGamesKey(true), opts)).payload as Record<
+        string,
+        unknown
+      >;
+    } catch (second) {
+      /* Say WHICH failure this is. jose distinguishes an expired token
+         (clock skew, or a token held too long) from a signature that
+         does not verify, and the two have completely different fixes.
+         Swallowing both into "invalid token" is what makes this hard
+         to debug from the outside. */
+      const code = (second as { code?: string })?.code ?? '';
+      const msg = second instanceof Error ? second.message : String(second);
+      throw new Error('signature/claims check failed after key refresh [' + code + ']: ' + msg);
+    }
   }
 
   /* jose enforces exp/nbf itself. userId is ours to insist on. */
@@ -119,11 +130,34 @@ async function verifyToken(token: string): Promise<CgClaims> {
      Until it is set the check is skipped rather than failing closed,
      so the integration works from the first deploy - but the warning
      repeats on every login, and it should be set before launch. */
-  const expectedGame = Deno.env.get('CG_GAME_ID');
-  const gameId = typeof payload.gameId === 'string' ? payload.gameId : undefined;
+  /* Both sides are normalised before comparing. `gameId` is documented
+     as a string, but accept a number rather than rejecting a perfectly
+     good token over a type; and trim the secret, because a value pasted
+     into a shell or the dashboard picks up whitespace and a newline
+     compares unequal to the same digits. */
+  const expectedGame = (Deno.env.get('CG_GAME_ID') ?? '').trim();
+  const rawGameId = payload.gameId;
+  const gameId =
+    typeof rawGameId === 'string'
+      ? rawGameId.trim()
+      : typeof rawGameId === 'number'
+        ? String(rawGameId)
+        : undefined;
   if (expectedGame) {
     if (gameId !== expectedGame) {
-      throw new Error('token was issued for a different game');
+      /* Name both values. This throw becomes an opaque 401 to the
+         caller by design, so the log is the only place the mismatch
+         can be seen - and "invalid token" alone sends people hunting
+         through signatures and clocks when the real cause is a
+         mistyped id. Neither value is secret. */
+      throw new Error(
+        'token was issued for a different game: token gameId=' +
+          (gameId ?? '(absent)') +
+          ' but CG_GAME_ID=' +
+          expectedGame +
+          '. If the token value is the correct one, run: supabase secrets set CG_GAME_ID=' +
+          (gameId ?? '<id>')
+      );
     }
   } else {
     /* The id is not a secret - it identifies the game, not the player -

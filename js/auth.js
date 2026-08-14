@@ -466,6 +466,15 @@
         /* The anonymous fallback was suppressed while this ran, so
            give the Daily Puzzle its session back. */
         openPortalGate();
+        /* AND PUT THE UI BACK.
+           setState('wait') went up when this exchange started. If a
+           session was ALREADY live - the usual case for a retry, where
+           an anonymous session landed after the first failure -
+           openPortalGate() has nothing to do and no auth state change
+           fires, so nothing ever clears 'wait'. The button spins for
+           good on a request that finished long ago. Re-assert the
+           state we actually have. */
+        setState(session);
         return null;
       });
   }

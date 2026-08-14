@@ -400,6 +400,31 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       /raceTimeout\(\s*ensureProfile\(\)/.test(auth),
       'the profile write is bounded, so it cannot hold the sign-in UI open'
     );
+
+    /* A FAILED EXCHANGE MUST PUT THE UI BACK. setState('wait') goes up
+       when the exchange starts. On a retry - the common case, once an
+       anonymous session has landed after an earlier failure -
+       openPortalGate() finds a session already present, does nothing,
+       and no auth state change fires. Without an explicit reset the
+       button spins forever on a request that failed long ago. */
+    const tail = body.slice(body.indexOf('.catch(function (err)'));
+    ok(
+      /setState\(session\);/.test(tail),
+      'the catch re-asserts the real auth state instead of leaving it on wait'
+    );
+
+    /* The audience mismatch is the single most likely 401, and it is
+       invisible to the client by design. The log must name both values
+       or the operator cannot tell a mistyped secret from a bad key. */
+    const fnSrc = read('supabase/functions/cg-auth/index.ts');
+    ok(
+      /token gameId=/.test(fnSrc) && /but CG_GAME_ID=/.test(fnSrc),
+      'a gameId mismatch logs the token value AND the configured one'
+    );
+    ok(
+      /\(Deno\.env\.get\('CG_GAME_ID'\) \?\? ''\)\.trim\(\)/.test(fnSrc),
+      'the secret is trimmed, so stray whitespace cannot cause a silent 401'
+    );
   }
 
   /* ===========================================================
