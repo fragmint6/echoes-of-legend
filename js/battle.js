@@ -4845,7 +4845,9 @@
     /* Tell the server the match is over, so an abandoned-looking row
        is not left `active` and neither player gets rejoined into a
        finished game. */
-    if (netCtl && netCtl.finish) netCtl.finish();
+    /* The board is passed so the archive can record who won and how
+       long it took; netplay owns the replay tape itself. */
+    if (netCtl && netCtl.finish) netCtl.finish(B);
     var fb = $('btn-forfeit');
     if (fb) fb.hidden = true;
     cancelAuto();

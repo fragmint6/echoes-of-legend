@@ -24,23 +24,33 @@
   var PROGRESS_KEY = 'eol.campaign.ch1.progress';
   var SAVE_VERSION = 3;
   var DIFFICULTIES = {
+    /* THE NOTE IS SPLIT IN TWO. `mult` is the rival stat multiplier and
+       is rendered as a colour-coded chip (x1.1 / x1.2) because a
+       multiplier is what the engine actually applies - scaledRivalStats
+       multiplies by (1 + bonus), so "x1.1" is the literal truth where
+       "+10%" made players ask "+10% of what, and does it stack?".
+       `note` carries the rest of the line as plain text. Normal has no
+       chip at all: there is nothing to multiply by. */
     normal: {
       id: 'normal',
       name: 'Normal',
       bonus: 0,
+      mult: null,
       note: 'Standard rivals · coin rewards',
     },
     heroic: {
       id: 'heroic',
       name: 'Heroic',
       bonus: 0.1,
-      note: '+10% rival ATK & DEF · double coins · Epic rewards',
+      mult: 'x1.1',
+      note: 'rival ATK & DEF · double coins · Epic rewards',
     },
     legend: {
       id: 'legend',
       name: 'Legend',
       bonus: 0.2,
-      note: '+20% rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
+      mult: 'x1.2',
+      note: 'rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
     },
   };
   var STAGE_FACTIONS = {
@@ -2258,7 +2268,25 @@
       button.classList.toggle('sel', selected);
       button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
-    setText($('road-difficulty-note'), difficulty.note);
+    paintDifficultyNote($('road-difficulty-note'), difficulty);
+  }
+
+  /* The difficulty line, with the rival multiplier as a colour-coded
+     chip. Built from DOM nodes rather than innerHTML: the strings are
+     ours today, but a note that ever carries a player-supplied word
+     must not be able to inject markup. */
+  function paintDifficultyNote(node, difficulty) {
+    if (!node) return;
+    node.textContent = '';
+    if (difficulty.mult) {
+      var chip = document.createElement('b');
+      chip.className = 'diff-mult';
+      chip.dataset.diff = difficulty.id;
+      chip.textContent = difficulty.mult;
+      node.appendChild(chip);
+      node.appendChild(document.createTextNode(' '));
+    }
+    node.appendChild(document.createTextNode(difficulty.note || ''));
   }
 
   function paintStageRewards(card, stage, cleared, difficulty) {

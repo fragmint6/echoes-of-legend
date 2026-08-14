@@ -353,6 +353,62 @@ console.log('\nTHE ROOM\u2019S TERMS REACH THE GAME');
   ok(/battlefieldById\(st\.field\)/.test(play),'a pinned battlefield is honoured');
 }
 
+/* =============================================================
+   TURN 22: THE PARTY DISBANDS WHEN THE LEADER LEAVES
+   -------------------------------------------------------------
+   Reported by the player: "when the party leader leaves, the party
+   doesn't get disbanded automatically".
+
+   leave_room() in migration 11 was already correct - a leader leaving
+   sets status='closed'. The gap was entirely client-side: watchRoom()
+   polled the row and handed every result to adoptRoom() without ever
+   looking at `status`, so the guest kept sitting in a lobby for a
+   room that had been closed, waiting for a start that could never
+   come.
+   ============================================================= */
+console.log('\nTHE PARTY DISBANDS WITH ITS LEADER');
+{
+  const mp=fs.readFileSync(path.join(ROOT,'js/mp.js'),'utf8');
+  const play=fs.readFileSync(path.join(ROOT,'js/play.js'),'utf8');
+  const mig=fs.readFileSync(path.join(ROOT,'docs/supabase-migration-11.sql'),'utf8');
+
+  /* the server half was already right - pin it so it stays right */
+  ok(/if r\.leader = me then\s*\n\s*update mp_rooms set status = 'closed'/.test(mig),
+     'leave_room closes the room when the LEADER leaves');
+  ok(/elsif r\.guest = me then/.test(mig),
+     'a guest leaving only frees the seat, it does not close the room');
+
+  /* the client half - the actual fix */
+  ok(/function roomGone\(/.test(mp),
+     'mp.js has a single teardown for a room that ended without us');
+  const gone=mp.slice(mp.indexOf('function roomGone('),mp.indexOf('function roomFail('));
+  ok(/stopRoomWatch\(\)/.test(gone)&&/room = null/.test(gone),
+     'roomGone stops polling and drops the local room');
+  ok(/reportRoom\(null\)/.test(gone),
+     'roomGone stops advertising the dead room to the portal');
+  ok(/emit\('room', null\)/.test(gone),
+     'roomGone tells the UI the room is gone');
+
+  const watch=mp.slice(mp.indexOf('function watchRoom('),mp.indexOf('function stopRoomWatch('));
+  ok(/row\.status === 'closed'/.test(watch),
+     'the room poll actually inspects status');
+  ok(/roomGone\(/.test(watch),
+     'a closed row disbands the local room instead of being adopted');
+  ok(watch.indexOf("row.status === 'closed'")>watch.indexOf('row.match_id'),
+     'the match-start check runs FIRST: start_room also closes the room, and a '+
+     'started match must enter the game rather than read as a disband');
+  ok(/!row\.match_id/.test(watch),
+     'a closed row carrying a match_id is a START, not a disband');
+  ok(/disbanded: true/.test(mp),
+     'the disband is flagged so the UI can tell it from a form error');
+
+  ok(/e && e\.disbanded/.test(play),
+     'play.js distinguishes a disband from an ordinary room error');
+  const rerr=play.slice(play.indexOf("MP.on('roomError'"));
+  ok(/face\(false\)/.test(rerr.slice(0,700)),
+     'a disband closes the lobby rather than reporting into a dead one');
+}
+
 console.log('\npass '+pass+'  fail '+fail);
 process.exit(fail?1:0);
 })();

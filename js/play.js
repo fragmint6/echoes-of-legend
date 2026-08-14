@@ -4699,6 +4699,19 @@
       if (!modal.hidden) renderRoom(r);
     });
     MP.on('roomError', function (e) {
+      /* A DISBAND IS NOT A FORM ERROR. Every other roomError is a
+         failed action the player just attempted, so it belongs beside
+         the control they used. A disband happens TO them while they
+         wait, and the lobby it refers to no longer exists - so put the
+         lobby away first and report it on the door screen they are
+         being returned to, rather than printing "the party leader
+         left" inside a lobby that is still on screen. */
+      if (e && e.disbanded) {
+        face(false);
+        say('room-lobby-err', '');
+        say('room-door-err', e.text);
+        return;
+      }
       say(modal.hidden || (lobby && lobby.hidden) ? 'room-door-err' : 'room-lobby-err', e.text);
     });
 

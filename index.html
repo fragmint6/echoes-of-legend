@@ -352,6 +352,11 @@
           <button type="button" class="acct-menu-item" id="acct-login" role="menuitem">
             <i class="ri-login-box-line"></i><span>Sign in</span>
           </button>
+          <!-- Signed-in only: history lives in the account, not on the
+               device, so there is nothing to show a guest. -->
+          <button type="button" class="acct-menu-item" id="acct-history" role="menuitem">
+            <i class="ri-history-line"></i><span>Match history</span>
+          </button>
           <button type="button" class="acct-menu-item" id="acct-settings" role="menuitem">
             <i class="ri-settings-4-line"></i><span>Settings</span>
           </button>
@@ -1208,6 +1213,50 @@
           <i class="ri-information-line"></i>
           Signed-out progress stays in this browser. Create an account to back it up to the cloud.
         </p>
+      </div>
+    </div>
+    <!-- =========================================================
+         MATCH HISTORY
+         ---------------------------------------------------------
+         Two views in one card: the list of finished matches, and one
+         match opened as a turn-by-turn record. Finished matches are
+         archived out of mp_matches into mp_history, so this reads
+         from the archive rather than from live game rows.
+         ========================================================= -->
+    <div
+      class="auth-modal"
+      id="hist-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hist-title"
+    >
+      <div class="auth-scrim" id="hist-scrim"></div>
+      <div class="auth-card hist-card" role="document">
+        <button type="button" class="auth-close" id="hist-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <div class="auth-head set-head">
+          <div class="auth-emblem set-emblem"><i class="ri-history-line"></i></div>
+          <h2 class="auth-title" id="hist-title">Match history</h2>
+          <p class="auth-sub" id="hist-sub">Your finished online matches.</p>
+        </div>
+
+        <!-- view 1: the list -->
+        <section class="hist-view" id="hist-list-view">
+          <p class="hist-msg" id="hist-msg">Loading your matches...</p>
+          <ol class="hist-list" id="hist-list"></ol>
+        </section>
+
+        <!-- view 2: one match, replayed -->
+        <section class="hist-view" id="hist-one-view" hidden>
+          <button type="button" class="hist-back" id="hist-back">
+            <i class="ri-arrow-left-line"></i><span>All matches</span>
+          </button>
+          <div class="hist-score" id="hist-score"></div>
+          <ol class="hist-log" id="hist-log"></ol>
+        </section>
       </div>
     </div>
     <div
@@ -3483,6 +3532,7 @@
     </script>
     <script src="js/mp.js"></script>
     <script src="js/netplay.js"></script>
+    <script src="js/history.js"></script>
     <script src="js/app.js"></script>
 
     <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the

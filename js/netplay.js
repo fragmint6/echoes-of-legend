@@ -82,7 +82,31 @@
       pendingAction: null, // resolver waiting on the opponent's move
       dead: false,
       onDesync: null,
+      /* THE REPLAY TAPE.
+         The engine is deterministic, so "exactly what happened" is
+         fully described by the opening position plus the ordered list
+         of actions - which is the same property the netcode already
+         depends on to keep two machines agreeing. Recording it costs
+         one small object per action and lets the history screen
+         reconstruct the whole battle rather than just its score.
+
+         Actions are stored in LOCAL terms and tagged with who acted,
+         because that is the form both encode() and decode() already
+         speak; the viewer flips perspective the same way live play
+         does. */
+      tape: { actions: [], opening: null },
     };
+  }
+
+  /* Append one action to the replay tape. `mine` records whose move it
+     was so a replay can be watched from either seat. */
+  function tapeAct(mine, wire, round) {
+    if (!S || !S.tape) return;
+    /* A very long match must not become an unbounded upload. 600
+       actions is far beyond a real game (a 30-round battle is well
+       under 200) and keeps the JSON in the low kilobytes. */
+    if (S.tape.actions.length >= 600) return;
+    S.tape.actions.push({ by: mine ? 'me' : 'them', act: wire || null, r: round || 0 });
   }
 
   function send(kind, body) {
@@ -137,6 +161,43 @@
       return;
     }
     fail('Your opponent forfeited.');
+  }
+
+  /* =============================================================
+     ARCHIVE THE FINISHED MATCH
+     -------------------------------------------------------------
+     Moves the match out of mp_matches and into mp_history along with
+     its replay tape. Both clients call this for the same match and
+     the server absorbs the duplicate (archive_match is idempotent),
+     which is deliberate: it means the record survives even if one
+     player's browser dies on the result screen.
+
+     `winner` is reported in ABSOLUTE terms - 'p1'/'p2', matching the
+     row - not "player"/"enemy", which are relative to whoever is
+     asking. Getting that wrong would show one player a win and the
+     other a win as well.
+     ============================================================= */
+  function archive(B, ending) {
+    if (!S || S.archived) return;
+    S.archived = true;
+    var mp = window.EOL.mp;
+    if (!mp || !mp.archiveMatch) return;
+
+    /* The host is always p1 (start_room and try_match both build the
+       row that way), so "did I win" maps onto p1/p2 through host. */
+    var winner = null;
+    if (B && B.winner) {
+      var iWon = B.winner === 'player';
+      var meP1 = !!(S.match && S.match.host);
+      winner = iWon === meP1 ? 'p1' : 'p2';
+    }
+
+    mp.archiveMatch({
+      winner: winner,
+      ending: ending || 'unknown',
+      rounds: (B && B.round) || 0,
+      replay: S.tape && S.tape.opening ? S.tape : null,
+    });
   }
 
   function fail(text) {
@@ -319,6 +380,19 @@
     var cb = six.done;
     var theirs = six.theirs;
     six.done = null;
+    /* THE OPENING POSITION. Everything the engine needs to rebuild
+       this battle from scratch, captured at the one moment both sides
+       are known and nothing has happened yet. Card ids only - the
+       replay resolves them against the shipped card data, so it stays
+       small and keeps working if art or flavour text changes. */
+    if (S && S.tape) {
+      S.tape.opening = {
+        mine: (six.mine || []).slice(),
+        theirs: (theirs || []).slice(),
+        bans: bans && bans.mine ? { mine: bans.mine.slice(), theirs: (bans.theirs || []).slice() } : null,
+        host: !!(S.match && S.match.host),
+      };
+    }
     cb(theirs);
   }
 
@@ -396,6 +470,7 @@
 
   function settleAction(p, body) {
     var B = p.battle;
+    tapeAct(false, body.act || null, B && B.round);
     if (!body.act) {
       S.expectSum = body.sum || null;
       p.resolve(null); // they passed
@@ -443,7 +518,9 @@
            skill did to them - damage rolls, crits, coin flips, deaths.
            If their replay of our move lands anywhere else, they will
            see it immediately. */
-        send('act', { act: encode(B, act), sum: checksum(B) });
+        var wire = encode(B, act);
+        tapeAct(true, wire, B && B.round);
+        send('act', { act: wire, sum: checksum(B) });
       },
       /* A remote concession is terminal even if it arrives during our
          own turn (there may be no pending decide() promise to release).
@@ -461,7 +538,12 @@
          being "your active match" - otherwise the next time either
          player opens the game the rejoin path would pull them back
          into a game that is already decided. */
-      finish: function () {
+      finish: function (B) {
+        /* Archive BEFORE retiring the session, while the tape is still
+           reachable. archiveMatch() falls back to end_match() if the
+           history migration has not been run, so an un-migrated
+           project still closes its rows correctly. */
+        archive(B, 'victory');
         if (window.EOL.mp && window.EOL.mp.endMatch) window.EOL.mp.endMatch();
         /* Retire the session as well as the row. Leaving it alive
            meant a DECIDED match still counted as "in an online match",

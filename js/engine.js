@@ -1240,6 +1240,29 @@
       }
       return sorted.slice(0, 1);
     }
+
+    /* A FORCED TARGET IS A RULE, NOT A SUGGESTION.
+       Robin Hood's "Always targets the enemy with the highest ATK" used
+       to be applied only by the callers that happened to ask -
+       js/ai.js and the click handlers in js/battle.js - while
+       useAbility() resolved whatever it was handed. Anything that did
+       not consult forcedTarget (a replayed network action, a scripted
+       line, a future caller) could quietly aim him somewhere else, and
+       the card simply did not do what it says.
+
+       Enforcing it HERE makes it true for every path at once, because
+       every caller funnels through resolveTargets. `forcedTarget` is
+       itself computed from legalTargets, so Provoke, Untargetable and
+       row limits are already respected: this can only ever narrow the
+       choice to one legal enemy, never widen it to an illegal one.
+
+       It also reads LIVE ATK - atkOf() includes buffs, debuffs, the
+       round ramp and terrain - so a hero buffed above Robin's usual
+       prey becomes his target the moment the buff lands, which is what
+       "highest ATK" has to mean in a game with ATK buffs in it. */
+    var forced = forcedTarget(B, unit, ability);
+    if (forced) return [forced];
+
     return (chosen || []).slice(0, pickCount(ability));
   }
 

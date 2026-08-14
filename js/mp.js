@@ -285,6 +285,86 @@
   }
 
   /* =============================================================
+     MATCH HISTORY
+     -------------------------------------------------------------
+     A finished match does not belong in mp_matches. That table is
+     live plumbing - polled for "your active match", swept, carrying a
+     seed and settings that stop meaning anything the moment the game
+     ends - so every finished row left behind slows down the queries
+     that matter and clutters the database.
+
+     archive_match() copies the row into mp_history with its replay
+     and then deletes the original, which is why this is called
+     INSTEAD of end_match() on a natural finish rather than as well
+     as it. If it fails for any reason - most importantly, if the
+     history migration has not been run yet - we fall back to
+     end_match() so the row is still closed and neither player is
+     rejoined into a decided game. A missing history feature must
+     never strand somebody in a finished match.
+     ============================================================= */
+  function archiveMatch(rec) {
+    if (!sb || !match) return Promise.resolve(false);
+    var id = match.id;
+    rec = rec || {};
+    stopHeartbeat();
+    return sb
+      .rpc('archive_match', {
+        p_match: id,
+        p_winner: rec.winner || null,
+        p_ending: rec.ending || 'unknown',
+        p_rounds: rec.rounds || 0,
+        p_replay: rec.replay || null,
+      })
+      .then(
+        function (res) {
+          if (res && res.error) {
+            sb.rpc('end_match', { p_match: id }).then(function () {});
+            return false;
+          }
+          return true;
+        },
+        function () {
+          sb.rpc('end_match', { p_match: id }).then(function () {});
+          return false;
+        }
+      );
+  }
+
+  /* The list behind the History screen. Resolved server-side into
+     "me vs them" so the client never has to work out which seat it
+     held in a match it may not have been alive for. */
+  function history(limit, offset) {
+    if (!sb) return Promise.resolve({ rows: [], error: 'offline' });
+    return sb
+      .rpc('my_history', { p_limit: limit || 40, p_offset: offset || 0 })
+      .then(
+        function (res) {
+          if (res && res.error) return { rows: [], error: res.error.message || 'failed' };
+          return { rows: (res && res.data) || [], error: null };
+        },
+        function (e) {
+          return { rows: [], error: (e && e.message) || 'failed' };
+        }
+      );
+  }
+
+  /* One match in full, including the replay tape. Fetched only when a
+     player opens a match - the tape is the big column and the list
+     view has no use for it. */
+  function replay(id) {
+    if (!sb || !id) return Promise.resolve({ data: null, error: 'offline' });
+    return sb.rpc('match_replay', { p_match: id }).then(
+      function (res) {
+        if (res && res.error) return { data: null, error: res.error.message || 'failed' };
+        return { data: (res && res.data) || null, error: null };
+      },
+      function (e) {
+        return { data: null, error: (e && e.message) || 'failed' };
+      }
+    );
+  }
+
+  /* =============================================================
      REJOIN
      -------------------------------------------------------------
      Called once at startup. If a live match is still waiting - you
@@ -466,6 +546,22 @@
     return room;
   }
 
+  /* THE ROOM ENDED WITHOUT US ENDING IT.
+     One exit for every way a lobby can die under a member's feet: the
+     leader left, the row was swept, or it was deleted. Tears the local
+     room down exactly as leaveRoom() does - stop polling, drop the
+     state, stop advertising it to the portal - and then says why, so
+     the UI can close the lobby and show a reason instead of leaving
+     the player staring at a dead screen. `reason` is null when the
+     player already knows (they closed it themselves). */
+  function roomGone(reason) {
+    stopRoomWatch();
+    room = null;
+    reportRoom(null);
+    emit('room', null);
+    if (reason) emit('roomError', { text: reason, raw: 'room-closed', disbanded: true });
+  }
+
   function roomFail(err) {
     var m = (err && err.message) || '';
     var text = 'Something went wrong with that room.';
@@ -495,13 +591,32 @@
         .eq('code', room.code)
         .limit(1)
         .then(function (res) {
-          if (res.error || !res.data || !res.data.length) return;
+          if (res.error || !res.data || !res.data.length) {
+            /* THE ROW IS GONE. A deleted room is a disbanded room: the
+               sweeper can remove one whose heartbeat lapsed, and RLS
+               can stop returning it once we are no longer a member.
+               Either way there is nothing left to sit in. */
+            if (res.error) return; // a transient fetch error is not a disband
+            if (room && !room.matchId) roomGone('The party was disbanded.');
+            return;
+          }
           var row = res.data[0];
           /* the leader pressed start: everyone goes to the match */
           if (row.match_id && (!room || !room.matchId)) {
             adoptRoom(row);
             stopRoomWatch();
             enterRoomMatch(row.match_id);
+            return;
+          }
+          /* THE LEADER LEFT: leave_room() closes the room rather than
+             handing it on - there is no succession, and a room with no
+             owner has no settings. The guest has to be TOLD, or they
+             sit in a lobby that no longer exists waiting for a start
+             that can never come. Only the guest acts on this: the
+             leader is the one who closed it and has already left. */
+          if (row.status === 'closed' && !row.match_id) {
+            if (room && !room.isLeader) roomGone('The party leader left, so the party was disbanded.');
+            else if (room) roomGone(null);
             return;
           }
           adoptRoom(row);
@@ -787,6 +902,9 @@
     rngFrom: rngFrom,
     resume: resume,
     endMatch: endMatch,
+    archiveMatch: archiveMatch,
+    history: history,
+    replay: replay,
     saveState: saveState,
     current: function () {
       return match;
