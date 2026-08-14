@@ -192,6 +192,13 @@
   var portalGate = false;
   var portalGateTimer = 0;
 
+  /* Upper bound on the cg-auth round trip. Supabase Edge Functions
+     cold-start in well under a second normally; a first hit after a
+     deploy, or one that has to re-fetch CrazyGames' public key, is the
+     slow case this allows for. Past this the anonymous session is the
+     better outcome than a spinner. */
+  var CG_AUTH_TIMEOUT_MS = 12000;
+
   function openPortalGate() {
     if (!portalGate) return;
     portalGate = false;
@@ -281,10 +288,19 @@
     if (!endpoint) return Promise.resolve(null);
 
     portalExchange = true;
-    /* We are answering the gate, so its timeout is no longer needed -
-       but leave the gate itself closed so the anonymous fallback
-       cannot fire underneath the exchange. */
-    clearTimeout(portalGateTimer);
+    /* Hold the gate closed so the anonymous fallback cannot fire
+       underneath the exchange.
+
+       The gate's BACKSTOP TIMER IS DELIBERATELY LEFT RUNNING. It used
+       to be cleared here, on the reasoning that we were about to
+       answer the gate ourselves - but "about to" assumed the exchange
+       would always settle. A cold Edge Function, a hung connection or
+       a dropped response left the promise pending forever, and with
+       the backstop gone the UI sat on data-auth='wait' ("connecting...")
+       with nothing left to rescue it. Keeping the timer means the
+       worst case is the anonymous fallback arriving a few seconds
+       late, not a permanent spinner. Every settle path below closes
+       the gate, so an exchange that DOES finish still wins the race. */
     portalGate = true;
     setState('wait');
 
@@ -292,7 +308,14 @@
       .then(getToken)
       .then(function (token) {
         if (!token) throw new Error('no token');
-        return fetch(endpoint, {
+        /* A fetch with no timeout can hang for as long as the browser
+           allows. Bound it: a cold start is slow, but not this slow,
+           and failing over to the anonymous session beats waiting. */
+        var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+        var slow = setTimeout(function () {
+          if (ctl) ctl.abort();
+        }, CG_AUTH_TIMEOUT_MS);
+        var opts = {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
@@ -301,7 +324,20 @@
             apikey: cfg().anonKey || '',
           },
           body: JSON.stringify({ token: token }),
-        });
+        };
+        if (ctl) opts.signal = ctl.signal;
+        return fetch(endpoint, opts).then(
+          function (res) {
+            clearTimeout(slow);
+            return res;
+          },
+          function (err) {
+            clearTimeout(slow);
+            throw err && err.name === 'AbortError'
+              ? new Error('cg-auth timed out after ' + CG_AUTH_TIMEOUT_MS + 'ms')
+              : err;
+          }
+        );
       })
       .then(function (res) {
         if (!res.ok) {

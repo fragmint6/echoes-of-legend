@@ -356,6 +356,23 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     ok(state.anonCalls === 0, 'the fallback has NOT fired while the exchange is in flight');
     await wait(700);
     ok(state.anonCalls === 0, 'and never fires once the account lands');
+
+    /* THE PERMANENT SPINNER. signInWithCrazyGames() used to clear the
+       backstop timer on the reasoning that it would answer the gate
+       itself - which holds only if the exchange always settles. A cold
+       function or a hung socket left data-auth='wait' forever, so the
+       multiplayer tab read "connecting..." with nothing to rescue it.
+       The timer must OUTLIVE the start of the exchange. */
+    const exchange = auth.slice(auth.indexOf('function signInWithCrazyGames'));
+    const body = exchange.slice(0, exchange.indexOf('function maybeSignInAnonymously'));
+    ok(
+      !/clearTimeout\(portalGateTimer\)[\s\S]{0,200}setState\('wait'\)/.test(body),
+      'the exchange does not disarm the backstop on its way in'
+    );
+    ok(
+      /AbortController/.test(body) && /signal/.test(body),
+      'and the cg-auth fetch is bounded by a timeout rather than hanging'
+    );
   }
 
   /* ===========================================================
