@@ -698,10 +698,28 @@ set, a token minted for some other portal game is rejected.
 uuid. (See docs.crazygames.com/sdk/user, "Get user token", which shows
 the token payload.)
 
-*How to find yours.* The developer dashboard does not label it plainly,
-so the least painful route is to let the function tell you:
+*How to find yours - fastest route, no deploy needed.* Open your game on
+CrazyGames (the preview link works), log in to CrazyGames, then paste
+this into the browser devtools console:
 
-1. Deploy **without** the secret (you have already done this).
+```js
+(async () => {
+  const t = await window.CrazyGames.SDK.user.getUserToken();
+  console.log(JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))));
+})()
+```
+
+Read `gameId` off the object it prints. That is your number.
+
+Note the game must be running **on crazygames.com** for this to work -
+the SDK is not available on localhost, and `getUserToken()` throws
+`userNotAuthenticated` if you are not logged in to CrazyGames.
+
+*How to find yours - via the function logs.* Only works **after**
+`cg-auth` has actually been deployed; until then there is no `cg-auth`
+entry in the dashboard at all.
+
+1. Deploy **without** the secret.
 2. Open the game once on CrazyGames, logged in.
 3. Dashboard -> Edge Functions -> `cg-auth` -> **Logs**. Look for:
 
