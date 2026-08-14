@@ -27264,7 +27264,7 @@ body[data-gfx='low'] .mode-carousel-dots > button {
    needs room to show more than two columns. */
 .pool-card {
   width: min(1080px, calc(100 * var(--vw1) - 32px));
-  max-height: min(92 * var(--vh1), 960px);
+  max-height: min(calc(92 * var(--vh1)), 960px);
   overflow-y: auto;
 }
 .pool-tray {

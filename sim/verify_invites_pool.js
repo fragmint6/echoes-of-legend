@@ -247,6 +247,23 @@ console.log('\nTHE 36-CARD POOL BUILDER');
         'and clearing it restores the grid'
       );
 
+      /* The empty state is toggled by a .show class, not [hidden] -
+         it animates in. Asserting on `hidden` would pass no matter
+         what the code did. */
+      const emptyEl = $$('pool-empty');
+      search.value = 'nothing matches this';
+      search.dispatchEvent(new W.Event('input'));
+      ok(
+        Array.prototype.filter.call(grid.children, (c) => c.style.display !== 'none').length === 0 &&
+          emptyEl.classList.contains('show'),
+        'a search with no hits shows the empty state'
+      );
+      $$('pool-reset').click();
+      ok(
+        !emptyEl.classList.contains('show') && search.value === '',
+        'and Reset clears the search and hides it again'
+      );
+
       const keep = PB.current();
       $$('pool-fill').click();
       const filled = PB.current();
