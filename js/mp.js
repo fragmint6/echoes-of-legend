@@ -40,6 +40,51 @@
   var pollTimer = null;
   var beatTimer = null;
 
+  /* =============================================================
+     THE OUTBOX - why messages are held until the peer is present
+     -------------------------------------------------------------
+     Supabase Realtime broadcast is FIRE AND FORGET. A message sent to
+     a channel before the other client has SUBSCRIBED is delivered to
+     nobody and is not replayed when they arrive. There is no history.
+
+     The two players never subscribe at the same moment, because they
+     do not learn about the match at the same moment:
+
+       - the CLAIMER is handed the match row by try_match() and
+         subscribes immediately;
+       - the PARKED player finds out through a 2-SECOND POLL, so they
+         subscribe up to ~2s later.
+
+     Both sides send their opening message (Classic deck, or the first
+     draft pick) the instant they subscribe. The claimer's message
+     therefore goes out into an empty channel and is lost, while the
+     parked player's arrives normally. The result is exactly the
+     reported symptom: ONE player loads into the game and the other
+     sits on "Opponent found" forever, waiting for a message that was
+     already thrown away.
+
+     It is a race, so it is intermittent, and it is *more* likely the
+     longer the poll takes to notice - which is why it looks random.
+
+     The fix is to make send() reliable rather than to reorder the
+     handshake. Presence tells us when the opponent is actually on the
+     channel; until then outgoing messages queue here and are flushed
+     in order once they arrive. Nothing above this layer changes, and
+     the ordering guarantees js/netplay.js relies on are preserved
+     because the queue is strictly FIFO.
+     ============================================================= */
+  var peerHere = false; // is the opponent subscribed to our channel?
+  var outbox = []; // [{event, payload}] held until they are
+
+  function flushOutbox() {
+    if (!channel || !peerHere) return;
+    var pending = outbox;
+    outbox = [];
+    pending.forEach(function (m) {
+      channel.send({ type: 'broadcast', event: m.event, payload: m.payload });
+    });
+  }
+
   function emit(name, payload) {
     (handlers[name] || []).forEach(function (fn) {
       try {
@@ -185,8 +230,35 @@
     channel = sb.channel('match:' + row.id, {
       config: { broadcast: { self: false, ack: true }, presence: { key: u.id } },
     });
+    /* A fresh channel starts with nobody on it. Reset explicitly:
+       these are module-scope and a previous match must not leave the
+       next one believing the opponent is already listening. */
+    peerHere = false;
+    outbox = [];
+
+    /* Presence is the only reliable "they are listening now" signal.
+       `sync` fires with the full state on join and covers the case
+       where they were already there before us; `join` covers them
+       arriving after us. Either way, anything we queued goes out. */
+    function notePeers() {
+      if (!channel || peerHere) return;
+      var state = {};
+      try {
+        state = channel.presenceState() || {};
+      } catch (e) {
+        return;
+      }
+      var others = Object.keys(state).filter(function (k) {
+        return k !== u.id;
+      });
+      if (!others.length) return;
+      peerHere = true;
+      flushOutbox();
+    }
 
     channel
+      .on('presence', { event: 'sync' }, notePeers)
+      .on('presence', { event: 'join' }, notePeers)
       .on('broadcast', { event: 'pick' }, function (msg) {
         emit('pick', msg.payload);
       })
@@ -200,6 +272,11 @@
         emit('opponentLeft', {});
       })
       .on('presence', { event: 'leave' }, function () {
+        /* They are gone, so the channel is empty again. Hold anything
+           we send from here on: if they reconnect, presence fires
+           again and the queue is delivered rather than lost a second
+           time. */
+        peerHere = false;
         emit('opponentLeft', {});
       })
       .subscribe(function (status) {
@@ -390,8 +467,15 @@
       });
   }
 
+  /* Broadcast, but never into an empty channel. If the opponent has
+     not subscribed yet the message waits in the outbox and goes out
+     the moment presence reports them, in the order it was queued. */
   function send(event, payload) {
     if (!channel) return Promise.resolve();
+    if (!peerHere) {
+      outbox.push({ event: event, payload: payload || {} });
+      return Promise.resolve();
+    }
     return channel.send({ type: 'broadcast', event: event, payload: payload || {} });
   }
 
@@ -411,7 +495,17 @@
     cancel();
     stopHeartbeat();
     if (channel) {
-      send('bye', {});
+      /* Straight out, not through the outbox: we are tearing the
+         channel down on the next line, so a queued 'bye' would never
+         be flushed. If nobody is listening the message is pointless
+         anyway - there is no opponent to inform. */
+      if (peerHere) {
+        try {
+          channel.send({ type: 'broadcast', event: 'bye', payload: {} });
+        } catch (e) {
+          /* the channel is already going away */
+        }
+      }
       try {
         channel.unsubscribe();
       } catch (e) {
@@ -419,6 +513,8 @@
       }
       channel = null;
     }
+    peerHere = false;
+    outbox = [];
     match = null;
     reportRoom(null);
   }
