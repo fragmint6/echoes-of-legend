@@ -923,7 +923,17 @@
     if (!canUse(B, unit, ability, o)) return false;
     var t = (ability.spec && ability.spec.target) || {};
     if (t.side === 'none' || t.side === 'self' || t.side === 'auto') return true;
-    return legalTargets(B, unit, ability).length > 0;
+    /* ENOUGH targets, not just SOME. A `pick: 'two'` ability facing a
+       single survivor cannot be cast at all - the targeting UI demands
+       two choices and there is only one body to click.
+
+       This used to read `> 0`, which quietly disagreed with the
+       battle UI (js/battle.js already required `>= pickCount`). On the
+       Narrow Pass a back-row hero has no Basic, so a two-target
+       signature was the only move; against one enemy the engine
+       believed the side could act, refused to auto-pass, and the round
+       stalled with every ability greyed out. */
+    return legalTargets(B, unit, ability).length >= Math.max(1, pickCount(ability));
   }
 
   /* WHY can't this side act? The advance banner used to blame Energy

@@ -3843,11 +3843,41 @@
     var m = $('mm-modal');
     if (m) m.hidden = !on;
   }
-  function mmSay(title, sub) {
+  /* THE MATCHMAKING MODAL'S ICON IS NOT ALWAYS A SPINNER.
+     It used to be one unconditionally, so "Account required" - which is
+     not a wait at all - was announced by a pulsing loader that implied
+     something was still happening. The icon now matches the mood:
+
+       search   the orbiting loader, for a real wait
+       account  a shield, for "you need to be signed in"
+       warn     a warning triangle, for a failure
+
+     `mm-spinner` keeps its name (the pulse and layout live there) and
+     the state is a modifier class, so nothing else has to change. */
+  var MM_ICONS = {
+    search: 'ri-loader-4-line',
+    account: 'ri-shield-user-line',
+    warn: 'ri-error-warning-line',
+  };
+  function mmIcon(state) {
+    var box = $('mm-icon');
+    if (!box) return;
+    var name = MM_ICONS[state] ? state : 'search';
+    var i = box.querySelector('i');
+    if (i) i.className = MM_ICONS[name];
+    box.classList.toggle('mm-icon-account', name === 'account');
+    box.classList.toggle('mm-icon-warn', name === 'warn');
+    /* Only the searching state spins - a static shield that rotates
+       reads as a broken animation rather than a deliberate one. */
+    box.classList.toggle('mm-icon-still', name !== 'search');
+  }
+
+  function mmSay(title, sub, state) {
     var t = $('mm-title'),
       s2 = $('mm-sub');
     if (t && title) t.textContent = title;
     if (s2 && sub != null) s2.textContent = sub;
+    if (state) mmIcon(state);
   }
 
   /* ---------------------------------------------------------
@@ -4118,7 +4148,18 @@
        overhanging the tab it belongs to. */
     function refreshLock() {
       var lock = $('mp-lock');
-      if (lock) lock.hidden = MP.available();
+      if (lock) {
+        lock.hidden = MP.available();
+        /* SAY WHICH ACCOUNT. On the portal the only way in is a
+           CrazyGames login, so a bare "account" badge sends players
+           hunting for a sign-in form that build does not have. The
+           web build keeps the generic wording, because there the
+           answer really is "any account". */
+        var CG = window.EOL.crazygames;
+        var portal = !!(CG && CG.canPromptLogin && CG.canPromptLogin());
+        lock.textContent = portal ? 'log in with CrazyGames' : 'account';
+        lock.classList.toggle('play-tab-note-cg', portal);
+      }
       moveTabThumb();
     }
     if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(refreshLock);
@@ -4155,34 +4196,82 @@
        first and carry it into the match. */
     function queueFor(mode, deckId) {
       if (!MP.available()) {
-        /* ON THE PORTAL, "sign in from the main menu" IS A DEAD END:
-           that build has no sign-in form, because CrazyGames owns the
-           identity. The SDK's own login popup is the only route, so
-           offer that instead of instructions the player cannot
-           follow. Guests are never prompted unasked - the docs are
-           explicit about that - but this IS the player asking. */
         var CG = window.EOL.crazygames;
-        if (CG && CG.canPromptLogin && CG.canPromptLogin()) {
+        var A = window.EOL.auth;
+        var onPortal = !!(CG && CG.canPromptLogin && CG.canPromptLogin());
+
+        /* ALREADY LOGGED IN TO CRAZYGAMES, BUT STILL NO ACCOUNT.
+           This is the case that used to lie. The player has done
+           everything right - their name and avatar are in the corner -
+           so telling them an "account is required" is nonsense, and
+           re-opening the login popup would just fail with
+           userAlreadySignedIn. It means the token exchange did not
+           complete: usually because the cg-auth function has not been
+           deployed yet (see docs/SUPABASE-SETUP.md section 11), or the
+           network dropped it. Say THAT, and offer a retry that redoes
+           the exchange rather than the login. */
+        if (onPortal && A && A.user && A.user() && A.user().portal) {
           mmShow(true);
-          mmSay('Account required', 'Opening the CrazyGames login...');
+          mmSay(
+            'Setting up your account',
+            'Linking your CrazyGames profile - one moment...',
+            'search'
+          );
+          var again = A.retryCrazyGamesSignIn ? A.retryCrazyGamesSignIn() : Promise.resolve(null);
+          again.then(function () {
+            waitForAccount(function (ok) {
+              if (ok) {
+                queueFor(mode, deckId);
+                return;
+              }
+              mmSay(
+                'Online play is unavailable',
+                'Your CrazyGames profile could not be linked to the match service. ' +
+                  'This is on our side - please try again in a moment.',
+                'warn'
+              );
+            });
+          });
+          return;
+        }
+
+        /* A PORTAL GUEST. "Sign in from the main menu" is a dead end
+           there - that build has no sign-in form, because CrazyGames
+           owns the identity - so offer the SDK's own login popup.
+           Guests are never prompted unasked (the docs are explicit),
+           but this IS the player asking. */
+        if (onPortal) {
+          mmShow(true);
+          mmSay('Log in to play online', 'Opening the CrazyGames login...', 'account');
           CG.promptLogin().then(function (user) {
             if (!user) {
-              mmSay('Account required', 'Log in to CrazyGames to play online.');
+              mmSay(
+                'Log in to play online',
+                'Multiplayer needs a CrazyGames account so your opponent can see who they are facing.',
+                'account'
+              );
               return;
             }
             /* The account arrives asynchronously (token -> verify ->
                session), so wait for mp to actually be ready rather
                than queueing into a session that does not exist yet. */
-            mmSay('Signing in', 'Setting up your account...');
+            mmSay('Setting up your account', 'Almost there...', 'search');
             waitForAccount(function (ok) {
               if (ok) queueFor(mode, deckId);
-              else mmSay('Account required', 'Could not reach the account service. Try again.');
+              else
+                mmSay(
+                  'Online play is unavailable',
+                  'Your CrazyGames profile could not be linked to the match service. ' +
+                    'This is on our side - please try again in a moment.',
+                  'warn'
+                );
             });
           });
           return;
         }
+
         mmShow(true);
-        mmSay('Account required', 'Sign in from the main menu to play multiplayer.');
+        mmSay('Account required', 'Sign in from the main menu to play multiplayer.', 'account');
         return;
       }
       mpQueueMode = mode;

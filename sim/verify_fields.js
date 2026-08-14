@@ -162,6 +162,80 @@ sec('C. The Narrow Pass');
     E.canUse(B2, U(B2, 'sherwood-robin-hood'), E.roleAbility(U(B2, 'sherwood-robin-hood'))),
     'without the field the back row keeps its Basic'
   );
+
+  /* THE STALL (reported 2026-08-14).
+     A back-row hero on this field has no Basic, so a signature is its
+     only move. Zhuge Liang's needs TWO targets; facing a single
+     survivor it cannot be aimed at all. usableNow() only asked for
+     "at least one" legal target, so the engine believed the side could
+     act, refused to auto-pass, and the round stalled with every
+     ability greyed out - the battle UI already required >= pickCount,
+     so the two disagreed.
+
+     Assert the whole chain, not just the predicate: a stuck side must
+     also actually pass when the round driver next runs. */
+  /* Zhuge is not in the shared SIX fixture, so build a board that has
+     him in the back row explicitly. (A previous version looked him up
+     in the default board and silently skipped the whole check when he
+     was absent - the suite prints only failures, so it looked green.) */
+  const zhugeSix = FRONT.concat(['huaxia-zhuge-liang', 'camelot-merlin', 'olympus-apollo']);
+  const buildZ = (foeIds) => {
+    let n = 1;
+    const rng = () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const b = E.createBattle(zhugeSix.map(ent), foeIds.map(ent), {
+      rng,
+      roleAware: true,
+      simulation: true,
+      field: F('narrow-pass'),
+    });
+    b.noOpeningLimit = true;
+    return b;
+  };
+
+  const B3 = buildZ(FOES);
+  B3.energy.player = 150;
+  B3.round = 3;
+  const zhuge = U(B3, 'huaxia-zhuge-liang');
+  ok(!!zhuge, 'Zhuge Liang is on the test board');
+  {
+    /* leave exactly one enemy standing */
+    E.unitsOf(B3, 'enemy').forEach((u, i) => {
+      if (i > 0) {
+        u.hp = 0;
+        u.alive = false;
+      }
+    });
+    /* and leave Zhuge as our only living hero */
+    E.unitsOf(B3, 'player').forEach((u) => {
+      if (u !== zhuge) {
+        u.hp = 0;
+        u.alive = false;
+      }
+    });
+    const sig = zhuge.card.ability;
+    ok(!E.isFront(zhuge), 'Zhuge Liang is in the back row');
+    ok(E.pickCount(sig) === 2, 'his signature needs two targets');
+    ok(E.legalTargets(B3, zhuge, sig).length === 1, 'only one enemy is left to aim at');
+    ok(!E.canUse(B3, zhuge, E.roleAbility(zhuge)), 'his Basic is blocked by the field');
+    ok(!E.usableNow(B3, zhuge, sig), 'a two-target skill is NOT usable against one enemy');
+    ok(!E.canAct(B3, 'player'), 'so the side genuinely cannot act');
+    ok(E.whyCantAct(B3, 'player') === 'targets', 'and the reason given is targets, not energy');
+    E.advanceAction(B3);
+    ok(B3.passed.player === true, 'the round driver auto-passes the stuck side');
+
+    /* The counterpart: two enemies alive and the same skill is fine. */
+    const B4 = buildZ(FOES);
+    B4.energy.player = 150;
+    B4.round = 3;
+    const z4 = U(B4, 'huaxia-zhuge-liang');
+    E.unitsOf(B4, 'enemy').forEach((u, i) => {
+      if (i > 1) {
+        u.hp = 0;
+        u.alive = false;
+      }
+    });
+    ok(E.usableNow(B4, z4, z4.card.ability), 'the same skill IS usable when two enemies remain');
+  }
 }
 
 /* ---------------- 2. Open Plains ---------------- */

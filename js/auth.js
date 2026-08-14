@@ -254,10 +254,28 @@
     return !!meta.cg_user_id;
   }
 
+  /* Remembered so a retry can redo the exchange without the caller
+     having to hold on to the SDK's token getter. */
+  var portalTokenGetter = null;
+
+  /* THE PLAYER ASKED AGAIN.
+     signInWithCrazyGames() is fire-and-forget at boot and gives up
+     quietly on failure - which is right, because a guest must not be
+     nagged. But when a logged-in player then TRIES TO QUEUE, the
+     failure matters and they deserve another attempt: the usual cause
+     is a cg-auth function that was not deployed yet, which can start
+     working without the page reloading. */
+  function retryCrazyGamesSignIn() {
+    if (isPortalAccount()) return Promise.resolve(session);
+    if (!portalTokenGetter) return Promise.resolve(null);
+    return signInWithCrazyGames(portalTokenGetter);
+  }
+
   function signInWithCrazyGames(getToken) {
     if (!client) return Promise.resolve(null);
     if (portalExchange) return Promise.resolve(null);
     if (isPortalAccount()) return Promise.resolve(session);
+    if (getToken) portalTokenGetter = getToken;
 
     var endpoint = cgAuthEndpoint();
     if (!endpoint) return Promise.resolve(null);
@@ -588,6 +606,9 @@
        a stable uid, a profiles row). Takes a function returning the
        token so the token never has to sit in a variable here. */
     signInWithCrazyGames: signInWithCrazyGames,
+    /* Retry the exchange for a player who is already logged in to
+       CrazyGames but whose account never materialised. */
+    retryCrazyGamesSignIn: retryCrazyGamesSignIn,
     /* The player is not logged in to CrazyGames - release the boot
        gate so the Daily Puzzle's anonymous session can be created. */
     portalIsGuest: portalIsGuest,

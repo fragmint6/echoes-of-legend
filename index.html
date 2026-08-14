@@ -1807,7 +1807,11 @@
     <div class="mm-modal" id="mm-modal" hidden>
       <div class="mm-scrim" id="mm-scrim"></div>
       <div class="mm-card">
-        <div class="mm-spinner" aria-hidden="true"><i class="ri-loader-4-line"></i></div>
+        <!-- The icon swaps with the modal's mood: a spinner while
+             searching, a shield when the player needs an account, a
+             warning when something failed. js/play.js drives it through
+             mmIcon(); the default is the searching state. -->
+        <div class="mm-spinner" id="mm-icon" aria-hidden="true"><i class="ri-loader-4-line"></i></div>
         <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
         <div class="mm-subrow">
           <p class="mm-sub" id="mm-sub">Searching the queue...</p>

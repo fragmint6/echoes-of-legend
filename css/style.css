@@ -15588,6 +15588,21 @@ body[data-gfx='low'] .auth-scrim {
 .play-tab-note[hidden] {
   display: none;
 }
+/* "log in with CrazyGames" is a lot longer than "account", and the tab
+   thumb measures the tab it sits in - so keep it on one line and let it
+   ride a little tighter rather than wrapping and doubling the tab
+   height. js/play.js re-measures the thumb whenever this changes. */
+.play-tab-note-cg {
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  padding-inline: 5px;
+  background: rgba(120, 180, 255, 0.18);
+  color: #bcd9ff;
+}
+.play-tab.sel .play-tab-note-cg {
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(0, 0, 0, 0.66);
+}
 /* the play view centres its content column */
 .view.play .mode-grid {
   margin-inline: auto;
@@ -15660,6 +15675,27 @@ body[data-gfx='low'] .auth-scrim {
 body[data-gfx='low'] .mm-spinner,
 body[data-gfx='low'] .mm-card {
   animation: none;
+}
+
+/* THE MODAL ICON HAS THREE MOODS (session 26).
+   It was always the pulsing gold loader, so "Account required" - a
+   question, not a wait - looked like the game was still working on
+   something. Only the searching state animates now; the other two sit
+   still and recolour, so the modal reads at a glance. */
+.mm-spinner.mm-icon-still {
+  animation: none;
+}
+.mm-spinner.mm-icon-account {
+  color: #8fc7ff;
+  border-color: rgba(143, 199, 255, 0.45);
+  background: radial-gradient(circle at 38% 30%, rgba(120, 180, 255, 0.22), rgba(10, 12, 22, 0.6));
+  box-shadow: 0 0 26px rgba(90, 160, 255, 0.22);
+}
+.mm-spinner.mm-icon-warn {
+  color: #ffb27a;
+  border-color: rgba(255, 178, 122, 0.45);
+  background: radial-gradient(circle at 38% 30%, rgba(255, 170, 110, 0.2), rgba(10, 12, 22, 0.6));
+  box-shadow: 0 0 26px rgba(255, 150, 80, 0.22);
 }
 .mm-title {
   margin: 0 0 6px;
