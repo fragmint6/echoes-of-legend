@@ -99,9 +99,29 @@ async function verifyToken(token: string): Promise<CgClaims> {
   const userId = typeof payload.userId === 'string' ? payload.userId : '';
   if (!userId) throw new Error('token carries no userId');
 
+  /* AUDIENCE CHECK. A signature proves CrazyGames issued the token -
+     it does NOT prove they issued it for THIS game. Every CrazyGames
+     title gets tokens signed by the same key, so without this a token
+     minted for any other game on the portal would be accepted here and
+     silently create an account.
+
+     Set CG_GAME_ID once the game has its portal id (Edge Functions ->
+     Secrets). Left unset the check is skipped with a loud warning
+     rather than failing closed, so the integration still works before
+     the id is known - but set it before launch. */
+  const expectedGame = Deno.env.get('CG_GAME_ID');
+  const gameId = typeof payload.gameId === 'string' ? payload.gameId : undefined;
+  if (expectedGame) {
+    if (gameId !== expectedGame) {
+      throw new Error('token was issued for a different game');
+    }
+  } else {
+    console.warn('CG_GAME_ID is not set - accepting a token without checking which game it is for');
+  }
+
   return {
     userId,
-    gameId: typeof payload.gameId === 'string' ? payload.gameId : undefined,
+    gameId,
     username: typeof payload.username === 'string' ? payload.username : undefined,
     profilePictureUrl:
       typeof payload.profilePictureUrl === 'string' ? payload.profilePictureUrl : undefined,

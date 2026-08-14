@@ -375,6 +375,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       'a rotated key is re-fetched once before rejecting the token'
     );
     ok(!/__dangerousUserId/.test(fn), 'the function never reads the dangerous id');
+    /* A signature proves CrazyGames issued the token, NOT that they
+       issued it for this game - every title shares the signing key. */
+    ok(
+      /CG_GAME_ID/.test(fn) && /different game/.test(fn),
+      'the token audience (gameId) is checked against this game'
+    );
     ok(
       /payload\.userId/.test(fn) && /payload\.username/.test(fn),
       'identity comes from the VERIFIED payload, not the request body'

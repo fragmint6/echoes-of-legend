@@ -673,6 +673,18 @@ platform - you do **not** need to set them, and the service-role key must
 never appear in browser code. (`js/auth.js` refuses to boot if one is
 pasted into `js/supabase-config.js`.)
 
+**Set `CG_GAME_ID` before launch.** Every CrazyGames title's tokens are
+signed with the same key, so a signature proves CrazyGames issued the
+token but *not* that they issued it for **this** game. With the secret
+set, a token minted for some other portal game is rejected:
+
+```bash
+supabase secrets set CG_GAME_ID=<your game id from the CrazyGames dashboard>
+```
+
+Left unset the function still works and logs a warning on every login -
+useful before the id is known, but do not ship that way.
+
 ### 11.3 Check it
 
 Open the portal build logged in to CrazyGames:
