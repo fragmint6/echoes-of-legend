@@ -4083,7 +4083,14 @@ body[data-turn='player'] .turn-label {
 }
 
 /* ---------------- toast ---------------- */
-.toast {
+/* THE BATTLE FALLBACK TOAST ONLY.
+   Scoped to #toast rather than .toast: the shared stacking toasts
+   (#toasts > .toast, further down) carry the same class, so an
+   unscoped rule here set `position:fixed` and `opacity:0` on them
+   too and the two blocks fought over every toast in the game.
+   battle.js now delegates to the shared helper and only falls back
+   to this element when play.js has not loaded. */
+#toast.toast {
   position: fixed;
   left: 50%;
   bottom: 26px;
@@ -4103,7 +4110,7 @@ body[data-turn='player'] .turn-label {
     opacity 0.24s var(--ease),
     transform 0.24s var(--ease);
 }
-.toast.show {
+#toast.toast.show {
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -27191,4 +27198,183 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   text-align: center;
   color: var(--txt-faint);
   font-size: 13px;
+}
+
+/* ---------------- an invite arrives ---------------- */
+/* An actionable toast: it carries buttons, so it is wider than a
+   status beat and must not auto-dismiss under the player's cursor.
+   Pointer events are re-enabled because .toasts disables them for
+   the passive beats it usually holds. */
+.toast-invite {
+  pointer-events: auto;
+  gap: 12px;
+  padding: 11px 12px 11px 16px;
+  max-width: min(420px, calc(100 * var(--vw1) - 32px));
+}
+.toast-invite-body {
+  display: grid;
+  gap: 1px;
+  margin-right: 4px;
+  min-width: 0;
+}
+.toast-invite-body b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-invite-body small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--txt-faint);
+}
+.toast-btn {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt-dim);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.16s var(--ease),
+    color 0.16s var(--ease),
+    border-color 0.16s var(--ease);
+}
+.toast-btn:hover {
+  color: var(--txt);
+  border-color: var(--txt-faint);
+}
+.toast-btn.primary {
+  background: linear-gradient(180deg, var(--r-legendary-1), var(--r-legendary-2));
+  border-color: transparent;
+  color: #241802;
+}
+.toast-btn.primary:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------------- custom draft pool builder ---------------- */
+/* Wider than the room card: this is a browsing surface, and the grid
+   needs room to show more than two columns. */
+.pool-card {
+  width: min(1080px, calc(100 * var(--vw1) - 32px));
+  max-height: min(92 * var(--vh1), 960px);
+  overflow-y: auto;
+}
+.pool-tray {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  margin: 18px 0 6px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}
+/* 36 slots. auto-fill rather than a fixed count so the tray reflows
+   on a narrow window instead of overflowing its card. */
+.pool-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 6px;
+}
+.pool-slot {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px dashed var(--line-2);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--txt-faint);
+}
+.pool-slot.filled {
+  cursor: pointer;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--fc-primary) 60%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fc-primary) 22%, transparent),
+    rgba(255, 255, 255, 0.03)
+  );
+  color: var(--txt);
+  transition:
+    transform 0.14s var(--ease),
+    filter 0.14s var(--ease);
+}
+.pool-slot.filled:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+.pool-slot.filled.rarity-legendary {
+  box-shadow: inset 0 0 0 1px rgba(255, 207, 92, 0.45);
+}
+.pool-side {
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+  min-width: 190px;
+}
+.pool-count {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--txt);
+  text-align: center;
+}
+.pool-actions {
+  display: grid;
+  gap: 8px;
+}
+.pool-note {
+  margin: 0;
+  min-height: 16px;
+  font-size: 11.5px;
+  color: var(--txt-faint);
+  text-align: center;
+}
+.pool-grid {
+  margin-top: 12px;
+}
+/* A card already in the pool. Dimmed and check-marked rather than
+   hidden, so the grid does not reshuffle under the cursor every time
+   something is picked. */
+.pool-grid .card.picked {
+  opacity: 0.42;
+  filter: saturate(0.6);
+}
+.pool-grid .card.picked::after {
+  content: '\2713';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 3;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--r-legendary-1);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+/* the room row */
+.room-opt-v-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.room-pool-count {
+  font-size: 12px;
+  color: var(--txt-faint);
+}
+.room-pool-count.on {
+  color: var(--r-legendary-1);
+  font-weight: 600;
 }

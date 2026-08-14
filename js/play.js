@@ -49,6 +49,19 @@
     }
     return BY_ID;
   }
+  /* Resolve a custom draft pool (card ids, agreed in a private room)
+     into the {card,faction} entries startDraft works in. Unknown ids
+     are dropped rather than throwing: a pool built before a card was
+     renamed or removed should deal a slightly smaller draft, not
+     break the match outright. */
+  function poolEntries(ids) {
+    var dict = byId();
+    return (ids || [])
+      .map(function (id) {
+        return dict[id];
+      })
+      .filter(Boolean);
+  }
   function $(id) {
     return document.getElementById(id);
   }
@@ -4493,7 +4506,18 @@
 
       setTimeout(function () {
         mmShow(false);
-        startDraft({ seed: m.seed, host: m.host, settings: m.settings || {} });
+        /* A custom pool agreed in the room replaces the generated
+           one. Both clients read it from the same match settings, so
+           they deal identical packs - the draft's determinism comes
+           from the shared seed shuffling a shared list, and the list
+           is now theirs rather than rolled. */
+        var agreed = (m.settings && m.settings.pool36) || null;
+        startDraft({
+          seed: m.seed,
+          host: m.host,
+          settings: m.settings || {},
+          pool: agreed && agreed.length ? poolEntries(agreed) : null,
+        });
       }, 1200);
     });
 
@@ -4510,8 +4534,21 @@
         resumed = false; // a failed attempt may retry on the next change
       });
     }
-    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(tryResume);
+    /* Listen for invites whenever there is an account to address one
+       to. Signing out stops the watch, so a signed-out browser never
+       polls and never shows somebody else's invite. */
+    function syncInviteWatch() {
+      if (!MP.startInviteWatch) return;
+      if (MP.available()) MP.startInviteWatch();
+      else MP.stopInviteWatch();
+    }
+    if (window.EOL.auth && window.EOL.auth.onChange)
+      window.EOL.auth.onChange(function () {
+        tryResume();
+        syncInviteWatch();
+      });
     tryResume();
+    syncInviteWatch();
 
     MP.on('pick', applyRemotePick);
     MP.on('net', function (msg) {
@@ -4674,6 +4711,22 @@
       var poolRow = modal.querySelector('.room-opt[data-opt="pool"]');
       if (poolRow) poolRow.hidden = s.mode !== 'draft';
 
+      /* THE CUSTOM POOL ROW. Draft-only for the same reason, and
+         leader-only like every other setting - hidden rather than
+         disabled for a guest, since they can never act on it. The
+         count is the whole status: a guest still sees whether a
+         custom pool is in play, they just cannot change it. */
+      var cpRow = modal.querySelector('.room-opt[data-opt="custom-pool"]');
+      if (cpRow) cpRow.hidden = s.mode !== 'draft';
+      var cpCount = $('room-pool-count');
+      if (cpCount) {
+        var n = (s.pool36 && s.pool36.length) || 0;
+        cpCount.textContent = n ? n + ' cards' : 'Off';
+        cpCount.classList.toggle('on', !!n);
+      }
+      var cpBtn = $('room-pool-edit');
+      if (cpBtn) cpBtn.hidden = !lead;
+
       var hint = $('room-leader-hint');
       if (hint) hint.textContent = lead ? 'You decide' : 'The party leader decides';
 
@@ -4713,6 +4766,84 @@
         return;
       }
       say(modal.hidden || (lobby && lobby.hidden) ? 'room-door-err' : 'room-lobby-err', e.text);
+    });
+
+    /* =============================================================
+       AN INVITE ARRIVES
+       -------------------------------------------------------------
+       Shown as an actionable toast rather than a modal: it is an
+       offer, not a demand, and it must never seize the screen from
+       someone who is busy doing something else. It expires on its own
+       so an ignored invite does not sit there forever.
+
+       js/mp.js only polls for these while the player is idle on the
+       menu, so "no invite while in a game" is guaranteed upstream of
+       this code - there is nothing to render mid-battle.
+       ============================================================= */
+    MP.on('invite', function (inv) {
+      var host = $('toasts');
+      if (!host || !inv) return;
+
+      var el = document.createElement('div');
+      el.className = 'toast toast-invite';
+
+      var ico = document.createElement('i');
+      ico.className = 'ri ri-sword-line';
+      el.appendChild(ico);
+
+      var body = document.createElement('span');
+      body.className = 'toast-invite-body';
+      var who = document.createElement('b');
+      who.textContent = inv.from_name || 'A player';
+      var what = document.createElement('small');
+      what.textContent = 'invited you to a private match';
+      body.appendChild(who);
+      body.appendChild(what);
+      el.appendChild(body);
+
+      var no = document.createElement('button');
+      no.type = 'button';
+      no.className = 'toast-btn';
+      no.textContent = 'Decline';
+
+      var yes = document.createElement('button');
+      yes.type = 'button';
+      yes.className = 'toast-btn primary';
+      yes.textContent = 'Join';
+
+      el.appendChild(no);
+      el.appendChild(yes);
+      host.appendChild(el);
+
+      var done = false;
+      function close(answer) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        MP.answerInvite(inv.id, answer);
+        el.classList.add('out');
+        setTimeout(function () {
+          el.remove();
+        }, 320);
+      }
+
+      /* Two minutes matches the server's own expiry, so the card
+         cannot outlive the invite it represents. */
+      var timer = setTimeout(function () {
+        close('seen');
+      }, 120000);
+
+      no.addEventListener('click', function () {
+        close('declined');
+      });
+      yes.addEventListener('click', function () {
+        close('seen');
+        /* Accepting IS joining the room - the room decides whether a
+           seat is still free, so there is no second source of truth
+           about whether the invite is still good. */
+        roomShow(true);
+        MP.joinRoom(inv.code).catch(function () {});
+      });
     });
 
     /* ---- entry ---- */
@@ -4793,6 +4924,13 @@
         copy(MP.inviteLink && MP.inviteLink(), 'Invite link copied');
       });
 
+    /* INVITE BY CALLSIGN - actually invites them.
+       This used to call playerExists() and then tell the inviter to
+       go and deliver the code themselves, which made it a
+       spellchecker rather than an invitation. send_invite() puts the
+       invite on the other player's screen, and answers with a reason
+       when it cannot: they are in a game, there is no such callsign,
+       or you are not leading an open room. */
     var invForm = $('room-invite-form');
     if (invForm)
       invForm.addEventListener('submit', function (ev) {
@@ -4800,15 +4938,22 @@
         var inp = $('room-invite-name');
         var name = ((inp && inp.value) || '').trim();
         if (!name) return;
-        say('room-invite-note', 'Checking...');
-        MP.playerExists(name).then(function (found) {
-          var r = MP.room && MP.room();
-          say(
-            'room-invite-note',
-            found
-              ? 'Found ' + name + '. Send them the code ' + ((r && r.code) || '') + '.'
-              : 'No player called ' + name + '.'
-          );
+        var r = MP.room && MP.room();
+        if (!r || !r.code) {
+          say('room-invite-note', 'Create a room first.');
+          return;
+        }
+        say('room-invite-note', 'Inviting ' + name + '...');
+        MP.sendInvite(name, r.code).then(function (status) {
+          var msg = {
+            sent: 'Invite sent to ' + name + '.',
+            busy: name + ' is in a game right now.',
+            no_player: 'No player called ' + name + '.',
+            self: 'You cannot invite yourself.',
+            no_room: 'Only the party leader can invite.',
+          }[status];
+          say('room-invite-note', msg || 'That invite could not be sent.');
+          if (status === 'sent' && inp) inp.value = '';
         });
       });
 
@@ -4835,6 +4980,25 @@
     });
     var pSel = $('room-pool');
     if (pSel) pSel.addEventListener('change', function () { push({ pool: pSel.value || null }); });
+
+    /* Open the 36-slot builder, seeded with whatever the room already
+       has so reopening it edits rather than restarts. The chosen pool
+       rides in the room settings like every other term, which is what
+       carries it through start_room -> mp_matches.settings -> both
+       clients without any new plumbing. */
+    var poolEdit = $('room-pool-edit');
+    if (poolEdit)
+      poolEdit.addEventListener('click', function () {
+        if (!window.EOL.poolBuilder) return;
+        var r = MP.room && MP.room();
+        var cur = (r && r.settings && r.settings.pool36) || [];
+        window.EOL.poolBuilder.show(true, {
+          pool: cur,
+          onCommit: function (ids) {
+            push({ pool36: ids });
+          },
+        });
+      });
 
     /* ---- start / leave ---- */
     var start = $('room-start');

@@ -222,6 +222,10 @@
     };
 
     startHeartbeat();
+    /* No invite toasts while a match is on. Stopping the poll is the
+       guarantee: even if send_invite's busy check races a match
+       starting, there is nothing here to surface it. */
+    stopInviteWatch();
 
     /* A match in progress is still a "room" as far as the portal is
        concerned - it is where this player is - but it is full. */
@@ -517,6 +521,8 @@
     outbox = [];
     match = null;
     reportRoom(null);
+    /* Back on the menu and reachable again. */
+    startInviteWatch();
   }
 
   /* =============================================================
@@ -966,6 +972,107 @@
     return Promise.resolve({ action: 'none' });
   }
 
+  /* =============================================================
+     INVITES
+     -------------------------------------------------------------
+     "Invite by callsign" used to call playerExists() and then tell
+     the INVITER "found them, now send them the code yourself". The
+     invitee was never contacted. send_invite() actually delivers it,
+     and answers with a reason when it cannot:
+
+       sent | no_player | busy | self | no_room
+
+     `busy` is the one worth having: a player in a live match is not
+     interrupted, and the inviter is told why rather than watching
+     nothing happen.
+     ============================================================= */
+  function sendInvite(handle, code) {
+    if (!sb) sb = client();
+    if (!sb || !handle) return Promise.resolve('no_player');
+    return sb
+      .rpc('send_invite', { p_handle: String(handle).trim(), p_code: code || '' })
+      .then(
+        function (res) {
+          if (res.error) return 'error';
+          return res.data || 'error';
+        },
+        function () {
+          return 'error';
+        }
+      );
+  }
+
+  /* The invitee's side. Polled while the player is on the menu; the
+     server already filters to invites whose room is still open and
+     still has a free seat, so anything returned here is joinable. */
+  function myInvites() {
+    if (!sb) sb = client();
+    if (!sb || !me()) return Promise.resolve([]);
+    return sb.rpc('my_invites').then(
+      function (res) {
+        if (res.error) return [];
+        return res.data || [];
+      },
+      function () {
+        return [];
+      }
+    );
+  }
+
+  function answerInvite(id, answer) {
+    if (!sb) sb = client();
+    if (!sb || !id) return Promise.resolve();
+    return sb
+      .rpc('answer_invite', { p_invite: id, p_answer: answer || 'seen' })
+      .then(function () {}, function () {});
+  }
+
+  /* =============================================================
+     THE INVITE WATCH
+     -------------------------------------------------------------
+     Runs only while the player is idle on the menu. Two rules, both
+     from the brief: an invite must not appear while they are in a
+     game, and it must not appear twice for the same invite.
+
+     Stopping the poll during a match is not merely an optimisation -
+     it is how "no toast while playing" is guaranteed even if the
+     server's own busy check races with a match starting.
+     ============================================================= */
+  var inviteTimer = null;
+  var seenInvites = {};
+  var INVITE_POLL_MS = 6000;
+
+  function busyNow() {
+    /* In a match, or in a room lobby that is about to become one. */
+    return !!match || !!(room && room.matchId);
+  }
+
+  function pollInvites() {
+    if (!me() || busyNow()) return;
+    myInvites().then(function (rows) {
+      if (busyNow()) return; // a match started while the call was in flight
+      rows.forEach(function (inv) {
+        if (seenInvites[inv.id]) return;
+        seenInvites[inv.id] = true;
+        emit('invite', inv);
+      });
+    });
+  }
+
+  function startInviteWatch() {
+    stopInviteWatch();
+    if (!sb || !me()) return;
+    inviteTimer = setInterval(pollInvites, INVITE_POLL_MS);
+    pollInvites();
+  }
+
+  function stopInviteWatch() {
+    if (inviteTimer) {
+      clearInterval(inviteTimer);
+      inviteTimer = null;
+    }
+  }
+
   /* "Is there a player by this name?" - used to validate an invite by
      username before telling someone their code was sent. */
   function playerExists(handle) {
@@ -1017,6 +1124,11 @@
     leaveRoom: leaveRoom,
     resumeRoom: resumeRoom,
     playerExists: playerExists,
+    sendInvite: sendInvite,
+    myInvites: myInvites,
+    answerInvite: answerInvite,
+    startInviteWatch: startInviteWatch,
+    stopInviteWatch: stopInviteWatch,
     roomDefaults: roomDefaults,
     inviteLink: inviteLink,
     bootstrap: bootstrap,

@@ -2142,6 +2142,20 @@
                 </select>
               </div>
             </div>
+
+            <!-- A hand-built pool replaces the whole 36-card draft
+                 supply. Kept beside the preset dropdown rather than
+                 inside it: "Custom" is a different KIND of answer, and
+                 the summary has to say how far along it is. -->
+            <div class="room-opt" data-opt="custom-pool">
+              <span class="room-opt-k">Custom pool</span>
+              <div class="room-opt-v room-opt-v-row">
+                <span class="room-pool-count" id="room-pool-count">Off</span>
+                <button type="button" class="btn btn-ghost btn-slim" id="room-pool-edit">
+                  <i class="ri-grid-line"></i><span>Build</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <p class="room-err" id="room-lobby-err" role="alert" hidden></p>
@@ -2154,6 +2168,71 @@
               <i class="ri-play-line"></i><span>Start match</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CUSTOM DRAFT POOL ====================
+         The 36 cards a private-room draft is dealt from. Same shape as
+         the deck editor - slots on top, filterable collection below -
+         because it is the same task: choose a set of legends. Reusing
+         the pattern means nothing new to learn.
+
+         36 is not arbitrary: a draft pool is six per role across six
+         roles (data/_schema.js draftPool), so a custom pool has to
+         supply exactly as many cards as the packs will consume. -->
+    <div class="room-modal pool-modal" id="pool-modal" hidden role="dialog" aria-modal="true"
+         aria-labelledby="pool-title">
+      <div class="room-scrim" id="pool-scrim"></div>
+      <div class="room-card pool-card" role="document">
+        <button type="button" class="auth-close" id="pool-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <div class="room-head">
+          <h2 class="room-title" id="pool-title">Custom draft pool</h2>
+          <p class="room-sub">
+            Pick the <b>36</b> legends this draft is dealt from. Both players draft from
+            the same pool.
+          </p>
+        </div>
+
+        <div class="pool-tray">
+          <div class="pool-slots" id="pool-slots"></div>
+          <div class="pool-side">
+            <p class="pool-count"><span id="pool-count">0</span> of 36</p>
+            <div class="pool-actions">
+              <button type="button" class="btn btn-ghost btn-slim" id="pool-fill">
+                <i class="ri-shuffle-line"></i><span>Fill random</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-slim" id="pool-clear">
+                <i class="ri-refresh-line"></i><span>Clear</span>
+              </button>
+              <button type="button" class="btn btn-gold btn-slim" id="pool-done">
+                <i class="ri-check-line"></i><span>Use this pool</span>
+              </button>
+            </div>
+            <p class="pool-note" id="pool-note" role="status"></p>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="filters" id="pool-filters"></div>
+          <div class="tool-right">
+            <div class="search-wrap">
+              <i class="ri-search-line"></i>
+              <input type="text" id="pool-search" placeholder="Search legends..." />
+            </div>
+            <button class="reset-btn" id="pool-reset" title="Reset filters">
+              <i class="ri-refresh-line"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-grid pool-grid" id="pool-grid"></div>
+        <div class="empty-state" id="pool-empty">
+          <i class="ri-inbox-2-line"></i>
+          No legends match these filters.
         </div>
       </div>
     </div>
@@ -3499,14 +3578,32 @@
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>
     <script src="js/deck.js"></script>
+    <script src="js/pool.js"></script>
     <script src="js/play.js"></script>
     <script src="js/daily.js"></script>
     <script src="js/campaign.js"></script>
     <script src="js/shop.js"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
-         the missing global and the game runs local-only. -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+         the missing global and the game runs local-only.
+
+         `defer` matters more than it looks. This is a third-party
+         bundle on a third-party host, and as a plain <script> it
+         BLOCKED FIRST PAINT: the menu could not render until jsdelivr
+         answered, so a slow or filtered CDN showed the player a blank
+         page rather than a game they could already have been playing.
+         Nothing here is needed before the page exists - auth.init()
+         is called by app.js once the DOM is ready, and every consumer
+         reaches the client through EOL.auth rather than the global.
+         Deferred scripts still execute in document order, so
+         supabase-config.js and auth.js below continue to see the SDK.
+
+         An ad blocker filtering this CDN is now a degraded sign-in on
+         a working game instead of a white screen. -->
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+    ></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     <!-- Privacy-light playtest funnel + voluntary feedback inbox. Stores

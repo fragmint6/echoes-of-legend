@@ -4826,8 +4826,31 @@
   var popLane = {};
 
   var toastTimer;
-  function toast(msg) {
+  /* THE ONE STATUS TOAST.
+     -------------------------------------------------------------
+     This used to be a second, independent implementation writing to
+     a different element (<div id="toast">) than the rest of the game
+     (<div id="toasts">), with its own CSS block. Two consequences:
+
+       - the two `.toast` rules in style.css fought each other, since
+         both elements carry the same class;
+       - this copy took no icon, so battle.js:2445 was already calling
+         toast('Out of time - passing', 'ri-timer-line') and silently
+         dropping the icon.
+
+     Now it delegates to the shared helper (js/play.js toast, reached
+     through EOL.ui.toast, which app.js already routes for everyone
+     else). Stacking, icons and timing come free and identical.
+     Falls back to the old element only if play.js has not loaded -
+     a fight can start before the menu layer in some entry paths. */
+  function toast(msg, icon) {
+    if (window.EOL.ui && typeof window.EOL.ui.toast === 'function' &&
+        window.EOL.play && typeof window.EOL.play.toast === 'function') {
+      window.EOL.ui.toast(msg, icon);
+      return;
+    }
     var t = $('toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
