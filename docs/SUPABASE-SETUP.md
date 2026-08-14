@@ -653,13 +653,29 @@ safe. It creates `cg_link`, adds `profiles.is_portal`, and revises
 
 ### 11.2 Deploy the Edge Function
 
-Needs the Supabase CLI (`npm i -g supabase`), once per machine:
+Needs the Supabase CLI (`npm i -g supabase`). Run these from the
+**repository root** - the CLI looks for `supabase/functions/cg-auth/`
+relative to where you are, and there is no `supabase/config.toml` in
+this repo, so `link` is what creates the local project binding:
 
 ```bash
-supabase login
+cd /path/to/echoes-of-legend     # the folder containing supabase/
+supabase login                   # opens a browser, once per machine
 supabase link --project-ref ghchcvrojojrlbgqbvga
 supabase functions deploy cg-auth --no-verify-jwt
 ```
+
+`login` and `link` are one-time; only the `deploy` line is repeated when
+the function changes.
+
+**If `deploy` says the function/entrypoint was not found**, you are in
+the wrong directory - `ls supabase/functions/cg-auth/index.ts` should
+print the file.
+
+**If `link` asks for a database password**, that is the Postgres password
+from Project Settings -> Database, not your Supabase account password.
+Deploying functions does not need the database, so a wrong guess here
+only blocks `link`, not the endpoint.
 
 **`--no-verify-jwt` is required and is not a weakening.** The caller has
 no Supabase session yet - obtaining one is the entire point of the
@@ -685,18 +701,54 @@ supabase secrets set CG_GAME_ID=<your game id from the CrazyGames dashboard>
 Left unset the function still works and logs a warning on every login -
 useful before the id is known, but do not ship that way.
 
-### 11.3 Check it
+### 11.3 Check the endpoint is live (no game needed)
 
-Open the portal build logged in to CrazyGames:
+Do this first - it isolates "the function is deployed" from "the SDK
+handed us a token":
+
+```bash
+curl -i -X POST \
+  https://ghchcvrojojrlbgqbvga.supabase.co/functions/v1/cg-auth \
+  -H 'content-type: application/json' \
+  -H 'apikey: sb_publishable_SFZP7hPVaqIe8jB0GAO1TA_OyCo-JYl' \
+  -d '{"token":"not-a-real-token"}'
+```
+
+(The `apikey` is the publishable key from `js/supabase-config.js` - the
+function does not check it, but the platform gateway may want it. The
+game sends the same header.)
+
+| Response | Meaning |
+| --- | --- |
+| **401** `{"error":"invalid token"}` | **Correct.** Deployed, and it rejected a forgery. |
+| 404 | Not deployed, or deployed under a different name. |
+| 401 from the *gateway* (HTML, or `Missing authorization header`) | Deployed **without** `--no-verify-jwt`. Redeploy with the flag. |
+| 500 `function is not configured` | Env vars missing - unusual, they are injected automatically. |
+
+A 401 here is success. It proves the whole path works: only a genuine
+CrazyGames signature gets further.
+
+### 11.4 Check it in the game
+
+**This cannot be tested from `localhost`.** `?platform=crazygames` forces
+the portal *build*, but the CrazyGames SDK only exists inside a real
+portal frame, so `getUserToken()` never resolves and the game correctly
+falls back to a guest. You need the QA/preview link from your CrazyGames
+developer dashboard - upload the build, open it there, and be **logged in
+to CrazyGames**.
+
+Console should print:
 
 ```
-index.html?platform=crazygames
+[EOL] CrazyGames SDK: signed in as <your name>
+[EOL] CrazyGames SDK: CrazyGames account linked - multiplayer available
 ```
 
-The console should print
-`CrazyGames account linked - multiplayer available`, the account pill
-should show your CrazyGames name and avatar, and the
-Singleplayer/Multiplayer switch should have no lock badge.
+and the account pill shows your CrazyGames name and avatar, and the
+Multiplayer tab has no lock badge.
+
+If instead you see `CrazyGames sign-in unavailable: cg-auth 404: ...`,
+step 11.2 did not take effect.
 
 Then confirm the database agrees:
 
@@ -704,6 +756,18 @@ Then confirm the database agrees:
 select cg_user_id, username, created_at, last_seen from public.cg_link;
 select id, handle, is_portal from public.profiles where is_portal;
 ```
+
+`handle` must be your CrazyGames username - that is the string your
+opponent sees in a match.
+
+### 11.5 The first real match
+
+Matchmaking needs **two** accounts, and `try_match()` refuses to pair a
+player with themselves (`user_id <> me`), so one browser cannot test it.
+Use two different CrazyGames accounts - a second device, or a private
+window logged in as someone else - and queue for the same mode within
+five minutes of each other (a lone player times out after ~5 min with
+"No opponent found").
 
 ### If you skip or delay this
 
