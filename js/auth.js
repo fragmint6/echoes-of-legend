@@ -199,10 +199,61 @@
      better outcome than a spinner. */
   var CG_AUTH_TIMEOUT_MS = 12000;
 
+  /* The profiles upsert is a nicety - a name for an opponent to read.
+     It must not hold the sign-in UI hostage. */
+  var PROFILE_TIMEOUT_MS = 8000;
+
+  /* Settle `p`, or reject after `ms`. Used for calls that have no
+     timeout of their own and whose failure is survivable. */
+  function raceTimeout(p, ms, label) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var t = setTimeout(function () {
+        if (done) return;
+        done = true;
+        reject(new Error((label || 'request') + ' timed out after ' + ms + 'ms'));
+      }, ms);
+      Promise.resolve(p).then(
+        function (v) {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          resolve(v);
+        },
+        function (e) {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          reject(e);
+        }
+      );
+    });
+  }
+
+  /* RELEASE THE GATE AND ACTUALLY GET A SESSION.
+
+     This used to early-return when the gate was already open, which
+     created a deadlock between the two timers:
+
+       t=9s   the backstop fires, opens the gate, and calls
+              maybeSignInAnonymously() - which refuses, because
+              portalExchange is still true;
+       t=12s  the cg-auth fetch aborts and the catch calls this again -
+              which now returns immediately, because the gate was
+              already opened at 9s.
+
+     Nobody ever signed in. body[data-auth] stayed 'wait' forever: a
+     permanent "loading" on the sign-in button and a locked multiplayer
+     tab, for a player the SDK had already identified.
+
+     The gate being open is not the goal - HAVING A SESSION is. So
+     always fall through to the fallback when there is still no
+     session; maybeSignInAnonymously() is itself idempotent. */
   function openPortalGate() {
-    if (!portalGate) return;
-    portalGate = false;
-    clearTimeout(portalGateTimer);
+    if (portalGate) {
+      portalGate = false;
+      clearTimeout(portalGateTimer);
+    }
     if (!session) maybeSignInAnonymously();
   }
 
@@ -410,14 +461,20 @@
     var wasSignedIn = !!session;
     session = s || null;
     if (session) {
-      ensureProfile()
-        .then(function () {
-          setState(session);
-        })
+      /* The profile upsert must never be the reason the UI stays on
+         'wait'. An ERROR was always handled, but a request that simply
+         never settles - RLS recursion, a stalled socket - left the
+         spinner up forever, because setState only ran in the then/catch.
+         Bound it: whichever finishes first, the session is live and the
+         UI must reflect that. The identity matchmaking needs is in the
+         JWT, not in this row. */
+      raceTimeout(ensureProfile(), PROFILE_TIMEOUT_MS, 'profile write')
         .catch(function (err) {
           /* A missing profiles table must not lock anyone out of a
              match - the identity in the JWT is what matchmaking uses. */
           console.warn('[EOL] profile write failed, continuing:', err && err.message);
+        })
+        .then(function () {
           setState(session);
         });
     } else {

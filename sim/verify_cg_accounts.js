@@ -373,6 +373,33 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       /AbortController/.test(body) && /signal/.test(body),
       'and the cg-auth fetch is bounded by a timeout rather than hanging'
     );
+
+    /* THE TWO-TIMER DEADLOCK. Re-arming the backstop (above) created a
+       second way to strand the player: the 9s backstop opens the gate
+       while portalExchange is still true, so the anonymous fallback
+       refuses - and then the 12s fetch abort calls openPortalGate()
+       again, which used to early-return because the gate was already
+       open. Neither timer produced a session and data-auth stayed
+       'wait' forever. Releasing the gate is not the goal; having a
+       session is. */
+    const gate = auth.slice(auth.indexOf('function openPortalGate'));
+    const gateBody = gate.slice(0, gate.indexOf('\n  }') + 4);
+    ok(
+      !/^\s*if \(!portalGate\) return;/m.test(gateBody),
+      'openPortalGate does not bail out when the gate is already open'
+    );
+    ok(
+      /if \(!session\) maybeSignInAnonymously\(\);/.test(gateBody),
+      'it always falls through to the fallback while there is no session'
+    );
+
+    /* The profiles upsert is a nicety. An error was always handled,
+       but a request that never settles used to leave setState()
+       unreached and the spinner up for good. */
+    ok(
+      /raceTimeout\(\s*ensureProfile\(\)/.test(auth),
+      'the profile write is bounded, so it cannot hold the sign-in UI open'
+    );
   }
 
   /* ===========================================================
