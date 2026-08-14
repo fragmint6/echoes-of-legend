@@ -36,6 +36,16 @@
 --   retries on collision rather than trusting randomness.
 -- =============================================================
 
+-- ============ the match carries the room's terms ============
+-- The leader's choices have to survive the handoff into mp_matches,
+-- or both clients arrive at a game with no idea what was agreed and
+-- silently fall back to defaults (which is exactly what happened:
+-- Classic rooms started a draft, and a chosen battlefield was
+-- re-rolled). One jsonb column, written once by start_room().
+alter table public.mp_matches
+  add column if not exists settings jsonb not null default '{}'::jsonb;
+
+
 -- ============ the room ============
 create table if not exists public.mp_rooms (
   code        text primary key,
@@ -385,11 +395,12 @@ begin
     v_mode := 'draft';
   end if;
 
-  insert into mp_matches(mode, seed, p1, p2, p1_name, p2_name)
+  insert into mp_matches(mode, seed, p1, p2, p1_name, p2_name, settings)
   values (v_mode,
           (floor(random() * 2147483647))::bigint,
           r.leader, r.guest,
-          coalesce(r.leader_name, 'Player'), coalesce(r.guest_name, 'Player'))
+          coalesce(r.leader_name, 'Player'), coalesce(r.guest_name, 'Player'),
+          coalesce(r.settings, '{}'::jsonb))
   returning id into new_id;
 
   update mp_rooms

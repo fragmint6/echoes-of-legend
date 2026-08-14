@@ -2794,7 +2794,17 @@
        shuffle to the identical pack order. Singleplayer keeps using
        Math.random. */
     var rnd = opts.seed != null ? window.EOL.mp.rngFrom(opts.seed) : Math.random;
-    mpState = opts.seed != null ? { host: !!opts.host, seed: opts.seed, waiting: false } : null;
+    mpState =
+      opts.seed != null
+        ? {
+            host: !!opts.host,
+            seed: opts.seed,
+            waiting: false,
+            /* a private room's agreed terms travel with the draft so the
+               board it hands to prep obeys them - see roomCfg() */
+            settings: opts.settings || {},
+          }
+        : null;
     var pool =
       opts.pool && opts.pool.length ? opts.pool.slice() : RULES().draftPool(flatten(), rnd);
     var shuffled = pool.slice();
@@ -3102,6 +3112,7 @@
       draft = null;
       var wasMp = !!mpState;
       var seed = mpState ? mpState.seed : null;
+      var mpSettings = mpState ? mpState.settings || {} : {};
       mpState = null;
       var camp = draftCampaign;
       draftCampaign = null;
@@ -3116,7 +3127,9 @@
            derived from the shared seed rather than rolled twice. A
            campaign draft instead lands on the stage's PINNED board. */
         field: wasMp
-          ? window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((seed | 0) + 0x1b7))
+          ? mpSettings.field && window.EOL.battlefieldById(mpSettings.field)
+            ? window.EOL.battlefieldById(mpSettings.field)
+            : window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((seed | 0) + 0x1b7))
           : camp
             ? camp.field || null
             : null,
@@ -4330,6 +4343,87 @@
       else mmSay(null, st.text);
     });
 
+    /* Send our twelve and wait for theirs. Split out of the `matched`
+       handler so a private room can ask for a deck first and then join
+       the same path, rather than keeping two copies of the exchange. */
+    function sendClassicDeck(m) {
+      var deck = mpDeckId ? window.EOL.decks.get(mpDeckId) : null;
+      var mine =
+        deck && window.EOL.decks.isComplete(deck)
+          ? window.EOL.decks.entriesOf(deck)
+          : RULES().randomDeck(ownedFlat(), Math.random);
+      var myIds = mine.map(function (e) {
+        return e.card.id;
+      });
+      window.EOL.netplay.startDecks(function (foeIds) {
+        var dict = byId();
+        var foe12 = (foeIds || [])
+          .map(function (id) {
+            return dict[id];
+          })
+          .filter(Boolean);
+        if (foe12.length !== RULES().DECK_SIZE || !RULES().isLegal(foe12)) {
+          toast('The opponent sent an illegal deck', 'ri-error-warning-line');
+          leaveMatch();
+          return;
+        }
+        mmShow(false);
+        startPrep(
+          roomCfg(m, {
+            mode: 'classic',
+            mp: true,
+            seed: m.seed,
+            deckId: mpDeckId,
+            player12: mine,
+            enemy12: foe12,
+          })
+        );
+      });
+      /* submitDeck() can start preparation synchronously if their
+         deck already arrived, so persist before handing over. */
+      window.EOL.mp.saveState({ phase: 'ban', deck: myIds });
+      window.EOL.netplay.submitDeck(myIds);
+    }
+
+    /* THE ROOM'S TERMS, applied to a prep config.
+       A queue match has no settings and keeps its rolled behaviour.
+       A private room's leader may pin the battlefield and ask for
+       Unabridged; both clients read the SAME stored settings, so they
+       cannot disagree. A pinned board is resolved by id and falls back
+       to the roll if the id is unknown. */
+    function roomCfg(m, cfg) {
+      var st = (m && m.settings) || {};
+      var seeded = window.EOL.netplay.rngFrom((m.seed | 0) + 0x1b7);
+
+      if (st.length === 'unabridged') {
+        cfg.set = true;
+        var pinned = [st.field, st.field2, st.field3]
+          .map(function (id) {
+            return id ? window.EOL.battlefieldById(id) : null;
+          })
+          .filter(Boolean);
+        /* Any slot left on Random is filled from the shared seed, so
+           both clients roll the identical board. */
+        var guard = 0;
+        while (pinned.length < 3 && guard++ < 60) {
+          var f = window.EOL.rollBattlefield(seeded);
+          if (
+            !pinned.some(function (x) {
+              return x.id === f.id;
+            })
+          )
+            pinned.push(f);
+        }
+        cfg.fightCard = pinned;
+        cfg.field = pinned[0];
+        return cfg;
+      }
+
+      var one = st.field ? window.EOL.battlefieldById(st.field) : null;
+      cfg.field = one || window.EOL.rollBattlefield(seeded);
+      return cfg;
+    }
+
     MP.on('matched', function (m) {
       if (window.EOL.telemetry && window.EOL.telemetry.track) {
         window.EOL.telemetry.track('multiplayer_match_found', {
@@ -4349,6 +4443,14 @@
         concedeAbandoned(m);
         return;
       }
+      /* THE HANDOVER PANEL MUST BE ON SCREEN.
+         Coming from the queue this modal is already open - it has been
+         saying "Finding an opponent". Coming from a PRIVATE ROOM it is
+         not, and the room modal is closed a moment later, so the guest
+         was left staring at the main menu while the draft/deck exchange
+         ran invisibly behind it. Show it explicitly; it is idempotent. */
+      mmShow(true);
+      mmIcon('search');
       var vs = $('mm-vs');
       var youEl = $('mm-you'),
         oppEl = $('mm-opp');
@@ -4366,48 +4468,32 @@
       if (isClassic) {
         /* Both players send their twelve, then preparation begins the
            moment BOTH have landed - the same latch used for bans, so
-           whoever is slower does not strand the other. */
-        var deck = mpDeckId ? window.EOL.decks.get(mpDeckId) : null;
-        var mine =
-          deck && window.EOL.decks.isComplete(deck)
-            ? window.EOL.decks.entriesOf(deck)
-            : RULES().randomDeck(ownedFlat(), Math.random);
-        var myIds = mine.map(function (e) {
-          return e.card.id;
-        });
-        window.EOL.netplay.startDecks(function (foeIds) {
-          var dict = byId();
-          var foe12 = (foeIds || [])
-            .map(function (id) {
-              return dict[id];
-            })
-            .filter(Boolean);
-          if (foe12.length !== RULES().DECK_SIZE || !RULES().isLegal(foe12)) {
-            toast('The opponent sent an illegal deck', 'ri-error-warning-line');
-            leaveMatch();
-            return;
-          }
+           whoever is slower does not strand the other.
+
+           THE DECK MUST BE CHOSEN FIRST. Queue Classic picks a deck on
+           the way into matchmaking, so mpDeckId is already set by the
+           time we get here. A PRIVATE ROOM has no such step - the
+           leader chose the format, not a deck - so mpDeckId was null
+           and both players were silently handed a RANDOM deck. Ask
+           now, then carry on exactly as before. */
+        if (!mpDeckId) {
           mmShow(false);
-          startPrep({
-            mode: 'classic',
-            mp: true,
-            seed: m.seed,
-            deckId: mpDeckId,
-            player12: mine,
-            enemy12: foe12,
-            field: window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((m.seed | 0) + 0x1b7)),
+          openClassicModal(function (deckId) {
+            modalShow(false);
+            mpDeckId = deckId || null;
+            mmShow(true);
+            mmSay('Opponent found', 'Exchanging decks...');
+            sendClassicDeck(m);
           });
-        });
-        /* submitDeck() can start preparation synchronously if their
-           deck already arrived, so persist before handing over. */
-        window.EOL.mp.saveState({ phase: 'ban', deck: myIds });
-        window.EOL.netplay.submitDeck(myIds);
+          return;
+        }
+        sendClassicDeck(m);
         return;
       }
 
       setTimeout(function () {
         mmShow(false);
-        startDraft({ seed: m.seed, host: m.host });
+        startDraft({ seed: m.seed, host: m.host, settings: m.settings || {} });
       }, 1200);
     });
 
@@ -4492,15 +4578,16 @@
     function fillRoomChoices() {
       if (choicesFilled) return;
       choicesFilled = true;
-      var fSel = $('room-field');
-      if (fSel && window.EOL.battlefields) {
+      ['room-field', 'room-field2', 'room-field3'].forEach(function (id) {
+        var sel = $(id);
+        if (!sel || !window.EOL.battlefields) return;
         window.EOL.battlefields.forEach(function (b) {
           var o = document.createElement('option');
           o.value = b.id;
           o.textContent = b.name || b.id;
-          fSel.appendChild(o);
+          sel.appendChild(o);
         });
-      }
+      });
       var pSel = $('room-pool');
       if (pSel && window.EOL.factions) {
         window.EOL.factions.forEach(function (f) {
@@ -4519,6 +4606,8 @@
         mode: s.mode || d.mode,
         length: s.length || d.length,
         field: s.field || null,
+        field2: s.field2 || null,
+        field3: s.field3 || null,
         pool: s.pool || null,
       };
     }
@@ -4553,19 +4642,37 @@
         b.disabled = !lead;
       });
       /* selects */
-      var fSel = $('room-field');
-      if (fSel) {
-        fSel.value = s.field || '';
-        fSel.disabled = !lead;
-      }
+      var set3 = s.length === 'unabridged';
+      [
+        ['room-field', s.field],
+        ['room-field2', s.field2],
+        ['room-field3', s.field3],
+      ].forEach(function (pair) {
+        var sel = $(pair[0]);
+        if (!sel) return;
+        sel.value = pair[1] || '';
+        sel.disabled = !lead;
+      });
+      /* Unabridged is best of three, so it needs three boards. Single
+         Battle needs one, and the other two rows would be a lie. */
+      ['field2', 'field3'].forEach(function (k) {
+        var row = modal.querySelector('.room-opt[data-opt="' + k + '"]');
+        if (row) row.hidden = !set3;
+      });
+      var fk = $('room-field-k');
+      if (fk) fk.textContent = set3 ? 'Battlefield 1' : 'Battlefield';
+
       var pSel = $('room-pool');
       if (pSel) {
         pSel.value = s.pool || '';
         pSel.disabled = !lead;
       }
-      /* the pool only means anything in a draft */
+      /* THE DRAFT POOL ONLY EXISTS IN A DRAFT. In Classic both players
+         bring a deck they built, so there is no pool to choose from -
+         the row is removed rather than greyed, because a disabled
+         control still reads as "this applies to you". */
       var poolRow = modal.querySelector('.room-opt[data-opt="pool"]');
-      if (poolRow) poolRow.classList.toggle('off', s.mode !== 'draft');
+      if (poolRow) poolRow.hidden = s.mode !== 'draft';
 
       var hint = $('room-leader-hint');
       if (hint) hint.textContent = lead ? 'You decide' : 'The party leader decides';
@@ -4700,8 +4807,19 @@
         push(p);
       });
     });
-    var fSel = $('room-field');
-    if (fSel) fSel.addEventListener('change', function () { push({ field: fSel.value || null }); });
+    [
+      ['room-field', 'field'],
+      ['room-field2', 'field2'],
+      ['room-field3', 'field3'],
+    ].forEach(function (pair) {
+      var sel = $(pair[0]);
+      if (!sel) return;
+      sel.addEventListener('change', function () {
+        var p = {};
+        p[pair[1]] = sel.value || null;
+        push(p);
+      });
+    });
     var pSel = $('room-pool');
     if (pSel) pSel.addEventListener('change', function () { push({ pool: pSel.value || null }); });
 
@@ -4711,6 +4829,9 @@
       start.addEventListener('click', function () {
         say('room-lobby-err', '');
         start.disabled = true;
+        /* A deck chosen for an earlier QUEUE match must not be silently
+           reused here - the room asks for one on the way in. */
+        mpDeckId = null;
         MP.startRoom().catch(function () {
           start.disabled = false;
         });
@@ -4724,10 +4845,22 @@
       });
 
     /* A room match starts like any other match, so the existing
-       `matched` handler takes it from here - all this has to do is
-       get the lobby out of the way. */
+       `matched` handler takes it from here - all this has to do is get
+       the lobby out of the way.
+
+       This runs AFTER that handler (it was registered later), which is
+       what we want: the handler shows the matchmaking panel, then the
+       lobby closes off the top of it. The reverse order would flash the
+       main menu in between. */
     MP.on('matched', function () {
       roomShow(false);
+    });
+
+    /* The guest never presses Start, so clear their stale queue deck as
+       soon as a room match is on the way. `room` fires with the closed
+       row (carrying match_id) just before `matched`. */
+    MP.on('room', function (r) {
+      if (r && r.matchId) mpDeckId = null;
     });
 
     /* ---- arriving from an invite, or from Instant Multiplayer ---- */

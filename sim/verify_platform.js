@@ -395,9 +395,19 @@ section('E. an anonymous session is not an account');
     page.indexOf("window.name !== 'eol-oauth'") < page.indexOf('js/platform.js'),
     'the OAuth relay runs before any game module loads'
   );
+  /* The guard used to be `name !== 'eol-oauth' || !window.opener`, but
+     the second half was wrong: COOP nulls window.opener inside the
+     popup, so a real OAuth return bailed out and the sign-in hung. The
+     REQUIREMENT is only that an ordinary page load is untouched, which
+     the window.name check alone already guarantees - plus the `if
+     (!msg) return` for a named window carrying no OAuth parameters. */
   ok(
-    /window\.name !== 'eol-oauth' \|\| !window\.opener/.test(page),
+    /if \(window\.name !== 'eol-oauth'\) return;/.test(page),
     'and does nothing at all in a normal (non-popup) page load'
+  );
+  ok(
+    /if \(!msg\) return; \/\* not an OAuth return/.test(page),
+    'a named window with no OAuth result still boots the game normally'
   );
   ok(
     /postMessage\(msg, window\.location\.origin\)/.test(page),
@@ -412,6 +422,46 @@ section('E. an anonymous session is not an account');
   ok(
     authCard.indexOf('id="auth-foot"') > authCard.indexOf('id="auth-form"'),
     'the sign-in footnote sits below the form, not wedged into the header'
+  );
+
+  /* ---- GOOGLE SIGN-IN SURVIVES COOP -------------------------------
+     Reported: "Google sign in gets randomly canceled sometimes:
+     Cross-Origin-Opener-Policy policy would block the window.closed
+     call."
+
+     Navigating the popup to the provider can put it in a different
+     browsing-context group. After that `popup.closed` returns TRUE for
+     a window that is still open, and `window.opener` is null inside the
+     popup. The old code trusted both, so it rejected a perfectly good
+     sign-in about half a second in. */
+  const authSrc = read('js/auth.js');
+  ok(
+    /liesAboutClosed/.test(authSrc),
+    'a popup that reads closed immediately is treated as a COOP artefact'
+  );
+  ok(
+    /BroadcastChannel\('eol-oauth'\)/.test(authSrc),
+    'the opener listens on BroadcastChannel, which COOP cannot sever'
+  );
+  ok(
+    /ev\.key !== 'eol:oauth:relay'/.test(authSrc),
+    'the opener also listens for the localStorage relay'
+  );
+  ok(
+    /if \(\+\+strikes < 3\) return;/.test(authSrc),
+    'a closed reading is confirmed over several ticks before giving up'
+  );
+  ok(
+    /BroadcastChannel\('eol-oauth'\)/.test(page),
+    'the popup relay posts on BroadcastChannel'
+  );
+  ok(
+    /eol:oauth:relay/.test(page),
+    'the popup relay also writes the result to localStorage'
+  );
+  ok(
+    !/window\.name !== 'eol-oauth' \|\| !window\.opener/.test(page),
+    'the relay no longer gives up when COOP has nulled window.opener'
   );
 
   /* ---- CRAZYGAMES MULTIPLAYER REQUIREMENTS ------------------------

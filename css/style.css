@@ -26824,6 +26824,9 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   text-transform: none;
   font-size: 10.5px;
 }
+.room-opt[hidden] {
+  display: none;
+}
 .room-opt {
   display: flex;
   align-items: center;
@@ -26876,17 +26879,45 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   cursor: default;
   opacity: 0.6;
 }
+/* Matches the feedback form's select (see .feedback-form select): the
+   same dark inset field, 11px radius and gold focus ring, so the two
+   dialogs do not look like they came from different games. A native
+   select also paints its own arrow inconsistently across platforms, so
+   appearance is reset and one chevron is drawn as a background image
+   that follows the text colour. */
 .room-select {
-  max-width: 190px;
-  padding: 6px 10px;
-  border-radius: 9px;
+  max-width: 210px;
+  width: 100%;
+  padding: 9px 30px 9px 12px;
   border: 1px solid var(--line-2);
-  background: rgba(255, 255, 255, 0.04);
-  color: #fff;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
+  border-radius: 11px;
+  background-color: rgba(5, 8, 15, 0.72);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b93ad' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  color: var(--txt);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
   cursor: var(--cur-pointer);
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color 0.18s var(--ease),
+    box-shadow 0.18s var(--ease);
+}
+.room-select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.26);
+}
+.room-select:focus {
+  border-color: rgba(255, 205, 110, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 198, 90, 0.1);
+}
+/* the popup list is drawn by the OS - give it readable colours rather
+   than white-on-white in a dark theme */
+.room-select option {
+  background: #0b0e18;
+  color: var(--txt);
 }
 .room-actions {
   display: flex;

@@ -277,6 +277,82 @@ ok(doc.getElementById('room-start').hasAttribute('disabled'),'Start begins disab
 
 }
 
+
+/* =============================================================
+   TURN 20 ADDITIONS
+   -------------------------------------------------------------
+   Reported by the player:
+     - Classic private rooms never asked for a deck
+     - the challenger's lobby closed without entering the match
+     - the draft pool showed for Classic
+     - Unabridged offered one battlefield instead of three
+     - the dropdowns did not match the rest of the game
+   ============================================================= */
+console.log('\nROOM SETTINGS PANEL');
+{
+  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+  const css=fs.readFileSync(path.join(ROOT,'css/style.css'),'utf8');
+  const play=fs.readFileSync(path.join(ROOT,'js/play.js'),'utf8');
+  const {JSDOM}=require('jsdom');
+  const doc=new JSDOM(html).window.document;
+
+  ok(!!doc.getElementById('room-field2')&&!!doc.getElementById('room-field3'),
+     'Unabridged has three battlefield selects');
+  ok(doc.querySelector('.room-opt[data-opt="field2"]').hasAttribute('hidden')&&
+     doc.querySelector('.room-opt[data-opt="field3"]').hasAttribute('hidden'),
+     'the extra two start hidden (Single Battle is the default)');
+  ok(/\.room-opt\[hidden\]\s*\{\s*display:\s*none/.test(css),
+     'a hidden option row is display:none, not merely aria-hidden');
+
+  const init=play.slice(play.indexOf('function initRooms('));
+  ok(/poolRow\.hidden = s\.mode !== 'draft'/.test(init),
+     'the draft pool is hidden entirely when the format is Classic');
+  ok(/row\.hidden = !set3/.test(init),
+     'battlefields 2 and 3 appear only for Unabridged');
+
+  /* the dropdown must be styled like the feedback form's */
+  const ruleAt=(n)=>{const i=css.indexOf(n);return i<0?'':css.slice(i,css.indexOf('}',i));};
+  const fb=ruleAt('.feedback-form select,'), rs=ruleAt('.room-select {');
+  ['border-radius: 11px','rgba(5, 8, 15, 0.72)','font: inherit'].forEach((needle)=>{
+    ok(fb.includes(needle)&&rs.includes(needle),
+       'the room dropdown shares the feedback styling: '+needle);
+  });
+  ok(/appearance: none/.test(rs),'the native arrow is replaced for a consistent look');
+}
+
+console.log('\nCLASSIC ROOMS ASK FOR A DECK');
+{
+  const play=fs.readFileSync(path.join(ROOT,'js/play.js'),'utf8');
+  const mi=play.indexOf("MP.on('matched', function (m) {");
+  const mh=play.slice(mi, play.indexOf("\n    });", mi));
+  ok(/mmShow\(true\)/.test(mh),
+     'the match panel is shown by the handler, so a room player sees it too');
+  ok(mh.indexOf('mmShow(true)')<mh.indexOf('isClassic'),
+     'shown before the format branch');
+  ok(/if \(!mpDeckId\) \{/.test(mh),
+     'a Classic room with no deck chosen opens the deck picker');
+  ok(/function sendClassicDeck\(/.test(play),
+     'the deck exchange is shared between the queue and room paths');
+  ok(play.indexOf("MP.on('matched', function () {")>mi,
+     'the lobby closes after the match panel opens, so the menu never flashes');
+}
+
+console.log('\nTHE ROOM\u2019S TERMS REACH THE GAME');
+{
+  const play=fs.readFileSync(path.join(ROOT,'js/play.js'),'utf8');
+  const mp=fs.readFileSync(path.join(ROOT,'js/mp.js'),'utf8');
+  const mig=fs.readFileSync(path.join(ROOT,'docs/supabase-migration-11.sql'),'utf8');
+  ok(/add column if not exists settings jsonb/.test(mig),
+     'mp_matches carries the room settings');
+  ok(/settings\)\n  values/.test(mig)||/p2_name, settings\)/.test(mig),
+     'start_room writes them into the match');
+  ok(/settings: row\.settings \|\| \{\}/.test(mp),'mp.js exposes them on the match');
+  ok(/function roomCfg\(/.test(play),'roomCfg applies them to a prep config');
+  ok(/cfg\.fightCard = pinned/.test(play)&&/cfg\.set = true/.test(play),
+     'Unabridged builds a three-board fight card');
+  ok(/battlefieldById\(st\.field\)/.test(play),'a pinned battlefield is honoured');
+}
+
 console.log('\npass '+pass+'  fail '+fail);
 process.exit(fail?1:0);
 })();

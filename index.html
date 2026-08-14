@@ -17,7 +17,7 @@
          OAuth result, so a normal page load is completely untouched. */
       (function () {
         try {
-          if (window.name !== 'eol-oauth' || !window.opener || window.opener.closed) return;
+          if (window.name !== 'eol-oauth') return;
           var q = new URLSearchParams(window.location.search);
           var h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
           var msg = null;
@@ -42,7 +42,43 @@
           }
           if (!msg) return; /* not an OAuth return - let the page boot */
           document.documentElement.innerHTML = '';
-          window.opener.postMessage(msg, window.location.origin);
+
+          /* THREE CHANNELS, because Cross-Origin-Opener-Policy may have
+             severed the first one.
+
+             Navigating to accounts.google.com can put this window in a
+             different browsing-context group, after which `window.opener`
+             is null here and `popup.closed` lies to the opener. Relying
+             on postMessage alone meant the result was simply never
+             delivered and the player saw "Google sign-in was cancelled".
+
+             BroadcastChannel and localStorage are both same-ORIGIN
+             mechanisms - they do not care about the opener relationship
+             at all - so at least one of these always lands. The opener
+             ignores duplicates. */
+          try {
+            if (window.opener) window.opener.postMessage(msg, window.location.origin);
+          } catch (e) {
+            /* COOP severed it - the two below still work */
+          }
+          try {
+            var bc = new BroadcastChannel('eol-oauth');
+            bc.postMessage(msg);
+            bc.close();
+          } catch (e) {
+            /* no BroadcastChannel - localStorage still works */
+          }
+          try {
+            /* the `t` makes every write a distinct value, so the storage
+               event fires even for two identical results in a row */
+            localStorage.setItem(
+              'eol:oauth:relay',
+              JSON.stringify({ msg: msg, t: Date.now() })
+            );
+          } catch (e) {
+            /* storage disabled - we have already tried the other two */
+          }
+
           window.close();
           /* If the browser refuses to close us, at least stop the boot. */
           window.stop && window.stop();
@@ -2019,10 +2055,31 @@
               </div>
             </div>
 
+            <!-- Single Battle uses one board. Unabridged is best of 3
+                 and therefore needs three, so slots 2 and 3 appear only
+                 when Unabridged is chosen. -->
             <div class="room-opt" data-opt="field">
-              <span class="room-opt-k">Battlefield</span>
+              <span class="room-opt-k" id="room-field-k">Battlefield</span>
               <div class="room-opt-v">
                 <select class="room-select" id="room-field" aria-label="Battlefield">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="field2" hidden>
+              <span class="room-opt-k">Battlefield 2</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-field2" aria-label="Second battlefield">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="field3" hidden>
+              <span class="room-opt-k">Battlefield 3</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-field3" aria-label="Third battlefield">
                   <option value="">Random</option>
                 </select>
               </div>

@@ -830,11 +830,28 @@
           return new Promise(function (resolve, reject) {
             var settled = false;
             var poll = null;
+            var bc = null;
 
             function cleanup() {
               settled = true;
               window.removeEventListener('message', onMsg);
+              window.removeEventListener('storage', onStorage);
+              if (bc) {
+                try {
+                  bc.close();
+                } catch (e) {
+                  /* already closed */
+                }
+                bc = null;
+              }
               if (poll) clearInterval(poll);
+              try {
+                /* do not leave a consumed result behind for the next
+                   sign-in to pick up as if it were fresh */
+                localStorage.removeItem('eol:oauth:relay');
+              } catch (e) {
+                /* storage disabled */
+              }
               try {
                 if (popup && !popup.closed) popup.close();
               } catch (e) {
@@ -842,11 +859,10 @@
               }
             }
 
-            function onMsg(ev) {
+            /* One handler for all three delivery channels. Whichever
+               arrives first wins; `settled` makes the rest no-ops. */
+            function accept(d) {
               if (settled) return;
-              /* The popup is same-origin: anything else is not ours. */
-              if (ev.origin !== origin) return;
-              var d = ev.data;
               if (!d || d.source !== 'eol-oauth') return;
 
               if (d.error) {
@@ -877,33 +893,113 @@
                 .catch(reject);
             }
 
-            window.addEventListener('message', onMsg);
+            /* postMessage: the fast path, when COOP left the opener
+               relationship intact. */
+            function onMsg(ev) {
+              /* The popup is same-origin: anything else is not ours. */
+              if (!ev || ev.origin !== origin) return;
+              accept(ev.data);
+            }
 
-            /* The player closed the window, or it died. Do not leave the
-               modal spinning "Signing in..." forever. */
-            poll = setInterval(function () {
-              var gone = false;
+            /* localStorage: survives COOP, and also covers a popup that
+               was closed by the browser before BroadcastChannel flushed. */
+            function onStorage(ev) {
+              if (!ev || ev.key !== 'eol:oauth:relay' || !ev.newValue) return;
               try {
-                gone = !popup || popup.closed;
+                var j = JSON.parse(ev.newValue);
+                if (j && j.msg) accept(j.msg);
               } catch (e) {
-                gone = false;
+                /* not ours */
               }
-              if (!gone || settled) return;
-              cleanup();
-              /* A session may still have arrived via storage if the
-                 popup completed just as it closed - check before
-                 calling it a failure. */
-              client.auth
-                .getSession()
-                .then(function (r) {
-                  var s = r && r.data ? r.data.session : null;
-                  if (s) resolve({ data: { session: s }, error: null });
-                  else reject(new Error('Google sign-in was cancelled.'));
-                })
-                .catch(function () {
-                  reject(new Error('Google sign-in was cancelled.'));
-                });
-            }, 500);
+            }
+
+            window.addEventListener('message', onMsg);
+            window.addEventListener('storage', onStorage);
+            try {
+              bc = new BroadcastChannel('eol-oauth');
+              bc.onmessage = function (ev) {
+                accept(ev && ev.data);
+              };
+            } catch (e) {
+              bc = null; /* the other two channels still cover us */
+            }
+
+            /* A result the relay wrote just before we began listening
+               would otherwise be missed. */
+            try {
+              var pending = localStorage.getItem('eol:oauth:relay');
+              if (pending) {
+                localStorage.removeItem('eol:oauth:relay');
+                var pj = JSON.parse(pending);
+                if (pj && pj.msg && Date.now() - (pj.t || 0) < 120000) accept(pj.msg);
+              }
+            } catch (e) {
+              /* nothing usable was waiting */
+            }
+
+            /* ----------------------------------------------------------
+               THE CLOSE POLL, AND WHY IT IS NOT ALWAYS SAFE TO ARM.
+
+               Cross-Origin-Opener-Policy. Once the popup navigates to
+               the provider, the browser may sever the opener link, and
+               `popup.closed` then returns TRUE for a window that is very
+               much open - Chrome logs "Cross-Origin-Opener-Policy policy
+               would block the window.closed call". The old code believed
+               it, so sign-in was randomly rejected with "Google sign-in
+               was cancelled" about half a second in. That is the bug.
+
+               A window we opened and navigated one tick ago cannot
+               genuinely be closed. So probe first: if it ALREADY reads
+               closed, the reading is a COOP artefact and the poll is
+               never armed - we wait for one of the three delivery
+               channels instead, which is what actually completes the
+               sign-in. */
+            setTimeout(function () {
+              if (settled) return;
+              var liesAboutClosed = false;
+              try {
+                liesAboutClosed = !popup || popup.closed;
+              } catch (e) {
+                liesAboutClosed = true;
+              }
+              if (liesAboutClosed) return; // COOP: never poll, never guess
+
+              var strikes = 0;
+              poll = setInterval(function () {
+                if (settled) return;
+                var gone = false;
+                try {
+                  gone = !popup || popup.closed;
+                } catch (e) {
+                  gone = false;
+                }
+                if (!gone) {
+                  strikes = 0;
+                  return;
+                }
+                /* Even here, confirm rather than assert: the window can
+                   close a beat before the session lands. Only give up
+                   once the reading has held AND there is still no
+                   session. */
+                if (++strikes < 3) return;
+                client.auth
+                  .getSession()
+                  .then(function (r) {
+                    var s = r && r.data ? r.data.session : null;
+                    if (settled) return;
+                    if (s) {
+                      cleanup();
+                      resolve({ data: { session: s }, error: null });
+                    } else if (strikes >= 6) {
+                      cleanup();
+                      reject(new Error('Google sign-in was cancelled.'));
+                    }
+                  })
+                  .catch(function () {
+                    /* transient - the next tick tries again */
+                  });
+              }, 500);
+            }, 400);
           });
         })
         .catch(function (err) {

@@ -158,6 +158,10 @@
       oppName: (host ? row.p2_name : row.p1_name) || 'Opponent',
       resumed: !!isResume,
       mode: row.mode || 'draft',
+      /* A private room's agreed terms - format, length, battlefield,
+         draft pool. Empty {} for a queue match, whose terms are
+         "whatever the queue rolls". */
+      settings: row.settings || {},
       /* Everything needed to rebuild the board after a reconnect.
          Empty on a fresh pairing. */
       state: {
