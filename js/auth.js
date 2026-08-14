@@ -316,6 +316,13 @@
      having to hold on to the SDK's token getter. */
   var portalTokenGetter = null;
 
+  /* How far the CrazyGames -> Supabase exchange has got. Read it with
+     window.EOL.auth.portalStage() when the sign-in UI is stuck: a
+     stalled request logs nothing, so this is the only way to tell
+     "never started" from "waiting on cg-auth" from "cg-auth answered
+     but Supabase did not". */
+  var portalStage = 'not started';
+
   /* THE PLAYER ASKED AGAIN.
      signInWithCrazyGames() is fire-and-forget at boot and gives up
      quietly on failure - which is right, because a guest must not be
@@ -355,10 +362,18 @@
     portalGate = true;
     setState('wait');
 
+    /* WHERE DID IT GET STUCK? Every stage of this exchange is
+       invisible to CrazyGames' SDK panel (which stops at
+       getUserToken) and, on a hung request, invisible in the console
+       too - the failure is the ABSENCE of a message. Record the stage
+       so window.EOL.auth.portalStage() can be asked directly. */
+    portalStage = 'getting token';
+
     return Promise.resolve()
       .then(getToken)
       .then(function (token) {
         if (!token) throw new Error('no token');
+        portalStage = 'calling cg-auth';
         /* A fetch with no timeout can hang for as long as the browser
            allows. Bound it: a cold start is slow, but not this slow,
            and failing over to the anonymous session beats waiting. */
@@ -401,6 +416,7 @@
       .then(function (creds) {
         if (!creds || !creds.email || !creds.password)
           throw new Error('cg-auth gave no credentials');
+        portalStage = 'signing in to supabase';
         /* An anonymous session may already be live from a previous
            boot. Signing in replaces it; the anonymous row is left
            behind and migration 09 documents how to sweep those. */
@@ -415,12 +431,14 @@
            the anonymous fallback must never run now. */
         portalGate = false;
         clearTimeout(portalGateTimer);
+        portalStage = 'done';
         return res.data && res.data.session ? res.data.session : null;
       })
       .catch(function (err) {
         /* A guest, an undeployed function, or a portal outage all
            land here, and none of them should break the game. */
         console.warn('[EOL] CrazyGames sign-in unavailable:', (err && err.message) || err);
+        portalStage = 'failed: ' + ((err && err.message) || err);
         portalExchange = false;
         /* The anonymous fallback was suppressed while this ran, so
            give the Daily Puzzle its session back. */
@@ -770,6 +788,24 @@
     /* Lets the UI ask "is this a real account?" without knowing which
        build it is running in. */
     isAnonymous: sessionIsAnonymous,
+
+    /* ONE CALL THAT EXPLAINS A STUCK SIGN-IN.
+       Paste window.EOL.auth.portalStage() into the console (in the
+       GAME frame) and it reports every piece of state that decides
+       whether the spinner clears and whether multiplayer unlocks. */
+    portalStage: function () {
+      return {
+        stage: portalStage,
+        authState: document.body ? document.body.dataset.auth : '(no body)',
+        exchangeInFlight: portalExchange,
+        gateClosed: portalGate,
+        haveSession: !!session,
+        isAnonymous: sessionIsAnonymous(),
+        isPortalAccount: isPortalAccount(),
+        endpoint: cgAuthEndpoint() || '(none - supabase not configured)',
+        canQueue: !!(window.EOL.mp && window.EOL.mp.available && window.EOL.mp.available()),
+      };
+    },
 
     /* js/mp.js borrows the configured client rather than creating a
        second one, so both share a single auth session and socket. */
