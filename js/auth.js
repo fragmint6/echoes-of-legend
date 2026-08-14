@@ -128,6 +128,29 @@
            Daily Puzzle without a session forever. */
         openPortalGate();
       }, 9000);
+
+      /* SAY SO WHEN IT IS STUCK.
+         A stalled sign-in produces no error and no log line - the
+         symptom is silence, which is the hardest thing to report and
+         the hardest thing to debug remotely. Nobody should have to
+         find the right console frame to discover why the spinner is
+         still turning, so after every timeout has had its chance the
+         game prints the diagnosis itself. */
+      setTimeout(function () {
+        if (isPortalAccount()) return;
+        var s = document.body ? document.body.dataset.auth : '';
+        console.warn(
+          '[EOL] portal sign-in did not complete. stage=' +
+            portalStage +
+            ' authState=' +
+            s +
+            ' haveSession=' +
+            !!session +
+            ' anonymous=' +
+            sessionIsAnonymous() +
+            '\n      Full report: window.EOL.auth.portalStage()'
+        );
+      }, 15000);
     }
 
     client = window.supabase.createClient(cfg().url, cfg().anonKey, {
