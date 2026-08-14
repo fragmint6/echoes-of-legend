@@ -715,21 +715,35 @@ uuid. (See docs.crazygames.com/sdk/user, "Get user token", which shows
 the token payload.)
 
 *How to find yours - fastest route, no deploy needed.* Open your game on
-CrazyGames (the preview link works), log in to CrazyGames, then paste
-this into the browser devtools console:
+CrazyGames (a **preview link is enough** - it does not have to be a
+public release), log in to CrazyGames, then open devtools.
+
+**Switch the console context to the game frame first.** The game runs in
+an iframe on `*.game-files.crazygames.com`, which is a different origin
+from the `www.crazygames.com` page around it. At the top level
+`window.CrazyGames` is `undefined`, and the same-origin policy blocks
+you from reaching into the frame from outside. In Chrome use the
+dropdown in the console toolbar that says `top` and pick the
+`echoes-of-legend...` frame; in Firefox it is the "iframe" picker.
+
+Then paste:
 
 ```js
 (async () => {
-  const t = await window.CrazyGames.SDK.user.getUserToken();
+  const sdk = window.CrazyGames && window.CrazyGames.SDK;
+  if (!sdk) return console.error('Wrong frame - switch the console context to the game iframe.');
+  if (!sdk.user.isUserAccountAvailable) return console.error('Accounts unavailable on this domain.');
+  const t = await sdk.user.getUserToken();
   console.log(JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))));
 })()
 ```
 
-Read `gameId` off the object it prints. That is your number.
+Read `gameId` off the object it prints. That is your number. Treat it as
+a **string** - copy the digits exactly, including any leading zero.
 
-Note the game must be running **on crazygames.com** for this to work -
-the SDK is not available on localhost, and `getUserToken()` throws
-`userNotAuthenticated` if you are not logged in to CrazyGames.
+This will not work on localhost (the SDK is only served to portal
+domains), and `getUserToken()` throws `userNotAuthenticated` if you are
+not logged in to CrazyGames.
 
 *How to find yours - via the function logs.* Only works **after**
 `cg-auth` has actually been deployed; until then there is no `cg-auth`
