@@ -381,6 +381,13 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       /CG_GAME_ID/.test(fn) && /different game/.test(fn),
       'the token audience (gameId) is checked against this game'
     );
+    /* Before the id is known the check cannot run, so the function has
+       to make it discoverable rather than leaving the operator to hunt
+       for it - it logs the gameId it just saw and the exact command. */
+    ok(
+      /supabase secrets set CG_GAME_ID=/.test(fn),
+      'and when unset, the log tells you how to find and set it'
+    );
     ok(
       /payload\.userId/.test(fn) && /payload\.username/.test(fn),
       'identity comes from the VERIFIED payload, not the request body'

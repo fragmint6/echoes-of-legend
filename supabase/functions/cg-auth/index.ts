@@ -101,14 +101,24 @@ async function verifyToken(token: string): Promise<CgClaims> {
 
   /* AUDIENCE CHECK. A signature proves CrazyGames issued the token -
      it does NOT prove they issued it for THIS game. Every CrazyGames
-     title gets tokens signed by the same key, so without this a token
-     minted for any other game on the portal would be accepted here and
-     silently create an account.
+     title's tokens are signed with the same key, so without this a
+     token minted for any other game on the portal would be accepted
+     here and silently create an account.
 
-     Set CG_GAME_ID once the game has its portal id (Edge Functions ->
-     Secrets). Left unset the check is skipped with a loud warning
-     rather than failing closed, so the integration still works before
-     the id is known - but set it before launch. */
+     `gameId` is a short NUMERIC STRING, e.g. "20267" - not a slug and
+     not a uuid (docs.crazygames.com/sdk/user, "Get user token").
+
+     HOW TO FIND YOURS. The developer dashboard does not label it
+     clearly, so the easiest route is to let this function tell you:
+     deploy without CG_GAME_ID set, open the game once on CrazyGames
+     while logged in, and read the line below out of the function logs
+     (Dashboard -> Edge Functions -> cg-auth -> Logs). Then set it:
+
+       supabase secrets set CG_GAME_ID=20267
+
+     Until it is set the check is skipped rather than failing closed,
+     so the integration works from the first deploy - but the warning
+     repeats on every login, and it should be set before launch. */
   const expectedGame = Deno.env.get('CG_GAME_ID');
   const gameId = typeof payload.gameId === 'string' ? payload.gameId : undefined;
   if (expectedGame) {
@@ -116,7 +126,16 @@ async function verifyToken(token: string): Promise<CgClaims> {
       throw new Error('token was issued for a different game');
     }
   } else {
-    console.warn('CG_GAME_ID is not set - accepting a token without checking which game it is for');
+    /* The id is not a secret - it identifies the game, not the player -
+       so printing it is safe, and it is by far the least painful way
+       to discover it. */
+    console.warn(
+      'CG_GAME_ID is not set, so ANY CrazyGames game\'s token is accepted here. ' +
+        'This token was issued for gameId=' +
+        (gameId ?? '(absent)') +
+        ' - if that is Echoes of Legend, run: supabase secrets set CG_GAME_ID=' +
+        (gameId ?? '<id>')
+    );
   }
 
   return {

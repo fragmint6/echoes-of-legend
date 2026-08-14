@@ -692,14 +692,42 @@ pasted into `js/supabase-config.js`.)
 **Set `CG_GAME_ID` before launch.** Every CrazyGames title's tokens are
 signed with the same key, so a signature proves CrazyGames issued the
 token but *not* that they issued it for **this** game. With the secret
-set, a token minted for some other portal game is rejected:
+set, a token minted for some other portal game is rejected.
+
+`gameId` is a short **numeric string** - e.g. `20267`. Not a slug, not a
+uuid. (See docs.crazygames.com/sdk/user, "Get user token", which shows
+the token payload.)
+
+*How to find yours.* The developer dashboard does not label it plainly,
+so the least painful route is to let the function tell you:
+
+1. Deploy **without** the secret (you have already done this).
+2. Open the game once on CrazyGames, logged in.
+3. Dashboard -> Edge Functions -> `cg-auth` -> **Logs**. Look for:
+
+   ```
+   CG_GAME_ID is not set, so ANY CrazyGames game's token is accepted here.
+   This token was issued for gameId=20267 - if that is Echoes of Legend,
+   run: supabase secrets set CG_GAME_ID=20267
+   ```
+
+4. Run exactly that command.
 
 ```bash
-supabase secrets set CG_GAME_ID=<your game id from the CrazyGames dashboard>
+supabase secrets set CG_GAME_ID=20267    # your number, not this one
 ```
 
-Left unset the function still works and logs a warning on every login -
-useful before the id is known, but do not ship that way.
+The id is not a secret - it identifies the game, not a player - so it is
+safe to print in logs and to paste around.
+
+Two other places the same number shows up, if you would rather not wait:
+the URL of your game's page in the developer dashboard, and the `gameId`
+field of any token pasted into [jwt.io](https://jwt.io/) (fine for a
+token you generated yourself while testing - never paste a real
+player's).
+
+Left unset the function still works, but the warning repeats on every
+login and any game's token would be accepted. Do not ship that way.
 
 ### 11.3 Check the endpoint is live (no game needed)
 
