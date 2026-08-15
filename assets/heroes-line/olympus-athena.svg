@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" width="320" height="440" role="img" aria-label="Athena">
+  <title>Athena</title>
+  <rect width="320" height="440" fill="#06070d"/>
+  <g fill="none" stroke="#ffd977" opacity=".18">
+    <circle cx="160" cy="200" r="120" stroke-width="1"/>
+    <circle cx="160" cy="200" r="142" stroke-width="1" stroke-dasharray="2 10" transform="rotate(-8 160 200)"/>
+  </g>
+  <g fill="none" stroke="#ffd977" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- profile, but the brow is hidden under the helm -->
+    <path d="M156 96 q-38 10 -48 58 l-20 60 l24 9 l-11 17 l16 9 l-9 14 l18 24 q11 14 35 14"/>
+    <path d="M156 96 q60 3 74 60 q11 51 -7 93 q-9 22 -34 29"/>
+    <!-- corinthian helm: one contour over the crown, nose-guard down -->
+    <path d="M96 168 q-6 -86 62 -92 q68 6 62 92" stroke-width="3.6"/>
+    <path d="M104 158 q56 -22 112 0" stroke-width="2.6" opacity=".75"/>
+    <!-- cheek guard -->
+    <path d="M118 172 q-4 46 14 66" stroke-width="2.6"/>
+    <!-- crest: the big sweeping gesture, white -->
+    <path d="M132 78 q26 -56 82 -52 q-10 46 -46 66" stroke="#ffffff" stroke-width="4"/>
+    <path d="M150 70 q22 -34 56 -38" stroke="#ffffff" stroke-width="2" opacity=".7"/>
+  </g>
+</svg>

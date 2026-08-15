@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" width="320" height="440" role="img" aria-label="Apollo">
+  <title>Apollo</title>
+  <rect width="320" height="440" fill="#06070d"/>
+  <g fill="none" stroke="#ffd977" opacity=".18">
+    <circle cx="160" cy="200" r="116" stroke-width="1"/>
+    <circle cx="160" cy="200" r="138" stroke-width="1" stroke-dasharray="2 10" transform="rotate(0 160 200)"/>
+  </g>
+  <g fill="none" stroke="#ffd977" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M156 68 q-40 8 -52 62 l-22 66 l26 10 l-12 19 l17 10 l-10 15 l19 26 q12 15 38 15"/>
+    <path d="M156 68 q64 3 78 64 q12 55 -7 100 q-10 24 -37 31"/>
+    <!-- laurel wreath: a band with long pointed leaves swept back along it -->
+    <path d="M98 132 q58 -46 126 -10" stroke-width="2.6"/>
+    <g stroke-width="2.2">
+      <path d="M108 128 q-22 -16 -34 -6 q10 16 34 6 Z"/>
+      <path d="M132 112 q-18 -22 -32 -16 q6 20 32 16 Z"/>
+      <path d="M158 100 q-16 -24 -30 -20 q3 21 30 20 Z"/>
+      <path d="M186 100 q-10 -26 -25 -25 q-1 22 25 25 Z"/>
+      <path d="M210 110 q-4 -26 -18 -29 q-6 21 18 29 Z"/>
+      <path d="M226 124 q4 -25 -9 -31 q-11 19 9 31 Z"/>
+    </g>
+    <!-- sun: a ring of rays, all inside the crop box -->
+    <g stroke="#ffffff" stroke-width="2.2" opacity=".8">
+      <path d="M160 40 v-14 M244 74 l10 -10 M290 200 h14 M30 200 H16 M76 74 l-10 -10"/>
+      <path d="M272 130 l13 -6 M48 130 l-13 -6 M282 268 l13 6 M38 268 l-13 6"/>
+    </g>
+
+  </g>
+</svg>

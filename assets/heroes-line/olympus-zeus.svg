@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" width="320" height="440" role="img" aria-label="Zeus">
+  <title>Zeus</title>
+  <rect width="320" height="440" fill="#06070d"/>
+  <g fill="none" stroke="#63d7ff" opacity=".18">
+    <circle cx="160" cy="200" r="118" stroke-width="1"/>
+    <circle cx="160" cy="200" r="140" stroke-width="1" stroke-dasharray="2 10" transform="rotate(12 160 200)"/>
+  </g>
+  <g fill="none" stroke="#63d7ff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M156 68 q-40 8 -52 62 l-22 66 l26 10 l-12 19 l17 10 l-10 15 l19 26 q12 15 38 15"/>
+    <path d="M156 68 q64 3 78 64 q12 55 -7 100 q-10 24 -37 31"/>
+    <!-- beard: three strokes, heavy, hanging off the jaw -->
+    <path d="M118 250 q6 56 42 74" stroke-width="3"/>
+    <path d="M140 262 q2 52 26 68" stroke-width="2.4" opacity=".8"/>
+    <path d="M160 300 q22 22 34 40" stroke-width="2.4" opacity=".8"/>
+    <!-- brow, heavy -->
+    <path d="M116 150 q26 -12 44 -4" stroke-width="3.4"/>
+    <!-- THE BOLT: the one white gesture, crossing the whole card -->
+    <path d="M262 40 l-46 118 h34 l-58 132" stroke="#ffffff" stroke-width="5"/>
+  </g>
+</svg>

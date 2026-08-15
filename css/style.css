@@ -16298,6 +16298,55 @@ body[data-gfx='low'] .turn-clock.crit {
 .bart-portrait img {
   object-position: center 30%;
 }
+
+/* =============================================================
+   LINE-ART PORTRAITS  (2026-08-15, Olympus trial)
+   -------------------------------------------------------------
+   A second art format alongside the painted PNGs: a handful of
+   vector strokes on the same near-black substrate. Olympus is the
+   only faction using it for now; the other eight keep their PNGs,
+   and both formats flow through the same `card.art` <img>.
+
+   Everything here keys off the .svg extension, so a card opts in
+   purely by pointing `art` at a vector file - no JS branch, no new
+   data field, no second render path.
+
+   Authored 320x440 (8:11) like every hero PNG, and the subjects sit
+   inside x 17..303 / y 17..401 so nothing important is lost to
+   either crop (collection trims the sides, battle the top+bottom).
+   ============================================================= */
+
+/* Pixel-snapping is right for the 64px painted art and ruinous for
+   vectors - it shreds a 2px stroke into a dotted line. Vector art
+   must resample smoothly at every card size. */
+.card-art img[src$='.svg'],
+.art-portrait img[src$='.svg'],
+.bart-portrait img[src$='.svg'] {
+  image-rendering: auto;
+  -ms-interpolation-mode: bicubic;
+}
+
+/* object-fit stays `cover`, inherited from the painted art. The line art
+   is authored at the same 8:11 as the PNGs and keeps its subject inside
+   x 17..303 / y 17..401, which is exactly what the two crops leave:
+     collection  250:385 -> trims the sides to x 17..303
+     battle      5:6 @ center 30% -> trims to y 17..401
+   So `cover` fills the frame with nothing important lost, where
+   `contain` would letterbox and shrink the figure for no gain. */
+
+/* The strokes are drawn in the card's element colour, so a faint wash
+   of that colour behind them ties the art to the frame rather than
+   leaving it stranded on flat black. */
+.card-art.has-art:has(img[src$='.svg']),
+.bcard-art.has-art:has(img[src$='.svg']) {
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      color-mix(in srgb, var(--el) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    #06070d;
+}
 .bcard:hover .bart-portrait {
   transform: scale(1.05);
 }

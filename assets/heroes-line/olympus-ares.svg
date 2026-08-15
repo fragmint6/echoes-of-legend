@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" width="320" height="440" role="img" aria-label="Ares">
+  <title>Ares</title>
+  <rect width="320" height="440" fill="#06070d"/>
+  <g fill="none" stroke="#ff7a4d" opacity=".18">
+    <circle cx="160" cy="200" r="120" stroke-width="1"/>
+    <circle cx="160" cy="200" r="142" stroke-width="1" stroke-dasharray="2 10" transform="rotate(6 160 200)"/>
+  </g>
+  <g fill="none" stroke="#ff7a4d" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- helm silhouette replaces the crown; profile below it -->
+    <path d="M100 186 q-8 -96 60 -102 q68 6 60 102"/>
+    <!-- face opening: the T-slot, cut as negative space -->
+    <path d="M112 176 q48 -20 96 0" stroke-width="3"/>
+    <path d="M118 196 l0 34 q0 30 42 42" />
+    <path d="M202 196 l0 30 q0 26 -20 40"/>
+    <!-- nose guard: one vertical -->
+    <path d="M148 168 l0 60" stroke-width="3.4"/>
+    <!-- crest, swept hard back, white -->
+    <path d="M124 96 q34 -58 96 -50 q-14 50 -62 68" stroke="#ffffff" stroke-width="4"/>
+    <!-- spear, driven down through the card -->
+    <path d="M272 34 L218 394" stroke="#ffffff" stroke-width="3"/>
+    <path d="M272 34 l-20 22 l6 20 l20 -18 Z" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+    <!-- shoulder plate -->
+    <path d="M96 300 q64 -26 130 6" stroke-width="2.6" opacity=".8"/>
+  </g>
+</svg>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" width="320" height="440" role="img" aria-label="Medusa">
+  <title>Medusa</title>
+  <rect width="320" height="440" fill="#06070d"/>
+  <g fill="none" stroke="#a05cd8" opacity=".18">
+    <circle cx="160" cy="200" r="126" stroke-width="1"/>
+    <circle cx="160" cy="200" r="148" stroke-width="1" stroke-dasharray="2 10" transform="rotate(-18 160 200)"/>
+  </g>
+  <g fill="none" stroke="#a05cd8" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M156 96 q-38 10 -48 58 l-20 60 l24 9 l-11 17 l16 9 l-9 14 l18 24 q11 14 35 14"/>
+    <path d="M156 96 q60 3 74 60 q11 51 -7 93 q-9 22 -34 29"/>
+    <!-- the eye: the only white, and the reason to fear her -->
+    <path d="M118 176 q16 -13 32 0 q-16 13 -32 0 Z" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+    <circle cx="134" cy="176" r="4.2" fill="#06070d" stroke="none"/>
+    <!-- SIX snakes: each a single quadratic, each head attached at the
+         curve endpoint and rotated to the end tangent (computed, not eyeballed) -->
+    <g stroke-width="2.8">
+      <path d="M116 112 Q56 72 88 34"/>
+      <path d="M132 92 Q120 26 178 26"/>
+      <path d="M178 84 Q206 30 250 58"/>
+      <path d="M206 110 Q268 102 268 152"/>
+      <path d="M98 140 Q36 132 44 92"/>
+      <path d="M222 150 Q276 178 258 216"/>
+    </g>
+    <g fill="#ffffff" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round">
+      <path d="M99 21 L93 39 L83 29 Z"/>
+      <path d="M195 26 L178 33 L178 19 Z"/>
+      <path d="M264 67 L246 64 L254 52 Z"/>
+      <path d="M268 169 L261 152 L275 152 Z"/>
+      <path d="M47 75 L51 93 L37 91 Z"/>
+      <path d="M251 231 L252 213 L264 219 Z"/>
+    </g>
+
+  </g>
+</svg>

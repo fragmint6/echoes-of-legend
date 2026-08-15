@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" width="320" height="440" role="img" aria-label="Hercules">
+  <title>Hercules</title>
+  <rect width="320" height="440" fill="#06070d"/>
+  <g fill="none" stroke="#ff4d4d" opacity=".18">
+    <circle cx="160" cy="200" r="124" stroke-width="1"/>
+    <circle cx="160" cy="200" r="146" stroke-width="1" stroke-dasharray="2 10" transform="rotate(20 160 200)"/>
+  </g>
+  <g fill="none" stroke="#ff4d4d" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M156 68 q-40 8 -52 62 l-22 66 l26 10 l-12 19 l17 10 l-10 15 l19 26 q12 15 38 15"/>
+    <path d="M156 68 q64 3 78 64 q12 55 -7 100 q-10 24 -37 31"/>
+    <!-- lion pelt worn as a hood: a contour clearly LARGER than the skull,
+         so it never collides with the profile underneath -->
+    <path d="M74 196 q-22 -112 84 -122 q106 10 84 122" stroke-width="3.6"/>
+    <!-- pelt hem across the brow -->
+    <path d="M74 196 q28 20 84 20 q56 0 84 -20" stroke-width="2.8" opacity=".85"/>
+    <!-- ears, one each side of the hood -->
+    <path d="M92 92 q-20 -22 2 -32 q20 -8 28 12" stroke-width="2.6"/>
+    <path d="M224 92 q20 -22 -2 -32 q-20 -8 -28 12" stroke-width="2.6"/>
+    <!-- mane: short overlapping locks around the pelt edge -->
+    <g stroke-width="2.2" opacity=".7">
+      <path d="M66 152 q-18 -8 -18 -26 M72 116 q-18 -12 -14 -32 M104 70 q-14 -18 -2 -34
+               M158 52 q-2 -18 10 -30 M212 70 q14 -18 4 -34 M244 116 q18 -12 16 -32
+               M252 152 q18 -8 18 -26"/>
+    </g>
+    <!-- beard -->
+    <path d="M126 268 q10 40 40 54" stroke-width="2.6"/>
+    <!-- the club: his one white gesture, hauled over the shoulder -->
+    <path d="M244 372 L292 214" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+    <g stroke="#06070d" stroke-width="2.4">
+      <path d="M286 236 l-11 -4 M279 258 l-11 -4 M272 280 l-11 -4 M265 302 l-11 -4"/>
+    </g>
+
+  </g>
+</svg>
