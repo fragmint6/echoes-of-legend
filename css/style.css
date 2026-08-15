@@ -298,60 +298,13 @@ body {
    the transform-origin keeps the enlarged box pinned to the top-left
    so it still starts at the real (0,0). Default 1 keeps the untouched
    100% build byte-identical. */
-/* transform-origin keeps the stretched box pinned to the real (0,0) */
 .bg-layer,
 .bg-grid {
-  transform-origin: 0 0;
-}
-
-/* ==============================================================
-   FULL-VIEWPORT FIXED LAYERS UNDER GUI SCALE  (2026-08-15)
-   --------------------------------------------------------------
-   The rule above fixed the two backdrop layers by hand, but the
-   problem was never specific to them: it applies to EVERY
-   position:fixed element that means "cover the window".
-
-   Under `zoom: z` on <html>, a fixed box with inset:0 resolves
-   against the ZOOMED viewport, so it paints only z x the real
-   window. At the 80% portal default that is a 384px unpainted
-   strip down the right and 216px along the bottom of a 1080p
-   screen. What shows through depends on the layer:
-
-     - the menu/chapter backdrops left the art short, so the
-       page background showed as a band beside the artwork;
-     - opaque or dark scrims (#veil, modal backdrops, the
-       .play/.collection/.shop cinema backplate) left that strip
-       unpainted, which reads as a BLACK BOX at the screen edge -
-       the "black places in the play menu and other menus".
-
-   The correction is the same two lines everywhere: `inset: 0`
-   still anchors the box at the real origin, and dividing
-   width/height by --gui-z stretches it back out to the true
-   viewport. At 100% --gui-z is 1 and the calc is a no-op, so the
-   default build is unchanged. Every full-viewport fixed rule in
-   this file carries it inline, next to its own `position: fixed`,
-   so the correction cannot be lost by a later edit that moves a
-   selector out of a shared group.
-
-   .vp-fixed below is the opt-in for anything built at runtime:
-   put it on a fixed overlay created from JS and it is covered
-   without touching this file.
-
-   NOTE: only for layers that COVER the viewport. A fixed element
-   that is merely PINNED (a toast in a corner, the tutor card at
-   left:16px) must not be stretched - it would move. sim/
-   verify_gui_scale.js asserts both halves of that rule.
-   ============================================================== */
-.vp-fixed {
-  width: calc(100% / var(--gui-z, 1)) !important;
-  height: calc(100% / var(--gui-z, 1)) !important;
-  min-width: 0;
-  min-height: 0;
-}
-.bg-layer {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
   width: calc(100% / var(--gui-z, 1));
   height: calc(100% / var(--gui-z, 1));
+  transform-origin: 0 0;
+}
+.bg-layer {
   position: fixed;
   inset: 0;
   z-index: -2;
@@ -362,9 +315,6 @@ body {
     linear-gradient(180deg, var(--bg-1), var(--bg-0) 70%);
 }
 .bg-grid {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -4014,9 +3964,6 @@ body[data-turn='player'] .turn-label {
      tier 2  Turn handovers  - slim: no dim, small banner, quick cycle
    Always pointer-transparent and brief, so play continues underneath. */
 .cine {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 290;
@@ -4170,9 +4117,6 @@ body[data-turn='player'] .turn-label {
 
 /* ---------------- result overlay ---------------- */
 .result {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 400;
@@ -7733,9 +7677,6 @@ body[data-gfx='low'] .set-pill.bump {
 
 /* ---- position picker ---- */
 .deck-picker {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 70;
@@ -8486,9 +8427,6 @@ html.mqw900 .pk-wordmark {
    PACK OPENING (cinematic overlay)
    ============================================================= */
 .pack-opening {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -9777,9 +9715,6 @@ body[data-gfx='low'] .col-thumb {
 
 /* ---------------- classic: deck picker modal ---------------- */
 .deck-modal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 340;
@@ -10912,9 +10847,6 @@ body[data-gfx='low'] .col-thumb {
 
 /* ---------------- coach overlay (what to do) ---------------- */
 .coach {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 400;
@@ -11105,9 +11037,6 @@ html.mqw640 .draft-pack {
    below read those variables, so a new field only needs markup + palette.
    ============================================================= */
 .bf-reveal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   /* above the coach overlay (400): the battlefield reveal owns the screen
@@ -15433,9 +15362,6 @@ body[data-auth='in'] .acct-avatar {
 
 /* ---- modal ---- */
 .auth-modal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -15815,9 +15741,6 @@ body[data-gfx='low'] .auth-scrim {
    MATCHMAKING OVERLAY
    ============================================================= */
 .mm-modal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 210;
@@ -16212,9 +16135,6 @@ body[data-gfx='low'] .turn-clock.crit {
    they are about to spend.
    ============================================================= */
 .quit-modal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 300;
@@ -16684,9 +16604,6 @@ body[data-gfx='low'] .scene .sc-art {
    peripheral vision picks it up without hiding the cards.
    ============================================================= */
 .time-warn {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 300;
@@ -16756,9 +16673,6 @@ body[data-gfx='low'].time-low .time-warn {
    the wrap cannot show a vertical seam.
    ============================================================= */
 .menu-bg {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -18912,9 +18826,6 @@ body[data-gfx='low'] .sc-weather {
    app.js drives it: add .on to cover, remove .on to uncover.
    ============================================================= */
 #veil {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 9000;
@@ -20166,9 +20077,6 @@ body[data-gfx='low'] .fx-blast-mini {
    three boards are on the card or only two slots remain open.
    ============================================================= */
 .setm {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 220;
@@ -21278,9 +21186,6 @@ body[data-gfx='low'] .ht-line {
 .deck::before,
 .campaign::before,
 .rulebook::before {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   content: '';
   position: fixed;
   inset: 0;
@@ -22628,9 +22533,6 @@ body[data-gfx='low'] .chapter-card:hover {
 */
 /* ---- chapter 1: static detailed pixel-art backdrop ---- */
 .chapter-bg {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: -2;
@@ -23901,9 +23803,6 @@ body[data-gfx='low'] .rival-card.is-first:hover {
    edge: the speaker's bust rises out of the bar on the left, the scene
    behind stays visible, and only the bottom of the viewport is dimmed. */
 .chapter-dialogue {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   z-index: 80;
   inset: 0;
@@ -24466,9 +24365,6 @@ html.mqw640 .nav-guide-text {
 
 /* ---------------- Campaign: exam choice grant (stages 5 & 9) ---------------- */
 .grant-choice {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   z-index: 85;
   inset: 0;
@@ -24683,9 +24579,6 @@ html.mqw640 .nav-guide-text {
    shield below dims the screen and swallows every click - the
    player reads first, acts second. */
 .tutor-shield {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   z-index: 69; /* directly under the tutor bubble's shielded beats */
   inset: 0;
@@ -25382,9 +25275,6 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
 }
 
 .ledger {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   z-index: 88; /* above grant-choice (85), below the dialogue bar */
   inset: 0;
@@ -26231,9 +26121,6 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   outline-offset: 2px;
 }
 .shop-code-modal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -26826,9 +26713,6 @@ body[data-gfx='low'] .mode-carousel-dots > button {
    multiplayer surfaces read as one family.
    ============================================================= */
 .room-modal {
-  /* GUI scale: stretch back to the true viewport (see .vp-fixed) */
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
   position: fixed;
   inset: 0;
   z-index: 215;
