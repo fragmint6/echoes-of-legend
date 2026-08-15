@@ -687,8 +687,7 @@
     var abs = [basic, sig].filter(Boolean);
     if (!abs.length) return '';
     var usable = abs.some(function (a) {
-      var n = E.pickCount(a);
-      return E.canUse(B, u, a) && (n === 0 || E.legalTargets(B, u, a).length >= n);
+      return E.usableNow(B, u, a);
     });
     if (usable) return '';
     if (u.flags.silence > 0) return 'Silenced - loses this turn';
@@ -699,8 +698,7 @@
       if (B.field && B.field.basicsFrontRowOnly && a.basic && !E.isFront(u))
         return 'back row: no Basics on this arena';
       if (B.energy.player < E.costOf(B, u, a)) return 'not enough Energy';
-      var n = E.pickCount(a);
-      if (n > 0 && E.legalTargets(B, u, a).length < n) return 'no legal targets';
+      if (!E.usableNow(B, u, a, { ignoreEnergy: true })) return 'no legal targets';
       return null;
     };
     var rb = why(basic);
@@ -1469,9 +1467,13 @@
        someone: Tsukuyomi-style "choose 2" used to stay lit with one
        enemy alive and then soft-lock the target picker demanding a
        second click that could never come */
+    /* ...and an `all` ability (pickCount 0) still needs SOMEBODY in its
+       pool. Rapunzel only reaches the back row; facing a team that is all
+       front-row her pool is empty, and this row used to stay lit and let
+       the player burn 40 Energy on nothing. usableNow() is the engine's
+       own answer to "can this fire right now", pick count included. */
     var needTargets = isActive ? E.pickCount(a) : 0;
-    var hasTargets =
-      !isActive || needTargets === 0 || E.legalTargets(B, u, a).length >= needTargets;
+    var hasTargets = !isActive || E.usableNow(B, u, a, { ignoreEnergy: true });
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);

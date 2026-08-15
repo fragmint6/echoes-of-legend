@@ -1225,13 +1225,17 @@
         var front = pool.filter(isFront);
         if (front.length) pool = front; // back row only once front is cleared
       } else if (row === 'back') {
-        /* 'back' (Rapunzel, 2026-08-05): symmetric to the melee rule -
-           reach over the front line into the supports; only when the
-           whole back row has fallen does the front become fair game */
-        var back = pool.filter(function (u) {
+        /* 'back' (Rapunzel) is a HARD restriction, unlike 'front'.
+           It used to mirror the melee rule and fall through to the front
+           line once the back row was empty, so against a 3-unit enemy team
+           - everyone in front - "damage back-row enemies" hit the entire
+           board. The hair reaches OVER the front line; if there is nobody
+           back there, it reaches nobody. Front row stays a preference
+           (melee steps up when the front is cleared), because that is the
+           melee rule and every Tank/Bruiser depends on it. */
+        pool = pool.filter(function (u) {
           return !isFront(u);
         });
-        if (back.length) pool = back;
       }
     }
     return pool;
@@ -2826,6 +2830,7 @@
              so Basic attacks consumed Marks too: a Zeus mark you were
              meant to detonate with a Skill evaporated on contact with a
              free attack, and the whole mark-combo loop leaked. */
+          var shieldBefore = t.shield || 0;
           var dealt = dealDamage(
             B,
             src,
@@ -2836,7 +2841,16 @@
             false,
             ctx.rider === true
           );
-          ctx.lastDamage = (ctx.lastDamage || 0) + dealt;
+          /* THE FULL BLOW, NOT JUST THE HP LOST. dealDamage() returns the
+             HP damage only - the shield soak is already subtracted from it.
+             Feeding that to lifesteal meant Big Bad Wolf healed off a
+             fraction of what he actually hit for, and healed NOTHING at all
+             when the blow was fully absorbed, even though "25% of the damage
+             dealt" had plainly happened. The passive on-hit rider path
+             (Red Riding Hood) already adds the soak back for exactly this
+             reason; the active path did not. */
+          var soaked = Math.max(0, shieldBefore - (t.shield || 0));
+          ctx.lastDamage = (ctx.lastDamage || 0) + dealt + soaked;
           if (e.energyBonus && dealt > 0) {
             addEnergy(B, src.side, e.energyBonus);
             emit(B, {

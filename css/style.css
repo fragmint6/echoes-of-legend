@@ -1782,7 +1782,21 @@ html.mqw640 .search-wrap input {
   height: 100%;
   padding: 12px 16px;
   gap: 10px;
-  max-width: 1720px;
+  /* THE CAP IS IN LOGICAL PX, SO IT MUST GROW AS THE UI SHRINKS.
+     A flat `max-width: 1720px` is 1720 CSS px measured inside the zoom,
+     which is 1720 * z real px: on a 1920px window the board came out
+     1376px wide at 80% but 1720px at 100%, so zooming OUT - asking for
+     more board on screen - made the board narrower. Dividing by the
+     zoom keeps the cap at a constant 1720 PHYSICAL px, so the board
+     holds its real width and lower scales spend the reclaimed room on
+     more board rather than on more margin. --gui-shrink is published by
+     paintViewport() as min(zoom, 1), so this only ever CANCELS the
+     shrink: at 100% and above it is 1 and the cap is the plain 1720px
+     it always was. It is NOT the old --gui-z counter-scale, which sized
+     full-viewport fixed layers and was rightly deleted. Nothing is
+     transformed here - only a ceiling that would otherwise fight the
+     zoom. */
+  max-width: calc(1720px / var(--gui-shrink, 1));
   margin: 0 auto;
 }
 

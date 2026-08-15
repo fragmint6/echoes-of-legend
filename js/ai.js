@@ -632,6 +632,12 @@
         for (var ci = 0; ci < chooseCount; ci++) {
           if (need === 0) {
             var t0 = E.resolveTargets(B, unit, ability, []);
+            /* An `all` ability can still resolve to an empty list - a
+               back-row-only cast (Rapunzel) facing an all-front-row team.
+               Casting it would spend Energy on nobody. */
+            var aimsAtEnemies = ability.spec && ability.spec.target &&
+              (ability.spec.target.side === 'enemy' || ability.spec.target.side === 'ally');
+            if (aimsAtEnemies && !t0.length) continue;
             out.push({
               unit: unit,
               ability: ability,

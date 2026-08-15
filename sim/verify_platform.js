@@ -331,45 +331,41 @@ section('E. an anonymous session is not an account');
     'and "reset" returns to that default rather than always 100%'
   );
 
-  /* THE BACKDROP MUST NOT SCALE WITH THE UI.
-     Reported by the player: shrinking the GUI made the background
-     "duplicate". Cause: applyScale() sets `zoom` on the root, which
-     also scales position:fixed elements' idea of the viewport, so at
-     80% the two backdrop layers covered 80% of the window and
-     .bg-grid's repeating 64px lattice tiled into the shortfall.
-     The fix publishes the factor and counter-scales the layers, so
-     both halves have to stay present or the seams come back. */
-  ok(/--gui-z/.test(app), 'applyScale publishes the zoom factor for CSS to counter');
-  ok(
-    /setProperty\('--gui-z'[\s\S]{0,60}pct \/ 100/.test(app),
-    'the published factor is the actual zoom, not a constant'
-  );
+  /* THE BACKDROP MUST NOT COUNTER-SCALE (corrected 2026-08-15).
+     This block used to demand the opposite: a `--gui-z` factor and a
+     `calc(100% / var(--gui-z))` divide on .bg-layer/.bg-grid, on the
+     theory that root `zoom` shrank fixed layers to z x the window.
+     That theory is INVERTED. Under `zoom: z` on <html> the initial
+     containing block IS the zoomed viewport, so a `position: fixed;
+     inset: 0` box computes to window/z CSS px and paints
+     (window/z) * z = window device px - already exact coverage. The
+     divide made the backdrop window/z px wide: 2400px across a 1920px
+     window at 80%. It was deleted in 729815f; these asserts survived
+     and had been failing ever since, unnoticed because the sweep's
+     `^  FAIL` grep does not match the suite's ANSI-coloured output.
+     The invariant is now the absence of any compensation. */
   {
-    /* Set unconditionally: if it were skipped at 100% the variable
-       would keep a stale 0.8 from the previous setting and the
-       backdrop would be over-sized at full scale. */
-    const fn = app.slice(app.indexOf('function applyScale'), app.indexOf('function applyScale') + 1600);
-    const zoomOff = fn.indexOf("removeProperty('zoom')");
-    const guiZ = fn.indexOf("--gui-z");
-    ok(zoomOff > -1 && guiZ > zoomOff, '--gui-z is set on every call, including at 100%');
+    /* Comment-stripped: the explanatory note in applyScale() names
+       --gui-z, and a raw /--gui-z/ test matched that prose and passed
+       for the wrong reason. */
+    const appCode = app.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    ok(!/--gui-z/.test(appCode), 'applyScale publishes no --gui-z counter-scale factor');
+    ok(
+      /setProperty\('zoom'|style\.zoom/.test(appCode),
+      'the scale is plain root zoom, the same semantics as Ctrl +/-'
+    );
   }
   const css = read('css/style.css');
   {
-    const rule = (css.match(/\.bg-layer,\s*\.bg-grid\s*\{[^}]*\}/) || [''])[0];
-    /* BOTH axes, asserted separately. A single regex over the whole
-       rule passes when only one of width/height still counter-scales,
-       which is exactly the half-fix that leaves a seam down one edge. */
+    const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
     ok(
-      /width:\s*calc\(100% \/ var\(--gui-z, 1\)\)/.test(rule),
-      'the backdrop counter-scales horizontally, so it still spans the window'
+      !/--gui-z/.test(cssCode),
+      'no stylesheet rule divides itself back out by a scale factor'
     );
+    const rule = (cssCode.match(/\.bg-layer,\s*\.bg-grid\s*\{[^}]*\}/) || [''])[0];
     ok(
-      /height:\s*calc\(100% \/ var\(--gui-z, 1\)\)/.test(rule),
-      'and vertically - a half-fix leaves a seam along one edge'
-    );
-    ok(
-      /transform-origin:\s*0 0/.test(rule),
-      'and it grows from the corner, so the extra area is not re-centred off-screen'
+      !/calc\(100%\s*\/\s*var\(/.test(rule),
+      'the backdrop layers simply fill the viewport, no manual division'
     );
   }
 

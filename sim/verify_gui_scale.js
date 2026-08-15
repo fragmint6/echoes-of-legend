@@ -193,6 +193,54 @@ ok(
   'the old manual divide would paint 2400px across a 1920px window at 80%'
 );
 
+/* ---- 5b. ZOOMING OUT MUST NOT NARROW THE BOARD (2026-08-15) ----
+   The battle view is capped by a max-width. That cap is measured in CSS px
+   INSIDE the zoom, so a flat 1720px ceiling is only 1720 * z real px: at 80%
+   on a 1920px window the board rendered 1376px wide, narrower than the
+   1720px it gets at 100%. Zooming out is a request for MORE board, so the
+   cap has to be divided by the zoom to hold a constant physical width.
+   Clamped to min(z, 1) so zooming IN is left exactly as it was. */
+{
+  const battleRule = (cssCode.match(/\.view\.battle\.active\s*\{[^}]*\}/) || [''])[0];
+  ok(battleRule !== '', 'the battle view rule is present');
+  const cap = (battleRule.match(/max-width:\s*([^;]+);/) || [, ''])[1].trim();
+  ok(
+    /var\(--gui-shrink/.test(cap),
+    'the battle-view width cap divides out the shrink factor -> got "' + cap + '"'
+  );
+  ok(
+    /--gui-shrink[\s\S]{0,80}Math\.min\(\s*z\s*,\s*1\s*\)/.test(appCode),
+    'and the factor is clamped to min(zoom, 1), so zooming in is untouched'
+  );
+
+  /* The physical width the player actually sees, at every step of the
+     slider, on four common window widths. It must never be smaller than
+     the width at 100%. The cap is EVALUATED FROM THE STYLESHEET, not
+     restated here, so reverting the CSS breaks these numbers too rather
+     than only the regex above. */
+  const capPx = parseFloat((cap.match(/(\d+(?:\.\d+)?)px/) || [, '0'])[1]);
+  ok(capPx > 0, 'read the battle-view cap out of the stylesheet (' + capPx + 'px)');
+  /* mirror the CSS expression: divided by --gui-shrink when present */
+  const divides = /var\(--gui-shrink/.test(cap);
+  const capAt = (z) => capPx / (divides ? Math.min(z, 1) : 1);
+  for (const W of [1366, 1600, 1920, 2560]) {
+    const at100 = Math.min(W, capAt(1));
+    for (const pct of [80, 85, 90, 95, 100, 105, 110]) {
+      const z = pct / 100;
+      const logical = W / z;
+      const physical = Math.min(logical, capAt(z)) * z;
+      ok(
+        physical >= at100 - 1e-6,
+        'board is never narrower than at 100% (' + W + 'px window, ' + pct + '%: ' +
+          physical.toFixed(0) + ' >= ' + at100 + ')'
+      );
+    }
+  }
+  /* the specific reported regression */
+  const before = Math.min(1920 / 0.8, 1720) * 0.8;
+  ok(Math.abs(before - 1376) < 1e-6, 'the old flat cap gave 1376px at 80% on a 1920px window');
+}
+
 /* ---- 6. the slider range is unchanged ---- */
 ok(/SCALE_MIN = 80/.test(app), 'scale range starts at 80%');
 ok(/SCALE_MAX = 110/.test(app), 'scale range ends at 110%');

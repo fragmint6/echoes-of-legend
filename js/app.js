@@ -1000,6 +1000,15 @@
     de.style.setProperty('--vh1', (lh / 100).toFixed(3) + 'px');
     de.style.setProperty('--dvh1', (lh / 100).toFixed(3) + 'px');
     de.style.setProperty('--vmax1', (Math.max(lw, lh) / 100).toFixed(3) + 'px');
+    /* Divisor for `max-width` CEILINGS that are written in px and would
+       otherwise shrink physically as the UI scales down (see
+       .view.battle.active). Clamped to <= 1 so it only ever CANCELS
+       shrinkage: below 100% the cap grows to hold a constant physical
+       width, at and above 100% it is 1 and the ceiling behaves exactly
+       as it always has. This is a ceiling divisor, NOT a layer
+       counter-scale - it must never be used to re-size a full-viewport
+       fixed element, which already covers the window on its own. */
+    de.style.setProperty('--gui-shrink', String(Math.min(z, 1)));
     for (var i = 0; i < MQ_W.length; i++) de.classList.toggle('mqw' + MQ_W[i], lw <= MQ_W[i]);
     for (var j = 0; j < MQ_H.length; j++) de.classList.toggle('mqh' + MQ_H[j], lh <= MQ_H[j]);
   }
