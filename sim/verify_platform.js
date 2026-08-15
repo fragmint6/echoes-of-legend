@@ -241,9 +241,15 @@ section('D. the Daily Puzzle keeps its server-enforced rules');
     /function ensureProfile[\s\S]{0,400}sessionIsAnonymous\(\)/.test(auth),
     'anonymous sessions do not litter the profiles table'
   );
+  /* This used to require a sessionIsAnonymous() guard INSIDE
+     needsHandle. That guard is gone because the whole prompt is: no
+     account of any kind is asked to invent a name now - a callsign is
+     minted at sign-up (js/auth.js generateHandle) and changed in
+     Settings. So assert the guarantee, not the old mechanism. The
+     minting path is covered in full by sim/verify_callsign.js. */
   ok(
-    /function needsHandle[\s\S]{0,300}sessionIsAnonymous\(\)/.test(auth),
-    'anonymous sessions are never nagged for a callsign'
+    /function needsHandle\(\)[\s\S]{0,600}?return false;\s*\}/.test(auth),
+    'no session - anonymous or otherwise - is ever nagged for a callsign'
   );
 }
 

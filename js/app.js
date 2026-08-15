@@ -1473,6 +1473,20 @@
     }
     var setBtn = document.getElementById('settings-btn');
     if (setBtn) setBtn.addEventListener('click', openSettings);
+
+    /* Roll a fresh callsign into the field. It is NOT saved here -
+       the player still has to press Save, so they can roll a few
+       times and keep the one they like (or type their own). */
+    var reroll = document.getElementById('set-reroll');
+    if (reroll) {
+      reroll.addEventListener('click', function () {
+        if (!(A && A.generateHandle)) return;
+        var un = document.getElementById('set-username');
+        if (!un) return;
+        un.value = A.generateHandle();
+        setSay('Press Save to claim it.');
+      });
+    }
     if (setModal) {
       document.getElementById('settings-close').addEventListener('click', closeSettings);
       document.getElementById('settings-scrim').addEventListener('click', closeSettings);
@@ -1524,12 +1538,17 @@
     }
 
     /* ---------------------------------------------------------
-       CALLSIGN PROMPT (post-Google provisioning)
+       CALLSIGN PROMPT - RETIRED
        ---------------------------------------------------------
-       Google creates the auth identity but gives no callsign; while
-       needsHandle() is true, this modal asks for one. "Pick one
-       later" is honoured for the rest of the browser session, and
-       the ask never interrupts a match (home view only). */
+       Signing up no longer stops to ask for a name. js/auth.js mints
+       one (two adjectives + three digits) the moment the profile row
+       is created, and Settings is where it gets changed.
+
+       The wiring below is kept intact but is now inert, because
+       needsHandle() always returns false. Deleting it outright would
+       strand #uname-modal in index.html and the assertions that check
+       where its error line sits; leaving it costs nothing and keeps a
+       working path should a build ever need to ask again. */
     var unModal = document.getElementById('uname-modal');
     var unFoot = document.getElementById('uname-foot');
     var unInput = document.getElementById('uname-input');

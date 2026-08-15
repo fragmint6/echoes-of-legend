@@ -1292,13 +1292,23 @@
           <form class="auth-form set-form" id="settings-form" autocomplete="off">
             <label class="auth-field">
               <span class="auth-lbl">Username</span>
-              <input
-                type="text"
-                name="username"
-                id="set-username"
-                placeholder="letters, numbers, . _ -"
-                autocomplete="off"
-              />
+              <span class="set-name-row">
+                <input
+                  type="text"
+                  name="username"
+                  id="set-username"
+                  placeholder="letters, numbers, . _ -"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="btn btn-ghost set-reroll"
+                  id="set-reroll"
+                  title="Roll a new callsign"
+                >
+                  <i class="ri-dice-line" aria-hidden="true"></i><span>Roll</span>
+                </button>
+              </span>
               <span class="set-hint">3&ndash;24 characters. Letters, numbers, . _ - only.</span>
             </label>
             <label class="auth-field">

@@ -52,6 +52,65 @@
      the difference between "has a name" and "was asked". */
   var USERNAME_RE = /^[A-Za-z0-9._-]{3,24}$/;
 
+  /* ---------------------------------------------------------
+     AUTO-GENERATED CALLSIGNS
+     ---------------------------------------------------------
+     Google hands us a real-world name ("John Smith") and no
+     callsign. Asking the player to invent one at the door was both
+     an interruption and a dead end: the name they typed was
+     overwritten by the next sign-in (see ensureProfile). So nobody
+     is asked any more - everyone is MINTED a name in the game's own
+     voice, and can change it in Settings whenever they like.
+
+     Shape: two adjectives + three digits, e.g. GildedIronclad418.
+     Both word lists are adjectives so any pairing reads as a title
+     rather than a sentence, and every character is inside
+     USERNAME_RE (letters/digits only), so a generated name can
+     never fail the validator that guards the settings form.
+
+     Length: longest pair is 9 + 10 + 3 = 22 <= 24. Checked by
+     sim/verify_callsign.js so a future word can't silently break it. */
+  var CALLSIGN_A = [
+    'Gilded', 'Ashen', 'Crimson', 'Silent', 'Iron', 'Hollow', 'Radiant', 'Vagrant',
+    'Umbral', 'Gallant', 'Sombre', 'Feral', 'Verdant', 'Frozen', 'Storied', 'Wayward',
+    'Molten', 'Argent', 'Grim', 'Lucid', 'Rusted', 'Sacred', 'Wintry', 'Fabled',
+  ];
+  var CALLSIGN_B = [
+    'Ironclad', 'Wandering', 'Undaunted', 'Nameless', 'Thorned', 'Vigilant', 'Restless',
+    'Errant', 'Stalwart', 'Unbowed', 'Hallowed', 'Cunning', 'Weathered', 'Tempered',
+    'Fearless', 'Solemn', 'Relentless', 'Wary', 'Dauntless', 'Steadfast',
+  ];
+
+  /* Prefers the platform CSPRNG; Math.random is only a fallback for
+     ancient engines. `max` is exclusive. */
+  function randBelow(max) {
+    try {
+      var c = window.crypto || window.msCrypto;
+      if (c && c.getRandomValues) {
+        var a = new Uint32Array(1);
+        /* Reject the unfair tail so every word stays equally likely. */
+        var limit = Math.floor(4294967296 / max) * max;
+        do {
+          c.getRandomValues(a);
+        } while (a[0] >= limit);
+        return a[0] % max;
+      }
+    } catch (e) {
+      /* fall through to Math.random */
+    }
+    return Math.floor(Math.random() * max);
+  }
+
+  /* 24 x 20 x 900 = 432,000 combinations. Collisions are possible,
+     not likely; setHandle retries on the unique violation. */
+  function generateHandle() {
+    return (
+      CALLSIGN_A[randBelow(CALLSIGN_A.length)] +
+      CALLSIGN_B[randBelow(CALLSIGN_B.length)] +
+      String(100 + randBelow(900))
+    );
+  }
+
   /* Returns null when valid, otherwise the message to show. */
   function validateHandle(h) {
     if (!h) return 'Pick a username.';
@@ -657,20 +716,88 @@
     }
     var u = session.user;
     var meta = u.user_metadata || {};
+
+    /* READ BEFORE WRITE - THIS IS THE WHOLE POINT.
+       This function used to upsert `handle` unconditionally on every
+       session load, which meant it ran again on the next sign-in and
+       stamped the Google display name straight over the callsign the
+       player had chosen. The name saved correctly and then quietly
+       reverted, which is exactly what a player reports as "it doesn't
+       save". A signing-in user must never overwrite their own name:
+       the row is created once, and after that only setHandle() may
+       touch the handle. */
     return client
       .from('profiles')
-      .upsert(
-        {
-          id: u.id,
-          handle: meta.full_name || meta.name || (u.email || 'player').split('@')[0],
-          avatar_url: meta.avatar_url || meta.picture || null,
-        },
-        { onConflict: 'id' }
-      )
+      .select('handle, avatar_url')
+      .eq('id', u.id)
+      .maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        var row = res.data;
+        var avatar = meta.avatar_url || meta.picture || null;
+
+        if (row && row.handle) {
+          /* Already has a name - leave it alone. The avatar is not
+             player-owned, so it may follow the provider. */
+          if (avatar && avatar !== row.avatar_url) {
+            return client
+              .from('profiles')
+              .update({ avatar_url: avatar })
+              .eq('id', u.id)
+              .select()
+              .single()
+              .then(function (up) {
+                profile = up.error ? row : up.data;
+                return profile;
+              });
+          }
+          profile = row;
+          return profile;
+        }
+
+        /* No row yet: mint a callsign. Nobody is asked to invent one,
+           and we never seed the row with the player's real name from
+           Google. Portal accounts are the exception - cg-auth already
+           wrote the CrazyGames username, which is the name that build
+           is required to display. */
+        var minted = isPortalAccount()
+          ? meta.full_name || meta.name || generateHandle()
+          : generateHandle();
+
+        return claimHandle(u.id, minted, avatar).then(function (saved) {
+          /* Record that the name is a real callsign so nothing later
+             mistakes it for a derived placeholder and re-derives it. */
+          if (!meta.handle_chosen) {
+            client.auth
+              .updateUser({ data: { full_name: saved.handle, handle_chosen: true } })
+              .catch(function () {
+                /* the profiles row is the record that matters */
+              });
+          }
+          return saved;
+        });
+      });
+  }
+
+  /* Insert `handle` for `id`, retrying on a uniqueness collision with
+     a freshly generated name. Returns the stored profile row. */
+  function claimHandle(id, handle, avatar, tries) {
+    tries = tries || 0;
+    return client
+      .from('profiles')
+      .upsert({ id: id, handle: handle, avatar_url: avatar }, { onConflict: 'id' })
       .select()
       .single()
       .then(function (res) {
-        if (res.error) throw res.error;
+        if (res.error) {
+          /* 23505 = someone already holds this callsign. With 432k
+             combinations this is rare; three attempts makes it
+             vanishingly so. */
+          if (res.error.code === '23505' && tries < 3) {
+            return claimHandle(id, generateHandle(), avatar, tries + 1);
+          }
+          throw res.error;
+        }
         profile = res.data;
         return profile;
       });
@@ -726,14 +853,14 @@
      from their email/Google instead of one they chose. The prompt
      (see app.js) stays on them until this is false. */
   function needsHandle() {
-    if (!session || !session.user) return false;
-    /* Never stalk an anonymous session for a callsign: there is nobody
-       to show it to, and the portal build has no way to set one. */
-    if (sessionIsAnonymous()) return false;
-    var p = window.EOL.platform;
-    if (p && p.canEditIdentity === false) return false;
-    var meta = session.user.user_metadata || {};
-    return !meta.handle_chosen;
+    /* ALWAYS FALSE NOW - AND DELIBERATELY KEPT.
+       Every account is minted a callsign by ensureProfile(), so there
+       is no longer a state where the game has to stop and ask. The
+       function stays because callers (js/app.js) and the platform
+       suite still ask the question; it simply always answers "no",
+       which retires the prompt without leaving dangling references.
+       Renaming happens in Settings, on the player's schedule. */
+    return false;
   }
 
   /* ---------------------------------------------------------
@@ -1043,11 +1170,16 @@
       return client.auth.signOut();
     },
 
-    /* settings modal + callsign prompt */
+    /* settings modal */
     validateHandle: validateHandle,
     setHandle: setHandle,
     updatePassword: updatePassword,
+    /* Every account is minted a name at creation, so this is now
+       always false. Kept so existing callers keep working. */
     needsHandle: needsHandle,
+    /* Two adjectives + three digits. Exported so the settings modal
+       can offer a re-roll and so the suite can test the shape. */
+    generateHandle: generateHandle,
     /* Lets the UI ask "is this a real account?" without knowing which
        build it is running in. */
     isAnonymous: sessionIsAnonymous,
