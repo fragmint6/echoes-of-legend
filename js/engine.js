@@ -3573,7 +3573,20 @@
             scale: ctx.scale || 1,
           });
         });
-        logMsg(B, 'mark', list.length + ' enemies are marked.', {});
+        /* This used to log "N enemies are marked", which described a
+           different mechanic entirely - Marked is a real status that
+           the next Skill consumes. A delayed effect is a sealed fate
+           with a clock on it, so say that, and name the seal. */
+        logMsg(
+          B,
+          'mark',
+          e.tag === 'shikigami'
+            ? list.length === 1
+              ? 'A shikigami is sealed - it strikes at the end of the round.'
+              : list.length + ' legends are sealed with a shikigami.'
+            : list.length + ' legends have a fate sealed upon them.',
+          {}
+        );
         break;
       }
 
