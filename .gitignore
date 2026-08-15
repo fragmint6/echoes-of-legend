@@ -2,3 +2,7 @@
 # Supabase CLI local link state - machine-specific, and pooler-url
 # carries connection details that do not belong in the repo.
 supabase/.temp/
+
+# Python bytecode (tools/)
+__pycache__/
+*.pyc
