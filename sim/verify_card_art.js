@@ -6,10 +6,10 @@
  * empty box where a portrait should be, with nothing in the console that
  * points at the card. Nothing validated these paths before.
  *
- * It also pins the shape of the line-art format introduced for Olympus
- * (2026-08-15), because that art is hand-authored SVG rather than an export
- * from tools/resize_hero_art.py, so there is no pipeline enforcing its
- * geometry.
+ * It also pins the shape of the sculpture format introduced for Olympus
+ * (2026-08-15): classical busts traced into flat vector tone-bands. That art
+ * comes from tools/gen_olympus_lineart.py rather than the PNG resizer, so
+ * nothing else enforces its geometry.
  */
 'use strict';
 
@@ -83,18 +83,18 @@ for (const { faction, card } of allCards) {
   );
 }
 
-/* ---- 3. the Olympus line-art trial: all six cards, all SVG ---- */
+/* ---- 3. the Olympus sculpture trial: all six cards, all SVG ---- */
 const olympus = allCards.filter((x) => x.faction === 'olympus');
 ok(olympus.length === 6, 'olympus has 6 cards (got ' + olympus.length + ')');
 for (const { card } of olympus) {
   ok(
     /^assets\/heroes-line\/olympus-[a-z]+\.svg$/.test(card.art || ''),
-    'olympus card ' + card.name + ' uses line-art svg (got ' + card.art + ')'
+    'olympus card ' + card.name + ' uses sculpture svg (got ' + card.art + ')'
   );
 }
 
 /* ---- 4. the other factions still use the painted PNGs ----
-   The line-art style is an Olympus-only trial; this assert is what will
+   The sculpture style is an Olympus-only trial; this assert is what will
    fail loudly if a later change quietly converts everyone. */
 for (const { faction, card } of allCards) {
   if (faction === 'olympus' || !card.art) continue;
@@ -104,14 +104,14 @@ for (const { faction, card } of allCards) {
   );
 }
 
-/* ---- 5. line-art geometry: authored at the shared 8:11 hero ratio ----
+/* ---- 5. sculpture geometry: authored at the shared 8:11 hero ratio ----
    Both crops assume this. A stray viewBox would silently letterbox. */
 const lineDir = path.join(ROOT, 'assets/heroes-line');
 ok(fs.existsSync(lineDir), 'assets/heroes-line/ exists');
 const svgs = fs.existsSync(lineDir)
   ? fs.readdirSync(lineDir).filter((f) => f.endsWith('.svg'))
   : [];
-ok(svgs.length === 6, 'six line-art svgs on disk (got ' + svgs.length + ')');
+ok(svgs.length === 6, 'six sculpture svgs on disk (got ' + svgs.length + ')');
 
 for (const f of svgs) {
   const src = fs.readFileSync(path.join(lineDir, f), 'utf8');
@@ -132,11 +132,21 @@ for (const f of svgs) {
   ok(/<title>[^<]+<\/title>/.test(src), f + ': has a <title>');
   ok(src.trim().endsWith('</svg>'), f + ': is closed');
 
-  /* The whole point of the style: a handful of strokes. If a future edit
-     turns these into 200-path illustrations, that is a different style and
-     this assert should be revisited deliberately, not drifted into. */
-  const paths = (src.match(/<path\b/g) || []).length;
-  ok(paths > 0 && paths <= 40, f + ': stroke count is small (' + paths + ' paths)');
+  /* The style is carved MASS: filled tone-bands, no strokes. An outline
+     tracer creeping back in (stroke=, fill:none) is the regression this
+     guards - that was the look the first attempt got wrong. */
+  /* One <path> per tone band, each holding many M...Z subpaths, so count
+     the subpaths - that is the actual shape complexity. */
+  const bandEls = (src.match(/<path\b/g) || []).length;
+  const subpaths = (src.match(/M-?\d/g) || []).length;
+  ok(bandEls >= 3, f + ': has at least 3 tone bands (' + bandEls + ')');
+  ok(subpaths > 20, f + ': is a traced bust, not a few strokes (' + subpaths + ' subpaths)');
+  ok(!/stroke=/.test(src), f + ': uses fills only, no strokes');
+  ok(/fill-rule="evenodd"/.test(src), f + ': fills use evenodd so holes read');
+
+  /* Keep the payload honest: these ship to every player on card render. */
+  const kb = Buffer.byteLength(src) / 1024;
+  ok(kb < 120, f + ': under 120 KB (' + kb.toFixed(0) + ' KB)');
 
   /* No raster escape hatch and no external refs - it must stay vector. */
   ok(!/<image\b/.test(src), f + ': embeds no raster image');

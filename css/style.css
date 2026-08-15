@@ -16300,12 +16300,18 @@ body[data-gfx='low'] .turn-clock.crit {
 }
 
 /* =============================================================
-   LINE-ART PORTRAITS  (2026-08-15, Olympus trial)
+   SCULPTURE PORTRAITS  (2026-08-15, Olympus trial)
    -------------------------------------------------------------
-   A second art format alongside the painted PNGs: a handful of
-   vector strokes on the same near-black substrate. Olympus is the
-   only faction using it for now; the other eight keep their PNGs,
-   and both formats flow through the same `card.art` <img>.
+   A second art format alongside the painted PNGs: classical marble
+   busts reduced to five flat tone-bands of vector shape, tinted
+   toward the card's element colour, on the same near-black
+   substrate. Olympus is the only faction using it for now; the
+   other eight keep their PNGs, and both formats flow through the
+   same `card.art` <img>.
+
+   (The first pass here was thin single-stroke outlines. It read as
+   cheap wireframe doodles - the mass is what makes stone look like
+   stone, so the drawing is done in filled planes, not lines.)
 
    Everything here keys off the .svg extension, so a card opts in
    purely by pointing `art` at a vector file - no JS branch, no new
@@ -16317,8 +16323,8 @@ body[data-gfx='low'] .turn-clock.crit {
    ============================================================= */
 
 /* Pixel-snapping is right for the 64px painted art and ruinous for
-   vectors - it shreds a 2px stroke into a dotted line. Vector art
-   must resample smoothly at every card size. */
+   vectors - it turns the carved tone-band edges into a jagged
+   staircase. Vector art must resample smoothly at every card size. */
 .card-art img[src$='.svg'],
 .art-portrait img[src$='.svg'],
 .bart-portrait img[src$='.svg'] {
@@ -16326,15 +16332,15 @@ body[data-gfx='low'] .turn-clock.crit {
   -ms-interpolation-mode: bicubic;
 }
 
-/* object-fit stays `cover`, inherited from the painted art. The line art
-   is authored at the same 8:11 as the PNGs and keeps its subject inside
+/* object-fit stays `cover`, inherited from the painted art. The busts are
+   framed at the same 8:11 as the PNGs and keep the head inside
    x 17..303 / y 17..401, which is exactly what the two crops leave:
      collection  250:385 -> trims the sides to x 17..303
      battle      5:6 @ center 30% -> trims to y 17..401
    So `cover` fills the frame with nothing important lost, where
    `contain` would letterbox and shrink the figure for no gain. */
 
-/* The strokes are drawn in the card's element colour, so a faint wash
+/* The busts are tinted toward the card's element colour, so a faint wash
    of that colour behind them ties the art to the frame rather than
    leaving it stranded on flat black. */
 .card-art.has-art:has(img[src$='.svg']),
