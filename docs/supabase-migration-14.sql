@@ -57,11 +57,70 @@ alter table public.profiles
 -- Case-insensitive: "Bob" and "bob" are the same callsign to a
 -- human reading a lobby, so they must not both exist.
 --
--- If this index fails to create, you already have duplicate
--- handles. Find them with:
---   select lower(handle), count(*) from public.profiles
---    group by 1 having count(*) > 1;
--- ...rename the losers, then re-run this file.
+-- EXISTING DUPLICATES ARE RESOLVED AUTOMATICALLY.
+-- Handles were never unique - nothing ever stopped two accounts
+-- taking the same name - so a live database can very reasonably
+-- already contain a clash, and creating the index on top of one
+-- fails outright:
+--
+--   ERROR: 23505: could not create unique index
+--   DETAIL: Key (lower(handle))=(fragmint) is duplicated.
+--
+-- An earlier draft of this file just told you to go and rename the
+-- losers by hand. That is not a migration, it is homework - so the
+-- de-duplication happens here, before the index is built.
+--
+-- WHO KEEPS THE NAME: the OLDEST row wins, by created_at, with the
+-- id as a tie-break so the outcome is deterministic and re-running
+-- changes nothing. Everyone else gets the smallest numeric suffix
+-- that is actually free ("fragmint" -> "fragmint2"), checked
+-- against both the real table and the names being assigned in this
+-- same pass. The 24-character ceiling is respected by trimming the
+-- stem, so a maximum-length handle cannot produce an invalid one.
+--
+-- Renamed accounts are NOT put on cooldown: handle_changed_at is
+-- left alone, so anyone who loses their name here can immediately
+-- pick a new one.
+do $$
+declare
+  dup  record;
+  cand text;
+  n    int;
+begin
+  -- row_number() picks the keeper per duplicate group in one pass:
+  -- rn = 1 is the oldest row and keeps its name, rn > 1 gets renamed.
+  -- Ordering by created_at then id makes the choice deterministic, so
+  -- re-running this file is a no-op rather than a reshuffle.
+  for dup in
+    select id, handle
+      from (
+        select p.id,
+               p.handle,
+               row_number() over (
+                 partition by lower(p.handle)
+                 order by p.created_at asc nulls last, p.id asc
+               ) as rn
+          from public.profiles p
+      ) ranked
+     where rn > 1
+  loop
+    n := 2;
+    loop
+      -- trim the stem so the suffix always fits inside 24 characters
+      cand := left(dup.handle, 24 - length(n::text)) || n::text;
+      exit when not exists (
+        select 1 from public.profiles z where lower(z.handle) = lower(cand)
+      );
+      n := n + 1;
+    end loop;
+
+    raise notice 'duplicate handle %: renaming account % to %',
+      dup.handle, dup.id, cand;
+    update public.profiles set handle = cand where id = dup.id;
+  end loop;
+end;
+$$;
+
 create unique index if not exists profiles_handle_lower_idx
   on public.profiles (lower(handle));
 

@@ -40,7 +40,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 
 ## The playtesting loop
 
-**This is the common case.** You are tuning numbers, adding a hero, or
+**This is the common case.** You are tuning numbers, adding a legend, or
 trying a new Skill.
 
 ```bash
@@ -61,7 +61,7 @@ It catches, per card:
 - printed text only uses defined status words
 - the Skill's actual engine outcome matches its printed text
 - soak games asserting no negative HP, no double actions, no effects
-  from dead heroes
+  from dead legends
 
 Then, when the numbers feel right, measure them:
 
@@ -108,7 +108,7 @@ cannot break it.
 ### `verify_buffs.js` - 43 assertions, ~21s
 
 Buff/debuff economy and the comeback grant. Run it if you touched
-buffs, debuffs, `COMEBACK_PER_HERO`, or stat modifiers.
+buffs, debuffs, `COMEBACK_PER_LEGEND`, or stat modifiers.
 
 ### `verify_mirror.js` - ~24s per 60 games
 
@@ -149,7 +149,7 @@ it when you change netcode, or before a release - not in a loop.
 
 ### `browser_panel.js` - ~13s, needs browser + a local server
 
-Guards the hero panel's _rendered geometry_, which no source-level
+Guards the legend panel's _rendered geometry_, which no source-level
 test can see. Two real bugs live here:
 
 - **Clipped Skill names.** `fitAbilityNames` used to predict the width
@@ -266,7 +266,7 @@ Web Worker through migration 04's authenticated RPC.
 
 Not a test - it asserts nothing. **This is the one command for a
 balance check.** Three passes (random+bans, draft+bans, forced
-inclusion per hero), four metrics per hero, Wilson confidence
+inclusion per legend), four metrics per legend, Wilson confidence
 intervals throughout.
 
 ```bash
@@ -283,7 +283,7 @@ The individual pieces `full.js` drives. Use them directly only for a
 specific comparison, such as depth 2 against depth 4 on a fixed seed.
 
 They now take `--teams random|draft|pairs` and `--depth N`, which exist
-because random draw cannot measure combos: the 63-hero roster has 1,953
+because random draw cannot measure combos: the 63-legend roster has 1,953
 possible pairs and a 1,200-game run gives the best-covered one just a
 few dozen games. See **[SIM-METHODOLOGY.md](SIM-METHODOLOGY.md)** for what each
 mode answers and how to read a disagreement between them.
@@ -297,19 +297,19 @@ useful assertions were **ported into `verify_all.js` first**, not
 thrown away.
 
 It was frozen in time: it deliberately loaded only a **7-faction
-subset** and asserted `7 factions total` / `45 heroes total`. You have
-**9 factions and (now) 63 heroes**. It passed only because it never
+subset** and asserted `7 factions total` / `45 legends total`. You have
+**9 factions and (now) 63 legends**. It passed only because it never
 loaded `takamagahara.js` or `duat.js` - so it would have kept showing a green
 tick no matter what broke in the two newest factions. A test that
 cannot fail is worse than no test.
 
 Most of what it did (stat bands, icon uniqueness, text keyword
 legality) `verify_all` already does across the _whole_ roster. Four of
-the six Roma heroes also already had behaviour probes there.
+the six Roma legends also already had behaviour probes there.
 
 The genuine gap was **Spartacus and Augustus** - death-triggered
 passives, which the `PROBES` table cannot reach because it only casts
-a hero's own signature. Those are now a dedicated
+a legend's own signature. Those are now a dedicated
 `D. DEATH-TRIGGERED PASSIVES` section in `verify_all.js`, written
 against the live roster:
 

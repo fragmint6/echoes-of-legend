@@ -6,7 +6,7 @@
    game ships no third-party recordings, has no licensing attribution,
    and cannot trigger a music Content ID claim.
 
-   The language is deliberately shared rather than one sound per hero:
+   The language is deliberately shared rather than one sound per legend:
      - six ROLE voices describe how an action is delivered;
      - seven ELEMENT voices describe what power is released;
      - semantic UI, card, campaign, pack and battle sounds describe the
@@ -625,7 +625,7 @@
   /* ---------------- role + element battle language ---------------- */
   /* Character casts never cross into piercing whistle/chirp territory.
      This ceiling applies to every shared role and element voice, so fixing
-     Lightning also prevents a future hero combination from recreating the
+     Lightning also prevents a future legend combination from recreating the
      same unpleasant high-frequency stack. */
   var CHARACTER_FREQ_CEILING = 900;
   function characterTone(options) {

@@ -65,14 +65,14 @@ function load(file) {
 }
 
 const gt = JSON.parse(fs.readFileSync(args.gt || '/tmp/gt.json', 'utf8'));
-const HERO = {};
-EOL.factions.forEach((f) => f.cards.forEach((c) => (HERO[c.id] = c)));
+const LEGEND = {};
+EOL.factions.forEach((f) => f.cards.forEach((c) => (LEGEND[c.id] = c)));
 
 /* ---- ground truth: win rate, and its standard error ---- */
 const truth = [];
-Object.keys(gt.heroes).forEach((id) => {
-  const s = gt.heroes[id];
-  if (!s.apps || !HERO[id]) return;
+Object.keys(gt.legends).forEach((id) => {
+  const s = gt.legends[id];
+  if (!s.apps || !LEGEND[id]) return;
   truth.push({ id, wr: (s.wins / s.apps) * 100, apps: s.apps });
 });
 truth.sort((a, b) => b.wr - a.wr);
@@ -111,7 +111,7 @@ function spearman(xs, ys) {
 }
 
 function report(label, rate) {
-  const rows = truth.map((t) => ({ id: t.id, wr: t.wr, r: rate(HERO[t.id]) }));
+  const rows = truth.map((t) => ({ id: t.id, wr: t.wr, r: rate(LEGEND[t.id]) }));
   const covered = rows.filter((x) => isFinite(x.r) && x.r !== 0).length;
   const xs = rows.map((x) => (isFinite(x.r) ? x.r : 0));
   const ys = rows.map((x) => x.wr);
@@ -215,7 +215,7 @@ Object.keys(brains).forEach((f) => {
 /* worst misses, so the model can be debugged rather than just scored */
 if (args.misses) {
   const main = brains[args.ai || 'data/draft-ai.js'];
-  const rows = truth.map((t) => ({ id: t.id, wr: t.wr, r: main.powerOf(HERO[t.id]) }));
+  const rows = truth.map((t) => ({ id: t.id, wr: t.wr, r: main.powerOf(LEGEND[t.id]) }));
   const wrRank = rankOf(rows.map((x) => x.wr));
   const rRank = rankOf(rows.map((x) => x.r));
   rows.forEach((x, i) => (x.err = rRank[i] - wrRank[i]));

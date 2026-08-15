@@ -2544,11 +2544,11 @@
     var broke = prog.tellsBroken.indexOf(stage.id) >= 0;
     var clears = prog.clears[stage.id] || 0;
     var html =
-      '<div class="lg-hero">' +
+      '<div class="lg-legend">' +
       '<img class="lg-portrait" src="' +
       stage.portrait +
       '" alt="" draggable="false" />' +
-      '<div class="lg-hero-body">' +
+      '<div class="lg-legend-body">' +
       '<span class="lg-kicker">Gate ' +
       ROMAN[stage.id] +
       ' - ' +

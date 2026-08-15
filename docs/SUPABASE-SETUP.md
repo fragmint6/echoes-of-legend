@@ -553,7 +553,7 @@ separate sessions, so you can queue two accounts against yourself.
 | Draft sync      | Only `{pack, idx}` crosses. Both clients build the identical pack order from the shared `seed`, so the card pool is never transmitted.                       |
 | Bans            | Both sides submit blind. Neither reveal happens until **both** have landed, so committing first cannot leak your picks.                                      |
 | Battlefield     | Derived from the match seed on both clients, so the terrain always matches.                                                                                  |
-| Battle          | One message per action, naming heroes by `(side, index)` - never by `uid`, which differs per browser. Each client recomputes the result with its own engine. |
+| Battle          | One message per action, naming legends by `(side, index)` - never by `uid`, which differs per browser. Each client recomputes the result with its own engine. |
 | Luck            | Crits and coin flips come from one seeded PRNG per match, consumed in the same order on both sides.                                                          |
 | Turn order      | Each client calls itself `player`, so the engine takes `oddFirst`: the host opens odd rounds, the guest even ones.                                           |
 | Drift detection | Every action carries a checksum of the resulting board. A mismatch stops the match instead of letting two different games play on.                           |
@@ -565,11 +565,11 @@ Both were real, both were latent in singleplayer, and both are fixed:
 
 - **Unstable target sorting.** "Lowest HP" and "highest ATK" selectors
   broke ties by array order. Ties are common (shared statlines, full-HP
-  openings), so two clients could heal or execute _different_ heroes.
+  openings), so two clients could heal or execute _different_ legends.
   All such orderings now break ties on `(slot, index)`.
 - **Delayed effects resolved in array order.** Two prophecies landing on
   the same round rollover could resolve in opposite orders on the two
-  machines, and the first one killing a hero cancelled the second on
+  machines, and the first one killing a legend cancelled the second on
   only one screen. Board-wide sweeps now run in a canonical order.
 
 ---

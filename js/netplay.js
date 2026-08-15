@@ -9,10 +9,10 @@
  *
  * THE THREE HARD PROBLEMS AND THEIR ANSWERS
  *
- * 1. NAMING. `uid` is a page-global counter, so hero u7 on my screen
- *    is a different hero on yours. Nothing may ever be addressed by
+ * 1. NAMING. `uid` is a page-global counter, so legend u7 on my screen
+ *    is a different legend on yours. Nothing may ever be addressed by
  *    uid. Every wire reference is (side, idx) where `idx` is the
- *    hero's fixed position in its team array, and `side` is flipped
+ *    legend's fixed position in its team array, and `side` is flipped
  *    on receipt: my 'player' is your 'enemy'. `mirrorSide()` is the
  *    only place that flip happens.
  *
@@ -223,10 +223,10 @@
      --------------------------------------------------------- */
   /* Some flags hold a UID rather than a value - `counterSrc` names who
      swings back, `burnSrc` who lit the fire. Uids come from a
-     page-global counter, so the same hero is u1 here and u19 there.
+     page-global counter, so the same legend is u1 here and u19 there.
      Hashing them raw would report a desync on every single one of
      them, which is a false alarm: each engine resolves its own uids
-     locally and both mean the same hero.
+     locally and both mean the same legend.
 
      They still have to be CHECKED though - "who is the counter-attacker"
      is real game state. So a uid is translated to the stable
@@ -400,7 +400,7 @@
      phase 3 - the battle
      -------------------------------------------------------------
      One action per message. `null` means a pass. A move names its
-     hero and its targets by (side, idx) and its skill by slot: 0 is
+     legend and its targets by (side, idx) and its skill by slot: 0 is
      the signature, 1 the role Basic. Nothing else needs to cross,
      because the receiving engine recomputes the whole outcome.
      --------------------------------------------------------- */

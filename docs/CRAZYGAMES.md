@@ -1,7 +1,7 @@
 # The CrazyGames build
 
 One repository, two builds. Everything below is a runtime capability
-flag, not a fork: a balance change, a hero fix, or a new gate lands in
+flag, not a fork: a balance change, a legend fix, or a new gate lands in
 both builds automatically.
 
 |               | web                     | crazygames                                                     |

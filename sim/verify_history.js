@@ -230,7 +230,7 @@ console.log('\nTHE REPLAY TAPE RECORDS BOTH PLAYERS, IN ORDER');
         'the tape preserves the ORDER and the authorship of the moves'
       );
       ok(tape.actions[0].r === 3 && tape.actions[2].r === 4, 'each action carries the round it happened in');
-      ok(tape.actions[0].act.unit.idx === 0, 'a taped action names its hero');
+      ok(tape.actions[0].act.unit.idx === 0, 'a taped action names its legend');
       ok(tape.actions[0].act.targets[0].idx === 0, 'a taped action names its targets');
 
       /* a match is archived once even if finish() is reached twice -
@@ -432,10 +432,10 @@ function phase4() {
     const text = Array.prototype.map.call(items, (li) => li.textContent).join(' | ');
 
     ok(/Round 3/.test(text) && /Round 4/.test(text), 'the log is grouped into rounds');
-    ok(/Robin Hood/.test(text), 'a move names the hero who made it');
+    ok(/Robin Hood/.test(text), 'a move names the legend who made it');
     /* slot 0 is the signature skill, slot 1 the role skill - if these
        were swapped every archived match would read wrong */
-    ok(/used Aim on Hansel/.test(text), 'slot 0 resolves to the hero\u2019s signature skill');
+    ok(/used Aim on Hansel/.test(text), 'slot 0 resolves to the legend\u2019s signature skill');
     ok(/used Take Aim on Hansel/.test(text), 'slot 1 resolves to the ROLE skill, not the signature one');
     ok(/passed/.test(text), 'a pass is recorded as a pass rather than dropped');
 

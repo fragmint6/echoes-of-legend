@@ -7,17 +7,17 @@
    Every field is pure data. The engine reads these keys:
 
      basicsFrontRowOnly  bool   back row may not use role Basics (Narrow Pass)
-     backRowAtk          %      additive ATK for back-row heroes
-     frontRowDef         %      additive DEF for front-row heroes (negative = worse)
+     backRowAtk          %      additive ATK for back-row legends
+     frontRowDef         %      additive DEF for front-row legends (negative = worse)
      energyPerRound      flat   added to (or removed from) each round's grant
      energyCap           flat   raises the 150 ceiling
      echoFirstAbility    bool   first ability each round repeats free
      echoScale           0-1    effectiveness of that echo
-     deathEnergy         flat   energy to the DYING hero's own side
+     deathEnergy         flat   energy to the DYING legend's own side
      woundedAtk          %      ATK bonus below `woundedBelow` HP
      woundedBelow        0-1    the wounded threshold (default 0.5)
      championAtk         %      ATK for the priciest signature on each side
-     championHp          %      Max HP for that same hero (applied at start)
+     championHp          %      Max HP for that same legend (applied at start)
      roundBuffs          []     random relic pool, one fires per round
 
    Presentation-only keys:
@@ -31,7 +31,7 @@
    Balance note: every effect is SYMMETRIC. Both sides play under the same
    rules, so a field changes what drafts well without handing either player
    an advantage. The sim runs exclusively in the Colosseum (no effects) so
-   that hero win rates stay comparable across balance passes.
+   that legend win rates stay comparable across balance passes.
    ============================================================= */
 window.EOL = window.EOL || {};
 
@@ -95,7 +95,7 @@ window.EOL.battlefields = [
     rules: ['No special conditions.'],
     draft: 'Pure drafting and play skill. The balance benchmark.',
     /* deliberately no modifiers - this is the neutral field the simulation
-       uses so hero win rates are never contaminated by terrain */
+       uses so legend win rates are never contaminated by terrain */
   },
   {
     id: 'mirror-realm',

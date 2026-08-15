@@ -65,7 +65,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await p.evaluate(()=>document.getElementById('prep-confirm-main').click());
  await sleep(3000);
  t(await p.evaluate(()=>window.EOL.play._prepState()?.phase)==='pick','solo bans revealed and advanced to fielding');
- t(await p.evaluate(()=>[...document.querySelectorAll('#prep-player .pcard.banned')].length)===2,'the bot banned exactly 2 of your heroes');
+ t(await p.evaluate(()=>[...document.querySelectorAll('#prep-player .pcard.banned')].length)===2,'the bot banned exactly 2 of your legends');
 
  await p.evaluate(()=>{const c=[...document.querySelectorAll('#prep-player .pcard:not(.banned)')];for(let i=0;i<6;i++)c[i].click();});
  await sleep(300);
@@ -73,7 +73,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await sleep(2500);
  t(await p.evaluate(()=>document.body.dataset.view)==='battle','solo reached the battle board');
  const st=await p.evaluate(()=>{const B=window.EOL.battle.getState();return B?{n:B.units.length,turn:B.turn,odd:B.oddFirst,round:B.round}:null;});
- t(st&&st.n===12,'12 heroes on the board');
+ t(st&&st.n===12,'12 legends on the board');
  t(st&&st.odd==='player'&&st.turn==='player','solo still opens on the player (oddFirst='+(st&&st.odd)+')');
 
  // let the bot actually take a turn

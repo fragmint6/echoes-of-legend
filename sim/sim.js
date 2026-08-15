@@ -3,7 +3,7 @@
    -------------------------------------------------------------
    node sim/sim.js --games 1500 [--seed 42]
 
-   - Random 12-hero draw per game under the deck rule (max 3 heroes
+   - Random 12-legend draw per game under the deck rule (max 3 legends
      per role per team, EOL.rules.shared with battle.js/deck.js),
      split 6 v 6, smart role-based formation via createBattle
      {roleAware: true} (Tanks/Bruisers front, the rest back).
@@ -61,7 +61,7 @@ const EOL = window.EOL,
    that depth 2 plays well. It cannot see a move whose payoff is two
    turns away, which systematically undervalues every enabler in the
    game - Merlin's discount, a setup Mark, a shield that pays off
-   next round. If a hero climbs when depth rises, the earlier number
+   next round. If a legend climbs when depth rises, the earlier number
    was measuring the AI's blind spot rather than the card.
    Compare runs: --depth 2 against --depth 4. */
 const SIM_DEPTH = parseInt(args.depth || '2', 10);
@@ -73,8 +73,8 @@ const TEAM_MODE = args.teams || 'random';
    sim plays a game the ranked ladder does not have, and ban rate -
    arguably the best power signal there is - stays unmeasurable. */
 const WITH_BANS = !!args.bans;
-/* --force <heroId> pins a hero into P1's twelve every game. Equal
-   sample per hero, and inclusion is not the draft AI's decision. */
+/* --force <legendId> pins a legend into P1's twelve every game. Equal
+   sample per legend, and inclusion is not the draft AI's decision. */
 const FORCE_ID = typeof args.force === 'string' ? args.force : null;
 // Fast simulation budget: still depth 2, with fewer sampled rollouts.
 AI.setSimulationBudget({
@@ -142,9 +142,9 @@ if (args.abe) {
     );
   }
 }
-const HERO = {};
+const LEGEND = {};
 POOL.forEach((e) => {
-  HERO[e.card.id] = e.card;
+  LEGEND[e.card.id] = e.card;
 });
 const ROLES = ['Tank', 'Bruiser', 'Controller', 'Caster', 'Medic', 'Sniper'];
 
@@ -164,7 +164,7 @@ function rng32(seed) {
 }
 
 /* ---------------- aggregate tables ---------------- */
-function mkHeroStats() {
+function mkLegendStats() {
   return {
     apps: 0,
     wins: 0,
@@ -229,7 +229,7 @@ function mkAbilityStats() {
     shield: 0,
     buffs: 0,
     debuffs: 0,
-    heroName: '',
+    legendName: '',
     kind: '',
   };
 }
@@ -266,7 +266,7 @@ let A = {
   gamesWithKill: 0,
   sigCasts: 0,
   basicCasts: 0,
-  heroes: {},
+  legends: {},
   roles: {},
   abilities: {},
   basics: {},
@@ -278,7 +278,7 @@ let A = {
        drafted - taken into a twelve
        banned  - deleted by the opponent
        fielded - actually played from the surviving ten
-     A hero with a high ban rate and a middling win rate is not
+     A legend with a high ban rate and a middling win rate is not
      balanced; it is being removed precisely because it is strong. */
   draftStats: {},
   pairs: {},
@@ -294,10 +294,10 @@ let A = {
     tgt: { n: 0, lowestHp: 0, highestAtk: 0, tank: 0, backline: 0, marked: 0, exposed: 0 },
   },
 };
-A.heroInfo = {};
-Object.keys(HERO).forEach((id) => {
-  const c = HERO[id];
-  A.heroInfo[id] = {
+A.legendInfo = {};
+Object.keys(LEGEND).forEach((id) => {
+  const c = LEGEND[id];
+  A.legendInfo[id] = {
     id,
     name: c.name,
     faction: POOL.find((e) => e.card.id === id).faction,
@@ -307,12 +307,12 @@ Object.keys(HERO).forEach((id) => {
   };
 });
 ROLES.forEach((r) => {
-  A.roles[r] = mkHeroStats();
+  A.roles[r] = mkLegendStats();
 });
 ['burn', 'exposed', 'marked', 'silence', 'taunt', 'healMod', 'untargetable'].forEach((s) => {
   A.statuses[s] = mkStatusStats();
 });
-const heroAgg = (id) => (A.heroes[id] = A.heroes[id] || mkHeroStats());
+const legendAgg = (id) => (A.legends[id] = A.legends[id] || mkLegendStats());
 const abilAgg = (k) => (A.abilities[k] = A.abilities[k] || mkAbilityStats());
 
 /* =============================================================
@@ -467,7 +467,7 @@ function draftTwelve(rng, forceId) {
     pool[j] = t;
   }
   const decks = [[], []];
-  /* FORCED INCLUSION. Pin the hero into P1 before drafting starts.
+  /* FORCED INCLUSION. Pin the legend into P1 before drafting starts.
      This is what breaks the circularity in --teams draft: if the
      heuristic undervalues a card it never gets drafted, so it never
      gets data, so nobody learns it is broken - and the heuristic's
@@ -532,12 +532,12 @@ function chooseBans(theirDeck, myDeck, rng) {
    the same rails the game uses: never field without a Tank or Medic
    if one survived. The FIELD has no role cap - only the deck does.
 
-   `pin` forces a hero onto the board. Forcing it into the DECK is not
+   `pin` forces a legend onto the board. Forcing it into the DECK is not
    enough: the fielding step is the draft AI's judgement too, so a
    card it dislikes gets drafted and then benched. Measured on a test
-   run, 17 of 57 forced heroes never actually played - including
+   run, 17 of 57 forced legends never actually played - including
    Merlin, the card that started this whole investigation. A forced
-   pass that never fields the hero measures nothing. */
+   pass that never fields the legend measures nothing. */
 function chooseSix(pool, rng, pin) {
   const team = [];
   const rest = pool.slice();
@@ -583,7 +583,7 @@ function rankedTeams(rng, forceId) {
      other's result. */
   let bansOn1 = chooseBans(decks[0], decks[1], rng); // P2 deletes from P1
   const bansOn0 = chooseBans(decks[1], decks[0], rng); // P1 deletes from P2
-  /* A forced hero is exempt from being banned. Otherwise the most
+  /* A forced legend is exempt from being banned. Otherwise the most
      threatening cards - exactly the ones worth measuring - get
      deleted in most of their own forced games and produce the
      thinnest data of all. Ban RATE is measured by the unforced
@@ -601,7 +601,7 @@ function rankedTeams(rng, forceId) {
 function pickTeams(rng) {
   if (TEAM_MODE === 'draft') return draftTeams(rng);
   if (TEAM_MODE === 'pairs') return pairTeams(rng);
-  /* Deck legality: at most 3 heroes per role per team (EOL.rules) -
+  /* Deck legality: at most 3 legends per role per team (EOL.rules) -
      same rule as the deck builder and battle team generation. */
   return EOL.rules.splitCapped(POOL, rng);
 }
@@ -616,11 +616,11 @@ function runGame(seed) {
      answer "is this card fair when someone builds around it", and a
      human opponent always asks the second question. A live match
      exposed the gap: Merlin's discount is mediocre beside five
-     random heroes and enormous beside expensive ones, but random
+     random legends and enormous beside expensive ones, but random
      draw samples that pairing almost never, so the sim measured his
      floor while the player used his ceiling.
 
-       --teams random  (default) unbiased coverage, every hero plays
+       --teams random  (default) unbiased coverage, every legend plays
        --teams draft             both sides snake-draft with the real
                                  draft AI, which is what a human does
        --teams pairs             force a known synergy pair onto each
@@ -640,7 +640,7 @@ function runGame(seed) {
   } else {
     picked = pickTeams(rng);
   }
-  /* Every simulated game is fought in the COLOSSEUM (no modifiers) so hero
+  /* Every simulated game is fought in the COLOSSEUM (no modifiers) so legend
      win rates stay comparable across balance passes and are never skewed by
      terrain. Override with --field <id> to measure a specific battlefield. */
   const B = E.createBattle(picked[0], picked[1], {
@@ -653,7 +653,7 @@ function runGame(seed) {
   if (args.noComeback) B.noComeback = true; // A/B control: disable the deficit grant
 
   const U = {}; // uid -> {id, name, role, side, slot, passiveKey}
-  const G = {}; // heroId -> per-game accumulators
+  const G = {}; // legendId -> per-game accumulators
   const g0 = () => ({
     win: 0,
     draw: 0,
@@ -998,7 +998,7 @@ function runGame(seed) {
         if (o && o.passiveKey) {
           const rr = abilAgg(o.passiveKey);
           rr.casts++;
-          rr.heroName = o.name;
+          rr.legendName = o.name;
           rr.kind = 'Passive';
         }
         break;
@@ -1064,7 +1064,7 @@ function runGame(seed) {
       g.sigEnergy += energyBefore;
       if (!firstSigRound) firstSigRound = B.round;
       const rr = abilAgg(unit.card.id + '|' + ability.name);
-      rr.heroName = unit.name;
+      rr.legendName = unit.name;
       rr.kind = 'Signature (' + cost + ' EN)';
       foldCast(rr, bucket);
     }
@@ -1178,10 +1178,10 @@ function classify(ability) {
   return 'Debuff';
 }
 
-/* merge per-game hero records into hero + role tables */
-function mergeHero(id, g) {
-  const h = heroAgg(id),
-    r = A.roles[HERO[id].role];
+/* merge per-game legend records into legend + role tables */
+function mergeLegend(id, g) {
+  const h = legendAgg(id),
+    r = A.roles[LEGEND[id].role];
   [h, r].forEach((t) => {
     t.apps++;
     t.wins += g.win;
@@ -1270,7 +1270,7 @@ function foldGame(gd) {
     A.winnerAliveLeft.push(wu.filter((u) => u.alive).length);
     A.winnerHpLeft.push((wu.reduce((s, u) => s + (u.hp + u.shield) / u.maxHp, 0) / 6) * 100);
   }
-  Object.keys(G).forEach((id) => mergeHero(id, G[id]));
+  Object.keys(G).forEach((id) => mergeLegend(id, G[id]));
 
   /* positions: slot occupancy */
   B.units.forEach((u) => {

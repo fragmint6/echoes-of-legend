@@ -5,7 +5,7 @@
    Abe no Seimei's Shikigami Prophecy is the roster's only `delayed`
    effect: it seals a paper servant on the target that strikes at the
    END OF THE ROUND. It had no status chip, so from the receiving
-   side a hero just took a second, unexplained hit after the turn was
+   side a legend just took a second, unexplained hit after the turn was
    over - and there was nothing on screen to play around.
 
    That matters more for this card than most, because being
@@ -213,7 +213,7 @@ console.log('\n-- nothing else changed --');
   const target = foeOf(B);
   ok(
     EOL.statusesOf(target, E).length === 0,
-    'a hero with no pending effects still reports no statuses'
+    'a legend with no pending effects still reports no statuses'
   );
 
   /* The pending loop must not invent chips for untagged delayed

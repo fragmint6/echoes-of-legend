@@ -810,7 +810,7 @@ var bossSix = ['campaign-gilgamesh', 'duat-anubis', 'duat-maat', 'duat-sekhmet',
     return dict[id];
   }
 );
-var heroSix = [
+var legendSix = [
   'grimmwood-hansel-gretel',
   'grimmwood-big-bad-wolf',
   'grimmwood-evil-queen',
@@ -844,7 +844,7 @@ function mulberryBoss(seed) {
   };
 }
 try {
-  var B = E.createBattle(heroSix, E.optimizeFormation(bossSix), {
+  var B = E.createBattle(legendSix, E.optimizeFormation(bossSix), {
     roleAware: false,
     field: EOL.battlefieldById('heros-trial'),
     rng: mulberryBoss(7),

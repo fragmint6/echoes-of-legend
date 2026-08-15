@@ -41,7 +41,7 @@
  *                            (lossless PNG), relative to the project root.
  *                            When present the card renders it instead of the
  *                            icon glyph. See docs/ART-SPEC.md (rev 4) and
- *                            assets/heroes/MANIFEST.csv.
+ *                            assets/legends/MANIFEST.csv.
  * }
  *
  * ---- STATUS EFFECTS -----------------------------------------
@@ -49,7 +49,7 @@
  *
  *   Burn     { k: 'burn', turns: N }
  *              Deals 5% of the victim's MAX HP on EVERY TURN that
- *              hero's side takes, ignoring DEF and shields. The
+ *              legend's side takes, ignoring DEF and shields. The
  *              DURATION counts down in ROUNDS, so a 2-round Burn keeps
  *              ticking on each of the victim's turns until the round
  *              timer runs out - it hurts more the more actions a side
@@ -83,11 +83,11 @@ window.EOL.registerFaction = function (faction) {
    DECK CONSTRUCTION RULES
    -------------------------------------------------------------
    Hard legality rule shared by the deck builder, battle team
-   generation and the sim harness: at most MAX_PER_ROLE heroes of
+   generation and the sim harness: at most MAX_PER_ROLE legends of
    the same role in one team of six. `roleCount` counts members,
    `withinRoleCap` validates an id list, `splitCapped` draws two
    legal teams of six from a shuffled entry pool (greedy walk with
-   reshuffle retry - the pool is 36 heroes across 6 roles, so it
+   reshuffle retry - the pool is 36 legends across 6 roles, so it
    converges immediately).
    ============================================================= */
 window.EOL.rules = (function () {
@@ -116,7 +116,7 @@ window.EOL.rules = (function () {
   }
 
   /* Shuffle the pool with rng, then walk it filling team A then team B,
-     skipping any hero whose role is already at the cap in that team. */
+     skipping any legend whose role is already at the cap in that team. */
   function splitCapped(pool, rng) {
     rng = rng || Math.random;
     for (var attempt = 0; attempt < 100; attempt++) {
@@ -159,12 +159,12 @@ window.EOL.rules = (function () {
 /* =============================================================
    GAME DECK RULES (post pass-12 model - Classic & Draft modes)
    -------------------------------------------------------------
-   A constructed game deck is 12 distinct heroes, at most 4 of any
+   A constructed game deck is 12 distinct legends, at most 4 of any
    one role and at most 2 Legendaries. Every battle opens with the
    PREPARATION phase: each side bans
-   BANS heroes from the opponent's 12 (chosen simultaneously,
+   BANS legends from the opponent's 12 (chosen simultaneously,
    revealed together), then fields FIELD_SIZE = 6 of their own
-   remaining (12 - BANS) heroes. Per the 2026-07-30 ruling the
+   remaining (12 - BANS) legends. Per the 2026-07-30 ruling the
    deck's max-4 is the ONLY legality rule: the battle six may
    field all 4 of a role. `EOL.rules` above (max 3 on a team of
    six) now belongs ONLY to the sim series, which re-baselines
@@ -192,7 +192,7 @@ window.EOL.deckRules = (function () {
   }
 
   /* True when a list of entries/ids is a legal CONSTRUCTED deck: full
-     size, every hero distinct, at most MAX_PER_ROLE of any role, and
+     size, every legend distinct, at most MAX_PER_ROLE of any role, and
      no more than two Legendaries. */
   function isLegal(entries) {
     if (!entries || entries.length !== DECK_SIZE) return false;
@@ -226,7 +226,7 @@ window.EOL.deckRules = (function () {
     return card.rarity === 'legendary' && legendaryCount(entries) >= MAX_LEGENDARIES;
   }
 
-  /* Draw a random legal constructed deck of 12 distinct heroes
+  /* Draw a random legal constructed deck of 12 distinct legends
      (max 4/role, max 2 Legendary) from an entry pool. Used for the
      Classic bot and the Surprise Me row. */
   function randomDeck(pool, rng) {

@@ -6,10 +6,10 @@
  * empty box where a portrait should be, with nothing in the console that
  * points at the card. Nothing validated these paths before.
  *
- * It also pins the shape of the outline format introduced for Olympus
- * (2026-08-15): minimal line drawings of each god, vectorised into a single
- * evenodd path. That art comes from tools/gen_olympus_art.py rather than the
- * PNG resizer, so nothing else enforces its geometry.
+ * The Olympus SVG outline trial (2026-08-15) has been REVERTED - all nine
+ * factions are back on the painted PNGs - so the geometry assertions that
+ * pinned the vector format are gone with it. What remains is the part that
+ * was always the point: every art path resolves, and every card is a PNG.
  */
 'use strict';
 
@@ -83,81 +83,48 @@ for (const { faction, card } of allCards) {
   );
 }
 
-/* ---- 3. the Olympus outline trial: all six cards, all SVG ---- */
+/* ---- 3. EVERY faction uses the painted PNGs ----
+   Olympus briefly shipped as SVG outlines and was reverted. This is the
+   assert that fails loudly if a vector experiment is ever half-landed
+   again, leaving one faction on a different format than the rest. */
+for (const { faction, card } of allCards) {
+  if (!card.art) continue;
+  ok(
+    card.art.endsWith('.png'),
+    'card art is a painted png for ' + faction + '/' + card.name + ' (got ' + card.art + ')'
+  );
+}
+
+/* Olympus specifically, since it is the one that was swapped away. */
 const olympus = allCards.filter((x) => x.faction === 'olympus');
 ok(olympus.length === 6, 'olympus has 6 cards (got ' + olympus.length + ')');
 for (const { card } of olympus) {
   ok(
-    /^assets\/heroes-line\/olympus-[a-z]+\.svg$/.test(card.art || ''),
-    'olympus card ' + card.name + ' uses outline svg (got ' + card.art + ')'
+    /^assets\/legends\/olympus-[a-z]+\.png$/.test(card.art || ''),
+    'olympus card ' + card.name + ' is back on its painted png (got ' + card.art + ')'
   );
 }
 
-/* ---- 4. the other factions still use the painted PNGs ----
-   The outline style is an Olympus-only trial; this assert is what will
-   fail loudly if a later change quietly converts everyone. */
+/* ---- 4. the reverted vector pipeline is fully gone ----
+   Leftovers are worse than either state: a stale assets/legends-line/ or a
+   tools/gen_olympus_art.py would keep re-raising "is this still a thing?". */
+for (const stale of [
+  'assets/legends-line',
+  'assets/legends-line',
+  'tools/gen_olympus_art.py',
+  'tools/lib_trace_ink.py',
+  'tools/lib_contours.py',
+]) {
+  ok(!fs.existsSync(path.join(ROOT, stale)), 'removed with the revert: ' + stale);
+}
+
+/* ---- 5. all art lives in one directory ---- */
 for (const { faction, card } of allCards) {
-  if (faction === 'olympus' || !card.art) continue;
+  if (!card.art) continue;
   ok(
-    card.art.endsWith('.png'),
-    'non-olympus card ' + faction + '/' + card.name + ' still uses png'
+    card.art.startsWith('assets/legends/'),
+    'art lives under assets/legends/ for ' + faction + '/' + card.name
   );
-}
-
-/* ---- 5. outline geometry: authored at the shared 8:11 hero ratio ----
-   Both crops assume this. A stray viewBox would silently letterbox. */
-const lineDir = path.join(ROOT, 'assets/heroes-line');
-ok(fs.existsSync(lineDir), 'assets/heroes-line/ exists');
-const svgs = fs.existsSync(lineDir)
-  ? fs.readdirSync(lineDir).filter((f) => f.endsWith('.svg'))
-  : [];
-ok(svgs.length === 6, 'six outline svgs on disk (got ' + svgs.length + ')');
-
-for (const f of svgs) {
-  const src = fs.readFileSync(path.join(lineDir, f), 'utf8');
-
-  const vb = /viewBox="0 0 (\d+) (\d+)"/.exec(src);
-  ok(!!vb, f + ': has a viewBox');
-  if (vb) {
-    const w = +vb[1];
-    const h = +vb[2];
-    ok(
-      Math.abs(w / h - 8 / 11) < 0.01,
-      f + ': viewBox is 8:11 (got ' + w + 'x' + h + ')'
-    );
-  }
-
-  /* Well-formed enough to parse, and self-describing for a11y. */
-  ok(src.includes('xmlns="http://www.w3.org/2000/svg"'), f + ': declares the svg namespace');
-  ok(/<title>[^<]+<\/title>/.test(src), f + ': has a <title>');
-  ok(src.trim().endsWith('</svg>'), f + ': is closed');
-
-  /* The style is a MINIMAL OUTLINE drawing, and two things keep it that
-     way. Every loop must sit in ONE <path>: fill-rule evenodd only punches
-     holes within a single element, so splitting them fills each enclosed
-     gap solid (this is exactly how Zeus's robe and Hercules's beard turned
-     into slabs of colour). And the subpath count must stay low - if it
-     climbs into the hundreds, something has gone back to tracing tone
-     bands instead of lines. */
-  const pathEls = (src.match(/<path\b/g) || []).length;
-  const subpaths = (src.match(/M-?\d/g) || []).length;
-  ok(pathEls === 1, f + ': all loops in one path element (' + pathEls + ')');
-  ok(/fill-rule="evenodd"/.test(src), f + ': fills evenodd so holes punch through');
-  ok(!/stroke=/.test(src), f + ': no stroke attributes - contours are filled');
-  ok(
-    subpaths >= 6 && subpaths <= 80,
-    f + ': stays a sparse outline (' + subpaths + ' subpaths)'
-  );
-
-  /* Keep the payload honest: these ship to every player on card render. */
-  const kb = Buffer.byteLength(src) / 1024;
-  ok(kb < 60, f + ': under 60 KB (' + kb.toFixed(0) + ' KB)');
-
-  /* No raster escape hatch and no external refs - it must stay vector. */
-  ok(!/<image\b/.test(src), f + ': embeds no raster image');
-
-  /* Drawn on the same substrate the CSS paints behind it. */
-  ok(src.includes('#06070d'), f + ': uses the card substrate colour');
 }
 
 console.log('  ' + pass + '/' + (pass + fail) + ' passed');

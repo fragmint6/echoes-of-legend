@@ -9,7 +9,7 @@
      Draft         snake-draft: packs of 3, you open odd packs and the
                    bot opens even ones (3 -> 1+1, one discard per pack);
                    12 packs = two legal decks of 12
-     Preparation   shared by both modes: ban 2 enemy heroes (choices
+     Preparation   shared by both modes: ban 2 enemy legends (choices
                    hidden until you commit yours), then field 6 of your
                    surviving 10 and arrange front/back rows
 
@@ -182,7 +182,7 @@
 
   /* ---------------- bot brains ---------------- */
   /* All three roster decisions (draft pick, ban, field six) route through
-     window.EOL.draftAI - see data/draft-ai.js. It scores measured hero
+     window.EOL.draftAI - see data/draft-ai.js. It scores measured legend
      power, a full keyword-synergy web, role structure from the comp data,
      and (for bans) how much a card threatens the bot's own plan.
      A small random roll keeps identical decks from drawing identical
@@ -191,7 +191,7 @@
     return window.EOL.draftAI;
   }
 
-  /* The bot's two bans against a 12-hero deck.
+  /* The bot's two bans against a 12-legend deck.
      It bans what is strongest IN CONTEXT: raw power, what the rest of
      your deck would unlock with it, and what would punish its own six. */
   function banCandidates(deckEntries, allowLegendaries) {
@@ -513,7 +513,7 @@
     return team;
   }
 
-  /* Small bonus for fielding a hero that punishes what the enemy fields. */
+  /* Small bonus for fielding a legend that punishes what the enemy fields. */
   function counterBonus(mine, theirs) {
     var ai = DAI();
     var M = ai.tags(mine),
@@ -599,7 +599,7 @@
 
   /* The prep board speaks the battle board's language: cards look like
      the ones on the battlefield, and hovering one opens the same
-     floating hero panel the fight uses (signature + role basic). */
+     floating legend panel the fight uses (signature + role basic). */
   var SMAX = null;
   function statMax() {
     if (SMAX) return SMAX;
@@ -704,7 +704,7 @@
      bottom it is pulled up to bottom-align, and it never leaves the view. */
   var TIP_GAP = 12,
     TIP_EDGE = 10;
-  /* Anchor the hero panel beside the hovered card.
+  /* Anchor the legend panel beside the hovered card.
      -------------------------------------------------------------
      THE BAN-STAMP RULE: the panel must never cover another card's BAN
      stamp. The stamp is a ::after inside a card, so it is trapped in
@@ -1674,7 +1674,7 @@
     var c = $('prep-confirm');
     var sixOk = p.front.length + p.back.length === RULES().FIELD_SIZE;
     /* THE SET rotation law, surfaced on the button itself: games 2+
-       demand 1-2 fresh heroes, and a button that only fails AFTER the
+       demand 1-2 fresh legends, and a button that only fails AFTER the
        click reads as broken - it greys out and says why up front. */
     var needSubs = !!(setState && setState.lastSix && p.phase === 'pick');
     var swaps = needSubs ? setSwapCount() : 0;
@@ -1743,7 +1743,7 @@
     p.player12.forEach(function (e, i) {
       var el = boardCard(e, i, 'you');
       var foeBanned = foeBanList.indexOf(e.card.id) >= 0;
-      /* THE SET: a hero subbed out of the six sits out the rest of the
+      /* THE SET: a legend subbed out of the six sits out the rest of the
          set - rendered exactly like a ban, and unslottable */
       var locked = p.lockouts && p.lockouts.indexOf(e.card.id) >= 0;
       if (p.revealed && (foeBanned || locked)) el.classList.add('banned');
@@ -1861,7 +1861,7 @@
   }
 
   /* Free-slot suggestion for the field tray: frontline roles go front. */
-  /* The live grid tile for one of YOUR heroes (null when not on
+  /* The live grid tile for one of YOUR legends (null when not on
      screen - e.g. resolved bans rebuild the grid once, legitimately).
      Tiles are appended in player12 order and never re-ordered. */
   function allyTile(id) {
@@ -1905,7 +1905,7 @@
   }
 
   function toggleSix(id) {
-    /* THE SET: locked-out heroes (subbed out earlier in the set) can
+    /* THE SET: locked-out legends (subbed out earlier in the set) can
        never re-enter the six */
     if (prep.lockouts && prep.lockouts.indexOf(id) >= 0) return;
     var all = prep.front.concat(prep.back);
@@ -2012,7 +2012,7 @@
             esc(e.card.role) +
             '</span>' +
             '<span class="fs-x" title="Swap rows"><i class="ri-arrow-up-down-line"></i></span>';
-          /* Seat shuffle (hero moved rows or list shifted after a
+          /* Seat shuffle (legend moved rows or list shifted after a
              removal): rebuild silently - slot-in is a NEW-occupant
              celebration, not a "things moved" siren. */
           if (cell && !cell.dataset.slotkey.match(/^empty-/)) fresh.classList.add('no-enter');
@@ -2142,7 +2142,7 @@
     var dict = byId();
     var sixIds = prep.front.concat(prep.back);
     if (sixIds.length !== RULES().FIELD_SIZE) return;
-    /* THE SET substitution law: games 2+ must field 1-2 heroes that
+    /* THE SET substitution law: games 2+ must field 1-2 legends that
        were not in last game's public six. Broken combos rotate. */
     if (setState && setState.lastSix) {
       var swaps = setSwapCount();
@@ -2190,7 +2190,7 @@
     });
     var survive = prep.enemy12.filter(function (e) {
       if (prep.youBans.indexOf(e.card.id) >= 0) return false;
-      /* THE SET: heroes the bot subbed out sit out the rest of the set */
+      /* THE SET: legends the bot subbed out sit out the rest of the set */
       if (setState && setState.botLockedOut.indexOf(e.card.id) >= 0) return false;
       return true;
     });
@@ -2254,7 +2254,7 @@
           : chooseSix(survive, predictedSix, mustKeep, prep.aiProfile);
     }
     if (setState) {
-      /* heroes leaving the six become locked out for the rest of the
+      /* legends leaving the six become locked out for the rest of the
          set (BEFORE lastSix is overwritten with the new six) */
       if (setState.lastSix) {
         setState.lastSix.front.concat(setState.lastSix.back).forEach(function (id) {
@@ -2742,7 +2742,7 @@
      -------------------------------------------------------------
      The pack is dealt ONCE and stays on the table: picks mark the
      card in place (greyed + a colored claim stamp), piles update
-     the instant each hero is chosen, and only a brand-new pack gets
+     the instant each legend is chosen, and only a brand-new pack gets
      the entrance deal.
      ===================================================== */
   var draft = null;
@@ -2788,7 +2788,7 @@
   var mpDeckId = null;
 
   function startDraft(opts) {
-    /* flatten() hands back ONE shared entry object per hero, cached for the
+    /* flatten() hands back ONE shared entry object per legend, cached for the
        life of the page, and the draft stamps per-game state (_taken and
        _wrap) straight onto those objects. Without this scrub a second
        draft inherits the first one's stamps: cards render pre-greyed as
@@ -3265,7 +3265,7 @@
       report: [],
       lastSix: null, // {front:[ids], back:[ids]} - the player's public six
       lastBotIds: [], // the bot's public six
-      /* ROTATION law, extended: a hero subbed OUT of a six sits out the
+      /* ROTATION law, extended: a legend subbed OUT of a six sits out the
          rest of the set (rendered like a banned card; cannot re-enter).
          Tracked for both sides so the bot plays the same game. */
       lockedOut: [],
@@ -3669,7 +3669,7 @@
         })
       );
     });
-    /* score bench heroes, best first */
+    /* score bench legends, best first */
     bench.sort(function (a, b) {
       return (
         ai.value(chosen, b, { size: 6 }) +
@@ -3684,7 +3684,7 @@
     var base = survive.filter(function (e) {
       return old.indexOf(e.card.id) >= 0;
     });
-    /* drop the weakest old-timers until `need` bench heroes fit with
+    /* drop the weakest old-timers until `need` bench legends fit with
        role caps respected: chooseSix over the reduced pool keeps the
        rails (Tank/Medic forces) identical to side one. The pinned boss
        is exempt from the drop by construction. */
@@ -5081,7 +5081,7 @@
     initMultiplayer();
     /* Rate the roster while the player is still on the menu.
        -------------------------------------------------------------
-       The draft brain works out how strong a hero is by PLAYING it -
+       The draft brain works out how strong a legend is by PLAYING it -
        a controlled duel per card against a squad of average bodies -
        instead of reading a hand-maintained table that goes stale
        (see data/draft-ai.js §2). That costs a few seconds of CPU the

@@ -106,7 +106,7 @@ console.log('\nHANSEL & GRETEL: THE SKULL MUST MEAN DEATH');
   ok(kill.pv.lethal && kill.died, 'a blow that DOES beat the recovery still shows the skull');
 
   /* ORDINARY TARGETS ARE UNTOUCHED. The fix must not quietly change
-     the indicator for the 99% of heroes with no pre-hit recovery. */
+     the indicator for the 99% of legends with no pre-hit recovery. */
   let plainLies = 0;
   for (let hp = 1500; hp <= 2600; hp += 10) {
     const p = shot(hp, false);

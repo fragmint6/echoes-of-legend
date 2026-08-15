@@ -3,7 +3,7 @@
 Three ready-to-paste messages, one per channel. Discord markdown throughout
 (`**bold**`, `#`/`##` headers, `>` quotes, `-#` subtext). No em dashes.
 
-Everything factual below was checked against the shipping build: 63 heroes,
+Everything factual below was checked against the shipping build: 63 legends,
 9 factions, 6 roles, 10 battlefields, 2 bans, teams of 6 from decks of 12,
 and Unabridged (best-of-3 wars) in solo. Launch copy updated 2026-08-05;
 roadmap updated 2026-08-12.
@@ -15,21 +15,21 @@ roadmap updated 2026-08-12.
 ```
 # Echoes of Legend
 
-A browser-based tactical card battler. Six heroes a side, drawn from world folklore, on a battlefield that changes the rules.
+A browser-based tactical card battler. Six legends a side, drawn from world folklore, on a battlefield that changes the rules.
 
 **How a match works**
-- Bring a deck of **12 heroes**, or draft one from nothing pick-by-pick
-- **Ban 2** of your opponent's heroes once you see their deck
+- Bring a deck of **12 legends**, or draft one from nothing pick-by-pick
+- **Ban 2** of your opponent's legends once you see their deck
 - Field **6** of your remaining 10 across a front and back row
 - Fight it out in energy-gated rounds until one side is wiped
 
 **The roster**
-63 heroes across 9 factions. Camelot, Olympus, Sherwood, Grimmwood, Yamato, Huaxia, Roma, Takamagahara and Duat. King Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus, Izanagi, Ma'at and 54 more.
+63 legends across 9 factions. Camelot, Olympus, Sherwood, Grimmwood, Yamato, Huaxia, Roma, Takamagahara and Duat. King Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus, Izanagi, Ma'at and 54 more.
 
-Every hero has one **Signature Skill** that is theirs alone, plus a **Basic Skill** from their role. Six roles: Tank, Bruiser, Sniper, Caster, Controller and Medic. Skills cost Energy, Energy grows each round, so round 1 and round 6 are different games.
+Every legend has one **Signature Skill** that is theirs alone, plus a **Basic Skill** from their role. Six roles: Tank, Bruiser, Sniper, Caster, Controller and Medic. Skills cost Energy, Energy grows each round, so round 1 and round 6 are different games.
 
 **Where the depth is**
-Placement matters. Front row eats what the back row would have taken, and a Tank that Provokes drags shots away from the people you actually need alive. Ten battlefields bend the numbers: The Mana Spring pours in extra Energy, The Energy Void starves it, The Colosseum stays neutral. Shields, Marks, Exposed and stacking buffs chain across heroes, so the right pair is worth more than the sum of two good cards.
+Placement matters. Front row eats what the back row would have taken, and a Tank that Provokes drags shots away from the people you actually need alive. Ten battlefields bend the numbers: The Mana Spring pours in extra Energy, The Energy Void starves it, The Colosseum stays neutral. Shields, Marks, Exposed and stacking buffs chain across legends, so the right pair is worth more than the sum of two good cards.
 
 **Modes**
 - **Classic** and **Draft** against the AI
@@ -54,18 +54,18 @@ https://fragmint6.web.app/echoes-of-legend/
 Echoes of Legend is playable in your browser right now. No download, no install, free.
 
 **What's in it**
-- 63 heroes, 9 factions, 6 roles
+- 63 legends, 9 factions, 6 roles
 - **Classic** and **Draft** vs the AI, plus **Unabridged** best-of-3 wars
 - **Online Draft** and **Online Classic** vs real players (needs a free account)
 - 10 battlefields that each change how a match plays
 
 **What I actually need from you**
 
-**Balancing.** This is the big one. I've fixed some genuinely broken stuff already, including a shield stack that a playtester grew to **13,000** before it stopped, but the roster has not been fully re-measured since. If a hero feels unbeatable, or feels like a wasted pick, tell me. Screenshots and "here's the team I lost to" are gold. So are ban patterns: if you ban the same hero every single game, that hero is a problem.
+**Balancing.** This is the big one. I've fixed some genuinely broken stuff already, including a shield stack that a playtester grew to **13,000** before it stopped, but the roster has not been fully re-measured since. If a legend feels unbeatable, or feels like a wasted pick, tell me. Screenshots and "here's the team I lost to" are gold. So are ban patterns: if you ban the same legend every single game, that legend is a problem.
 
 **Bugs.** Anything visually broken, any softlock, anything that reads wrong. Tell me your browser and whether you're on desktop or phone.
 
-**Anything else.** Confusing UI, unclear Skill text, a mode you wish existed, a hero you want in the game. All of it welcome.
+**Anything else.** Confusing UI, unclear Skill text, a mode you wish existed, a legend you want in the game. All of it welcome.
 
 **Known rough edges, so you don't have to report them**
 - Refreshing mid-battle forfeits the match. Draft and ban phases rejoin fine, the battle itself does not.
@@ -99,7 +99,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 ## After that
 
-- **Player profiles and statistics.** Favorite heroes, win rates by hero and faction, highest rank, total games, and match history.
+- **Player profiles and statistics.** Favorite legends, win rates by legend and faction, highest rank, total games, and match history.
 
 - **Guild Battles.** A three-day event every two weeks, open to solo participants. Defenses use player tactical choices, with limited live Unabridged battles.
 
@@ -135,5 +135,5 @@ Want something moved up this list? Say so. A prototype this early is exactly whe
 - The three blocks are 1,850 / 1,560 / 1,883 characters, all under the
   2,000-character message limit. No splitting needed.
 - If you turn `#about` into the channel description instead of a message, the
-  short version is: *"A free browser card battler. Six folklore heroes a side,
+  short version is: *"A free browser card battler. Six folklore legends a side,
   63 to choose from, ban your opponent's best two, then fight."*

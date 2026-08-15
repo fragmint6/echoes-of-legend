@@ -113,7 +113,7 @@ Every choice gives the unchosen legend to the opponent.
 
 ### What it tests
 
-- Evaluating two heroes in the context of both developing teams
+- Evaluating two legends in the context of both developing teams
 - Taking a strong card while knowingly handing over its counterpart
 - Faction and skill synergy across a forced one-of-each-role structure
 - Adapting to a battlefield before the first choice
@@ -160,15 +160,15 @@ Protect your Crown and assassinate the enemy's. The first Crown death ends the b
 ### Proposed flow
 
 1. Each player privately selects a legal squad of six.
-2. Each privately designates one of those heroes as their Crown.
+2. Each privately designates one of those legends as their Crown.
 3. Squads and Crowns reveal simultaneously.
 4. Players form their front and back rows.
 5. The battle uses normal actions, skills, Energy, and targeting.
-6. The first side whose Crown dies loses immediately, even if its other five heroes remain alive.
+6. The first side whose Crown dies loses immediately, even if its other five legends remain alive.
 
 ### What it tests
 
-- Constructing protection around one critical hero
+- Constructing protection around one critical legend
 - Assassination, disruption, Taunt, healing, and defensive timing
 - Choosing whether to sacrifice another legend to preserve the Crown
 - Deciding when to attack the objective and when to dismantle its support
@@ -176,18 +176,18 @@ Protect your Crown and assassinate the enemy's. The first Crown death ends the b
 
 ### Crown's Ward
 
-Without an additional rule, durable Tanks may become automatic Crown choices. The current recommendation is a visible **Crown's Ward** that normalizes survivability enough for fragile heroes to remain plausible.
+Without an additional rule, durable Tanks may become automatic Crown choices. The current recommendation is a visible **Crown's Ward** that normalizes survivability enough for fragile legends to remain plausible.
 
 Possible implementations include:
 
-- a shield whose size is inversely related to the hero's base Max HP;
+- a shield whose size is inversely related to the legend's base Max HP;
 - a fixed effective-HP floor;
 - stronger Ward for back-row roles and weaker Ward for Tanks;
 - restrictions on which roles may be crowned.
 
-No formula is locked. This must be simulated across all eligible heroes rather than balanced by intuition.
+No formula is locked. This must be simulated across all eligible legends rather than balanced by intuition.
 
-The Ward should protect survivability without changing the hero's ATK, ability text, or role identity.
+The Ward should protect survivability without changing the legend's ATK, ability text, or role identity.
 
 ### Rules requiring explicit decisions
 

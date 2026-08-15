@@ -1,5 +1,5 @@
 /* =============================================================
-   Echoes of Legend - HERO PANEL RENDERING
+   Echoes of Legend - LEGEND PANEL RENDERING
    -------------------------------------------------------------
    Browser test. Requires puppeteer and a local server:
      cd /tmp && npm install puppeteer --no-audit --no-fund

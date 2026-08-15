@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detail-preserving downsize pipeline for the Echoes of Legend hero cards.
+"""Detail-preserving downsize pipeline for the Echoes of Legend legend cards.
 
 The source art is 640x880 and the default target is 128x176 (an exact 5x
 reduction). Compared with a basic resize, this pipeline:
@@ -87,10 +87,10 @@ def resize_linear_rgb(im: Image.Image, size: tuple[int, int], filter_name: str) 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source', type=Path, default=Path('assets/heroes'),
-                        help='input directory containing hero JPGs')
-    parser.add_argument('--output', type=Path, default=Path('assets/heroes-128'),
-                        help='output directory (default: assets/heroes-128)')
+    parser.add_argument('--source', type=Path, default=Path('assets/legends'),
+                        help='input directory containing legend JPGs')
+    parser.add_argument('--output', type=Path, default=Path('assets/legends-128'),
+                        help='output directory (default: assets/legends-128)')
     parser.add_argument('--width', type=int, default=128,
                         help='output width in pixels (default: 128)')
     parser.add_argument('--quality', type=int, default=95,

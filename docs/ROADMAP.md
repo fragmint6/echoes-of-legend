@@ -16,7 +16,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 ## After that
 
-- **Player profiles and statistics.** Favorite heroes, win rates by hero and faction, highest rank, total games, and match history.
+- **Player profiles and statistics.** Favorite legends, win rates by legend and faction, highest rank, total games, and match history.
 
 - **Guild Battles.** A three-day event every two weeks, built so anyone can participate without already having a friend group or committing to a schedule. Defenses will come from player tactical choices rather than AI imitation, with limited live Unabridged battles where appropriate.
 

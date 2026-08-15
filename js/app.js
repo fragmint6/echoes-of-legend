@@ -48,7 +48,7 @@
 
   /* bar scaling maxima */
   /* Scale bars against the real roster maxima (plus head-room) instead
-     of hard-coded ceilings - the old atk: 1150 meant almost every hero
+     of hard-coded ceilings - the old atk: 1150 meant almost every legend
      showed a full ATK bar. */
   var MAX = (function () {
     var hp = 0,
@@ -1939,7 +1939,7 @@
 
     /* home-page counts come from the data itself - they can never drift
        out of sync with the roster again */
-    var sh = document.getElementById('stat-heroes');
+    var sh = document.getElementById('stat-legends');
     if (sh) sh.textContent = ROSTER.length;
     var sf = document.getElementById('stat-factions');
     if (sf) sf.textContent = FACTIONS.length;
@@ -2091,6 +2091,6 @@
     });
 
     show('home');
-    console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
+    console.log('[EOL] ' + ROSTER.length + ' legends across ' + FACTIONS.length + ' factions.');
   });
 })();

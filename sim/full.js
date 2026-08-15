@@ -17,7 +17,7 @@
 
    Three separate blind spots caused that:
 
-     1. RANDOM DRAW DESTROYS COMBOS. 57 heroes means 1,596 possible
+     1. RANDOM DRAW DESTROYS COMBOS. 57 legends means 1,596 possible
         pairs and each game shows 30, so at 1,200 games the
         best-covered pair has 39 appearances. Combo questions cannot
         be settled by random draw at any sample size that fits in an
@@ -36,16 +36,16 @@
 
    WHAT THIS RUNS
    -------------------------------------------------------------
-     PHASE 1  random draw, bans on      broad coverage, every hero
+     PHASE 1  random draw, bans on      broad coverage, every legend
      PHASE 2  full draft, bans on       realistic teams and ban data
-     PHASE 3  forced inclusion, per hero equal sample, no AI opinion
+     PHASE 3  forced inclusion, per legend equal sample, no AI opinion
 
-   Phase 3 is the one that breaks the circle: each hero is PINNED
+   Phase 3 is the one that breaks the circle: each legend is PINNED
    into a deck regardless of whether the draft AI wanted it.
 
    HOW TO READ IT
    -------------------------------------------------------------
-   Four numbers per hero, and win rate is the weakest of them:
+   Four numbers per legend, and win rate is the weakest of them:
 
      ban rate     how frightening is it
      forced WR    how strong is it when made to play
@@ -54,7 +54,7 @@
 
    The interesting cases are the DISAGREEMENTS. High forced WR with
    a low pick rate means the draft AI is misjudging the card, which
-   is a bug report about draft-ai.js rather than about the hero.
+   is a bug report about draft-ai.js rather than about the legend.
 
    WHAT IT STILL CANNOT DO
    -------------------------------------------------------------
@@ -177,12 +177,12 @@ const pDraft = runSim(
 );
 console.log('        done (' + el() + ')');
 
-/* ---------- phase 3: forced inclusion, hero by hero ---------- */
+/* ---------- phase 3: forced inclusion, legend by legend ---------- */
 const totalForced = ROSTER.length * N_FORCED;
 console.log(
   '  [3/3] forced inclusion: ' +
     ROSTER.length +
-    ' heroes x ' +
+    ' legends x ' +
     N_FORCED +
     ' = ' +
     totalForced +
@@ -196,7 +196,7 @@ ROSTER.forEach((c, i) => {
     ['--games', String(N_FORCED), '--teams', 'draft', '--bans', '1', '--force', c.id],
     out
   );
-  const h = r.heroes[c.id];
+  const h = r.legends[c.id];
   const d = r.draftStats[c.id] || {};
   forced[c.id] = {
     apps: h ? h.apps : 0,
@@ -212,7 +212,7 @@ ROSTER.forEach((c, i) => {
     /* best effort */
   }
   if ((i + 1) % 10 === 0 || i === ROSTER.length - 1) {
-    console.log('        ' + (i + 1) + '/' + ROSTER.length + ' heroes (' + el() + ')');
+    console.log('        ' + (i + 1) + '/' + ROSTER.length + ' legends (' + el() + ')');
   }
 });
 
@@ -228,7 +228,7 @@ const out = {
     phases: {
       random: pRandom.meta.games,
       draft: pDraft.meta.games,
-      forcedPerHero: N_FORCED,
+      forcedPerLegend: N_FORCED,
       forcedTotal: totalForced,
     },
   },

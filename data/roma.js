@@ -87,7 +87,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crossed-swords',
-      art: 'assets/heroes/roma-julius-caesar.png',
+      art: 'assets/legends/roma-julius-caesar.png',
     },
     {
       id: 'roma-spartacus',
@@ -128,7 +128,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-circular-shield',
-      art: 'assets/heroes/roma-spartacus.png',
+      art: 'assets/legends/roma-spartacus.png',
     },
     {
       id: 'roma-augustus',
@@ -153,7 +153,7 @@ window.EOL.registerFaction({
                current HP for every effect, and healing first would push the
                two wounded allies up the order so the DEF landed on a
                different pair. A DEF buff doesn't move HP, so this ordering
-               guarantees both halves hit the same two heroes. */
+               guarantees both halves hit the same two legends. */
             {
               k: 'stat',
               stat: 'def',
@@ -167,7 +167,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crowned-heart',
-      art: 'assets/heroes/roma-augustus.png',
+      art: 'assets/legends/roma-augustus.png',
     },
     {
       id: 'roma-cicero',
@@ -182,7 +182,7 @@ window.EOL.registerFaction({
         /* Balance pass 2026-07-31: 40 -> 25 EN and 80% -> 110% ATK.
            At 40 EN Philippics returned 1,299 value/cast against 2,790
            (Zhuge Liang) and 3,676 (Morgan le Fay) at the same price, and
-           Cicero finished at 27.8% - the roster's worst hero. Silence only
+           Cicero finished at 27.8% - the roster's worst legend. Silence only
            blocks signature Actives, so the AI answers it with a Basic and
            the headline effect underdelivers; the card is re-priced as the
            cheap tempo tool it actually is. */
@@ -207,7 +207,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-book',
-      art: 'assets/heroes/roma-cicero.png',
+      art: 'assets/legends/roma-cicero.png',
     },
     {
       id: 'roma-brutus',
@@ -236,7 +236,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-cloak-and-dagger',
-      art: 'assets/heroes/roma-brutus.png',
+      art: 'assets/legends/roma-brutus.png',
     },
     {
       id: 'roma-constantine-the-great',
@@ -269,7 +269,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-hospital-cross',
-      art: 'assets/heroes/roma-constantine-the-great.png',
+      art: 'assets/legends/roma-constantine-the-great.png',
     },
   ],
 });

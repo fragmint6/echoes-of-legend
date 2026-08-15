@@ -384,7 +384,7 @@ window.EOL = window.EOL || {};
         firstBloodYou:
           '"First blood to you. Do not smile yet - the outnumbered side earns bonus Energy every round. The Road pays its wounded."',
         firstBloodFoe:
-          '"First blood to me. Steady. Fewer heroes means fewer turns - but the Road pays YOU bonus Energy now. Spend it angrily."',
+          '"First blood to me. Steady. Fewer legends means fewer turns - but the Road pays YOU bonus Energy now. Spend it angrily."',
         allyDown:
           '"Another of yours gone. Each body lost is a turn lost every round. Guard the rest."',
         foeHalf:
@@ -1208,7 +1208,7 @@ window.EOL = window.EOL || {};
       { speaker: 'The Wayfarer', text: '"What happened to you?"' },
       {
         speaker: 'The Trickster',
-        text: '"Rude." A pause. "Fine. In my first story I was the hero\'s sister. I had three lines. \'Brother, be careful.\' \'Brother, come home.\' The third was never printed." She shuffles without looking. "So I learned to deal myself into other stories. Now I have ALL the lines."',
+        text: '"Rude." A pause. "Fine. In my first story I was the legend\'s sister. I had three lines. \'Brother, be careful.\' \'Brother, come home.\' The third was never printed." She shuffles without looking. "So I learned to deal myself into other stories. Now I have ALL the lines."',
       },
       {
         speaker: 'The Trickster',

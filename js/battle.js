@@ -275,9 +275,9 @@
      team building
      -------------------------------------------------------------
      With a player deck (6 card ids from the deck builder): the player
-     fields exactly those heroes, and the enemy draws 6 distinct random
-     heroes from the remaining pool. Without a deck, both sides are
-     random - 12 distinct heroes split 6v6, as before. */
+     fields exactly those legends, and the enemy draws 6 distinct random
+     legends from the remaining pool. Without a deck, both sides are
+     random - 12 distinct legends split 6v6, as before. */
   var playerDeck = null; // card ids of the last deck used (for rematch)
 
   function flatten() {
@@ -469,7 +469,7 @@
   /* ---------------------------------------------------------
      rendering
      --------------------------------------------------------- */
-  /* `deadView` renders the hero as a corpse regardless of engine state.
+  /* `deadView` renders the legend as a corpse regardless of engine state.
      A revive resolves synchronously in the engine, so without this the
      card would already show its restored HP and new buffs while the
      death/resurrection is still playing out on screen. */
@@ -572,7 +572,7 @@
       '</span>' +
       /* The number shown is HP + SHIELD (what you must chew through),
          but every HP-percentage condition in the game tests RAW HP. A
-         shielded hero can therefore read as "half health" while the
+         shielded legend can therefore read as "half health" while the
          engine sees them near death. The title spells out the split so
          the difference is inspectable rather than a trap. */
       '<span class="bhp-txt' +
@@ -672,10 +672,10 @@
   /* WHY IS THIS CARD DEAD IN THE WATER?
      -------------------------------------------------------------
      Outside playtest (2026-08-09): on the Narrow Pass, a back-row
-     hero in round 1 had its Basic blocked by the terrain AND its
+     legend in round 1 had its Basic blocked by the terrain AND its
      signature blocked by the phase - a full lockout with a full
      energy bar, and nothing said why. Two rules, both taught, whose
-     INTERSECTION nobody taught. When a living, unacted hero of yours
+     INTERSECTION nobody taught. When a living, unacted legend of yours
      has no legal action on your turn, the card itself now says why -
      shortest true words, worst offender first. */
   function unitLockMsg(u) {
@@ -841,7 +841,7 @@
           return;
         }
 
-        // a hero whose resurrection hasn't lit yet still reads as a corpse
+        // a legend whose resurrection hasn't lit yet still reads as a corpse
         var vdead = !u.alive || isDownForRevive(u.uid);
         cell.className =
           'bcell-wrap ' + side + (vdead ? ' dead' : '') + (E.isFront(u) ? ' front' : ' back');
@@ -864,7 +864,7 @@
           if (E.isFront(u)) inner.classList.add('front');
           else inner.classList.add('back');
         }
-        /* A fallen hero stays READABLE: hovering still opens its panel
+        /* A fallen legend stays READABLE: hovering still opens its panel
            (buffs, causes of death, the flyout), it just can never be
            selected - onCardClick treats it as strictly view-only. */
         var hit = inner;
@@ -1033,12 +1033,12 @@
   }
 
   /* ---------------------------------------------------------
-     Per-hero name fitting
+     Per-legend name fitting
      -------------------------------------------------------------
      Names range from "Zeus" to "Rumpelstiltskin", so one font size
      can't serve both: the long ones were clipped by the card border.
      Each name is measured against its own card and given its own size,
-     so every hero's name fills the available width as fully as it can
+     so every legend's name fills the available width as fully as it can
      without overflowing.
 
      Measurement is done on a shared off-screen canvas rather than by
@@ -1182,7 +1182,7 @@
       if (!text) return;
 
       /* Start from the full size every time. Without this the element
-         keeps a smaller size left over from a previous, longer hero
+         keeps a smaller size left over from a previous, longer legend
          and short names render needlessly shrunken. */
       el.style.fontSize = MAX_AB_PX + 'px';
       if (el.scrollWidth <= el.clientWidth) return; // already fits
@@ -1408,8 +1408,8 @@
     /* WHO WOULD ACTUALLY BE HIT, not merely who is legal.
        E.affectedTargets walks the card's own effect tree, so a Skill
        that narrows its victims (Zeus striking only the Marked, a
-       row-choice, a `take: top N`) highlights exactly the heroes it
-       will strike. Reading the card data rather than naming heroes
+       row-choice, a `take: top N`) highlights exactly the legends it
+       will strike. Reading the card data rather than naming legends
        means every card behaves consistently, including future ones. */
     var pool;
     try {
@@ -1451,9 +1451,9 @@
   }
 
   /* ---------------------------------------------------------
-     Floating hero panel
+     Floating legend panel
      Appears in the empty space beside the board: allies on the
-     left, enemies on the right. Hovering previews a hero; clicking
+     left, enemies on the right. Hovering previews a legend; clicking
      one of yours locks it there and makes the abilities clickable.
      The layout is identical either way.
      --------------------------------------------------------- */
@@ -1594,7 +1594,7 @@
       .join(' &middot; ');
   }
 
-  /* Live value for THIS hero, then the rule from window.EOL.STATUS if
+  /* Live value for THIS legend, then the rule from window.EOL.STATUS if
      there is one worth printing. Most stat buffs need no rule at all -
      "+15% Attack" says everything, and nobody needs DEF explained. */
   function statusDesc(u, st) {
@@ -1642,7 +1642,7 @@
   /* THE STATUS ROW.
      -------------------------------------------------------------
      Statuses used to be a stacked list of full rule paragraphs. On a
-     hero carrying four of them that was taller than everything else
+     legend carrying four of them that was taller than everything else
      in the panel combined, which is what forced the panel to be so
      large it had nowhere to sit.
 
@@ -1679,7 +1679,7 @@
     });
 
     /* An explicit empty state. A blank gap left players unsure
-       whether the hero had no statuses or the panel was broken. */
+       whether the legend had no statuses or the panel was broken. */
     if (!sts.length) {
       return (
         '<div class="dk-strip empty">' +
@@ -1735,7 +1735,7 @@
   }
 
   /* Roster-wide maxima for the flyout's stat bars. Computed once from
-     the card data so a bar is a real comparison between heroes rather
+     the card data so a bar is a real comparison between legends rather
      than a hard-coded ceiling that everyone clips. Head-room is added so
      buffed values still have somewhere to go. */
   var STAT_MAX = null;
@@ -1791,7 +1791,7 @@
     if (!fly) return;
 
     var u = (sel && sel.unit) || hoverUnit;
-    // a hero mid-resurrection has no live stats to show
+    // a legend mid-resurrection has no live stats to show
     if (u && isDownForRevive(u.uid)) u = null;
     if (!u) {
       fly.classList.remove('show');
@@ -1804,7 +1804,7 @@
     var role = E.roleAbility(u);
     var mine = u.side === 'player';
     var interactive = locked && mine && u.alive && !sel.view && !B.over && B.turn === 'player';
-    // Only a genuinely different hero replays the swap animation. Locking
+    // Only a genuinely different legend replays the swap animation. Locking
     // the same card (hover -> click) must not re-animate the panel.
     var fresh = dockKey !== u.uid;
     dockKey = u.uid;
@@ -1840,9 +1840,9 @@
 
     fly.innerHTML =
       '<div class="dk-head">' +
-      /* The portrait plate shows the hero's assigned ra glyph, not the
+      /* The portrait plate shows the legend's assigned ra glyph, not the
          art: at this size the art read as texture while the icon is what
-         already identifies the hero on the card, in the collection and
+         already identifies the legend on the card, in the collection and
          in the prep tip. The plate is square now that nothing portrait-
          shaped needs to sit in it. */
       '<div class="dk-portrait" style="--fc-primary:' +
@@ -1933,7 +1933,7 @@
       fly.classList.remove('swap');
       void fly.offsetWidth;
       fly.classList.add('swap');
-      // drop the class once it's done so a later rebuild of the SAME hero
+      // drop the class once it's done so a later rebuild of the SAME legend
       // (e.g. hover -> click) doesn't leave it armed and replay
       clearTimeout(swapTimer);
       swapTimer = setTimeout(function () {
@@ -2078,7 +2078,7 @@
 
   function onCardClick(u) {
     /* Inspection stays available even when it is not your action and
-       even after the battle ends - reading a hero's statuses is not a
+       even after the battle ends - reading a legend's statuses is not a
        move. Only TARGETING is gated below. */
     if (busy) return;
 
@@ -2144,13 +2144,13 @@
 
     /* ANY card can be opened, including the enemy's.
        Statuses now live in the panel, so being unable to open an
-       opposing hero meant there was no way to read what is on them -
+       opposing legend meant there was no way to read what is on them -
        exactly the information you need to decide a play. Opening an
        enemy is view-only: their Skills never become clickable,
-       because `interactive` in paintDock still demands the hero be
+       because `interactive` in paintDock still demands the legend be
        yours, unacted and on your turn. */
-    /* A dead hero can be opened but never helm an action: alive joins
-       the same gates that already keep enemy and already-acted heroes
+    /* A dead legend can be opened but never helm an action: alive joins
+       the same gates that already keep enemy and already-acted legends
        strictly read-only. */
     // Toggle/deselect if clicking the currently selected/viewed card
     if (sel && sel.unit && sel.unit.uid === u.uid && !targeting) {
@@ -2159,7 +2159,7 @@
     }
 
     var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
-    /* THE SCRIPTED MATCH: other heroes stay inspectable, but only the
+    /* THE SCRIPTED MATCH: other legends stay inspectable, but only the
        line's unit may take the action. */
     var mvU = scriptMove();
     if (!viewOnly && mvU && mvU.side === 'player') {
@@ -3049,7 +3049,7 @@
   function startNextRound() {
     E.nextRound(B);
     render();
-    /* The rollover itself can deal damage and kill heroes (Burn ticks,
+    /* The rollover itself can deal damage and kill legends (Burn ticks,
        delayed strikes, battlefield relics). Let those animations play
        before the round banner or the result screen lands on top. */
     var rollHold = flashRecent();
@@ -4190,13 +4190,13 @@
 
   /* --------------------------------------------------------
      Revive (Sun Wukong's 72 Transformations)
-     Smoke swallows the falling hero, a golden pillar erupts,
+     Smoke swallows the falling legend, a golden pillar erupts,
      rings snap outward and the card burns off its death pallor.
      -------------------------------------------------------- */
   /* Timeline. The engine resurrects synchronously, so the whole
      death-and-return has to be staged here:
 
-       falling   340ms  hero drains to grey, stats blank out
+       falling   340ms  legend drains to grey, stats blank out
        down      500ms  held grey while the smoke and pillar erupt
        restoring 700ms  colour and stats come back with the light
 
@@ -4224,7 +4224,7 @@
   var REVIVE_TOTAL_MS = REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
   var reviveFx = {}; // uid -> { phase, at } so render() can resume the anim
 
-  /* true while the hero should still be drawn as a corpse */
+  /* true while the legend should still be drawn as a corpse */
   function isDownForRevive(uid) {
     var st = reviveFx[uid];
     return !!st && (st.phase === 'falling' || st.phase === 'down');
@@ -4272,7 +4272,7 @@
     dim.style.top = '0';
     dim.style.animationDuration = REVIVE_TOTAL_MS + 300 + 'ms';
 
-    // 0. the hero visibly falls, stays down, then is restored
+    // 0. the legend visibly falls, stays down, then is restored
     reviveStep(
       uid,
       'falling',
@@ -4309,7 +4309,7 @@
     // 2. pillar of golden light climbs out of the smoke
     setTimeout(function () {
       // pillar stands on the card and rises off the top of the board
-      // (CSS pins it to top:0, so --h is the distance down to the hero)
+      // (CSS pins it to top:0, so --h is the distance down to the legend)
       var col = spawn('fx-revive-pillar', c.x, c.y, GOLD, 1200);
       col.style.top = '0px'; // spawn() sets top inline
       col.style.setProperty('--h', c.y + 40 + 'px');
@@ -4523,7 +4523,7 @@
     if (kind === 'heal' && window.EOL.audio) window.EOL.audio.battle('heal');
     spawn('fx-aura ' + kind, t.x, t.y, null, 640);
     if (kind === 'heal') {
-      // a swelling ring of light under the hero
+      // a swelling ring of light under the legend
       spawn('fx-heal-ring', t.x, t.y, '#7ef0a8', 820);
       for (var i = 0; i < 5; i++) {
         var m = spawn('fx-plus', t.x + (Math.random() * 44 - 22), t.y + 14, '#7ef0a8', 900);
@@ -4569,7 +4569,7 @@
     }
   }
 
-  /* Energy gained / stolen: a chevron pulse at the hero. */
+  /* Energy gained / stolen: a chevron pulse at the legend. */
   function playEnergy(uid, positive) {
     var t = centreOf(uid);
     if (!t) return;
@@ -4665,7 +4665,7 @@
         return;
       }
       if (l.type === 'revive') {
-        // land the resurrection just after the blow that felled the hero
+        // land the resurrection just after the blow that felled the legend
         var rdelay = (lastHit[l.meta.uid] || 0) + 420;
         revived[l.meta.uid] = rdelay + REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
         hold = Math.max(hold, rdelay + REVIVE_TOTAL_MS + 500);
@@ -4729,7 +4729,7 @@
         if (!key) return;
         var positive = l.type === 'buff' || l.type === 'shield';
         if (l.meta.amt != null) positive = l.meta.amt >= 0;
-        // a hero mid-resurrection shows its new buffs once the light clears
+        // a legend mid-resurrection shows its new buffs once the light clears
         var wait = revived[l.meta.uid] || 0;
         if (wait) {
           (function (uid, k, pos, sig, d) {

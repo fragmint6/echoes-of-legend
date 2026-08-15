@@ -31,19 +31,19 @@
   /* Ceiling on banked energy. Battlefields may raise it (Mana Spring). */
   var ENERGY_CAP = 150;
 
-  /* Comeback: extra energy per round, per hero of deficit, paid to whichever
-     side is behind on living heroes. Recalculated each round - it fades as
+  /* Comeback: extra energy per round, per legend of deficit, paid to whichever
+     side is behind on living legends. Recalculated each round - it fades as
      the deficit closes and disappears entirely on a tie.
 
      Tuned empirically (1,200-game runs per value) against a no-grant control:
-        0/hero  68.8% first-kill conversion
-       10/hero  65.3%
-       15/hero  63.2%   <- chosen
-       20/hero  62.7%   (diminishing, and P1 drifts to 51.3%)
+        0/legend  68.8% first-kill conversion
+       10/legend  65.3%
+       15/legend  63.2%   <- chosen
+       20/legend  62.7%   (diminishing, and P1 drifts to 51.3%)
      15 captures nearly all the available correction; past that the curve
      flattens and the extra energy starts distorting the seat balance
      instead of closing the gap. */
-  var COMEBACK_PER_HERO = 15;
+  var COMEBACK_PER_LEGEND = 15;
 
   /* Energy is maxed from round 3, so from round 4 the pressure to close
      the game switches over to a compounding ATK bonus instead. */
@@ -58,7 +58,7 @@
   var BACKLINE_DEF_PENALTY = 5; // percent
 
   /* Burn: a damage-over-time debuff. In the alternating-action model it
-     ticks EVERY TIME THE BURNING HERO'S SIDE IS HANDED AN ACTION
+     ticks EVERY TIME THE BURNING LEGEND'S SIDE IS HANDED AN ACTION
      (tickBurn in setTurn), for a flat share of the victim's Max HP,
      while the duration itself only counts down on the round boundary -
      so a 2-round Burn on a busy board ticks many more than 2 times.
@@ -112,11 +112,11 @@
       side: side, // 'player' | 'enemy'
       slot: slot, // 0..5  (0-2 front row, 3-5 back row)
       /* CROSS-CLIENT IDENTITY. `uid` counts up from a page-global
-         counter, so the same hero has different uids in two browsers
-         and can never be named over a wire. `idx` is the hero's
+         counter, so the same legend has different uids in two browsers
+         and can never be named over a wire. `idx` is the legend's
          position in the team array AT CREATION and never changes -
          swapTargets moves `slot`, not this. A network message names a
-         hero as (side, idx), which the receiving client mirrors by
+         legend as (side, idx), which the receiving client mirrors by
          flipping the side. See js/netbattle.js. */
       idx: slot,
       name: card.name,
@@ -127,7 +127,7 @@
       baseAtk: card.stats.atk,
       baseDef: card.stats.def,
       shield: 0,
-      shieldSrc: null, // uid of the last hero who granted a shield
+      shieldSrc: null, // uid of the last legend who granted a shield
       alive: true,
       buffs: [], // {stat, amt, turns, tag, kind}
       flags: {}, // taunt / untargetable / silence -> turns
@@ -172,7 +172,7 @@
       if (f.woundedAtk && u.maxHp > 0 && u.hp / u.maxHp < (f.woundedBelow || 0.5)) {
         pct += f.woundedAtk;
       }
-      // The Hero's Trial: the champion is empowered
+      // The Legend's Trial: the champion is empowered
       if (f.championAtk && u.isChampion) pct += f.championAtk;
     }
     return Math.max(1, Math.round(u.baseAtk * (1 + pct / 100) * ramp));
@@ -279,7 +279,7 @@
 
          P1 acts -> P2 acts -> P1 acts -> P2 acts -> ...
 
-     One action = one hero using one ability. Control passes immediately
+     One action = one legend using one ability. Control passes immediately
      after it resolves. A side that cannot act (no energy, nothing legal)
      is skipped for the rest of the round (auto-PASS via passSide).
 
@@ -344,8 +344,8 @@
   /* Optimize team formation: Tanks & Bruisers in front (slots 0-2),
      Medics, Casters, Controllers & Snipers in back (slots 3-5).
      Front gets overflow priority by durability (effective HP): if more
-     than 3 frontline-role heroes are present the most durable three stay
-     up front; if fewer than 3, the most durable backline-role heroes
+     than 3 frontline-role legends are present the most durable three stay
+     up front; if fewer than 3, the most durable backline-role legends
      step up to fill the row. Slots within a row are mechanically
      identical, so inside each row the original random order is kept. */
   function optimizeFormation(entries) {
@@ -591,7 +591,7 @@
     opts = opts || {};
     // Smart role-based formation (Tanks/Bruisers front, rest back) when
     // the caller asks for it. Teams themselves stay exactly as drawn -
-    // this only decides where each hero stands.
+    // this only decides where each legend stands.
     if (opts.roleAware) {
       playerCards = optimizeFormation(playerCards);
       enemyCards = optimizeFormation(enemyCards);
@@ -635,7 +635,7 @@
         return { player: e0, enemy: e0 };
       })(),
       field: opts.field || null, // active battlefield (see data/battlefields.js)
-      comeback: { player: 0, enemy: 0 }, // energy granted for a hero deficit
+      comeback: { player: 0, enemy: 0 }, // energy granted for a legend deficit
       costMods: { player: [], enemy: [] }, // {flat,pct,turns}
       log: [],
       simulation: !!opts.simulation,
@@ -680,7 +680,7 @@
       });
     }
 
-    /* The Hero's Trial: each side's most expensive signature is the champion
+    /* The Legend's Trial: each side's most expensive signature is the champion
        and gets a stat bump. Resolved once, at battle start, so it cannot
        shift mid-fight when costs are modified. HP is applied here because
        maxHp is a stored value, not a derived one. */
@@ -765,7 +765,7 @@
       /* carried so the AI's lookahead can still see WHO fell and in what
          order - `to:'fallenAllies'` (revive) reads it. */
       diedAt: u.diedAt,
-      /* Spirit World reprieve is once per hero, so the AI's lookahead
+      /* Spirit World reprieve is once per legend, so the AI's lookahead
          must know it has already been spent. */
       spiritSpared: u.spiritSpared,
       deathCheated: u.deathCheated,
@@ -889,9 +889,9 @@
      opposite perspectives, so "the input order" is not something both
      sides agree on.
 
-     Two heroes on 4,900 HP is not a rare edge case: shared statlines
+     Two legends on 4,900 HP is not a rare edge case: shared statlines
      and full-HP openings make ties routine, and an unbroken tie means
-     the two clients quietly heal or execute DIFFERENT heroes and the
+     the two clients quietly heal or execute DIFFERENT legends and the
      match desyncs several rounds later, far from the cause.
 
      So every ordering ends in a stable tie-break on (slot, idx),
@@ -915,7 +915,7 @@
      harmless for a sweep whose steps are independent, and a real bug
      for one whose steps interact - two delayed strikes landing on the
      same round resolved in one order for the host and the opposite
-     order for the guest, and the second one killed a hero on only one
+     order for the guest, and the second one killed a legend on only one
      of the two machines.
 
      Sorting by 'player' first would NOT fix it, because each client
@@ -987,11 +987,11 @@
   function canUse(B, unit, ability, o) {
     if (!unit.alive || ability.type !== 'Active') return false;
     if (B.acted[unit.side][unit.uid]) return false;
-    // Silence prevents the hero's signature Active only; Basics still work.
+    // Silence prevents the legend's signature Active only; Basics still work.
     /* Silence blocks EVERY action, Basics included (2026-07-31). It used
        to gate signatures only, so the AI simply answered with a Basic and a
        40 EN Silence bought almost nothing - measured at 2.86 applications
-       per game for near-zero effect. A silenced hero now loses the turn,
+       per game for near-zero effect. A silenced legend now loses the turn,
        which is what makes control a real currency. */
     if (unit.flags.silence > 0) return false;
     // the side that opens the round is limited to Basics
@@ -1027,7 +1027,7 @@
 
        This used to read `> 0`, which quietly disagreed with the
        battle UI (js/battle.js already required `>= pickCount`). On the
-       Narrow Pass a back-row hero has no Basic, so a two-target
+       Narrow Pass a back-row legend has no Basic, so a two-target
        signature was the only move; against one enemy the engine
        believed the side could act, refused to auto-pass, and the round
        stalled with every ability greyed out. */
@@ -1289,7 +1289,7 @@
        choice to one legal enemy, never widen it to an illegal one.
 
        It also reads LIVE ATK - atkOf() includes buffs, debuffs, the
-       round ramp and terrain - so a hero buffed above Robin's usual
+       round ramp and terrain - so a legend buffed above Robin's usual
        prey becomes his target the moment the buff lands, which is what
        "highest ATK" has to mean in a game with ATK buffs in it. */
     var forced = forcedTarget(B, unit, ability);
@@ -1321,12 +1321,12 @@
      the units that would take a hit or a status. It is generic: any
      card, present or future, that uses these filters previews
      correctly without a special case, because it reads the card's
-     own data rather than naming heroes.
+     own data rather than naming legends.
 
      Read-only. It never mutates the battle.
      ============================================================= */
-  /* Effect kinds that DELIVER something to a hero, and therefore say
-     "this hero is being hit". Everything absent from this list is
+  /* Effect kinds that DELIVER something to a legend, and therefore say
+     "this legend is being hit". Everything absent from this list is
      either bookkeeping (`consumeMark`, `consumeBuffs`), a caster-side
      modifier (`outgoingMult`, `costMod`), or control flow. Listing the
      deliverers explicitly means a new bookkeeping effect cannot
@@ -1405,7 +1405,7 @@
            accounting step - Zeus consumes every Mark after striking.
            Counting them would put all six enemies back into the
            preview and undo the narrowing the real effects performed.
-           Only effects that DELIVER something to a hero (damage, a
+           Only effects that DELIVER something to a legend (damage, a
            heal, a status, a stat change) say who is being hit. */
         if (DELIVERS[e.k] !== 1) return;
 
@@ -1585,7 +1585,7 @@
       if (!tgt || hpRatio <= cond.targetHpAbove) return false;
     }
     /* Goldilocks: an HP window. `targetHpBetween` is INCLUSIVE at both
-       ends ("between 30% and 70% HP" includes a hero sitting at exactly
+       ends ("between 30% and 70% HP" includes a legend sitting at exactly
        30% or 70%); `targetHpOutside` is its exact complement. */
     if (cond.targetHpBetween) {
       if (!tgt) return false;
@@ -1870,7 +1870,7 @@
        blow resolves. Resolving this after damage let a nominally lethal
        hit take the target to 0 and then heal it back before death was
        finalized, creating a hidden death-cheat. Pre-hit recovery can
-       still save a low hero, but a blow larger than the recovered HP now
+       still save a low legend, but a blow larger than the recovered HP now
        kills them honestly. */
     if (tgt.flags.taunt > 0 && tgt.flags.tauntHeal) {
       healUnit(B, tgt, tgt, tgt.maxHp * (tgt.flags.tauntHeal / 100));
@@ -1930,7 +1930,7 @@
        before it is cleared so riders that key off "was Marked" (Ares'
        Burn, Athena's damage cut) still see it for this same blow. */
     /* THE SPIRIT WORLD: nothing dies to damage here. A blow that would
-       be lethal instead leaves the hero on 1 HP. It is a once-per-hero
+       be lethal instead leaves the legend on 1 HP. It is a once-per-legend
        reprieve (`spiritSpared`) rather than a standing immunity - the
        NEXT blow finishes the job, even a second hit of the SAME cast
        (user ruling 2026-08-05: a two-part skill's follow-up - Sniper's
@@ -2289,7 +2289,7 @@
     logMsg(B, 'death', u.name + ' is defeated.', { uid: u.uid });
     emit(B, { t: 'death', uid: u.uid, round: B.round });
 
-    /* The Spirit World: a fallen hero's spirit powers their own side. */
+    /* The Spirit World: a fallen legend's spirit powers their own side. */
     if (B.field && B.field.deathEnergy) {
       addEnergy(B, u.side, B.field.deathEnergy);
       logMsg(B, 'energy', u.name + "'s spirit empowers their allies.", {
@@ -2389,7 +2389,7 @@
     checkEnd(B);
   }
 
-  /* No hero may carry more Shield than 100% of their Max HP. Return the
+  /* No legend may carry more Shield than 100% of their Max HP. Return the
      amount that actually fit so combat text, events and the report never
      claim shield that was discarded by the cap. */
   function addShieldCapped(tgt, amount) {
@@ -2446,7 +2446,7 @@
   /* When a cleanse zeroes a debuff value, its paired bookkeeping must go
      too - otherwise extendDebuffs "extends" a dead timer (healModTurns
      ticking into a 0% healMod, a ghost affliction that logs "afflictions
-     linger" on a clean hero). Burn's source credit and Mark's timed
+     linger" on a clean legend). Burn's source credit and Mark's timed
      variants follow the value they belong to. */
   function scrubDeadTimer(t, key) {
     if (key === 'burn') t.flags.burnSrc = null;
@@ -2576,7 +2576,7 @@
       var src = B.units.filter(function (u) {
         return u.uid === d.srcUid;
       })[0];
-      /* A dead caster's queued effects do not resolve. Without this a hero
+      /* A dead caster's queued effects do not resolve. Without this a legend
          killed before their delayed payoff landed still dealt full damage
          from the grave, which removed the counterplay that makes telegraphed
          effects fair. (No shipped card used `when:'next'`, so this had never
@@ -2599,7 +2599,7 @@
 
   /* `maxStacks` is a LIFETIME cap, not a concurrent one.
      -------------------------------------------------------------
-     It used to count the buffs a hero currently held. With a 2-round
+     It used to count the buffs a legend currently held. With a 2-round
      buff that is barely a cap at all: each stack expires and frees
      its slot, so a passive that triggers often just keeps re-earning
      them. Red Riding Hood's "Max: 4 stacks" produced a 13,000 shield
@@ -2713,7 +2713,7 @@
     /* Fallen allies - the only redirect that deliberately looks at DEAD
        units, so a revive has something to target. `unitsOf` filters
        corpses out everywhere else, which is why resurrection needs its
-       own selector. Most recently fallen first, so "raise the last hero
+       own selector. Most recently fallen first, so "raise the last legend
        you lost" is the natural reading. Generic: any future card that
        wants to interact with the dead uses this. */
     else if (e.to === 'fallenAllies' || e.to === 'lastFallenAlly') {
@@ -2746,7 +2746,7 @@
     /* UNTARGETABLE IS ABSOLUTE (2026-08-01).
        `legalTargets` filters untargetable enemies out of an ability's own
        target picker, but a `to:` REDIRECT bypassed that picker entirely -
-       so Apollo's "Mark the highest ATK enemy" rider happily marked a hero
+       so Apollo's "Mark the highest ATK enemy" rider happily marked a legend
        who could not legally be targeted, and any future to:'enemies' rider
        had the same hole. Enforce the rule once, here, for every redirect
        that lands on the opposing side. Provoke is deliberately NOT checked:
@@ -3520,7 +3520,7 @@
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           t.alive = true;
           t.hp = Math.round(t.maxHp * (e.pctMaxHp / 100));
-          /* Generic `wipe` rider: a hero who comes back should come back
+          /* Generic `wipe` rider: a legend who comes back should come back
              CLEAN. Without it a revive inherited whatever killed it -
              Burn kept ticking, Exposed kept DEF at zero, and a stacked
              ATK debuff persisted through death, so "revive with 30% HP"
@@ -3544,8 +3544,8 @@
             emit(B, { t: 'cleanse', src: src.uid, tgt: t.uid, what: ['all'], round: B.round });
           }
           /* A revive necessarily un-kills its target, so any FOLLOWING
-             effect aimed at `fallenAllies` finds nobody - the hero it
-             wanted is alive again. A shield on the returning hero
+             effect aimed at `fallenAllies` finds nobody - the legend it
+             wanted is alive again. A shield on the returning legend
              therefore has to be part of the revive itself rather than a
              separate effect. Generic `shieldPctMaxHp` rider. */
           if (e.shieldPctMaxHp) {
@@ -3994,7 +3994,7 @@
 
   /* Changing the active side starts a new "turn" for effects that care
      (e.g. Nezha's follow-up on an already-damaged target). */
-  /* Burn damage-over-time. Ticks on every TURN a burning hero takes -
+  /* Burn damage-over-time. Ticks on every TURN a burning legend takes -
      i.e. each time that unit's side is about to act - for a flat share of
      its Max HP, ignoring DEF and shields.
 
@@ -4010,7 +4010,7 @@
       u.hp = Math.max(0, u.hp - dmg);
       u.lastDamagedRound = B.round;
       /* The Spirit World's reprieve covers burn damage exactly like a
-         blow: a lethal tick holds the hero at 1 HP once, and the NEXT
+         blow: a lethal tick holds the legend at 1 HP once, and the NEXT
          tick (or any blow) finishes the job. Before this, burn ignored
          the field entirely and killed through the reprieve. */
       if (B.field && B.field.spiritReprieve && u.hp <= 0 && !u.spiritSpared) {
@@ -4067,7 +4067,7 @@
     B.turn = side;
     var m = resolveDeferred(B, side, 'next');
     if (m) logMsg(B, 'buff', 'Delayed effects take hold.', {});
-    // burning heroes take their tick as their side is handed the action
+    // burning legends take their tick as their side is handed the action
     tickBurn(B, side);
     checkEnd(B);
     return B.turn;
@@ -4265,10 +4265,10 @@
     var e = energyForRound(B.round) + ((B.field && B.field.energyPerRound) || 0);
 
     /* COMEBACK GRANT (2026-07-31). First blood decided 68.9% of games
-       because losing a hero costs ACTIONS, not just damage: turns strictly
-       alternate, so 4 living heroes get 4 actions against their 6. The
-       trailing side is paid COMEBACK_PER_HERO energy per hero of deficit,
-       which lets fewer heroes cast bigger - it buys back value per action
+       because losing a legend costs ACTIONS, not just damage: turns strictly
+       alternate, so 4 living legends get 4 actions against their 6. The
+       trailing side is paid COMEBACK_PER_LEGEND energy per legend of deficit,
+       which lets fewer legends cast bigger - it buys back value per action
        rather than handing out extra actions.
 
        Recomputed from scratch every round, so it shrinks the moment the
@@ -4280,7 +4280,7 @@
     };
     ['player', 'enemy'].forEach(function (side) {
       var deficit = Math.max(0, alive[opposite(side)] - alive[side]);
-      var bonus = B.noComeback ? 0 : deficit * COMEBACK_PER_HERO;
+      var bonus = B.noComeback ? 0 : deficit * COMEBACK_PER_LEGEND;
       B.comeback[side] = bonus;
       addEnergy(B, side, Math.max(0, e) + bonus);
       if (bonus > 0) {
@@ -4324,7 +4324,7 @@
 
     /* Resolve delayed effects (Zeus, Abe no Seimei's shikigami).
        ORDER MATTERS: two prophecies landing on the same rollover can
-       interact - the first can kill a hero and cancel the second - so
+       interact - the first can kill a legend and cancel the second - so
        this sweep must run in the same sequence on both clients. */
     boardOrder(B).forEach(function (u) {
       if (!u.pending.length) return;
@@ -4438,7 +4438,7 @@
     advanceAction: advanceAction,
     cloneBattle: cloneBattle,
     BURN_PCT_MAX_HP: BURN_PCT_MAX_HP,
-    COMEBACK_PER_HERO: COMEBACK_PER_HERO,
+    COMEBACK_PER_LEGEND: COMEBACK_PER_LEGEND,
     ENERGY_CAP: ENERGY_CAP,
     energyCap: energyCap,
     addEnergy: addEnergy,

@@ -9,7 +9,7 @@
  *
  * WHY A TAPE AND NOT A TRANSCRIPT
  *
- *   The tape stores what each player DID - hero, skill slot, targets -
+ *   The tape stores what each player DID - legend, skill slot, targets -
  *   not what the engine then decided. That is deliberate. Damage
  *   numbers depend on buffs, terrain, crits and round state, and a
  *   transcript of them would be a second source of truth that can
@@ -205,7 +205,7 @@
      rendering one match
      --------------------------------------------------------- */
 
-  /* The tape names heroes by (side, idx) in the RECORDER's frame.
+  /* The tape names legends by (side, idx) in the RECORDER's frame.
      Rebuild both squads from the opening so those refs resolve back
      into names. `mine`/`theirs` are also the recorder's, and the
      recorder's own units are the ones on side 'player'. */
@@ -220,12 +220,12 @@
     return by;
   }
 
-  function heroName(by, ref) {
+  function legendName(by, ref) {
     if (!ref || !by[ref.side]) return 'someone';
     return nameOf(by[ref.side][ref.idx]);
   }
 
-  /* Slot 0 is the hero's signature skill, slot 1 the generic one for
+  /* Slot 0 is the legend's signature skill, slot 1 the generic one for
      their role - the same two-slot encoding the wire uses, so a later
      rename cannot desync an archived match either. */
   function skillName(by, ref, slot) {
@@ -246,10 +246,10 @@
       return li;
     }
 
-    var actor = heroName(by, entry.act.unit);
+    var actor = legendName(by, entry.act.unit);
     var skill = skillName(by, entry.act.unit, entry.act.slot);
     var targets = (entry.act.targets || []).map(function (t) {
-      return heroName(by, t);
+      return legendName(by, t);
     });
 
     var strong = document.createElement('b');

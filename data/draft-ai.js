@@ -10,7 +10,7 @@
    fatal properties:
 
      1. It went stale silently. It rated 51 of 63 cards - every Duat
-        hero and half of Grimmwood were missing - and `powerOf`
+        legend and half of Grimmwood were missing - and `powerOf`
         returned 0 for an unknown id. Zero is the roster MEAN, so 19%
         of the game was scored as "perfectly average" by ban
         valuation (x4.2), draft picks (x3.0), fielding and
@@ -26,7 +26,7 @@
         exactly 0.0.
 
    Nothing here is a table. Everything is derived from the cards
-   themselves, at runtime, so a new hero, a new faction or a balance
+   themselves, at runtime, so a new legend, a new faction or a balance
    tweak is picked up automatically and correctly.
 
      1. RATING     HOW GOOD IS THIS CARD. Answered by PLAYING it: the
@@ -107,7 +107,7 @@ window.EOL.draftAI = (function () {
   /* ---------------------------------------------------------
      1. THE CURRENCY
      -------------------------------------------------------------
-     One point = "1% of a reference hero's ATK, dealt once, to one
+     One point = "1% of a reference legend's ATK, dealt once, to one
      enemy". Everything - healing, shields, energy, control - is
      converted into that unit so a Medic and a Sniper can be compared
      without a hand-written opinion about which role matters.
@@ -579,7 +579,7 @@ window.EOL.draftAI = (function () {
      table it replaces (0.44), and that table needed a human to
      regenerate it after every balance pass. For scale: the win-rate
      run it is being scored against is itself only reliable to 0.87
-     (~370 games per hero), which caps ANY rating at r=0.93.
+     (~370 games per legend), which caps ANY rating at r=0.93.
 
      COST AND WHEN IT RUNS. About 45ms per duel, six duels per card
      (three seeds x two seats), ~15s for a 63-card roster. That is far
@@ -643,7 +643,7 @@ window.EOL.draftAI = (function () {
      KNOWN BIAS, so it is not rediscovered as a surprise. The sparring
      squad is a mirror of average bodies, so a card whose worth is
      CONDITIONAL on its team-mates is measured against mediocre ones.
-     The residuals say exactly that: the heroes the probe most
+     The residuals say exactly that: the legends the probe most
      underrates against real win rate are the supports and sustain
      pieces (Maid Marian, Snow White, Little John, Pied Piper), whose
      output scales with what they are keeping alive. §4's keyword web
@@ -1012,7 +1012,7 @@ window.EOL.draftAI = (function () {
   }
 
   /* ---------------------------------------------------------
-     4. KEYWORD WEB - what each hero GIVES and what it WANTS
+     4. KEYWORD WEB - what each legend GIVES and what it WANTS
      --------------------------------------------------------- */
   function tags(card) {
     var C = ctx();
@@ -1093,7 +1093,7 @@ window.EOL.draftAI = (function () {
     }
     if (a.spec && a.spec.noPierceTax) gives.pierce = 1;
 
-    /* passive triggers describe what a hero feeds on */
+    /* passive triggers describe what a legend feeds on */
     var trigs = a.passive ? a.passive.triggers || [a.passive.trigger] : [];
     trigs.forEach(function (t) {
       if (t === 'allyDied') wants.deaths = 1;
@@ -1105,7 +1105,7 @@ window.EOL.draftAI = (function () {
       if (t === 'wasAttacked' || t === 'selfAttacked' || t === 'incomingAbilityDamage')
         gives.punish = 1;
     });
-    /* a hero that dies a lot feeds death-triggers; tanks tend to */
+    /* a legend that dies a lot feeds death-triggers; tanks tend to */
     if (c.role === 'Tank' || c.role === 'Bruiser') gives.deaths = 0.5;
     /* every damage role can pop a Mark / cash an Exposed */
     if (c.role === 'Sniper' || c.role === 'Caster' || c.role === 'Bruiser') gives.kills = 1;
@@ -1383,7 +1383,7 @@ window.EOL.draftAI = (function () {
        And whatever cohesion factions DO have is already in the keyword
        web, measured rather than asserted: same-faction pairs average
        0.77 on pairSynergy against 0.60 for cross-faction pairs, because
-       a faction's heroes really do share themes. Paying for it twice,
+       a faction's legends really do share themes. Paying for it twice,
        with a term that SUMMED to as much as +6.6 across a twelve, was
        the same scale defect the synergy weight below had - it made the
        bot chase banners over cards. */

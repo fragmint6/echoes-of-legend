@@ -16,7 +16,7 @@
                  because Google OAuth cannot redirect inside a frame.
 
    Nothing is deleted for the portal build. Every difference is a
-   capability flag read at runtime, so a balance change, a hero fix,
+   capability flag read at runtime, so a balance change, a legend fix,
    or a new gate lands in BOTH builds automatically. This is the same
    trick body[data-auth] and body[data-gfx] already use.
 

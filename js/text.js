@@ -265,7 +265,7 @@
        Abe no Seimei's shikigami is the roster's only `delayed` effect:
        it sits on the target and strikes at the end of the round. It
        was completely invisible - no chip, no clock - so from the
-       receiving side a hero simply took a second, unexplained hit
+       receiving side a legend simply took a second, unexplained hit
        after the turn was over, and there was nothing to play around.
        Being telegraphed is the whole point of the card (see the
        rework note in data/yamato.js), and it could not telegraph

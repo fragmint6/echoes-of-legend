@@ -27,7 +27,7 @@ const CHROME='/home/user/.cache/puppeteer/chrome/linux-148.0.7778.97/chrome-linu
   const b2=NP.checksum(B);
   // identical board -> identical checksum
   const stable = a===b2;
-  // change one hero's HP -> checksum must move
+  // change one legend's HP -> checksum must move
   B.units[0].hp -= 1;
   const c=NP.checksum(B);
   B.units[0].hp += 1;
@@ -35,7 +35,7 @@ const CHROME='/home/user/.cache/puppeteer/chrome/linux-148.0.7778.97/chrome-linu
   B.units[3].flags.taunt = 2;
   const d=NP.checksum(B);
   delete B.units[3].flags.taunt;
-  // move a hero between rows -> checksum must move
+  // move a legend between rows -> checksum must move
   const s=B.units[1].slot; B.units[1].slot=5;
   const e=NP.checksum(B);
   B.units[1].slot=s;
@@ -45,9 +45,9 @@ const CHROME='/home/user/.cache/puppeteer/chrome/linux-148.0.7778.97/chrome-linu
  const chk=(ok,m)=>console.log((ok?'  PASS  ':'  FAIL  ')+m);
  let f=0; const t=(ok,m)=>{if(!ok)f++;chk(ok,m);};
  t(r.stable,'checksum is stable for an unchanged board');
- t(r.hpMoved,'checksum changes when a hero loses 1 HP');
+ t(r.hpMoved,'checksum changes when a legend loses 1 HP');
  t(r.flagMoved,'checksum changes when a status flag appears');
- t(r.slotMoved,'checksum changes when a hero changes row');
+ t(r.slotMoved,'checksum changes when a legend changes row');
  t(r.restored,'checksum returns to its original value when the board is restored');
  t(errs.length===0,'no page errors ('+errs.length+')');
  console.log(f?'\n===== '+f+' FAILED =====':'\n===== ALL PASSED =====');

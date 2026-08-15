@@ -2079,11 +2079,11 @@ body[data-turn='player'] .turn-label {
   color: #2a1c02;
 }
 
-/* ---------------- floating hero panel ---------------- */
+/* ---------------- floating legend panel ---------------- */
 /* Sits in the empty space beside the board - allies left, enemies right -
    so the two teams stay centred and the cards keep their full size. */
 /* =============================================================
-   THE HERO PANEL - docked to the side of the board
+   THE LEGEND PANEL - docked to the side of the board
    -------------------------------------------------------------
    Allies open on the left, enemies on the right, in the board's own
    margins. Expanding out of the card was tried and rejected: on a
@@ -2140,7 +2140,7 @@ body[data-turn='player'] .turn-label {
   visibility: visible;
   transform: translateX(0);
 }
-/* swapping to a different hero re-plays one animation for the whole
+/* swapping to a different legend re-plays one animation for the whole
    panel, so the status row can't flash separately from the abilities */
 .flyout.swap {
   animation: fly-swap 0.24s var(--ease);
@@ -2223,7 +2223,7 @@ body[data-turn='player'] .turn-label {
   position: relative;
   display: grid;
   place-items: center;
-  /* square: the plate shows the hero's ra glyph (the art moved out -
+  /* square: the plate shows the legend's ra glyph (the art moved out -
      it read as texture at this size), so the tall 58x82 portrait shape
      no longer had anything to frame */
   width: 58px;
@@ -2523,7 +2523,7 @@ body[data-turn='player'] .turn-label {
 }
 
 /* =============================================================
-   STATUS ROW inside the hero panel
+   STATUS ROW inside the legend panel
    -------------------------------------------------------------
    A single row of colour-coded icons rather than a stack of rule
    paragraphs. --sc is the status colour from window.EOL.STATUS, so
@@ -3775,7 +3775,7 @@ body[data-turn='player'] .turn-label {
   font-size: 10px;
 }
 .bcard-name {
-  /* font-size is set per hero by fitNames() in battle.js - long names
+  /* font-size is set per legend by fitNames() in battle.js - long names
      like "Rumpelstiltskin" get a smaller size so they fill the card
      width exactly instead of being clipped. 12px is the cap. */
   font-family: 'Cinzel', serif;
@@ -6237,7 +6237,7 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
 
 /* =============================================================
    Revive - Sun Wukong's 72 Transformations
-   Smoke swallows the falling hero, a pillar of gold erupts,
+   Smoke swallows the falling legend, a pillar of gold erupts,
    rings snap out and the card burns off its death pallor.
    ============================================================= */
 .fx-smoke {
@@ -6311,7 +6311,7 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
   }
 }
 
-/* bright core flare right at the hero */
+/* bright core flare right at the legend */
 .fx-revive-flare {
   position: absolute;
   width: 60px;
@@ -6395,7 +6395,7 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
 
 /* Three phases. `.dead` is also set for the first two, so these override it
    to animate the transition rather than let it snap. */
-/* 1. the hero drains to grey */
+/* 1. the legend drains to grey */
 .bcell-wrap.falling {
   animation: revive-fall 0.34s var(--ease) forwards;
 }
@@ -7691,7 +7691,7 @@ body[data-gfx='low'] .set-pill.bump {
   z-index: 7;
 }
 /* .deck-add and .ds-x are gone: clicking the card adds/removes it and
-   clicking a filled slot removes that hero, so a second control sitting
+   clicking a filled slot removes that legend, so a second control sitting
    on top of the art was pure redundancy. The in-deck STATE is still
    shown by .deck-badge (the slot number) and the .in-deck border. */
 
@@ -10179,7 +10179,7 @@ body[data-gfx='low'] .col-thumb {
 }
 /* Drain the ART, not the whole card. The filter used to sit on .bcard,
    which desaturated the red ban frame and slash along with everything
-   else - so in the field-six phase a banned hero looked merely dim
+   else - so in the field-six phase a banned legend looked merely dim
    rather than struck out. Scoping it to the inner art layers leaves
    the red frame at full strength. */
 .prep-cards .pcard.banned .bcard-art,
@@ -10210,7 +10210,7 @@ body[data-gfx='low'] .col-thumb {
    no z-index, and cannot be hidden by a hover panel.
    ============================================================= */
 
-/* your hero, banned by the opponent: struck out and inert */
+/* your legend, banned by the opponent: struck out and inert */
 .prep-cards .pcard.banned .bcard-inner {
   border-color: rgba(255, 98, 87, 0.85);
   box-shadow:
@@ -12073,7 +12073,7 @@ html.mqw640 .draft-pack {
   }
 }
 
-/* ---------- 9. Hero's Trial - a lit dais under falling light ---------- */
+/* ---------- 9. Legend's Trial - a lit dais under falling light ---------- */
 .bf-dais {
   position: absolute;
   left: 50%;
@@ -13430,7 +13430,7 @@ html.mqw640 .draft-pack {
 }
 
 /* =============  7. THE SPIRIT WORLD  =============
-   Rule: a fallen hero gives their team +15 Energy.
+   Rule: a fallen legend gives their team +15 Energy.
    Board: soft, drifting, no hard edges anywhere - the only board
    built from blurred blooms rather than lines. Lights rise
    steadily, which is the rule made visible. */
@@ -13531,7 +13531,7 @@ html.mqw640 .draft-pack {
   filter: blur(0.5px);
 }
 
-/* =============  9. THE HERO'S TRIAL  =============
+/* =============  9. THE LEGEND'S TRIAL  =============
    Rule: the costliest Skill-holder is empowered.
    Board: a single spotlit arena. Radiating spokes converge on one
    bright centre - the board points at its champion. Warm, and it
@@ -13581,7 +13581,7 @@ html.mqw640 .draft-pack {
 }
 
 /* =============  10. THE BLOOD BATTLEFIELD  =============
-   Rule: heroes below 50% HP deal +25%.
+   Rule: legends below 50% HP deal +25%.
    Board: the only board with a HEARTBEAT. A dark crimson field
    crossed by ragged diagonal scars, pulsing on a double-thump
    cycle that gets its punch from being irregular. */
@@ -13769,7 +13769,7 @@ body[data-gfx='low'] .arena-beams {
    is left invisible waiting on an animation that will not run */
 body[data-gfx='low'] .pcard.prep-c,
 body[data-gfx='low'] .dpack-card,
-body[data-gfx='low'] .hero-card,
+body[data-gfx='low'] .legend-card,
 body[data-gfx='low'] .bcard {
   animation: none !important;
   opacity: 1 !important;
@@ -14077,7 +14077,7 @@ body[data-gfx='low'] .btn-primary::after {
 }
 
 /* ---- collection / deck cards ---- */
-.hero-card,
+.legend-card,
 .deck-slot,
 .dpack-card {
   transition:
@@ -14086,10 +14086,10 @@ body[data-gfx='low'] .btn-primary::after {
     border-color 0.24s var(--ease),
     filter 0.24s var(--ease);
 }
-.hero-card:hover {
+.legend-card:hover {
   transform: translateY(-4px) scale(1.014);
 }
-.hero-card:active {
+.legend-card:active {
   transform: translateY(-1px) scale(0.995);
 }
 .dpack-card:hover {
@@ -14102,11 +14102,11 @@ body[data-gfx='low'] .btn-primary::after {
   transform: translateY(-2px);
 }
 /* the icon inside a card leans in slightly with the card */
-.hero-card .bcard-art i,
+.legend-card .bcard-art i,
 .dpack-card .bcard-art i {
   transition: transform 0.26s var(--ease);
 }
-.hero-card:hover .bcard-art i,
+.legend-card:hover .bcard-art i,
 .dpack-card:hover .bcard-art i {
   transform: scale(1.06);
 }
@@ -14207,7 +14207,7 @@ body[data-gfx='low'] .bbar-fill {
 /* ---- keyboard parity: focus mirrors hover everywhere ---- */
 .btn:focus-visible,
 .back-btn:focus-visible,
-.hero-card:focus-visible,
+.legend-card:focus-visible,
 .dpack-card:focus-visible,
 .mode-card:focus-visible,
 .shop-pack:focus-visible,
@@ -14217,13 +14217,13 @@ body[data-gfx='low'] .bbar-fill {
 }
 
 /* ---- low mode: keep the feedback, drop the flourish ---- */
-body[data-gfx='low'] .hero-card:hover,
+body[data-gfx='low'] .legend-card:hover,
 body[data-gfx='low'] .dpack-card:hover,
 body[data-gfx='low'] .shop-pack:hover,
 body[data-gfx='low'] .mode-card:hover {
   transform: translateY(-2px);
 }
-body[data-gfx='low'] .hero-card:hover .bcard-art i,
+body[data-gfx='low'] .legend-card:hover .bcard-art i,
 body[data-gfx='low'] .dpack-card:hover .bcard-art i {
   transform: none;
 }
@@ -15094,7 +15094,7 @@ body[data-gfx='low'] .sc-emblem > b::before {
   clip-path: polygon(50% 1%, 93.3% 25.5%, 93.3% 74.5%, 50% 99%, 6.7% 74.5%, 6.7% 25.5%);
 }
 
-/* 9. HERO'S TRIAL - the brand rune: flame outline holding its ember.
+/* 9. LEGEND'S TRIAL - the brand rune: flame outline holding its ember.
       Quick eager turn, short four-second heartbeat, hot fast prism. */
 .board[data-field='heros-trial'] .sc-emblem {
   --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23ffd88a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 4c0.7 4 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0C10.5 9.5 15.3 8 16 4z M16 23a2.8 2.8 0 0 0 2.8-2.8'/%3E%3C/svg%3E");
@@ -15138,7 +15138,7 @@ body[data-gfx='low'] .sc-emblem > b::before {
 /* =============================================================
    SKILL HOVER TARGET PREVIEW
    -------------------------------------------------------------
-   Hovering a Skill row in the hero panel highlights everyone it
+   Hovering a Skill row in the legend panel highlights everyone it
    could hit, using the same green the real selection uses so the
    language is consistent. Slightly softer and static rather than
    pulsing, so a preview never reads as a committed selection.
@@ -16235,14 +16235,14 @@ body[data-gfx='low'] .turn-clock.crit {
 }
 
 /* =============================================================
-   HERO PORTRAIT ART
+   LEGEND PORTRAIT ART
    -------------------------------------------------------------
    96x96 pixel-art busts (docs/ART-SPEC.md). Cards that have art
    render it in place of the RPG Awesome glyph; cards without keep
    the glyph, so the roster can be illustrated faction by faction.
 
    2026-08-03 v2: the art is now a full-bleed card ILLUSTRATION - the
-   hero painted with their environment baked in, shipped as an opaque
+   legend painted with their environment baked in, shipped as an opaque
    JPEG. There is no cut-out, no alpha and no masking anywhere; the
    image simply covers the card box and the HUD scrims keep text
    legible on top of it.
@@ -16275,7 +16275,7 @@ body[data-gfx='low'] .turn-clock.crit {
    v2 (2026-08-03): the masked sigil-ring cut-out is RETIRED. Chroma-keyed
    portraits always carried a fringe of the key colour at the contour,
    and every fix for it was another layer of processing. Card art is now
-   a complete illustration - hero plus painted environment, baked opaque
+   a complete illustration - legend plus painted environment, baked opaque
    - so there is nothing to mask: the image covers the whole card and
    the corner radius of .card itself rounds it off. */
 .art-portrait {
@@ -16319,60 +16319,6 @@ body[data-gfx='low'] .turn-clock.crit {
   object-position: center 30%;
 }
 
-/* =============================================================
-   OUTLINE PORTRAITS  (2026-08-15, Olympus trial)
-   -------------------------------------------------------------
-   A second art format alongside the painted PNGs: each god drawn as
-   a minimal outline in the card's element colour on the same
-   near-black substrate. Olympus is the only faction using it for
-   now; the other eight keep their PNGs, and both formats flow
-   through the same `card.art` <img>.
-
-   The drawings follow the poses and gear of the existing pixel-art
-   sources in assets/heroes/. They could not be traced from them
-   directly - those files are 64x88, so a whole head is ~20x24 px
-   and there is no face in there to find. See tools/gen_olympus_art.py.
-
-   Everything here keys off the .svg extension, so a card opts in
-   purely by pointing `art` at a vector file - no JS branch, no new
-   data field, no second render path.
-
-   Authored 320x440 (8:11) like every hero PNG, and the subjects sit
-   inside x 17..303 / y 17..401 so nothing important is lost to
-   either crop (collection trims the sides, battle the top+bottom).
-   ============================================================= */
-
-/* Pixel-snapping is right for the 64px painted art and ruinous for
-   vectors - it shreds a clean contour into a jagged staircase. Vector
-   art must resample smoothly at every card size. */
-.card-art img[src$='.svg'],
-.art-portrait img[src$='.svg'],
-.bart-portrait img[src$='.svg'] {
-  image-rendering: auto;
-  -ms-interpolation-mode: bicubic;
-}
-
-/* object-fit stays `cover`, inherited from the painted art. The drawings
-   are framed at the same 8:11 as the PNGs and keep the figure inside
-   x 17..303 / y 17..401, which is exactly what the two crops leave:
-     collection  250:385 -> trims the sides to x 17..303
-     battle      5:6 @ center 30% -> trims to y 17..401
-   So `cover` fills the frame with nothing important lost, where
-   `contain` would letterbox and shrink the figure for no gain. */
-
-/* The lines are drawn in the card's element colour, so a faint wash of
-   that colour behind them ties the art to the frame rather than leaving
-   it stranded on flat black. */
-.card-art.has-art:has(img[src$='.svg']),
-.bcard-art.has-art:has(img[src$='.svg']) {
-  background:
-    radial-gradient(
-      circle at 50% 42%,
-      color-mix(in srgb, var(--el) 16%, transparent) 0%,
-      transparent 62%
-    ),
-    #06070d;
-}
 .bcard:hover .bart-portrait {
   transform: scale(1.05);
 }
@@ -17503,10 +17449,10 @@ body[data-gfx='low'] .mb-motes {
   }
 }
 
-/* The hover panel's portrait plate used to render the hero's art on the
+/* The hover panel's portrait plate used to render the legend's art on the
    tall 58x82 plate. Reverted to the ra glyph (and the plate went
    square): at that size the art read as texture, and the icon is what
-   identifies the hero on the card face, in the collection and in the
+   identifies the legend on the card face, in the collection and in the
    prep tip. The .dk-portrait.has-art rules were removed with it. */
 .dk-portrait i {
   /* the glyph reads off the same rarity/faction wash the art sat on */
@@ -18135,7 +18081,7 @@ body[data-gfx='low'] .mb-motes {
   height: 2px;
   background: rgba(240, 220, 176, 0.7);
 }
-/* Hero's Trial: embers climbing from the cracks */
+/* Legend's Trial: embers climbing from the cracks */
 .board[data-field='heros-trial'] .sc-weather i {
   width: 3px;
   height: 3px;
@@ -18818,7 +18764,7 @@ body[data-gfx='low'] .sc-weather {
 }
 
 /* Slot cells rebuilt because a removal shuffled the row, not because a
-   hero was newly added: suppress the slot-in entrance on that rebuild
+   legend was newly added: suppress the slot-in entrance on that rebuild
    (set from JS; .no-enter only ever exists due to a data shuffle). */
 .field-slot.no-enter,
 .deck-slot.no-enter {
@@ -21314,7 +21260,7 @@ body[data-gfx='low'] .deck::before {
 /* =============================================================
    SESSION 25 - HOME & MENU DESIGN PASS
    -------------------------------------------------------------
-   The brief: less template-slop, more game. A composed hero with a
+   The brief: less template-slop, more game. A composed legend with a
    readability plate behind it, a clear CTA hierarchy (one BIG Play,
    two quiet secondaries), the stat strip as a glass pill, and small
    ceremonial touches on the emblem. Shared header diamond chip for
@@ -21324,7 +21270,7 @@ body[data-gfx='low'] .deck::before {
   position: relative;
 }
 .home-inner::before {
-  /* readability plate: one soft dark pool behind the whole hero so the
+  /* readability plate: one soft dark pool behind the whole legend so the
      type never fights the menu art - no hard panel edges, just air */
   content: '';
   position: absolute;
@@ -21437,18 +21383,18 @@ body[data-gfx='low'] .home-cloud-cta,
 body[data-gfx='low'] .home-cloud-cta > i:last-child {
   transition: none;
 }
-.btn-hero {
+.btn-legend {
   grid-column: 1 / -1;
   padding: 21px 40px;
   font-size: 19px;
   letter-spacing: 0.24em;
   text-indent: 0.1em;
 }
-.btn-hero .b-arrow {
+.btn-legend .b-arrow {
   font-size: 21px;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.btn-hero:hover .b-arrow {
+.btn-legend:hover .b-arrow {
   transform: translateX(5px);
 }
 #btn-shop,
@@ -23912,7 +23858,7 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* The bust renders the FULL 128x176 hero-art frame, pixel-crisp at its
+/* The bust renders the FULL 128x176 legend-art frame, pixel-crisp at its
    native 1x scale (the same art contract as the legend cards - see
    .art-portrait), fully inside the bar. No crop, no overhang. */
 .chapter-dialogue-bust {
@@ -25534,7 +25480,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   font-size: 13px;
   line-height: 1.55;
 }
-.lg-hero {
+.lg-legend {
   display: flex;
   gap: 14px;
   align-items: flex-start;
@@ -25549,7 +25495,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   border: 1px solid rgba(255, 214, 130, 0.35);
   background: rgba(0, 0, 0, 0.4);
 }
-.lg-hero-body {
+.lg-legend-body {
   min-width: 0;
 }
 .lg-kicker {
@@ -25561,7 +25507,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.lg-hero-body h3 {
+.lg-legend-body h3 {
   margin: 2px 0 6px;
   color: var(--txt);
   font-family: 'Cinzel', serif;
@@ -25748,7 +25694,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
    the hover panel now), the damage preview chips, the queue-jump
    bark shake, and the battle report on the result screen.
    ============================================================= */
-/* a locked hero wears only a small corner cue - hover for the why */
+/* a locked legend wears only a small corner cue - hover for the why */
 .bcard-lockdot {
   position: absolute;
   top: 6px;

@@ -87,10 +87,10 @@ sec('A. Silence blocks every action');
   const B = board(['roma-cicero', ...FILL]);
   const foe = B.units.find((u) => u.side === 'enemy');
   foe.flags.silence = 1;
-  ok(!E.canUse(B, foe, foe.card.ability), 'silenced hero cannot use its signature');
-  ok(!E.canUse(B, foe, E.roleAbility(foe)), 'silenced hero cannot use its BASIC either (new)');
+  ok(!E.canUse(B, foe, foe.card.ability), 'silenced legend cannot use its signature');
+  ok(!E.canUse(B, foe, E.roleAbility(foe)), 'silenced legend cannot use its BASIC either (new)');
   foe.flags.silence = 0;
-  ok(E.canUse(B, foe, E.roleAbility(foe)), 'un-silenced hero can act again');
+  ok(E.canUse(B, foe, E.roleAbility(foe)), 'un-silenced legend can act again');
 }
 
 /* =============================================================
@@ -257,7 +257,7 @@ sec('E. Trap buffs converted to team-wide');
 /* =============================================================
    F. COMEBACK GRANT
    ============================================================= */
-sec('F. Comeback energy (+15 per hero of deficit)');
+sec('F. Comeback energy (+15 per legend of deficit)');
 {
   const B = board(['camelot-king-arthur', ...FILL]);
   B.energy.player = 0;
@@ -269,7 +269,7 @@ sec('F. Comeback energy (+15 per hero of deficit)');
 }
 {
   const B = board(['camelot-king-arthur', ...FILL]);
-  /* kill two player heroes -> player is 2 down */
+  /* kill two player legends -> player is 2 down */
   const doomed = B.units.filter((u) => u.side === 'player').slice(0, 2);
   doomed.forEach((u) => {
     u.alive = false;
@@ -278,7 +278,7 @@ sec('F. Comeback energy (+15 per hero of deficit)');
   B.energy.player = 0;
   B.energy.enemy = 0;
   E.nextRound(B);
-  ok(B.comeback.player === 30, `2 heroes down = +30 energy at 15/hero (${B.comeback.player})`);
+  ok(B.comeback.player === 30, `2 legends down = +30 energy at 15/legend (${B.comeback.player})`);
   ok(B.comeback.enemy === 0, 'the leading side gets nothing');
   ok(B.energy.player === B.energy.enemy + 30, 'the trailing side really banks the extra');
 }
@@ -438,7 +438,7 @@ sec('H. Soak');
   }
   ok(err === 0, `100 games, no engine errors (${err})`);
   ok(viol === 0, `no energy/HP invariant breaches (${viol})`);
-  ok(silencedTurns === 0, `a silenced hero was never given a turn (${silencedTurns})`);
+  ok(silencedTurns === 0, `a silenced legend was never given a turn (${silencedTurns})`);
   console.log(`  games with a comeback grant active at the end: ${comebackSeen}/${games}`);
 }
 

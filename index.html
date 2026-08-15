@@ -432,7 +432,7 @@
         <p class="home-sub">History Meets Destiny</p>
 
         <div class="home-actions">
-          <button class="btn btn-primary btn-hero" id="btn-play">
+          <button class="btn btn-primary btn-legend" id="btn-play">
             <i class="ri-sword-line"></i>
             <span>Play</span>
             <i class="ri-arrow-right-line b-arrow" aria-hidden="true"></i>
@@ -481,7 +481,7 @@
            centred, so the header above it stays purely ceremonial -->
       <div class="col-tabs" role="tablist">
         <span class="col-thumb" aria-hidden="true"></span>
-        <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
+        <button class="col-tab sel" id="ctab-legends" role="tab" aria-selected="true">
           <i class="ri-user-3-line"></i><span>Legends</span>
         </button>
         <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
@@ -489,8 +489,8 @@
         </button>
       </div>
 
-      <!-- tab: heroes (the collection, unchanged) -->
-      <div class="col-panel" id="cpanel-heroes">
+      <!-- tab: legends (the collection, unchanged) -->
+      <div class="col-panel" id="cpanel-legends">
         <!-- static toolbar: intentionally NOT sticky -->
         <div class="toolbar">
           <div class="filters" id="filters"></div>
@@ -862,8 +862,8 @@
                 <figcaption><b>The Ancient Ruins</b><span>A random relic blessing for every survivor, every round.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/heros-trial.png" alt="The Hero's Trial" loading="lazy" draggable="false" />
-                <figcaption><b>The Hero's Trial</b><span>Everyone grows: +15% attack at every round rollover.</span></figcaption>
+                <img src="assets/boards/thumbs/heros-trial.png" alt="The Legend's Trial" loading="lazy" draggable="false" />
+                <figcaption><b>The Legend's Trial</b><span>Everyone grows: +15% attack at every round rollover.</span></figcaption>
               </figure>
               <figure class="rb-field">
                 <img src="assets/boards/thumbs/blood-battlefield.png" alt="The Blood Battlefield" loading="lazy" draggable="false" />
@@ -3061,7 +3061,7 @@
         </section>
       </div>
 
-      <!-- hover tooltip: the battle board's floating hero panel, same skin -->
+      <!-- hover tooltip: the battle board's floating legend panel, same skin -->
       <aside class="flyout" id="prep-tip" data-rarity="common" aria-hidden="true"></aside>
 
       <!-- phase 1 dock: the confirm lives under the board until the tray opens -->
@@ -3142,7 +3142,7 @@
         </div>
       </div>
 
-      <!-- hover tooltip: floating hero panel on deck pip hover -->
+      <!-- hover tooltip: floating legend panel on deck pip hover -->
       <aside class="flyout" id="draft-tip" data-rarity="common" aria-hidden="true"></aside>
     </section>
 
@@ -3380,7 +3380,7 @@
         </div>
         <div class="arena-beams"><span></span><span></span></div>
         <div class="arena-vignette"></div>
-        <!-- floating hero panel: appears in the empty space beside the board.
+        <!-- floating legend panel: appears in the empty space beside the board.
          Allies show it on the left, enemies on the right. -->
         <aside class="flyout" id="flyout"></aside>
 
