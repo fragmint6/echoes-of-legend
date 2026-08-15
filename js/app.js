@@ -1449,6 +1449,31 @@
        aria-pressed in sync, so there is nothing to wire here. */
     var setModal = document.getElementById('settings-modal');
     var setFoot = document.getElementById('settings-foot');
+    var NAME_RULE =
+      '3-24 characters. Letters, numbers, . _ - only. You can change this once a week.';
+    /* `until` null -> the ordinary format rule; a date -> when the
+       next rename unlocks, in the player's own locale. */
+    function nameHint(until) {
+      var el = document.getElementById('set-name-hint');
+      if (!el) return;
+      if (!until) {
+        el.textContent = NAME_RULE;
+        el.classList.remove('warn');
+        return;
+      }
+      var when = new Date(until);
+      var txt = isNaN(when.getTime())
+        ? 'You can change your username again in a few days.'
+        : 'You can change your username again on ' +
+          when.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }) +
+          '.';
+      el.textContent = txt;
+      el.classList.add('warn');
+    }
     function setSay(msg, kind) {
       if (!setFoot) return;
       setFoot.className = 'auth-foot' + (kind ? ' ' + kind : '');
@@ -1459,12 +1484,28 @@
       var u = A && A.user && A.user();
       var form = document.getElementById('settings-form');
       var note = document.getElementById('set-out-note');
+      var un = document.getElementById('set-username');
       if (form) {
         form.style.display = u ? '' : 'none';
-        var un = document.getElementById('set-username');
         if (un && u) un.value = u.name || '';
         var np = document.getElementById('set-newpass');
         if (np) np.value = '';
+      }
+      /* ONE CHANGE A WEEK. Ask the server how long is left and show
+         it up front: a disabled field with a date on it is far
+         kinder than letting someone type a name, press Save and be
+         told no. The server re-checks regardless - this is only the
+         part the player can see. Default is OPEN, so a slow or
+         unavailable answer never locks anyone out. */
+      nameHint(null);
+      if (un && u && A && A.handleStatus) {
+        un.disabled = false;
+        A.handleStatus().then(function (st) {
+          if (!st || st.canChange) return;
+          if (setModal.hidden) return;
+          un.disabled = true;
+          nameHint(st.nextAllowedAt);
+        });
       }
       if (note) note.hidden = !!u;
       setSay('');
@@ -1479,19 +1520,11 @@
     var setBtn = document.getElementById('settings-btn');
     if (setBtn) setBtn.addEventListener('click', openSettings);
 
-    /* Roll a fresh callsign into the field. It is NOT saved here -
-       the player still has to press Save, so they can roll a few
-       times and keep the one they like (or type their own). */
-    var reroll = document.getElementById('set-reroll');
-    if (reroll) {
-      reroll.addEventListener('click', function () {
-        if (!(A && A.generateHandle)) return;
-        var un = document.getElementById('set-username');
-        if (!un) return;
-        un.value = A.generateHandle();
-        setSay('Press Save to claim it.');
-      });
-    }
+    /* THE ROLL BUTTON IS GONE.
+       A random callsign is minted once, when the profile row is
+       created, and that is the only time the generator runs. Rolling
+       for a name you like turned a stable identity into a slot
+       machine and made the one-change-per-week rule meaningless. */
     if (setModal) {
       document.getElementById('settings-close').addEventListener('click', closeSettings);
       document.getElementById('settings-scrim').addEventListener('click', closeSettings);
@@ -1529,11 +1562,21 @@
         }
         busy = true;
         setSay('Saving...');
+        var renamed = handle && handle !== u.name;
         Promise.all(jobs)
           .then(function () {
             busy = false;
             np.value = '';
             setSay('Saved.');
+            /* The week starts now: lock the field immediately rather
+               than leaving it editable until the modal is reopened. */
+            if (renamed && A && A.handleStatus) {
+              A.handleStatus().then(function (st) {
+                if (!st || st.canChange) return;
+                un.disabled = true;
+                nameHint(st.nextAllowedAt);
+              });
+            }
           })
           .catch(function (err) {
             busy = false;

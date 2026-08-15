@@ -1300,16 +1300,13 @@
                   placeholder="letters, numbers, . _ -"
                   autocomplete="off"
                 />
-                <button
-                  type="button"
-                  class="btn btn-ghost set-reroll"
-                  id="set-reroll"
-                  title="Roll a new callsign"
-                >
-                  <i class="ri-dice-line" aria-hidden="true"></i><span>Roll</span>
-                </button>
               </span>
-              <span class="set-hint">3&ndash;24 characters. Letters, numbers, . _ - only.</span>
+              <!-- Filled by openSettings(): either the format rule, or the
+                   date the next change becomes available. -->
+              <span class="set-hint" id="set-name-hint"
+                >3&ndash;24 characters. Letters, numbers, . _ - only. You can change this
+                once a week.</span
+              >
             </label>
             <label class="auth-field">
               <span class="auth-lbl">New password <em>(optional)</em></span>

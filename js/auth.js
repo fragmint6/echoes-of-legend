@@ -102,7 +102,9 @@
   }
 
   /* 24 x 20 x 900 = 432,000 combinations. Collisions are possible,
-     not likely; setHandle retries on the unique violation. */
+     not likely; claimHandle() retries on the unique violation when
+     the row is first created. Called exactly once per account - at
+     profile creation - and never again. */
   function generateHandle() {
     return (
       CALLSIGN_A[randBelow(CALLSIGN_A.length)] +
@@ -816,26 +818,80 @@
     if (!client || !session) return Promise.reject(new Error('Sign in first.'));
     var bad = validateHandle(handle);
     if (bad) return Promise.reject(new Error(bad));
-    return client.auth
-      .updateUser({ data: { full_name: handle, handle_chosen: true } })
+    /* THE RENAME GOES THROUGH THE SERVER, NOT THROUGH THE TABLE.
+       This used to upsert profiles.handle directly, which meant the
+       one-change-per-week rule could only ever be advisory: the
+       "own profile update" policy lets any signed-in client write
+       its own row straight from the dev console. migration 14 moves
+       the column behind set_handle() (security definer) and pins it
+       with a BEFORE UPDATE trigger, so this RPC is now the only
+       door - a direct write silently leaves the name alone. The
+       cooldown,
+       the format check and the uniqueness check all live there and
+       come back as plain messages. */
+    return client
+      .rpc('set_handle', { p_handle: handle })
       .then(function (res) {
-        if (res.error) throw res.error;
-        return client
-          .from('profiles')
-          .upsert({ id: session.user.id, handle: handle }, { onConflict: 'id' })
-          .select()
-          .single();
+        if (res.error) throw new Error(rpcMessage(res.error));
+        var row = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (row) profile = row;
+        /* user_metadata is a MIRROR of the row, never the authority.
+           It is updated after the fact so the name still resolves if
+           a later read of `profiles` fails; if this write fails the
+           rename has still happened and must not be reported as an
+           error. */
+        return client.auth
+          .updateUser({ data: { full_name: (row && row.handle) || handle, handle_chosen: true } })
+          .catch(function () {
+            /* the profiles row is the record that matters */
+          })
+          .then(function () {
+            notify();
+            return profile;
+          });
+      });
+  }
+
+  /* Postgres errors arrive with the message we raised, but the
+     transport wraps them inconsistently. Prefer the human sentence
+     and fall back to something a player can act on. */
+  function rpcMessage(err) {
+    var m = (err && (err.message || err.details || err.hint)) || '';
+    /* A missing function means migration 14 has not been run. Say so
+       plainly rather than showing the player a Postgres string. */
+    if (/function .*set_handle.* does not exist|PGRST202/i.test(m)) {
+      return 'Username changes are not available yet. Run migration 14.';
+    }
+    if (/row-level security/i.test(m)) {
+      return 'That change was refused. Try again from Settings.';
+    }
+    return m || 'Could not change your username.';
+  }
+
+  /* How long until this account may rename again.
+     Resolves to { canChange, nextAllowedAt, changedAt } - and
+     defaults to "yes" whenever the answer cannot be established, so
+     a server that has not run migration 14 (or a transient read
+     failure) leaves the field usable rather than locking a player
+     out of a name they are entitled to change. set_handle() is the
+     authority either way; this only decides what Settings shows. */
+  function handleStatus() {
+    var open = { canChange: true, nextAllowedAt: null, changedAt: null };
+    if (!client || !session || sessionIsAnonymous()) return Promise.resolve(open);
+    return client
+      .rpc('handle_status')
+      .then(function (res) {
+        if (res.error || !res.data) return open;
+        var row = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (!row) return open;
+        return {
+          canChange: row.can_change !== false,
+          nextAllowedAt: row.next_allowed_at || null,
+          changedAt: row.changed_at || null,
+        };
       })
-      .then(function (res) {
-        /* Postgres 23505 = unique violation: someone else owns this
-           callsign. Surface it as a pick-another message. */
-        if (res.error) {
-          if (res.error.code === '23505') throw new Error('That username is taken.');
-          throw res.error;
-        }
-        profile = res.data;
-        notify();
-        return profile;
+      .catch(function () {
+        return open;
       });
   }
 
@@ -1172,13 +1228,19 @@
 
     /* settings modal */
     validateHandle: validateHandle,
+    /* Settings asks this to decide whether the username field is
+       editable this week. Advisory only - set_handle() re-checks. */
+    handleStatus: handleStatus,
     setHandle: setHandle,
     updatePassword: updatePassword,
     /* Every account is minted a name at creation, so this is now
        always false. Kept so existing callers keep working. */
     needsHandle: needsHandle,
-    /* Two adjectives + three digits. Exported so the settings modal
-       can offer a re-roll and so the suite can test the shape. */
+    /* Two adjectives + three digits, assigned ONCE when the profile
+       row is created (see ensureProfile). It is deliberately NOT a
+       thing the player can re-roll: the Settings dice button is gone
+       and renaming is one deliberate change a week. Still exported so
+       the suite can test the shape of a minted name. */
     generateHandle: generateHandle,
     /* Lets the UI ask "is this a real account?" without knowing which
        build it is running in. */

@@ -398,6 +398,55 @@ What it adds:
 RLS: you may read only matches you played in, and there is no client write
 policy at all - only the `security definer` functions write.
 
+## 4k. Migration 14 - one username change per week
+
+Run **[`docs/supabase-migration-14.sql`](supabase-migration-14.sql)** once in
+the SQL Editor. It needs `supabase-setup.sql`. Idempotent.
+
+Renaming used to be unlimited, and the Settings modal had a **Roll** button
+that generated a fresh callsign on demand. Both are gone: a random name is
+assigned **once**, when the profile row is created, and after that a player
+may change it **once every 7 days**.
+
+**The rule could not live in the browser.** The `own profile update` policy
+lets any signed-in client write its own `profiles` row, so a limit enforced
+only in `js/app.js` is a suggestion that anyone with the dev console open can
+ignore. This migration:
+
+- adds **`profiles.handle_changed_at`** - when the name last changed. `NULL`
+  means "never renamed", which counts as eligible, so **no existing player is
+  locked out on day one**. Nothing is renamed or reset by this migration.
+- adds **`set_handle(text)`** - the only way a username changes. Validates the
+  format, refuses a change inside the cooldown with a message naming the date,
+  and rejects a name somebody else holds. Re-saving the name you already have
+  is a **no-op, not a rename**, so opening Settings and pressing Save does not
+  burn the weekly change.
+- adds **`handle_status()`** - how long until the next rename is allowed, so
+  Settings can disable the field and show the date up front.
+- adds a **unique index on `lower(handle)`**. `setHandle()` has always claimed
+  to report "that username is taken" on a `23505`, but no constraint existed
+  to raise one - two accounts could hold the same callsign. Now the claim is
+  true. If the index fails to create you already have duplicates; the file
+  shows the query that finds them.
+- **pins the columns with a BEFORE UPDATE trigger** so an ordinary client
+  UPDATE cannot move `handle` or `handle_changed_at`. The avatar still updates
+  normally, and `ensureProfile()`'s INSERT for a brand-new row is untouched.
+  A direct `update profiles set handle = ...` now reports success but silently
+  leaves the name alone; `set_handle()` is the only door.
+
+  The trigger is deliberate, not incidental. The obvious alternative -
+  `with check (handle = (select handle from profiles where id = auth.uid()))` -
+  is a policy on `profiles` that reads `profiles`, which Postgres aborts with
+  `42P17: infinite recursion detected in policy for relation "profiles"`. That
+  does not just break renaming, it makes the table unreadable for everyone.
+  Wrapping the sub-select in a plain SQL function does not help either: simple
+  SQL functions are inlined during planning and the recursion returns. A
+  trigger sees `OLD` and `NEW` directly and never queries the table.
+
+Until 14 is run, renaming reports *"Username changes are not available yet.
+Run migration 14."* rather than failing silently. Everything else - sign-in,
+matchmaking, the minted name on a new account - is unaffected.
+
 ## 5. Realtime - nothing to do
 
 **Skip this step.** Realtime Broadcast is on by default for every
