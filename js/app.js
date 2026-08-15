@@ -1023,16 +1023,12 @@
        the default build is byte-identical to build before the feature */
     if (pct === 100) de.style.removeProperty('zoom');
     else de.style.setProperty('zoom', String(pct / 100));
-    /* THE BACKDROP MUST NOT ZOOM WITH THE UI.
-       `zoom` on the root scales EVERYTHING, including the two
-       position:fixed backdrop layers. At 80% they cover only 80% of
-       the window, and because .bg-grid paints a repeating 64px
-       lattice the shortfall reads as the pattern duplicating rather
-       than as a gap. Publishing the factor lets those two layers
-       counter-scale themselves back to full-viewport in CSS, so the
-       backdrop is identical at every GUI scale while the interface
-       on top of it still scales. */
-    de.style.setProperty('--gui-z', String(pct / 100));
+    /* No --gui-z counter-scale is published any more. It existed so the
+       two backdrop layers could divide themselves back out to "full
+       viewport", but a fixed inset:0 box already covers the window at
+       any zoom (the initial containing block is the zoomed viewport),
+       so the divide only made the backdrop oversized. JS that needs the
+       factor for rect->style conversion reads EOL.scale.factor(). */
     paintViewport();
     try {
       localStorage.setItem(SCALE_KEY, String(pct));

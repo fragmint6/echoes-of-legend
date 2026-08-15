@@ -286,24 +286,30 @@ body {
 
 /* animated backdrop
    ------------------------------------------------------------------
-   GUI SCALE MUST NOT REACH THESE TWO LAYERS. The scale control sets
-   `zoom` on <html>, which scales every descendant - including a
-   position:fixed element, whose "viewport" becomes the zoomed one. At
-   80% the backdrop therefore covered 80% of the window; the repeating
-   64px lattice in .bg-grid filled the remainder by tiling, which
-   reads as the background duplicating itself.
+   NO GUI-SCALE CORRECTION HERE, DELIBERATELY.
 
-   --gui-z is published by applyScale() in js/app.js. Dividing the
-   fixed box by it restores true viewport coverage at any scale, and
-   the transform-origin keeps the enlarged box pinned to the top-left
-   so it still starts at the real (0,0). Default 1 keeps the untouched
-   100% build byte-identical. */
-.bg-layer,
-.bg-grid {
-  width: calc(100% / var(--gui-z, 1));
-  height: calc(100% / var(--gui-z, 1));
-  transform-origin: 0 0;
-}
+   These two layers used to divide their width/height by --gui-z, on
+   the theory that root `zoom` made a fixed inset:0 box cover only
+   `zoom` x the window. That is not what happens. Under `zoom: z` the
+   initial containing block IS the zoomed viewport: the box computes
+   to (window / z) CSS px and paints at (window / z) * z = window. It
+   already covers the window exactly, at every scale.
+
+   Dividing on top of that made the backdrop OVERSIZED - 2400px of
+   gradient across a 1920px window at 80%, which pushed the radial
+   focal points (12%, 92%, 50%) off their intended spots and let the
+   64px lattice overflow. That is the backdrop "changing with the GUI
+   scale".
+
+   The proof it is unnecessary: the other 22 full-viewport fixed
+   layers in this file (#veil, .setm, .result, every modal scrim)
+   have never carried the divide and have never mis-covered.
+
+   The scale control must behave exactly like the browser's own
+   Ctrl +/- - reflow at a new density, nothing repositioned by hand.
+   See the GUI SCALE note in js/app.js for the full semantics.
+   --gui-z is still published there for the rect->style conversions
+   (EOL.scale.factor()), which do need it. */
 .bg-layer {
   position: fixed;
   inset: 0;
