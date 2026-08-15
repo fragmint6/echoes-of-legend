@@ -2737,6 +2737,10 @@
        longer eligible for healing, shields, buffs, control or riders.
        Resurrection is the sole intentional interaction with a corpse and
        receives the dedicated fallenAllies selector above. */
+    /* Kept so an effect whose recipient is the CASTER can still read the
+       target it was conditioned on after that target has died - lifesteal
+       is the case that matters (see below). */
+    var rawTargets = (list || []).slice();
     if (e.k !== 'revive') {
       list = (list || []).filter(function (u) {
         return u && u.alive;
@@ -2892,10 +2896,37 @@
       }
 
       case 'lifesteal': {
-        list.forEach(function (t) {
-          if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          if (ctx.lastDamage) healUnit(B, src, src, ctx.lastDamage * (e.pct / 100));
-        });
+        /* LIFESTEAL HEALS THE CASTER, SO A KILL MUST STILL PAY OUT.
+           This used to iterate `list`, the surviving targets. Every other
+           effect kind does that correctly - a heal or a buff genuinely has
+           nowhere to land once its target has fallen - but lifesteal's
+           recipient is `src`, and the target is only a CONDITION on it.
+           Since applyEffect() strips the dead from `list` before the
+           switch, killing the victim emptied the array and the loop body
+           never ran: Big Bad Wolf healed for a hit that did not finish
+           anyone and healed nothing at all for the hit that did. Killing
+           something is not a reason to be denied the drink.
+
+           `rawTargets` is the pre-filter list, so the condition can still
+           read the corpse - handleDeath() leaves `buffs` intact, so
+           targetHasDebuff answers the same before and after death.
+
+           Paid ONCE per cast, not once per surviving target. lastDamage is
+           already the total across every target of this effect group, so
+           looping would have multiplied an AoE's lifesteal by its target
+           count; the old loop only avoided that because a single-target
+           list happened to have one element. */
+        var lsTargets = (rawTargets && rawTargets.length ? rawTargets : list);
+        var lsQualifies = !lsTargets.length;
+        for (var li = 0; li < lsTargets.length; li++) {
+          if (condMet(B, e.if, condCtx(ctx, lsTargets[li]))) {
+            lsQualifies = true;
+            break;
+          }
+        }
+        if (lsQualifies && ctx.lastDamage) {
+          healUnit(B, src, src, ctx.lastDamage * (e.pct / 100));
+        }
         break;
       }
 

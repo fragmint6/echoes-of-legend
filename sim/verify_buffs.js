@@ -510,6 +510,141 @@ sec('H. Soak');
     E.useAbility(B, wolf, wolf.card.ability, [foe], 0);
     ok(wolf.hp <= wolf.maxHp, 'lifesteal never pushes the Wolf over max HP');
   }
+
+  /* -----------------------------------------------------------
+     A KILL MUST STILL PAY OUT  (reported 2026-08-15, second bug)
+     -----------------------------------------------------------
+     The shield fix above was not the whole story. applyEffect()
+     strips dead units out of `list` before the effect switch, and
+     `case 'lifesteal'` iterated that list - so the blow that
+     KILLED the target left an empty array and the heal never ran.
+     The Wolf drank from every hit except the one that mattered.
+
+     Lifesteal is different from every other effect kind: its
+     recipient is the CASTER, and the target is only a condition on
+     it. A heal or a buff genuinely has nowhere to land once its
+     target has fallen; lifesteal does.
+
+     RULE (decided with the player): lifesteal pays on the FULL
+     SWING, overkill included. Executing a legend at 1 HP heals
+     exactly as much as landing the same blow on a healthy one -
+     finishing a kill must never be worth less than failing to. */
+  {
+    const swing = (() => {
+      const { B, wolf, foe } = mk(0, 0.5);
+      const hp0 = wolf.hp;
+      E.useAbility(B, wolf, wolf.card.ability, [foe], 0);
+      return wolf.hp - hp0;
+    })();
+    ok(swing > 0, 'baseline: a non-lethal hit heals (' + swing + ')');
+
+    /* every degree of lethality, including massive overkill */
+    [2574, 1287, 257, 1].forEach((hp) => {
+      const B = E.createBattle([ent('grimmwood-big-bad-wolf')], [ent('grimmwood-snow-white')], {
+        seed: 7,
+      });
+      B.noOpeningLimit = true;
+      B.round = 3;
+      B.energy = { player: 100, enemy: 100 };
+      const wolf = B.units.find((u) => u.side === 'player');
+      const foe = B.units.find((u) => u.side === 'enemy');
+      foe.hp = hp;
+      wolf.hp = Math.round(wolf.maxHp * 0.5);
+      const hp0 = wolf.hp;
+      E.useAbility(B, wolf, wolf.card.ability, [foe], 0);
+      const healed = wolf.hp - hp0;
+      ok(!foe.alive, 'target at ' + hp + ' hp dies to the blow');
+      ok(healed > 0, '...and the Wolf STILL heals (' + healed + ')');
+      ok(
+        healed === swing,
+        '...by the same amount as a non-lethal hit (' + healed + ' vs ' + swing + ')'
+      );
+    });
+
+    /* the 40% branch has to survive a kill too */
+    {
+      const B = E.createBattle([ent('grimmwood-big-bad-wolf')], [ent('grimmwood-snow-white')], {
+        seed: 7,
+      });
+      B.noOpeningLimit = true;
+      B.round = 3;
+      B.energy = { player: 100, enemy: 100 };
+      const wolf = B.units.find((u) => u.side === 'player');
+      const foe = B.units.find((u) => u.side === 'enemy');
+      foe.hp = 800;
+      foe.buffs.push({ stat: 'atk', amt: -15, turns: 2, debuff: true });
+      wolf.hp = Math.round(wolf.maxHp * 0.5);
+      const hp0 = wolf.hp;
+      E.useAbility(B, wolf, wolf.card.ability, [foe], 0);
+      const healed = wolf.hp - hp0;
+      ok(!foe.alive, 'a debuffed target dies to the blow');
+      ok(
+        healed === Math.round(swing * 40 / 25),
+        'and the 40% branch still pays on a kill (' + healed + ')'
+      );
+      /* handleDeath() must leave buffs intact, or the corpse would
+         read as un-debuffed and silently fall back to 25%. */
+      ok(foe.buffs.length > 0, 'the corpse keeps its debuffs so the condition can read them');
+    }
+
+    /* Exactly ONE payout per cast. The card carries TWO lifesteal
+       effects (25% / 40%) and the fix reads a pre-filter list, so a
+       naive loop here would double-pay or multiply by target count. */
+    {
+      const B = E.createBattle([ent('grimmwood-big-bad-wolf')], [ent('grimmwood-snow-white')], {
+        seed: 7,
+      });
+      B.noOpeningLimit = true;
+      B.round = 3;
+      B.energy = { player: 100, enemy: 100 };
+      const wolf = B.units.find((u) => u.side === 'player');
+      const foe = B.units.find((u) => u.side === 'enemy');
+      foe.hp = 500;
+      wolf.hp = Math.round(wolf.maxHp * 0.5);
+      const hp0 = wolf.hp;
+      E.useAbility(B, wolf, wolf.card.ability, [foe], 0);
+      const healed = wolf.hp - hp0;
+      ok(healed === swing, 'the two lifesteal effects never both fire (' + healed + ')');
+      ok(healed !== swing * 2, 'and the heal is not paid twice');
+    }
+
+    /* PAID ONCE PER CAST, NOT ONCE PER TARGET.
+       A single-target card cannot detect this - its list has one
+       element either way - so the rule is proven against a synthetic
+       AoE build of the same ability. ctx.lastDamage is already the
+       TOTAL across every target of the effect group, so a per-target
+       loop would multiply the heal by the number of victims. This is
+       the assertion that stops the kill fix being "fixed" back into
+       an AoE lifesteal that heals for 3x the damage dealt. */
+    {
+      const aoe = JSON.parse(JSON.stringify(CARD['grimmwood-big-bad-wolf']));
+      aoe.id = 'test-aoe-lifesteal';
+      aoe.ability.spec.target = { side: 'enemy', pick: 'all' };
+      const foes = [
+        'grimmwood-snow-white',
+        'grimmwood-red-riding-hood',
+        'grimmwood-goldilocks',
+      ].map(ent);
+      const B = E.createBattle([{ card: aoe, faction: 'grimmwood' }], foes, { seed: 3 });
+      B.noOpeningLimit = true;
+      B.round = 3;
+      B.energy = { player: 100, enemy: 100 };
+      const wolf = B.units.find((u) => u.side === 'player');
+      wolf.hp = Math.round(wolf.maxHp * 0.5);
+      const hp0 = wolf.hp;
+      const before = B.units.filter((u) => u.side === 'enemy').map((u) => u.hp);
+      E.useAbility(B, wolf, aoe.ability, [], 0);
+      const after = B.units.filter((u) => u.side === 'enemy').map((u) => u.hp);
+      const total = before.reduce((a, b, i) => a + (b - after[i]), 0);
+      const healed = wolf.hp - hp0;
+      ok(total > 0, 'the synthetic AoE hits all three (' + total + ' total damage)');
+      ok(
+        healed === Math.round(total * 0.25),
+        'AoE lifesteal pays 25% of the TOTAL once (' + healed + '), not per target (' +
+          Math.round(total * 0.25) * 3 + ')'
+      );
+    }
+  }
 }
 
 /* =============================================================
