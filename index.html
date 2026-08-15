@@ -456,6 +456,23 @@
           <span><b>Sign in to save progress to the cloud</b><small>Guest progress is saved in this browser only.</small></span>
           <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
         </button>
+
+        <!-- FIRST-RUN DATA NOTICE.
+             Required of any game collecting personal data beyond the
+             CrazyGames SDK's own events. Their guidance asks for a
+             simple notice rather than a blocking pop-up, so this is a
+             quiet line on the menu that dismisses for good on the first
+             acknowledgement (js/app.js, key eol.policy.seen) and never
+             stands between a new player and the Play button. The full
+             text lives in Settings under Privacy. -->
+        <p class="home-policy" id="home-policy" hidden>
+          <i class="ri-shield-check-line" aria-hidden="true"></i>
+          <span>
+            This game stores your progress and anonymous play statistics.
+            See <b>Settings › Privacy</b> for what is kept and how to remove it.
+          </span>
+          <button type="button" class="home-policy-ok" id="home-policy-ok">Got it</button>
+        </p>
       </div>
 
     </section>
@@ -1497,6 +1514,51 @@
             It never sends your email, callsign, card choices, messages, or full browser signature.
             Turning this off erases the anonymous identifier from this device.
           </p>
+
+          <!-- WHAT THIS GAME COLLECTS, IN FULL.
+               CrazyGames require a Terms & Conditions and/or Privacy
+               Policy notice from any game that collects personal data
+               beyond their own SDK events. This one does: a Supabase
+               account (email or CrazyGames token), a callsign, cloud
+               saves, match history and the anonymous measurement above.
+
+               Their guidance is explicit that this should be a plain
+               notice rather than a blocking pop-up, and it must be
+               reachable IN GAME - not only from a store page - so it
+               lives here in Settings beside the control it describes,
+               and is repeated once for new players on the home screen.
+               It is deliberately not a link: an off-site link is
+               cross-promotion under the portal's gameplay rules and is
+               stripped from the portal build, which would leave the
+               notice pointing nowhere exactly where it is required. -->
+          <details class="set-policy">
+            <summary>Privacy &amp; terms</summary>
+            <div class="set-policy-body">
+              <p>
+                <b>What is stored.</b> A callsign and an account identifier when you
+                create an account; your collection, progress and match history so they
+                survive a device change; and the anonymous measurement described above
+                when it is switched on. On CrazyGames your progress is held by the
+                CrazyGames Data module against your CrazyGames account, and this game
+                receives only the identifier and username the platform gives it.
+              </p>
+              <p>
+                <b>What is never stored.</b> Payment details, real-world names beyond a
+                callsign you chose, and the contents of anything you type outside the
+                feedback form.
+              </p>
+              <p>
+                <b>Your control.</b> Measurement can be turned off above, which erases the
+                anonymous identifier from this device. Ask for an account and its saves
+                to be deleted through the feedback form and the record goes with it.
+              </p>
+              <p>
+                <b>Terms.</b> This is a free game provided as-is, for players aged 13 and
+                over. Do not use it to harass other players; accounts used that way can be
+                closed. Continuing to play means you accept this.
+              </p>
+            </div>
+          </details>
         </section>
       </div>
     </div>

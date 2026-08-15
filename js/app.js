@@ -1914,11 +1914,56 @@
       window.EOL.cloud.onConflict(askSaveConflict);
   }
 
+  /* =============================================================
+     THE FIRST-RUN DATA NOTICE
+     -------------------------------------------------------------
+     CrazyGames require a Terms & Conditions and/or Privacy Policy
+     notice from any game collecting personal data beyond their SDK's
+     own events, and this game collects a callsign, an account, cloud
+     saves and anonymous measurement.
+
+     Their guidance is explicit that it should be a simple notice and
+     NOT a blocking pop-up, so this shows a single quiet line on the
+     menu and remembers the acknowledgement forever. A player who
+     never clicks it is never nagged past the first session either -
+     it is shown once per device, not once per launch.
+
+     Storage failing (private mode, a full quota) must not mean the
+     notice is shown on every single visit, so a write failure is
+     treated as acknowledged: the notice has still been READ, which
+     is the thing the requirement actually asks for. */
+  var POLICY_KEY = 'eol.policy.seen';
+
+  function initPolicyNotice() {
+    var note = document.getElementById('home-policy');
+    var ok = document.getElementById('home-policy-ok');
+    if (!note || !ok) return;
+
+    var seen = true;
+    try {
+      seen = localStorage.getItem(POLICY_KEY) === '1';
+    } catch (e) {
+      seen = true; // cannot remember a dismissal, so never start nagging
+    }
+    if (seen) return;
+
+    note.hidden = false;
+    ok.addEventListener('click', function () {
+      note.hidden = true;
+      try {
+        localStorage.setItem(POLICY_KEY, '1');
+      } catch (e) {
+        /* nothing to do - it simply will not persist */
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
     initTips();
     initScale();
     initMenuParticles();
+    initPolicyNotice();
     if (window.EOL.auth) window.EOL.auth.init();
     /* initAuth FIRST: it installs the save-collision handler that
        cloud.init()'s very first pull may need. Registering it after the

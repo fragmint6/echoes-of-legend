@@ -21348,6 +21348,103 @@ body[data-auth='out'] .home-cloud-cta {
   outline: 2px solid rgba(143, 227, 176, 0.72);
   outline-offset: 2px;
 }
+
+/* ---- First-run data notice ---------------------------------------
+   Required by the portal for a game that collects personal data. It
+   is a NOTICE, not a gate: quiet, inline on the menu, dismissed for
+   good with one click. Deliberately understated so it never competes
+   with the Play button - the requirement is that a new player is told,
+   not that they are stopped. `hidden` is honoured because the element
+   defaults to hidden and js/app.js only unsets it on a first run. */
+.home-policy {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: min(430px, calc(100% - 24px));
+  margin: 9px auto 0;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(8, 11, 20, 0.42);
+  color: var(--txt-faint);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: left;
+}
+.home-policy[hidden] {
+  display: none;
+}
+.home-policy > i {
+  flex: 0 0 auto;
+  font-size: 14px;
+  opacity: 0.75;
+}
+.home-policy-ok {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: var(--cur-pointer);
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.home-policy-ok:hover,
+.home-policy-ok:focus-visible {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ---- The full policy text in Settings ---------------------------- */
+.set-policy {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(8, 11, 20, 0.36);
+}
+.set-policy > summary {
+  padding: 8px 12px;
+  color: var(--txt-faint);
+  font-size: 12px;
+  cursor: var(--cur-pointer);
+  list-style: none;
+}
+.set-policy > summary::-webkit-details-marker {
+  display: none;
+}
+.set-policy > summary::before {
+  content: '\203a';
+  display: inline-block;
+  margin-right: 7px;
+  transition: transform 0.2s var(--ease);
+}
+.set-policy[open] > summary::before {
+  transform: rotate(90deg);
+}
+.set-policy > summary:hover,
+.set-policy > summary:focus-visible {
+  color: #eef8f2;
+}
+.set-policy-body {
+  padding: 0 12px 10px;
+  color: var(--txt-faint);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.set-policy-body p {
+  margin: 0 0 8px;
+}
+.set-policy-body p:last-child {
+  margin-bottom: 0;
+}
+.set-policy-body b {
+  color: #dfe9f5;
+}
 .home-cloud-cta:active {
   transform: scale(0.985);
 }

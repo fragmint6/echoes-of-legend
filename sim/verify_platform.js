@@ -110,6 +110,45 @@ section('B. the portal build is detected and stripped');
     'a lookalike hostname does NOT match'
   );
 
+  /* THE REGIONAL DOMAINS.
+     CrazyGames runs a domain per market and their sitelock page lists
+     over twenty. A hardcoded list of three matched only four of them,
+     so a player arriving from crazygames.fr or .com.br was served the
+     WEB build inside the portal: account controls visible (which Basic
+     Launch forbids outright), the Supabase vault fighting the Data
+     module for the save, and the SDK never initialising. Matching the
+     shape rather than the list is what keeps a market that opens next
+     year from silently reintroducing that. */
+  [
+    'https://www.crazygames.fr/jeu/echoes',
+    'https://www.crazygames.no/spill/echoes',
+    'https://www.crazygames.com.br/jogo/echoes',
+    'https://www.crazygames.co.kr/game/echoes',
+    'https://www.crazygames.jp/game/echoes',
+    'https://www.crazygames.com.ua/game/echoes',
+    'https://www.crazygames.nl/spel/echoes',
+    'https://www.crazygames.pl/gra/echoes',
+    'https://kids.crazygames.com/game/echoes',
+    'https://www.1001juegos.com/juego/echoes',
+  ].forEach((h) => {
+    ok(bootPlatform({ referrer: h }).EOL.platform.isCrazyGames, 'regional portal: ' + h);
+  });
+
+  /* The shape must not be loose enough to hand the portal build to an
+     attacker's lookalike - a suffix match on 'crazygames.com' would
+     accept every one of these. */
+  [
+    'crazygames.com.evil.net',
+    'www.crazygames.com.attacker.io',
+    'mycrazygames.com',
+    'crazygamescom.net',
+  ].forEach((h) => {
+    ok(
+      bootPlatform({ host: h }).EOL.platform.id === 'web',
+      'impostor host rejected: ' + h
+    );
+  });
+
   /* THE UPLOADED BUILD, WITH NO REFERRER.
      CrazyGames hosts uploaded games on *.game-files.crazygames.com and
      frames them with a referrer policy that strips document.referrer
@@ -629,6 +668,68 @@ section('E. an anonymous session is not an account');
     ),
     'the damage chip is hoverable so the breakdown can be read'
   );
+}
+
+/* =================================================================
+   THE DATA NOTICE
+   -----------------------------------------------------------------
+   CrazyGames require a Terms & Conditions and/or Privacy Policy
+   notice from any game that collects personal data beyond their SDK's
+   own events. This game collects a callsign, an account, cloud saves
+   and anonymous measurement, so the notice is mandatory - it is a
+   line item on their QA checklist and shipping without it is a
+   straight rejection.
+
+   Their guidance is equally clear that it must NOT be a blocking
+   pop-up, so both halves are asserted: that the notice exists, and
+   that it never stands between a new player and the game. */
+section('K. the required data notice');
+{
+  const html = read('index.html');
+  const appSrc = read('js/app.js');
+  const styleCss = read('css/style.css');
+
+  ok(/id="home-policy"/.test(html), 'a first-run data notice exists on the menu');
+  ok(
+    /id="home-policy"[^>]*\shidden/.test(html),
+    'it ships hidden, so js decides when a first run is happening'
+  );
+  ok(/id="home-policy-ok"/.test(html), 'and it can be acknowledged');
+
+  /* A notice nobody can act on is not a notice. */
+  ok(/class="set-policy"/.test(html), 'the full policy text lives in Settings');
+  const body = html.slice(html.indexOf('class="set-policy"'));
+  ok(/What is stored/.test(body), 'it says what is stored');
+  ok(/What is never stored/.test(body), 'it says what is never stored');
+  ok(/Your control/.test(body), 'it says how to get out');
+  ok(/Terms/.test(body), 'and it carries the terms');
+
+  /* NOT A BLOCKING POP-UP. The portal's own wording. If this ever
+     becomes a modal it fails their gameplay requirements even though
+     the notice itself is present. */
+  ok(
+    !/id="home-policy"[^>]*class="[^"]*(modal|scrim|overlay)/.test(html),
+    'the notice is not a modal'
+  );
+  ok(
+    !/home-policy[\s\S]{0,400}?aria-modal/.test(html),
+    'and it does not trap the player in a dialog'
+  );
+
+  ok(/eol\.policy\.seen/.test(appSrc), 'the acknowledgement is remembered');
+  /* Storage can throw in private mode. Showing the notice on every
+     single visit because localStorage is unavailable would be its own
+     QA complaint, so a failed read must default to "already seen". */
+  const initFn = appSrc.slice(
+    appSrc.indexOf('function initPolicyNotice'),
+    appSrc.indexOf('document.addEventListener(\'DOMContentLoaded\'')
+  );
+  ok(
+    /catch\s*\([^)]*\)\s*\{\s*seen = true/.test(initFn),
+    'unreadable storage is treated as acknowledged, never as a fresh nag'
+  );
+  ok(/\.home-policy \{/.test(styleCss), 'the notice is styled');
+  ok(/\.set-policy \{/.test(styleCss), 'and so is the settings copy');
 }
 
 console.log('\n================================================================');

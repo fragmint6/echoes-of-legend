@@ -46,6 +46,20 @@
      on games.crazygames.com all resolve to the same build. */
   var CG_HOSTS = ['crazygames.com', 'crazygames.co.uk', '1001juegos.com'];
 
+  /* CrazyGames also runs a REGIONAL domain per market - crazygames.fr,
+     .no, .com.br, .co.kr, .jp, .com.ua and more - and their sitelock
+     guidance describes the general shape as `crazygames.*` where the
+     TLD may be one or two parts. Listing them by hand went stale the
+     moment a new market opened, and a miss is expensive: detect()
+     would fall through to 'web', which un-hides the account controls
+     that Basic Launch forbids and turns the wrong save system on.
+
+     So the regional test is a SHAPE, not a list: a label of exactly
+     'crazygames' followed by a 1- or 2-part TLD, optionally preceded
+     by subdomains. 'notcrazygames.com' does not match - the label has
+     to be the whole thing, not a suffix of a longer word. */
+  var CG_REGIONAL = /(^|\.)crazygames\.[a-z]{2,}(\.[a-z]{2,})?$/;
+
   function hostOf(url) {
     if (!url) return '';
     try {
@@ -72,7 +86,7 @@
       var h = CG_HOSTS[i];
       if (host === h || host.slice(-(h.length + 1)) === '.' + h) return true;
     }
-    return false;
+    return CG_REGIONAL.test(host);
   }
 
   function override() {
