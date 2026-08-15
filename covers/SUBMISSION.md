@@ -13,10 +13,18 @@ this folder.
 | Portrait 2:3 | `cover-800x1200.jpg` | 800×1200 |
 | Square 1:1 | `cover-800x800.jpg` | 800×800 |
 
-All three share the same four legends, palette and Cinzel title (the
-game's own display font), so they read as one set. They carry the game
-title and nothing else — no "Play now", no borders, no store icons,
-no screenshots — per the cover restrictions.
+All three are **16-bit pixel art**, matching the game's own card art
+(`docs/ART-SPEC.md` §2: flat fills, hard blocky shading, selective dark
+outline, no anti-aliasing). The title is Cinzel — the game's display
+font — snapped to a pixel grid and hard-thresholded so the type is
+blocky rather than smooth, with a chunky dilated outline and a
+Bayer-dithered scrim behind it.
+
+Anubis carries his **scoped rifle**: his role in `data/duat.js` is
+literally `Sniper`, and the shipped card art shows the rifle.
+
+They carry the game title and nothing else — no "Play now", no borders,
+no store icons, no raw screenshots — per the cover restrictions.
 
 ---
 
