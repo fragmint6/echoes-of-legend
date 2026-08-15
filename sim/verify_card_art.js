@@ -6,10 +6,10 @@
  * empty box where a portrait should be, with nothing in the console that
  * points at the card. Nothing validated these paths before.
  *
- * It also pins the shape of the sculpture format introduced for Olympus
- * (2026-08-15): classical busts traced into flat vector tone-bands. That art
- * comes from tools/gen_olympus_lineart.py rather than the PNG resizer, so
- * nothing else enforces its geometry.
+ * It also pins the shape of the outline format introduced for Olympus
+ * (2026-08-15): minimal line drawings of each god, vectorised into a single
+ * evenodd path. That art comes from tools/gen_olympus_art.py rather than the
+ * PNG resizer, so nothing else enforces its geometry.
  */
 'use strict';
 
@@ -83,18 +83,18 @@ for (const { faction, card } of allCards) {
   );
 }
 
-/* ---- 3. the Olympus sculpture trial: all six cards, all SVG ---- */
+/* ---- 3. the Olympus outline trial: all six cards, all SVG ---- */
 const olympus = allCards.filter((x) => x.faction === 'olympus');
 ok(olympus.length === 6, 'olympus has 6 cards (got ' + olympus.length + ')');
 for (const { card } of olympus) {
   ok(
     /^assets\/heroes-line\/olympus-[a-z]+\.svg$/.test(card.art || ''),
-    'olympus card ' + card.name + ' uses sculpture svg (got ' + card.art + ')'
+    'olympus card ' + card.name + ' uses outline svg (got ' + card.art + ')'
   );
 }
 
 /* ---- 4. the other factions still use the painted PNGs ----
-   The sculpture style is an Olympus-only trial; this assert is what will
+   The outline style is an Olympus-only trial; this assert is what will
    fail loudly if a later change quietly converts everyone. */
 for (const { faction, card } of allCards) {
   if (faction === 'olympus' || !card.art) continue;
@@ -104,14 +104,14 @@ for (const { faction, card } of allCards) {
   );
 }
 
-/* ---- 5. sculpture geometry: authored at the shared 8:11 hero ratio ----
+/* ---- 5. outline geometry: authored at the shared 8:11 hero ratio ----
    Both crops assume this. A stray viewBox would silently letterbox. */
 const lineDir = path.join(ROOT, 'assets/heroes-line');
 ok(fs.existsSync(lineDir), 'assets/heroes-line/ exists');
 const svgs = fs.existsSync(lineDir)
   ? fs.readdirSync(lineDir).filter((f) => f.endsWith('.svg'))
   : [];
-ok(svgs.length === 6, 'six sculpture svgs on disk (got ' + svgs.length + ')');
+ok(svgs.length === 6, 'six outline svgs on disk (got ' + svgs.length + ')');
 
 for (const f of svgs) {
   const src = fs.readFileSync(path.join(lineDir, f), 'utf8');
@@ -132,21 +132,26 @@ for (const f of svgs) {
   ok(/<title>[^<]+<\/title>/.test(src), f + ': has a <title>');
   ok(src.trim().endsWith('</svg>'), f + ': is closed');
 
-  /* The style is carved MASS: filled tone-bands, no strokes. An outline
-     tracer creeping back in (stroke=, fill:none) is the regression this
-     guards - that was the look the first attempt got wrong. */
-  /* One <path> per tone band, each holding many M...Z subpaths, so count
-     the subpaths - that is the actual shape complexity. */
-  const bandEls = (src.match(/<path\b/g) || []).length;
+  /* The style is a MINIMAL OUTLINE drawing, and two things keep it that
+     way. Every loop must sit in ONE <path>: fill-rule evenodd only punches
+     holes within a single element, so splitting them fills each enclosed
+     gap solid (this is exactly how Zeus's robe and Hercules's beard turned
+     into slabs of colour). And the subpath count must stay low - if it
+     climbs into the hundreds, something has gone back to tracing tone
+     bands instead of lines. */
+  const pathEls = (src.match(/<path\b/g) || []).length;
   const subpaths = (src.match(/M-?\d/g) || []).length;
-  ok(bandEls >= 3, f + ': has at least 3 tone bands (' + bandEls + ')');
-  ok(subpaths > 20, f + ': is a traced bust, not a few strokes (' + subpaths + ' subpaths)');
-  ok(!/stroke=/.test(src), f + ': uses fills only, no strokes');
-  ok(/fill-rule="evenodd"/.test(src), f + ': fills use evenodd so holes read');
+  ok(pathEls === 1, f + ': all loops in one path element (' + pathEls + ')');
+  ok(/fill-rule="evenodd"/.test(src), f + ': fills evenodd so holes punch through');
+  ok(!/stroke=/.test(src), f + ': no stroke attributes - contours are filled');
+  ok(
+    subpaths >= 6 && subpaths <= 80,
+    f + ': stays a sparse outline (' + subpaths + ' subpaths)'
+  );
 
   /* Keep the payload honest: these ship to every player on card render. */
   const kb = Buffer.byteLength(src) / 1024;
-  ok(kb < 120, f + ': under 120 KB (' + kb.toFixed(0) + ' KB)');
+  ok(kb < 60, f + ': under 60 KB (' + kb.toFixed(0) + ' KB)');
 
   /* No raster escape hatch and no external refs - it must stay vector. */
   ok(!/<image\b/.test(src), f + ': embeds no raster image');

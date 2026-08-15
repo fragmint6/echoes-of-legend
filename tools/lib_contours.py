@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Trace a greyscale plate into flat vector tone-bands (a carved-relief look).
+"""Contour geometry: marching squares, RDP simplification, Chaikin smoothing.
 
-Used by tools/gen_olympus_art.py. This is NOT an outline tracer: the image is
-posterized into luminance bands and each band becomes filled SVG regions, so
-the result is sculptural mass rather than wireframe outlines.
+Shared by tools/lib_trace_ink.py. Pure Python over PIL - there is no numpy,
+scipy, potrace or autotrace available on the build box.
 
-Pure Python over PIL - there is no numpy, scipy, potrace or autotrace on the
-build box, so contours are marched by hand, simplified with
-Ramer-Douglas-Peucker and smoothed with Chaikin corner-cutting.
+Note on the marching-squares table: the segments are DIRECTED and stitched
+end-to-start. Getting four of the sixteen cases wound backwards makes the
+chains unable to close, and every traced shape comes out as confetti.
 """
 from PIL import Image, ImageFilter
 import math
@@ -131,27 +130,3 @@ def to_path(pts, sx, sy):
     for p in out[1:]:
         d += 'L%d %d' % p
     return d + 'Z'
-
-def bands(plate, thresholds, work=180, min_area=18, eps=1.15, smooth=2):
-    """Return one SVG path string per threshold, darkest band first."""
-    im = Image.open(plate).convert('L')
-    W0, H0 = im.size
-    im = im.resize((work, int(work*H0/W0)), Image.LANCZOS)
-    im = im.filter(ImageFilter.MedianFilter(3))
-    w, h = im.size
-    px = im.load()
-    sx, sy = W0/w, H0/h
-    out = []
-    for thr in thresholds:
-        m = mask_of(px, w, h, thr)
-        loops = marching_squares(m, w, h)
-        ds = []
-        for lp in loops:
-            if area(lp) < min_area: continue
-            s = rdp(lp, eps)
-            if len(s) < 4: continue
-            s = chaikin(s, smooth)
-            p = to_path(s, sx, sy)
-            if p: ds.append(p)
-        out.append(' '.join(ds))
-    return out
