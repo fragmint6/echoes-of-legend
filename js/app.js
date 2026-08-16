@@ -100,98 +100,69 @@
   }
 
   /* =============================================================
-     THE UPGRADE PANEL  (collection only, owned cards only)
+     THE UPGRADE BADGES  (collection + deck builder, owned cards)
      -------------------------------------------------------------
-     Levels 0..3, bought with duplicates (1 / 3 / 5), each granting a
-     compounding +1.5% skill power AND +2% of one chosen stat. The
-     stat is re-assignable for free outside a battle, so this shows
-     three radio-ish buttons rather than a one-time choice.
+     The upgrade CONTROLS used to live inside this hover overlay,
+     which meant reading a card and modifying it were the same
+     gesture: the overlay had to stay open while you clicked Level
+     up, the panel fought the ability text for room, and a surface
+     whose job is "show me this legend" carried four buttons.
 
-     Rendered as markup inside the card overlay; the delegated
-     handler in initUpgrades() below owns the clicks.
+     The controls now live in the card detail dialog
+     (js/card-detail.js). What stays on the card is the STATE, as
+     two glanceable badges pinned to the overlay's top corners:
+
+       top-left    the level, Lv1..Lv3 (absent at level 0 - an
+                   un-upgraded card should look un-upgraded)
+       top-right   what the levels bought: the boosted stat and the
+                   skill-power gain
+
+     Read-only by construction. There is nothing here to click, so
+     hovering a card can never change it.
      ============================================================= */
-  function upgradePanel(card) {
+  function upgradeBadges(card) {
     var U = window.EOL.upgrades;
     if (!U) return '';
     var econ = window.EOL.econ;
     if (econ && !econ.owns(card.id)) return '';
     var lv = U.levelOf(card.id);
-    var dupes = U.dupesOf(card.id);
-    var maxed = lv >= U.MAX_LEVEL;
-    var need = U.costOfNextLevel(card.id);
-    var can = U.canLevel(card.id);
+    if (lv <= 0) return '';
+
     var stat = U.statOf(card.id);
-    var craft = U.craftCost(card.rarity);
-    var shards = U.shards();
-
-    var pips = '';
-    for (var i = 1; i <= U.MAX_LEVEL; i++) {
-      pips += '<span class="up-pip' + (i <= lv ? ' on' : '') + '"></span>';
+    var stats = U.statsFor(card.id, card);
+    /* Say what the boost IS WORTH, not what it is called. "+40 ATK"
+       is a number the player can check against the stat bar two
+       lines below; "ATK boost" is a label they have to trust. DEF is
+       flat points because it is a percentage-point reducer - the
+       same distinction upgrades.js makes. */
+    var delta = '';
+    if (stats) {
+      if (stat === 'atk') delta = '+' + (stats.atk - card.stats.atk).toLocaleString();
+      else if (stat === 'hp') delta = '+' + (stats.hp - card.stats.hp).toLocaleString();
+      else if (stat === 'def') delta = '+' + Math.round((stats.def - card.stats.def) * 10) / 10;
     }
-
-    var statBtns = ['atk', 'def', 'hp']
-      .map(function (k) {
-        return (
-          '<button type="button" class="up-stat' +
-          (stat === k && lv > 0 ? ' sel' : '') +
-          '" data-up-stat="' +
-          k +
-          '" data-up-card="' +
-          esc(card.id) +
-          '"' +
-          (lv > 0 ? '' : ' disabled') +
-          '>' +
-          k.toUpperCase() +
-          '</button>'
-        );
-      })
-      .join('');
+    var power = Math.round((U.powerMult(lv) - 1) * 1000) / 10;
 
     return (
-      '<div class="up-panel" data-up-panel="' +
-      esc(card.id) +
-      '">' +
-      '<div class="up-head">' +
-      '<span class="up-title"><i class="ri-sparkling-2-fill"></i>Upgrade</span>' +
-      '<span class="up-pips">' +
-      pips +
+      '<span class="ov-lv" title="Upgrade level ' +
+      lv +
+      ' of ' +
+      U.MAX_LEVEL +
+      '"><i class="ri-sparkling-2-fill"></i>Lv' +
+      lv +
       '</span>' +
-      '</div>' +
-      (maxed
-        ? '<p class="up-note up-maxed">Fully upgraded &mdash; further copies pay shards only</p>'
-        : '<p class="up-note">' +
-          /* Clamp the numerator: banked copies can exceed what the NEXT
-             level costs (they are saved toward later levels too), and
-             "9 / 1" reads like a bug. */
-          Math.min(dupes, need) +
-          ' / ' +
-          need +
-          ' copies toward level ' +
-          (lv + 1) +
-          (dupes > need ? ' <span class="up-bank">(' + dupes + ' banked)</span>' : '') +
-          '</p>') +
-      '<div class="up-stats">' +
-      '<span class="up-stats-lbl">Boost</span>' +
-      statBtns +
-      '</div>' +
-      '<div class="up-actions">' +
-      (maxed
-        ? ''
-        : '<button type="button" class="up-btn up-level" data-up-level="' +
-          esc(card.id) +
-          '"' +
-          (can ? '' : ' disabled') +
-          '>Level up</button>' +
-          '<button type="button" class="up-btn up-craft" data-up-craft="' +
-          esc(card.id) +
-          '"' +
-          (shards >= craft ? '' : ' disabled') +
-          ' title="Spend Echo Shards on a copy of this legend">' +
-          '<i class="ri-sparkling-2-fill"></i>' +
-          craft.toLocaleString() +
-          '</button>') +
-      '</div>' +
-      '</div>'
+      '<span class="ov-boost" title="' +
+      esc(stat.toUpperCase()) +
+      ' boost and skill power from upgrades">' +
+      '<span class="ovb-stat">' +
+      esc(stat.toUpperCase()) +
+      ' ' +
+      esc(delta) +
+      '</span>' +
+      '<span class="ovb-pow">+' +
+      power +
+      '% skill</span>' +
+      '</span>'
     );
   }
 
@@ -210,6 +181,12 @@
     el.dataset.element = card.element;
     el.dataset.name = card.name.toLowerCase();
     el.dataset.id = card.id;
+    /* repaintCard() rebuilds a single card in place and must give it
+       back the SAME chrome, so the flags that shaped it are recorded
+       on the element rather than inferred later. */
+    if (options.markUnowned) el.dataset.marksUnowned = '1';
+    if (options.upgrades) el.dataset.upgrades = '1';
+    if (options.detail) el.dataset.detail = '1';
     el.tabIndex = 0;
     el.style.setProperty('--fc-primary', faction.colors.primary);
     el.style.setProperty('--el', ELEMENT_COLOR[card.element] || '#fff');
@@ -233,6 +210,14 @@
         esc(card.art) +
         '" alt="" draggable="false" /></div>'
       : '<i data-icon-domain="game" class="art-glyph ra ' + card.icon + '"></i>';
+
+    /* The badges are absolutely positioned in the overlay's corners,
+       so the heading underneath has to make room for them - but ONLY
+       when they exist, or every un-upgraded card wears a gap. A flag
+       on the element keeps that a plain attribute selector rather
+       than a :has() the rest of this sheet does not rely on. */
+    var badges = options.upgrades ? upgradeBadges(card) : '';
+    if (badges) el.dataset.upgraded = '1';
 
     el.innerHTML =
       '<div class="card-art' +
@@ -271,6 +256,7 @@
       '<div class="plate-hint"><i class="ri-cursor-line"></i><span class="hint-txt"></span></div>' +
       '</div>' +
       '<div class="card-overlay">' +
+      badges +
       '<div class="ov-head">' +
       '<h3 class="ov-name">' +
       esc(card.name) +
@@ -323,8 +309,30 @@
       esc(faction.name) +
       '</span>' +
       '</div>' +
-      (options.upgrades ? upgradePanel(card) : '') +
       '</div>';
+
+    /* THE DETAIL DIALOG.
+       `detail` surfaces answer a click by opening the full card -
+       lore, exact numbers and the upgrade controls. Hover stays
+       purely informational, which is the whole point of the split.
+
+       The deck builder does NOT opt in: there a click already means
+       add/remove, and stealing that would be a worse trade than the
+       dialog is worth. It gets an explicit button instead (see
+       js/deck.js), which also keeps the dialog reachable by keyboard
+       on a surface whose Enter key is already spoken for. */
+    if (options.detail) {
+      el.addEventListener('click', function () {
+        if (window.EOL.cardDetail) window.EOL.cardDetail.open(card.id);
+      });
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (window.EOL.cardDetail) window.EOL.cardDetail.open(card.id);
+        }
+      });
+      return el;
+    }
 
     /* tap-to-toggle on touch devices */
     el.addEventListener('click', function () {
@@ -351,6 +359,12 @@
      can use them as soon as the DOM is ready. */
   window.EOL.ui = {
     buildCard: buildCard,
+    repaintCard: function (id) {
+      repaintCard(id);
+    },
+    entryFor: function (id) {
+      return entryFor(id);
+    },
     esc: esc,
     rich: rich,
     /* the ONE status toast. NOT `toast: toast` - app.js has no local
@@ -450,6 +464,7 @@
         buildCard(filtered[i].card, filtered[i].faction, i, {
           markUnowned: true,
           upgrades: true,
+          detail: true,
         })
       );
     }
@@ -2092,28 +2107,55 @@
   }
 
   /* =============================================================
-     UPGRADE PANEL CLICKS
+     ONE CARD REPAINTED IN PLACE
      -------------------------------------------------------------
-     Delegated from the roster, because cards are rendered lazily in
-     batches and re-rendered on every filter change - per-card
-     listeners would leak and go stale.
+     Upgrading a legend changes its badges (level, boost) and, if the
+     boosted stat moved, the numbers on its stat bars. Rebuilding the
+     grid would be simpler and wrong: it drops scroll position and
+     kills the hover the player is standing in. So the card detail
+     dialog calls this after every mutation and only the touched card
+     is rebuilt.
 
-     Only the touched card is repainted; re-rendering the grid would
-     close the hover overlay the player is reading.
+     Exposed as EOL.ui.repaintCard so js/card-detail.js can reach it
+     without owning the roster's rendering rules.
      ============================================================= */
-  function repaintUpgradePanel(cardId) {
-    var entry = null;
+  function entryFor(cardId) {
+    var found = null;
     (window.EOL.factions || []).forEach(function (f) {
       f.cards.forEach(function (c) {
-        if (c.id === cardId) entry = c;
+        if (c.id === cardId) found = { card: c, faction: f };
       });
     });
+    return found;
+  }
+
+  function repaintCard(cardId) {
+    var entry = entryFor(cardId);
     if (!entry) return;
-    document.querySelectorAll('[data-up-panel="' + cardId + '"]').forEach(function (panel) {
-      var host = document.createElement('div');
-      host.innerHTML = upgradePanel(entry);
-      var fresh = host.firstChild;
-      if (fresh) panel.replaceWith(fresh);
+    document.querySelectorAll('.card[data-id="' + cardId + '"]').forEach(function (old) {
+      /* Rebuild with the SAME options the surface originally used.
+         A deck-builder card must not sprout collection chrome just
+         because it was repainted - the flags are read back off the
+         element rather than assumed. */
+      var opts = {
+        markUnowned: old.classList.contains('unowned') || old.dataset.marksUnowned === '1',
+        upgrades: old.dataset.upgrades === '1',
+        detail: old.dataset.detail === '1',
+      };
+      var fresh = buildCard(entry.card, entry.faction, 0, opts);
+      fresh.style.animation = 'none'; // a repaint is not an arrival
+      /* Preserve per-surface state and chrome the builder knows
+         nothing about: the deck builder marks membership on the
+         element (in-deck / deck-full) and appends its own details
+         button. The button is MOVED, not cloned, so its listener
+         survives. */
+      ['in-deck', 'deck-full', 'is-open'].forEach(function (cls) {
+        if (old.classList.contains(cls)) fresh.classList.add(cls);
+      });
+      old.querySelectorAll(':scope > .card-info').forEach(function (extra) {
+        fresh.appendChild(extra);
+      });
+      old.replaceWith(fresh);
     });
     paintHomeCoins();
     var sw = document.getElementById('shop-shards');
@@ -2123,72 +2165,8 @@
         window.EOL.upgrades.shards().toLocaleString();
   }
 
-  function initUpgrades() {
-    var grid = document.getElementById('roster');
-    if (!grid || !window.EOL.upgrades) return;
-    var U = window.EOL.upgrades;
-    grid.addEventListener('click', function (e) {
-      var t = e.target;
-      if (!t || !t.closest) return;
-
-      var lvl = t.closest('[data-up-level]');
-      if (lvl) {
-        e.stopPropagation();
-        var id = lvl.dataset.upLevel;
-        var r = U.levelUp(id, U.statOf(id));
-        if (r.ok) {
-          if (window.EOL.ui.toast)
-            window.EOL.ui.toast('Upgraded to level ' + r.lv, 'ri-sparkling-2-fill');
-          if (window.EOL.audio) window.EOL.audio.ui('confirm');
-        } else if (r.reason === 'dupes') {
-          if (window.EOL.ui.toast)
-            window.EOL.ui.toast('Needs ' + r.cost + ' copies of this legend', 'ri-information-line');
-        }
-        repaintUpgradePanel(id);
-        return;
-      }
-
-      var craft = t.closest('[data-up-craft]');
-      if (craft) {
-        e.stopPropagation();
-        var cid = craft.dataset.upCraft;
-        var cr = U.craft(cid);
-        if (cr.ok) {
-          if (window.EOL.ui.toast)
-            window.EOL.ui.toast('Copy crafted for ' + cr.cost + ' shards', 'ri-sparkling-2-fill');
-          if (window.EOL.audio) window.EOL.audio.ui('confirm');
-        } else if (cr.reason === 'shards') {
-          if (window.EOL.ui.toast)
-            window.EOL.ui.toast('Not enough Echo Shards', 'ri-sparkling-2-fill');
-        } else if (cr.reason === 'unowned') {
-          /* Shards deepen legends you own; they never widen a
-             collection. Packs remain the only way to obtain a card. */
-          if (window.EOL.ui.toast)
-            window.EOL.ui.toast('Shards only buy copies of legends you own', 'ri-lock-line');
-        }
-        repaintUpgradePanel(cid);
-        return;
-      }
-
-      var st = t.closest('[data-up-stat]');
-      if (st) {
-        e.stopPropagation();
-        var sid = st.dataset.upCard;
-        var sr = U.setStat(sid, st.dataset.upStat);
-        if (!sr.ok && sr.reason === 'inBattle') {
-          if (window.EOL.ui.toast)
-            window.EOL.ui.toast('Boosts cannot change during a battle', 'ri-lock-line');
-        } else if (sr.ok && window.EOL.audio) {
-          window.EOL.audio.ui('tap');
-        }
-        repaintUpgradePanel(sid);
-      }
-    });
-  }
-
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
-    initUpgrades();
     initTips();
     initScale();
     initMenuParticles();

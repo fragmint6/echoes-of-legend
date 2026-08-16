@@ -877,6 +877,48 @@ sec('S4. Quests require an account');
   ok(Q.claim('d-dmg-1').ok, 'and it can be claimed now');
 }
 
+sec('S5. Upgrade UI: state on the card, controls in the dialog');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const detail = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
+  const deck = fs.readFileSync(path.join(ROOT, 'js/deck.js'), 'utf8');
+
+  /* The hover overlay carries STATE only. If a control ever creeps
+     back into buildCard, reading a card and changing it become the
+     same gesture again - which is the bug this replaced. */
+  ok(/function upgradeBadges/.test(app), 'app.js renders read-only upgrade badges');
+  ok(!/function upgradePanel/.test(app), 'the upgrade panel no longer lives in the card builder');
+  const badgeFn = app.slice(app.indexOf('function upgradeBadges'), app.indexOf('function buildCard'));
+  ok(!/<button/.test(badgeFn), 'the badges contain no buttons at all');
+  ok(
+    !/data-up-level|data-up-craft|data-up-stat/.test(badgeFn),
+    'and no upgrade control hooks'
+  );
+  ok(/ov-lv/.test(badgeFn) && /ov-boost/.test(badgeFn), 'level (top-left) and boosts (top-right)');
+
+  /* An un-upgraded legend must look un-upgraded. */
+  ok(/if \(lv <= 0\) return ''/.test(badgeFn), 'a level-0 card shows no badge');
+
+  /* The controls, and the lore, live in the dialog. */
+  ok(/id="card-detail"/.test(html), 'the detail dialog exists in the document');
+  ok(
+    /data-up-level/.test(detail) && /data-up-craft/.test(detail) && /data-up-stat/.test(detail),
+    'all three upgrade controls moved to the dialog'
+  );
+  ok(/cd-lore/.test(detail), 'the dialog renders lore');
+  ok(/card\.lore/.test(detail), 'read from the card, not hardcoded');
+
+  /* The deck builder answers a click by picking, so it must not also
+     open the dialog on click - it gets an explicit button. */
+  ok(/card-info/.test(deck), 'the deck builder has its own details button');
+  ok(/stopPropagation/.test(deck), 'and that button never triggers the pick handler');
+  ok(
+    !/detail:\s*true/.test(deck),
+    'the deck grid does not opt into click-to-open, which would steal add/remove'
+  );
+}
+
 sec('T. The board cannot be closed');
 {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

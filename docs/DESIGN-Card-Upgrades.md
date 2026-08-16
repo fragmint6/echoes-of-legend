@@ -2,6 +2,9 @@
 
 **Status:** Implemented.
 
+**Revised 2026-08-16:** the upgrade controls moved out of the card's hover overlay and
+into a card detail dialog (§5).
+
 **Purpose:** Turn the collection's dead end into a long tail. Packs used to pay nothing
 once every card was owned, and coins had exactly one sink in the entire codebase
 (`shop.js` calling `econ.spend`). Duplicates now feed a bounded upgrade system, and Echo
@@ -198,3 +201,59 @@ purchased explicitly by the player, not auto-applied, so the choice of stat is a
 deliberate.
 
 Registered in the `cloud.js` `MAP` table; rides the existing account sync. No migration.
+
+---
+
+## 5. Where the UI lives
+
+*(Owner ruling 2026-08-16.)*
+
+The controls originally sat **inside the card's hover overlay** in the collection. That
+conflated two different jobs. Reading a card is a glance; upgrading one is a decision —
+and putting the decision inside the glance meant you had to hold a hover steady to press
+a button, the panel fought the skill text for room, and a 240px card carried four
+controls on top of three stat bars and prose.
+
+The split now:
+
+| Surface | Shows | Interaction |
+|---|---|---|
+| **Card hover** | level badge (top-left), boost badge (top-right) | none — read-only |
+| **Card detail dialog** | portrait, lore, base-vs-upgraded stats, full skill, upgrade controls | everything you can change |
+
+### 5.1 The badges
+
+`upgradeBadges()` in `js/app.js`. Absolutely positioned in the overlay's corners, so they
+cannot push the stat bars around. They render **only for owned cards above level 0** — an
+un-upgraded legend must look un-upgraded, and a card that has badges sets
+`data-upgraded="1"` so only those cards pay for the heading clearance.
+
+The boost badge quotes the **value**, not the label: `ATK +59`, not "ATK boost". The
+number is checkable against the stat bar two lines below.
+
+### 5.2 The dialog
+
+`js/card-detail.js` + `#card-detail`. Opened by clicking a card in the collection
+(`options.detail`), or by the explicit `.card-info` button in the deck builder — that grid
+already answers a click by adding or removing the legend, and stealing that gesture would
+cost more than the dialog is worth.
+
+It owns presentation only. Every number is read live from `EOL.upgrades` on each paint,
+and each mutation calls the same `levelUp` / `craft` / `setStat` the old in-card panel
+did. After a mutation it repaints itself *and* asks `EOL.ui.repaintCard(id)` to rebuild
+just the one card behind it, so the roster's badges agree without a grid rebuild that
+would throw away scroll position and hover.
+
+An **unowned** legend gets the dialog too — lore, stats and skill are worth reading before
+you own it — but the upgrade block is replaced by a line explaining that packs are the
+only way to widen a collection.
+
+### 5.3 Lore
+
+Card prose lives in `data/lore.js`, keyed by card id and attached onto `card.lore` at
+load. Kept out of the faction files deliberately: those are mechanics, and prose
+interleaved with effect trees makes both harder to read and turns every copy edit into a
+diff against balance data. `sim/verify_all.js` enforces coverage, length, that no entry
+names a card that does not exist, that each entry names its own legend, and that prose
+never uses rules vocabulary (the skill text on the same panel already says that, in the
+exact words the engine means).

@@ -32,6 +32,7 @@ const FILES = [
   'data/roma.js',
   'data/takamagahara.js',
   'data/duat.js',
+  'data/lore.js',
   'js/engine.js',
   'js/ai.js',
   'js/text.js',
@@ -2096,6 +2097,53 @@ section('F. DRAFT INTELLIGENCE - rating coverage');
     isFinite(DAI.powerOf(boss)) && DAI.powerOf(boss) !== 0,
     'an unknown card is priced on the spot, not defaulted to the mean'
   );
+}
+
+/* =============================================================
+   LEGEND LORE (data/lore.js)
+   -------------------------------------------------------------
+   The card detail dialog reads card.lore. A legend with no prose
+   renders a card with a hole in it, so coverage is enforced here
+   rather than discovered by a player.
+   ============================================================= */
+section('LEGEND LORE');
+{
+  const missing = ALL.filter((c) => !c.lore).map((c) => c.id);
+  ok(missing.length === 0, 'every legend has lore' + (missing.length ? ' (missing: ' + missing.slice(0, 5).join(', ') + ')' : ''));
+
+  const stale = Object.keys(EOL.legendLore || {}).filter((id) => !CARD[id]);
+  ok(stale.length === 0, 'no lore entry names a card that does not exist' + (stale.length ? ' (' + stale.join(', ') + ')' : ''));
+
+  /* HOUSE STYLE: lore says WHY, the skill text says what. Rules
+     vocabulary in prose is how two sources of truth start to
+     disagree with each other. */
+  const rules = /\b(Provoke|Provoking|Provoked|Exposed|Marked|Energy|Shielded|Burning|Burned|Silenced|Crit Chance|Max HP)\b/;
+  const leaky = ALL.filter((c) => c.lore && rules.test(c.lore)).map((c) => c.id);
+  ok(leaky.length === 0, 'no lore leaks rules vocabulary' + (leaky.length ? ' (' + leaky.slice(0, 5).join(', ') + ')' : ''));
+
+  /* Long enough to be worth a dialog, short enough to read. */
+  const tooShort = ALL.filter((c) => c.lore && c.lore.length < 80).map((c) => c.id);
+  ok(tooShort.length === 0, 'no lore is a stub' + (tooShort.length ? ' (' + tooShort.slice(0, 5).join(', ') + ')' : ''));
+  const tooLong = ALL.filter((c) => c.lore && c.lore.length > 420).map((c) => c.id);
+  ok(tooLong.length === 0, 'no lore overflows the panel' + (tooLong.length ? ' (' + tooLong.slice(0, 5).join(', ') + ')' : ''));
+
+  /* The prose must name the legend it belongs to, which is the
+     cheapest possible check that lore has not been pasted onto the
+     wrong card. Surnames and mononyms both count. */
+  const flatten = (t) => t.replace(/[\u2018\u2019]/g, "'");
+  const unnamed = ALL.filter((c) => {
+    if (!c.lore) return false;
+    /* Two-letter parts count: "Lu Bu" is a whole name. Curly and
+       straight apostrophes are the same character to a reader, so
+       Ma'at must not fail on typography. */
+    const parts = flatten(c.name)
+      .replace(/[^A-Za-z' ]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 2);
+    const lore = flatten(c.lore);
+    return !parts.some((w) => lore.indexOf(w) >= 0);
+  }).map((c) => c.id);
+  ok(unnamed.length === 0, 'every lore entry names its own legend' + (unnamed.length ? ' (' + unnamed.slice(0, 5).join(', ') + ')' : ''));
 }
 
 /* ---------------- summary ---------------- */

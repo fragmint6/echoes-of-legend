@@ -2053,6 +2053,27 @@
     </div>
 
     <!-- classic: pick one of your saved decks -->
+    <!-- ==================== CARD DETAIL ====================
+         One legend, in full: portrait, lore, exact numbers (base and
+         upgraded), the whole Signature Skill, and the upgrade
+         controls.
+
+         The upgrade controls used to live inside the card's HOVER
+         overlay, which made reading a card and modifying it the same
+         gesture - you had to hold a hover steady to press a button.
+         Hover now shows STATE only (level top-left, boosts
+         top-right); anything you can CHANGE lives here.
+         See js/card-detail.js. -->
+    <div class="cd-modal" id="card-detail" hidden>
+      <div class="cd-scrim" id="cd-scrim"></div>
+      <div class="cd-card" role="dialog" aria-modal="true" aria-labelledby="cd-body">
+        <button type="button" class="cd-close" id="cd-close" aria-label="Close">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+        <div class="cd-body" id="cd-body"></div>
+      </div>
+    </div>
+
     <div class="deck-modal" id="deck-modal" aria-hidden="true">
       <div class="dm-card">
         <h3 class="dm-title">Choose your deck</h3>
@@ -3708,6 +3729,9 @@
     <script src="data/takamagahara.js"></script>
     <script src="data/duat.js"></script>
     <script src="data/battlefields.js"></script>
+    <!-- Legend prose. AFTER the faction files: it attaches onto the
+         cards they registered. -->
+    <script src="data/lore.js"></script>
     <script src="data/campaign-ch1.js"></script>
     <script src="data/draft-ai.js"></script>
 
@@ -3718,6 +3742,7 @@
     <script src="js/upgrades.js"></script>
     <script src="js/quests.js"></script>
     <script src="js/quest-board.js"></script>
+    <script src="js/card-detail.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>
