@@ -5,7 +5,9 @@
 **Revised 2026-08-16:** the upgrade controls moved out of the card's hover overlay and
 into a card detail dialog (§5); each level now carries **its own** boost (§1.3); the
 shard spend moved to the Shop's Echo Shop tab (§3.5); levelling up has a ceremony and
-levellable cards are flagged (§5.4).
+levellable cards are flagged (§5.4); the card shows `Lv0`, three boost slots and star
+pips on its frame (§5.1); and printed skill numbers scale with the card's own upgrades
+(§5.5).
 
 **Purpose:** Turn the collection's dead end into a long tail. Packs used to pay nothing
 once every card was owned, and coins had exactly one sink in the entire codebase
@@ -216,10 +218,17 @@ one legend at a time, from a screen whose job was something else, and there was 
 compare what your shards could buy.
 
 Buying copies is **shopping**, so it lives in the Shop, behind a **Packs / Echo Shop** tab
-pair. The Echo Shop lists every legend you own with its cost, its level, and how many
-copies it still needs, sorted so the ones closest to a level come first — and filtered by
-default to hide legends with nothing left to buy, because selling a copy to a maxed card
-is a trap, not an option.
+pair.
+
+The shard balance is the subject of the screen — a large counter that also states what it
+can *do* ("enough for a copy of 9 of your legends"), because a number with no frame of
+reference is just a number. Below it, every legend you own is a card carrying its level as
+pips, the boosts it already took, a progress bar toward its next level, and its price. The
+list sorts ready-to-level first, then by how few copies are missing.
+
+Filtering is a segmented control — **Ready to level / Upgradable / All** — defaulting to
+Upgradable's subset so a maxed legend is not offered a copy it cannot use. Selling into a
+maxed card is a trap, not an option.
 
 The upgrade panel keeps a **"Need copies?"** link that closes the dialog and lands you on
 that tab. The rule itself is unchanged: shards buy copies of legends you **already own**,
@@ -272,12 +281,29 @@ The split now:
 ### 5.1 The badges
 
 `upgradeBadges()` in `js/app.js`. Absolutely positioned in the overlay's corners, so they
-cannot push the stat bars around. They render **only for owned cards above level 0** — an
-un-upgraded legend must look un-upgraded, and a card that has badges sets
-`data-upgraded="1"` so only those cards pay for the heading clearance.
+cannot push the stat bars around.
 
-The boost badge quotes the **value**, not the label: `ATK +59`, not "ATK boost". The
-number is checkable against the stat bar two lines below.
+**The level, always.** `Lv0` is shown for every owned legend, not just upgraded ones — "no
+badge" is ambiguous between un-upgraded and a UI that forgot. It renders quiet at zero and
+lights up once there is something to show.
+
+**Three boost slots, top-right.** One per possible level: a filled slot is a coloured icon
+naming the stat that level bought (ATK amber, DEF blue, HP red — the same colours as the
+stat bars), an empty slot is a dashed socket. The previous single badge collapsed the whole
+build into one *dominant* stat, which meant `2×ATK + 1×HP` and `3×ATK` looked identical.
+
+**Stars on the frame.** A levelled card wears 1–3 stars set into the middle of its top
+border, readable across a scrolling grid with no hover and no click. Drawn with `clip-path`
+because neither RPG Awesome 0.2.0 nor the pinned Remix set carries a plain star.
+
+**The ready badge.** A card with enough banked copies wears a pulsing purple chevron in the
+top-left corner. It is a real `.card-ready` element, not a pseudo: `.card::before` is
+already the element-colour edge stripe, and `::after` would have to fight it for the same
+box.
+
+**No dead gap.** `.ov-head` used to reserve a blanket 26px of top padding on *every* card to
+clear the card-top bar — which the overlay covers anyway. Only cards that actually carry
+badges reserve room now, and only the 22px those need.
 
 ### 5.2 The dialog
 
@@ -329,3 +355,32 @@ removed on completion, so nothing leaks.
 
 Both kill switches are respected: `body[data-gfx='low']` and `prefers-reduced-motion` keep
 the stamp and the numbers and drop the particles.
+
+### 5.5 Skill text that knows its upgrades
+
+A levelled card hits harder, but its printed Signature Skill still read *"Deal 130% ATK"* —
+so the collection told the player the upgrade did nothing to the thing the upgrade is
+**for**. `EOL.scaleSkillText()` (`js/text.js`) rewrites those numbers on both the hover
+overlay and the detail dialog.
+
+It rewrites **exactly** what `engine.js` multiplies by `upPower` at the effect sites: `dmg`
+power / perDebuff / perBuff, `heal` power and pctMaxHp, and `shield` pctMaxHp. Everything
+else is deliberately untouched, because the engine does not move it either — stat buffs,
+lifesteal shares, Energy refunds, thresholds and durations all stay put. Anubis at level 3
+reads *"Deal 135.9% ATK ... if the target is below 25% HP"*: the damage grew, the execute
+gate did not.
+
+Three safeguards keep it from lying:
+
+- values come from the **spec**, not from parsing prose, so the list is exactly the set the
+  engine will scale;
+- each is matched with its **unit** (`ATK` / `Max HP`), because three cards print the same
+  number twice with different units — Momotaro's `12% DEF` beside `12% Max HP`,
+  Constantine's `10% ATK` beside `10% Max HP`. The buff stays put while the shield grows;
+- a number the card uses **both** scalably and non-scalably with the same unit is skipped
+  entirely. No card does this today; the guard means one added later fails safe.
+
+Scaled numbers render in the upgrade colour with the original in a tooltip. Stock surfaces —
+drafts, packs, the Daily Puzzle — never scale, because there the card really is stock.
+`sim/verify_all.js` walks all 63 legends and asserts no number is scaled that the engine
+leaves alone, and that every scaled number equals value × the multiplier.

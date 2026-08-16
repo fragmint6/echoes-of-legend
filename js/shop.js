@@ -743,7 +743,7 @@
      ============================================================= */
   var echoTab = 'packs';
   var echoQuery = '';
-  var echoOnlyUseful = true;
+  var echoFilter = 'ready';
 
   function upg() {
     return window.EOL.upgrades;
@@ -776,11 +776,10 @@
     thumb.style.transform = 'translateX(' + sel.offsetLeft + 'px)';
   }
 
-  /* Every owned legend, with what a copy costs and whether a copy
-     would actually do anything. A maxed card can still be bought
-     for shards in principle, but there is nothing left to spend the
-     copy on - so it is filtered out by default rather than sold as
-     a trap. */
+  /* Every owned legend, with what a copy costs and what it is worth.
+     `toNext` is the number of copies still missing before the next
+     level can be bought - the single most useful number on the page,
+     and what the list sorts on. */
   function echoRows() {
     var econ = window.EOL.econ;
     var U = upg();
@@ -800,37 +799,51 @@
           maxed: maxed,
           dupes: dupes,
           need: need,
+          toNext: maxed ? 0 : Math.max(0, need - dupes),
           ready: !maxed && dupes >= need,
           cost: U.craftCost(c.rarity),
         });
       });
     });
-    /* Cheapest useful thing first: a card one copy from a level is
-       the most interesting row on the page. */
     out.sort(function (a, b) {
       if (a.maxed !== b.maxed) return a.maxed ? 1 : -1;
-      var aNeed = Math.max(0, a.need - a.dupes);
-      var bNeed = Math.max(0, b.need - b.dupes);
-      if (aNeed !== bNeed) return aNeed - bNeed;
+      if (a.ready !== b.ready) return a.ready ? -1 : 1;
+      if (a.toNext !== b.toNext) return a.toNext - b.toNext;
       if (a.cost !== b.cost) return a.cost - b.cost;
       return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
     });
     return out;
   }
 
+  var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
+
   function paintEcho() {
     var grid = el('echo-grid');
     var U = upg();
     if (!grid || !U) return;
+    var shards = U.shards();
+
     var bal = el('echo-balance');
-    if (bal) {
-      bal.innerHTML =
-        '<i class="ri-sparkling-2-fill shard-ico"></i>' + U.shards().toLocaleString() + ' shards';
+    if (bal) bal.textContent = shards.toLocaleString();
+
+    var all = echoRows();
+    /* Say what the balance can actually DO - a number with no frame of
+       reference is just a number. */
+    var afford = el('echo-afford');
+    if (afford) {
+      var buyable = all.filter(function (r) {
+        return !r.maxed && shards >= r.cost;
+      }).length;
+      afford.textContent = buyable
+        ? 'enough for a copy of ' + buyable + ' of your legends'
+        : all.length
+          ? 'not enough for a copy yet - open packs to melt duplicates'
+          : '';
     }
 
-    var shards = U.shards();
-    var rows = echoRows().filter(function (r) {
-      if (echoOnlyUseful && r.maxed) return false;
+    var rows = all.filter(function (r) {
+      if (echoFilter === 'ready' && !r.ready) return false;
+      if (echoFilter === 'upgradable' && r.maxed) return false;
       if (echoQuery && r.card.name.toLowerCase().indexOf(echoQuery) < 0) return false;
       return true;
     });
@@ -838,49 +851,88 @@
     var esc = window.EOL.ui && window.EOL.ui.esc ? window.EOL.ui.esc : String;
     grid.innerHTML = rows
       .map(function (r) {
-        var toNext = Math.max(0, r.need - r.dupes);
-        var line = r.maxed
-          ? 'Fully upgraded'
+        /* The level, as three pips - the same language the collection
+           and the upgrade panel use. */
+        var pips = '';
+        for (var i = 1; i <= U.MAX_LEVEL; i++) {
+          pips += '<span class="ec-pip' + (i <= r.lv ? ' on' : '') + '"></span>';
+        }
+        /* What the copies you already hold are worth: a progress bar
+           toward the next level, so buying feels like closing a gap
+           rather than paying into a void. */
+        var pct = r.maxed ? 100 : Math.min(100, (Math.min(r.dupes, r.need) / r.need) * 100);
+        var boosts = U.boostsOf(r.card.id)
+          .map(function (b) {
+            return (
+              '<i data-icon-domain="game" class="ra ' +
+              BOOST_ICON[b] +
+              ' ec-boost" data-boost="' +
+              b +
+              '"></i>'
+            );
+          })
+          .join('');
+
+        var status = r.maxed
+          ? '<span class="ec-status maxed">Fully upgraded</span>'
           : r.ready
-            ? 'Ready to level up'
-            : toNext + (toNext === 1 ? ' copy' : ' copies') + ' to level ' + (r.lv + 1);
+            ? '<span class="ec-status ready"><i class="ri-sparkling-line"></i>Ready for level ' +
+              (r.lv + 1) +
+              '</span>'
+            : '<span class="ec-status">' +
+              r.toNext +
+              (r.toNext === 1 ? ' copy' : ' copies') +
+              ' to level ' +
+              (r.lv + 1) +
+              '</span>';
+
         return (
-          '<article class="echo-row' +
+          '<article class="ec-card' +
           (r.ready ? ' ready' : '') +
+          (r.maxed ? ' maxed' : '') +
           '" data-echo-card="' +
           esc(r.card.id) +
-          '">' +
-          '<span class="echo-art' +
-          (r.card.art ? ' has-art' : '') +
+          '" data-rarity="' +
+          esc(r.card.rarity) +
           '" style="--fc-primary:' +
           esc(r.faction.colors.primary) +
           '">' +
+          '<span class="ec-art' +
+          (r.card.art ? ' has-art' : '') +
+          '">' +
           (r.card.art
-            ? '<img src="' + esc(r.card.art) + '" alt="" draggable="false" />'
+            ? '<img src="' + esc(r.card.art) + '" alt="" draggable="false" loading="lazy" />'
             : '<i data-icon-domain="game" class="ra ' + esc(r.card.icon) + '"></i>') +
+          '<span class="ec-pips">' +
+          pips +
           '</span>' +
-          '<span class="echo-info">' +
-          '<b class="echo-name">' +
+          '</span>' +
+          '<div class="ec-body">' +
+          '<div class="ec-top">' +
+          '<b class="ec-name">' +
           esc(r.card.name) +
           '</b>' +
-          '<span class="echo-meta"><span class="echo-rar" data-rarity="' +
-          esc(r.card.rarity) +
-          '">' +
-          esc(r.card.rarity) +
+          '<span class="ec-boosts">' +
+          boosts +
           '</span>' +
-          (r.lv ? '<span class="echo-lv">Lv' + r.lv + '</span>' : '') +
+          '</div>' +
+          status +
+          '<div class="ec-bar"><span style="width:' +
+          pct.toFixed(0) +
+          '%"></span></div>' +
+          '<div class="ec-foot">' +
+          '<span class="ec-held">' +
+          (r.maxed ? 'no levels left' : Math.min(r.dupes, r.need) + ' / ' + r.need + ' copies') +
           '</span>' +
-          '<span class="echo-need">' +
-          line +
-          '</span>' +
-          '</span>' +
-          '<button type="button" class="echo-buy" data-echo-buy="' +
+          '<button type="button" class="ec-buy" data-echo-buy="' +
           esc(r.card.id) +
           '"' +
           (shards >= r.cost && !r.maxed ? '' : ' disabled') +
-          '><i class="ri-sparkling-2-fill"></i>' +
+          '><i class="ri-sparkling-2-line"></i>' +
           r.cost.toLocaleString() +
           '</button>' +
+          '</div>' +
+          '</div>' +
           '</article>'
         );
       })
@@ -889,11 +941,14 @@
     var empty = el('echo-empty');
     if (empty) {
       empty.hidden = rows.length > 0;
-      empty.textContent = echoQuery
+      var msg = echoQuery
         ? 'No legend you own matches that name.'
-        : echoOnlyUseful
-          ? 'Every legend you own is fully upgraded. Untick the filter to buy copies anyway.'
-          : 'Open a pack to start collecting legends.';
+        : echoFilter === 'ready'
+          ? 'Nothing is one copy away yet. Buy a copy below, or switch to <b>Upgradable</b>.'
+          : all.length
+            ? 'Every legend you own is fully upgraded.'
+            : 'Open a pack to start collecting legends.';
+      empty.innerHTML = '<i class="ri-sparkling-2-line"></i><p>' + msg + '</p>';
     }
   }
 
@@ -1077,12 +1132,15 @@
         echoQuery = (echoSearch.value || '').trim().toLowerCase();
         paintEcho();
       });
-    var echoFilter = el('echo-only-useful');
-    if (echoFilter)
-      echoFilter.addEventListener('change', function () {
-        echoOnlyUseful = !!echoFilter.checked;
+    document.querySelectorAll('[data-echo-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        echoFilter = btn.dataset.echoFilter;
+        document.querySelectorAll('[data-echo-filter]').forEach(function (b) {
+          b.classList.toggle('sel', b === btn);
+        });
         paintEcho();
       });
+    });
     var echoGrid = el('echo-grid');
     if (echoGrid)
       echoGrid.addEventListener('click', function (e) {

@@ -2146,6 +2146,96 @@ section('LEGEND LORE');
   ok(unnamed.length === 0, 'every lore entry names its own legend' + (unnamed.length ? ' (' + unnamed.slice(0, 5).join(', ') + ')' : ''));
 }
 
+/* =============================================================
+   SKILL TEXT THAT SCALES WITH UPGRADES (js/text.js)
+   -------------------------------------------------------------
+   A levelled card hits harder, so its printed Signature Skill must
+   say so - but ONLY for the numbers engine.js actually multiplies
+   by upPower. A wrongly scaled number is a lie about the rules, so
+   this walks the whole roster and checks both directions.
+   ============================================================= */
+section('SKILL TEXT SCALING');
+{
+  const MULT = Math.pow(1.015, 3); // a maxed card
+  /* Exactly what the engine scales: dmg power/perDebuff/perBuff,
+     heal power/pctMaxHp, shield pctMaxHp. Kept as its own walk so a
+     drift in js/text.js cannot hide behind a shared helper. */
+  const scalableOf = (c) => {
+    const S = new Set();
+    const walk = (effs) =>
+      (effs || []).forEach((e) => {
+        if (!e || typeof e !== 'object') return;
+        if (e.k === 'dmg') {
+          ['power', 'perDebuff', 'perBuff'].forEach((k) => {
+            if (e[k] != null) S.add(Math.round(e[k] * 100) + '|atk');
+          });
+        }
+        if (e.k === 'heal') {
+          if (e.pctMaxHp != null) S.add(e.pctMaxHp + '|hp');
+          if (e.power != null) S.add(Math.round(e.power * 100) + '|atk');
+        }
+        if (e.k === 'shield' && e.pctMaxHp != null) S.add(e.pctMaxHp + '|hp');
+        ['then', 'other', 'effects'].forEach((k) => {
+          if (Array.isArray(e[k])) walk(e[k]);
+        });
+      });
+    walk((c.ability.spec || {}).effects);
+    if (c.ability.passive) walk(c.ability.passive.effects);
+    return S;
+  };
+
+  ok(typeof EOL.scaleSkillText === 'function', 'EOL.scaleSkillText exists');
+  ok(
+    ALL.every((c) => EOL.scaleSkillText(c.ability.text, c, 1) === c.ability.text),
+    'level 0 (mult 1) never touches the text'
+  );
+
+  let wrong = 0;
+  let badMath = 0;
+  let changed = 0;
+  const TOKEN =
+    /<span class="sk-up" title="(\d+)% before upgrades">([\d.]+)<\/span>%(\s*(?:<[^>]+>|\w+\s)*?\s*)(ATK|Max\s+HP)/g;
+  ALL.forEach((c) => {
+    const out = EOL.scaleSkillText(c.ability.text, c, MULT);
+    if (out !== c.ability.text) changed++;
+    const S = scalableOf(c);
+    let m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(out))) {
+      const unit = /ATK/.test(m[4]) ? 'atk' : 'hp';
+      if (!S.has(m[1] + '|' + unit)) {
+        wrong++;
+        if (wrong <= 3) console.log('      scaled a value the engine does not:', c.id, m[1], unit);
+      }
+      const want = Math.round(+m[1] * MULT * 10) / 10;
+      if (Math.abs(+m[2] - want) > 0.001) badMath++;
+    }
+  });
+  ok(wrong === 0, 'no number is scaled that the engine leaves alone');
+  ok(badMath === 0, 'every scaled number equals value x the power multiplier');
+  ok(changed > 40, 'most of the roster reflects its upgrades (' + changed + ' cards)');
+
+  /* The three cards that print the same number twice with DIFFERENT
+     units are the trap this has to survive: the buff must not move
+     when the shield does. */
+  const momo = CARD['yamato-momotaro'];
+  const mo = EOL.scaleSkillText(momo.ability.text, momo, MULT);
+  ok(/\+12% <span class="sv-def">DEF/.test(mo) || /\+12%\s*(<[^>]+>)?\s*DEF/.test(mo),
+    "Momotaro's 12% DEF buff is untouched");
+  ok(/>12.5<\/span>%\s*(<[^>]+>)?\s*Max HP/.test(mo), "...while his 12% Max HP shield grows");
+
+  const con = CARD['roma-constantine-the-great'];
+  const co = EOL.scaleSkillText(con.ability.text, con, MULT);
+  ok(/10%\s*(<[^>]+>)?\s*ATK/.test(co), "Constantine's 10% ATK buff is untouched");
+  ok(/>10.5<\/span>%\s*(<[^>]+>)?\s*Max HP/.test(co), '...while his 10% Max HP shield grows');
+
+  /* Thresholds, durations and Energy costs never move. */
+  const anu = CARD['duat-anubis'];
+  const an = EOL.scaleSkillText(anu.ability.text, anu, MULT);
+  ok(/below <b>25% HP/.test(an) || /25% HP/.test(an), "Anubis's execute threshold does not move");
+  ok(/refund <b>10 Energy|10 Energy/.test(an), 'and neither does an Energy refund');
+}
+
 /* ---------------- summary ---------------- */
 console.log('\n' + '='.repeat(64));
 if (fail) {

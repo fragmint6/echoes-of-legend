@@ -387,7 +387,14 @@
       esc(card.ability.name) +
       '</h3>' +
       '<p class="cd-skill-text">' +
-      rich(card.ability.text) +
+      /* Scaled to THIS copy's level, exactly like the hover overlay -
+         the dialog is where a player decides what to buy, so it must
+         not be the one place still quoting the stock numbers. */
+      rich(
+        up && window.EOL.scaleSkillText && owned
+          ? window.EOL.scaleSkillText(card.ability.text, card, up.powerMult(lvNow))
+          : card.ability.text
+      ) +
       '</p>' +
       (card.ability.note
         ? '<p class="cd-skill-note">' + rich(card.ability.note) + '</p>'

@@ -118,6 +118,129 @@
 
   window.EOL.ELEMENTS = ELEMENTS;
 
+  /* =============================================================
+     SKILL TEXT THAT KNOWS ITS UPGRADES
+     -------------------------------------------------------------
+     A levelled card hits harder, but its printed Signature Skill
+     still read "Deal 130% ATK" - so the collection told the player
+     the upgrade did nothing to the thing the upgrade is FOR.
+
+     scaleSkillText() rewrites the numbers that actually scale, and
+     ONLY those. What scales is exactly what engine.js multiplies by
+     `upPower` at the effect sites: dmg power / perDebuff / perBuff,
+     heal power and pctMaxHp, and shield pctMaxHp. Everything else -
+     stat buffs, lifesteal shares, Energy refunds, thresholds,
+     durations - is deliberately untouched, because the engine does
+     not move them either. A skill that says +12% ATK for 2 rounds
+     still says +12%, at every level.
+
+     HOW IT AVOIDS LYING
+
+       The values come from the SPEC, not from parsing prose, so the
+       list is exactly the set the engine will scale. Each is then
+       matched in the text as a whole percent token carrying the
+       right unit (ATK / Max HP), because three cards in the roster
+       print the same number twice with different units - Momotaro's
+       "12% DEF" and "12% Max HP", Hua Tuo's two 10%s, Constantine's
+       "10% ATK" and "10% Max HP". Matching on unit keeps the buff
+       untouched while the shield grows.
+
+       If a value still matches more than one place with its unit,
+       the rewrite for that value is SKIPPED rather than guessed -
+       an unscaled number is a small inaccuracy, a wrongly scaled
+       one is a lie about the rules.
+
+     Returns the text unchanged at level 0, so an un-upgraded card
+     costs nothing but a function call.
+     ============================================================= */
+  function collectScalable(effects, out) {
+    (effects || []).forEach(function (e) {
+      if (!e || typeof e !== 'object') return;
+      if (e.k === 'dmg') {
+        ['power', 'perDebuff', 'perBuff'].forEach(function (k) {
+          if (e[k] != null) out.yes.push({ v: e[k] * 100, unit: 'atk' });
+        });
+      } else if (e.k === 'heal') {
+        if (e.pctMaxHp != null) out.yes.push({ v: e.pctMaxHp, unit: 'hp' });
+        if (e.power != null) out.yes.push({ v: e.power * 100, unit: 'atk' });
+      } else if (e.k === 'shield') {
+        if (e.pctMaxHp != null) out.yes.push({ v: e.pctMaxHp, unit: 'hp' });
+      } else if (e.k === 'stat') {
+        /* NOT scaled by the engine - a stat buff is a stat buff at
+           every level. Recorded so a number used both ways on one
+           card can be detected and skipped. */
+        if (e.stat === 'atk') out.no.push({ v: Math.abs(e.amt), unit: 'atk' });
+        if (e.stat === 'hp') out.no.push({ v: Math.abs(e.amt), unit: 'hp' });
+      }
+      ['then', 'other', 'effects'].forEach(function (k) {
+        if (Array.isArray(e[k])) collectScalable(e[k], out);
+      });
+    });
+    return out;
+  }
+
+  /* Percent tokens are matched with their unit. The unit may sit
+     behind an element word and/or markup ("55% <b>Magic</b> Damage",
+     "12% Max HP"), so the gap allows tags and a couple of words but
+     never a sentence. */
+  var UNIT_RE = {
+    atk: 'ATK',
+    hp: 'Max\\s+HP',
+  };
+
+  window.EOL.scaleSkillText = function (html, card, mult) {
+    if (!html || !card || !mult || Math.abs(mult - 1) < 1e-9) return html;
+    var spec = (card.ability && card.ability.spec) || {};
+    var found = collectScalable(spec.effects, { yes: [], no: [] });
+    if (card.ability && card.ability.passive) {
+      collectScalable(card.ability.passive.effects, found);
+    }
+    var list = found.yes;
+    if (!list.length) return html;
+    /* A number the card uses BOTH ways with the same unit cannot be
+       told apart in prose, so it is skipped entirely. (No card in the
+       current roster does this - the guard is here so one added later
+       fails safe instead of silently mis-stating its own rules.) */
+    var conflicted = {};
+    found.no.forEach(function (o) {
+      conflicted[Math.round(o.v * 1000) / 1000 + '|' + o.unit] = 1;
+    });
+
+    /* De-duplicate: the same number+unit only needs rewriting once,
+       and a value the spec uses twice is still one token in prose. */
+    var seen = {};
+    var out = html;
+    list.forEach(function (item) {
+      var v = Math.round(item.v * 1000) / 1000;
+      var key = v + '|' + item.unit;
+      if (seen[key]) return;
+      seen[key] = 1;
+      /* Whole numbers only: every scalable value in the roster is one,
+         and a fractional source would need a different rounding rule
+         than the engine's. */
+      if (Math.abs(v - Math.round(v)) > 1e-9) return;
+      var re = new RegExp(
+        '(^|[^\\d.])(' + Math.round(v) + ')%(\\s*(?:<[^>]+>|\\w+\\s)*?\\s*' + UNIT_RE[item.unit] + ')',
+        'g'
+      );
+      if (conflicted[key]) return;
+      var hits = out.match(re);
+      if (!hits) return;
+      /* Every remaining hit of this number WITH THIS UNIT is a
+         scalable effect - branches (Hua Tuo's then/other) print one
+         prose token for two spec entries, and the same-unit tokens a
+         card prints twice (his 10% shield and 10% heal) both scale.
+         Anything the engine leaves alone either carries a different
+         unit or was caught by the conflict guard above. */
+      var scaled = Math.round(v * mult * 10) / 10;
+      out = out.replace(re, function (m, pre, num, tail) {
+        return pre + '<span class="sk-up" title="' + num + '% before upgrades">' + scaled + '</span>%' + tail;
+      });
+    });
+    return out;
+  };
+
+
   /* -----------------------------------------------------------
      Status registry - every buff / debuff the engine can apply
      gets its own icon, colour and label.

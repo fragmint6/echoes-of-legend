@@ -984,19 +984,20 @@ sec('S5. Upgrade UI: state on the card, controls in the dialog');
     !/data-up-level|data-up-craft|data-up-stat/.test(badgeFn),
     'and no upgrade control hooks'
   );
-  ok(/ov-lv/.test(badgeFn) && /ov-boost/.test(badgeFn), 'level (top-left) and boosts (top-right)');
+  ok(/ov-lv/.test(badgeFn), 'the level badge sits top-left');
+  ok(/boostSlots/.test(badgeFn), 'and the boost slots top-right');
 
-  /* An un-upgraded legend still shows no LEVEL badge... */
-  ok(/if \(lv <= 0\) return ready/.test(badgeFn), 'a level-0 card shows no level badge');
-  /* ...but a card with copies banked advertises that at level 0 too,
-     which is the case a player most needs pointing at. */
-  ok(/canLevel/.test(badgeFn) && /ov-ready/.test(badgeFn), 'a levellable card is flagged on the card');
-  /* dataset.canLevel is the DOM attribute data-can-level, which the
-     stylesheet targets - check both halves rather than a string that
-     appears in neither file verbatim. */
+  /* The level is ALWAYS stated now, including Lv0 - see S6. */
+  ok(!/if \(lv <= 0\) return/.test(badgeFn), 'a level-0 card still shows its level');
+  /* The marker is a real .card-ready element (a pseudo would collide
+     with .card::before, which is the element-colour edge stripe). */
   ok(
-    /dataset\.canLevel/.test(app) && /data-can-level/.test(css),
-    'and the whole card is marked, so it is findable without hovering'
+    /dataset\.canLevel/.test(app) && /card-ready/.test(app) && /\.card-ready/.test(css),
+    'a levellable card is marked, so it is findable without hovering'
+  );
+  ok(
+    !/\.card\[data-can-level='1'\]::(before|after)/.test(css),
+    'and it does not hijack a pseudo-element the card already uses'
   );
 
   /* The controls, and the lore, live in the dialog. */
@@ -1025,6 +1026,73 @@ sec('S5. Upgrade UI: state on the card, controls in the dialog');
     !/detail:\s*true/.test(deck),
     'the deck grid does not opt into click-to-open, which would steal add/remove'
   );
+}
+
+sec('S6. Card chrome: Lv0, three boost slots, stars, no dead gap');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  const badgeFn = app.slice(app.indexOf('function upgradeBadges'), app.indexOf('function buildCard'));
+
+  /* Lv0 IS SHOWN. "No badge" was ambiguous between un-upgraded and a
+     UI that forgot. */
+  ok(!/if \(lv <= 0\) return/.test(badgeFn), 'the level badge is not suppressed at level 0');
+  ok(/>Lv' \+/.test(badgeFn) && /\blv\b/.test(badgeFn), 'and it prints the actual number');
+
+  /* THREE SLOTS, not one dominant-stat summary - otherwise 2xATK+1xHP
+     and 3xATK look identical. */
+  const slotFn = app.slice(app.indexOf('function boostSlots'), app.indexOf('function upgradeBadges'));
+  ok(/MAX_LEVEL/.test(slotFn), 'the slots loop over MAX_LEVEL, not over what was bought');
+  ok(/empty/.test(slotFn), 'an unbought level renders as an empty socket');
+  ok(/boostsOf/.test(slotFn), 'each slot names the boost THAT level took');
+  ok(!/statOf/.test(badgeFn), 'the badges no longer collapse the build to one dominant stat');
+  ['atk', 'def', 'hp'].forEach((k) => {
+    ok(
+      new RegExp("ovb-slot\\[data-boost='" + k + "'\\]").test(css),
+      'the ' + k.toUpperCase() + ' slot has its own colour'
+    );
+  });
+
+  /* STARS on the frame, readable without hovering. */
+  ok(/card-stars/.test(app) && /card-stars/.test(css), 'a levelled card wears stars on its border');
+  ok(/dataset\.stars/.test(app), 'driven by the level');
+  ok(/clip-path/.test(css.slice(css.indexOf('.card-stars'))), 'drawn in CSS - no star exists in either icon set');
+
+  /* THE DEAD GAP above the name is gone. */
+  ok(
+    /\.card-overlay \.ov-head \{\s*padding-top: 0;/.test(css),
+    'the overlay head no longer reserves blanket padding'
+  );
+}
+
+sec('S7. Skill text reflects the card\u2019s own upgrades');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const detail = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
+  ok(/scaleSkillText/.test(app), 'the hover overlay scales its skill text');
+  ok(/scaleSkillText/.test(detail), 'and so does the detail dialog');
+  /* Stock surfaces must stay stock - a draft card is not your card. */
+  ok(
+    /options\.upgrades/.test(
+      app.slice(app.indexOf('function skillText'), app.indexOf('function upgradeBadges'))
+    ),
+    'only upgrade-aware surfaces scale; drafts and packs stay printed'
+  );
+}
+
+sec('S8. The Echo Shop is a shopfront, not a list');
+{
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
+  ok(/echo-counter/.test(html), 'the shard balance is the subject of the screen');
+  ok(/echo-afford/.test(html) && /enough for a copy of/.test(shop), 'and says what it can buy');
+  ok(/data-echo-filter/.test(html), 'filtering is a segmented control, not a checkbox');
+  ok(!/echo-only-useful/.test(html) && !/echo-only-useful/.test(shop), 'the old checkbox is gone');
+  ok(/ec-bar/.test(shop), 'each legend shows progress toward its next level');
+  ok(/ec-pip/.test(shop), 'and its current level as pips');
+  ok(/ec-boost/.test(shop), 'and which boosts it already took');
+  /* The rule that keeps packs meaningful. */
+  ok(/econ\.owns/.test(shop.slice(shop.indexOf('function echoRows'))), 'only legends you own are listed');
 }
 
 sec('T. The board cannot be closed');

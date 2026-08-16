@@ -120,6 +120,49 @@
      Read-only by construction. There is nothing here to click, so
      hovering a card can never change it.
      ============================================================= */
+  /* THE BOOST SLOTS. Three of them, always, in the top-right - one
+     per possible level. A filled slot is a coloured icon naming the
+     stat that level bought; an empty slot is a hollow socket, so the
+     card shows at a glance both what it HAS and what it could still
+     take. The old badge collapsed the whole build into one dominant
+     stat, which meant a 2xATK+1xHP card and a 3xATK card looked
+     identical. */
+  var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
+  var BOOST_NAME = { atk: 'ATK', def: 'DEF', hp: 'HP' };
+
+  function boostSlots(card, U) {
+    var boosts = U.boostsOf(card.id);
+    var out = '';
+    for (var i = 0; i < U.MAX_LEVEL; i++) {
+      var b = boosts[i];
+      out += b
+        ? '<span class="ovb-slot" data-boost="' +
+          b +
+          '" title="Level ' +
+          (i + 1) +
+          ': +2% ' +
+          BOOST_NAME[b] +
+          '"><i data-icon-domain="game" class="ra ' +
+          BOOST_ICON[b] +
+          '"></i></span>'
+        : '<span class="ovb-slot empty" title="Level ' + (i + 1) + ': not bought yet"></span>';
+    }
+    return '<span class="ov-boost">' + out + '</span>';
+  }
+
+  /* The Signature Skill as this copy of the card actually performs
+     it. Falls back to the printed text whenever upgrades are not in
+     play - drafts, packs and the Daily Puzzle all fight stock. */
+  function skillText(card, options) {
+    var U = window.EOL.upgrades;
+    if (!options || !options.upgrades || !U || !window.EOL.scaleSkillText) {
+      return card.ability.text;
+    }
+    var econ = window.EOL.econ;
+    if (econ && !econ.owns(card.id)) return card.ability.text;
+    return window.EOL.scaleSkillText(card.ability.text, card, U.powerMult(U.levelOf(card.id)));
+  }
+
   function upgradeBadges(card) {
     var U = window.EOL.upgrades;
     if (!U) return '';
@@ -127,54 +170,20 @@
     if (econ && !econ.owns(card.id)) return '';
     var lv = U.levelOf(card.id);
 
-    /* THE READY PIP. A card with enough banked copies to buy a level
-       says so on its face, unopened - otherwise the only way to find
-       out was to open all 63 legends one at a time and read the
-       panel. It renders even at level 0, because that is exactly the
-       case a player most needs pointing at. */
-    var ready = U.canLevel(card.id)
-      ? '<span class="ov-ready" title="Enough copies banked - this legend can level up">' +
-        '<i class="ri-sparkling-line"></i>Level up</span>'
-      : '';
-
-    if (lv <= 0) return ready;
-
-    var stat = U.statOf(card.id);
-    var stats = U.statsFor(card.id, card);
-    /* Say what the boost IS WORTH, not what it is called. "+40 ATK"
-       is a number the player can check against the stat bar two
-       lines below; "ATK boost" is a label they have to trust. DEF is
-       flat points because it is a percentage-point reducer - the
-       same distinction upgrades.js makes. */
-    var delta = '';
-    if (stats) {
-      if (stat === 'atk') delta = '+' + (stats.atk - card.stats.atk).toLocaleString();
-      else if (stat === 'hp') delta = '+' + (stats.hp - card.stats.hp).toLocaleString();
-      else if (stat === 'def') delta = '+' + Math.round((stats.def - card.stats.def) * 10) / 10;
-    }
-    var power = Math.round((U.powerMult(lv) - 1) * 1000) / 10;
-
+    /* THE LEVEL IS ALWAYS SHOWN, including Lv0. "No badge" is
+       ambiguous between un-upgraded and a UI that forgot, and the
+       slots beside it only make sense next to a level. */
     return (
-      ready +
-      '<span class="ov-lv" title="Upgrade level ' +
+      '<span class="ov-lv' +
+      (lv > 0 ? ' on' : '') +
+      '" title="Upgrade level ' +
       lv +
       ' of ' +
       U.MAX_LEVEL +
-      '"><i class="ri-sparkling-2-fill"></i>Lv' +
+      '">Lv' +
       lv +
       '</span>' +
-      '<span class="ov-boost" title="' +
-      esc(stat.toUpperCase()) +
-      ' boost and skill power from upgrades">' +
-      '<span class="ovb-stat">' +
-      esc(stat.toUpperCase()) +
-      ' ' +
-      esc(delta) +
-      '</span>' +
-      '<span class="ovb-pow">+' +
-      power +
-      '% skill</span>' +
-      '</span>'
+      boostSlots(card, U)
     );
   }
 
@@ -230,11 +239,17 @@
        than a :has() the rest of this sheet does not rely on. */
     var badges = options.upgrades ? upgradeBadges(card) : '';
     if (badges) el.dataset.upgraded = '1';
-    /* A card that can be levelled is worth spotting from across the
-       grid, so the whole card gets a marker - not just the overlay,
-       which is only visible on hover. */
-    if (window.EOL.upgrades && options.upgrades && window.EOL.upgrades.canLevel(card.id)) {
-      el.dataset.canLevel = '1';
+    var U0 = window.EOL.upgrades;
+    if (U0 && options.upgrades) {
+      /* A card that can be levelled is worth spotting from across the
+         grid, so the whole card is flagged - not just the overlay,
+         which is only visible once you are already looking at it. */
+      if (U0.canLevel(card.id)) el.dataset.canLevel = '1';
+      /* STARS ON THE FRAME. The level, rendered as 1-3 stars set into
+         the top border, readable without hovering and without opening
+         anything. */
+      var lv0 = U0.levelOf(card.id);
+      if (lv0 > 0) el.dataset.stars = String(lv0);
     }
 
     el.innerHTML =
@@ -247,6 +262,22 @@
       '<div class="card-vignette"></div>' +
       '<div class="card-sheen"></div>' +
       '<div class="card-frame"></div>' +
+      /* THE STAR CREST. Set into the middle of the top border, so the
+         upgrade level reads at a glance across a scrolling grid -
+         no hover, no click. Rendered only for a levelled card. */
+      /* The stars are drawn in CSS (clip-path), not from an icon
+         font: neither RPG Awesome 0.2.0 nor the pinned Remix set
+         carries a plain star, and a crest set into a 1px border
+         wants a crisp shape at exactly one size anyway. */
+      (el.dataset.canLevel
+        ? '<span class="card-ready" title="Enough copies banked - this legend can level up">' +
+          '<i aria-hidden="true"></i></span>'
+        : '') +
+      (el.dataset.stars
+        ? '<span class="card-stars" aria-hidden="true">' +
+          new Array(+el.dataset.stars + 1).join('<i></i>') +
+          '</span>'
+        : '') +
       '<span class="corner tl"></span><span class="corner tr"></span>' +
       '<span class="corner bl"></span><span class="corner br"></span>' +
       '<div class="card-top">' +
@@ -313,7 +344,10 @@
       esc(card.ability.name) +
       '</div>' +
       '<div class="ab-text">' +
-      rich(card.ability.text) +
+      /* THE SKILL TEXT KNOWS ITS UPGRADES. A levelled card hits
+         harder, so the printed numbers say so - only the ones the
+         engine actually scales. See EOL.scaleSkillText. */
+      rich(skillText(card, options)) +
       (card.ability.note ? '<div class="ab-note">' + rich(card.ability.note) + '</div>' : '') +
       '</div>' +
       '</div>' +

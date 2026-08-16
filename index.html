@@ -1155,28 +1155,40 @@
            upgrade currency, not a collection shortcut, so packs stay
            the only way to widen a collection. -->
       <div class="shop-panel" id="spanel-echo" hidden>
-        <div class="echo-head">
-          <div class="echo-head-txt">
-            <h3>Echo Shop</h3>
-            <p>
-              Spend Echo Shards on another copy of a legend you own. Copies are what levels
-              a card &mdash; and shards are what a duplicate you did not want turns into.
-            </p>
+        <!-- THE COUNTER. A shard balance big enough to be the subject
+             of the screen, with the two things it can become stated
+             plainly beside it. -->
+        <div class="echo-counter">
+          <div class="echo-counter-main">
+            <span class="echo-counter-lbl">Echo Shards</span>
+            <strong class="echo-counter-val" id="echo-balance">0</strong>
+            <span class="echo-counter-sub" id="echo-afford"></span>
           </div>
-          <span class="echo-balance" id="echo-balance"></span>
+          <p class="echo-counter-note">
+            Every duplicate you open melts into shards. Shards buy another copy of a legend
+            you already own &mdash; copies are what raise its level.
+            <b>Packs stay the only way to find a legend you do not have.</b>
+          </p>
         </div>
+
         <div class="echo-tools">
-          <div class="search-wrap">
+          <div class="search-wrap echo-search-wrap">
             <i class="ri-search-line" aria-hidden="true"></i>
             <input type="text" id="echo-search" placeholder="Search your legends..." />
           </div>
-          <label class="echo-filter">
-            <input type="checkbox" id="echo-only-useful" checked />
-            <span>Only legends that still have a level to buy</span>
-          </label>
+          <div class="echo-seg" role="group" aria-label="Filter">
+            <button type="button" class="echo-seg-btn sel" data-echo-filter="ready">
+              Ready to level
+            </button>
+            <button type="button" class="echo-seg-btn" data-echo-filter="upgradable">
+              Upgradable
+            </button>
+            <button type="button" class="echo-seg-btn" data-echo-filter="all">All</button>
+          </div>
         </div>
+
         <div class="echo-grid" id="echo-grid"></div>
-        <p class="echo-empty" id="echo-empty" hidden></p>
+        <div class="echo-empty" id="echo-empty" hidden></div>
       </div>
 
       <!-- cinematic pack opening -->
