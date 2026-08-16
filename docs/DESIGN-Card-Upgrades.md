@@ -3,7 +3,9 @@
 **Status:** Implemented.
 
 **Revised 2026-08-16:** the upgrade controls moved out of the card's hover overlay and
-into a card detail dialog (§5).
+into a card detail dialog (§5); each level now carries **its own** boost (§1.3); the
+shard spend moved to the Shop's Echo Shop tab (§3.5); levelling up has a ceremony and
+levellable cards are flagged (§5.4).
 
 **Purpose:** Turn the collection's dead end into a long tail. Packs used to pay nothing
 once every card was owned, and coins had exactly one sink in the entire codebase
@@ -76,6 +78,25 @@ Upgrades scale by **percentage, not flat points**. A flat +2 on Anubis's 260% ex
 +0.8%, but a flat +2 on Abe no Seimei's 50% is +4%; a flat bonus silently favours
 weak-hitting cards.
 
+
+### 1.3 One boost per level
+
+*(Owner ruling 2026-08-16.)* Levels do **not** share a single chosen stat. Each level
+carries its own, so `["atk", "atk", "hp"]` is a real build: +4% ATK, +2% HP, and the
++4.6% skill power that all three levels bought.
+
+This makes a maxed card three small decisions instead of one toggle, and it lets a player
+answer a specific question — "this Medic wants survivability, but I still want the heal to
+scale" — rather than picking the least-bad single answer.
+
+Every level's choice stays free to re-assign outside a battle (`setBoost(id, level,
+stat)`), and the skill-power multiplier is unchanged: it compounds on the **level count**,
+not on any one stat, so mixing costs nothing in power.
+
+`statsFor()` and the engine's `applyUpgrades()` both compute per-stat counts from the same
+array, and `sim/verify_quests_upgrades.js` asserts the two agree exactly — a mismatch there
+would mean the collection lies about what a card does in a fight.
+
 ---
 
 ## 2. Where upgrades apply
@@ -145,6 +166,9 @@ a card is maxed at level 3, further duplicates pay shards only — the overflow 
 
 ### 3.2 Crafting — shards buy duplicates of cards you own
 
+*(Since 2026-08-16 this is spent in the Shop's Echo Shop tab, not in the collection —
+see §3.5.)*
+
 | Rarity | Shards per duplicate |
 |---|---|
 | Common | 300 |
@@ -184,17 +208,41 @@ never dead-ends again.
 
 ---
 
+### 3.5 Where shards are spent
+
+*(Owner ruling 2026-08-16.)* The craft button used to live inside each card's upgrade
+panel. That gave the game's second currency no shopfront at all: you could only spend it
+one legend at a time, from a screen whose job was something else, and there was nowhere to
+compare what your shards could buy.
+
+Buying copies is **shopping**, so it lives in the Shop, behind a **Packs / Echo Shop** tab
+pair. The Echo Shop lists every legend you own with its cost, its level, and how many
+copies it still needs, sorted so the ones closest to a level come first — and filtered by
+default to hide legends with nothing left to buy, because selling a copy to a maxed card
+is a trap, not an option.
+
+The upgrade panel keeps a **"Need copies?"** link that closes the dialog and lands you on
+that tab. The rule itself is unchanged: shards buy copies of legends you **already own**,
+never new ones.
+
+---
+
 ## 4. Storage
 
-One key, `eol.upgrades.v1`:
+One key, `eol.upgrades.v2`:
 
 ```
 {
-  v: 1,
+  v: 2,
   shards: 1234,
-  cards: { "duat-anubis": { dupes: 4, lv: 2, stat: "atk" } }
+  cards: { "duat-anubis": { dupes: 4, boosts: ["atk", "hp"] } }
 }
 ```
+
+`boosts` holds one stat name **per level purchased**, so its length *is* the level — the
+two can never disagree. A `v1` save (`{ dupes, lv, stat }`) is migrated on first read by
+repeating its single stat `lv` times, which produces byte-for-byte identical numbers; the
+old key is left in place so rolling the build back does not lose anything.
 
 `dupes` is the number of duplicates *banked and not yet spent* on a level. Levels are
 purchased explicitly by the player, not auto-applied, so the choice of stat is always
@@ -257,3 +305,27 @@ diff against balance data. `sim/verify_all.js` enforces coverage, length, that n
 names a card that does not exist, that each entry names its own legend, and that prose
 never uses rules vocabulary (the skill text on the same panel already says that, in the
 exact words the engine means).
+
+### 5.4 Making it feel like something
+
+Nine duplicates is a long grind, and the reward for finishing it used to be a pip quietly
+switching on.
+
+**Finding it.** A legend with enough banked copies to buy a level is flagged twice: a
+pulsing dot on the card in the grid (visible without hovering — otherwise the only way to
+find out was to open all 63 legends one at a time), and an explicit *Level up* pill in the
+hover overlay. The dialog's panel glows and its button reads *"Level up to 2"*.
+
+**Level 0 is stated.** An owned legend always shows `Level 0 / 3` rather than no badge at
+all — "no badge" is ambiguous between un-upgraded and a UI that forgot, and a player
+deciding where to spend copies needs the baseline said out loud.
+
+**The ceremony.** Levelling up plays a flash, two expanding shockwave rings, eighteen
+light shards on deterministic angles, a struck `LEVEL 2` stamp, and a count-up on the stat
+that actually grew — so the animation tells you *which* choice you just bought. Level 3
+gets a bigger version in the legendary colour reading `MAX LEVEL`, with its own fanfare
+(`audio.ui('levelmax')`). The whole thing is one overlay appended to the dialog and
+removed on completion, so nothing leaks.
+
+Both kill switches are respected: `body[data-gfx='low']` and `prefers-reduced-motion` keep
+the stamp and the numbers and drop the particles.

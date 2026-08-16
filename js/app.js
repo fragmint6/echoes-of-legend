@@ -126,7 +126,18 @@
     var econ = window.EOL.econ;
     if (econ && !econ.owns(card.id)) return '';
     var lv = U.levelOf(card.id);
-    if (lv <= 0) return '';
+
+    /* THE READY PIP. A card with enough banked copies to buy a level
+       says so on its face, unopened - otherwise the only way to find
+       out was to open all 63 legends one at a time and read the
+       panel. It renders even at level 0, because that is exactly the
+       case a player most needs pointing at. */
+    var ready = U.canLevel(card.id)
+      ? '<span class="ov-ready" title="Enough copies banked - this legend can level up">' +
+        '<i class="ri-sparkling-line"></i>Level up</span>'
+      : '';
+
+    if (lv <= 0) return ready;
 
     var stat = U.statOf(card.id);
     var stats = U.statsFor(card.id, card);
@@ -144,6 +155,7 @@
     var power = Math.round((U.powerMult(lv) - 1) * 1000) / 10;
 
     return (
+      ready +
       '<span class="ov-lv" title="Upgrade level ' +
       lv +
       ' of ' +
@@ -218,6 +230,12 @@
        than a :has() the rest of this sheet does not rely on. */
     var badges = options.upgrades ? upgradeBadges(card) : '';
     if (badges) el.dataset.upgraded = '1';
+    /* A card that can be levelled is worth spotting from across the
+       grid, so the whole card gets a marker - not just the overlay,
+       which is only visible on hover. */
+    if (window.EOL.upgrades && options.upgrades && window.EOL.upgrades.canLevel(card.id)) {
+      el.dataset.canLevel = '1';
+    }
 
     el.innerHTML =
       '<div class="card-art' +

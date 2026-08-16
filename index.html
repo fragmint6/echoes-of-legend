@@ -1078,6 +1078,21 @@
         </button>
         <span class="shop-progress" id="shop-progress"></span>
       </div>
+      <!-- Packs / Echo Shop. The shard spend used to sit inside the
+           collection's upgrade panel, which meant the second currency
+           had no shopfront of its own and you could only find it one
+           card at a time. It is a shop, so it lives in the Shop. -->
+      <div class="shop-tabs" role="tablist">
+        <span class="shop-thumb" aria-hidden="true"></span>
+        <button class="shop-tab sel" id="stab-packs" role="tab" aria-selected="true">
+          <i class="ri-gift-line" aria-hidden="true"></i><span>Packs</span>
+        </button>
+        <button class="shop-tab" id="stab-echo" role="tab" aria-selected="false">
+          <i class="ri-sparkling-2-line" aria-hidden="true"></i><span>Echo Shop</span>
+        </button>
+      </div>
+
+      <div class="shop-panel" id="spanel-packs">
       <div class="shop-body shop-shelf">
         <article class="product">
           <div class="product-pack pk-host" data-pack="trio">
@@ -1132,6 +1147,36 @@
             <button class="btn btn-primary buy-pack" data-pack="crown"></button>
           </div>
         </article>
+      </div>
+      </div>
+
+      <!-- THE ECHO SHOP: spend Echo Shards on duplicates of legends you
+           already own. Never on legends you do not - crafting is an
+           upgrade currency, not a collection shortcut, so packs stay
+           the only way to widen a collection. -->
+      <div class="shop-panel" id="spanel-echo" hidden>
+        <div class="echo-head">
+          <div class="echo-head-txt">
+            <h3>Echo Shop</h3>
+            <p>
+              Spend Echo Shards on another copy of a legend you own. Copies are what levels
+              a card &mdash; and shards are what a duplicate you did not want turns into.
+            </p>
+          </div>
+          <span class="echo-balance" id="echo-balance"></span>
+        </div>
+        <div class="echo-tools">
+          <div class="search-wrap">
+            <i class="ri-search-line" aria-hidden="true"></i>
+            <input type="text" id="echo-search" placeholder="Search your legends..." />
+          </div>
+          <label class="echo-filter">
+            <input type="checkbox" id="echo-only-useful" checked />
+            <span>Only legends that still have a level to buy</span>
+          </label>
+        </div>
+        <div class="echo-grid" id="echo-grid"></div>
+        <p class="echo-empty" id="echo-empty" hidden></p>
       </div>
 
       <!-- cinematic pack opening -->
@@ -2066,7 +2111,7 @@
          See js/card-detail.js. -->
     <div class="cd-modal" id="card-detail" hidden>
       <div class="cd-scrim" id="cd-scrim"></div>
-      <div class="cd-card" role="dialog" aria-modal="true" aria-labelledby="cd-body">
+      <div class="cd-card" id="cd-card" role="dialog" aria-modal="true" aria-labelledby="cd-body">
         <button type="button" class="cd-close" id="cd-close" aria-label="Close">
           <i class="ri-close-line" aria-hidden="true"></i>
         </button>

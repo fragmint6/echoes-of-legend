@@ -95,7 +95,7 @@
        the wallet they pay into, so they ride this sync rather than a
        migration. See docs/DESIGN-Quests.md §8. */
     ['eol.quests.v2', 'quests', 'json'],
-    ['eol.upgrades.v1', 'upgrades', 'json'],
+    ['eol.upgrades.v2', 'upgrades', 'json'],
   ];
   var KEYS = MAP.map(function (row) {
     return row[0];

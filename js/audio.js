@@ -418,6 +418,67 @@
           wet: 0.2,
         });
         break;
+      /* THE LEVEL-UP FANFARE. A rising arpeggio (the card getting
+         stronger, said in pitch) capped by a bright bell, plus a
+         short airy swell underneath so it has body. Deliberately
+         longer and louder than 'confirm' - this is the payoff for
+         nine duplicates, not an acknowledgement of a click. */
+      case 'levelup':
+        [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+          tone({
+            freq: f,
+            when: t + i * 0.075,
+            dur: 0.26,
+            gain: 0.05,
+            type: 'triangle',
+            bus: 'ui',
+            wet: 0.28,
+          });
+        });
+        tone({
+          freq: 1567.98,
+          when: t + 0.3,
+          dur: 0.7,
+          gain: 0.035,
+          type: 'sine',
+          bus: 'ui',
+          wet: 0.45,
+        });
+        noise({ when: t + 0.28, dur: 0.5, gain: 0.014, filter: 5200, bus: 'ui' });
+        break;
+      /* The same idea, bigger: the third and final level. */
+      case 'levelmax':
+        [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f, i) {
+          tone({
+            freq: f,
+            when: t + i * 0.07,
+            dur: 0.34,
+            gain: 0.055,
+            type: 'triangle',
+            bus: 'ui',
+            wet: 0.32,
+          });
+        });
+        tone({
+          freq: 2093,
+          when: t + 0.36,
+          dur: 0.9,
+          gain: 0.04,
+          type: 'sine',
+          bus: 'ui',
+          wet: 0.5,
+        });
+        tone({
+          freq: 130.81,
+          when: t + 0.34,
+          dur: 0.8,
+          gain: 0.05,
+          type: 'sine',
+          bus: 'ui',
+          wet: 0.2,
+        });
+        noise({ when: t + 0.32, dur: 0.7, gain: 0.02, filter: 6000, bus: 'ui' });
+        break;
       case 'toggle':
       case 'tick':
         tone({

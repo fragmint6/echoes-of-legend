@@ -350,6 +350,78 @@ sec('J. Respec is free outside battle and locked inside');
   ok(U.setStat('duat-anubis', 'def').ok, 'respec works again after the battle');
 }
 
+sec('J2. PER-LEVEL BOOSTS - a card can mix its three levels');
+{
+  U._reset();
+  const id = 'duat-anubis';
+  const card = CARD[id].card;
+  U.addDuplicate(id, 9);
+  U.levelUp(id, 'atk');
+  U.levelUp(id, 'atk');
+  U.levelUp(id, 'hp');
+  ok(U.levelOf(id) === 3, 'three levels bought');
+  ok(JSON.stringify(U.boostsOf(id)) === '["atk","atk","hp"]', 'each level kept its own boost');
+  const c = U.boostCounts(id);
+  ok(c.atk === 2 && c.hp === 1 && c.def === 0, 'counts are per stat');
+
+  /* The display maths must move each stat by ITS OWN count. */
+  const st = U.statsFor(id, card);
+  ok(st.atk === Math.round(card.stats.atk * 1.04), 'two ATK levels = +4% ATK');
+  ok(st.hp === Math.round(card.stats.hp * 1.02), 'one HP level = +2% HP');
+  ok(st.def === card.stats.def, 'a stat nobody chose does not move');
+  ok(st.lv === 3, 'the level is still three');
+
+  /* ...and the ENGINE must agree with the display, exactly. */
+  const B = E.createBattle(mine(), foes(), { upgrades: U.payloadFor([id]) });
+  const u = unitOf(B, id);
+  ok(u.upLevel === 3, 'engine sees a level-3 card');
+  ok(u.baseAtk === st.atk, 'engine ATK matches the collection');
+  ok(u.maxHp === st.hp, 'engine HP matches the collection');
+  ok(u.baseDef === st.def, 'engine DEF matches the collection');
+  ok(
+    Math.abs(u.upPower - Math.pow(1.015, 3)) < 1e-9,
+    'skill power still compounds on the LEVEL, not on any one stat'
+  );
+
+  /* Re-assigning one level leaves the others alone. */
+  U.setBoost(id, 1, 'def');
+  ok(JSON.stringify(U.boostsOf(id)) === '["def","atk","hp"]', 'level 1 re-assigned in place');
+  ok(U.setBoost(id, 9, 'atk').ok === false, 'a level that was never bought cannot be assigned');
+  ok(U.setBoost(id, 1, 'garbage').ok === false, 'an unknown stat is refused');
+
+  /* The upgrade level is the boost count - they cannot disagree. */
+  U._reset();
+  U.addDuplicate(id, 1);
+  U.levelUp(id, 'hp');
+  ok(U.levelOf(id) === U.boostsOf(id).length, 'level is derived from the boosts array');
+}
+
+sec('J3. A v1 save migrates without changing anybody\u2019s numbers');
+{
+  U._reset();
+  const id = 'duat-anubis';
+  const card = CARD[id].card;
+  /* Write a pre-per-level save by hand and boot from it. */
+  localStorage.setItem(
+    'eol.upgrades.v1',
+    JSON.stringify({ v: 1, shards: 250, cards: { [id]: { dupes: 2, lv: 2, stat: 'hp' } } })
+  );
+  localStorage.removeItem('eol.upgrades.v2');
+  U._reload();
+  ok(U.shards() === 250, 'shards survive the migration');
+  ok(U.levelOf(id) === 2, 'the level survives');
+  ok(U.dupesOf(id) === 2, 'banked duplicates survive');
+  ok(
+    JSON.stringify(U.boostsOf(id)) === '["hp","hp"]',
+    'the single old stat becomes that stat on every purchased level'
+  );
+  ok(
+    U.statsFor(id, card).hp === Math.round(card.stats.hp * 1.04),
+    'and the resulting numbers are IDENTICAL to what v1 produced'
+  );
+  localStorage.removeItem('eol.upgrades.v1');
+}
+
 sec('K. Wire payload is sanitized');
 {
   const dirty = {
@@ -361,7 +433,23 @@ sec('K. Wire payload is sanitized');
   const clean = U.sanitize(dirty);
   ok(clean['duat-anubis'].lv === 3, 'an over-max level is clamped to 3');
   ok(!clean['camelot-lancelot'], 'a zero/negative level is dropped');
-  ok(clean['olympus-zeus'].stat === 'atk', 'an unknown stat falls back to atk');
+  ok(
+    clean['olympus-zeus'].boosts.every((b) => b === 'atk'),
+    'an unknown stat falls back to atk'
+  );
+  /* Per-level boosts arrive as an array, and it is untrusted input
+     applied to the opponent's team - rebuilt, never trimmed. */
+  const arr = U.sanitize({
+    'duat-anubis': { boosts: ['hp', 'nonsense', 'def', 'atk', 'atk'] },
+  })['duat-anubis'];
+  ok(arr.boosts.length === 3, 'a boost array longer than MAX_LEVEL is cut to 3');
+  ok(arr.boosts.indexOf('nonsense') < 0, 'unknown stat names are dropped from the array');
+  ok(arr.lv === arr.boosts.length, 'lv always agrees with the boost count');
+  const legacy = U.sanitize({ 'duat-anubis': { lv: 2, stat: 'hp' } })['duat-anubis'];
+  ok(
+    legacy.boosts.length === 2 && legacy.boosts.every((b) => b === 'hp'),
+    'a legacy {lv,stat} payload expands to that stat repeated'
+  );
   ok(!clean.junk, 'junk entries are dropped');
   ok(Object.keys(U.sanitize(null)).length === 0, 'null payload is an empty object');
 
@@ -883,6 +971,7 @@ sec('S5. Upgrade UI: state on the card, controls in the dialog');
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const detail = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
   const deck = fs.readFileSync(path.join(ROOT, 'js/deck.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
 
   /* The hover overlay carries STATE only. If a control ever creeps
      back into buildCard, reading a card and changing it become the
@@ -897,15 +986,34 @@ sec('S5. Upgrade UI: state on the card, controls in the dialog');
   );
   ok(/ov-lv/.test(badgeFn) && /ov-boost/.test(badgeFn), 'level (top-left) and boosts (top-right)');
 
-  /* An un-upgraded legend must look un-upgraded. */
-  ok(/if \(lv <= 0\) return ''/.test(badgeFn), 'a level-0 card shows no badge');
+  /* An un-upgraded legend still shows no LEVEL badge... */
+  ok(/if \(lv <= 0\) return ready/.test(badgeFn), 'a level-0 card shows no level badge');
+  /* ...but a card with copies banked advertises that at level 0 too,
+     which is the case a player most needs pointing at. */
+  ok(/canLevel/.test(badgeFn) && /ov-ready/.test(badgeFn), 'a levellable card is flagged on the card');
+  /* dataset.canLevel is the DOM attribute data-can-level, which the
+     stylesheet targets - check both halves rather than a string that
+     appears in neither file verbatim. */
+  ok(
+    /dataset\.canLevel/.test(app) && /data-can-level/.test(css),
+    'and the whole card is marked, so it is findable without hovering'
+  );
 
   /* The controls, and the lore, live in the dialog. */
   ok(/id="card-detail"/.test(html), 'the detail dialog exists in the document');
   ok(
-    /data-up-level/.test(detail) && /data-up-craft/.test(detail) && /data-up-stat/.test(detail),
-    'all three upgrade controls moved to the dialog'
+    /data-up-level/.test(detail) && /data-up-stat/.test(detail),
+    'levelling and boost-picking live in the dialog'
   );
+  /* Buying copies is SHOPPING and belongs in the Shop, not in a
+     panel whose job is spending them. */
+  ok(!/data-up-craft/.test(detail), 'the shard craft button is gone from the upgrade panel');
+  const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
+  ok(/data-echo-buy/.test(shop), 'the Echo Shop sells copies instead');
+  ok(/spanel-echo/.test(html) && /stab-echo/.test(html), 'and it has its own tab in the Shop');
+  /* Per-level boosts: the control must say WHICH level it edits. */
+  ok(/data-up-level-index/.test(detail), 'each boost button names the level it belongs to');
+  ok(/setBoost/.test(detail), 'and calls the per-level setter');
   ok(/cd-lore/.test(detail), 'the dialog renders lore');
   ok(/card\.lore/.test(detail), 'read from the card, not hardcoded');
 

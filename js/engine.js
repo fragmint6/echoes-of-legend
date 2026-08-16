@@ -114,6 +114,7 @@
          baseAtk/baseDef/maxHp at creation. */
       upLevel: 0,
       upStat: null,
+      upBoosts: null, // one stat name per level purchased
       upPower: 1,
       battle: null, // set on createBattle so stats can read round/board state
       uid: 'u' + ++uid,
@@ -715,17 +716,40 @@
         if (u.side !== side) return;
         var r = table[u.card.id];
         if (!r) return;
-        var lv = Math.max(0, Math.min(3, Math.floor(+r.lv || 0)));
+        /* PER-LEVEL BOOSTS. `boosts` is one stat name per level
+           purchased, so its length is the level and each stat moves
+           by however many levels chose it - "two ATK and one HP" is
+           a real build. A payload carrying only the legacy
+           {lv, stat} is expanded to that stat repeated lv times, so
+           an older client's team still resolves identically. */
+        var boosts = [];
+        if (Array.isArray(r.boosts)) {
+          r.boosts.forEach(function (b) {
+            if (boosts.length < 3 && (b === 'atk' || b === 'def' || b === 'hp')) boosts.push(b);
+          });
+        } else {
+          var lv0 = Math.max(0, Math.min(3, Math.floor(+r.lv || 0)));
+          var st = r.stat === 'def' || r.stat === 'hp' ? r.stat : 'atk';
+          for (var i = 0; i < lv0; i++) boosts.push(st);
+        }
+        var lv = boosts.length;
         if (!lv) return;
+        var n = { atk: 0, def: 0, hp: 0 };
+        boosts.forEach(function (b) {
+          n[b]++;
+        });
         u.upLevel = lv;
-        u.upStat = r.stat === 'def' || r.stat === 'hp' ? r.stat : 'atk';
+        u.upBoosts = boosts.slice();
+        /* One word for the build, for anything that wants a label.
+           The maths below never reads it. */
+        u.upStat = n.hp > n.atk && n.hp >= n.def ? 'hp' : n.def > n.atk && n.def >= n.hp ? 'def' : 'atk';
         u.upPower = Math.pow(1.015, lv);
-        var m = 1 + 0.02 * lv;
-        if (u.upStat === 'atk') u.baseAtk = Math.round(u.baseAtk * m);
-        else if (u.upStat === 'hp') {
-          u.maxHp = Math.round(u.maxHp * m);
+        if (n.atk) u.baseAtk = Math.round(u.baseAtk * (1 + 0.02 * n.atk));
+        if (n.hp) {
+          u.maxHp = Math.round(u.maxHp * (1 + 0.02 * n.hp));
           u.hp = u.maxHp;
-        } else if (u.upStat === 'def') {
+        }
+        if (n.def) {
           /* DEF is NOT a scalable stat - it is a percentage-point
              damage reducer clamped to 0..75, and the roster only
              spans 10..30. Multiplying it by 1.02 rounds straight back
@@ -733,7 +757,7 @@
              nothing. It gets FLAT POINTS instead, sized so its value
              matches the other two: +1.5 points per level is +5.3% to
              +6.9% effective HP at max, against +6% for the HP choice. */
-          u.baseDef = u.baseDef + 1.5 * lv;
+          u.baseDef = u.baseDef + 1.5 * n.def;
         }
       });
     }
@@ -838,6 +862,16 @@
       hp: u.hp,
       baseAtk: u.baseAtk,
       baseDef: u.baseDef,
+      /* CARD UPGRADES must survive cloning. The stat share is already
+         folded into baseAtk/baseDef/maxHp above, but `upPower` is read
+         live at every effect site - without it the AI's lookahead
+         evaluated an upgraded signature at STOCK power and quietly
+         undervalued its own best move. (Pre-existing; found while
+         adding per-level boosts 2026-08-16.) */
+      upLevel: u.upLevel,
+      upStat: u.upStat,
+      upBoosts: u.upBoosts,
+      upPower: u.upPower,
       shield: u.shield,
       shieldSrc: u.shieldSrc,
       alive: u.alive,

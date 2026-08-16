@@ -727,6 +727,176 @@
     });
   }
 
+  /* =============================================================
+     THE ECHO SHOP
+     -------------------------------------------------------------
+     Shards buy a duplicate of a legend you ALREADY OWN, at any
+     rarity - including legendaries, which no pack may ever contain.
+     Never a legend you do not own: crafting is an upgrade currency,
+     not a collection shortcut, so packs stay the only way to widen a
+     collection and the Crown Law is untouched.
+
+     This used to live as one button inside each card's upgrade
+     panel, which meant the second currency had no shopfront and you
+     could only spend it one card at a time, from a screen whose job
+     was something else. It is a shop, so it lives in the Shop.
+     ============================================================= */
+  var echoTab = 'packs';
+  var echoQuery = '';
+  var echoOnlyUseful = true;
+
+  function upg() {
+    return window.EOL.upgrades;
+  }
+
+  function shopTab(name) {
+    echoTab = name === 'echo' ? 'echo' : 'packs';
+    var packs = el('spanel-packs');
+    var echo = el('spanel-echo');
+    if (packs) packs.hidden = echoTab !== 'packs';
+    if (echo) echo.hidden = echoTab !== 'echo';
+    [
+      ['packs', el('stab-packs')],
+      ['echo', el('stab-echo')],
+    ].forEach(function (row) {
+      if (!row[1]) return;
+      var on = echoTab === row[0];
+      row[1].classList.toggle('sel', on);
+      row[1].setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    moveShopThumb();
+    if (echoTab === 'echo') paintEcho();
+  }
+
+  function moveShopThumb() {
+    var thumb = document.querySelector('.shop-thumb');
+    var sel = document.querySelector('.shop-tab.sel');
+    if (!thumb || !sel || !sel.offsetWidth) return;
+    thumb.style.width = sel.offsetWidth + 'px';
+    thumb.style.transform = 'translateX(' + sel.offsetLeft + 'px)';
+  }
+
+  /* Every owned legend, with what a copy costs and whether a copy
+     would actually do anything. A maxed card can still be bought
+     for shards in principle, but there is nothing left to spend the
+     copy on - so it is filtered out by default rather than sold as
+     a trap. */
+  function echoRows() {
+    var econ = window.EOL.econ;
+    var U = upg();
+    if (!econ || !U) return [];
+    var out = [];
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (!econ.owns(c.id)) return;
+        var lv = U.levelOf(c.id);
+        var maxed = lv >= U.MAX_LEVEL;
+        var dupes = U.dupesOf(c.id);
+        var need = U.costOfNextLevel(c.id);
+        out.push({
+          card: c,
+          faction: f,
+          lv: lv,
+          maxed: maxed,
+          dupes: dupes,
+          need: need,
+          ready: !maxed && dupes >= need,
+          cost: U.craftCost(c.rarity),
+        });
+      });
+    });
+    /* Cheapest useful thing first: a card one copy from a level is
+       the most interesting row on the page. */
+    out.sort(function (a, b) {
+      if (a.maxed !== b.maxed) return a.maxed ? 1 : -1;
+      var aNeed = Math.max(0, a.need - a.dupes);
+      var bNeed = Math.max(0, b.need - b.dupes);
+      if (aNeed !== bNeed) return aNeed - bNeed;
+      if (a.cost !== b.cost) return a.cost - b.cost;
+      return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
+    });
+    return out;
+  }
+
+  function paintEcho() {
+    var grid = el('echo-grid');
+    var U = upg();
+    if (!grid || !U) return;
+    var bal = el('echo-balance');
+    if (bal) {
+      bal.innerHTML =
+        '<i class="ri-sparkling-2-fill shard-ico"></i>' + U.shards().toLocaleString() + ' shards';
+    }
+
+    var shards = U.shards();
+    var rows = echoRows().filter(function (r) {
+      if (echoOnlyUseful && r.maxed) return false;
+      if (echoQuery && r.card.name.toLowerCase().indexOf(echoQuery) < 0) return false;
+      return true;
+    });
+
+    var esc = window.EOL.ui && window.EOL.ui.esc ? window.EOL.ui.esc : String;
+    grid.innerHTML = rows
+      .map(function (r) {
+        var toNext = Math.max(0, r.need - r.dupes);
+        var line = r.maxed
+          ? 'Fully upgraded'
+          : r.ready
+            ? 'Ready to level up'
+            : toNext + (toNext === 1 ? ' copy' : ' copies') + ' to level ' + (r.lv + 1);
+        return (
+          '<article class="echo-row' +
+          (r.ready ? ' ready' : '') +
+          '" data-echo-card="' +
+          esc(r.card.id) +
+          '">' +
+          '<span class="echo-art' +
+          (r.card.art ? ' has-art' : '') +
+          '" style="--fc-primary:' +
+          esc(r.faction.colors.primary) +
+          '">' +
+          (r.card.art
+            ? '<img src="' + esc(r.card.art) + '" alt="" draggable="false" />'
+            : '<i data-icon-domain="game" class="ra ' + esc(r.card.icon) + '"></i>') +
+          '</span>' +
+          '<span class="echo-info">' +
+          '<b class="echo-name">' +
+          esc(r.card.name) +
+          '</b>' +
+          '<span class="echo-meta"><span class="echo-rar" data-rarity="' +
+          esc(r.card.rarity) +
+          '">' +
+          esc(r.card.rarity) +
+          '</span>' +
+          (r.lv ? '<span class="echo-lv">Lv' + r.lv + '</span>' : '') +
+          '</span>' +
+          '<span class="echo-need">' +
+          line +
+          '</span>' +
+          '</span>' +
+          '<button type="button" class="echo-buy" data-echo-buy="' +
+          esc(r.card.id) +
+          '"' +
+          (shards >= r.cost && !r.maxed ? '' : ' disabled') +
+          '><i class="ri-sparkling-2-fill"></i>' +
+          r.cost.toLocaleString() +
+          '</button>' +
+          '</article>'
+        );
+      })
+      .join('');
+
+    var empty = el('echo-empty');
+    if (empty) {
+      empty.hidden = rows.length > 0;
+      empty.textContent = echoQuery
+        ? 'No legend you own matches that name.'
+        : echoOnlyUseful
+          ? 'Every legend you own is fully upgraded. Untick the filter to buy copies anyway.'
+          : 'Open a pack to start collecting legends.';
+    }
+  }
+
   function setCodeStatus(message, stateName) {
     var status = el('shop-code-status');
     if (!status) return;
@@ -891,11 +1061,65 @@
       paintShop();
       syncOpenAnother();
     });
+    var tabPacks = el('stab-packs');
+    var tabEcho = el('stab-echo');
+    if (tabPacks)
+      tabPacks.addEventListener('click', function () {
+        shopTab('packs');
+      });
+    if (tabEcho)
+      tabEcho.addEventListener('click', function () {
+        shopTab('echo');
+      });
+    var echoSearch = el('echo-search');
+    if (echoSearch)
+      echoSearch.addEventListener('input', function () {
+        echoQuery = (echoSearch.value || '').trim().toLowerCase();
+        paintEcho();
+      });
+    var echoFilter = el('echo-only-useful');
+    if (echoFilter)
+      echoFilter.addEventListener('change', function () {
+        echoOnlyUseful = !!echoFilter.checked;
+        paintEcho();
+      });
+    var echoGrid = el('echo-grid');
+    if (echoGrid)
+      echoGrid.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('[data-echo-buy]') : null;
+        if (!btn) return;
+        var U = upg();
+        if (!U) return;
+        var r = U.craft(btn.dataset.echoBuy);
+        if (r.ok) {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Copy crafted for ' + r.cost + ' shards', 'ri-sparkling-2-fill');
+          if (window.EOL.audio) window.EOL.audio.ui('confirm');
+        } else if (r.reason === 'shards') {
+          if (window.EOL.ui.toast) window.EOL.ui.toast('Not enough Echo Shards', 'ri-sparkling-2-fill');
+        } else if (r.reason === 'maxed') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('That legend is already fully upgraded', 'ri-information-line');
+        }
+        paintEcho();
+        paintShop();
+      });
+    /* Crafting, packs and levelling all move the shard balance. */
+    window.addEventListener('eol:upgrades', function () {
+      if (echoTab === 'echo') paintEcho();
+      paintShop();
+    });
+    window.addEventListener('resize', moveShopThumb);
+
     document.addEventListener('eol:view', function (ev) {
-      if (ev.detail === 'shop') paintShop();
-      else closeCodeModal(false);
+      if (ev.detail === 'shop') {
+        paintShop();
+        if (echoTab === 'echo') paintEcho();
+        requestAnimationFrame(moveShopThumb);
+      } else closeCodeModal(false);
     });
     paintShop();
+    requestAnimationFrame(moveShopThumb);
   }
 
   document.addEventListener('DOMContentLoaded', mount);

@@ -26368,6 +26368,264 @@ body[data-gfx='low'] .shop-code-scrim {
     width: 100%;
   }
 }
+/* =============================================================
+   SHOP TABS + THE ECHO SHOP
+   -------------------------------------------------------------
+   The shard spend used to be one button inside each card's upgrade
+   panel in the collection, which gave the second currency no
+   shopfront and made you hunt for it one legend at a time. It is a
+   shop, so it lives in the Shop.
+   ============================================================= */
+.shop-tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin: 4px auto 0;
+  padding: 4px;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.shop-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rar-1) 20%, rgba(255, 255, 255, 0.07));
+  transition:
+    transform 0.28s var(--ease),
+    width 0.28s var(--ease);
+  pointer-events: none;
+}
+.shop-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--txt-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s var(--ease);
+}
+.shop-tab.sel {
+  color: var(--txt);
+}
+.shop-tab i {
+  font-size: 15px;
+}
+.shop-tab.sel i {
+  color: var(--r-epic-1);
+}
+
+.shop-panel[hidden] {
+  display: none;
+}
+
+.echo-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  max-width: 860px;
+  margin: 22px auto 0;
+  padding: 0 18px;
+}
+.echo-head h3 {
+  margin: 0 0 5px;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: #fff;
+}
+.echo-head p {
+  margin: 0;
+  max-width: 520px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--txt-faint);
+}
+.echo-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--r-epic-1) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--r-epic-1) 12%, transparent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.echo-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  max-width: 860px;
+  margin: 16px auto 0;
+  padding: 0 18px;
+}
+.echo-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--txt-dim);
+  cursor: pointer;
+}
+.echo-filter input {
+  accent-color: var(--r-epic-1);
+  cursor: pointer;
+}
+
+.echo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  max-width: 860px;
+  margin: 14px auto 40px;
+  padding: 0 18px;
+}
+.echo-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+}
+/* A legend one copy from a level is the most interesting row here. */
+.echo-row.ready {
+  border-color: color-mix(in srgb, var(--r-epic-1) 45%, transparent);
+  background: color-mix(in srgb, var(--r-epic-1) 8%, rgba(255, 255, 255, 0.025));
+}
+.echo-art {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--fc-primary) 45%, transparent);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--fc-primary);
+  font-size: 18px;
+}
+.echo-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+.echo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.echo-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.echo-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.echo-rar {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+}
+.echo-rar[data-rarity='legendary'] {
+  color: var(--r-legendary-1);
+}
+.echo-rar[data-rarity='epic'] {
+  color: var(--r-epic-1);
+}
+.echo-lv {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--r-epic-1) 22%, transparent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+}
+.echo-need {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--txt-faint);
+}
+.echo-row.ready .echo-need {
+  color: var(--r-epic-1);
+}
+.echo-buy {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--r-epic-1) 55%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(192, 124, 255, 0.22), rgba(122, 74, 200, 0.14));
+  color: #fff;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.echo-buy:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(192, 124, 255, 0.34), rgba(122, 74, 200, 0.22));
+}
+.echo-buy:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.echo-buy i {
+  color: var(--r-epic-1);
+}
+.echo-empty {
+  max-width: 860px;
+  margin: 0 auto 40px;
+  padding: 26px 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--txt-faint);
+}
+
+@media (max-width: 640px) {
+  .echo-head,
+  .echo-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .shop-shelf {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -28004,12 +28262,78 @@ body[data-gfx='low'] .qb-body {
   letter-spacing: 0.02em;
   color: var(--txt-faint);
 }
+/* THE READY MARKER. A legend with enough banked copies to buy a level
+   should be findable from across the grid, so the card itself is
+   flagged - not only the hover overlay, which by definition you have
+   to already be looking at. A soft pulsing corner, in the upgrade
+   colour, plus the explicit pill inside the overlay. */
+.card[data-can-level='1']::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  z-index: 7;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--r-epic-1);
+  box-shadow: 0 0 0 2px rgba(6, 8, 15, 0.8), 0 0 12px var(--r-epic-1);
+  animation: up-ready-pulse 1.9s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes up-ready-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+/* On hover the overlay says it in words, so the dot would be noise. */
+.card[data-can-level='1']:hover::after {
+  opacity: 0;
+}
+.ov-ready {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--r-epic-1) 70%, transparent);
+  background: color-mix(in srgb, var(--r-epic-1) 26%, rgba(8, 6, 16, 0.9));
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition-delay: 0s !important;
+}
+.ov-ready i {
+  font-size: 11px;
+  color: #fff;
+}
+/* When both are present the level badge steps aside for the pill. */
+.ov-ready ~ .ov-lv {
+  top: 38px;
+}
+
 /* The overlay head must not run under the badges - but only cards
    that HAVE badges pay for the room. .ov-head already carries 26px
    to clear the card-top bar; the taller two-line boost badge needs
    more than that. */
 .card[data-upgraded='1'] .ov-head {
   padding-top: 44px;
+}
+.card[data-can-level='1'][data-upgraded='1'] .ov-head {
+  padding-top: 70px;
 }
 
 /* =============================================================
@@ -28265,6 +28589,23 @@ body[data-gfx='low'] .qb-body {
 .cd-tag.locked {
   color: var(--txt-faint);
 }
+/* The level chip is always shown for an owned legend, including at
+   zero - "no badge" would be ambiguous between unupgraded and a UI
+   that forgot. It only lights up once there is something to show. */
+.cd-tag.lv {
+  color: var(--txt-faint);
+}
+.cd-tag.lv i {
+  font-size: 11px;
+}
+.cd-tag.lv:not([data-lv='0']) {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--r-epic-1) 55%, transparent);
+  background: color-mix(in srgb, var(--r-epic-1) 16%, transparent);
+}
+.cd-tag.lv:not([data-lv='0']) i {
+  color: var(--r-epic-1);
+}
 .cd-tag.rar[data-rarity='legendary'] {
   color: var(--r-legendary-1);
   border-color: color-mix(in srgb, var(--r-legendary-1) 50%, transparent);
@@ -28396,6 +28737,276 @@ body[data-gfx='low'] .qb-body {
 .cd-up .up-btn {
   font-size: 11px;
   padding: 7px 9px;
+}
+
+/* ---- per-level boost rows ---- */
+.up-rows {
+  margin-bottom: 9px;
+}
+.up-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+.up-row-lbl {
+  flex: 0 0 auto;
+  width: 28px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--txt-faint);
+}
+.up-note.up-ready {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--r-epic-1);
+  font-weight: 800;
+}
+.up-note.up-ready i {
+  font-size: 13px;
+}
+/* The whole block glows when a level is affordable, so the panel
+   itself is the call to action. */
+.cd-up[data-ready='1'] {
+  border-color: color-mix(in srgb, var(--r-epic-1) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r-epic-1) 12%, transparent);
+}
+.up-shop {
+  flex: 0 0 auto;
+  text-decoration: none;
+  color: var(--txt-dim);
+}
+.up-shop:hover {
+  color: var(--txt);
+}
+
+/* =============================================================
+   THE LEVEL-UP CEREMONY
+   -------------------------------------------------------------
+   Nine duplicates is a long grind and the old payoff was a pip
+   quietly switching on. Overlay is appended to .cd-card by
+   js/card-detail.js and removed when it finishes, so nothing here
+   persists. Both kill switches (body[data-gfx=low] and
+   prefers-reduced-motion) drop the particles and keep the stamp.
+   ============================================================= */
+.lvup {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.lvup-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 45%,
+    color-mix(in srgb, var(--r-epic-1) 55%, transparent),
+    transparent 62%
+  );
+  opacity: 0;
+  animation: lvup-flash 0.75s var(--ease) forwards;
+}
+@keyframes lvup-flash {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.lvup-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 130px;
+  height: 130px;
+  margin: -65px 0 0 -65px;
+  border: 2px solid color-mix(in srgb, var(--r-epic-1) 85%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: lvup-ring 1s var(--ease) forwards;
+}
+.lvup-ring.two {
+  animation-delay: 0.14s;
+  border-color: color-mix(in srgb, var(--r-legendary-1) 70%, transparent);
+}
+@keyframes lvup-ring {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.25);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+}
+.lvup-bits {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+.lvup-shard {
+  position: absolute;
+  width: 4px;
+  height: 14px;
+  margin: -7px 0 0 -2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff, var(--r-epic-1));
+  opacity: 0;
+  transform: rotate(var(--ang)) translateY(0) scaleY(0.4);
+  animation: lvup-shard 0.95s var(--ease) var(--d) forwards;
+}
+@keyframes lvup-shard {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--ang)) translateY(0) scaleY(0.4);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--ang)) translateY(calc(var(--dist) * -1)) scaleY(1.5);
+  }
+}
+.lvup-stamp {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  padding: 14px 26px;
+  border: 2px solid color-mix(in srgb, var(--r-epic-1) 75%, transparent);
+  border-radius: 12px;
+  background: rgba(8, 6, 16, 0.82);
+  backdrop-filter: blur(3px);
+  text-align: center;
+  animation: lvup-stamp 1.7s var(--ease) forwards;
+}
+.lvup-stamp b {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--r-epic-1) 85%, transparent);
+}
+.lvup-stamp small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--r-epic-1);
+}
+@keyframes lvup-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.1) rotate(-9deg);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(0.94) rotate(1.5deg);
+  }
+  20% {
+    transform: scale(1.04) rotate(-1deg);
+  }
+  28% {
+    transform: scale(1) rotate(0deg);
+  }
+  76% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12) translateY(-14px);
+  }
+}
+/* the max-level ceremony wears the legendary colour */
+.lvup.maxed .lvup-stamp {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 80%, transparent);
+}
+.lvup.maxed .lvup-stamp b {
+  text-shadow: 0 0 26px color-mix(in srgb, var(--r-legendary-1) 90%, transparent);
+}
+.lvup.maxed .lvup-stamp small {
+  color: var(--r-legendary-1);
+}
+.lvup.maxed .lvup-shard {
+  background: linear-gradient(180deg, #fff, var(--r-legendary-1));
+}
+
+/* the dialog itself reacts, so the burst is not floating over an
+   inert box */
+.cd-card.lvup-kick {
+  animation: lvup-kick 0.5s var(--ease);
+}
+@keyframes lvup-kick {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.022);
+  }
+  46% {
+    transform: scale(0.995);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* the stat tile that grew, while its number climbs */
+.cd-stat-v.bump {
+  animation: cd-bump 0.6s var(--ease);
+}
+@keyframes cd-bump {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.16);
+    color: #fff;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+body[data-gfx='low'] .lvup-stamp {
+  backdrop-filter: none;
+}
+body[data-gfx='low'] .cd-card.lvup-kick,
+body[data-gfx='low'] .card[data-can-level='1']::after {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cd-card.lvup-kick,
+  .card[data-can-level='1']::after,
+  .cd-stat-v.bump {
+    animation: none;
+  }
+  .lvup-stamp {
+    animation: lvup-stamp-plain 1.1s linear forwards;
+  }
+  @keyframes lvup-stamp-plain {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
 }
 
 /* The deck builder's per-card details button. The deck grid answers a
