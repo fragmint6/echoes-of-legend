@@ -94,7 +94,7 @@
     /* Quests and card upgrades are client-authoritative, exactly like
        the wallet they pay into, so they ride this sync rather than a
        migration. See docs/DESIGN-Quests.md §8. */
-    ['eol.quests.v1', 'quests', 'json'],
+    ['eol.quests.v2', 'quests', 'json'],
     ['eol.upgrades.v1', 'upgrades', 'json'],
   ];
   var KEYS = MAP.map(function (row) {

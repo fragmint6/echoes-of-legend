@@ -385,47 +385,48 @@
       </a>
       <!-- ==================== QUEST BOARD ====================
            Floating panel on the RIGHT of the menu, opposite the
-           Discord/tutorial stack on the left. Three dailies and three
+           Discord/tutorial stack on the left. Three dailies and eight
            weeklies, reset at 7:00 AM Eastern - the Daily Puzzle's own
            boundary, because two definitions of "day" in one game is a
            bug factory.
 
-           Collapsible, and it auto-collapses under 1100px because
-           .home is overflow:hidden and the centred 700px .home-inner
-           starts competing for room there. The collapsed tab keeps a
-           badge, so a folded board still says there is loot waiting.
+           NOT CLOSABLE (owner ruling 2026-08-16). There is no close
+           button and no collapse: a board you can dismiss is a board
+           a returning player never sees again, which is the whole
+           reason it exists. Narrow layouts do not hide it - the menu
+           reserves room for it (body[data-qb='reserve']) and below
+           980px the home view scrolls and the board stacks under the
+           buttons. See js/quest-board.js.
 
-           NO QUEST COUNTS MATCHES, WINS OR LOSSES - match pay rewards
-           a loss and a forfeit takes the same path, so a "play N
-           matches" quest would be a forfeit-farm button. Objectives
-           count things that only accumulate inside a real fight.
+           Weeklies are deliberately multi-day and deliberately varied:
+           play N of a mode, cast one legend's signature N times, use a
+           role's basic N times, deal N of an element, fight on N
+           battlefields. Coin values are not hand-written - each
+           objective declares how much a single battle produces and the
+           reward is effort x the tier rate, so a longer quest pays
+           proportionally more.
+
+           A quest that counts BATTLES only counts a QUALIFYING one
+           (not forfeited, 3+ rounds, 3+ of your own actions) - match
+           pay rewards a loss and a forfeit takes the same path, so
+           without that gate it would be a forfeit-farm button.
            See docs/DESIGN-Quests.md. -->
-      <aside class="quest-board" id="quest-board" data-collapsed="false" aria-label="Quests">
-        <button
-          type="button"
-          class="qb-tab"
-          id="qb-tab"
-          aria-expanded="true"
-          aria-controls="qb-body"
-          title="Quests"
-        >
-          <i class="ri-scroll-line" aria-hidden="true"></i>
-          <span class="qb-tab-txt">Quests</span>
-          <span class="qb-badge" id="qb-badge" hidden>0</span>
-        </button>
+      <aside class="quest-board" id="quest-board" aria-label="Quests">
         <div class="qb-body" id="qb-body">
           <header class="qb-head">
             <h2 class="qb-title"><i class="ri-scroll-line" aria-hidden="true"></i> Quests</h2>
-            <button type="button" class="qb-close" id="qb-close" aria-label="Collapse quest board">
-              <i class="ri-close-line" aria-hidden="true"></i>
-            </button>
+            <span class="qb-badge" id="qb-badge" hidden>0</span>
           </header>
           <div class="qb-tabs" role="tablist">
             <button class="qb-seg sel" id="qb-seg-daily" role="tab" aria-selected="true">
-              Daily <span class="qb-seg-timer" id="qb-timer-daily"></span>
+              <span class="qb-seg-name">Daily</span>
+              <span class="qb-seg-count" id="qb-count-daily">0/3</span>
+              <span class="qb-seg-timer" id="qb-timer-daily"></span>
             </button>
             <button class="qb-seg" id="qb-seg-weekly" role="tab" aria-selected="false">
-              Weekly <span class="qb-seg-timer" id="qb-timer-weekly"></span>
+              <span class="qb-seg-name">Weekly</span>
+              <span class="qb-seg-count" id="qb-count-weekly">0/8</span>
+              <span class="qb-seg-timer" id="qb-timer-weekly"></span>
             </button>
           </div>
           <div class="qb-list" id="qb-list"></div>

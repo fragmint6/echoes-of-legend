@@ -2190,11 +2190,30 @@
       toast('Cannot use that: ' + res.reason);
       return;
     }
-    /* Quest metric `abilities` counts SIGNATURES cast by the player -
-       the ability printed on the card, not the shared role basic.
-       Tallied on the battle so it banks with everything else at the
-       end, in one write. */
-    if (s.ability && !s.ability.basic) B._questCasts = (B._questCasts || 0) + 1;
+    /* QUEST BOOKKEEPING for one player action.
+         abilities    signatures cast (the ability printed on the card)
+         basics       role basics used (Guard / Strike / Spell / ...)
+         sig:<card>   that ONE legend's signature - "cast Cinderella's
+                      Glass Slipper twelve times"
+         basic:<role> that ONE role's basic
+       Tallied on the battle object so the whole fight banks in a
+       single write at the end. `_questActions` is what separates a
+       real game from an instant quit in the qualifying test below. */
+    B._questActions = (B._questActions || 0) + 1;
+    if (s.ability && !s.ability.basic) {
+      B._questCasts = (B._questCasts || 0) + 1;
+      var sigKey = s.unit && s.unit.card ? s.unit.card.id : null;
+      if (sigKey) {
+        B._questSig = B._questSig || {};
+        B._questSig[sigKey] = (B._questSig[sigKey] || 0) + 1;
+      }
+    } else if (s.ability && s.ability.basic) {
+      B._questBasics = (B._questBasics || 0) + 1;
+      if (s.unit && s.unit.role) {
+        B._questRoleBasic = B._questRoleBasic || {};
+        B._questRoleBasic[s.unit.role] = (B._questRoleBasic[s.unit.role] || 0) + 1;
+      }
+    }
     /* THE SCRIPTED MATCH: the line's player move just resolved. Read
        the RAW script here - on the killing blow B.over is already
        true and scriptMove() would refuse, stranding the final index
@@ -2528,6 +2547,10 @@
     }
     disarmForfeit();
     stopClock();
+    /* A conceded game never counts towards a "play N of this mode"
+       quest - that is the whole anti-farm gate. Per-fight progress
+       already earned inside the fight still banks. */
+    B._forfeited = true;
     /* Tell the opponent first - if we tear down the channel before
        sending, they sit waiting for a move that will never come. */
     if (netCtl && netCtl.forfeit) netCtl.forfeit();
@@ -5045,6 +5068,112 @@
     rs.hidden = false;
   }
 
+  /* =============================================================
+     THE QUEST RECEIPT for one finished battle
+     -------------------------------------------------------------
+     Everything the board can count, gathered once, at the end. Two
+     rules govern what is in here:
+
+     1. Per-fight metrics (damage, casts, kills...) always count. They
+        only accumulate by playing, so there is nothing to farm.
+
+     2. Metrics that count BATTLES - `mode:*`, the battlefield and
+        mode sets - count only a QUALIFYING battle: not forfeited, at
+        least MIN_ROUNDS rounds, at least MIN_ACTIONS of your own
+        actions. Match pay rewards a loss and a forfeit takes this
+        same path, so without that gate "play 10 drafts" would be a
+        forfeit-farm button. With it, the fastest way to finish the
+        quest is to play the ten drafts.
+     ============================================================= */
+  var QUEST_MIN_ROUNDS = 3;
+  var QUEST_MIN_ACTIONS = 3;
+
+  function questQualifies() {
+    if (B._forfeited) return false;
+    /* The Daily Puzzle is unfarmable by construction - the server
+       grants two attempts per reset and a win closes the day - so a
+       finished attempt always counts, however few moves it took. That
+       is the point of a puzzle: the good solution is the short one. */
+    if (B.puzzle) return true;
+    if ((B.round || 0) < QUEST_MIN_ROUNDS) return false;
+    if ((B._questActions || 0) < QUEST_MIN_ACTIONS) return false;
+    return true;
+  }
+
+  function questBatch() {
+    var dealt = 0,
+      healed = 0,
+      shielded = 0,
+      kills = 0;
+    var facs = {},
+      roles = {},
+      mine = {};
+    (B.units || []).forEach(function (u) {
+      if (u.side !== 'player') return;
+      mine[u.uid] = 1;
+      facs[u.faction && u.faction.id ? u.faction.id : u.faction] = 1;
+      if (u.role) roles[u.role] = 1;
+      var t = (B.tally || {})[u.uid];
+      if (!t) return;
+      dealt += t.dealt || 0;
+      healed += t.healed || 0;
+      shielded += t.absorbed || 0;
+      kills += t.kills || 0;
+    });
+
+    /* Elements and crits come off the battle log, which already
+       records the element and the critical verdict of every blow. A
+       shield soak is damage the player earned, so absorbs count too. */
+    var elems = {},
+      crits = 0;
+    (B.log || []).forEach(function (l) {
+      var m = l.meta || {};
+      if (l.type !== 'damage' && l.type !== 'absorb') return;
+      if (!m.src || !mine[m.src]) return;
+      var amt = Math.max(0, +m.amount || 0);
+      if (m.element) elems[m.element] = (elems[m.element] || 0) + amt;
+      if (l.type === 'damage' && m.crit) crits++;
+      else if (l.type === 'absorb' && m.crit) crits++;
+    });
+
+    var out = {
+      damage: Math.round(dealt),
+      healing: Math.round(healed),
+      shield: Math.round(shielded),
+      kills: kills,
+      rounds: B.round || 0,
+      crits: crits,
+      abilities: B._questCasts || 0,
+      basics: B._questBasics || 0,
+      /* single-battle feats (kind:'best') */
+      battleDamage: Math.round(dealt),
+      battleKills: kills,
+      battleRounds: B.round || 0,
+      factions: Object.keys(facs).length,
+      /* the weekly variety sets (kind:'set') */
+      setFactions: Object.keys(facs),
+      setRoles: Object.keys(roles),
+      setElements: Object.keys(elems),
+    };
+    Object.keys(elems).forEach(function (el) {
+      out['elem:' + el] = Math.round(elems[el]);
+    });
+    Object.keys(B._questSig || {}).forEach(function (cardId) {
+      out['sig:' + cardId] = B._questSig[cardId];
+    });
+    Object.keys(B._questRoleBasic || {}).forEach(function (role) {
+      out['basic:' + role] = B._questRoleBasic[role];
+    });
+
+    if (questQualifies()) {
+      var mode = B._questMode || 'classic';
+      out['mode:' + mode] = 1;
+      out.setModes = [mode];
+      if (B.field && B.field.id) out.setFields = [B.field.id];
+    }
+    return out;
+  }
+
   function showResult() {
     var win = B.winner === 'player';
     if (window.EOL.audio) window.EOL.audio.result(win);
@@ -5103,30 +5232,7 @@
     if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(false);
     if (window.EOL.quests && !B._questsPaid) {
       B._questsPaid = true;
-      var qd = 0,
-        qh = 0,
-        qs = 0,
-        qk = 0;
-      var facs = {};
-      (B.units || []).forEach(function (u) {
-        if (u.side !== 'player') return;
-        facs[u.faction && u.faction.id ? u.faction.id : u.faction] = 1;
-        var t = (B.tally || {})[u.uid];
-        if (!t) return;
-        qd += t.dealt || 0;
-        qh += t.healed || 0;
-        qs += t.absorbed || 0;
-        qk += t.kills || 0;
-      });
-      window.EOL.quests.recordBatch({
-        damage: Math.round(qd),
-        healing: Math.round(qh),
-        shield: Math.round(qs),
-        kills: qk,
-        rounds: B.round || 0,
-        factions: Object.keys(facs).length,
-        abilities: B._questCasts || 0,
-      });
+      window.EOL.quests.recordBatch(questBatch());
     }
     if (!B.campaignStage && !B.puzzle && window.EOL.econ && !B._coinsPaid) {
       B._coinsPaid = true;
@@ -5637,6 +5743,20 @@
 
     render();
     if (opts.campaignStage) B.campaignStage = opts.campaignStage;
+    /* THE QUEST MODE TAG. One word for "which way of playing was
+       this", which is what the weekly board's mode quests and the
+       "play N different modes" sets count. Online is its own mode
+       whatever it was queued as: sitting across from a person is the
+       thing the quest is asking for. */
+    B._questMode = B.puzzle
+      ? 'puzzle'
+      : B.campaignStage
+        ? 'campaign'
+        : netCtl
+          ? 'pvp'
+          : opts.mode === 'draft'
+            ? 'draft'
+            : 'classic';
     measurementContext = {
       mode: B.puzzle
         ? 'daily'
@@ -5736,6 +5856,14 @@
     /* test hook: the scripted-match line state (harness only) */
     _scriptState: function () {
       return moveScript;
+    },
+    /* test hooks: the quest receipt for the live battle, and whether
+       it counts as a real game (harness only) */
+    _questBatch: function () {
+      return B ? questBatch() : null;
+    },
+    _questQualifies: function () {
+      return B ? questQualifies() : false;
     },
   };
 

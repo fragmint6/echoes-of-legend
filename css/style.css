@@ -27536,15 +27536,25 @@ body[data-gfx='low'] .mode-carousel-dots > button {
 }
 
 /* =============================================================
-   THE QUEST BOARD  (home screen, right side)
+   THE QUEST BOARD
    -------------------------------------------------------------
-   Floating panel opposite the Discord/tutorial stack. Collapses to
-   a tab; the collapsed state persists and the tab keeps a badge so
-   a folded board still says there is loot waiting.
+   Floating panel opposite the Discord/tutorial stack.
 
-   .home is overflow:hidden with a centred 700px .home-inner, so the
-   board is absolutely positioned and auto-collapses under 1100px
-   (js/quest-board.js) before it can crowd the title.
+   IT DOES NOT CLOSE (owner ruling 2026-08-16). There is no collapsed
+   tab and no close button, so narrow viewports cannot be answered by
+   hiding it. They are answered by LAYOUT instead, driven by
+   body[data-qb] from js/quest-board.js:
+
+     free      >= 1440px logical - the panel floats in the right
+               margin and the menu column stays centred
+     reserve   >= 980px - the panel would overlap the centred 700px
+               .home-inner, so the menu column reserves its width and
+               shifts left rather than being covered
+     stack     below that there is no margin to float in: the home
+               view scrolls and the board sits in flow under the menu
+
+   The badge stays, because "there is loot waiting" is still worth
+   saying at a glance even on an always-open board.
    ============================================================= */
 .quest-board {
   position: absolute;
@@ -27561,68 +27571,40 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   animation: corner-drop 0.7s var(--ease) 1.15s backwards;
 }
 
-/* ---- the collapsed tab ---- */
-.qb-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 14px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(24, 29, 48, 0.96), rgba(12, 16, 28, 0.96));
-  color: var(--txt);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  backdrop-filter: blur(7px);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
-  transition:
-    border-color 0.18s var(--ease),
-    transform 0.18s var(--ease);
-}
-.qb-tab:hover {
-  border-color: color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
-  transform: translateY(-1px);
-}
-.qb-tab i {
-  color: var(--r-legendary-1);
-  font-size: 15px;
-}
-.quest-board[data-collapsed='false'] .qb-tab {
-  display: none;
-}
-.qb-badge {
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--r-legendary-1);
-  color: #241703;
-  font-size: 11px;
-  font-weight: 900;
-}
-.quest-board.has-claim .qb-tab {
-  border-color: color-mix(in srgb, var(--r-legendary-1) 60%, transparent);
-  animation: qb-pulse 2.4s ease-in-out infinite;
-}
-@keyframes qb-pulse {
-  0%,
-  100% {
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
-  }
-  50% {
-    box-shadow:
-      0 10px 26px rgba(0, 0, 0, 0.45),
-      0 0 20px color-mix(in srgb, var(--r-legendary-1) 42%, transparent);
-  }
+/* ---- RESERVE: the menu steps aside instead of being covered ----
+   The reservation is PADDING on .home, not a margin on .home-inner.
+   .home is a grid with place-items:center, so a margin on a centred
+   item only moves it by half the margin; shrinking the container's
+   content box re-centres the whole column properly in what is left.
+   352px is the panel's own footprint (330 wide at right:22). */
+body[data-qb='reserve'] .home {
+  padding-right: 376px; /* 352 panel + the 24px the view already had */
 }
 
-/* ---- the open panel ---- */
+/* ---- STACK: no margin left to float in, so the board joins the
+   column. The home view becomes scrollable for exactly this case;
+   everywhere else it stays overflow:hidden as before. ---- */
+body[data-qb='stack'] .home {
+  overflow-y: auto;
+  align-content: start;
+  padding-top: 84px;
+}
+body[data-qb='stack'] .home-inner {
+  order: 1;
+}
+body[data-qb='stack'] .quest-board {
+  order: 2;
+  position: static;
+  width: min(100%, 420px);
+  align-items: stretch;
+  margin: 20px auto 12px;
+  animation: none;
+}
+body[data-qb='stack'] .qb-list {
+  max-height: none;
+}
+
+/* ---- the panel ---- */
 .qb-body {
   width: 100%;
   border: 1px solid var(--line-2);
@@ -27633,13 +27615,11 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   overflow: hidden;
   text-align: left;
 }
-.quest-board[data-collapsed='true'] .qb-body {
-  display: none;
-}
 .qb-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 11px 13px 9px;
   border-bottom: 1px solid var(--line);
 }
@@ -27658,21 +27638,34 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   color: var(--r-legendary-1);
   font-size: 15px;
 }
-.qb-close {
-  width: 26px;
-  height: 26px;
+.qb-badge {
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
   display: grid;
   place-items: center;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: none;
-  color: var(--txt-dim);
-  cursor: pointer;
-  font-size: 15px;
+  border-radius: 999px;
+  background: var(--r-legendary-1);
+  color: #241703;
+  font-size: 11px;
+  font-weight: 900;
 }
-.qb-close:hover {
-  border-color: var(--line-2);
-  color: var(--txt);
+/* unclaimed loot pulses the panel edge - the old tab it used to
+   pulse no longer exists */
+.quest-board.has-claim .qb-body {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
+  animation: qb-pulse 2.4s ease-in-out infinite;
+}
+@keyframes qb-pulse {
+  0%,
+  100% {
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.5),
+      0 0 22px color-mix(in srgb, var(--r-legendary-1) 38%, transparent);
+  }
 }
 
 .qb-tabs {
@@ -27695,12 +27688,27 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
 }
 .qb-seg.sel {
   background: rgba(255, 255, 255, 0.06);
   color: var(--txt);
   border-color: var(--line-2);
+}
+/* "2/8" - a weekly tier is a week of work, so the tab has to say how
+   much of it is already banked without opening it */
+.qb-seg-count {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--txt-dim);
+}
+.qb-seg.sel .qb-seg-count {
+  background: color-mix(in srgb, var(--r-legendary-1) 22%, transparent);
+  color: var(--r-legendary-1);
 }
 .qb-seg-timer {
   font-size: 10px;
@@ -27710,7 +27718,8 @@ body[data-gfx='low'] .mode-carousel-dots > button {
 
 .qb-list {
   padding: 9px 11px 4px;
-  max-height: calc(var(--vh1) * 52);
+  /* eight weeklies is a real list - give it room, then scroll */
+  max-height: calc(var(--vh1) * 58);
   overflow-y: auto;
 }
 .qb-items {
@@ -27757,6 +27766,21 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   font-weight: 600;
   line-height: 1.3;
   color: var(--txt);
+}
+/* A weekly worth several sessions says so on its face, so a big
+   number reads as a week's goal instead of an impossible day. */
+.qb-span {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  vertical-align: 1px;
 }
 .qb-bar {
   height: 4px;
@@ -27863,12 +27887,17 @@ body[data-gfx='low'] .mode-carousel-dots > button {
 
 /* Low graphics: no pulse, no blur - same rule the rest of the app
    follows (decorative motion goes, state motion stays). */
-body[data-gfx='low'] .quest-board.has-claim .qb-tab {
+body[data-gfx='low'] .quest-board.has-claim .qb-body {
   animation: none;
 }
-body[data-gfx='low'] .qb-body,
-body[data-gfx='low'] .qb-tab {
+body[data-gfx='low'] .qb-body {
   backdrop-filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .quest-board.has-claim .qb-body,
+  .quest-board {
+    animation: none;
+  }
 }
 
 /* =============================================================
