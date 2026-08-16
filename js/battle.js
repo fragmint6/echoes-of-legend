@@ -903,6 +903,24 @@
     });
     $('round-num').textContent = B.round;
 
+    /* THE PUZZLE COUNTDOWN. A deadline the player cannot see is a trap,
+       not a rule, so the provenance chip doubles as the clock: it counts
+       rounds REMAINING (including the current one) rather than showing
+       the raw `solveBy` round number, because "2 rounds left" needs no
+       arithmetic and "solve by round 9" does. `urgent` at one round left
+       is the only state change - a chip that escalates every round would
+       be shouting for the whole puzzle. */
+    var chip = $('puzzle-chip');
+    if (chip && B.puzzle && B.puzzle.solveBy) {
+      var left = Math.max(0, B.puzzle.solveBy - B.round + 1);
+      var chipLabel = chip.querySelector('span');
+      if (chipLabel) {
+        chipLabel.textContent =
+          left === 1 ? 'Final round' : 'Daily Puzzle · ' + left + ' rounds left';
+      }
+      chip.classList.toggle('urgent', left <= 1);
+    }
+
     /* The phase is announced by the ROUND overlay (subs: basics only /
        skills unlocked) and by the lock badges on the ability rows - the
        old HUD pill was removed as HUD clutter. */
@@ -3073,8 +3091,45 @@
     afterPlayerAction();
   }
 
+  /* ---- THE PUZZLE ROUND LIMIT --------------------------------------
+     A Daily position ships with `solveBy`, the last round its forge
+     certificate proved a win in (owner ruling 2026-08-16: the intended
+     solution is 3-5 rounds). Certifying a short line is only half the
+     job - nothing stopped a player from ignoring it and grinding the
+     same board for fifteen rounds, which is precisely the "dragging out
+     way too long" complaint.
+
+     Enforced HERE, at the single round-rollover chokepoint, rather than
+     inside the engine. The engine is shared with campaign, draft and
+     online play and has no concept of a puzzle; adding a round limit to
+     nextRound() would mean every one of those modes now has a code path
+     that can end a battle in a new way, and the deterministic mirror
+     check would have to be re-run against all of them. A puzzle is a
+     presentation-layer contract over an ordinary battle, so it is
+     enforced in the presentation layer.
+
+     Written as a LOSS, not as a draw. There is no draw anywhere else in
+     the game, the result screen has exactly two shapes, and "you did not
+     find the line in time" is a loss in every sense that matters. The
+     `_puzzleExpired` flag lets daily.js word it honestly instead of
+     claiming the team fell. */
+  function puzzleRoundsSpent() {
+    if (!B || !B.puzzle || !B.puzzle.solveBy) return false;
+    /* Checked BEFORE nextRound, so the round the player would be
+       entering is B.round + 1. Rolling into a round past the deadline is
+       what expires; finishing the deadline round itself is fine. */
+    return B.round + 1 > B.puzzle.solveBy;
+  }
+
   /* Roll the round over and hand control to whoever opens it. */
   function startNextRound() {
+    if (puzzleRoundsSpent()) {
+      B._puzzleExpired = true;
+      B.over = true;
+      B.winner = 'enemy';
+      render();
+      return endBattle();
+    }
     E.nextRound(B);
     render();
     /* The rollover itself can deal damage and kill legends (Burn ticks,
@@ -5196,8 +5251,18 @@
     if (puzzleResult) {
       ov.querySelector('.result-title').textContent = puzzleResult.title;
       ov.querySelector('.result-sub').textContent = puzzleResult.sub;
-      ov.querySelector('.result-rounds').textContent =
-        'Started in round ' + B.puzzle.startRound + ' · finished in round ' + B.round;
+      /* Report the puzzle in the unit the ruling is written in - rounds
+         SPENT - instead of the raw start/finish round numbers. "Solved
+         in 4 of 5 rounds" is the number the forge certified against;
+         "started in round 6, finished in round 9" made the reader do
+         subtraction to learn the same thing. */
+      var spent = Math.max(1, B.round - B.puzzle.startRound + 1);
+      var allowed = B.puzzle.solveBy
+        ? B.puzzle.solveBy - B.puzzle.startRound + 1
+        : null;
+      ov.querySelector('.result-rounds').textContent = allowed
+        ? (win ? 'Solved in ' : 'Used ') + spent + ' of ' + allowed + ' rounds'
+        : 'Started in round ' + B.puzzle.startRound + ' · finished in round ' + B.round;
     }
     /* THE SET: play.js reframes the outcome as set progress (score
        line instead of epitaph, "Sideboard"/"New set" instead of

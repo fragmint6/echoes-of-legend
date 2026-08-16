@@ -13,6 +13,13 @@
                                (cards and coins kept) and reload
        EOL.dev.reset()         wipe the LOCAL save and reload
        EOL.dev.save()          push the vault right now (signed in)
+       EOL.dev.puzzle()        forge + play a PRIVATE practice puzzle
+       EOL.dev.puzzleRules()   show the puzzle length calibration
+
+   Resetting the SHARED Daily Puzzle is not here on purpose - it
+   deletes every player's attempt rows, so it is a service_role
+   operation. See docs/supabase-migration-15.sql:
+       select * from public.reset_daily_puzzle();
 
    Deliberately shipped in production: until the economy moves
    server-side (SUPABASE-SETUP.md, 'What is deliberately not built
@@ -118,6 +125,49 @@
       if (window.EOL.cloud.status() !== 'on') return 'not signed in - local save only';
       window.EOL.cloud.push();
       return 'vault push queued';
+    },
+
+    /* ---- LOCAL PRACTICE PUZZLE --------------------------------------
+       Forge a position with the current engine and play it immediately.
+       This is `?dailyLab=1` without the URL round-trip, which matters
+       when the thing being checked is a forge change: reloading the page
+       to add a query string also reloads the code you just edited out of
+       cache, and it is easy to end up measuring the old build.
+
+       It is NOT a reset of the shared Daily. It cannot be: the published
+       board lives in Postgres and clearing it is a service_role
+       operation on every player's row at once, which is deliberately not
+       reachable from anything that ships in the browser bundle (see
+       docs/supabase-migration-15.sql). This only makes YOU a private
+       board. */
+    puzzle: function () {
+      if (!window.EOL.daily || !window.EOL.daily.startLab) return 'daily puzzle not loaded';
+      window.EOL.daily.startLab();
+      return 'forging a practice position (30s or so) - it is private, not the shared Daily';
+    },
+
+    /* Print what the local forge is currently calibrated to. The numbers
+       that define "how long is a puzzle" are otherwise only visible by
+       reading js/daily.js, and the whole point of the workbench is that
+       the owner should not have to. */
+    puzzleRules: function () {
+      var d = window.EOL.daily;
+      if (!d || !d._limits) return 'daily puzzle not loaded';
+      var L = d._limits;
+      return (
+        'intended solution ' +
+        L.solveMin +
+        '-' +
+        L.solveMax +
+        ' rounds · opens in round ' +
+        L.roundMin +
+        '-' +
+        L.roundMax +
+        ' · tempo band ' +
+        L.tempoMin +
+        '-' +
+        L.tempoMax
+      );
     },
   };
 })();
