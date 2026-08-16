@@ -125,13 +125,20 @@
             '<span class="cd-stat-k">' +
             r.k +
             '</span>' +
+            /* The "was N" node is ALWAYS emitted, hidden when the stat
+               has not moved. refreshQuiet then only has to toggle and
+               retext it - if it were conditional, a boost re-pick
+               would have to rebuild the tile, which is exactly the
+               re-render this dialog is trying to avoid. */
             '<span class="cd-stat-v' +
             (moved ? ' up' : '') +
             '">' +
             fmt(r.now) +
-            (moved
-              ? '<span class="cd-stat-base">was ' + fmt(r.base) + '</span>'
-              : '') +
+            '<span class="cd-stat-base"' +
+            (moved ? '' : ' hidden') +
+            '>was ' +
+            fmt(r.base) +
+            '</span>' +
             '</span>' +
             '</div>'
           );
@@ -790,6 +797,29 @@
             '</b>';
         }
       }
+    }
+
+    /* THE STAT TILES. Their VALUE is animated by countUpStats, but the
+       "was N" line and the highlight state are structural and must be
+       corrected here - otherwise re-pointing a boost leaves a stale
+       "was" beside a number that has since moved somewhere else. */
+    var nowStats = up.statsFor(id, card);
+    if (nowStats) {
+      [
+        ['hp', card.stats.hp, nowStats.hp, false],
+        ['atk', card.stats.atk, nowStats.atk, false],
+        ['def', card.stats.def, nowStats.def, true],
+      ].forEach(function (row) {
+        var tile = body.querySelector('.cd-stat[data-stat="' + row[0] + '"] .cd-stat-v');
+        if (!tile) return;
+        var moved = row[2] !== row[1];
+        tile.classList.toggle('up', moved);
+        var base = tile.querySelector('.cd-stat-base');
+        if (base) {
+          base.hidden = !moved;
+          base.textContent = 'was ' + (row[3] ? row[1] + '%' : Math.round(row[1]).toLocaleString());
+        }
+      });
     }
 
     /* the hero's level chip */

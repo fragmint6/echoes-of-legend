@@ -1076,8 +1076,8 @@ sec('S6. Card chrome: Lv0, three boost slots, stars, no dead gap');
   ok(/r-legendary-1/.test(starCss), 'in the legendary gold');
   const notchCss = css.slice(css.indexOf('.card-stars {'), css.indexOf('.card-stars i {'));
   ok(
-    /border-top:\s*none/.test(notchCss) && /background:\s*var\(--bg-2\)/.test(notchCss),
-    'and they sit in a notch cut out of the frame, not on a plate over it'
+    /border-top:\s*none/.test(notchCss) && /var\(--bg-2\)/.test(notchCss),
+    'and they sit in a notch cut out of the frame (card surface, no top border)'
   );
 
   /* The boost slots float horizontally - no container. */
@@ -1265,6 +1265,59 @@ sec('S11c. The dialog patches in place instead of re-rendering');
   ok(!/render\(/.test(quiet), 'and it never calls the full render');
   /* levelUp must not pass a default stat */
   ok(/up\.levelUp\(id\)/.test(detail), 'levelling asks for no default boost');
+}
+
+sec('S11d. The dialog keeps the "was N" line honest');
+{
+  const detail = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
+  /* The "was" node is always emitted (hidden when unmoved) so a boost
+     re-pick can toggle it in place. If it were conditional, changing a
+     boost would have to rebuild the tile - the re-render this dialog
+     exists to avoid - and the line went stale instead. */
+  ok(
+    /cd-stat-base"' \+\s*\n?\s*\(moved \? '' : ' hidden'\)/.test(detail) ||
+      /\(moved \? '' : ' hidden'\)/.test(detail),
+    'the "was" node is always rendered, hidden when the stat has not moved'
+  );
+  const quiet = detail.slice(detail.indexOf('function refreshQuiet'), detail.indexOf('function toast'));
+  ok(/cd-stat-base/.test(quiet), 'and refreshQuiet re-texts it');
+  ok(/classList\.toggle\('up'/.test(quiet), 'along with the moved-state highlight');
+}
+
+sec('S11e. Boost controls are colour-coded, consistently');
+{
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  /* One colour per stat, and the SAME one in all three places it can
+     appear: the stat tiles, the card's boost slots, the dialog's
+     buttons. */
+  [
+    ['atk', '#ffb347'],
+    ['def', '#5fb2ff'],
+    ['hp', '#ff5f7e'],
+  ].forEach(function (row) {
+    ok(
+      new RegExp("\\.up-stat\\[data-up-stat='" + row[0] + "'\\]").test(css),
+      'the ' + row[0].toUpperCase() + ' button is colour-coded'
+    );
+    ok(
+      new RegExp("\\.up-stat\\[data-up-stat='" + row[0] + "'\\]\\.sel[\\s\\S]{0,200}" + row[1]).test(css),
+      '...in the same colour its slot and stat bar use'
+    );
+  });
+}
+
+sec('S11f. The level stars are big and rounded');
+{
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  const notch = css.slice(css.indexOf('.card-stars {'), css.indexOf('.card-stars i {'));
+  const star = css.slice(css.indexOf('.card-stars i {'), css.indexOf('.card-stars i {') + 900);
+  const h = /height:\s*(\d+)px/.exec(notch);
+  ok(h && +h[1] >= 22, 'the notch is substantial (' + (h && h[1]) + 'px)');
+  const wgt = /width:\s*(\d+)px/.exec(star);
+  ok(wgt && +wgt[1] >= 13, 'and the stars are big (' + (wgt && wgt[1]) + 'px)');
+  ok(/border-radius/.test(star), 'the stars are rounded, not needle-sharp');
+  ok(/clip-path/.test(star), 'still a real star shape');
+  ok(/border-top:\s*none/.test(notch), 'and still cut into the frame rather than sat on it');
 }
 
 sec('S12. The Echo Shop sorts by rarity and refuses full cards');

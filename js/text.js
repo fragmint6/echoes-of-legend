@@ -185,6 +185,28 @@
       } else if (e.k === 'counterStrike') {
         if (e.power != null) out.yes.push({ v: e.power * 100, unit: 'atk' });
         if (e.markedPower != null) out.yes.push({ v: e.markedPower * 100, unit: 'atk' });
+      } else if (e.k === 'damageMult' || e.k === 'damageResist' || e.k === 'outgoingMult') {
+        /* THE MULTIPLIER PASSIVES. Stored as a factor (0.85, 1.12) but
+           PRINTED as the percentage it moves by - "15% less damage",
+           "12% increased damage". engine.js scales these by the same
+           flat points as everything else, so the text has to follow or
+           Athena, Benkei, Robin Hood and Lu Bu read as unupgradeable.
+
+           The printed number is the DISTANCE from 1, which is what
+           moves: 0.85 -> 0.79 is "15% less" -> "21% less".
+           `mult` may be absent - a castable damageResist uses `pct`
+           instead, and that is handled just below. */
+        if (e.mult != null) {
+          out.yes.push({ v: Math.round(Math.abs(1 - e.mult) * 1000) / 10, unit: null });
+        }
+        if (e.pct != null) out.yes.push({ v: Math.abs(e.pct), unit: null });
+      } else if (e.k === 'healMod') {
+        /* Rumpelstiltskin's -60% healing, Sekhmet's -30%. */
+        if (e.pct != null) out.yes.push({ v: Math.abs(e.pct), unit: null });
+      } else if (e.k === 'copyAllyActive') {
+        /* Kaguya: her whole signature IS the copy, so its
+           effectiveness is the number her level raises. */
+        if (e.scale != null) out.yes.push({ v: e.scale * 100, unit: null });
       }
       /* Cinderella's per-cleanse slice rides on a heal. */
       if (e.k === 'heal' && e.perCleansed != null) {
@@ -224,6 +246,14 @@
     if (!html || !card || !pts) return html;
     var spec = (card.ability && card.ability.spec) || {};
     var found = collectScalable(spec.effects, { yes: [], no: [] });
+    /* A `choose` spec keeps its effects one level up, on the SPEC
+       rather than inside an effect - Qin Shi Huang's two wall
+       options live here, and nowhere else. */
+    if (Array.isArray(spec.choose)) {
+      spec.choose.forEach(function (o) {
+        collectScalable(o.effects, found);
+      });
+    }
     if (card.ability && card.ability.passive) {
       collectScalable(card.ability.passive.effects, found);
     }

@@ -386,15 +386,24 @@ information.
 **Three boost slots, top-right.** One per possible level, laid out horizontally and
 positioned individually — deliberately *not* wrapped in a container, which made three 18px
 icons read as a widget rather than as state. A filled slot is a coloured icon naming the
-stat that level bought (ATK amber, DEF blue, HP red — the same colours as the stat bars);
-an empty slot is a dashed socket. The previous single badge collapsed the whole build into
+stat that level bought; an empty slot is a dashed socket.
+
+**One colour per stat, everywhere.** ATK amber `#ffb347`, DEF blue `#5fb2ff`, HP red
+`#ff5f7e` — the same three in the stat tiles, the card's boost slots, and the dialog's
+boost buttons. A selected ATK looks like ATK wherever you meet it, so a build reads without
+a legend. The previous single badge collapsed the whole build into
 one *dominant* stat, so `2×ATK + 1×HP` and `3×ATK` looked identical.
 
 **Level stars on the frame.** A levelled card wears 1–3 gold stars in the middle of its top
 border, readable across a scrolling grid with no hover and no click. They sit in a **notch
-cut out of the frame** — the card's own background and border continue around them — so
-they read as part of the border rather than a badge parked on it. Drawn with `clip-path`
-because neither icon set carries a plain star.
+cut out of the frame** — the card's own surface, with no top border — so they read as part
+of the border rather than a badge parked on it.
+
+Deliberately large: 15px stars in a 26px notch. This is the card's headline fact and it has
+to survive a scrolling grid, so the earlier 8–11px version was too timid. The points are
+**rounded** rather than the classic ten-point polygon, whose needle tips alias badly at this
+size. Drawn with `clip-path` because neither icon set carries a plain star. `card-top`
+reserves room either side so a long rarity word cannot run under them.
 
 **The ready badge.** A card with enough banked copies wears a pulsing purple chevron in the
 top-left corner. It is a real `.card-ready` element, not a pseudo: `.card::before` is
@@ -456,6 +465,12 @@ node still re-flowed the dialog. Both read as the popup blinking out and reappea
 the pips, the copies line, the button and the summary are each written in place, and a new
 level **appends** one row — so a boost the player already chose cannot flicker or reset.
 
+**The stat tiles** keep a *"was N"* line beside any stat an upgrade moved. The node is
+always rendered and simply hidden when the stat is unchanged, so `refreshQuiet` can toggle
+and re-text it in place — if it were conditional, re-pointing a boost would have to rebuild
+the tile, which is the re-render this dialog exists to avoid, and the line went stale
+instead.
+
 **The copies line** is one shape at every state: `8 / 3 copies`, held over what this level
 costs. It used to switch between *"Ready to level up"*, *"2 / 3 copies"* and a
 parenthesised *"(9 banked)"* — three readings of one fact. The numerator is deliberately
@@ -478,6 +493,18 @@ overlay and the detail dialog.
 It rewrites **exactly** what the engine moves (§1.4), by the same flat points. Anubis at
 level 3 reads *"Deal 136% ATK ... if the target is below 25% HP"*: the damage grew, the
 execute gate did not.
+
+**The multiplier passives were the last gap.** `damageMult`, `damageResist`,
+`outgoingMult` and `healMod` store a *factor* (`0.85`, `1.12`) but print the *distance
+from 1* ("15% less damage", "12% increased damage"). Because no printed percentage ever
+matched the stored number, Athena, Benkei, Robin Hood and Lu Bu read as unupgradeable at
+every level even though the engine was scaling them correctly. The collector now converts
+factor → printed percentage, so Athena's *"15% less damage"* reads **21%** at max.
+
+Two other blind spots closed with it: a top-level `spec.choose` (Qin Shi Huang keeps his
+two wall options there, not inside an effect) and `copyAllyActive.scale` (Kaguya, whose
+entire signature is the copy). **All 63 legends** now show their upgrades in text, which
+`sim/verify_all.js` asserts as an exact count rather than a threshold.
 
 Three safeguards keep it from lying:
 

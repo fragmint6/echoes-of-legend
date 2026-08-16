@@ -2198,6 +2198,14 @@ section('SKILL TEXT SCALING');
           if (e.power != null) S.add(Math.round(e.power * 100));
           if (e.markedPower != null) S.add(Math.round(e.markedPower * 100));
         }
+        /* The multiplier passives are stored as a FACTOR but printed as
+           the distance from 1 - "15% less damage" is mult 0.85. */
+        if (e.k === 'damageMult' || e.k === 'damageResist' || e.k === 'outgoingMult') {
+          if (e.mult != null) S.add(Math.round(Math.abs(1 - e.mult) * 1000) / 10);
+          if (e.pct != null) S.add(Math.abs(e.pct));
+        }
+        if (e.k === 'healMod' && e.pct != null) S.add(Math.abs(e.pct));
+        if (e.k === 'copyAllyActive' && e.scale != null) S.add(Math.round(e.scale * 100));
         ['then', 'other', 'effects'].forEach((k) => {
           if (Array.isArray(e[k])) walk(e[k]);
         });
@@ -2242,7 +2250,18 @@ section('SKILL TEXT SCALING');
   ok(wrong === 0, 'no number is scaled that the engine leaves alone');
   ok(badMath === 0, 'every scaled number is value + the flat bonus');
   ok(tokens > 90, 'the rewrite reaches the whole roster (' + tokens + ' numbers)');
-  ok(changed > 50, 'most of the roster reflects its upgrades (' + changed + ' cards)');
+  ok(changed === ALL.length, 'EVERY legend reflects its upgrades (' + changed + '/' + ALL.length + ')');
+
+  /* The multiplier passives were invisible until 2026-08-16: stored as
+     a factor, they never matched a printed percentage, so Athena, Benkei,
+     Robin Hood and Lu Bu read as unupgradeable however many levels they
+     had. */
+  const ath = CARD['olympus-athena'];
+  const at = EOL.scaleSkillText(ath.ability.text, ath, PTS);
+  ok(/>21</.test(at), "Athena's 15% less damage reads 21% at max");
+  ok(/>16</.test(at), '...and her 10% Marked reduction reads 16%');
+  const rob = CARD['sherwood-robin-hood'];
+  ok(/>18</.test(EOL.scaleSkillText(rob.ability.text, rob, PTS)), "Robin Hood's 12% bonus reads 18%");
 
   /* THE FLAT RULE, stated once: 50 goes to 52, not 50.75. */
   const anu = CARD['duat-anubis'];
