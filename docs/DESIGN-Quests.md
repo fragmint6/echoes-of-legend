@@ -2,10 +2,10 @@
 
 **Status:** Implemented (Daily + Weekly). Seasonal quests are deliberately **not** built; see §7.
 
-**Revised 2026-08-16:** the board no longer closes (§6.1), the weekly tier is eight
-multi-day objectives instead of three long dailies (§2), and coin values are computed
-from how much work an objective actually is instead of being a flat per-tier number
-(§2.1).
+**Revised 2026-08-16:** the board no longer closes (§6.1) and requires an account
+(§1.2), the weekly tier is ten multi-day objectives instead of three long dailies (§2),
+there are meta quests that count other quests (§3.2), and coin values are computed from
+how much work an objective actually is instead of being a flat per-tier number (§2.1).
 
 **Purpose:** Give a returning player a reason to come back today, and give the coin
 economy somewhere to point now that duplicates and Echo Shards have created real sinks.
@@ -18,8 +18,8 @@ This document records the quest design. It does not silently reorder `ROADMAP.md
 
 - A quest is a **byproduct of playing normally**, never a target you rush.
 - The board tells you *why to come back*; that is most of its value, above the rewards.
-- Guests get quests. Nothing here is account-gated. (Consistent with the standing rule
-  that CrazyGames guests are never hard-blocked from the Daily Puzzle.)
+- Quests need an account (§1.2). This is the one thing in the game besides multiplayer
+  that a guest cannot have — the Daily Puzzle stays open to everyone.
 - Quests never ask the player to lose, forfeit, or play badly.
 
 ### 1.1 The anti-farm law
@@ -47,6 +47,28 @@ Puzzle is exempt from the round/action floor and always counts a finished attemp
 cannot be farmed at all (two server-granted attempts per reset, and a win closes the
 day), and the good solution to a puzzle is the short one.
 
+### 1.2 Quests require an account
+
+*(Owner ruling 2026-08-16.)* Quest progress is a multi-day commitment that pays coins,
+and a signed-out save is browser-local: clearing storage or switching device throws the
+week away, and nothing stops one person from holding several boards. So the board is
+account-gated.
+
+`EOL.quests.available()` is the single predicate. Signed out it is false, and every
+mutating entry point — `record`, `recordBatch`, `claim`, `claimBonus` — refuses;
+`claimable()` returns 0. The panel shows a sign-in prompt (§6.3) instead of objectives.
+
+An **anonymous session does not count**. It is a uid so the Daily Puzzle's server ledger
+has something to key on, not an account anyone can return to — the same rule
+`js/mp.js#available()` already applies to multiplayer. A CrazyGames account *does* count:
+it is a verified durable identity with a profiles row. A CrazyGames *guest* does not.
+
+Progress is **hidden on sign-out, never destroyed**. `eol.quests.v2` is left alone, so
+signing back in on the same browser finds the week exactly as it was.
+
+This is a deliberate departure from the old "guests get quests" principle in §1. The
+Daily Puzzle rule is unchanged — guests are still never hard-blocked from it.
+
 ---
 
 ## 2. The two tiers
@@ -54,9 +76,9 @@ day), and the good solution to a puzzle is the short one.
 | Tier | Count | Reset | Shape |
 |---|---|---|---|
 | Daily | 3 | every day, 7:00 AM America/New_York | one session |
-| Weekly | 8 | Monday, 7:00 AM America/New_York | several days |
+| Weekly | 10 | Monday, 7:00 AM America/New_York | several days |
 
-A weekly tier of three was a *long daily*. Eight is a week: no single objective can be
+A weekly tier of three was a *long daily*. Ten is a week: no single objective can be
 finished in a sitting, and two of the slots are reserved (§2.2) so a week always has a
 reason to leave your favourite mode.
 
@@ -104,17 +126,17 @@ tier.
 
 ### 2.2 The reserved weekly slots
 
-An unconstrained draw of eight can legitimately roll a week with no reason to play
+An unconstrained draw of ten can legitimately roll a week with no reason to play
 anything new, which is the one thing the weekly tier exists to prevent. So two of the
-eight are reserved before the ordinary draw:
+ten are reserved before the ordinary draw:
 
 1. one **mode** quest (`play N Classic / Draft / online / campaign battles`),
 2. one **variety** quest (a `kind: 'set'` objective — N different modes, battlefields,
    factions, roles or damage elements).
 
 The rest is the normal deterministic pick. The whole thing is still a pure function of
-the week key, so every player gets the identical eight. They are presented lightest
-first, so the board reads as a ramp.
+the week key, so every player gets the identical ten. They are presented lightest first,
+so the board reads as a ramp.
 
 ### 2.1 Reset timing
 
@@ -162,6 +184,8 @@ The metrics:
 | `mode:<mode>` | qualifying battles in Classic / Draft / online / campaign |
 | `setModes` / `setFields` / `setFactions` / `setRoles` / `setElements` | variety (`set`) |
 | `dailyPuzzle` | Daily Puzzle attempts completed |
+| `dailyClaims` | daily quests claimed this week (§3.2) |
+| `dailySweeps` | days whose whole daily board was cleared (§3.2) |
 
 Two rules keep the generated quests honest:
 
@@ -173,10 +197,34 @@ Two rules keep the generated quests honest:
   `mode-<x>` etc. each get at most one slot. `abilities` shares the `signature` family
   with the per-legend quests, and `basics` shares with the per-role ones.
 
+### 3.2 The meta quests
+
+Two weekly objectives count **other quests** rather than anything in a battle:
+
+- *Complete 12 daily quests* (and an 18 variant)
+- *Clear all three dailies on 4 separate days*
+
+These are the hardest things on the board to rush and the easiest to understand. There
+are only three dailies a day, so 12 claims is a **four-day minimum** that no amount of
+skill shortens — exactly the multi-day shape the weekly tier is for.
+
+They are driven from `claim()`, not from progress. Claiming is already the idempotent
+once-per-quest-per-period event (`s.claimed[id]` guarantees it), so the counters cannot
+be inflated by re-reading the board. `dailySweeps` additionally records `sweptDay`, so a
+day counts at most once however many times its board is re-read.
+
+**Only dailies feed them.** `applyMeta()` writes to the weekly board alone — a weekly
+that counted weekly claims would eventually complete itself.
+
+Pricing (§2.1) treats one daily claim as one battle. The underlying fights are already
+paid for by the daily itself, so this is not full effort; but a four-day lock-in is the
+most demanding thing on the board and undervaluing it would be worse than double-paying
+it. A full 12 lands at 170 coins, mid-upper on the weekly board.
+
 ### 3.1 Selection is deterministic per period
 
 The shown quests are chosen by seeding a small PRNG with a hash of the period key.
-Every player on the same day sees the **same three dailies** and the same eight weeklies
+Every player on the same day sees the **same three dailies** and the same ten weeklies
 — which makes them discussable, and means a reroll cannot be farmed by clearing storage.
 
 ---
@@ -247,10 +295,18 @@ layout and must reserve.
 
 Each tier tab carries its own countdown (the weekly one is computed by walking forward to
 the first 7 AM boundary in a new week key, not approximated) and a `claimed/total`
-counter, so "2/8" is visible without opening the weekly tab. Unclaimed rewards pulse the
-panel edge and show a count badge in the header. A cumulative weekly worth several
-sessions is tagged *"4-day goal"*, so a big number reads as a week's target rather than
-an impossible day.
+counter, so "2/10" is visible without opening the weekly tab.
+
+Unclaimed rewards pulse the panel edge. There is **no count badge** in the header — on an
+always-open board the objectives are already the notification, so a badge counting them
+said the same thing twice.
+
+### 6.3 Signed out
+
+`#qb-lock` replaces the tabs and the list: a short explanation and a **Sign in** button
+that calls `EOL.account.open()` (published by `initAuth` in `js/app.js`; on the portal
+build it raises the CrazyGames login instead, because there is no in-game form there).
+A locked board never pulses.
 
 ---
 
@@ -269,7 +325,7 @@ Until then two tiers give the board a cleaner shape.
 ## 8. Storage and trust
 
 One key, `eol.quests.v2`, holding the period keys, per-quest progress, the distinct-token
-lists for `set` quests, and the claim ledger. The version bump is a deliberate hard reset:
+lists for `set` quests, the last swept day, and the claim ledger. The version bump is a deliberate hard reset:
 a `v1` save describes objectives that no longer exist, so it is discarded rather than
 half-restored. It is registered in the `cloud.js` `MAP` table, so it rides the existing account
 sync with no new migration.

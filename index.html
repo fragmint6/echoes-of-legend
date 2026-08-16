@@ -385,7 +385,7 @@
       </a>
       <!-- ==================== QUEST BOARD ====================
            Floating panel on the RIGHT of the menu, opposite the
-           Discord/tutorial stack on the left. Three dailies and eight
+           Discord/tutorial stack on the left. Three dailies and ten
            weeklies, reset at 7:00 AM Eastern - the Daily Puzzle's own
            boundary, because two definitions of "day" in one game is a
            bug factory.
@@ -393,7 +393,11 @@
            NOT CLOSABLE (owner ruling 2026-08-16). There is no close
            button and no collapse: a board you can dismiss is a board
            a returning player never sees again, which is the whole
-           reason it exists. Narrow layouts do not hide it - the menu
+           reason it exists.
+
+           ACCOUNT-GATED (owner ruling 2026-08-16). Signed out, the
+           panel shows #qb-lock instead of objectives and every
+           mutating call in js/quests.js refuses. Narrow layouts do not hide it - the menu
            reserves room for it (body[data-qb='reserve']) and below
            980px the home view scrolls and the board stacks under the
            buttons. See js/quest-board.js.
@@ -415,9 +419,23 @@
         <div class="qb-body" id="qb-body">
           <header class="qb-head">
             <h2 class="qb-title"><i class="ri-scroll-line" aria-hidden="true"></i> Quests</h2>
-            <span class="qb-badge" id="qb-badge" hidden>0</span>
           </header>
-          <div class="qb-tabs" role="tablist">
+          <!-- SIGNED OUT: quests need a durable account (see
+               docs/DESIGN-Quests.md §1.2). Explain and offer the way
+               in, rather than dangling objectives nobody may claim.
+               Progress is hidden here, never wiped. -->
+          <div class="qb-lock" id="qb-lock" hidden>
+            <i class="ri-lock-2-line" aria-hidden="true"></i>
+            <p class="qb-lock-title">Sign in for quests</p>
+            <p class="qb-lock-sub">
+              Daily and weekly quests track progress across days and pay coins, so they need
+              an account to belong to.
+            </p>
+            <button type="button" class="qb-lock-btn" data-qb-signin>
+              <i class="ri-login-box-line" aria-hidden="true"></i> Sign in
+            </button>
+          </div>
+          <div class="qb-tabs" id="qb-tabs" role="tablist">
             <button class="qb-seg sel" id="qb-seg-daily" role="tab" aria-selected="true">
               <span class="qb-seg-name">Daily</span>
               <span class="qb-seg-count" id="qb-count-daily">0/3</span>
@@ -425,7 +443,7 @@
             </button>
             <button class="qb-seg" id="qb-seg-weekly" role="tab" aria-selected="false">
               <span class="qb-seg-name">Weekly</span>
-              <span class="qb-seg-count" id="qb-count-weekly">0/8</span>
+              <span class="qb-seg-count" id="qb-count-weekly">0/10</span>
               <span class="qb-seg-timer" id="qb-timer-weekly"></span>
             </button>
           </div>

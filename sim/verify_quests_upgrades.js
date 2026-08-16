@@ -19,6 +19,11 @@ global.localStorage = {
   },
 };
 global.window = { EOL: {}, dispatchEvent: () => {}, addEventListener: () => {} };
+/* Quests are account-gated (docs/DESIGN-Quests.md §1.2), so the
+   harness needs a signed-in identity for the ordinary assertions.
+   `signedIn` is flipped directly by the gate tests below. */
+let signedIn = { id: 'u-test', anonymous: false, portal: false };
+window.EOL.auth = { user: () => signedIn };
 global.performance = { now: () => Date.now() };
 global.CustomEvent = function (n, o) {
   this.type = n;
@@ -447,7 +452,7 @@ Q._reset();
 {
   const b = Q.board();
   ok(b.daily.length === 3, 'three daily quests');
-  ok(b.weekly.length === 8, 'eight weekly quests - a week is not one sitting');
+  ok(b.weekly.length === 10, 'ten weekly quests - a week is not one sitting');
   ok(
     b.daily.every((q) => q.progress === 0 && !q.done && !q.claimed),
     'a fresh board starts empty'
@@ -775,6 +780,103 @@ sec('S. A daily rollover clears dailies but not weeklies');
   );
 }
 
+sec('S2. The META quests count other quests');
+{
+  Q._reset();
+  EOL.econ._reset();
+  Q._setBoard('weekly', ['w-meta-claims', 'w-meta-sweeps']);
+  const claims = () => find('w-meta-claims').progress;
+  const sweeps = () => find('w-meta-sweeps').progress;
+  ok(claims() === 0 && sweeps() === 0, 'the meta quests start empty');
+
+  /* clear and claim the whole daily board for one day */
+  let d = Q.board().daily;
+  d.forEach((q) => fill(q));
+  d.forEach((q) => Q.claim(q.id));
+  ok(claims() === 3, 'each claimed daily advances "complete N daily quests"');
+  ok(sweeps() === 1, 'clearing the whole daily board advances the sweep quest');
+
+  /* re-reading the board must not inflate anything */
+  Q.board();
+  Q.board();
+  ok(claims() === 3 && sweeps() === 1, 're-reading the board banks nothing extra');
+  d.forEach((q) => Q.claim(q.id));
+  ok(claims() === 3, 'a second claim on the same daily is refused and counts once');
+
+  /* a new day is a new sweep */
+  Q._state().day = '1999-01-01';
+  Q.refresh();
+  d = Q.board().daily;
+  d.forEach((q) => fill(q));
+  d.forEach((q) => Q.claim(q.id));
+  ok(claims() === 6, 'the next day keeps adding claims');
+  ok(sweeps() === 2, 'and the sweep counts a SEPARATE day');
+
+  /* the weekly tier must not feed itself */
+  const w = Q.catalogue.weekly.find((q) => q.id === 'w-meta-claims');
+  ok(w.metric === 'dailyClaims', 'the meta quest counts DAILY claims only');
+  Q._setBoard('weekly', ['w-meta-claims', 'w-dmg']);
+  const before = find('w-meta-claims').progress;
+  fill(find('w-dmg'));
+  Q.claim('w-dmg');
+  ok(
+    find('w-meta-claims').progress === before,
+    'claiming a WEEKLY never feeds a weekly meta quest - that would finish itself'
+  );
+}
+
+sec('S3. Meta quests cannot be finished in a day');
+{
+  const cat = Q.catalogue.weekly.filter((q) => q.family === 'meta');
+  ok(cat.length >= 2, 'the catalogue carries meta quests');
+  ok(
+    cat.every((q) => (q.metric === 'dailyClaims' ? q.target > Q.SLOTS : q.target > 1)),
+    'every meta quest needs more than one day of dailies'
+  );
+  const twelve = cat.find((q) => q.target === 12);
+  ok(!!twelve, 'the requested "complete 12 daily quests" exists');
+  ok(
+    Math.ceil(twelve.target / Q.SLOTS) >= 4,
+    'twelve dailies is a four-day minimum at three a day'
+  );
+}
+
+sec('S4. Quests require an account');
+{
+  const was = signedIn;
+  Q._reset();
+  EOL.econ._reset();
+  /* bank some progress while signed in, then sign out */
+  Q._setBoard('daily', ['d-dmg-1']);
+  fill(find('d-dmg-1'));
+  const coins0 = EOL.econ.coins();
+
+  signedIn = null;
+  ok(!Q.available(), 'signed out, quests are unavailable');
+  ok(Q.claimable() === 0, 'a signed-out board offers nothing to claim');
+  const r = Q.claim('d-dmg-1');
+  ok(!r.ok && r.reason === 'account', 'a signed-out claim is refused for the right reason');
+  ok(EOL.econ.coins() === coins0, 'and pays nothing');
+  Q.record('damage', 999999);
+  Q.recordBatch({ damage: 999999 });
+  ok(!Q.claimBonus('daily').ok, 'the bonus is refused too');
+
+  /* an anonymous session is a uid, not an account - same rule as mp.js */
+  signedIn = { id: 'anon', anonymous: true };
+  ok(!Q.available(), 'an anonymous session does not unlock quests');
+  /* a CrazyGames NAME is not a CrazyGames ACCOUNT */
+  signedIn = { id: '', portal: true, portalAccount: false };
+  ok(!Q.available(), 'a portal guest does not unlock quests');
+  signedIn = { id: 'cg', portal: true, portalAccount: true };
+  ok(Q.available(), 'a real CrazyGames account does');
+
+  /* signing back in finds the week exactly as it was */
+  signedIn = was;
+  ok(Q.available(), 'signing back in re-opens the board');
+  ok(find('d-dmg-1').done, 'progress was hidden, never wiped');
+  ok(Q.claim('d-dmg-1').ok, 'and it can be claimed now');
+}
+
 sec('T. The board cannot be closed');
 {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -784,6 +886,10 @@ sec('T. The board cannot be closed');
   ok(!/data-collapsed/.test(qb), 'and no collapsed state to be stuck in');
   const view = fs.readFileSync(path.join(ROOT, 'js/quest-board.js'), 'utf8');
   ok(!/setCollapsed|COLLAPSE_KEY/.test(view), 'the view keeps no collapse state either');
+  /* the header count badge and the "N-day goal" tag are both gone */
+  ok(!/qb-badge/.test(html) && !/qb-badge/.test(view), 'the corner count badge is gone');
+  ok(!/qb-span|day goal|-day goal/.test(view), 'the day-goal tag is gone');
+  ok(/qb-lock/.test(qb) && /data-qb-signin/.test(qb), 'the signed-out panel offers a way in');
   const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
   ok(
     /body\[data-qb='reserve'\]/.test(css) && /body\[data-qb='stack'\]/.test(css),

@@ -1321,6 +1321,28 @@
       e.stopPropagation();
       toggleAcctMenu();
     });
+
+    /* THE SIGN-IN DIALOG, for other modules to raise.
+       The account-gated quest board needs to send a signed-out player
+       somewhere, and the dialog's open()/setMode() are closures in
+       here. Publishing the one verb beats every caller reaching into
+       #auth-modal and re-implementing focus and body[data-modal].
+
+       On the portal there is no in-game sign-in form at all - the
+       only way in is the CrazyGames prompt - so route there instead
+       of opening a dialog that build does not have. */
+    window.EOL.account = {
+      open: function () {
+        var P = window.EOL.platform;
+        var CG = window.EOL.crazygames;
+        if (P && P.isCrazyGames) {
+          if (CG && CG.canPromptLogin && CG.canPromptLogin() && CG.promptLogin) CG.promptLogin();
+          return;
+        }
+        setMode('in');
+        open();
+      },
+    };
     var homeCloudBtn = document.getElementById('home-cloud-cta');
     if (homeCloudBtn) {
       /* ON THE PORTAL THIS IS A NOTICE, NOT A BUTTON.

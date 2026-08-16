@@ -1,8 +1,25 @@
 /* =============================================================
    QUESTS - the Daily and Weekly board
    -------------------------------------------------------------
-   Three dailies and EIGHT weeklies, shown on a permanent board on
+   Three dailies and TEN weeklies, shown on a permanent board on
    the home screen. See docs/DESIGN-Quests.md.
+
+   QUESTS REQUIRE AN ACCOUNT (owner ruling 2026-08-16)
+
+     Quest progress is a multi-day commitment paid in coins, and a
+     signed-out save is browser-local: clearing storage or switching
+     device throws the week away, and nothing stops one person from
+     holding several boards. So the board is account-gated. Signed
+     out, `available()` is false, the panel shows a sign-in prompt
+     instead of objectives, and every mutating entry point
+     (record/recordBatch/claim/claimBonus) refuses.
+
+     An ANONYMOUS session does not count - it is a uid for the Daily
+     Puzzle's ledger, not an account someone can come back to. This
+     matches the multiplayer rule in js/mp.js#available().
+
+     Progress is never destroyed on sign-out, only hidden: signing
+     back in on the same browser finds the week exactly as it was.
 
    THE ANTI-FARM LAW
 
@@ -50,7 +67,8 @@
 
    Storage:
      eol.quests.v2   { v, day, week, daily:[], weekly:[],
-                       prog:{}, sets:{}, claimed:{}, bonus:{} }
+                       prog:{}, sets:{}, claimed:{}, bonus:{},
+                       sweptDay }
    ============================================================= */
 (function () {
   'use strict';
@@ -59,7 +77,7 @@
   var KEY = 'eol.quests.v2';
   var VERSION = 2;
   var SLOTS = 3; // dailies on the board
-  var WEEKLY_SLOTS = 8; // weeklies on the board - a week's worth of work
+  var WEEKLY_SLOTS = 10; // weeklies on the board - a week's worth of work
   var RESET_HOUR = 7; // 7:00 AM Eastern, same as the Daily Puzzle
 
   /* ---------------------------------------------------------
@@ -123,6 +141,19 @@
     pvp: 0.7, // an online match costs queue time too
     puzzle: 0.7, // capped at two attempts a day, so it costs days
     campaign: 0.8,
+    /* The META quests count other quests, so their "unit" is not a
+       fresh battle at all - the underlying work is already paid for
+       by the daily it came from, and pricing them at full effort
+       would pay for the same fights twice.
+
+       But they are the hardest things on the board to finish: three
+       dailies a day means 12 claims is a FOUR-DAY minimum, which no
+       amount of skill shortens. Undervaluing that is worse than
+       double-paying it, so one claim is priced at one battle - it
+       lands a full 12 in the upper-middle of the weekly board,
+       alongside the other multi-day objectives. */
+    dailyClaim: 1,
+    dailySweep: 0.33 // a whole daily board cleared, so ~3x a single claim
   };
 
   function round10(n) {
@@ -438,6 +469,45 @@
         icon: 'ra-perspective-dice-six',
         text: 'Attempt the Daily Puzzle {t} times',
       }),
+      /* ---- THE META QUESTS ----
+         A quest whose objective is other quests. These are the
+         hardest thing on the board to rush and the easiest to
+         understand: there are only three dailies a day, so "claim 12
+         dailies" is a FOUR-DAY MINIMUM however good you are, and
+         "clear the daily board 4 times" needs four separate days.
+
+         They cost nothing extra to play - a player working the daily
+         board is already completing them - so they are priced on the
+         days they lock up rather than on fresh battles: `dailyClaims`
+         is worth about a third of a battle each, which puts a full
+         12 at roughly the same coin as a mid-weight weekly. */
+      q('weekly', {
+        id: 'w-meta-claims',
+        metric: 'dailyClaims',
+        target: 12,
+        unit: PER_BATTLE.dailyClaim,
+        family: 'meta',
+        icon: 'ra-scroll-unfurled',
+        text: 'Complete {t} daily quests',
+      }),
+      q('weekly', {
+        id: 'w-meta-claims-big',
+        metric: 'dailyClaims',
+        target: 18,
+        unit: PER_BATTLE.dailyClaim,
+        family: 'meta',
+        icon: 'ra-scroll-unfurled',
+        text: 'Complete {t} daily quests',
+      }),
+      q('weekly', {
+        id: 'w-meta-sweeps',
+        metric: 'dailySweeps',
+        target: 4,
+        unit: PER_BATTLE.dailySweep,
+        family: 'meta',
+        icon: 'ra-trophy',
+        text: 'Clear all three dailies on {t} separate days',
+      }),
       /* ---- the long single-battle feats ---- */
       q('weekly', {
         id: 'w-sweep',
@@ -620,6 +690,28 @@
   }
 
   /* ---------------------------------------------------------
+     THE ACCOUNT GATE
+     -------------------------------------------------------------
+     Quests need a durable identity (see the header). One predicate,
+     used by every entry point and by the board view, so "who may
+     have quests" is answered in exactly one place.
+
+     An anonymous session is NOT an account - same rule as
+     js/mp.js#available(). A CrazyGames account IS one: it is a
+     verified, durable identity with a profiles row, and it reports
+     `portalAccount`.
+     --------------------------------------------------------- */
+  function available() {
+    var A = window.EOL.auth;
+    if (!A || !A.user) return false;
+    var u = A.user();
+    if (!u) return false;
+    if (u.portal) return !!u.portalAccount;
+    if (u.anonymous) return false;
+    return true;
+  }
+
+  /* ---------------------------------------------------------
      THE CLOCK
      -------------------------------------------------------------
      Same DST-safe technique as js/daily.js: ask Intl for the wall
@@ -798,6 +890,9 @@
       sets: {}, // questId -> [token] for kind:'set'
       claimed: {}, // questId -> 1
       bonus: {}, // 'daily'|'weekly' -> 1
+      /* the day whose daily board was last swept clean, so the
+         `dailySweeps` meta quest counts each day at most once */
+      sweptDay: '',
     };
   }
 
@@ -818,6 +913,7 @@
         state.sets = raw.sets && typeof raw.sets === 'object' ? raw.sets : {};
         state.claimed = raw.claimed && typeof raw.claimed === 'object' ? raw.claimed : {};
         state.bonus = raw.bonus && typeof raw.bonus === 'object' ? raw.bonus : {};
+        state.sweptDay = typeof raw.sweptDay === 'string' ? raw.sweptDay : '';
       }
     } catch (e) {
       state = blank();
@@ -866,6 +962,8 @@
         clearQuest(s, id);
       });
       delete s.bonus.daily;
+      /* a new day is a new chance to sweep the board */
+      s.sweptDay = '';
       s.day = dk;
       s.daily = pick(DAILY, SLOTS, hash('d:' + dk));
       changed = true;
@@ -922,6 +1020,7 @@
 
   function record(metric, amount) {
     if (!metric) return;
+    if (!available()) return; // signed out: nothing to record into
     var s = refresh();
     var touched = false;
     s.daily.concat(s.weekly).forEach(function (id) {
@@ -935,6 +1034,7 @@
   /* Batch form: one save for a whole battle's worth of metrics. */
   function recordBatch(map) {
     if (!map) return;
+    if (!available()) return; // signed out: nothing to record into
     var s = refresh();
     var touched = false;
     s.daily.concat(s.weekly).forEach(function (id) {
@@ -1058,6 +1158,7 @@
 
   /* How many rewards are sitting unclaimed - drives the board badge. */
   function claimable(now) {
+    if (!available()) return 0;
     var b = board(now);
     var n = 0;
     b.daily.concat(b.weekly).forEach(function (e) {
@@ -1076,6 +1177,7 @@
      so a double-click or a reload mid-claim cannot pay twice.
      --------------------------------------------------------- */
   function claim(id) {
+    if (!available()) return { ok: false, reason: 'account' };
     var s = refresh();
     var def = BY_ID[id];
     if (!def) return { ok: false, reason: 'unknown' };
@@ -1086,11 +1188,44 @@
     s.claimed[id] = 1;
     var reward = def.reward;
     if (window.EOL.econ) window.EOL.econ.addCoins(reward);
+    /* THE META QUESTS feed off this moment. A claimed DAILY advances
+       `dailyClaims`, and the claim that completes the whole daily
+       board advances `dailySweeps` once for that day.
+
+       Claiming is the trigger rather than completing, because claiming
+       is already the idempotent, once-per-quest-per-period event -
+       s.claimed[id] guarantees this block runs at most once per daily,
+       so the meta counters cannot be inflated by re-reading the board.
+       Weeklies deliberately do NOT feed it: a weekly counting weeklies
+       is a quest that finishes itself. */
+    if (tier === 'daily') {
+      applyMeta(s, 'dailyClaims', 1);
+      var swept =
+        s.daily.length > 0 &&
+        s.daily.every(function (qid) {
+          return !!s.claimed[qid];
+        });
+      if (swept && !s.sweptDay) {
+        s.sweptDay = s.day;
+        applyMeta(s, 'dailySweeps', 1);
+      }
+    }
     save();
     return { ok: true, coins: reward, tier: tier };
   }
 
+  /* Push a meta metric into the WEEKLY board only. Kept separate from
+     record() so a daily claim cannot recurse back into the dailies. */
+  function applyMeta(s, metric, amount) {
+    s.weekly.forEach(function (wid) {
+      var wdef = BY_ID[wid];
+      if (!wdef || wdef.metric !== metric) return;
+      applyOne(s, wid, amount);
+    });
+  }
+
   function claimBonus(tier) {
+    if (!available()) return { ok: false, reason: 'account' };
     var s = refresh();
     if (tier !== 'daily' && tier !== 'weekly') return { ok: false, reason: 'tier' };
     if (s.bonus[tier]) return { ok: false, reason: 'claimed' };
@@ -1110,6 +1245,7 @@
   }
 
   window.EOL.quests = {
+    available: available,
     SLOTS: SLOTS,
     WEEKLY_SLOTS: WEEKLY_SLOTS,
     RATE: RATE,

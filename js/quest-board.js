@@ -69,14 +69,6 @@
   function questRow(q) {
     var pct = Math.max(0, Math.min(100, (q.progress / q.target) * 100));
     var state = q.claimed ? 'claimed' : q.done ? 'ready' : 'open';
-    /* A weekly GRIND worth several sessions says so, so nobody reads
-       "deal 320,000 damage" as a today problem and gives up on it.
-       Only cumulative work is labelled: a single-battle feat is one
-       lucky fight away however big its number looks, and a variety
-       quest is about breadth rather than hours. */
-    var days = q.tier === 'weekly' && q.kind === 'sum' && q.effort >= 6
-      ? Math.max(2, Math.round(q.effort / 4))
-      : 0;
     return (
       '<li class="qb-item" data-state="' +
       state +
@@ -89,7 +81,6 @@
       '<div class="qb-main">' +
       '<p class="qb-text">' +
       esc(q.text) +
-      (days >= 2 ? '<span class="qb-span">' + days + '-day goal</span>' : '') +
       '</p>' +
       '<div class="qb-bar"><span style="width:' +
       pct.toFixed(1) +
@@ -116,6 +107,26 @@
   function paint() {
     var board = $('quest-board');
     if (!board || !Q()) return;
+
+    /* SIGNED OUT: the board explains itself instead of dangling
+       objectives nobody may claim. Progress is hidden, never wiped -
+       signing back in on this browser finds the week as it was. */
+    var open = Q().available();
+    board.dataset.locked = open ? 'false' : 'true';
+    var lock = $('qb-lock');
+    if (lock) lock.hidden = open;
+    var tabs = $('qb-tabs');
+    if (tabs) tabs.hidden = !open;
+    var listHost = $('qb-list');
+    var bonusHost = $('qb-bonus');
+    if (!open) {
+      if (listHost) listHost.innerHTML = '';
+      if (bonusHost) bonusHost.hidden = true;
+      board.classList.remove('has-claim');
+      return;
+    }
+    if (listHost) listHost.hidden = false;
+
     var b = Q().board();
     var list = seg === 'daily' ? b.daily : b.weekly;
     var host = $('qb-list');
@@ -160,15 +171,9 @@
     var wt = $('qb-timer-weekly');
     if (wt) wt.textContent = humanGap(b.weekResetsAt);
 
-    var n = Q().claimable();
-    var badge = $('qb-badge');
-    if (badge) {
-      badge.textContent = n;
-      badge.hidden = n === 0;
-    }
-    board.classList.toggle('has-claim', n > 0);
+    board.classList.toggle('has-claim', Q().claimable() > 0);
 
-    /* "2/8" on the tab: a weekly tier is a week's worth of work, so
+    /* "2/10" on the tab: a weekly tier is a week's worth of work, so
        the segment has to show how much of it is already banked. */
     var counts = {
       daily: b.dailyClaimed + '/' + b.daily.length,
@@ -194,6 +199,14 @@
   }
 
   function onClick(e) {
+    /* The signed-out panel's only control: hand the player to the
+       same account dialog the profile pill opens. */
+    var signIn = e.target.closest ? e.target.closest('[data-qb-signin]') : null;
+    if (signIn) {
+      if (window.EOL.account && window.EOL.account.open) window.EOL.account.open();
+      if (window.EOL.audio) window.EOL.audio.ui('tap');
+      return;
+    }
     var claim = e.target.closest ? e.target.closest('[data-claim]') : null;
     if (claim) {
       var r = Q().claim(claim.dataset.claim);
@@ -252,6 +265,9 @@
     board.addEventListener('click', onClick);
     window.addEventListener('eol:quests', paint);
     window.addEventListener('resize', fitViewport);
+    /* Signing in or out flips the whole panel between the objectives
+       and the sign-in prompt, so the board has to follow auth. */
+    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(paint);
 
     paint();
     /* Re-paint every minute so the countdown moves and a rollover

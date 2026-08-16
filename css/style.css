@@ -27541,8 +27541,8 @@ body[data-gfx='low'] .mode-carousel-dots > button {
    Floating panel opposite the Discord/tutorial stack.
 
    IT DOES NOT CLOSE (owner ruling 2026-08-16). There is no collapsed
-   tab and no close button, so narrow viewports cannot be answered by
-   hiding it. They are answered by LAYOUT instead, driven by
+   tab, no close button and no count badge, so narrow viewports cannot
+   be answered by hiding it. They are answered by LAYOUT instead, driven by
    body[data-qb] from js/quest-board.js:
 
      free      >= 1440px logical - the panel floats in the right
@@ -27553,8 +27553,12 @@ body[data-gfx='low'] .mode-carousel-dots > button {
      stack     below that there is no margin to float in: the home
                view scrolls and the board sits in flow under the menu
 
-   The badge stays, because "there is loot waiting" is still worth
-   saying at a glance even on an always-open board.
+   Unclaimed loot pulses the panel edge - on an always-open board the
+   objectives themselves are the notification, so a separate count
+   badge was saying the same thing twice.
+
+   Signed out the panel shows .qb-lock instead: quests are
+   account-gated (docs/DESIGN-Quests.md §1.2).
    ============================================================= */
 .quest-board {
   position: absolute;
@@ -27638,18 +27642,6 @@ body[data-qb='stack'] .qb-list {
   color: var(--r-legendary-1);
   font-size: 15px;
 }
-.qb-badge {
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--r-legendary-1);
-  color: #241703;
-  font-size: 11px;
-  font-weight: 900;
-}
 /* unclaimed loot pulses the panel edge - the old tab it used to
    pulse no longer exists */
 .quest-board.has-claim .qb-body {
@@ -27666,6 +27658,58 @@ body[data-qb='stack'] .qb-list {
       0 18px 44px rgba(0, 0, 0, 0.5),
       0 0 22px color-mix(in srgb, var(--r-legendary-1) 38%, transparent);
   }
+}
+
+/* ---- SIGNED OUT ----
+   Quests need a durable account (docs/DESIGN-Quests.md §1.2), so the
+   panel explains itself and offers the way in rather than dangling
+   objectives nobody may claim. */
+.qb-lock {
+  padding: 16px 14px 18px;
+  text-align: center;
+}
+.qb-lock > i {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 22px;
+  color: var(--r-legendary-1);
+  opacity: 0.85;
+}
+.qb-lock-title {
+  margin: 0 0 5px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--txt);
+}
+.qb-lock-sub {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--txt-faint);
+}
+.qb-lock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 207, 92, 0.22), rgba(255, 138, 61, 0.14));
+  color: var(--r-legendary-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.qb-lock-btn:hover {
+  background: linear-gradient(180deg, rgba(255, 207, 92, 0.34), rgba(255, 138, 61, 0.22));
+}
+/* A locked board has nothing to collect, so it never pulses. */
+.quest-board[data-locked='true'] .qb-body {
+  animation: none;
 }
 
 .qb-tabs {
@@ -27766,21 +27810,6 @@ body[data-qb='stack'] .qb-list {
   font-weight: 600;
   line-height: 1.3;
   color: var(--txt);
-}
-/* A weekly worth several sessions says so on its face, so a big
-   number reads as a week's goal instead of an impossible day. */
-.qb-span {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--txt-faint);
-  vertical-align: 1px;
 }
 .qb-bar {
   height: 4px;
