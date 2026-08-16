@@ -903,24 +903,6 @@
     });
     $('round-num').textContent = B.round;
 
-    /* THE PUZZLE COUNTDOWN. A deadline the player cannot see is a trap,
-       not a rule, so the provenance chip doubles as the clock: it counts
-       rounds REMAINING (including the current one) rather than showing
-       the raw `solveBy` round number, because "2 rounds left" needs no
-       arithmetic and "solve by round 9" does. `urgent` at one round left
-       is the only state change - a chip that escalates every round would
-       be shouting for the whole puzzle. */
-    var chip = $('puzzle-chip');
-    if (chip && B.puzzle && B.puzzle.solveBy) {
-      var left = Math.max(0, B.puzzle.solveBy - B.round + 1);
-      var chipLabel = chip.querySelector('span');
-      if (chipLabel) {
-        chipLabel.textContent =
-          left === 1 ? 'Final round' : 'Daily Puzzle · ' + left + ' rounds left';
-      }
-      chip.classList.toggle('urgent', left <= 1);
-    }
-
     /* The phase is announced by the ROUND overlay (subs: basics only /
        skills unlocked) and by the lock badges on the ability rows - the
        old HUD pill was removed as HUD clutter. */
@@ -3091,45 +3073,35 @@
     afterPlayerAction();
   }
 
-  /* ---- THE PUZZLE ROUND LIMIT --------------------------------------
-     A Daily position ships with `solveBy`, the last round its forge
-     certificate proved a win in (owner ruling 2026-08-16: the intended
-     solution is 3-5 rounds). Certifying a short line is only half the
-     job - nothing stopped a player from ignoring it and grinding the
-     same board for fifteen rounds, which is precisely the "dragging out
-     way too long" complaint.
+  /* ---- WHY THERE IS NO PUZZLE ROUND LIMIT --------------------------
+     A Daily position carries `solveBy`, the last round its forge
+     certificate proved a win in (the forge targets a 3-5 round
+     solution). For one revision that number was also a hard deadline:
+     rolling past it ended the battle as a loss.
 
-     Enforced HERE, at the single round-rollover chokepoint, rather than
-     inside the engine. The engine is shared with campaign, draft and
-     online play and has no concept of a puzzle; adding a round limit to
-     nextRound() would mean every one of those modes now has a code path
-     that can end a battle in a new way, and the deterministic mirror
-     check would have to be re-run against all of them. A puzzle is a
-     presentation-layer contract over an ordinary battle, so it is
-     enforced in the presentation layer.
+     REMOVED on owner ruling 2026-08-16: "people can take more rounds if
+     they need to - I just want the intended solution to be 3-5 rounds."
 
-     Written as a LOSS, not as a draw. There is no draw anywhere else in
-     the game, the result screen has exactly two shapes, and "you did not
-     find the line in time" is a loss in every sense that matters. The
-     `_puzzleExpired` flag lets daily.js word it honestly instead of
-     claiming the team fell. */
-  function puzzleRoundsSpent() {
-    if (!B || !B.puzzle || !B.puzzle.solveBy) return false;
-    /* Checked BEFORE nextRound, so the round the player would be
-       entering is B.round + 1. Rolling into a round past the deadline is
-       what expires; finishing the deadline round itself is fine. */
-    return B.round + 1 > B.puzzle.solveBy;
-  }
+     The distinction is the whole design. 3-5 rounds is a property of the
+     POSITION, guaranteed by generation - the tempo prefilter, the
+     deadline-capped calibration trials and the obvious-move test all
+     still run, and a board that cannot be won quickly is never
+     published. It was never meant to be a property of the PLAYER's
+     session. Enforcing it turned a promise about puzzle quality into a
+     punishment for thinking slowly, and it punished exactly the players
+     the difficulty is aimed at: a strong player finds the line inside
+     the window anyway and never sees the limit, while a learning player
+     gets the board taken away mid-thought.
+
+     `solveBy` is deliberately still generated, serialized and published.
+     It is the certificate's own record of what was proved, it is what
+     the result screen reports the line against, and it is the audit
+     trail for "was this board actually short". Publishing it costs a
+     dozen bytes; regenerating it later would cost a re-run of the whole
+     forge. It simply has no authority over a live battle. */
 
   /* Roll the round over and hand control to whoever opens it. */
   function startNextRound() {
-    if (puzzleRoundsSpent()) {
-      B._puzzleExpired = true;
-      B.over = true;
-      B.winner = 'enemy';
-      render();
-      return endBattle();
-    }
     E.nextRound(B);
     render();
     /* The rollover itself can deal damage and kill legends (Burn ticks,
@@ -5251,18 +5223,17 @@
     if (puzzleResult) {
       ov.querySelector('.result-title').textContent = puzzleResult.title;
       ov.querySelector('.result-sub').textContent = puzzleResult.sub;
-      /* Report the puzzle in the unit the ruling is written in - rounds
-         SPENT - instead of the raw start/finish round numbers. "Solved
-         in 4 of 5 rounds" is the number the forge certified against;
-         "started in round 6, finished in round 9" made the reader do
-         subtraction to learn the same thing. */
+      /* Report rounds SPENT, and only that. This briefly read "Solved in
+         4 of 5 rounds", which was correct while the deadline was
+         enforced and became a lie the moment it was not: an "of 5" with
+         no limit behind it invents a budget the player never had, and
+         quietly scolds anyone who took six.
+
+         The intended-length promise lives in generation, not in the
+         scoreboard. A player who solves it in eight rounds solved it. */
       var spent = Math.max(1, B.round - B.puzzle.startRound + 1);
-      var allowed = B.puzzle.solveBy
-        ? B.puzzle.solveBy - B.puzzle.startRound + 1
-        : null;
-      ov.querySelector('.result-rounds').textContent = allowed
-        ? (win ? 'Solved in ' : 'Used ') + spent + ' of ' + allowed + ' rounds'
-        : 'Started in round ' + B.puzzle.startRound + ' · finished in round ' + B.round;
+      ov.querySelector('.result-rounds').textContent =
+        (win ? 'Solved in ' : 'Lasted ') + spent + (spent === 1 ? ' round' : ' rounds');
     }
     /* THE SET: play.js reframes the outcome as set progress (score
        line instead of epitaph, "Sideboard"/"New set" instead of
@@ -5799,10 +5770,12 @@
       }
     }
 
-    /* Keep only a quiet provenance label in the HUD. Generation details
-       are implementation data, not information the player needs. */
-    var puzzleChip = $('puzzle-chip');
-    if (puzzleChip) puzzleChip.hidden = !B.puzzle;
+    /* NO PUZZLE CHIP. It began as a quiet provenance label, briefly
+       became a round countdown, and is gone with the round limit it was
+       counting down to (owner ruling 2026-08-16). Nothing replaced it:
+       the player already opened the Daily Puzzle deliberately from its
+       own card and modal, so a badge on the board telling them they are
+       in a puzzle was restating what they just clicked. */
 
     paintCommanders();
 

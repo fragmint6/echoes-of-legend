@@ -268,29 +268,85 @@ ok(
   'a pre-rewrite payload with no deadline derives one instead of failing to open'
 );
 
-console.log('F. battle.js holds the player to the same deadline');
+/* =============================================================
+   F. THE PLAYER IS NOT ON A CLOCK
+   -------------------------------------------------------------
+   Owner ruling 2026-08-16, second pass: "people can take more
+   rounds if they need to - I just want the intended solution to be
+   3-5 rounds."
+
+   An earlier revision of this file asserted the exact opposite:
+   that rolling past `solveBy` ended the battle and that a HUD chip
+   counted the rounds down. Those assertions are INVERTED here
+   rather than deleted, because the distinction they now protect is
+   the subtle one and is easy to re-break by "restoring" a feature
+   that looks missing:
+
+     3-5 rounds is a property of the POSITION, enforced at
+     generation time (sections A-D, and G below).
+     It is NOT a property of the player's session.
+
+   Everything the forge does is unchanged. What is gone is the
+   punishment for taking longer.
+   ============================================================= */
+console.log('F. the player is not on a clock');
 const battleSource = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
 ok(
-  /function puzzleRoundsSpent\(\)/.test(battleSource) &&
-    /B\.round \+ 1 > B\.puzzle\.solveBy/.test(battleSource),
-  'rolling into a round past the deadline ends the puzzle'
+  !/function puzzleRoundsSpent\(/.test(battleSource) &&
+    !/B\.round \+ 1 > B\.puzzle\.solveBy/.test(battleSource),
+  'no round limit ends a puzzle battle'
 );
 ok(
-  /if \(puzzleRoundsSpent\(\)\)[\s\S]{0,200}B\._puzzleExpired = true/.test(battleSource),
-  'the limit is applied at the single round-rollover chokepoint'
+  !/_puzzleExpired\s*=\s*true/.test(battleSource),
+  'nothing marks a puzzle as expired, because a puzzle cannot expire'
 );
 ok(
-  !/nextRound[\s\S]{0,80}solveBy/.test(fs.readFileSync(path.join(ROOT, 'js/engine.js'), 'utf8')),
-  'the shared engine is untouched - campaign, draft and online cannot inherit a round limit'
+  !/B\.winner\s*=\s*'enemy'/.test(
+    (battleSource.match(/function startNextRound\(\)[\s\S]{0,600}/) || [''])[0]
+  ),
+  'the round rollover cannot hand the battle to the enemy'
+);
+/* Both of these match CODE, not prose. An earlier draft grepped the
+   bare strings and failed on the comments that explain the removal -
+   which would have pushed me to delete the explanation to make a test
+   pass, exactly backwards. The reasoning is the most valuable part of
+   the diff; the assertion has to be precise enough to keep it. */
+ok(
+  !/title:[^\n]*'Out of Rounds'/.test(dailySource),
+  'the "Out of Rounds" outcome is gone - a puzzle ends like any other battle'
 );
 ok(
-  /B\._puzzleExpired/.test(dailySource) && /Out of Rounds/.test(dailySource),
-  'running out of rounds is worded as its own outcome, not as "your team has fallen"'
+  !/'\s*of\s*'\s*\+\s*allowed/.test(battleSource) && !/var allowed\b/.test(battleSource),
+  'the result screen reports rounds spent, not "N of M" against a budget that no longer exists'
+);
+/* The chip is gone from all three layers. A leftover in any one of
+   them is how a removed element comes back. */
+ok(
+  !/puzzle-chip/.test(battleSource),
+  'battle.js no longer paints a puzzle chip'
 );
 ok(
-  /puzzle-chip[\s\S]{0,400}rounds left/.test(battleSource) ||
-    /rounds left[\s\S]{0,400}puzzle-chip/.test(battleSource),
-  'the HUD chip shows the countdown, so the deadline is visible rather than a trap'
+  !/puzzle-chip/.test(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')),
+  'the chip markup is gone from index.html'
+);
+ok(
+  !/puzzle-chip/.test(fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8')),
+  'and its CSS went with it rather than being left as dead rules'
+);
+/* The engine was never given a round limit and still must not have
+   one - campaign, draft and online share it. */
+ok(
+  !/solveBy/.test(fs.readFileSync(path.join(ROOT, 'js/engine.js'), 'utf8')),
+  'the shared engine has no concept of a puzzle deadline'
+);
+/* `solveBy` REMAINS in the payload on purpose: it is the
+   certificate's record of what was proved and the audit trail for
+   "was this board actually short". It simply has no authority over
+   a live battle. Deleting it would mean re-running the forge to
+   answer a question the publish already answered. */
+ok(
+  /solveBy: solveDeadline\(B\.round\)/.test(dailySource),
+  'the certified deadline is still published as an audit trail, just not enforced'
 );
 
 /* =============================================================

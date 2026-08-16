@@ -1617,22 +1617,16 @@
           });
       }
     }
-    /* Running out of rounds is its own defeat and reads very differently
-       from being wiped out - the player may still have a full team on
-       the board. Saying "Line Broken / your team has fallen" there would
-       be simply untrue, and it hides the actual lesson, which is that
-       the solution was faster than what they played. */
-    var expired = !win && B._puzzleExpired;
+    /* There is no "Out of Rounds" outcome any more. It existed for one
+       revision, alongside a hard round limit, and both went when the
+       limit did (owner ruling 2026-08-16) - a puzzle now ends only the
+       way every other battle ends, by one side being wiped out. The
+       3-5 round target is a guarantee about the position the forge
+       publishes, not a clock the player runs against. */
     return {
       puzzle: true,
-      title: win ? 'Puzzle Solved' : expired ? 'Out of Rounds' : 'Line Broken',
-      sub: expired
-        ? (B.puzzle.official && (B.puzzle.attemptNo || 1) < MAX_DAILY_ATTEMPTS
-            ? 'The winning line is shorter than that. One attempt remains before the 7:00 AM Eastern reset.'
-            : B.puzzle.official
-              ? 'The winning line is shorter than that. A new position arrives at 7:00 AM Eastern.'
-              : 'The winning line is shorter than that. Forge another position and try again.')
-        : win
+      title: win ? 'Puzzle Solved' : 'Line Broken',
+      sub: win
         ? B.puzzle.official
           ? /* A win closes the day - there is no replay to offer. */
             'You found the winning line. A new position arrives at 7:00 AM Eastern.'

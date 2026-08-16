@@ -4,9 +4,13 @@
 
 **Revised 2026-08-16 (owner ruling):** *"Redo the puzzle engine, games are dragging out
 way too long right now, make it so that the intended solution is like 3-5 rounds."*
-The forge now filters on **tempo** (§3), certifies against a **deadline** (§4), tests
-against **obvious play** (§5), and ships the deadline with the position so the client
-enforces it during play (§6).
+The forge now filters on **tempo** (§3), certifies against a **deadline** (§4), and tests
+against **obvious play** (§5).
+
+**Amended same day (owner ruling):** *"people can take more rounds if they need to - I just
+want the intended solution to be 3-5 rounds and that's working."* The round limit and its
+HUD countdown chip are **removed** (§6). 3-5 rounds is a guarantee about the position the
+forge publishes, not a clock the player runs against.
 
 This document records the design of the puzzle *generator*. The attempt ledger, the
 two-attempt rule and the publication lease are described in `docs/supabase-migration-04.sql`
@@ -155,29 +159,44 @@ is to skip candidates that never win.
 
 ---
 
-## 6. The deadline is enforced during play
+## 6. The player is not on a clock
 
-Certifying a short line is only half the job. Nothing stopped a player from ignoring it and
-grinding the same board for fifteen rounds — which is the original complaint, unfixed.
+For one revision the certified deadline was also enforced during play: rolling past
+`solveBy` ended the battle as a loss, and a HUD chip counted the rounds down.
 
-- `solveBy` is serialized **with the position** and enforced by `js/battle.js`.
-- It is an **additive field** in the existing `v: 1` payload. The server's shape check in
-  migration 04 asserts `position.v = '1'` and ignores unknown keys, so publication keeps
-  working with no migration and no coordinated deploy. Deserialization derives a default
-  when the field is absent, so a position staged by an older tab still opens rather than
-  blacking out the Daily for a day.
-- Enforced in `startNextRound()`, the single round-rollover chokepoint, **not** in the
-  engine. The engine is shared with campaign, draft and online play and has no concept of a
-  puzzle; adding a round limit there would give every one of those modes a new way for a
-  battle to end. A puzzle is a presentation-layer contract over an ordinary battle.
-- Written as a **loss**, not a draw. There is no draw anywhere in the game and the result
-  screen has two shapes. A `_puzzleExpired` flag lets the copy be honest — *"Out of Rounds
-  — the winning line is shorter than that"* — instead of falsely claiming the team fell,
-  which would be visibly untrue when the player still has six legends standing.
-- The HUD chip counts **rounds remaining**, and turns red on the final round. A deadline
-  the player cannot see is a trap, not a rule.
-- The result screen reports *"Solved in 4 of 5 rounds"* — the unit the ruling is written
-  in — rather than making the reader subtract start round from finish round.
+**Both are removed.** The distinction that replaced them is the whole design:
+
+> 3-5 rounds is a property of the **position**, guaranteed at generation time.
+> It is **not** a property of the player's session.
+
+Enforcing it turned a promise about puzzle quality into a punishment for thinking slowly,
+and it punished precisely the players the difficulty is aimed at — a strong player finds
+the line inside the window anyway and never sees the limit, while a learning player gets
+the board taken away mid-thought. The chip went with it: the player opened the Daily Puzzle
+deliberately from its own card and modal, so a badge restating that was noise once it had
+no countdown to show.
+
+What this changes, and what it does not:
+
+| | |
+|---|---|
+| Tempo prefilter | **unchanged** — still runs at capture time |
+| Deadline-capped calibration trials | **unchanged** — a win after the deadline is still scored a loss *when grading a candidate* |
+| `SOLVE_MIN` floor / obvious-move test | **unchanged** |
+| Round limit during play | **removed** |
+| `puzzle-chip` (markup, CSS, paint) | **removed** |
+| "Out of Rounds" result | **removed** — a puzzle ends like any other battle |
+| Result line | now `Solved in N rounds`, never `N of M` |
+
+`solveBy` is still generated, serialized and published. It is the certificate's own record
+of what was proved and the audit trail for *"was this board actually short"*; it costs a
+dozen bytes, whereas regenerating it later would cost a re-run of the whole forge. It
+simply has no authority over a live battle.
+
+The result screen reports rounds **spent** and nothing else. `"Solved in 4 of 5 rounds"` was
+correct while the deadline was enforced and became a lie the moment it was not — an *"of 5"*
+with no limit behind it invents a budget the player never had. A player who solves it in
+eight rounds solved it.
 
 ---
 
