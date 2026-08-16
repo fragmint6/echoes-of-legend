@@ -2,6 +2,91 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      /* GOOGLE OAUTH POPUP RELAY.
+         Google sends the player back to this same page inside the popup
+         window js/auth.js opened. Without this, that popup would boot a
+         whole second copy of the game and the original tab would never
+         learn the sign-in succeeded.
+
+         This must be the FIRST script in the document: it has to run
+         before any stylesheet, font or module starts loading, since all
+         of that work is wasted in a window that is about to close.
+
+         It only acts inside our own named popup that also carries an
+         OAuth result, so a normal page load is completely untouched. */
+      (function () {
+        try {
+          if (window.name !== 'eol-oauth') return;
+          var q = new URLSearchParams(window.location.search);
+          var h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+          var msg = null;
+          if (q.get('error') || h.get('error')) {
+            msg = {
+              source: 'eol-oauth',
+              error:
+                q.get('error_description') ||
+                h.get('error_description') ||
+                q.get('error') ||
+                h.get('error'),
+            };
+          } else if (q.get('code')) {
+            /* PKCE: the opener holds the verifier, so it does the exchange. */
+            msg = { source: 'eol-oauth', code: q.get('code') };
+          } else if (h.get('access_token')) {
+            msg = {
+              source: 'eol-oauth',
+              access_token: h.get('access_token'),
+              refresh_token: h.get('refresh_token'),
+            };
+          }
+          if (!msg) return; /* not an OAuth return - let the page boot */
+          document.documentElement.innerHTML = '';
+
+          /* THREE CHANNELS, because Cross-Origin-Opener-Policy may have
+             severed the first one.
+
+             Navigating to accounts.google.com can put this window in a
+             different browsing-context group, after which `window.opener`
+             is null here and `popup.closed` lies to the opener. Relying
+             on postMessage alone meant the result was simply never
+             delivered and the player saw "Google sign-in was cancelled".
+
+             BroadcastChannel and localStorage are both same-ORIGIN
+             mechanisms - they do not care about the opener relationship
+             at all - so at least one of these always lands. The opener
+             ignores duplicates. */
+          try {
+            if (window.opener) window.opener.postMessage(msg, window.location.origin);
+          } catch (e) {
+            /* COOP severed it - the two below still work */
+          }
+          try {
+            var bc = new BroadcastChannel('eol-oauth');
+            bc.postMessage(msg);
+            bc.close();
+          } catch (e) {
+            /* no BroadcastChannel - localStorage still works */
+          }
+          try {
+            /* the `t` makes every write a distinct value, so the storage
+               event fires even for two identical results in a row */
+            localStorage.setItem(
+              'eol:oauth:relay',
+              JSON.stringify({ msg: msg, t: Date.now() })
+            );
+          } catch (e) {
+            /* storage disabled - we have already tried the other two */
+          }
+
+          window.close();
+          /* If the browser refuses to close us, at least stop the boot. */
+          window.stop && window.stop();
+        } catch (e) {
+          /* Never let this break a normal load. */
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Echoes of Legend</title>
     <meta
@@ -89,8 +174,16 @@
     <link rel="apple-touch-icon" href="assets/icon-128.png" />
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/daily.css" />
+    <!-- Build differences (CrazyGames portal build). Last, so it wins on
+         equal specificity. Paired with js/platform.js below. -->
+    <link rel="stylesheet" href="css/platform.css" />
   </head>
   <body>
+    <!-- PLATFORM FLAG. Must run before any module reads a capability and
+         before first paint, so css/platform.css never flashes a control
+         it is about to hide. Sets body[data-platform] + EOL.platform. -->
+    <script src="js/platform.js"></script>
+
     <div class="bg-layer"></div>
     <div class="bg-grid"></div>
 
@@ -259,11 +352,18 @@
           <button type="button" class="acct-menu-item" id="acct-login" role="menuitem">
             <i class="ri-login-box-line"></i><span>Sign in</span>
           </button>
+          <!-- Signed-in only: history lives in the account, not on the
+               device, so there is nothing to show a guest. -->
+          <button type="button" class="acct-menu-item" id="acct-history" role="menuitem">
+            <i class="ri-history-line"></i><span>Match history</span>
+          </button>
           <button type="button" class="acct-menu-item" id="acct-settings" role="menuitem">
             <i class="ri-settings-4-line"></i><span>Settings</span>
           </button>
+          <!-- Sign-out saves to the account and then CLEARS this browser,
+               so the label has to say so before the dialog does. -->
           <button type="button" class="acct-menu-item danger" id="acct-logout" role="menuitem">
-            <i class="ri-logout-box-r-line"></i><span>Log out</span>
+            <i class="ri-logout-box-r-line"></i><span>Log out and clear this device</span>
           </button>
         </div>
       </div>
@@ -274,6 +374,7 @@
            bottom-right). -->
       <a
         class="discord-btn home-discord"
+        data-community
         href="https://discord.gg/HFFk6wc7Ha"
         target="_blank"
         rel="noopener noreferrer"
@@ -282,6 +383,56 @@
         <i class="ri-discord-fill" aria-hidden="true"></i>
         <span class="discord-tip" aria-hidden="true">Discord</span>
       </a>
+      <!-- ==================== QUEST BOARD ====================
+           Floating panel on the RIGHT of the menu, opposite the
+           Discord/tutorial stack on the left. Three dailies and three
+           weeklies, reset at 7:00 AM Eastern - the Daily Puzzle's own
+           boundary, because two definitions of "day" in one game is a
+           bug factory.
+
+           Collapsible, and it auto-collapses under 1100px because
+           .home is overflow:hidden and the centred 700px .home-inner
+           starts competing for room there. The collapsed tab keeps a
+           badge, so a folded board still says there is loot waiting.
+
+           NO QUEST COUNTS MATCHES, WINS OR LOSSES - match pay rewards
+           a loss and a forfeit takes the same path, so a "play N
+           matches" quest would be a forfeit-farm button. Objectives
+           count things that only accumulate inside a real fight.
+           See docs/DESIGN-Quests.md. -->
+      <aside class="quest-board" id="quest-board" data-collapsed="false" aria-label="Quests">
+        <button
+          type="button"
+          class="qb-tab"
+          id="qb-tab"
+          aria-expanded="true"
+          aria-controls="qb-body"
+          title="Quests"
+        >
+          <i class="ri-scroll-line" aria-hidden="true"></i>
+          <span class="qb-tab-txt">Quests</span>
+          <span class="qb-badge" id="qb-badge" hidden>0</span>
+        </button>
+        <div class="qb-body" id="qb-body">
+          <header class="qb-head">
+            <h2 class="qb-title"><i class="ri-scroll-line" aria-hidden="true"></i> Quests</h2>
+            <button type="button" class="qb-close" id="qb-close" aria-label="Collapse quest board">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </header>
+          <div class="qb-tabs" role="tablist">
+            <button class="qb-seg sel" id="qb-seg-daily" role="tab" aria-selected="true">
+              Daily <span class="qb-seg-timer" id="qb-timer-daily"></span>
+            </button>
+            <button class="qb-seg" id="qb-seg-weekly" role="tab" aria-selected="false">
+              Weekly <span class="qb-seg-timer" id="qb-timer-weekly"></span>
+            </button>
+          </div>
+          <div class="qb-list" id="qb-list"></div>
+          <div class="qb-bonus" id="qb-bonus" hidden></div>
+        </div>
+      </aside>
+
       <!-- BUILD TAG: outside testers were reporting against a moving
            target ('two changes shipped since last night'). One glance
            answers 'which build?' in every report. Bump per release. -->
@@ -331,7 +482,7 @@
         <p class="home-sub">History Meets Destiny</p>
 
         <div class="home-actions">
-          <button class="btn btn-primary btn-hero" id="btn-play">
+          <button class="btn btn-primary btn-legend" id="btn-play">
             <i class="ri-sword-line"></i>
             <span>Play</span>
             <i class="ri-arrow-right-line b-arrow" aria-hidden="true"></i>
@@ -355,6 +506,23 @@
           <span><b>Sign in to save progress to the cloud</b><small>Guest progress is saved in this browser only.</small></span>
           <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
         </button>
+
+        <!-- FIRST-RUN DATA NOTICE.
+             Required of any game collecting personal data beyond the
+             CrazyGames SDK's own events. Their guidance asks for a
+             simple notice rather than a blocking pop-up, so this is a
+             quiet line on the menu that dismisses for good on the first
+             acknowledgement (js/app.js, key eol.policy.seen) and never
+             stands between a new player and the Play button. The full
+             text lives in Settings under Privacy. -->
+        <p class="home-policy" id="home-policy" hidden>
+          <i class="ri-shield-check-line" aria-hidden="true"></i>
+          <span>
+            This game stores your progress and anonymous play statistics.
+            See <b>Settings › Privacy</b> for what is kept and how to remove it.
+          </span>
+          <button type="button" class="home-policy-ok" id="home-policy-ok">Got it</button>
+        </p>
       </div>
 
     </section>
@@ -380,7 +548,7 @@
            centred, so the header above it stays purely ceremonial -->
       <div class="col-tabs" role="tablist">
         <span class="col-thumb" aria-hidden="true"></span>
-        <button class="col-tab sel" id="ctab-heroes" role="tab" aria-selected="true">
+        <button class="col-tab sel" id="ctab-legends" role="tab" aria-selected="true">
           <i class="ri-user-3-line"></i><span>Legends</span>
         </button>
         <button class="col-tab" id="ctab-decks" role="tab" aria-selected="false">
@@ -388,8 +556,8 @@
         </button>
       </div>
 
-      <!-- tab: heroes (the collection, unchanged) -->
-      <div class="col-panel" id="cpanel-heroes">
+      <!-- tab: legends (the collection, unchanged) -->
+      <div class="col-panel" id="cpanel-legends">
         <!-- static toolbar: intentionally NOT sticky -->
         <div class="toolbar">
           <div class="filters" id="filters"></div>
@@ -761,8 +929,8 @@
                 <figcaption><b>The Ancient Ruins</b><span>A random relic blessing for every survivor, every round.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/heros-trial.png" alt="The Hero's Trial" loading="lazy" draggable="false" />
-                <figcaption><b>The Hero's Trial</b><span>Everyone grows: +15% attack at every round rollover.</span></figcaption>
+                <img src="assets/boards/thumbs/heros-trial.png" alt="The Legend's Trial" loading="lazy" draggable="false" />
+                <figcaption><b>The Legend's Trial</b><span>Everyone grows: +15% attack at every round rollover.</span></figcaption>
               </figure>
               <figure class="rb-field">
                 <img src="assets/boards/thumbs/blood-battlefield.png" alt="The Blood Battlefield" loading="lazy" draggable="false" />
@@ -875,6 +1043,11 @@
            wallet, packs pay only unowned legends. -->
       <div class="shop-wallet-row">
         <span class="shop-wallet" id="shop-wallet"></span>
+        <!-- ECHO SHARDS: the second wallet. Duplicates pay it, and it
+             crafts duplicates of legends you already own - including
+             legendaries, which no pack may ever contain. -->
+        <span class="shop-wallet shop-shards" id="shop-shards" hidden
+              title="Echo Shards - craft duplicates of legends you own"></span>
         <button
           class="shop-wallet shop-code-open"
           id="shop-code-open"
@@ -976,6 +1149,7 @@
             <i class="ri-check-double-line"></i>
             Yours now - the ledger wrote them the moment the pack tore.
           </p>
+          <p class="po-shard-tally" id="po-shard-tally" hidden></p>
           <div class="po-sum-actions">
             <button class="btn btn-ghost btn-slim" id="po-again">
               <i class="ri-add-circle-line"></i><span>Open Another</span>
@@ -1052,11 +1226,6 @@
           </p>
         </div>
 
-        <p class="auth-foot" id="auth-foot">
-          <i class="ri-information-line"></i>
-          Signed-out progress stays in this browser. Create an account to back it up to the cloud.
-        </p>
-
         <div class="auth-tabs" role="tablist">
           <button type="button" class="auth-tab sel" data-mode="in" role="tab" aria-selected="true">
             Sign in
@@ -1108,6 +1277,59 @@
             <i class="ri-login-box-line"></i><span id="auth-submit-txt">Sign in</span>
           </button>
         </form>
+
+        <!-- The footnote lives BELOW the form, like every other modal in
+             the game. It used to sit between the header and the tabs,
+             where a two-line message shoved the tabs, Google button and
+             fields together and made the whole card read as cramped. -->
+        <p class="auth-foot" id="auth-foot">
+          <i class="ri-information-line"></i>
+          Signed-out progress stays in this browser. Create an account to back it up to the cloud.
+        </p>
+      </div>
+    </div>
+    <!-- =========================================================
+         MATCH HISTORY
+         ---------------------------------------------------------
+         Two views in one card: the list of finished matches, and one
+         match opened as a turn-by-turn record. Finished matches are
+         archived out of mp_matches into mp_history, so this reads
+         from the archive rather than from live game rows.
+         ========================================================= -->
+    <div
+      class="auth-modal"
+      id="hist-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hist-title"
+    >
+      <div class="auth-scrim" id="hist-scrim"></div>
+      <div class="auth-card hist-card" role="document">
+        <button type="button" class="auth-close" id="hist-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <div class="auth-head set-head">
+          <div class="auth-emblem set-emblem"><i class="ri-history-line"></i></div>
+          <h2 class="auth-title" id="hist-title">Match history</h2>
+          <p class="auth-sub" id="hist-sub">Your finished online matches.</p>
+        </div>
+
+        <!-- view 1: the list -->
+        <section class="hist-view" id="hist-list-view">
+          <p class="hist-msg" id="hist-msg">Loading your matches...</p>
+          <ol class="hist-list" id="hist-list"></ol>
+        </section>
+
+        <!-- view 2: one match, replayed -->
+        <section class="hist-view" id="hist-one-view" hidden>
+          <button type="button" class="hist-back" id="hist-back">
+            <i class="ri-arrow-left-line"></i><span>All matches</span>
+          </button>
+          <div class="hist-score" id="hist-score"></div>
+          <ol class="hist-log" id="hist-log"></ol>
+        </section>
       </div>
     </div>
     <div
@@ -1143,14 +1365,21 @@
           <form class="auth-form set-form" id="settings-form" autocomplete="off">
             <label class="auth-field">
               <span class="auth-lbl">Username</span>
-              <input
-                type="text"
-                name="username"
-                id="set-username"
-                placeholder="letters, numbers, . _ -"
-                autocomplete="off"
-              />
-              <span class="set-hint">3&ndash;24 characters. Letters, numbers, . _ - only.</span>
+              <span class="set-name-row">
+                <input
+                  type="text"
+                  name="username"
+                  id="set-username"
+                  placeholder="letters, numbers, . _ -"
+                  autocomplete="off"
+                />
+              </span>
+              <!-- Filled by openSettings(): either the format rule, or the
+                   date the next change becomes available. -->
+              <span class="set-hint" id="set-name-hint"
+                >3&ndash;24 characters. Letters, numbers, . _ - only. You can change this
+                once a week.</span
+              >
             </label>
             <label class="auth-field">
               <span class="auth-lbl">New password <em>(optional)</em></span>
@@ -1341,6 +1570,51 @@
             It never sends your email, callsign, card choices, messages, or full browser signature.
             Turning this off erases the anonymous identifier from this device.
           </p>
+
+          <!-- WHAT THIS GAME COLLECTS, IN FULL.
+               CrazyGames require a Terms & Conditions and/or Privacy
+               Policy notice from any game that collects personal data
+               beyond their own SDK events. This one does: a Supabase
+               account (email or CrazyGames token), a callsign, cloud
+               saves, match history and the anonymous measurement above.
+
+               Their guidance is explicit that this should be a plain
+               notice rather than a blocking pop-up, and it must be
+               reachable IN GAME - not only from a store page - so it
+               lives here in Settings beside the control it describes,
+               and is repeated once for new players on the home screen.
+               It is deliberately not a link: an off-site link is
+               cross-promotion under the portal's gameplay rules and is
+               stripped from the portal build, which would leave the
+               notice pointing nowhere exactly where it is required. -->
+          <details class="set-policy">
+            <summary>Privacy &amp; terms</summary>
+            <div class="set-policy-body">
+              <p>
+                <b>What is stored.</b> A callsign and an account identifier when you
+                create an account; your collection, progress and match history so they
+                survive a device change; and the anonymous measurement described above
+                when it is switched on. On CrazyGames your progress is held by the
+                CrazyGames Data module against your CrazyGames account, and this game
+                receives only the identifier and username the platform gives it.
+              </p>
+              <p>
+                <b>What is never stored.</b> Payment details, real-world names beyond a
+                callsign you chose, and the contents of anything you type outside the
+                feedback form.
+              </p>
+              <p>
+                <b>Your control.</b> Measurement can be turned off above, which erases the
+                anonymous identifier from this device. Ask for an account and its saves
+                to be deleted through the feedback form and the record goes with it.
+              </p>
+              <p>
+                <b>Terms.</b> This is a free game provided as-is, for players aged 13 and
+                over. Do not use it to harass other players; accounts used that way can be
+                closed. Continuing to play means you accept this.
+              </p>
+            </div>
+          </details>
         </section>
       </div>
     </div>
@@ -1403,14 +1677,95 @@
           <button type="button" class="btn btn-ghost btn-slim" id="feedback-copy">
             <i class="ri-file-list-3-line"></i><span>Copy note</span>
           </button>
+          <!-- data-community marks every off-site link so the portal
+               build can hide them in one rule (css/platform.css). -->
           <a
             class="btn btn-ghost btn-slim"
+            data-community
             href="https://discord.gg/HFFk6wc7Ha"
             target="_blank"
             rel="noopener noreferrer"
           >
             <i class="ri-discord-fill"></i><span>Open Discord</span>
           </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAVE COLLISION. Shown only when signing into an account that
+         already holds a save WHILE this device is carrying progress of
+         its own. One of the two is about to be destroyed, so the player
+         chooses which - nothing here happens silently. Closing the
+         dialog keeps the device save and signs back out, the only
+         outcome that loses nothing. -->
+    <div
+      class="auth-modal"
+      id="merge-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="merge-title"
+    >
+      <div class="auth-scrim" id="merge-scrim"></div>
+      <div class="auth-card" role="document">
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ri-save-3-line"></i></div>
+          <h2 class="auth-title" id="merge-title">Two saves, one account</h2>
+          <p class="auth-sub">
+            This account already has progress saved, and so does this device. Keeping one
+            <b>replaces</b> the other. This cannot be undone.
+          </p>
+        </div>
+        <div class="merge-choices">
+          <button type="button" class="merge-choice" id="merge-keep-cloud">
+            <span class="merge-choice-head">
+              <i class="ri-cloud-line"></i><span>Keep the account save</span>
+            </span>
+            <span class="merge-stats" id="merge-cloud-stats"></span>
+            <span class="merge-note">This device's progress is discarded.</span>
+          </button>
+          <button type="button" class="merge-choice" id="merge-keep-local">
+            <span class="merge-choice-head">
+              <i class="ri-gamepad-line"></i><span>Keep this device's save</span>
+            </span>
+            <span class="merge-stats" id="merge-local-stats"></span>
+            <span class="merge-note">The account's saved progress is overwritten.</span>
+          </button>
+        </div>
+        <button type="button" class="btn btn-ghost uname-skip" id="merge-cancel">
+          <i class="ri-arrow-go-back-line"></i><span>Cancel and stay signed out</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SIGN OUT. Destructive on purpose: the account is the save, so a
+         signed-out browser must not keep a copy of it. -->
+    <div
+      class="auth-modal"
+      id="signout-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="signout-title"
+    >
+      <div class="auth-scrim" id="signout-scrim"></div>
+      <div class="auth-card" role="document">
+        <div class="auth-head">
+          <div class="auth-emblem"><i class="ri-logout-box-r-line"></i></div>
+          <h2 class="auth-title" id="signout-title">Sign out of this device?</h2>
+          <p class="auth-sub" id="signout-sub">
+            Your progress is saved to your account first, then cleared from this browser. Sign back
+            in anywhere to pick it up again.
+          </p>
+        </div>
+        <p class="auth-foot" id="signout-foot"></p>
+        <div class="merge-actions">
+          <button type="button" class="btn btn-primary auth-submit" id="signout-confirm">
+            <i class="ri-check-line"></i><span>Save and sign out</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="signout-cancel">
+            <i class="ri-close-line"></i><span>Stay signed in</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1602,6 +1957,17 @@
             <span class="mode-cta">Find a match <i class="ri-arrow-right-line"></i></span>
           </button>
 
+          <button class="mode-card" id="mode-mp-room">
+            <i class="mode-wm ri-group-line" aria-hidden="true"></i>
+            <i class="mode-glyph ri-group-line"></i>
+            <span class="mode-name">Private Room</span>
+            <span class="mode-desc">
+              Play a friend, not a stranger. Send them a link or their callsign, pick the format,
+              the arena and the pool, then start when they arrive.
+            </span>
+            <span class="mode-cta">Create or join <i class="ri-arrow-right-line"></i></span>
+          </button>
+
           <button
             type="button"
             class="mode-card mode-card-guild soon"
@@ -1715,7 +2081,11 @@
     <div class="mm-modal" id="mm-modal" hidden>
       <div class="mm-scrim" id="mm-scrim"></div>
       <div class="mm-card">
-        <div class="mm-spinner" aria-hidden="true"><i class="ri-loader-4-line"></i></div>
+        <!-- The icon swaps with the modal's mood: a spinner while
+             searching, a shield when the player needs an account, a
+             warning when something failed. js/play.js drives it through
+             mmIcon(); the default is the searching state. -->
+        <div class="mm-spinner" id="mm-icon" aria-hidden="true"><i class="ri-loader-4-line"></i></div>
         <h3 class="mm-title" id="mm-title">Finding an opponent</h3>
         <div class="mm-subrow">
           <p class="mm-sub" id="mm-sub">Searching the queue...</p>
@@ -1736,6 +2106,256 @@
         <button class="btn btn-ghost btn-slim" id="mm-cancel">
           <i class="ri-close-line"></i><span>Cancel</span>
         </button>
+      </div>
+    </div>
+
+    <!-- ==================== PRIVATE ROOM ====================
+         Two faces, one modal. The DOOR (#room-door) is what you see
+         before you are in a room: create one, or type a code. The
+         LOBBY (#room-lobby) is the room itself - the code to share,
+         who is in it, and the settings.
+
+         Only the party leader's controls are live: the guest sees the
+         same panel with everything disabled, because they should know
+         what they are about to play even though they do not choose it.
+         The server enforces this too; the UI is a courtesy. -->
+    <div class="room-modal" id="room-modal" hidden>
+      <div class="room-scrim" id="room-scrim"></div>
+      <div class="room-card">
+        <button type="button" class="room-x" id="room-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <!-- ---- the door ---- -->
+        <div class="room-face" id="room-door">
+          <h3 class="room-title"><i class="ri-group-line"></i> Private Room</h3>
+          <p class="room-sub">Play someone you know. No queue, no strangers.</p>
+
+          <button class="btn btn-gold room-big" id="room-create">
+            <i class="ri-add-circle-line"></i><span>Create a room</span>
+          </button>
+
+          <div class="room-or"><span>or join one</span></div>
+
+          <form class="room-join" id="room-join-form">
+            <input
+              class="room-input"
+              id="room-code-in"
+              type="text"
+              inputmode="latin"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="6"
+              placeholder="ROOM CODE"
+              aria-label="Room code"
+            />
+            <button class="btn btn-ghost" id="room-join" type="submit">
+              <i class="ri-login-box-line"></i><span>Join</span>
+            </button>
+          </form>
+          <p class="room-err" id="room-door-err" role="alert" hidden></p>
+        </div>
+
+        <!-- ---- the lobby ---- -->
+        <div class="room-face" id="room-lobby" hidden>
+          <h3 class="room-title"><i class="ri-group-line"></i> Your room</h3>
+
+          <div class="room-code-row">
+            <span class="room-code-k">Room code</span>
+            <code class="room-code" id="room-code">------</code>
+            <button type="button" class="btn btn-ghost btn-slim" id="room-copy-code">
+              <i class="ri-file-copy-line"></i><span>Copy</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-slim" id="room-copy-link">
+              <i class="ri-link"></i><span>Copy invite link</span>
+            </button>
+          </div>
+
+          <!-- A REAL INVITE. This used to only check that the name
+               existed and then hand the code back for the player to
+               deliver themselves. It now sends the invite: the other
+               player gets a toast with Join, unless they are already
+               in a game, in which case the inviter is told so. -->
+          <form class="room-invite" id="room-invite-form">
+            <input
+              class="room-input"
+              id="room-invite-name"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="24"
+              placeholder="Their callsign"
+              aria-label="Invite a player by callsign"
+            />
+            <button class="btn btn-ghost btn-slim" id="room-invite-go" type="submit">
+              <i class="ri-user-add-line"></i><span>Invite</span>
+            </button>
+          </form>
+          <p class="room-note" id="room-invite-note" role="status" hidden></p>
+
+          <div class="room-seats">
+            <div class="room-seat filled" id="room-seat-1">
+              <i class="ri-vip-crown-line"></i>
+              <span class="room-seat-name" id="room-seat-1-name">Leader</span>
+              <span class="room-seat-tag">Party leader</span>
+            </div>
+            <span class="room-vs"><i class="ri-sword-line"></i></span>
+            <div class="room-seat" id="room-seat-2">
+              <i class="ri-user-line"></i>
+              <span class="room-seat-name" id="room-seat-2-name">Waiting...</span>
+              <span class="room-seat-tag" id="room-seat-2-tag">Empty</span>
+            </div>
+          </div>
+
+          <div class="room-settings" id="room-settings">
+            <p class="room-settings-head">
+              <span>Settings</span>
+              <span class="room-leader-only" id="room-leader-hint">The party leader decides</span>
+            </p>
+
+            <div class="room-opt" data-opt="mode">
+              <span class="room-opt-k">Format</span>
+              <div class="room-opt-v" role="group" aria-label="Format">
+                <button type="button" class="room-pill" data-set="mode" data-val="draft">Draft</button>
+                <button type="button" class="room-pill" data-set="mode" data-val="classic">Classic</button>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="length">
+              <span class="room-opt-k">Length</span>
+              <div class="room-opt-v" role="group" aria-label="Length">
+                <button type="button" class="room-pill" data-set="length" data-val="single">Single</button>
+                <button type="button" class="room-pill" data-set="length" data-val="unabridged">
+                  Unabridged
+                </button>
+              </div>
+            </div>
+
+            <!-- Single Battle uses one board. Unabridged is best of 3
+                 and therefore needs three, so slots 2 and 3 appear only
+                 when Unabridged is chosen. -->
+            <div class="room-opt" data-opt="field">
+              <span class="room-opt-k" id="room-field-k">Battlefield</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-field" aria-label="Battlefield">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="field2" hidden>
+              <span class="room-opt-k">Battlefield 2</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-field2" aria-label="Second battlefield">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="room-opt" data-opt="field3" hidden>
+              <span class="room-opt-k">Battlefield 3</span>
+              <div class="room-opt-v">
+                <select class="room-select" id="room-field3" aria-label="Third battlefield">
+                  <option value="">Random</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- THE DRAFT POOL IS ALWAYS BUILT BY HAND.
+                 There used to be a preset dropdown here whose only
+                 option was "Random", sitting next to a separate
+                 "Custom pool" row - two controls for one decision,
+                 one of which could not decide anything. A draft in a
+                 private room now has exactly one pool: the 36 the
+                 leader chooses. "Fill random" inside the builder is
+                 what the dropdown was pretending to offer. -->
+            <div class="room-opt" data-opt="pool">
+              <span class="room-opt-k">Draft pool</span>
+              <div class="room-opt-v room-opt-v-row">
+                <span class="room-pool-count" id="room-pool-count">Not built</span>
+                <button type="button" class="btn btn-ghost btn-slim" id="room-pool-edit">
+                  <i class="ri-grid-line"></i><span>Build</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p class="room-err" id="room-lobby-err" role="alert" hidden></p>
+
+          <div class="room-actions">
+            <button class="btn btn-ghost btn-slim" id="room-leave">
+              <i class="ri-logout-box-line"></i><span>Leave</span>
+            </button>
+            <button class="btn btn-gold" id="room-start" disabled>
+              <i class="ri-play-line"></i><span>Start match</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CUSTOM DRAFT POOL ====================
+         The 36 cards a private-room draft is dealt from. Same shape as
+         the deck editor - slots on top, filterable collection below -
+         because it is the same task: choose a set of legends. Reusing
+         the pattern means nothing new to learn.
+
+         36 is not arbitrary: a draft pool is six per role across six
+         roles (data/_schema.js draftPool), so a custom pool has to
+         supply exactly as many cards as the packs will consume. -->
+    <div class="room-modal pool-modal" id="pool-modal" hidden role="dialog" aria-modal="true"
+         aria-labelledby="pool-title">
+      <div class="room-scrim" id="pool-scrim"></div>
+      <div class="room-card pool-card" role="document">
+        <button type="button" class="auth-close" id="pool-close" aria-label="Close">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <div class="room-head">
+          <h2 class="room-title" id="pool-title">Custom draft pool</h2>
+          <p class="room-sub">
+            Pick the <b>36</b> legends this draft is dealt from. Both players draft from
+            the same pool.
+          </p>
+        </div>
+
+        <div class="pool-tray">
+          <div class="pool-slots" id="pool-slots"></div>
+          <div class="pool-side">
+            <p class="pool-count"><span id="pool-count">0</span> of 36</p>
+            <div class="pool-actions">
+              <button type="button" class="btn btn-ghost btn-slim" id="pool-fill">
+                <i class="ri-shuffle-line"></i><span>Fill random</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-slim" id="pool-clear">
+                <i class="ri-refresh-line"></i><span>Clear</span>
+              </button>
+              <button type="button" class="btn btn-gold btn-slim" id="pool-done">
+                <i class="ri-check-line"></i><span>Use this pool</span>
+              </button>
+            </div>
+            <p class="pool-note" id="pool-note" role="status"></p>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="filters" id="pool-filters"></div>
+          <div class="tool-right">
+            <div class="search-wrap">
+              <i class="ri-search-line"></i>
+              <input type="text" id="pool-search" placeholder="Search legends..." />
+            </div>
+            <button class="reset-btn" id="pool-reset" title="Reset filters">
+              <i class="ri-refresh-line"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-grid pool-grid" id="pool-grid"></div>
+        <div class="empty-state" id="pool-empty">
+          <i class="ri-inbox-2-line"></i>
+          No legends match these filters.
+        </div>
       </div>
     </div>
 
@@ -2559,7 +3179,7 @@
         </section>
       </div>
 
-      <!-- hover tooltip: the battle board's floating hero panel, same skin -->
+      <!-- hover tooltip: the battle board's floating legend panel, same skin -->
       <aside class="flyout" id="prep-tip" data-rarity="common" aria-hidden="true"></aside>
 
       <!-- phase 1 dock: the confirm lives under the board until the tray opens -->
@@ -2640,7 +3260,7 @@
         </div>
       </div>
 
-      <!-- hover tooltip: floating hero panel on deck pip hover -->
+      <!-- hover tooltip: floating legend panel on deck pip hover -->
       <aside class="flyout" id="draft-tip" data-rarity="common" aria-hidden="true"></aside>
     </section>
 
@@ -2878,7 +3498,7 @@
         </div>
         <div class="arena-beams"><span></span><span></span></div>
         <div class="arena-vignette"></div>
-        <!-- floating hero panel: appears in the empty space beside the board.
+        <!-- floating legend panel: appears in the empty space beside the board.
          Allies show it on the left, enemies on the right. -->
         <aside class="flyout" id="flyout"></aside>
 
@@ -3076,18 +3696,39 @@
          before gameplay modules so every flow can call it safely. -->
     <script src="js/audio.js"></script>
     <script src="js/economy.js"></script>
+    <script src="js/upgrades.js"></script>
+    <script src="js/quests.js"></script>
+    <script src="js/quest-board.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>
     <script src="js/deck.js"></script>
+    <script src="js/pool.js"></script>
     <script src="js/play.js"></script>
     <script src="js/daily.js"></script>
     <script src="js/campaign.js"></script>
     <script src="js/shop.js"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
-         the missing global and the game runs local-only. -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+         the missing global and the game runs local-only.
+
+         `defer` matters more than it looks. This is a third-party
+         bundle on a third-party host, and as a plain <script> it
+         BLOCKED FIRST PAINT: the menu could not render until jsdelivr
+         answered, so a slow or filtered CDN showed the player a blank
+         page rather than a game they could already have been playing.
+         Nothing here is needed before the page exists - auth.init()
+         is called by app.js once the DOM is ready, and every consumer
+         reaches the client through EOL.auth rather than the global.
+         Deferred scripts still execute in document order, so
+         supabase-config.js and auth.js below continue to see the SDK.
+
+         An ad blocker filtering this CDN is now a degraded sign-in on
+         a working game instead of a white screen. -->
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+    ></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     <!-- Privacy-light playtest funnel + voluntary feedback inbox. Stores
@@ -3100,9 +3741,31 @@
     <!-- THE WORKBENCH: EOL.dev console commands (coins, grantAll,
          openRoad, reset). Harmless in production until the economy
          is server-side - see the header of the file. -->
-    <script src="js/dev.js"></script>
+    <!-- THE WORKBENCH (owner console: EOL.dev.coins, grantAll, openRoad).
+         Deliberately shipped on the public build - with no ladder and no
+         trading, a player with the console open can only cheat themselves.
+         The portal build is a different matter: a live cheat console in a
+         build under quality review is a risk with no upside, so it is not
+         loaded there at all. -->
+    <script>
+      if (!window.EOL || !window.EOL.platform || window.EOL.platform.devConsole) {
+        document.write('<script src="js/dev.js"><\/script>');
+      }
+    </script>
     <script src="js/mp.js"></script>
     <script src="js/netplay.js"></script>
+    <script src="js/history.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the
+         game is fully wired before a third-party CDN script is even
+         requested - a blocked or slow SDK must never delay the game. It
+         reports loading and gameplay timing, which is precisely what
+         Basic Launch measures. See docs/CRAZYGAMES.md. -->
+    <script>
+      if (window.EOL && window.EOL.platform && window.EOL.platform.sdk) {
+        document.write('<script src="js/crazygames-sdk.js"><\/script>');
+      }
+    </script>
   </body>
 </html>

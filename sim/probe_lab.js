@@ -249,8 +249,8 @@ if (args.dump) {
 /* ---- score it against ground truth ---- */
 const gt = JSON.parse(fs.readFileSync(args.gt || '/tmp/gt.json', 'utf8'));
 const rows = [];
-Object.keys(gt.heroes).forEach((id) => {
-  const s = gt.heroes[id];
+Object.keys(gt.legends).forEach((id) => {
+  const s = gt.legends[id];
   if (!s.apps || score[id] == null) return;
   rows.push({ id, wr: (s.wins / s.apps) * 100, v: score[id] });
 });

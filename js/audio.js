@@ -6,7 +6,7 @@
    game ships no third-party recordings, has no licensing attribution,
    and cannot trigger a music Content ID claim.
 
-   The language is deliberately shared rather than one sound per hero:
+   The language is deliberately shared rather than one sound per legend:
      - six ROLE voices describe how an action is delivered;
      - seven ELEMENT voices describe what power is released;
      - semantic UI, card, campaign, pack and battle sounds describe the
@@ -108,11 +108,40 @@
     node.gain.setTargetAtTime(Math.max(0.0001, value), t, seconds || 0.025);
   }
 
+  /* ---------------------------------------------------------
+     EXTERNAL MUTE (the portal's own audio control)
+     -------------------------------------------------------------
+     CrazyGames can mute a game from its own chrome, and its rule is
+     explicit: that setting OUTRANKS the in-game one. A player who
+     hits our Unmute button while the portal has muted us must still
+     hear nothing, or we are talking over the site the game is
+     embedded in.
+
+     So this is kept SEPARATE from prefs.muted rather than folded
+     into it. Two reasons: the portal's choice must never be written
+     into the player's saved preferences, and when the portal unmutes
+     us the player's own setting has to come back exactly as it was.
+     muted() is the effective answer; prefs.muted stays the player's. */
+  var externalMute = false;
+
+  function muted() {
+    return !!(prefs.muted || externalMute);
+  }
+
+  function setExternalMute(on) {
+    on = !!on;
+    if (on === externalMute) return;
+    externalMute = on;
+    applyPrefs();
+    if (muted()) stopMusic(0.15);
+    else if (unlocked && prefs.music > 0) startTrack(trackForScene(desiredScene));
+  }
+
   function applyPrefs() {
-    if (masterGain) smoothGain(masterGain, prefs.muted ? 0.0001 : curve(prefs.master) * 1.35, 0.018);
+    if (masterGain) smoothGain(masterGain, muted() ? 0.0001 : curve(prefs.master) * 1.35, 0.018);
     if (musicBus) smoothGain(musicBus, curve(prefs.music) * 1.25, 0.025);
     if (sfxBus) smoothGain(sfxBus, curve(prefs.sfx) * 1.35, 0.018);
-    document.documentElement.classList.toggle('audio-muted', !!prefs.muted);
+    document.documentElement.classList.toggle('audio-muted', muted());
     syncControls();
   }
 
@@ -197,13 +226,13 @@
        waiting for that promise and then beginning another startup cycle. */
     var resumeJob = c.state === 'running' ? Promise.resolve() : c.resume();
     unlocked = true;
-    if (!currentTrack && prefs.music > 0 && !prefs.muted) startTrack(trackForScene(desiredScene));
+    if (!currentTrack && prefs.music > 0 && !muted()) startTrack(trackForScene(desiredScene));
 
     unlockJob = Promise.resolve(resumeJob)
       .then(function () {
         unlocked = true;
         unlockJob = null;
-        if (!currentTrack && prefs.music > 0 && !prefs.muted)
+        if (!currentTrack && prefs.music > 0 && !muted())
           startTrack(trackForScene(desiredScene));
         return true;
       })
@@ -245,7 +274,7 @@
   }
 
   function tone(o) {
-    if (!ensureContext() || prefs.muted) return null;
+    if (!ensureContext() || muted()) return null;
     o = o || {};
     var t = now(o.when);
     var dur = Math.max(0.025, o.dur || 0.15);
@@ -293,7 +322,7 @@
   }
 
   function noise(o) {
-    if (!ensureContext() || prefs.muted || !noiseBuffer) return null;
+    if (!ensureContext() || muted() || !noiseBuffer) return null;
     o = o || {};
     var t = now(o.when);
     var dur = Math.max(0.025, Math.min(1.95, o.dur || 0.12));
@@ -596,7 +625,7 @@
   /* ---------------- role + element battle language ---------------- */
   /* Character casts never cross into piercing whistle/chirp territory.
      This ceiling applies to every shared role and element voice, so fixing
-     Lightning also prevents a future hero combination from recreating the
+     Lightning also prevents a future legend combination from recreating the
      same unpleasant high-frequency stack. */
   var CHARACTER_FREQ_CEILING = 900;
   function characterTone(options) {
@@ -1032,7 +1061,7 @@
   }
 
   function startDialogueTalk(meta) {
-    if (!unlocked || prefs.muted) return;
+    if (!unlocked || muted()) return;
     initDialogueAudio();
     if (dialogueAudioEl) {
       try {
@@ -2136,7 +2165,7 @@
   }
 
   function startTrack(name) {
-    if (!ctx || !unlocked || prefs.muted || prefs.music <= 0 || document.hidden) return;
+    if (!ctx || !unlocked || muted() || prefs.music <= 0 || document.hidden) return;
     if (!TRACKS[name]) name = 'menu';
     if (currentTrack === name && musicTimer) return;
     var firstTrack = !currentTrack;
@@ -2258,11 +2287,12 @@
     applyPrefs();
     if (key === 'music') {
       if (prefs.music <= 0) stopMusic(0.18);
-      else if (unlocked) startTrack(trackForScene(desiredScene));
-    } else if (wasMuted && !prefs.muted && unlocked && prefs.music > 0) {
+      else if (unlocked && !muted()) startTrack(trackForScene(desiredScene));
+    } else if (wasMuted && !muted() && unlocked && prefs.music > 0) {
       /* Moving any live channel is an intentional unmute. Bring the
          remembered score back too, rather than leaving the button in an
-         unmuted state while music stays stopped until the next screen. */
+         unmuted state while music stays stopped until the next screen.
+         Still subject to the portal's mute, which outranks ours. */
       startTrack(trackForScene(desiredScene));
     }
     if (preview && key !== 'music') {
@@ -2278,7 +2308,11 @@
     prefs.muted = !!on;
     persistPrefs();
     applyPrefs();
-    if (prefs.muted) stopMusic(0.15);
+    /* An in-game unmute must NOT bring sound back while the portal is
+       holding us muted - its setting takes priority over ours. The
+       player's choice is still saved, and it takes effect the moment
+       the portal releases the mute. */
+    if (muted()) stopMusic(0.15);
     else
       unlock().then(function () {
         startTrack(trackForScene(desiredScene));
@@ -2469,6 +2503,10 @@
     getPrefs: getPrefs,
     setVolume: setVolume,
     setMuted: setMuted,
+    /* The embedding portal's mute. Separate from setMuted so it never
+       touches - or is overridden by - the player's own preference. */
+    setExternalMute: setExternalMute,
+    isMuted: muted,
     talk: talk,
     startDialogueTalk: startDialogueTalk,
     stopTalk: stopTalk,

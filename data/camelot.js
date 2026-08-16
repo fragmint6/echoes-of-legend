@@ -38,7 +38,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crown',
-      art: 'assets/heroes/camelot-king-arthur.png',
+      art: 'assets/legends/camelot-king-arthur.png',
     },
     {
       id: 'camelot-merlin',
@@ -69,7 +69,7 @@ window.EOL.registerFaction({
            symmetric effect on the card but behaved asymmetrically:
            enemy Basics were exempt while allied Basics got the -15.
            That is a real edge, not a cosmetic one, because role Basics
-           are the cheap fallback every hero can cast every round - a
+           are the cheap fallback every legend can cast every round - a
            blanket discount on them turned a setup piece into a
            team-wide economy engine, and it is why he over-performed
            beside a wide board rather than beside expensive kits. */
@@ -86,7 +86,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crystal-wand',
-      art: 'assets/heroes/camelot-merlin.png',
+      art: 'assets/legends/camelot-merlin.png',
     },
     {
       id: 'camelot-lancelot',
@@ -147,7 +147,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sword',
-      art: 'assets/heroes/camelot-lancelot.png',
+      art: 'assets/legends/camelot-lancelot.png',
     },
     {
       id: 'camelot-morgan-le-fay',
@@ -175,7 +175,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-raven',
-      art: 'assets/heroes/camelot-morgan-le-fay.png',
+      art: 'assets/legends/camelot-morgan-le-fay.png',
     },
     {
       id: 'camelot-guinevere',
@@ -214,7 +214,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-heart-tower',
-      art: 'assets/heroes/camelot-guinevere.png',
+      art: 'assets/legends/camelot-guinevere.png',
     },
     {
       id: 'camelot-mordred',
@@ -242,7 +242,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-dripping-blade',
-      art: 'assets/heroes/camelot-mordred.png',
+      art: 'assets/legends/camelot-mordred.png',
     },
   ],
 });

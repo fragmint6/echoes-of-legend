@@ -48,7 +48,7 @@
 
   /* bar scaling maxima */
   /* Scale bars against the real roster maxima (plus head-room) instead
-     of hard-coded ceilings - the old atk: 1150 meant almost every hero
+     of hard-coded ceilings - the old atk: 1150 meant almost every legend
      showed a full ATK bar. */
   var MAX = (function () {
     var hp = 0,
@@ -95,6 +95,102 @@
       '<span class="stat-val">' +
       display +
       '</span>' +
+      '</div>'
+    );
+  }
+
+  /* =============================================================
+     THE UPGRADE PANEL  (collection only, owned cards only)
+     -------------------------------------------------------------
+     Levels 0..3, bought with duplicates (1 / 3 / 5), each granting a
+     compounding +1.5% skill power AND +2% of one chosen stat. The
+     stat is re-assignable for free outside a battle, so this shows
+     three radio-ish buttons rather than a one-time choice.
+
+     Rendered as markup inside the card overlay; the delegated
+     handler in initUpgrades() below owns the clicks.
+     ============================================================= */
+  function upgradePanel(card) {
+    var U = window.EOL.upgrades;
+    if (!U) return '';
+    var econ = window.EOL.econ;
+    if (econ && !econ.owns(card.id)) return '';
+    var lv = U.levelOf(card.id);
+    var dupes = U.dupesOf(card.id);
+    var maxed = lv >= U.MAX_LEVEL;
+    var need = U.costOfNextLevel(card.id);
+    var can = U.canLevel(card.id);
+    var stat = U.statOf(card.id);
+    var craft = U.craftCost(card.rarity);
+    var shards = U.shards();
+
+    var pips = '';
+    for (var i = 1; i <= U.MAX_LEVEL; i++) {
+      pips += '<span class="up-pip' + (i <= lv ? ' on' : '') + '"></span>';
+    }
+
+    var statBtns = ['atk', 'def', 'hp']
+      .map(function (k) {
+        return (
+          '<button type="button" class="up-stat' +
+          (stat === k && lv > 0 ? ' sel' : '') +
+          '" data-up-stat="' +
+          k +
+          '" data-up-card="' +
+          esc(card.id) +
+          '"' +
+          (lv > 0 ? '' : ' disabled') +
+          '>' +
+          k.toUpperCase() +
+          '</button>'
+        );
+      })
+      .join('');
+
+    return (
+      '<div class="up-panel" data-up-panel="' +
+      esc(card.id) +
+      '">' +
+      '<div class="up-head">' +
+      '<span class="up-title"><i class="ri-sparkling-2-fill"></i>Upgrade</span>' +
+      '<span class="up-pips">' +
+      pips +
+      '</span>' +
+      '</div>' +
+      (maxed
+        ? '<p class="up-note up-maxed">Fully upgraded &mdash; further copies pay shards only</p>'
+        : '<p class="up-note">' +
+          /* Clamp the numerator: banked copies can exceed what the NEXT
+             level costs (they are saved toward later levels too), and
+             "9 / 1" reads like a bug. */
+          Math.min(dupes, need) +
+          ' / ' +
+          need +
+          ' copies toward level ' +
+          (lv + 1) +
+          (dupes > need ? ' <span class="up-bank">(' + dupes + ' banked)</span>' : '') +
+          '</p>') +
+      '<div class="up-stats">' +
+      '<span class="up-stats-lbl">Boost</span>' +
+      statBtns +
+      '</div>' +
+      '<div class="up-actions">' +
+      (maxed
+        ? ''
+        : '<button type="button" class="up-btn up-level" data-up-level="' +
+          esc(card.id) +
+          '"' +
+          (can ? '' : ' disabled') +
+          '>Level up</button>' +
+          '<button type="button" class="up-btn up-craft" data-up-craft="' +
+          esc(card.id) +
+          '"' +
+          (shards >= craft ? '' : ' disabled') +
+          ' title="Spend Echo Shards on a copy of this legend">' +
+          '<i class="ri-sparkling-2-fill"></i>' +
+          craft.toLocaleString() +
+          '</button>') +
+      '</div>' +
       '</div>'
     );
   }
@@ -227,6 +323,7 @@
       esc(faction.name) +
       '</span>' +
       '</div>' +
+      (options.upgrades ? upgradePanel(card) : '') +
       '</div>';
 
     /* tap-to-toggle on touch devices */
@@ -346,7 +443,15 @@
     if (!grid || rendered >= filtered.length) return;
     var end = Math.min(rendered + PAGE, filtered.length);
     for (var i = rendered; i < end; i++) {
-      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i, { markUnowned: true }));
+      /* The collection is the ONLY surface that shows the upgrade
+         panel: the deck builder, the draft and the pack ceremony all
+         want a clean card. */
+      grid.appendChild(
+        buildCard(filtered[i].card, filtered[i].faction, i, {
+          markUnowned: true,
+          upgrades: true,
+        })
+      );
     }
     rendered = end;
     var sent = document.getElementById('roster-sentinel');
@@ -691,6 +796,12 @@
       if (view !== 'battle') {
         document.body.dataset.busy = '0';
         document.body.dataset.netwait = '0';
+        /* Leaving the battle view for ANY reason - result, forfeit,
+           quit, desync, a campaign bail-out - releases the upgrade
+           respec lock. Catching it here rather than at each exit path
+           means a new exit cannot forget to unlock and strand the
+           player unable to re-pick a stat. */
+        if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(false);
       }
       window.scrollTo(0, 0);
       document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
@@ -1000,6 +1111,15 @@
     de.style.setProperty('--vh1', (lh / 100).toFixed(3) + 'px');
     de.style.setProperty('--dvh1', (lh / 100).toFixed(3) + 'px');
     de.style.setProperty('--vmax1', (Math.max(lw, lh) / 100).toFixed(3) + 'px');
+    /* Divisor for `max-width` CEILINGS that are written in px and would
+       otherwise shrink physically as the UI scales down (see
+       .view.battle.active). Clamped to <= 1 so it only ever CANCELS
+       shrinkage: below 100% the cap grows to hold a constant physical
+       width, at and above 100% it is 1 and the ceiling behaves exactly
+       as it always has. This is a ceiling divisor, NOT a layer
+       counter-scale - it must never be used to re-size a full-viewport
+       fixed element, which already covers the window on its own. */
+    de.style.setProperty('--gui-shrink', String(Math.min(z, 1)));
     for (var i = 0; i < MQ_W.length; i++) de.classList.toggle('mqw' + MQ_W[i], lw <= MQ_W[i]);
     for (var j = 0; j < MQ_H.length; j++) de.classList.toggle('mqh' + MQ_H[j], lh <= MQ_H[j]);
   }
@@ -1023,6 +1143,12 @@
        the default build is byte-identical to build before the feature */
     if (pct === 100) de.style.removeProperty('zoom');
     else de.style.setProperty('zoom', String(pct / 100));
+    /* No --gui-z counter-scale is published any more. It existed so the
+       two backdrop layers could divide themselves back out to "full
+       viewport", but a fixed inset:0 box already covers the window at
+       any zoom (the initial containing block is the zoomed viewport),
+       so the divide only made the backdrop oversized. JS that needs the
+       factor for rect->style conversion reads EOL.scale.factor(). */
     paintViewport();
     try {
       localStorage.setItem(SCALE_KEY, String(pct));
@@ -1041,12 +1167,22 @@
     } catch (e2) {}
   }
   function initScale() {
+    /* THE PORTAL DEFAULTS SMALLER. CrazyGames runs the game in an
+       iframe inset in a page of their own chrome, so the usable area
+       is meaningfully smaller than a full browser window and 100%
+       crowds it. 80% is the default there.
+
+       This is a DEFAULT, not an override: a stored value always wins,
+       so a portal player who picks their own scale keeps it. */
+    var P = window.EOL.platform;
+    var def = P && P.isCrazyGames ? 80 : SCALE_DEF;
+    scalePct = def;
     try {
       var raw = parseInt(localStorage.getItem(SCALE_KEY), 10);
       if (raw) {
         /* legacy migrations: v2 stored levels 1-4, v1 (zoom era)
            stored a percent 60-130; both land on the 5% grid below */
-        scalePct = raw <= 4 ? { 1: 80, 2: 85, 3: 95, 4: 100 }[raw] || SCALE_DEF : raw;
+        scalePct = raw <= 4 ? { 1: 80, 2: 85, 3: 95, 4: 100 }[raw] || def : raw;
       }
     } catch (e) {
       /* private mode */
@@ -1072,7 +1208,9 @@
     var res = document.getElementById('scale-reset');
     if (res)
       res.addEventListener('click', function () {
-        applyScale(SCALE_DEF);
+        /* "Reset" means back to this build's default, which is 80% on
+           the portal - not 100%, which was never the default there. */
+        applyScale(def);
       });
     window.addEventListener('resize', paintViewport);
   }
@@ -1137,7 +1275,8 @@
       } else {
         foot.innerHTML =
           '<i class="ri-information-line"></i>Signed-out progress stays in this browser. ' +
-          'Create an account for cloud backup; signing into an existing account restores that account’s save. ' +
+          'Create an account for cloud backup; signing into an existing account restores that account’s save, ' +
+          'and you choose which to keep if this device already has progress. ' +
           'Accounts also unlock multiplayer and official Daily Puzzles.';
       }
       if (kind) {
@@ -1184,10 +1323,26 @@
     });
     var homeCloudBtn = document.getElementById('home-cloud-cta');
     if (homeCloudBtn) {
-      homeCloudBtn.addEventListener('click', function () {
-        setMode('in');
-        open();
-      });
+      /* ON THE PORTAL THIS IS A NOTICE, NOT A BUTTON.
+         A CrazyGames player still needs telling that guest progress is
+         local - that is more important here, not less - but there is
+         no in-game sign-in to send them to, so it must not behave like
+         a control. css/platform.css removes the affordances; this
+         removes the behaviour, including for keyboard and assistive
+         users, whom pointer-events alone would not stop.
+
+         Signed IN on CrazyGames the notice is hidden outright, so this
+         only ever applies to a portal guest. */
+      var P = window.EOL.platform;
+      if (P && P.isCrazyGames) {
+        homeCloudBtn.setAttribute('tabindex', '-1');
+        homeCloudBtn.setAttribute('aria-disabled', 'true');
+      } else {
+        homeCloudBtn.addEventListener('click', function () {
+          setMode('in');
+          open();
+        });
+      }
     }
     document.getElementById('auth-close').addEventListener('click', close);
     document.getElementById('auth-scrim').addEventListener('click', close);
@@ -1202,7 +1357,8 @@
 
     document.getElementById('auth-google').addEventListener('click', function () {
       if (!guard()) return;
-      run(A.signInWithGoogle(), 'Redirecting to Google...');
+      /* A popup now, not a redirect - the game keeps running behind it. */
+      run(A.signInWithGoogle(), 'Waiting for Google...');
     });
 
     document.getElementById('auth-form').addEventListener('submit', function (e) {
@@ -1246,7 +1402,31 @@
       A.onChange(function (user) {
         var label = openBtn.querySelector('.acct-label');
         var av = openBtn.querySelector('.acct-avatar');
-        if (user) {
+        /* css/platform.css hides the pill's label on the portal build;
+           a real CrazyGames identity is the one case that un-hides it. */
+        document.body.toggleAttribute('data-portal-user', !!(user && user.portal));
+        if (user && user.portal) {
+          /* Signed in on CrazyGames. The portal owns the name and the
+             avatar, so show theirs - and never offer to edit them,
+             which css/platform.css already enforces. */
+          if (label) label.textContent = user.name;
+          openBtn.title = 'Signed in as ' + user.name + ' - settings';
+          if (av) {
+            av.innerHTML = user.avatar
+              ? '<img src="' + esc(user.avatar) + '" alt="" />'
+              : '<i class="ri-user-3-line"></i>';
+          }
+          if (!modal.hidden) close();
+        } else if (user && user.anonymous) {
+          /* Portal build: a real uid (so the Daily Puzzle's shared board
+             and two-attempt ledger work) but not an account. Do not
+             advertise a sign-in this build cannot perform - the pill is
+             just the way into Settings here. */
+          if (label) label.textContent = '';
+          openBtn.title = 'Settings';
+          if (av) av.innerHTML = '<i class="ri-settings-4-line"></i>';
+          if (!modal.hidden) close();
+        } else if (user) {
           if (label) label.textContent = user.name;
           openBtn.title = 'Signed in as ' + (user.email || user.name) + ' - account menu';
           if (av) {
@@ -1279,7 +1459,7 @@
     if (acctMenu) {
       document.getElementById('acct-logout').addEventListener('click', function () {
         toggleAcctMenu(false);
-        A.signOut();
+        confirmSignOut();
       });
       document.getElementById('acct-login').addEventListener('click', function () {
         toggleAcctMenu(false);
@@ -1299,6 +1479,78 @@
       });
     }
 
+
+    /* ---------------------------------------------------------
+       SIGN OUT
+       ---------------------------------------------------------
+       Destructive by design: the account is the save, so a browser
+       that is no longer signed in must not keep a copy of it. The
+       vault flushes first and only erases if that flush succeeded,
+       so this can be confirmed without risking the save. */
+    function confirmSignOut() {
+      var modal = document.getElementById('signout-modal');
+      var C = window.EOL.cloud;
+      if (!modal) {
+        /* headless: preserve the old direct path */
+        if (C && C.leave) return C.leave().then(reloadAfterSignOut);
+        return A.signOut();
+      }
+      var foot = document.getElementById('signout-foot');
+      var confirm = document.getElementById('signout-confirm');
+      var cancel = document.getElementById('signout-cancel');
+      if (foot) foot.innerHTML = '';
+      confirm.disabled = false;
+      modal.hidden = false;
+      document.body.dataset.modal = '1';
+
+      function close() {
+        modal.hidden = true;
+        delete document.body.dataset.modal;
+        document.removeEventListener('keydown', onKey);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          close();
+        }
+      }
+      document.addEventListener('keydown', onKey);
+      cancel.onclick = close;
+      document.getElementById('signout-scrim').onclick = close;
+      confirm.onclick = function () {
+        confirm.disabled = true;
+        if (foot) {
+          foot.className = 'auth-foot';
+          foot.innerHTML = '<i class="ri-loader-4-line"></i>Saving to your account...';
+        }
+        var job = C && C.leave ? C.leave() : Promise.resolve(true);
+        job.then(function (okToLeave) {
+          if (!okToLeave) {
+            /* The flush failed, so the wipe never ran. Staying signed in
+               with the save intact is strictly better than signing out
+               and losing whatever had not reached the vault. */
+            confirm.disabled = false;
+            if (foot) {
+              foot.className = 'auth-foot warn';
+              foot.innerHTML =
+                '<i class="ri-error-warning-line"></i>' +
+                'Could not reach your account, so nothing was cleared. ' +
+                'Check your connection and try again.';
+            }
+            return;
+          }
+          close();
+          A.signOut().then(reloadAfterSignOut, reloadAfterSignOut);
+        });
+      };
+    }
+
+    /* One clean boot after the wipe: every module re-seeds its own
+       first-run state (starter deck, tutorial) instead of reading the
+       emptied keys mid-session. */
+    function reloadAfterSignOut() {
+      window.location.reload();
+    }
+
     /* ---------------------------------------------------------
        SETTINGS MODAL
        ---------------------------------------------------------
@@ -1308,6 +1560,31 @@
        aria-pressed in sync, so there is nothing to wire here. */
     var setModal = document.getElementById('settings-modal');
     var setFoot = document.getElementById('settings-foot');
+    var NAME_RULE =
+      '3-24 characters. Letters, numbers, . _ - only. You can change this once a week.';
+    /* `until` null -> the ordinary format rule; a date -> when the
+       next rename unlocks, in the player's own locale. */
+    function nameHint(until) {
+      var el = document.getElementById('set-name-hint');
+      if (!el) return;
+      if (!until) {
+        el.textContent = NAME_RULE;
+        el.classList.remove('warn');
+        return;
+      }
+      var when = new Date(until);
+      var txt = isNaN(when.getTime())
+        ? 'You can change your username again in a few days.'
+        : 'You can change your username again on ' +
+          when.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }) +
+          '.';
+      el.textContent = txt;
+      el.classList.add('warn');
+    }
     function setSay(msg, kind) {
       if (!setFoot) return;
       setFoot.className = 'auth-foot' + (kind ? ' ' + kind : '');
@@ -1318,12 +1595,28 @@
       var u = A && A.user && A.user();
       var form = document.getElementById('settings-form');
       var note = document.getElementById('set-out-note');
+      var un = document.getElementById('set-username');
       if (form) {
         form.style.display = u ? '' : 'none';
-        var un = document.getElementById('set-username');
         if (un && u) un.value = u.name || '';
         var np = document.getElementById('set-newpass');
         if (np) np.value = '';
+      }
+      /* ONE CHANGE A WEEK. Ask the server how long is left and show
+         it up front: a disabled field with a date on it is far
+         kinder than letting someone type a name, press Save and be
+         told no. The server re-checks regardless - this is only the
+         part the player can see. Default is OPEN, so a slow or
+         unavailable answer never locks anyone out. */
+      nameHint(null);
+      if (un && u && A && A.handleStatus) {
+        un.disabled = false;
+        A.handleStatus().then(function (st) {
+          if (!st || st.canChange) return;
+          if (setModal.hidden) return;
+          un.disabled = true;
+          nameHint(st.nextAllowedAt);
+        });
       }
       if (note) note.hidden = !!u;
       setSay('');
@@ -1337,6 +1630,12 @@
     }
     var setBtn = document.getElementById('settings-btn');
     if (setBtn) setBtn.addEventListener('click', openSettings);
+
+    /* THE ROLL BUTTON IS GONE.
+       A random callsign is minted once, when the profile row is
+       created, and that is the only time the generator runs. Rolling
+       for a name you like turned a stable identity into a slot
+       machine and made the one-change-per-week rule meaningless. */
     if (setModal) {
       document.getElementById('settings-close').addEventListener('click', closeSettings);
       document.getElementById('settings-scrim').addEventListener('click', closeSettings);
@@ -1374,11 +1673,21 @@
         }
         busy = true;
         setSay('Saving...');
+        var renamed = handle && handle !== u.name;
         Promise.all(jobs)
           .then(function () {
             busy = false;
             np.value = '';
             setSay('Saved.');
+            /* The week starts now: lock the field immediately rather
+               than leaving it editable until the modal is reopened. */
+            if (renamed && A && A.handleStatus) {
+              A.handleStatus().then(function (st) {
+                if (!st || st.canChange) return;
+                un.disabled = true;
+                nameHint(st.nextAllowedAt);
+              });
+            }
           })
           .catch(function (err) {
             busy = false;
@@ -1388,12 +1697,17 @@
     }
 
     /* ---------------------------------------------------------
-       CALLSIGN PROMPT (post-Google provisioning)
+       CALLSIGN PROMPT - RETIRED
        ---------------------------------------------------------
-       Google creates the auth identity but gives no callsign; while
-       needsHandle() is true, this modal asks for one. "Pick one
-       later" is honoured for the rest of the browser session, and
-       the ask never interrupts a match (home view only). */
+       Signing up no longer stops to ask for a name. js/auth.js mints
+       one (two adjectives + three digits) the moment the profile row
+       is created, and Settings is where it gets changed.
+
+       The wiring below is kept intact but is now inert, because
+       needsHandle() always returns false. Deleting it outright would
+       strand #uname-modal in index.html and the assertions that check
+       where its error line sits; leaving it costs nothing and keeps a
+       working path should a build ever need to ask again. */
     var unModal = document.getElementById('uname-modal');
     var unFoot = document.getElementById('uname-foot');
     var unInput = document.getElementById('uname-input');
@@ -1629,16 +1943,247 @@
     }
   }
 
+  /* ---------------------------------------------------------
+     SAVE COLLISION
+     ---------------------------------------------------------
+     js/cloud.js calls this when signing in would destroy one of two
+     real saves. It must RESOLVE with the player's choice:
+
+       'local'  keep this device, overwrite the account
+       'cloud'  restore the account, discard this device
+       null     cancel - change nothing and sign back out
+
+     Nothing is decided here; the vault performs the write. Rendering
+     the numbers is the whole job, because they are the only reason a
+     player can answer the question at all. */
+  function describeSave(s) {
+    if (!s) return '<span class="merge-empty">nothing saved</span>';
+    var bits = [];
+    if (s.coins) bits.push('<b>' + s.coins.toLocaleString() + '</b> coins');
+    if (s.cards) bits.push('<b>' + s.cards + '</b> cards');
+    if (s.gates) bits.push('<b>' + s.gates + '</b> gates cleared');
+    if (s.decks) bits.push('<b>' + s.decks + '</b> decks');
+    if (!bits.length) return '<span class="merge-empty">no progress yet</span>';
+    return bits
+      .map(function (b) {
+        return '<span>' + b + '</span>';
+      })
+      .join('');
+  }
+
+  function askSaveConflict(summaries) {
+    var modal = document.getElementById('merge-modal');
+    /* No dialog in the document (headless tests): fall back to the
+       historical behaviour rather than blocking the sign-in. */
+    if (!modal) return 'cloud';
+
+    document.getElementById('merge-cloud-stats').innerHTML = describeSave(summaries.cloud);
+    document.getElementById('merge-local-stats').innerHTML = describeSave(summaries.local);
+
+    modal.hidden = false;
+    document.body.dataset.modal = '1';
+
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish(choice) {
+        if (done) return;
+        done = true;
+        modal.hidden = true;
+        delete document.body.dataset.modal;
+        document.removeEventListener('keydown', onKey);
+        resolve(choice);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') finish(null);
+      }
+      document.getElementById('merge-keep-cloud').onclick = function () {
+        finish('cloud');
+      };
+      document.getElementById('merge-keep-local').onclick = function () {
+        finish('local');
+      };
+      document.getElementById('merge-cancel').onclick = function () {
+        finish(null);
+      };
+      document.getElementById('merge-scrim').onclick = function () {
+        finish(null);
+      };
+      document.addEventListener('keydown', onKey);
+      document.getElementById('merge-keep-cloud').focus();
+    });
+  }
+
+  /* Installed unconditionally at boot. It used to be registered
+     from inside initAuth(), which returns early when the account
+     UI is absent - and a build without #acct-btn therefore left
+     js/cloud.js with no handler at all, so a sign-in that would
+     destroy a local save took the silent "account wins" fallback.
+     The prompt is a data-safety control and must not depend on
+     whether a button rendered. */
+  function installSaveConflictHandler() {
+    if (window.EOL.cloud && window.EOL.cloud.onConflict)
+      window.EOL.cloud.onConflict(askSaveConflict);
+  }
+
+  /* =============================================================
+     THE FIRST-RUN DATA NOTICE
+     -------------------------------------------------------------
+     CrazyGames require a Terms & Conditions and/or Privacy Policy
+     notice from any game collecting personal data beyond their SDK's
+     own events, and this game collects a callsign, an account, cloud
+     saves and anonymous measurement.
+
+     Their guidance is explicit that it should be a simple notice and
+     NOT a blocking pop-up, so this shows a single quiet line on the
+     menu and remembers the acknowledgement forever. A player who
+     never clicks it is never nagged past the first session either -
+     it is shown once per device, not once per launch.
+
+     Storage failing (private mode, a full quota) must not mean the
+     notice is shown on every single visit, so a write failure is
+     treated as acknowledged: the notice has still been READ, which
+     is the thing the requirement actually asks for. */
+  var POLICY_KEY = 'eol.policy.seen';
+
+  function initPolicyNotice() {
+    var note = document.getElementById('home-policy');
+    var ok = document.getElementById('home-policy-ok');
+    if (!note || !ok) return;
+
+    var seen = true;
+    try {
+      seen = localStorage.getItem(POLICY_KEY) === '1';
+    } catch (e) {
+      seen = true; // cannot remember a dismissal, so never start nagging
+    }
+    if (seen) return;
+
+    note.hidden = false;
+    ok.addEventListener('click', function () {
+      note.hidden = true;
+      try {
+        localStorage.setItem(POLICY_KEY, '1');
+      } catch (e) {
+        /* nothing to do - it simply will not persist */
+      }
+    });
+  }
+
+  /* =============================================================
+     UPGRADE PANEL CLICKS
+     -------------------------------------------------------------
+     Delegated from the roster, because cards are rendered lazily in
+     batches and re-rendered on every filter change - per-card
+     listeners would leak and go stale.
+
+     Only the touched card is repainted; re-rendering the grid would
+     close the hover overlay the player is reading.
+     ============================================================= */
+  function repaintUpgradePanel(cardId) {
+    var entry = null;
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (c.id === cardId) entry = c;
+      });
+    });
+    if (!entry) return;
+    document.querySelectorAll('[data-up-panel="' + cardId + '"]').forEach(function (panel) {
+      var host = document.createElement('div');
+      host.innerHTML = upgradePanel(entry);
+      var fresh = host.firstChild;
+      if (fresh) panel.replaceWith(fresh);
+    });
+    paintHomeCoins();
+    var sw = document.getElementById('shop-shards');
+    if (sw && window.EOL.upgrades)
+      sw.innerHTML =
+        '<i class="ri-sparkling-2-fill shard-ico"></i>' +
+        window.EOL.upgrades.shards().toLocaleString();
+  }
+
+  function initUpgrades() {
+    var grid = document.getElementById('roster');
+    if (!grid || !window.EOL.upgrades) return;
+    var U = window.EOL.upgrades;
+    grid.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+
+      var lvl = t.closest('[data-up-level]');
+      if (lvl) {
+        e.stopPropagation();
+        var id = lvl.dataset.upLevel;
+        var r = U.levelUp(id, U.statOf(id));
+        if (r.ok) {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Upgraded to level ' + r.lv, 'ri-sparkling-2-fill');
+          if (window.EOL.audio) window.EOL.audio.ui('confirm');
+        } else if (r.reason === 'dupes') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Needs ' + r.cost + ' copies of this legend', 'ri-information-line');
+        }
+        repaintUpgradePanel(id);
+        return;
+      }
+
+      var craft = t.closest('[data-up-craft]');
+      if (craft) {
+        e.stopPropagation();
+        var cid = craft.dataset.upCraft;
+        var cr = U.craft(cid);
+        if (cr.ok) {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Copy crafted for ' + cr.cost + ' shards', 'ri-sparkling-2-fill');
+          if (window.EOL.audio) window.EOL.audio.ui('confirm');
+        } else if (cr.reason === 'shards') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Not enough Echo Shards', 'ri-sparkling-2-fill');
+        } else if (cr.reason === 'unowned') {
+          /* Shards deepen legends you own; they never widen a
+             collection. Packs remain the only way to obtain a card. */
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Shards only buy copies of legends you own', 'ri-lock-line');
+        }
+        repaintUpgradePanel(cid);
+        return;
+      }
+
+      var st = t.closest('[data-up-stat]');
+      if (st) {
+        e.stopPropagation();
+        var sid = st.dataset.upCard;
+        var sr = U.setStat(sid, st.dataset.upStat);
+        if (!sr.ok && sr.reason === 'inBattle') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Boosts cannot change during a battle', 'ri-lock-line');
+        } else if (sr.ok && window.EOL.audio) {
+          window.EOL.audio.ui('tap');
+        }
+        repaintUpgradePanel(sid);
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
+    initUpgrades();
     initTips();
     initScale();
     initMenuParticles();
+    initPolicyNotice();
     if (window.EOL.auth) window.EOL.auth.init();
+    /* initAuth FIRST: it installs the save-collision handler that
+       cloud.init()'s very first pull may need. Registering it after the
+       vault has already started would let a sign-in that is restoring a
+       session at boot resolve the collision silently. */
+    initAuth();
+    installSaveConflictHandler();
     if (window.EOL.cloud) window.EOL.cloud.init();
     if (window.EOL.cloud && window.EOL.cloud.restored() && window.EOL.ui && window.EOL.ui.toast)
       window.EOL.ui.toast('Your save was restored from your account', 'ri-cloud-line');
-    initAuth();
+    if (window.EOL.cloud && window.EOL.cloud.cleared && window.EOL.cloud.cleared())
+      if (window.EOL.ui && window.EOL.ui.toast)
+        window.EOL.ui.toast('Signed out - this device was cleared', 'ri-logout-box-r-line');
     if (!ROSTER.length) {
       console.error('[EOL] No faction data loaded.');
       return;
@@ -1646,7 +2191,7 @@
 
     /* home-page counts come from the data itself - they can never drift
        out of sync with the roster again */
-    var sh = document.getElementById('stat-heroes');
+    var sh = document.getElementById('stat-legends');
     if (sh) sh.textContent = ROSTER.length;
     var sf = document.getElementById('stat-factions');
     if (sf) sf.textContent = FACTIONS.length;
@@ -1719,9 +2264,56 @@
     document.getElementById('btn-shop-back').addEventListener('click', function () {
       goBack();
     });
+    /* IS ANYTHING LAYERED OVER THE VIEW RIGHT NOW?
+       -------------------------------------------------------------
+       Escape means "close the thing in front of me", and only when
+       there is nothing in front of you does it mean "go back a
+       screen". The handler below used to skip that first question
+       entirely, so Escape inside a dialog closed the dialog AND
+       navigated the view out from under it - press it in the draft
+       pool builder and you landed on the main menu with the room
+       gone.
+
+       Asking the DOM which overlays are visible is deliberate: the
+       alternative is every modal remembering to announce itself, and
+       the two that forgot (the room panel and the pool builder) are
+       exactly the ones that broke. A dialog that is on screen is on
+       screen, whether or not it opted in. */
+    function overlayOpen() {
+      if (document.body.dataset.modal) return true;
+      var sel =
+        '.auth-modal, .room-modal, .mm-modal, .quit-modal, .daily-modal,' +
+        '.shop-code-modal, .grant-choice, .ledger, [role="dialog"]';
+      var found = false;
+      document.querySelectorAll(sel).forEach(function (el) {
+        if (found || el.hidden) return;
+        /* Three conventions are in use across these dialogs - the
+           `hidden` attribute, aria-hidden, and CSS - so all three are
+           consulted rather than trusting whichever one this dialog
+           happened to pick. The Daily overlay, for instance, is
+           driven entirely by aria-hidden and would otherwise read as
+           permanently open. */
+        if (el.getAttribute('aria-hidden') === 'true') return;
+        /* An inner dialog card (.daily-forge is one) inherits its
+           visibility from the overlay wrapping it, so walk up: a
+           dialog inside a closed overlay is closed. */
+        var p = el.parentElement;
+        while (p && p !== document.body) {
+          if (p.hidden || p.getAttribute('aria-hidden') === 'true') return;
+          p = p.parentElement;
+        }
+        var cs = window.getComputedStyle(el);
+        if (cs.display !== 'none' && cs.visibility !== 'hidden') found = true;
+      });
+      return found;
+    }
+
     // No Leave buttons on these screens - Esc backs out one level.
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
+      /* Whatever is on top owns Escape and closes itself; the view
+         must not also slide out behind it. */
+      if (overlayOpen()) return;
       /* Campaign dialogue owns Escape while it is open; do not let the
          shared view-back handler strand an open scene on another screen. */
       if (
@@ -1751,6 +2343,6 @@
     });
 
     show('home');
-    console.log('[EOL] ' + ROSTER.length + ' heroes across ' + FACTIONS.length + ' factions.');
+    console.log('[EOL] ' + ROSTER.length + ' legends across ' + FACTIONS.length + ' factions.');
   });
 })();

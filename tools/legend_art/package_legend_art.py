@@ -4,7 +4,7 @@ import csv, zipfile
 from generate_fallback_art import ROSTER
 
 ROOT = Path('/home/user')
-OUT = ROOT/'assets/heroes'
+OUT = ROOT/'assets/legends'
 AI_IDS = {
     'olympus-zeus','olympus-athena','olympus-hercules','olympus-apollo','olympus-medusa','olympus-ares',
     'camelot-king-arthur','camelot-merlin','camelot-lancelot','camelot-morgan-le-fay',
@@ -27,14 +27,14 @@ AI_IDS = {
 # Manifest in authoritative roster order.
 rows=[]
 for meta in ROSTER:
-    hero_id,faction,name,rarity,role,element,*_ = meta
-    p=OUT/(hero_id+'.jpg')
+    legend_id,faction,name,rarity,role,element,*_ = meta
+    p=OUT/(legend_id+'.jpg')
     im=Image.open(p)
     rows.append({
-        'id': hero_id, 'faction': faction, 'name': name, 'rarity': rarity,
-        'role': role, 'element': element, 'file': f'assets/heroes/{p.name}',
+        'id': legend_id, 'faction': faction, 'name': name, 'rarity': rarity,
+        'role': role, 'element': element, 'file': f'assets/legends/{p.name}',
         'width': im.width, 'height': im.height, 'bytes': p.stat().st_size,
-        'source': 'image-rendered' if hero_id in AI_IDS else 'procedural-pixel-fallback'
+        'source': 'image-rendered' if legend_id in AI_IDS else 'procedural-pixel-fallback'
     })
 with (OUT/'MANIFEST.csv').open('w', newline='', encoding='utf-8') as f:
     w=csv.DictWriter(f, fieldnames=list(rows[0]))
@@ -65,32 +65,32 @@ for i,row in enumerate(rows):
         bbox=d.textbbox((0,0),line,font=font)
         tw=bbox[2]-bbox[0]
         d.text((x+(cell_w-tw)//2,y+140+j*11),line,fill=(225,225,218),font=font)
-sheet.save(ROOT/'HERO-ART-CONTACT-SHEET.jpg','JPEG',quality=90,optimize=True)
+sheet.save(ROOT/'LEGEND-ART-CONTACT-SHEET.jpg','JPEG',quality=90,optimize=True)
 
-readme = '''# Echoes of Legend hero art
+readme = '''# Echoes of Legend legend art
 
-57 opaque hero card illustrations from `ART-SPEC.md`.
+57 opaque legend card illustrations from `ART-SPEC.md`.
 
 - **Canvas:** exactly 640 x 880 px, portrait
 - **Format:** JPEG, quality 85, progressive, RGB/opaque
 - **Budget:** every card is under 180 KB
-- **Files:** one `<id>.jpg` per hero, in this directory
+- **Files:** one `<id>.jpg` per legend, in this directory
 - **Manifest:** `MANIFEST.csv` records faction, rarity, role, element, dimensions and byte size
 
-`HERO-ART-CONTACT-SHEET.jpg` is a labeled visual index; labels are not part of the individual card art.
+`LEGEND-ART-CONTACT-SHEET.jpg` is a labeled visual index; labels are not part of the individual card art.
 
 The image renderer allowed ten generations in this session. The first ten roster entries rendered as full environmental pixel-art illustrations; the remaining roster entries were completed as deterministic, uniform-resolution pixel-art assets following the faction palettes, role poses and distinguishing features in the brief, rather than leaving the roster incomplete. The ten renderer outputs are marked `image-rendered` in the manifest; the rest are marked `procedural-pixel-fallback` so the source is explicit.
 '''
 (OUT/'README.md').write_text(readme, encoding='utf-8')
 
 # A convenient download bundle. Exclude the labeled contact sheet from assets.
-zip_path=ROOT/'echoes-of-legend-hero-art.zip'
+zip_path=ROOT/'echoes-of-legend-legend-art.zip'
 with zipfile.ZipFile(zip_path,'w',compression=zipfile.ZIP_DEFLATED) as z:
-    z.write(OUT/'README.md','assets/heroes/README.md')
-    z.write(OUT/'MANIFEST.csv','assets/heroes/MANIFEST.csv')
+    z.write(OUT/'README.md','assets/legends/README.md')
+    z.write(OUT/'MANIFEST.csv','assets/legends/MANIFEST.csv')
     for row in rows:
         p=OUT/(row['id']+'.jpg')
-        z.write(p, f'assets/heroes/{p.name}')
+        z.write(p, f'assets/legends/{p.name}')
 print(f'Wrote {OUT/"MANIFEST.csv"}')
-print(f'Wrote {ROOT/"HERO-ART-CONTACT-SHEET.jpg"}')
+print(f'Wrote {ROOT/"LEGEND-ART-CONTACT-SHEET.jpg"}')
 print(f'Wrote {zip_path} ({zip_path.stat().st_size} bytes)')

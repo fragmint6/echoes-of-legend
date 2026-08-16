@@ -29,7 +29,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-candle',
-      art: 'assets/heroes/grimmwood-hansel-gretel.png',
+      art: 'assets/legends/grimmwood-hansel-gretel.png',
     },
     {
       id: 'grimmwood-rumpelstiltskin',
@@ -68,7 +68,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-gold-bar',
-      art: 'assets/heroes/grimmwood-rumpelstiltskin.png',
+      art: 'assets/legends/grimmwood-rumpelstiltskin.png',
     },
     {
       id: 'grimmwood-big-bad-wolf',
@@ -93,7 +93,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-wolf-head',
-      art: 'assets/heroes/grimmwood-big-bad-wolf.png',
+      art: 'assets/legends/grimmwood-big-bad-wolf.png',
     },
     {
       id: 'grimmwood-snow-white',
@@ -121,7 +121,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-apple',
-      art: 'assets/heroes/grimmwood-snow-white.png',
+      art: 'assets/legends/grimmwood-snow-white.png',
     },
     {
       id: 'grimmwood-red-riding-hood',
@@ -173,7 +173,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-hood',
-      art: 'assets/heroes/grimmwood-red-riding-hood.png',
+      art: 'assets/legends/grimmwood-red-riding-hood.png',
     },
     {
       id: 'grimmwood-pied-piper',
@@ -199,7 +199,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-horn-call',
-      art: 'assets/heroes/grimmwood-pied-piper.png',
+      art: 'assets/legends/grimmwood-pied-piper.png',
     },
     /* ---- 2026-08-05 expansion: +6 completes a full single-faction deck
        (Tank/Bruiser/Controller/Medic/Caster/Sniper x2) for new accounts ---- */
@@ -235,7 +235,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-shoe-prints',
-      art: 'assets/heroes/grimmwood-gingerbread-man.png',
+      art: 'assets/legends/grimmwood-gingerbread-man.png',
     },
     {
       id: 'grimmwood-evil-queen',
@@ -260,7 +260,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-queen-crown',
-      art: 'assets/heroes/grimmwood-evil-queen.png',
+      art: 'assets/legends/grimmwood-evil-queen.png',
     },
     {
       id: 'grimmwood-puss-in-boots',
@@ -292,7 +292,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-cat',
-      art: 'assets/heroes/grimmwood-puss-in-boots.png',
+      art: 'assets/legends/grimmwood-puss-in-boots.png',
     },
     {
       id: 'grimmwood-rapunzel',
@@ -332,7 +332,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-tower',
-      art: 'assets/heroes/grimmwood-rapunzel.png',
+      art: 'assets/legends/grimmwood-rapunzel.png',
     },
     {
       id: 'grimmwood-goldilocks',
@@ -363,7 +363,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-honeycomb',
-      art: 'assets/heroes/grimmwood-goldilocks.png',
+      art: 'assets/legends/grimmwood-goldilocks.png',
     },
     {
       id: 'grimmwood-cinderella',
@@ -390,7 +390,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-glass-heart',
-      art: 'assets/heroes/grimmwood-cinderella.png',
+      art: 'assets/legends/grimmwood-cinderella.png',
     },
   ],
 });

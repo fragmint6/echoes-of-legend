@@ -19,7 +19,7 @@
    the strongest closing sequence in the roster.
 
    The other pan of the scale is Duat's answer to being judged
-   itself: Isis buys back a hero who has already been sentenced,
+   itself: Isis buys back a legend who has already been sentenced,
    Nephthys stops the sentence landing at all.
 
    INTERNAL CHAIN (the reason to draft two Duat cards, not one)
@@ -77,7 +77,7 @@ window.EOL.registerFaction({
       element: 'Shadow',
       stats: { hp: 4530, atk: 1955, def: 10 },
       icon: 'ra-bird-mask',
-      art: 'assets/heroes/duat-anubis.png',
+      art: 'assets/legends/duat-anubis.png',
       ability: {
         type: 'Active',
         name: 'Weighing of the Heart',
@@ -128,7 +128,7 @@ window.EOL.registerFaction({
       element: 'Light',
       stats: { hp: 4420, atk: 1900, def: 12 },
       icon: 'ra-bird-claw',
-      art: 'assets/heroes/duat-horus.png',
+      art: 'assets/legends/duat-horus.png',
       ability: {
         type: 'Active',
         name: 'Eye That Does Not Close',
@@ -160,7 +160,7 @@ window.EOL.registerFaction({
       element: 'Light',
       stats: { hp: 4740, atk: 1880, def: 15 },
       icon: 'ra-radial-balance',
-      art: 'assets/heroes/duat-maat.png',
+      art: 'assets/legends/duat-maat.png',
       ability: {
         type: 'Active',
         name: 'Feather Against the Heart',
@@ -192,7 +192,7 @@ window.EOL.registerFaction({
       element: 'Fire',
       stats: { hp: 4740, atk: 1905, def: 15 },
       icon: 'ra-lion',
-      art: 'assets/heroes/duat-sekhmet.png',
+      art: 'assets/legends/duat-sekhmet.png',
       ability: {
         type: 'Active',
         name: 'Breath of Pestilence',
@@ -230,12 +230,12 @@ window.EOL.registerFaction({
       element: 'Magic',
       stats: { hp: 4900, atk: 1080, def: 20 },
       icon: 'ra-feathered-wing',
-      art: 'assets/heroes/duat-isis.png',
+      art: 'assets/legends/duat-isis.png',
       ability: {
         type: 'Active',
         name: 'Gathering of Osiris',
         cost: 55,
-        /* Losing a hero costs ACTIONS, not just HP - turns alternate, so
+        /* Losing a legend costs ACTIONS, not just HP - turns alternate, so
            a 5v6 side outputs ~83% and takes ~120%. Buying an action back
            is worth far more than the HP restored, which is why this is
            55 EN and once per battle. Returned at 40% with a 12% shield
@@ -253,7 +253,7 @@ window.EOL.registerFaction({
               cond: { anyAllyFallen: true },
               then: [
                 /* the shield is a rider ON the revive: reviving flips the
-                   hero back to alive, so a separate shield effect aimed at
+                   legend back to alive, so a separate shield effect aimed at
                    `lastFallenAlly` would find nobody left to shield. */
                 { k: 'revive', pctMaxHp: 40, shieldPctMaxHp: 12, to: 'lastFallenAlly' },
               ],
@@ -275,7 +275,7 @@ window.EOL.registerFaction({
       element: 'Shadow',
       stats: { hp: 4800, atk: 1020, def: 21 },
       icon: 'ra-angel-wings',
-      art: 'assets/heroes/duat-nephthys.png',
+      art: 'assets/legends/duat-nephthys.png',
       ability: {
         type: 'Active',
         name: "Mourner's Veil",

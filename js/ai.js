@@ -5,7 +5,7 @@
 
    WHAT "DEPTH 4" MEANS HERE
    -------------------------
-   A ply is one side's complete turn (every hero that can act, acts).
+   A ply is one side's complete turn (every legend that can act, acts).
    The search therefore looks:
 
      ply 1   the bot's current turn, opening with the candidate action
@@ -205,7 +205,7 @@
      commensurable and the numbers stay interpretable.
      ============================================================= */
 
-  /* A hero is worth more than their raw HP: losing one costs you an
+  /* A legend is worth more than their raw HP: losing one costs you an
      action every round for the rest of the game. Support roles are
      worth more than their statline suggests. */
   var ROLE_VALUE = {
@@ -224,7 +224,7 @@
     // survivability: current HP plus shield, scaled by defence
     var ehp = (u.hp + u.shield) / Math.max(0.25, 1 - E.defOf(u) / 100);
 
-    // offence: what this hero threatens per turn
+    // offence: what this legend threatens per turn
     var threat = E.atkOf(u) * 1.9 * (1 + E.critOf(u) / 200);
 
     var v = ehp * 0.55 + threat * 0.75;
@@ -235,7 +235,7 @@
     if (profile && profile.roles && profile.roles[u.role]) roleValue *= profile.roles[u.role];
     v += 900 * roleValue;
 
-    // a hero who can still act this round is worth more than a spent one
+    // a legend who can still act this round is worth more than a spent one
     if (!B.acted[u.side][u.uid]) v += 260;
 
     // ---- pending damage already on the books ----
@@ -259,7 +259,7 @@
        board, so it keeps most of its value - but not all of it. */
     if (u.flags.taunt > 0) v += 190;
 
-    // low-HP heroes are at risk of being finished off; value them
+    // low-HP legends are at risk of being finished off; value them
     // slightly under their raw numbers so the bot protects them
     var f = hpFrac(u);
     if (f < 0.3) v -= (380 * (0.3 - f)) / 0.3;
@@ -484,7 +484,7 @@
         case 'silence':
           /* Silence now blocks EVERY action, Basics included, so it denies a
              whole turn rather than downgrading one. Priced against what a
-             hero would have done with that turn. */
+             legend would have done with that turn. */
           ft.forEach(function (t) {
             s += 420 + E.atkOf(t) * 0.55;
           });
@@ -632,6 +632,12 @@
         for (var ci = 0; ci < chooseCount; ci++) {
           if (need === 0) {
             var t0 = E.resolveTargets(B, unit, ability, []);
+            /* An `all` ability can still resolve to an empty list - a
+               back-row-only cast (Rapunzel) facing an all-front-row team.
+               Casting it would spend Energy on nobody. */
+            var aimsAtEnemies = ability.spec && ability.spec.target &&
+              (ability.spec.target.side === 'enemy' || ability.spec.target.side === 'ally');
+            if (aimsAtEnemies && !t0.length) continue;
             out.push({
               unit: unit,
               ability: ability,

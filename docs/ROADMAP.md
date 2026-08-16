@@ -16,7 +16,7 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 
 ## After that
 
-- **Player profiles and statistics.** Favorite heroes, win rates by hero and faction, highest rank, total games, and match history.
+- **Player profiles and statistics.** Favorite legends, win rates by legend and faction, highest rank, total games, and match history.
 
 - **Guild Battles.** A three-day event every two weeks, built so anyone can participate without already having a friend group or committing to a schedule. Defenses will come from player tactical choices rather than AI imitation, with limited live Unabridged battles where appropriate.
 
@@ -29,6 +29,10 @@ Roughly in the order I intend to build it. Nothing here is promised, and communi
 - **More factions.** New legends, mechanics, and campaign material.
 
 ## Shipped
+
+- **Daily and Weekly quests.** Six objectives on a board on the main menu, reset at 7:00 AM Eastern (weeklies on Monday). Every objective counts something that only builds up inside a real fight, so there is never a reason to quit early or play badly to finish one.
+
+- **Card upgrades and Echo Shards.** Duplicate cards are real now: packs keep paying once your collection is complete. Three upgrade levels per legend costing 1, 3 and 5 copies, each adding a small skill-power boost plus a stat boost you pick and can change any time. Spare duplicates melt into Echo Shards, which buy copies of legends you already own - including Legendaries, which no pack will ever contain. Upgrades apply in Classic and the campaign; drafts and the Daily Puzzle always use stock cards.
 
 - **Daily Puzzle.** One shared fixed position, two attempts per reset.
 

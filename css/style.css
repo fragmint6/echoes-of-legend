@@ -284,7 +284,32 @@ body {
   overflow-x: hidden;
 }
 
-/* animated backdrop */
+/* animated backdrop
+   ------------------------------------------------------------------
+   NO GUI-SCALE CORRECTION HERE, DELIBERATELY.
+
+   These two layers used to divide their width/height by --gui-z, on
+   the theory that root `zoom` made a fixed inset:0 box cover only
+   `zoom` x the window. That is not what happens. Under `zoom: z` the
+   initial containing block IS the zoomed viewport: the box computes
+   to (window / z) CSS px and paints at (window / z) * z = window. It
+   already covers the window exactly, at every scale.
+
+   Dividing on top of that made the backdrop OVERSIZED - 2400px of
+   gradient across a 1920px window at 80%, which pushed the radial
+   focal points (12%, 92%, 50%) off their intended spots and let the
+   64px lattice overflow. That is the backdrop "changing with the GUI
+   scale".
+
+   The proof it is unnecessary: the other 22 full-viewport fixed
+   layers in this file (#veil, .setm, .result, every modal scrim)
+   have never carried the divide and have never mis-covered.
+
+   The scale control must behave exactly like the browser's own
+   Ctrl +/- - reflow at a new density, nothing repositioned by hand.
+   See the GUI SCALE note in js/app.js for the full semantics.
+   --gui-z is still published there for the rect->style conversions
+   (EOL.scale.factor()), which do need it. */
 .bg-layer {
   position: fixed;
   inset: 0;
@@ -1757,7 +1782,21 @@ html.mqw640 .search-wrap input {
   height: 100%;
   padding: 12px 16px;
   gap: 10px;
-  max-width: 1720px;
+  /* THE CAP IS IN LOGICAL PX, SO IT MUST GROW AS THE UI SHRINKS.
+     A flat `max-width: 1720px` is 1720 CSS px measured inside the zoom,
+     which is 1720 * z real px: on a 1920px window the board came out
+     1376px wide at 80% but 1720px at 100%, so zooming OUT - asking for
+     more board on screen - made the board narrower. Dividing by the
+     zoom keeps the cap at a constant 1720 PHYSICAL px, so the board
+     holds its real width and lower scales spend the reclaimed room on
+     more board rather than on more margin. --gui-shrink is published by
+     paintViewport() as min(zoom, 1), so this only ever CANCELS the
+     shrink: at 100% and above it is 1 and the cap is the plain 1720px
+     it always was. It is NOT the old --gui-z counter-scale, which sized
+     full-viewport fixed layers and was rightly deleted. Nothing is
+     transformed here - only a ceiling that would otherwise fight the
+     zoom. */
+  max-width: calc(1720px / var(--gui-shrink, 1));
   margin: 0 auto;
 }
 
@@ -2040,11 +2079,11 @@ body[data-turn='player'] .turn-label {
   color: #2a1c02;
 }
 
-/* ---------------- floating hero panel ---------------- */
+/* ---------------- floating legend panel ---------------- */
 /* Sits in the empty space beside the board - allies left, enemies right -
    so the two teams stay centred and the cards keep their full size. */
 /* =============================================================
-   THE HERO PANEL - docked to the side of the board
+   THE LEGEND PANEL - docked to the side of the board
    -------------------------------------------------------------
    Allies open on the left, enemies on the right, in the board's own
    margins. Expanding out of the card was tried and rejected: on a
@@ -2101,7 +2140,7 @@ body[data-turn='player'] .turn-label {
   visibility: visible;
   transform: translateX(0);
 }
-/* swapping to a different hero re-plays one animation for the whole
+/* swapping to a different legend re-plays one animation for the whole
    panel, so the status row can't flash separately from the abilities */
 .flyout.swap {
   animation: fly-swap 0.24s var(--ease);
@@ -2184,7 +2223,7 @@ body[data-turn='player'] .turn-label {
   position: relative;
   display: grid;
   place-items: center;
-  /* square: the plate shows the hero's ra glyph (the art moved out -
+  /* square: the plate shows the legend's ra glyph (the art moved out -
      it read as texture at this size), so the tall 58x82 portrait shape
      no longer had anything to frame */
   width: 58px;
@@ -2484,7 +2523,7 @@ body[data-turn='player'] .turn-label {
 }
 
 /* =============================================================
-   STATUS ROW inside the hero panel
+   STATUS ROW inside the legend panel
    -------------------------------------------------------------
    A single row of colour-coded icons rather than a stack of rule
    paragraphs. --sc is the status colour from window.EOL.STATUS, so
@@ -3736,7 +3775,7 @@ body[data-turn='player'] .turn-label {
   font-size: 10px;
 }
 .bcard-name {
-  /* font-size is set per hero by fitNames() in battle.js - long names
+  /* font-size is set per legend by fitNames() in battle.js - long names
      like "Rumpelstiltskin" get a smaller size so they fill the card
      width exactly instead of being clipped. 12px is the cap. */
   font-family: 'Cinzel', serif;
@@ -4064,7 +4103,14 @@ body[data-turn='player'] .turn-label {
 }
 
 /* ---------------- toast ---------------- */
-.toast {
+/* THE BATTLE FALLBACK TOAST ONLY.
+   Scoped to #toast rather than .toast: the shared stacking toasts
+   (#toasts > .toast, further down) carry the same class, so an
+   unscoped rule here set `position:fixed` and `opacity:0` on them
+   too and the two blocks fought over every toast in the game.
+   battle.js now delegates to the shared helper and only falls back
+   to this element when play.js has not loaded. */
+#toast.toast {
   position: fixed;
   left: 50%;
   bottom: 26px;
@@ -4084,7 +4130,7 @@ body[data-turn='player'] .turn-label {
     opacity 0.24s var(--ease),
     transform 0.24s var(--ease);
 }
-.toast.show {
+#toast.toast.show {
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -5356,39 +5402,53 @@ body[data-turn='player'] .turn-label {
   position: absolute;
   width: 360px;
   height: 300px;
-  margin: -178px 0 0 -180px;
+  /* CENTRED ON THE COIN. Both this vignette and the ring below used to
+     carry a margin-top that did not match half their height, so they
+     hung ~30px above the coin's resting point - the ring read as a
+     stray circle floating beside the coin rather than around it. */
+  margin: -150px 0 0 -180px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(4, 5, 12, 0.94), rgba(4, 5, 12, 0.58) 48%, transparent 73%);
   z-index: -2;
 }
 .fx-coin-aura {
   position: absolute;
-  width: 232px;
-  height: 232px;
-  margin: -150px 0 0 -116px;
+  width: 200px;
+  height: 200px;
+  margin: -100px 0 0 -100px;
   border: 1px solid color-mix(in srgb, var(--coin-warm) 58%, transparent);
   border-radius: 50%;
   box-shadow:
     0 0 32px color-mix(in srgb, var(--coin-warm) 24%, transparent),
     inset 0 0 32px color-mix(in srgb, var(--coin-warm) 12%, transparent);
-  animation: coin-fate-ring 1.51s cubic-bezier(0.24, 0.7, 0.26, 1) forwards;
+  animation: coin-fate-ring 1.51s linear forwards;
   pointer-events: none;
 }
+/* The ring is now an IMPACT ring: it holds close to the coin through
+   the flight and only snaps outward on the landing frame (84%), so it
+   reads as the coin striking the table instead of an unexplained
+   circle shrinking on its own schedule. */
 @keyframes coin-fate-ring {
   0% {
     opacity: 0;
-    transform: scale(1.3) rotate(-14deg);
+    transform: scale(0.46);
   }
-  34% {
-    opacity: 1;
+  30% {
+    opacity: 0.42;
+    transform: scale(0.66);
   }
-  82% {
-    opacity: 0.82;
-    transform: scale(0.62) rotate(8deg);
+  84% {
+    opacity: 0.9;
+    transform: scale(0.84);
+    animation-timing-function: cubic-bezier(0.18, 0.72, 0.3, 1);
+  }
+  93% {
+    opacity: 0.7;
+    transform: scale(1.2);
   }
   100% {
     opacity: 0;
-    transform: scale(0.53) rotate(12deg);
+    transform: scale(1.44);
   }
 }
 .fx-coin-shadow {
@@ -5403,20 +5463,35 @@ body[data-turn='player'] .turn-label {
   filter: blur(7px);
   transform: scale(0.42);
   opacity: 0.35;
-  animation: coin-shadow-flight 1.51s ease-in-out forwards;
+  /* The shadow reads the coin's HEIGHT, so it has to sample the same
+     parabola - tightest and darkest at the apex, spreading as the coin
+     falls back. Linear for the same reason as the flight. */
+  animation: coin-shadow-flight 1.51s linear forwards;
 }
 @keyframes coin-shadow-flight {
   0% {
+    transform: scale(0.78);
+    opacity: 0.62;
+  }
+  24% {
+    transform: scale(0.4);
+    opacity: 0.3;
+  }
+  46% {
+    transform: scale(0.26);
+    opacity: 0.19;
+  }
+  70% {
+    transform: scale(0.42);
+    opacity: 0.32;
+  }
+  92% {
     transform: scale(0.72);
     opacity: 0.6;
   }
-  46% {
-    transform: scale(0.24);
-    opacity: 0.18;
-  }
-  82% {
-    transform: scale(0.55);
-    opacity: 0.42;
+  96% {
+    transform: scale(0.92);
+    opacity: 0.78;
   }
   100% {
     transform: scale(0.82);
@@ -5430,26 +5505,58 @@ body[data-turn='player'] .turn-label {
   width: 108px;
   height: 108px;
   transform-style: preserve-3d;
-  animation: coin-toss-flight 1.51s cubic-bezier(0.2, 0.72, 0.28, 1) forwards;
+  /* A TOSS IS BALLISTIC. The old arc used a single ease curve over
+     hand-placed keyframes, which made the coin drift upward and then
+     glide down at nearly constant speed - the tell that it was not
+     falling. These keyframes sample a real parabola (rise decelerating
+     to an apex at 46%, fall accelerating away from it) so gravity is
+     implied by the spacing, and the timing function is linear so the
+     curve is not distorted a second time. */
+  animation: coin-toss-flight 1.51s linear forwards;
 }
 @keyframes coin-toss-flight {
   0% {
-    transform: translate3d(0, 92px, 0) scale(0.58);
+    transform: translate3d(0, 34px, 0) scale(0.72);
   }
-  18% {
-    transform: translate3d(-8px, 18px, 0) scale(0.84);
+  8% {
+    transform: translate3d(0, -14px, 14px) scale(0.85);
   }
-  48% {
-    transform: translate3d(5px, -142px, 42px) scale(1.13);
+  16% {
+    transform: translate3d(0, -52px, 26px) scale(0.94);
+  }
+  24% {
+    transform: translate3d(0, -82px, 34px) scale(1.02);
+  }
+  32% {
+    transform: translate3d(0, -102px, 40px) scale(1.07);
+  }
+  40% {
+    transform: translate3d(0, -113px, 43px) scale(1.1);
+  }
+  46% {
+    transform: translate3d(0, -116px, 44px) scale(1.11);
+  }
+  54% {
+    transform: translate3d(0, -113px, 43px) scale(1.1);
+  }
+  62% {
+    transform: translate3d(0, -103px, 40px) scale(1.07);
   }
   70% {
-    transform: translate3d(-3px, -82px, 18px) scale(1.07);
+    transform: translate3d(0, -86px, 34px) scale(1.03);
   }
-  88% {
-    transform: translate3d(1px, 8px, 0) scale(1.02, 0.92);
+  78% {
+    transform: translate3d(0, -63px, 25px) scale(0.98);
   }
-  94% {
-    transform: translate3d(0, -7px, 0) scale(0.98, 1.04);
+  86% {
+    transform: translate3d(0, -34px, 14px) scale(0.94);
+  }
+  92% {
+    transform: translate3d(0, -12px, 5px) scale(0.92);
+  }
+  /* impact: a short squash, then settle. */
+  96% {
+    transform: translate3d(0, 0, 0) scale(1.06, 0.9);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -5460,20 +5567,29 @@ body[data-turn='player'] .turn-label {
   width: 108px;
   height: 108px;
   transform-style: preserve-3d;
-  animation: coin-face-heads 1.51s cubic-bezier(0.2, 0.58, 0.26, 1) forwards;
+  /* A COIN DOES NOT SLOW DOWN IN THE AIR. The old curve eased the
+     rotation out across the whole flight, so the coin visibly coasted
+     to a stop before it had landed. Spin is now near-constant and ends
+     ON the impact frame, which is what sells the flip. Totals are
+     unchanged (6 turns heads / 6.5 tails) so the landing face is
+     exactly the face battle.js asked for. */
+  animation: coin-face-heads 1.51s linear forwards;
 }
 .fx-coin-wrap.tails .fx-coin-spin {
   animation-name: coin-face-tails;
 }
 @keyframes coin-face-heads {
   0% {
-    transform: rotateX(-10deg) rotateY(0deg) rotateZ(-8deg);
+    transform: rotateX(-8deg) rotateY(0deg) rotateZ(-5deg);
   }
-  48% {
-    transform: rotateX(13deg) rotateY(1260deg) rotateZ(5deg);
+  46% {
+    transform: rotateX(4deg) rotateY(1050deg) rotateZ(0deg);
   }
-  82% {
-    transform: rotateX(-5deg) rotateY(1930deg) rotateZ(-2deg);
+  92% {
+    transform: rotateX(-2deg) rotateY(2100deg) rotateZ(2deg);
+  }
+  96% {
+    transform: rotateX(0deg) rotateY(2166deg) rotateZ(0deg);
   }
   100% {
     transform: rotateX(0deg) rotateY(2160deg) rotateZ(0deg);
@@ -5481,13 +5597,16 @@ body[data-turn='player'] .turn-label {
 }
 @keyframes coin-face-tails {
   0% {
-    transform: rotateX(-10deg) rotateY(0deg) rotateZ(-8deg);
+    transform: rotateX(-8deg) rotateY(0deg) rotateZ(-5deg);
   }
-  48% {
-    transform: rotateX(13deg) rotateY(1260deg) rotateZ(5deg);
+  46% {
+    transform: rotateX(4deg) rotateY(1140deg) rotateZ(0deg);
   }
-  82% {
-    transform: rotateX(-5deg) rotateY(2110deg) rotateZ(-2deg);
+  92% {
+    transform: rotateX(-2deg) rotateY(2280deg) rotateZ(2deg);
+  }
+  96% {
+    transform: rotateX(0deg) rotateY(2346deg) rotateZ(0deg);
   }
   100% {
     transform: rotateX(0deg) rotateY(2340deg) rotateZ(0deg);
@@ -6118,7 +6237,7 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
 
 /* =============================================================
    Revive - Sun Wukong's 72 Transformations
-   Smoke swallows the falling hero, a pillar of gold erupts,
+   Smoke swallows the falling legend, a pillar of gold erupts,
    rings snap out and the card burns off its death pallor.
    ============================================================= */
 .fx-smoke {
@@ -6192,7 +6311,7 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
   }
 }
 
-/* bright core flare right at the hero */
+/* bright core flare right at the legend */
 .fx-revive-flare {
   position: absolute;
   width: 60px;
@@ -6276,7 +6395,7 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
 
 /* Three phases. `.dead` is also set for the first two, so these override it
    to animate the transition rather than let it snap. */
-/* 1. the hero drains to grey */
+/* 1. the legend drains to grey */
 .bcell-wrap.falling {
   animation: revive-fall 0.34s var(--ease) forwards;
 }
@@ -7392,9 +7511,18 @@ body[data-gfx='low'] .set-pill.bump {
   color: var(--txt-faint);
   margin-left: 4px;
 }
+/* FIXED-SIZE TILES.
+   `1fr` is really `minmax(auto, 1fr)`, and `auto` floors the track at
+   its MIN-CONTENT width. A name with a long unbreakable word -
+   Rumpelstiltskin, 15 characters - is min-content all by itself, so
+   its tile pushed wider than its share and stole width from the tiles
+   beside it: the row stopped being three equal columns.
+   `minmax(0, 1fr)` lets the track shrink below min-content, so every
+   tile is exactly the same width and the name is what adapts (the
+   fitNameNode() pass in js/play.js shrinks the type to suit). */
 .deck-slots {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 6px;
 }
@@ -7403,6 +7531,9 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .deck-slot {
   position: relative;
+  /* a grid item defaults to min-width:auto, which would let a long
+     name push the tile back out past its track - see .deck-slots */
+  min-width: 0;
   min-height: 118px;
   border-radius: 12px;
   display: flex;
@@ -7560,7 +7691,7 @@ body[data-gfx='low'] .set-pill.bump {
   z-index: 7;
 }
 /* .deck-add and .ds-x are gone: clicking the card adds/removes it and
-   clicking a filled slot removes that hero, so a second control sitting
+   clicking a filled slot removes that legend, so a second control sitting
    on top of the art was pure redundancy. The in-deck STATE is still
    shown by .deck-badge (the slot number) and the .in-deck border. */
 
@@ -7638,10 +7769,12 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .dp-slots {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* equal tiles - see .deck-slots on why minmax(0,...) is required */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
 }
 .dp-slot {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -8809,6 +8942,8 @@ html.mqw900 .pk-wordmark {
 }
 .po-front {
   transform: rotateY(180deg);
+  /* anchor for the duplicate's shard tag */
+  position: relative;
 }
 .po-front .card {
   animation: none;
@@ -9357,7 +9492,7 @@ body[data-gfx='low'] .col-thumb {
   color: var(--txt-faint);
 }
 .deck-slots-12 {
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .deck-hint.warn {
   color: #ff9d9d;
@@ -10046,7 +10181,7 @@ body[data-gfx='low'] .col-thumb {
 }
 /* Drain the ART, not the whole card. The filter used to sit on .bcard,
    which desaturated the red ban frame and slash along with everything
-   else - so in the field-six phase a banned hero looked merely dim
+   else - so in the field-six phase a banned legend looked merely dim
    rather than struck out. Scoping it to the inner art layers leaves
    the red frame at full strength. */
 .prep-cards .pcard.banned .bcard-art,
@@ -10077,7 +10212,7 @@ body[data-gfx='low'] .col-thumb {
    no z-index, and cannot be hidden by a hover panel.
    ============================================================= */
 
-/* your hero, banned by the opponent: struck out and inert */
+/* your legend, banned by the opponent: struck out and inert */
 .prep-cards .pcard.banned .bcard-inner {
   border-color: rgba(255, 98, 87, 0.85);
   box-shadow:
@@ -10213,7 +10348,8 @@ body[data-gfx='low'] .col-thumb {
 }
 .field-slots {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* equal tiles - see .deck-slots on why minmax(0,...) is required */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
   flex: 1 1 auto;
 }
@@ -10221,6 +10357,7 @@ body[data-gfx='low'] .col-thumb {
    stacked as two rows of three with row-swap on click */
 .field-slot {
   position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10681,7 +10818,8 @@ body[data-gfx='low'] .col-thumb {
   display: grid;
   gap: 12px;
   margin: clamp(10px, calc(var(--vh1) * 2), 20px) auto 0;
-  grid-template-columns: 1fr 1fr;
+  /* equal piles - see .deck-slots on why minmax(0,...) is required */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   max-width: 860px;
   width: 100%;
 }
@@ -10864,7 +11002,7 @@ html.mqw980 .view.prep {
   );
 }
 html.mqw980 .deck-slots-12 {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 html.mqw980 .draft-piles {
   grid-template-columns: 1fr;
@@ -11937,7 +12075,7 @@ html.mqw640 .draft-pack {
   }
 }
 
-/* ---------- 9. Hero's Trial - a lit dais under falling light ---------- */
+/* ---------- 9. Legend's Trial - a lit dais under falling light ---------- */
 .bf-dais {
   position: absolute;
   left: 50%;
@@ -13294,7 +13432,7 @@ html.mqw640 .draft-pack {
 }
 
 /* =============  7. THE SPIRIT WORLD  =============
-   Rule: a fallen hero gives their team +15 Energy.
+   Rule: a fallen legend gives their team +15 Energy.
    Board: soft, drifting, no hard edges anywhere - the only board
    built from blurred blooms rather than lines. Lights rise
    steadily, which is the rule made visible. */
@@ -13395,7 +13533,7 @@ html.mqw640 .draft-pack {
   filter: blur(0.5px);
 }
 
-/* =============  9. THE HERO'S TRIAL  =============
+/* =============  9. THE LEGEND'S TRIAL  =============
    Rule: the costliest Skill-holder is empowered.
    Board: a single spotlit arena. Radiating spokes converge on one
    bright centre - the board points at its champion. Warm, and it
@@ -13445,7 +13583,7 @@ html.mqw640 .draft-pack {
 }
 
 /* =============  10. THE BLOOD BATTLEFIELD  =============
-   Rule: heroes below 50% HP deal +25%.
+   Rule: legends below 50% HP deal +25%.
    Board: the only board with a HEARTBEAT. A dark crimson field
    crossed by ragged diagonal scars, pulsing on a double-thump
    cycle that gets its punch from being irregular. */
@@ -13633,7 +13771,7 @@ body[data-gfx='low'] .arena-beams {
    is left invisible waiting on an animation that will not run */
 body[data-gfx='low'] .pcard.prep-c,
 body[data-gfx='low'] .dpack-card,
-body[data-gfx='low'] .hero-card,
+body[data-gfx='low'] .legend-card,
 body[data-gfx='low'] .bcard {
   animation: none !important;
   opacity: 1 !important;
@@ -13941,7 +14079,7 @@ body[data-gfx='low'] .btn-primary::after {
 }
 
 /* ---- collection / deck cards ---- */
-.hero-card,
+.legend-card,
 .deck-slot,
 .dpack-card {
   transition:
@@ -13950,10 +14088,10 @@ body[data-gfx='low'] .btn-primary::after {
     border-color 0.24s var(--ease),
     filter 0.24s var(--ease);
 }
-.hero-card:hover {
+.legend-card:hover {
   transform: translateY(-4px) scale(1.014);
 }
-.hero-card:active {
+.legend-card:active {
   transform: translateY(-1px) scale(0.995);
 }
 .dpack-card:hover {
@@ -13966,11 +14104,11 @@ body[data-gfx='low'] .btn-primary::after {
   transform: translateY(-2px);
 }
 /* the icon inside a card leans in slightly with the card */
-.hero-card .bcard-art i,
+.legend-card .bcard-art i,
 .dpack-card .bcard-art i {
   transition: transform 0.26s var(--ease);
 }
-.hero-card:hover .bcard-art i,
+.legend-card:hover .bcard-art i,
 .dpack-card:hover .bcard-art i {
   transform: scale(1.06);
 }
@@ -14071,7 +14209,7 @@ body[data-gfx='low'] .bbar-fill {
 /* ---- keyboard parity: focus mirrors hover everywhere ---- */
 .btn:focus-visible,
 .back-btn:focus-visible,
-.hero-card:focus-visible,
+.legend-card:focus-visible,
 .dpack-card:focus-visible,
 .mode-card:focus-visible,
 .shop-pack:focus-visible,
@@ -14081,13 +14219,13 @@ body[data-gfx='low'] .bbar-fill {
 }
 
 /* ---- low mode: keep the feedback, drop the flourish ---- */
-body[data-gfx='low'] .hero-card:hover,
+body[data-gfx='low'] .legend-card:hover,
 body[data-gfx='low'] .dpack-card:hover,
 body[data-gfx='low'] .shop-pack:hover,
 body[data-gfx='low'] .mode-card:hover {
   transform: translateY(-2px);
 }
-body[data-gfx='low'] .hero-card:hover .bcard-art i,
+body[data-gfx='low'] .legend-card:hover .bcard-art i,
 body[data-gfx='low'] .dpack-card:hover .bcard-art i {
   transform: none;
 }
@@ -14958,7 +15096,7 @@ body[data-gfx='low'] .sc-emblem > b::before {
   clip-path: polygon(50% 1%, 93.3% 25.5%, 93.3% 74.5%, 50% 99%, 6.7% 74.5%, 6.7% 25.5%);
 }
 
-/* 9. HERO'S TRIAL - the brand rune: flame outline holding its ember.
+/* 9. LEGEND'S TRIAL - the brand rune: flame outline holding its ember.
       Quick eager turn, short four-second heartbeat, hot fast prism. */
 .board[data-field='heros-trial'] .sc-emblem {
   --rune-sigil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23ffd88a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 4c0.7 4 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0C10.5 9.5 15.3 8 16 4z M16 23a2.8 2.8 0 0 0 2.8-2.8'/%3E%3C/svg%3E");
@@ -15002,7 +15140,7 @@ body[data-gfx='low'] .sc-emblem > b::before {
 /* =============================================================
    SKILL HOVER TARGET PREVIEW
    -------------------------------------------------------------
-   Hovering a Skill row in the hero panel highlights everyone it
+   Hovering a Skill row in the legend panel highlights everyone it
    could hit, using the same green the real selection uses so the
    language is consistent. Slightly softer and static rather than
    pulsing, so a preview never reads as a committed selection.
@@ -15134,15 +15272,15 @@ body[data-auth='in'] .acct-avatar {
   position: relative;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: 1px solid var(--line-2);
   background: linear-gradient(180deg, rgba(14, 17, 28, 0.9), rgba(8, 10, 18, 0.82));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #9aa3c4;
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1;
   text-decoration: none;
   cursor: var(--cur-pointer);
@@ -15266,10 +15404,13 @@ body[data-auth='in'] .acct-avatar {
 }
 .auth-card {
   position: relative;
-  width: min(392px, 100%);
+  width: min(408px, 100%);
   max-height: calc(calc(var(--vh1) * 100) - 48px);
   overflow-y: auto;
-  padding: 26px 26px 20px;
+  /* Roomier gutters, and enough head room that the close button never
+     crowds the emblem. The card was 392px with 26px sides, which left
+     the Google button and the inputs nearly edge-to-edge. */
+  padding: 30px 28px 24px;
   border-radius: 18px;
   border: 1px solid var(--line-2);
   background: linear-gradient(180deg, rgba(17, 21, 34, 0.99), rgba(9, 11, 19, 0.99));
@@ -15314,7 +15455,7 @@ body[data-gfx='low'] .auth-scrim {
 }
 .auth-head {
   text-align: center;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 .auth-emblem {
   display: grid;
@@ -15346,8 +15487,8 @@ body[data-gfx='low'] .auth-scrim {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 3px;
-  margin-bottom: 16px;
+  padding: 4px;
+  margin-bottom: 20px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -15374,10 +15515,12 @@ body[data-gfx='low'] .auth-scrim {
 .auth-tab-thumb {
   position: absolute;
   z-index: 1;
-  top: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
-  height: calc(100% - 6px);
+  /* tracks .auth-tabs padding (4px) - the pill must inset by exactly
+     the padding on every side or it clips the track's rounded edge */
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
   border-radius: 999px;
   background: linear-gradient(180deg, #ffe6a8, #e0a93b);
   box-shadow: 0 2px 10px rgba(255, 190, 70, 0.32);
@@ -15422,7 +15565,7 @@ body[data-gfx='low'] .auth-scrim {
 .auth-or {
   position: relative;
   text-align: center;
-  margin: 15px 0;
+  margin: 18px 0;
 }
 .auth-or::before {
   content: '';
@@ -15444,11 +15587,11 @@ body[data-gfx='low'] .auth-scrim {
 }
 .auth-form {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 .auth-field {
   display: grid;
-  gap: 5px;
+  gap: 6px;
 }
 .auth-field[hidden] {
   display: none;
@@ -15486,7 +15629,7 @@ body[data-gfx='low'] .auth-scrim {
 .auth-submit {
   width: 100%;
   min-width: 0;
-  margin-top: 4px;
+  margin-top: 6px;
   padding: 13px 20px;
   font-size: 14px;
 }
@@ -15588,6 +15731,21 @@ body[data-gfx='low'] .auth-scrim {
 .play-tab-note[hidden] {
   display: none;
 }
+/* "log in with CrazyGames" is a lot longer than "account", and the tab
+   thumb measures the tab it sits in - so keep it on one line and let it
+   ride a little tighter rather than wrapping and doubling the tab
+   height. js/play.js re-measures the thumb whenever this changes. */
+.play-tab-note-cg {
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  padding-inline: 5px;
+  background: rgba(120, 180, 255, 0.18);
+  color: #bcd9ff;
+}
+.play-tab.sel .play-tab-note-cg {
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(0, 0, 0, 0.66);
+}
 /* the play view centres its content column */
 .view.play .mode-grid {
   margin-inline: auto;
@@ -15660,6 +15818,27 @@ body[data-gfx='low'] .auth-scrim {
 body[data-gfx='low'] .mm-spinner,
 body[data-gfx='low'] .mm-card {
   animation: none;
+}
+
+/* THE MODAL ICON HAS THREE MOODS (session 26).
+   It was always the pulsing gold loader, so "Account required" - a
+   question, not a wait - looked like the game was still working on
+   something. Only the searching state animates now; the other two sit
+   still and recolour, so the modal reads at a glance. */
+.mm-spinner.mm-icon-still {
+  animation: none;
+}
+.mm-spinner.mm-icon-account {
+  color: #8fc7ff;
+  border-color: rgba(143, 199, 255, 0.45);
+  background: radial-gradient(circle at 38% 30%, rgba(120, 180, 255, 0.22), rgba(10, 12, 22, 0.6));
+  box-shadow: 0 0 26px rgba(90, 160, 255, 0.22);
+}
+.mm-spinner.mm-icon-warn {
+  color: #ffb27a;
+  border-color: rgba(255, 178, 122, 0.45);
+  background: radial-gradient(circle at 38% 30%, rgba(255, 170, 110, 0.2), rgba(10, 12, 22, 0.6));
+  box-shadow: 0 0 26px rgba(255, 150, 80, 0.22);
 }
 .mm-title {
   margin: 0 0 6px;
@@ -16058,14 +16237,14 @@ body[data-gfx='low'] .turn-clock.crit {
 }
 
 /* =============================================================
-   HERO PORTRAIT ART
+   LEGEND PORTRAIT ART
    -------------------------------------------------------------
    96x96 pixel-art busts (docs/ART-SPEC.md). Cards that have art
    render it in place of the RPG Awesome glyph; cards without keep
    the glyph, so the roster can be illustrated faction by faction.
 
    2026-08-03 v2: the art is now a full-bleed card ILLUSTRATION - the
-   hero painted with their environment baked in, shipped as an opaque
+   legend painted with their environment baked in, shipped as an opaque
    JPEG. There is no cut-out, no alpha and no masking anywhere; the
    image simply covers the card box and the HUD scrims keep text
    legible on top of it.
@@ -16098,7 +16277,7 @@ body[data-gfx='low'] .turn-clock.crit {
    v2 (2026-08-03): the masked sigil-ring cut-out is RETIRED. Chroma-keyed
    portraits always carried a fringe of the key colour at the contour,
    and every fix for it was another layer of processing. Card art is now
-   a complete illustration - hero plus painted environment, baked opaque
+   a complete illustration - legend plus painted environment, baked opaque
    - so there is nothing to mask: the image covers the whole card and
    the corner radius of .card itself rounds it off. */
 .art-portrait {
@@ -16141,6 +16320,7 @@ body[data-gfx='low'] .turn-clock.crit {
 .bart-portrait img {
   object-position: center 30%;
 }
+
 .bcard:hover .bart-portrait {
   transform: scale(1.05);
 }
@@ -17271,10 +17451,10 @@ body[data-gfx='low'] .mb-motes {
   }
 }
 
-/* The hover panel's portrait plate used to render the hero's art on the
+/* The hover panel's portrait plate used to render the legend's art on the
    tall 58x82 plate. Reverted to the ra glyph (and the plate went
    square): at that size the art read as texture, and the icon is what
-   identifies the hero on the card face, in the collection and in the
+   identifies the legend on the card face, in the collection and in the
    prep tip. The .dk-portrait.has-art rules were removed with it. */
 .dk-portrait i {
   /* the glyph reads off the same rarity/faction wash the art sat on */
@@ -17903,7 +18083,7 @@ body[data-gfx='low'] .mb-motes {
   height: 2px;
   background: rgba(240, 220, 176, 0.7);
 }
-/* Hero's Trial: embers climbing from the cracks */
+/* Legend's Trial: embers climbing from the cracks */
 .board[data-field='heros-trial'] .sc-weather i {
   width: 3px;
   height: 3px;
@@ -18586,7 +18766,7 @@ body[data-gfx='low'] .sc-weather {
 }
 
 /* Slot cells rebuilt because a removal shuffled the row, not because a
-   hero was newly added: suppress the slot-in entrance on that rebuild
+   legend was newly added: suppress the slot-in entrance on that rebuild
    (set from JS; .no-enter only ever exists due to a data shuffle). */
 .field-slot.no-enter,
 .deck-slot.no-enter {
@@ -18860,10 +19040,15 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
 /* Discord chip, TOP-LEFT of the home view (moved in session 24 - the
    bottom-left corner is free and the top corners now balance:
    community left, account right) */
+/* TOP-LEFT STACK (session 25): Tutorial / Rulebook / Feedback ride at
+   the top, with Discord LAST - the three in-game actions matter more
+   than the off-site link, so they get the reachable slot. Discord's
+   top offset is the stack's top (20px) + three 46px buttons + three
+   10px gaps, so the four circles read as one evenly spaced column. */
 .home-discord {
   position: absolute;
   left: 22px;
-  top: 20px;
+  top: 188px;
   z-index: 30;
   animation: corner-drop 0.7s var(--ease) 1.05s backwards;
 }
@@ -18905,7 +19090,7 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
 .home-corner-btns {
   position: absolute;
   left: 22px;
-  top: 68px;
+  top: 20px;
   z-index: 30;
   display: flex;
   flex-direction: column;
@@ -18916,8 +19101,8 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   position: relative;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 50%;
@@ -18925,7 +19110,7 @@ body[data-gfx='low'] #veil.on .veil-panel { transition: transform 0.28s var(--ea
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: rgba(220, 224, 240, 0.65);
-  font-size: 16px;
+  font-size: 19px;
   cursor: var(--cur-pointer);
   transition:
     color 0.2s var(--ease),
@@ -19163,6 +19348,30 @@ body[data-auth='out'] .acct-save-note {
   line-height: 1.45;
   color: var(--txt-faint);
 }
+/* The username hint turns into a cooldown notice while a rename is
+   locked. It has to read as a live rule, not as faint small print. */
+.set-hint.warn {
+  color: #ffcf8b;
+}
+/* Username input. The "Roll" button that used to sit beside it is
+   gone: a random name is assigned once at account creation and is
+   not a slot machine the player can spin. The row keeps its flex
+   layout so the field still takes the full width. */
+.set-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.set-name-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* On cooldown the field is disabled - say so visually rather than
+   leaving a box that silently refuses to accept a name. */
+.set-name-row input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .set-form .auth-submit {
   margin-top: 8px;
   padding: 14px 20px;
@@ -19366,6 +19575,98 @@ html.mqw560 .set-block {
   width: 100%;
   margin-top: 10px;
   justify-content: center;
+}
+
+/* =============================================================
+   SAVE COLLISION + SIGN OUT
+   -------------------------------------------------------------
+   Two dialogs that destroy progress, so both state the cost in the
+   control itself rather than in fine print underneath it. They
+   borrow .auth-modal / .auth-card wholesale; only the choice tiles
+   and the stat lines are new.
+   ============================================================= */
+.merge-choices {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.merge-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+.merge-choice:hover,
+.merge-choice:focus-visible {
+  border-color: var(--gold, #d9b45a);
+  background: rgba(217, 180, 90, 0.1);
+  transform: translateY(-1px);
+}
+
+.merge-choice-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.merge-choice-head i {
+  font-size: 1.15em;
+  color: var(--gold, #d9b45a);
+}
+
+/* The evidence the choice is made on: coins, cards, gates, decks. */
+.merge-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.86em;
+  opacity: 0.9;
+}
+.merge-stats b {
+  font-variant-numeric: tabular-nums;
+}
+.merge-stats .merge-empty {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+.merge-note {
+  font-size: 0.8em;
+  opacity: 0.62;
+}
+
+.merge-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+.merge-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merge-choice {
+    transition: none;
+  }
+  .merge-choice:hover,
+  .merge-choice:focus-visible {
+    transform: none;
+  }
 }
 
 /* =============================================================
@@ -20698,6 +20999,12 @@ body[data-auth='in'] #acct-login {
 body:not([data-auth='in']) #acct-logout {
   display: none;
 }
+/* Match history is stored against the ACCOUNT, so a signed-out player
+   has nothing to open. Hidden rather than greyed: an item that cannot
+   ever do anything in this state is noise, not information. */
+body:not([data-auth='in']) #acct-history {
+  display: none;
+}
 /* modals: one shared entrance - settle, don't teleport */
 .auth-modal .auth-card,
 .mm-modal .mm-card,
@@ -20955,7 +21262,7 @@ body[data-gfx='low'] .deck::before {
 /* =============================================================
    SESSION 25 - HOME & MENU DESIGN PASS
    -------------------------------------------------------------
-   The brief: less template-slop, more game. A composed hero with a
+   The brief: less template-slop, more game. A composed legend with a
    readability plate behind it, a clear CTA hierarchy (one BIG Play,
    two quiet secondaries), the stat strip as a glass pill, and small
    ceremonial touches on the emblem. Shared header diamond chip for
@@ -20965,7 +21272,7 @@ body[data-gfx='low'] .deck::before {
   position: relative;
 }
 .home-inner::before {
-  /* readability plate: one soft dark pool behind the whole hero so the
+  /* readability plate: one soft dark pool behind the whole legend so the
      type never fights the menu art - no hard panel edges, just air */
   content: '';
   position: absolute;
@@ -21043,6 +21350,103 @@ body[data-auth='out'] .home-cloud-cta {
   outline: 2px solid rgba(143, 227, 176, 0.72);
   outline-offset: 2px;
 }
+
+/* ---- First-run data notice ---------------------------------------
+   Required by the portal for a game that collects personal data. It
+   is a NOTICE, not a gate: quiet, inline on the menu, dismissed for
+   good with one click. Deliberately understated so it never competes
+   with the Play button - the requirement is that a new player is told,
+   not that they are stopped. `hidden` is honoured because the element
+   defaults to hidden and js/app.js only unsets it on a first run. */
+.home-policy {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: min(430px, calc(100% - 24px));
+  margin: 9px auto 0;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(8, 11, 20, 0.42);
+  color: var(--txt-faint);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: left;
+}
+.home-policy[hidden] {
+  display: none;
+}
+.home-policy > i {
+  flex: 0 0 auto;
+  font-size: 14px;
+  opacity: 0.75;
+}
+.home-policy-ok {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: var(--cur-pointer);
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.home-policy-ok:hover,
+.home-policy-ok:focus-visible {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ---- The full policy text in Settings ---------------------------- */
+.set-policy {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(8, 11, 20, 0.36);
+}
+.set-policy > summary {
+  padding: 8px 12px;
+  color: var(--txt-faint);
+  font-size: 12px;
+  cursor: var(--cur-pointer);
+  list-style: none;
+}
+.set-policy > summary::-webkit-details-marker {
+  display: none;
+}
+.set-policy > summary::before {
+  content: '\203a';
+  display: inline-block;
+  margin-right: 7px;
+  transition: transform 0.2s var(--ease);
+}
+.set-policy[open] > summary::before {
+  transform: rotate(90deg);
+}
+.set-policy > summary:hover,
+.set-policy > summary:focus-visible {
+  color: #eef8f2;
+}
+.set-policy-body {
+  padding: 0 12px 10px;
+  color: var(--txt-faint);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.set-policy-body p {
+  margin: 0 0 8px;
+}
+.set-policy-body p:last-child {
+  margin-bottom: 0;
+}
+.set-policy-body b {
+  color: #dfe9f5;
+}
 .home-cloud-cta:active {
   transform: scale(0.985);
 }
@@ -21078,18 +21482,18 @@ body[data-gfx='low'] .home-cloud-cta,
 body[data-gfx='low'] .home-cloud-cta > i:last-child {
   transition: none;
 }
-.btn-hero {
+.btn-legend {
   grid-column: 1 / -1;
   padding: 21px 40px;
   font-size: 19px;
   letter-spacing: 0.24em;
   text-indent: 0.1em;
 }
-.btn-hero .b-arrow {
+.btn-legend .b-arrow {
   font-size: 21px;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.btn-hero:hover .b-arrow {
+.btn-legend:hover .b-arrow {
   transform: translateX(5px);
 }
 #btn-shop,
@@ -22674,6 +23078,31 @@ body[data-gfx='low'] .cw-motes {
   background: linear-gradient(180deg, rgba(88, 47, 126, 0.76), rgba(40, 20, 65, 0.86));
   color: #e8ccff;
 }
+/* The rival stat multiplier chip in the difficulty line (x1.1 / x1.2).
+   Colour-matched to the selected-tier buttons above - heroic blue,
+   legend purple - so the same tier reads the same colour everywhere.
+   Normal has no chip: there is no multiplier to show. */
+.diff-mult {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: baseline;
+}
+.diff-mult[data-diff='heroic'] {
+  border-color: rgba(133, 189, 255, 0.45);
+  background: rgba(40, 78, 119, 0.42);
+  color: #c8e4ff;
+}
+.diff-mult[data-diff='legend'] {
+  border-color: rgba(202, 153, 255, 0.5);
+  background: rgba(88, 47, 126, 0.44);
+  color: #e8ccff;
+}
 @media (max-width: 700px) {
   .road-difficulty {
     align-items: stretch;
@@ -23528,7 +23957,7 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* The bust renders the FULL 128x176 hero-art frame, pixel-crisp at its
+/* The bust renders the FULL 128x176 legend-art frame, pixel-crisp at its
    native 1x scale (the same art contract as the legend cards - see
    .art-portrait), fully inside the bar. No crop, no overhang. */
 .chapter-dialogue-bust {
@@ -24124,8 +24553,15 @@ html.mqw640 .nav-guide-text {
   font-size: 13px;
   font-weight: 900;
 }
+/* ABOVE EVERY DECORATION IN THE GRID, NOT JUST THE CARDS.
+   The hover card is the topmost thing in this dialog - it is what the
+   player asked to see. At z-index 7 it tied with the selected tick and
+   lost outright to the "Owned" chip (8), which painted its little grey
+   pill straight through the middle of the panel. The flyout is a
+   sibling of the grid, so one value clears all of them; anything new
+   inside a tile must stay below this. */
 .grant-choice-flyout {
-  z-index: 7;
+  z-index: 20;
 }
 .gc-tile {
   display: flex;
@@ -24174,22 +24610,36 @@ html.mqw640 .nav-guide-text {
 }
 
 /* Ban-protected cards need only the chip; an extra outline around the
-   full card made every Legendary look awkwardly double-framed. */
+   full card made every Legendary look awkwardly double-framed.
+
+   THE CHIP SCALES WITH THE CARD. Prep card width (--bcw) ranges from
+   80px to 140px depending on viewport height, width and the GUI scale
+   slider. A fixed 8px/7px chip therefore spanned ~92% of a small card
+   and only ~52% of a large one - it looked bolted on at one end of the
+   range and lost at the other. Every dimension below is derived from
+   --bcw so the chip keeps the same visual weight at every size, with
+   px clamps so it never falls below legibility or outgrows the card.
+   The fallback in var() keeps it sane anywhere --bcw is not set. */
 .prep-c.unbannable::before {
   content: 'UNBANNABLE';
+  --chip-w: var(--bcw, 100px);
   position: absolute;
   z-index: 4;
-  top: 6px;
+  top: clamp(3px, calc(var(--chip-w) * 0.055), 8px);
   left: 50%;
   transform: translateX(-50%);
-  padding: 2px 7px;
-  border-radius: 4px;
+  max-width: calc(100% - 8px);
+  padding: clamp(1.5px, calc(var(--chip-w) * 0.02), 3px)
+    clamp(4px, calc(var(--chip-w) * 0.07), 9px);
+  border-radius: clamp(3px, calc(var(--chip-w) * 0.04), 5px);
   border: 1px solid rgba(255, 215, 122, 0.6);
   background: rgba(48, 36, 12, 0.92);
   color: #ffd77a;
-  font-size: 8px;
+  font-size: clamp(6.5px, calc(var(--chip-w) * 0.078), 10px);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: clamp(0.04em, calc(var(--chip-w) * 0.0011), 0.12em);
+  line-height: 1.35;
+  white-space: nowrap;
   pointer-events: none;
 }
 
@@ -25129,7 +25579,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   font-size: 13px;
   line-height: 1.55;
 }
-.lg-hero {
+.lg-legend {
   display: flex;
   gap: 14px;
   align-items: flex-start;
@@ -25144,7 +25594,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   border: 1px solid rgba(255, 214, 130, 0.35);
   background: rgba(0, 0, 0, 0.4);
 }
-.lg-hero-body {
+.lg-legend-body {
   min-width: 0;
 }
 .lg-kicker {
@@ -25156,7 +25606,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.lg-hero-body h3 {
+.lg-legend-body h3 {
   margin: 2px 0 6px;
   color: var(--txt);
   font-family: 'Cinzel', serif;
@@ -25343,7 +25793,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
    the hover panel now), the damage preview chips, the queue-jump
    bark shake, and the battle report on the result screen.
    ============================================================= */
-/* a locked hero wears only a small corner cue - hover for the why */
+/* a locked legend wears only a small corner cue - hover for the why */
 .bcard-lockdot {
   position: absolute;
   top: 6px;
@@ -25404,12 +25854,144 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
-  pointer-events: none;
+  /* the chip is hoverable so it can explain itself (.dmg-breakdown);
+     it sits above the card art and must not swallow the click that
+     actually picks the target, so only the chip itself takes the
+     pointer and the card keeps handling the press */
+  pointer-events: auto;
+  cursor: help;
   animation: veil-in 0.18s var(--ease);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
 }
 .dmg-preview i {
   font-size: 10px;
+}
+
+/* ---- the hover breakdown ----------------------------------------
+   Hidden until the chip is hovered. Positioned above the chip and
+   centred on it; it flips below when the chip is near the top of the
+   viewport (.dmg-preview.flip, set in battle.js) so it is never
+   clipped by the board edge. Text is left-aligned and the numbers are
+   right-aligned into a column, because a column of figures is what
+   makes the arithmetic checkable at a glance. */
+.dmg-breakdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  z-index: 40;
+  display: block;
+  width: max-content;
+  min-width: 190px;
+  max-width: 260px;
+  padding: 9px 11px 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 179, 71, 0.42);
+  background: rgba(14, 10, 9, 0.98);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.7);
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: normal;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.14s var(--ease),
+    transform 0.14s var(--ease),
+    visibility 0.14s;
+}
+.dmg-preview:hover .dmg-breakdown,
+.dmg-preview:focus-visible .dmg-breakdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.dmg-preview.flip .dmg-breakdown {
+  bottom: auto;
+  top: calc(100% + 8px);
+  transform: translateX(-50%) translateY(-4px);
+}
+.dmg-preview.flip:hover .dmg-breakdown {
+  transform: translateX(-50%) translateY(0);
+}
+.dpb-title {
+  display: block;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.dpb-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1.5px 0;
+  line-height: 1.35;
+}
+.dpb-k {
+  min-width: 0;
+  color: var(--txt-dim);
+  font-weight: 600;
+}
+.dpb-v {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: #fff;
+}
+/* subtotals close a section: the base damage, and the answer */
+.dpb-row.sub {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.dpb-row.sub .dpb-k {
+  color: var(--txt);
+  font-weight: 800;
+}
+.dpb-row.tot .dpb-v {
+  color: #ffb347;
+  font-size: 12px;
+}
+.dpb-hit {
+  margin: 6px 0 2px;
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.dpb-hit:first-of-type {
+  margin-top: 0;
+}
+.dpb-note {
+  margin-top: 6px;
+  color: var(--txt-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.dpb-note b {
+  color: #fff;
+}
+.dpb-note.kill {
+  color: #ff5f7e;
+  font-weight: 800;
+}
+.dpb-note.good {
+  color: #ffd67f;
+}
+.dpb-note.bad {
+  color: var(--txt-faint);
 }
 .dmg-preview.lethal {
   border-color: rgba(255, 95, 126, 0.8);
@@ -25420,6 +26002,25 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
 }
 .dp-skull {
   margin-left: 2px;
+}
+/* A conditional bonus that IS live on this target. Gold-white and
+   slightly brighter than the base chip so "this shot gets the big
+   number" is readable at a glance, without competing with the red
+   lethal state - a lethal bonus shot still reads as lethal first. */
+.dmg-preview.bonus {
+  border-color: rgba(255, 231, 153, 0.9);
+  color: #ffe799;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.55),
+    0 0 15px rgba(255, 214, 110, 0.42);
+}
+.dmg-preview.bonus.lethal {
+  border-color: rgba(255, 95, 126, 0.8);
+  color: #ff5f7e;
+}
+.dp-bonus {
+  margin-left: 2px;
+  color: #ffe799;
 }
 /* an insisted (repeated) instruction shakes instead of flickering */
 .rival-bark.deny {
@@ -26174,4 +26775,1267 @@ body[data-gfx='low'] .mode-carousel-dots > button {
   .mode-carousel-dots > button {
     transition: none;
   }
+}
+
+/* =============================================================
+   PRIVATE ROOM
+   -------------------------------------------------------------
+   Two faces in one card (#room-door / #room-lobby). Sized and
+   coloured to match the matchmaking overlay it sits beside, so the
+   multiplayer surfaces read as one family.
+   ============================================================= */
+.room-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 215;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.room-modal[hidden] {
+  display: none;
+}
+.room-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 4, 9, 0.74);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+.room-card {
+  position: relative;
+  width: min(470px, 100%);
+  /* --vh1, not raw vh: mobile browsers lie about 100vh while the
+     address bar is retracting (see :root) */
+  max-height: calc(calc(var(--vh1) * 100) - 48px);
+  overflow-y: auto;
+  padding: 26px 26px 22px;
+  border-radius: 18px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(17, 21, 34, 0.99), rgba(9, 11, 19, 0.99));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.75);
+  animation: auth-in 0.28s var(--ease);
+}
+.room-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt-dim);
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.18s,
+    border-color 0.18s;
+}
+.room-x:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+/* the two faces of the card; JS toggles [hidden] between them */
+.room-face[hidden] {
+  display: none;
+}
+.room-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff;
+}
+.room-title i {
+  color: var(--r-legendary-1);
+}
+.room-sub {
+  margin: 0 0 18px;
+  color: var(--txt-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.room-big {
+  width: 100%;
+  justify-content: center;
+}
+.room-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--txt-faint);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.room-or::before,
+.room-or::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line-2);
+}
+.room-join,
+.room-invite {
+  display: flex;
+  gap: 8px;
+}
+.room-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.room-invite .room-input {
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+.room-input::placeholder {
+  color: var(--txt-faint);
+  letter-spacing: 0.08em;
+}
+.room-input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 205, 110, 0.6);
+}
+.room-err {
+  margin: 10px 0 0;
+  color: #ff9d9d;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.room-note {
+  margin: 8px 0 0;
+  color: var(--txt-dim);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* ---- the code, and sharing it ---- */
+.room-code-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 205, 110, 0.32);
+  background: rgba(255, 205, 110, 0.06);
+}
+.room-code-k {
+  color: var(--txt-faint);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.room-code {
+  flex: 1 1 auto;
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--r-legendary-1);
+}
+
+/* ---- seats ---- */
+.room-seats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.room-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 13px 10px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--line-2);
+  text-align: center;
+}
+.room-seat.filled {
+  border-style: solid;
+  border-color: rgba(255, 205, 110, 0.45);
+  background: rgba(255, 255, 255, 0.03);
+}
+.room-seat > i {
+  font-size: 18px;
+  color: var(--txt-dim);
+}
+.room-seat.filled > i {
+  color: var(--r-legendary-1);
+}
+.room-seat-name {
+  max-width: 100%;
+  font-weight: 800;
+  font-size: 12.5px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-seat-tag {
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.room-vs {
+  color: var(--txt-faint);
+  font-size: 14px;
+}
+
+/* ---- settings ---- */
+.room-settings {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.02);
+}
+.room-settings-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.room-leader-only {
+  color: var(--txt-faint);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 10.5px;
+}
+.room-opt[hidden] {
+  display: none;
+}
+.room-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+/* an option that does not apply to the chosen format fades out but
+   stays in place, so the panel does not jump as the leader flips it */
+.room-opt.off {
+  opacity: 0.42;
+}
+.room-opt-k {
+  flex: 0 0 auto;
+  color: var(--txt-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.room-opt-v {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.room-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--txt-dim);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: var(--cur-pointer);
+  transition:
+    color 0.18s,
+    border-color 0.18s,
+    background 0.18s;
+}
+.room-pill:hover:not(:disabled) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.room-pill.on {
+  color: #1a1206;
+  border-color: transparent;
+  background: linear-gradient(180deg, #ffd98a, #f0b45a);
+}
+.room-pill:disabled,
+.room-select:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+/* Matches the feedback form's select (see .feedback-form select): the
+   same dark inset field, 11px radius and gold focus ring, so the two
+   dialogs do not look like they came from different games. A native
+   select also paints its own arrow inconsistently across platforms, so
+   appearance is reset and one chevron is drawn as a background image
+   that follows the text colour. */
+.room-select {
+  max-width: 210px;
+  width: 100%;
+  padding: 9px 30px 9px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  background-color: rgba(5, 8, 15, 0.72);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b93ad' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  color: var(--txt);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+  cursor: var(--cur-pointer);
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color 0.18s var(--ease),
+    box-shadow 0.18s var(--ease);
+}
+.room-select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.26);
+}
+.room-select:focus {
+  border-color: rgba(255, 205, 110, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 198, 90, 0.1);
+}
+/* the popup list is drawn by the OS - give it readable colours rather
+   than white-on-white in a dark theme */
+.room-select option {
+  background: #0b0e18;
+  color: var(--txt);
+}
+.room-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* =============================================================
+   MATCH HISTORY
+   -------------------------------------------------------------
+   Reuses the settings modal's card shell so history does not read as
+   a different product. The list is deliberately dense - a player
+   scanning for one match wants many rows visible, not big cards - and
+   the verdict is the leftmost thing on every row because it is the
+   thing being scanned for.
+   ============================================================= */
+.hist-card {
+  width: min(560px, 100%);
+  padding: 32px 30px 24px;
+  display: grid;
+  gap: 22px;
+  text-align: left;
+}
+.hist-view {
+  display: grid;
+  gap: 14px;
+  min-height: 120px;
+}
+.hist-msg {
+  margin: 0;
+  padding: 26px 8px;
+  text-align: center;
+  color: var(--txt-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.hist-msg[hidden] {
+  display: none;
+}
+.hist-list,
+.hist-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  /* Long histories scroll inside the card rather than growing a modal
+     taller than the window. --vh1 rather than a raw vh: js/app.js
+     rewrites it to account for the GUI zoom, so the cap still means
+     "just over half the window" at 80% scale instead of overflowing. */
+  max-height: min(calc(52 * var(--vh1)), 460px);
+  overflow-y: auto;
+}
+.hist-row {
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}
+.hist-row.has-replay {
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+.hist-row.has-replay:hover,
+.hist-row.has-replay:focus-visible {
+  border-color: var(--line-2);
+  background: rgba(255, 255, 255, 0.055);
+  outline: none;
+}
+.hist-verdict {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+/* Win and loss have to be legible at a glance, but a wall of red for
+   a bad session is miserable - so the loss colour is muted rather
+   than alarming. */
+.hist-win .hist-verdict {
+  color: #6fdc9a;
+}
+.hist-loss .hist-verdict {
+  color: #d98a8a;
+}
+.hist-draw .hist-verdict,
+.hist-unknown .hist-verdict {
+  color: var(--txt-faint);
+}
+.hist-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.hist-body b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hist-body small {
+  font-size: 11.5px;
+  color: var(--txt-faint);
+}
+.hist-when {
+  font-size: 11.5px;
+  color: var(--txt-faint);
+  white-space: nowrap;
+}
+
+/* ---- one match ---- */
+.hist-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px 7px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--txt-dim);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.hist-back:hover {
+  color: var(--txt);
+  border-color: var(--line-2);
+}
+.hist-score {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}
+.hist-score-head {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--txt);
+}
+.hist-score-sub {
+  font-size: 11.5px;
+  color: var(--txt-faint);
+}
+.hist-squads {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.hist-squads div {
+  display: grid;
+  gap: 1px;
+}
+.hist-squads b {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+}
+.hist-squads span {
+  font-size: 12.5px;
+  color: var(--txt-dim);
+  line-height: 1.5;
+}
+.hist-round {
+  margin-top: 10px;
+  padding: 6px 0 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  border-bottom: 1px solid var(--line);
+}
+.hist-round:first-child {
+  margin-top: 0;
+}
+.hist-move {
+  padding: 8px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--txt-dim);
+  /* The player's own moves are tinted so a match reads as a
+     conversation between two sides rather than one flat list. */
+  border-left: 2px solid transparent;
+}
+.hist-move b {
+  color: var(--txt);
+  font-weight: 600;
+}
+.hist-move.hist-mine {
+  background: rgba(108, 160, 255, 0.07);
+  border-left-color: rgba(108, 160, 255, 0.5);
+}
+.hist-move:not(.hist-mine) {
+  background: rgba(255, 255, 255, 0.02);
+  border-left-color: rgba(255, 255, 255, 0.12);
+}
+.hist-pass {
+  font-style: italic;
+  color: var(--txt-faint);
+}
+.hist-empty {
+  padding: 24px 8px;
+  text-align: center;
+  color: var(--txt-faint);
+  font-size: 13px;
+}
+
+/* ---------------- an invite arrives ---------------- */
+/* An actionable toast: it carries buttons, so it is wider than a
+   status beat and must not auto-dismiss under the player's cursor.
+   Pointer events are re-enabled because .toasts disables them for
+   the passive beats it usually holds. */
+.toast-invite {
+  pointer-events: auto;
+  gap: 12px;
+  padding: 11px 12px 11px 16px;
+  max-width: min(420px, calc(100 * var(--vw1) - 32px));
+}
+.toast-invite-body {
+  display: grid;
+  gap: 1px;
+  margin-right: 4px;
+  min-width: 0;
+}
+.toast-invite-body b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-invite-body small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--txt-faint);
+}
+.toast-btn {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt-dim);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.16s var(--ease),
+    color 0.16s var(--ease),
+    border-color 0.16s var(--ease);
+}
+.toast-btn:hover {
+  color: var(--txt);
+  border-color: var(--txt-faint);
+}
+.toast-btn.primary {
+  background: linear-gradient(180deg, var(--r-legendary-1), var(--r-legendary-2));
+  border-color: transparent;
+  color: #241802;
+}
+.toast-btn.primary:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------------- custom draft pool builder ---------------- */
+/* Wider than the room card: this is a browsing surface, and the grid
+   needs room to show more than two columns. */
+.pool-card {
+  width: min(1080px, calc(100 * var(--vw1) - 32px));
+  max-height: min(calc(92 * var(--vh1)), 960px);
+  overflow-y: auto;
+}
+.pool-tray {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  margin: 18px 0 6px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}
+/* 36 slots. auto-fill rather than a fixed count so the tray reflows
+   on a narrow window instead of overflowing its card. */
+/* FOUR ROWS OF NINE. Fixed at 9 columns rather than auto-fill: the
+   36 slots are a shape the player learns to read at a glance, and a
+   tray that reflowed to 7 or 11 across on a different window turned
+   "how full am I" into a counting exercise. The slots shrink with the
+   tray instead of rewrapping. */
+.pool-slots {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+}
+.pool-slot {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px dashed var(--line-2);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--txt-faint);
+}
+.pool-slot.filled {
+  cursor: pointer;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--fc-primary) 60%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fc-primary) 22%, transparent),
+    rgba(255, 255, 255, 0.03)
+  );
+  color: var(--txt);
+  transition:
+    transform 0.14s var(--ease),
+    filter 0.14s var(--ease);
+}
+.pool-slot.filled:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+.pool-slot.filled.rarity-legendary {
+  box-shadow: inset 0 0 0 1px rgba(255, 207, 92, 0.45);
+}
+.pool-side {
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+  min-width: 190px;
+}
+.pool-count {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--txt);
+  text-align: center;
+}
+.pool-actions {
+  display: grid;
+  gap: 8px;
+}
+.pool-note {
+  margin: 0;
+  min-height: 16px;
+  font-size: 11.5px;
+  color: var(--txt-faint);
+  text-align: center;
+}
+.pool-grid {
+  margin-top: 12px;
+}
+/* A card already in the pool. Dimmed and check-marked rather than
+   hidden, so the grid does not reshuffle under the cursor every time
+   something is picked. */
+.pool-grid .card.picked {
+  opacity: 0.42;
+  filter: saturate(0.6);
+}
+.pool-grid .card.picked::after {
+  content: '\2713';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 3;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--r-legendary-1);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+/* the room row */
+.room-opt-v-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.room-pool-count {
+  font-size: 12px;
+  color: var(--txt-faint);
+}
+.room-pool-count.on {
+  color: var(--r-legendary-1);
+  font-weight: 600;
+}
+
+/* =============================================================
+   THE QUEST BOARD  (home screen, right side)
+   -------------------------------------------------------------
+   Floating panel opposite the Discord/tutorial stack. Collapses to
+   a tab; the collapsed state persists and the tab keeps a badge so
+   a folded board still says there is loot waiting.
+
+   .home is overflow:hidden with a centred 700px .home-inner, so the
+   board is absolutely positioned and auto-collapses under 1100px
+   (js/quest-board.js) before it can crowd the title.
+   ============================================================= */
+.quest-board {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  z-index: 28;
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  /* clear the account pill, which owns the very top-right */
+  margin-top: 56px;
+  animation: corner-drop 0.7s var(--ease) 1.15s backwards;
+}
+
+/* ---- the collapsed tab ---- */
+.qb-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(24, 29, 48, 0.96), rgba(12, 16, 28, 0.96));
+  color: var(--txt);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  backdrop-filter: blur(7px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  transition:
+    border-color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.qb-tab:hover {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
+  transform: translateY(-1px);
+}
+.qb-tab i {
+  color: var(--r-legendary-1);
+  font-size: 15px;
+}
+.quest-board[data-collapsed='false'] .qb-tab {
+  display: none;
+}
+.qb-badge {
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--r-legendary-1);
+  color: #241703;
+  font-size: 11px;
+  font-weight: 900;
+}
+.quest-board.has-claim .qb-tab {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 60%, transparent);
+  animation: qb-pulse 2.4s ease-in-out infinite;
+}
+@keyframes qb-pulse {
+  0%,
+  100% {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 10px 26px rgba(0, 0, 0, 0.45),
+      0 0 20px color-mix(in srgb, var(--r-legendary-1) 42%, transparent);
+  }
+}
+
+/* ---- the open panel ---- */
+.qb-body {
+  width: 100%;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20, 25, 42, 0.94), rgba(10, 13, 24, 0.96));
+  backdrop-filter: blur(9px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  text-align: left;
+}
+.quest-board[data-collapsed='true'] .qb-body {
+  display: none;
+}
+.qb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 13px 9px;
+  border-bottom: 1px solid var(--line);
+}
+.qb-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt);
+}
+.qb-title i {
+  color: var(--r-legendary-1);
+  font-size: 15px;
+}
+.qb-close {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
+  color: var(--txt-dim);
+  cursor: pointer;
+  font-size: 15px;
+}
+.qb-close:hover {
+  border-color: var(--line-2);
+  color: var(--txt);
+}
+
+.qb-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 9px 11px 0;
+}
+.qb-seg {
+  flex: 1;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--txt-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.qb-seg.sel {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--txt);
+  border-color: var(--line-2);
+}
+.qb-seg-timer {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt-faint);
+}
+
+.qb-list {
+  padding: 9px 11px 4px;
+  max-height: calc(var(--vh1) * 52);
+  overflow-y: auto;
+}
+.qb-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.qb-item {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 9px;
+  align-items: center;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.qb-item[data-state='ready'] {
+  border-color: color-mix(in srgb, var(--r-legendary-1) 42%, transparent);
+  background: color-mix(in srgb, var(--r-legendary-1) 7%, rgba(255, 255, 255, 0.025));
+}
+.qb-item[data-state='claimed'] {
+  opacity: 0.5;
+}
+.qb-ico {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--r-legendary-1);
+  font-size: 14px;
+}
+.qb-main {
+  min-width: 0;
+}
+.qb-text {
+  margin: 0 0 5px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--txt);
+}
+.qb-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+.qb-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--r-legendary-2), var(--r-legendary-1));
+  transition: width 0.4s var(--ease);
+}
+.qb-prog {
+  margin: 4px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt-faint);
+  font-variant-numeric: tabular-nums;
+}
+.qb-reward,
+.qb-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--txt-faint);
+  white-space: nowrap;
+}
+.qb-reward .ri-coin-fill {
+  color: var(--r-legendary-1);
+  opacity: 0.7;
+}
+.qb-done {
+  color: var(--e-nature);
+  font-size: 14px;
+}
+.qb-claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(255, 207, 92, 0.2), rgba(255, 138, 61, 0.12));
+  color: var(--r-legendary-1);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qb-claim:hover {
+  background: linear-gradient(180deg, rgba(255, 207, 92, 0.32), rgba(255, 138, 61, 0.2));
+}
+
+.qb-bonus {
+  padding: 4px 11px 11px;
+}
+.qb-bonus-hint,
+.qb-bonus-done {
+  display: block;
+  padding: 7px 9px;
+  border: 1px dashed var(--line-2);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--txt-faint);
+  text-align: center;
+}
+.qb-bonus-hint b,
+.qb-bonus-btn b {
+  color: var(--r-legendary-1);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.qb-bonus-done {
+  color: var(--e-nature);
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--e-nature) 30%, transparent);
+}
+.qb-bonus-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 207, 92, 0.22), rgba(255, 138, 61, 0.14));
+  color: var(--r-legendary-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.qb-bonus-btn:hover {
+  background: linear-gradient(180deg, rgba(255, 207, 92, 0.34), rgba(255, 138, 61, 0.22));
+}
+
+/* Low graphics: no pulse, no blur - same rule the rest of the app
+   follows (decorative motion goes, state motion stays). */
+body[data-gfx='low'] .quest-board.has-claim .qb-tab {
+  animation: none;
+}
+body[data-gfx='low'] .qb-body,
+body[data-gfx='low'] .qb-tab {
+  backdrop-filter: none;
+}
+
+/* =============================================================
+   THE UPGRADE PANEL  (inside a collection card's overlay)
+   ============================================================= */
+.up-panel {
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.up-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.up-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.up-title i {
+  color: var(--r-epic-1);
+}
+.up-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.up-pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.05);
+}
+.up-pip.on {
+  background: linear-gradient(180deg, var(--r-epic-1), var(--r-epic-2));
+  border-color: transparent;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--r-epic-1) 55%, transparent);
+}
+.up-note {
+  margin: 0 0 7px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt-faint);
+}
+.up-note.up-maxed {
+  color: var(--r-legendary-1);
+}
+.up-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 7px;
+}
+.up-stats-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  margin-right: 2px;
+}
+.up-stat {
+  flex: 1;
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--txt-dim);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.up-stat:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.up-stat.sel {
+  border-color: color-mix(in srgb, var(--r-epic-1) 60%, transparent);
+  background: color-mix(in srgb, var(--r-epic-1) 16%, transparent);
+  color: #fff;
+}
+.up-actions {
+  display: flex;
+  gap: 5px;
+}
+.up-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.up-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.up-level:not(:disabled) {
+  border-color: color-mix(in srgb, var(--r-epic-1) 60%, transparent);
+  background: color-mix(in srgb, var(--r-epic-1) 20%, transparent);
+}
+.up-craft i {
+  color: var(--r-epic-1);
+}
+
+/* the shard wallet on the shop shelf */
+.shop-shards .shard-ico {
+  color: var(--r-epic-1);
+  margin-right: 5px;
+}
+
+/* a duplicate in the pack ceremony */
+.po-dupe .card {
+  filter: saturate(0.82);
+}
+.po-dupe-tag {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 5px 11px;
+  border: 1px solid color-mix(in srgb, var(--r-epic-1) 55%, transparent);
+  border-radius: 999px;
+  background: rgba(12, 8, 24, 0.9);
+  color: var(--r-epic-1);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  z-index: 4;
+}
+.po-dupe-tag small {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--txt-dim);
+  letter-spacing: 0.04em;
+}
+.po-shard-tally {
+  margin: 6px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--r-epic-1);
+}
+.up-bank {
+  color: var(--txt-faint);
+  font-weight: 600;
 }

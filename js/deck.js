@@ -1,7 +1,7 @@
 /* =============================================================
    Echoes of Legend - Deck Manager & Deck Editor
    -------------------------------------------------------------
-   Decks are saved squads of TWELVE heroes (max 4 per role, max 2
+   Decks are saved squads of TWELVE legends (max 4 per role, max 2
    Legendaries). They
    live in the Collection's Decks tab; the editor is this screen's
    re-skinned grid (intentionally identical to the Collection, plus
@@ -74,7 +74,7 @@
        it - are gone (backend cleanup 2026-08-10). */
   }
 
-  /* One-time import of the legacy 6-hero squad. Prefills an
+  /* One-time import of the legacy 6-legend squad. Prefills an
      incomplete deck the player can finish in the editor. */
   function migrate() {
     var raw;
@@ -423,33 +423,33 @@
   }
   var colAnimT = 0;
   function showTab(which) {
-    var heroes = which === 'heroes';
-    var ch = $('ctab-heroes'),
+    var legends = which === 'legends';
+    var ch = $('ctab-legends'),
       cd = $('ctab-decks');
-    var wasHeroes = ch && ch.classList.contains('sel');
+    var wasLegends = ch && ch.classList.contains('sel');
     if (ch) {
-      ch.classList.toggle('sel', heroes);
-      ch.setAttribute('aria-selected', String(heroes));
+      ch.classList.toggle('sel', legends);
+      ch.setAttribute('aria-selected', String(legends));
     }
     if (cd) {
-      cd.classList.toggle('sel', !heroes);
-      cd.setAttribute('aria-selected', String(!heroes));
+      cd.classList.toggle('sel', !legends);
+      cd.setAttribute('aria-selected', String(!legends));
     }
     moveColThumb();
-    var ph = $('cpanel-heroes'),
+    var ph = $('cpanel-legends'),
       pd = $('cpanel-decks');
     if (!ph || !pd) return;
-    if (!heroes) renderManager();
+    if (!legends) renderManager();
     /* Directional panel swap: the outgoing view slides out the way the
        thumb travels, the incoming one rises in from the far side.
        gfx-low (and the initial paint) swap instantly. */
-    var showEl = heroes ? ph : pd,
-      hideEl = heroes ? pd : ph,
-      dir = heroes ? '-r' : '';
+    var showEl = legends ? ph : pd,
+      hideEl = legends ? pd : ph,
+      dir = legends ? '-r' : '';
     clearTimeout(colAnimT);
     ph.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
     pd.classList.remove('mg-out', 'mg-out-r', 'mg-in', 'mg-in-r');
-    if (document.body.dataset.gfx === 'low' || hideEl.hidden || wasHeroes === heroes) {
+    if (document.body.dataset.gfx === 'low' || hideEl.hidden || wasLegends === legends) {
       hideEl.hidden = true;
       showEl.hidden = false;
       return;
@@ -593,7 +593,7 @@
           '</span>';
         fresh.title = 'Click to remove ' + e.card.name;
         /* Rebuilt because a removal shifted the row, not because this
-           hero was just added: no second entrance animation. */
+           legend was just added: no second entrance animation. */
         if (cell && !cell.dataset.slotkey.match(/^empty-/)) fresh.classList.add('no-enter');
         (function (cardId) {
           fresh.addEventListener('click', function () {
@@ -820,11 +820,11 @@
       applyGridFilter();
     });
 
-    var tabH = $('ctab-heroes'),
+    var tabH = $('ctab-legends'),
       tabD = $('ctab-decks');
     if (tabH)
       tabH.addEventListener('click', function () {
-        showTab('heroes');
+        showTab('legends');
       });
     if (tabD)
       tabD.addEventListener('click', function () {

@@ -22,7 +22,7 @@
      - enemy policy: the Recruiter measures - basics only, a
        capped number of actions per round, his medic patches;
      - searches seeds until the line is CLEAN: the player wins,
-       all six signatures cast, no player hero dies, and the game
+       all six signatures cast, no player legend dies, and the game
        lands in a teachable 4-7 rounds.
 
    Run:  node sim/gen_gate1_line.js          (prints the line)
@@ -331,7 +331,7 @@ function playLine(seed, opt) {
         return x.slot - y.slot;
       });
       /* spread: the Recruiter tests the whole line instead of
-         executing one hero - that IS his character (he measures) */
+         executing one legend - that IS his character (he measures) */
       var tgt = opt.spread ? sortedP[(eActs + B.round) % sortedP.length] : sortedP[0];
       record(side, a, basic, [tgt], false);
       E.useAbility(B, a, basic, [tgt], 0);

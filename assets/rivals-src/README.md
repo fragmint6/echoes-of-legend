@@ -7,7 +7,7 @@ Their corresponding runtime assets live in `../rivals/` as lossless
 **128 × 176 PNGs**. They are produced from these sources with:
 
 ```bash
-python3 tools/legend_art/resize_hero_art_hq.py \
+python3 tools/legend_art/resize_legend_art_hq.py \
   --source assets/rivals-src --output /tmp/rivals-delivery \
   --width 128 --format png --sharpen 15 --overwrite
 ```

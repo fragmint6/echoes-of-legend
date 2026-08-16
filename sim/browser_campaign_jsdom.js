@@ -878,7 +878,7 @@ const server = http.createServer((req, res) => {
   // the collection: owned count is honest, owned legends lead the grid
   w.EOL.ui.show('collection');
   await sleep(700);
-  $('ctab-heroes').click();
+  $('ctab-legends').click();
   await sleep(400);
   {
     const ownedN = w.EOL.econ.ownedCount();

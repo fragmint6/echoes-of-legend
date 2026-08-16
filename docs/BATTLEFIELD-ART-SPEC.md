@@ -176,7 +176,7 @@ A collapsed temple reclaimed by the forest. Broken sandstone columns stand
 at both edges, some snapped mid-shaft. Fallen blocks and flagstones below,
 green creepers over everything. Warm shafts of light through a missing roof.
 
-### The Hero's Trial `heros-trial`
+### The Legend's Trial `heros-trial`
 `#e0a93b` / `#b3541e`, glow `#ffd88a`
 A proving ground on a volcanic plateau. Dark basalt underfoot, cracks
 glowing orange. Braziers on tall iron stands line both edges. A rust-red sky

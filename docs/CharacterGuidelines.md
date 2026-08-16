@@ -12,14 +12,14 @@ makes rules ambiguous.
 | **Basic Skill** | basic, basic attack, role ability |
 | **Skill cost** | ability cost, mana cost |
 | **Provoke / Provoking** | taunt, taunting |
-| **hero** | character, unit, card (when you mean the hero) |
+| **legend** | character, unit, card (when you mean the legend) |
 
 `ability` survives only as a **code identifier** (`card.ability`,
 `abilityRowHTML`). It must not appear in anything a player reads.
 
 ## The Design Goal: Cool Combos and Chains
 
-The primary goal of Echoes of Legend is **cool card combos and chains**. Every hero, ability, and stat exists to make the roster produce satisfying, layered interactions. A card is only as good as the interactions it enables and the interactions it rewards.
+The primary goal of Echoes of Legend is **cool card combos and chains**. Every legend, ability, and stat exists to make the roster produce satisfying, layered interactions. A card is only as good as the interactions it enables and the interactions it rewards.
 
 - A **combo** is two or more cards that multiply each other's value when played together - one card sets up, another detonates (a Mark applier feeding a Mark consumer, a Shield granter feeding a Shield-dependent payoff, a debuff spreader feeding a debuff-conditional nuke).
 - A **chain** is a sequence of triggers that keep paying forward - a kill refunds Energy, the Energy pays for a bigger skill, the bigger skill sets up the next kill.
@@ -77,7 +77,7 @@ card's value* must match its role.
 2. **Casters lean AoE, Snipers lean single-target.** A "Caster" that only ever
    hits one target should be a Sniper, and vice versa.
 3. **Bruisers fight in the front row and their damage scales.** A high-damage
-   hero with low HP belongs in Caster or Sniper, not Bruiser.
+   legend with low HP belongs in Caster or Sniper, not Bruiser.
 4. **Tanks trade damage for presence.** A Tank out-damaging Bruisers is a
    design error.
 5. When a card genuinely straddles two roles, classify it by **where the
@@ -188,11 +188,11 @@ it reads in one line, never because it is bad.
 Every faction ships **1 Legendary / 2 Epic / 2 Rare / 1 Common**, with two
 exceptions: Huaxia (9 cards) runs 2/3/3/1, and Grimmwood (12 cards after the
 2026-08-05 expansion) runs 2/3/5/2. Roster total across 9 factions, 63
-heroes: 11 legendary, 20 epic, 22 rare, 10 common.
+legends: 11 legendary, 20 epic, 22 rare, 10 common.
 
 ## Raw Stat Ranges by Role
 
-Every hero's raw `stats: { hp, atk, def }` must fall inside its role's budget band. The band reflects the role's job: Tanks and Medics live on durability, damage roles live on ATK, and everyone else trades between. Rarity places a card within the band (legendary/epic toward the top, rare/common toward the bottom) - it never leaves it.
+Every legend's raw `stats: { hp, atk, def }` must fall inside its role's budget band. The band reflects the role's job: Tanks and Medics live on durability, damage roles live on ATK, and everyone else trades between. Rarity places a card within the band (legendary/epic toward the top, rare/common toward the bottom) - it never leaves it.
 
 | Role | HP | ATK | DEF |
 | --- | --- | --- | --- |
@@ -359,7 +359,7 @@ Each board's pattern must express its **rule**:
 | Mana Spring | rings pulsing **outward** from the centre |
 | Energy Void | the same rings collapsing **inward** |
 | Blood Battlefield | a double-thump **heartbeat** |
-| Hero's Trial | spokes converging on one spotlit centre |
+| Legend's Trial | spokes converging on one spotlit centre |
 | Colosseum | a formal duelling ground - the calmest board, because it has no rule |
 
 Built from CSS gradients and masks on four layers (`sc-fx1` weave,
@@ -381,11 +381,11 @@ Two rules for writing one:
 
 | Status | Description |
 | --- | --- |
-| Provoking | Enemy single-target attacks must hit this hero. Anything that gets around it (area damage, Sniper Skills) deals **30% less**. |
+| Provoking | Enemy single-target attacks must hit this legend. Anything that gets around it (area damage, Sniper Skills) deals **30% less**. |
 | Burning | 5% Max HP every turn this side takes. Ignores DEF and Shields. |
 | Exposed | DEF counts as 0. |
 | Silenced | Cannot act at all. Skills and Basics both. |
-| Untargetable | Enemies cannot target this hero at all. No exceptions. |
+| Untargetable | Enemies cannot target this legend at all. No exceptions. |
 | DEF Up / ATK Up | *(empty - the number says it)* |
 
 Two stale copies of this text previously lived in `js/battle.js` and had drifted
@@ -416,7 +416,7 @@ it, click a filled slot to clear it.
 
 ### Hovering should preview, not just describe
 
-Hovering a Skill row highlights every hero it can currently hit, in the same
+Hovering a Skill row highlights every legend it can currently hit, in the same
 green a real selection uses (dashed rather than solid, so a preview never
 reads as a commitment). Players should be able to scan their options without
 committing to a selection first.

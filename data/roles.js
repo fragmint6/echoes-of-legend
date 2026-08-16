@@ -1,7 +1,7 @@
 /* =============================================================
  * Role Default Abilities
  * -------------------------------------------------------------
- * Every hero gets one of these for free (0 Energy) in addition to
+ * Every legend gets one of these for free (0 Energy) in addition to
  * their Signature Skill, chosen by their role.
  *
  * Also defines each role's default TARGETING RULE:

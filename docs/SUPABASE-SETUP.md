@@ -11,21 +11,21 @@ the online modes remain unranked.
 
 Measured by `node sim/preflight.js`, not assumed:
 
-| | Item | State |
-| --- | --- | --- |
-| OK | Project URL and publishable key in `js/supabase-config.js` | done |
-| OK | Key authenticates, RLS blocks anonymous writes | done |
-| OK | Email sign-in, signups open, **auto-confirm on** | done |
-| OK | Redirect URL for your host | done |
-| OK | **Realtime Broadcast** - tested with two live clients | working |
-| OK | `profiles`, `saves` tables | present |
-| OK | `mp_queue`, `mp_matches` tables | **created** |
-| OK | `try_match()` function | **created** |
-| OK | Daily Puzzle migration 04 | installed |
-| OK | Daily Puzzle RPC hotfix 05 | installed |
-| ADD | Measurement + feedback migration 06 | run section 4f |
-| ADD | Two-attempt Daily Puzzle migration 07 | run section 4g |
-| ADD | Atomic shop-code redemption migration 08 | run section 4h |
+|     | Item                                                       | State          |
+| --- | ---------------------------------------------------------- | -------------- |
+| OK  | Project URL and publishable key in `js/supabase-config.js` | done           |
+| OK  | Key authenticates, RLS blocks anonymous writes             | done           |
+| OK  | Email sign-in, signups open, **auto-confirm on**           | done           |
+| OK  | Redirect URL for your host                                 | done           |
+| OK  | **Realtime Broadcast** - tested with two live clients      | working        |
+| OK  | `profiles`, `saves` tables                                 | present        |
+| OK  | `mp_queue`, `mp_matches` tables                            | **created**    |
+| OK  | `try_match()` function                                     | **created**    |
+| OK  | Daily Puzzle migration 04                                  | installed      |
+| OK  | Daily Puzzle RPC hotfix 05                                 | installed      |
+| ADD | Measurement + feedback migration 06                        | run section 4f |
+| ADD | Two-attempt Daily Puzzle migration 07                      | run section 4g |
+| ADD | Atomic shop-code redemption migration 08                   | run section 4h |
 
 **Accounts and multiplayer are ready.** Run migration 06 for the anonymous
 playtest funnel, migration 07 before deploying the two-attempt Daily Puzzle
@@ -38,31 +38,31 @@ client, and migration 08 before issuing globally single-user shop codes.
 Eleven tables. If the dashboard shows unrelated leftovers, run the cleanup
 in section 9b. Everything the backend holds, in one look:
 
-| Table | Written by | What it holds |
-| --- | --- | --- |
-| `profiles` | `js/auth.js` | Identity: the callsign your opponent sees. One row per user. |
-| `saves` | `js/cloud.js` (THE VAULT) | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
-| `shop_codes` | Owner via Dashboard/SQL | Coin amount, active state, and the `single_user_only` policy boolean for each code. |
-| `shop_code_redemptions` | `redeem_shop_code()` only | Durable once-per-account claims; for single-user codes the first row closes the offer globally. |
-| `mp_queue` | `js/mp.js` | Who is waiting for a match. Rows die the instant a pair is made. |
-| `mp_matches` | `js/mp.js` | The paired match + its shared `seed`. |
-| `daily_puzzles` | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`. |
-| `daily_puzzle_attempts` | Daily Puzzle RPCs | Up to two numbered claims per account for the active puzzle; deleted with yesterday's position. |
-| `daily_puzzle_jobs` | `js/daily.js` | One short generation lease so many open browsers still run only one forge. |
-| `telemetry_events` | `js/telemetry.js` | Privacy-light anonymous views, queue/match milestones, battle starts/results, and coarse errors; raw rows retain 180 days. |
-| `player_feedback` | `js/telemetry.js` | Voluntary bug, balance, confusion, and suggestion reports sent from the game. |
+| Table                   | Written by                           | What it holds                                                                                                              |
+| ----------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`              | `js/auth.js`                         | Identity: the callsign your opponent sees. One row per user.                                                               |
+| `saves`                 | `js/cloud.js` (THE VAULT)            | The whole player save as ONE readable json: `wallet`, `owned`, `campaign`, `decks`, `settings`, `flags`. One row per user. |
+| `shop_codes`            | Owner via Dashboard/SQL              | Coin amount, active state, and the `single_user_only` policy boolean for each code.                                        |
+| `shop_code_redemptions` | `redeem_shop_code()` only            | Durable once-per-account claims; for single-user codes the first row closes the offer globally.                            |
+| `mp_queue`              | `js/mp.js`                           | Who is waiting for a match. Rows die the instant a pair is made.                                                           |
+| `mp_matches`            | `js/mp.js`                           | The paired match + its shared `seed`.                                                                                      |
+| `daily_puzzles`         | Leased browser forge + database cron | At most two serialized positions: current `active` and tomorrow's `staged`.                                                |
+| `daily_puzzle_attempts` | Daily Puzzle RPCs                    | Up to two numbered claims per account for the active puzzle; deleted with yesterday's position.                            |
+| `daily_puzzle_jobs`     | `js/daily.js`                        | One short generation lease so many open browsers still run only one forge.                                                 |
+| `telemetry_events`      | `js/telemetry.js`                    | Privacy-light anonymous views, queue/match milestones, battle starts/results, and coarse errors; raw rows retain 180 days. |
+| `player_feedback`       | `js/telemetry.js`                    | Voluntary bug, balance, confusion, and suggestion reports sent from the game.                                              |
 
-| Function | Called by | Job |
-| --- | --- | --- |
-| `try_match()` | mp.js | Atomic pairing (`for update skip locked`). |
-| `find_my_match()` | mp.js | Rejoin after a refresh. |
-| `touch_match()` / `save_match_state()` / `end_match()` | mp.js | Match lifecycle. |
-| `claim_daily_generation()` / `submit_daily_candidate()` | `js/daily.js` Web Worker | Elect one signed-in browser to forge and stage the shared position. |
-| `publish_daily_puzzle()` | pg_cron / overdue browser | Atomically promote staged at 7 AM Eastern. |
-| `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js` | Count, atomically consume, and finish either of two official attempts. |
-| `record_telemetry()` | `js/telemetry.js` | Validate and rate-limit one anonymous funnel event without attaching account identity. |
-| `submit_player_feedback()` | `js/telemetry.js` | Validate and rate-limit an anonymous voluntary feedback message with optional coarse diagnostics. |
-| `redeem_shop_code()` | `js/economy.js` | Lock and claim a code atomically, enforcing once per account or one account globally. |
+| Function                                                                    | Called by                 | Job                                                                                               |
+| --------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `try_match()`                                                               | mp.js                     | Atomic pairing (`for update skip locked`).                                                        |
+| `find_my_match()`                                                           | mp.js                     | Rejoin after a refresh.                                                                           |
+| `touch_match()` / `save_match_state()` / `end_match()`                      | mp.js                     | Match lifecycle.                                                                                  |
+| `claim_daily_generation()` / `submit_daily_candidate()`                     | `js/daily.js` Web Worker  | Elect one signed-in browser to forge and stage the shared position.                               |
+| `publish_daily_puzzle()`                                                    | pg_cron / overdue browser | Atomically promote staged at 7 AM Eastern.                                                        |
+| `daily_puzzle_status()` / `claim_daily_puzzle()` / `finish_daily_attempt()` | `js/daily.js`             | Count, atomically consume, and finish either of two official attempts.                            |
+| `record_telemetry()`                                                        | `js/telemetry.js`         | Validate and rate-limit one anonymous funnel event without attaching account identity.            |
+| `submit_player_feedback()`                                                  | `js/telemetry.js`         | Validate and rate-limit an anonymous voluntary feedback message with optional coarse diagnostics. |
+| `redeem_shop_code()`                                                        | `js/economy.js`           | Lock and claim a code atomically, enforcing once per account or one account globally.             |
 
 Dropped as dead weight: `decks` (the pre-vault deck-sync experiment -
 no code referenced it) and `ladders` (nothing wrote it; it returns
@@ -110,10 +110,10 @@ You asked where to get it. Two values, both from the same screen.
 
 > Which key is which
 >
-> | Key | Looks like | Goes where |
-> | --- | --- | --- |
-> | Publishable / anon | `sb_publishable_...` or `eyJ...` | **This game.** Safe in browser code. |
-> | Secret / service_role | `sb_secret_...` | Servers only. **Never here.** |
+> | Key                   | Looks like                       | Goes where                           |
+> | --------------------- | -------------------------------- | ------------------------------------ |
+> | Publishable / anon    | `sb_publishable_...` or `eyJ...` | **This game.** Safe in browser code. |
+> | Secret / service_role | `sb_secret_...`                  | Servers only. **Never here.**        |
 
 Then paste both into `js/supabase-config.js`. **This is already done
 for your project.**
@@ -152,13 +152,13 @@ not sure whether an earlier attempt finished, just run it again.
 
 What it creates:
 
-| Object | Purpose |
-| --- | --- |
-| `profiles` | Display name shown to your opponent. |
-| `mp_queue` | Who is waiting for a match. Rows are deleted the instant a pair is made. |
-| `mp_matches` | The match, and its `seed` - the shared randomness both clients build the draft, battlefield and battle luck from. |
-| `try_match()` | Atomic pairing. `for update skip locked` is what stops two clients claiming the same opponent. |
-| RLS policies | What makes the publishable key safe to ship in browser code. |
+| Object        | Purpose                                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `profiles`    | Display name shown to your opponent.                                                                              |
+| `mp_queue`    | Who is waiting for a match. Rows are deleted the instant a pair is made.                                          |
+| `mp_matches`  | The match, and its `seed` - the shared randomness both clients build the draft, battlefield and battle luck from. |
+| `try_match()` | Atomic pairing. `for update skip locked` is what stops two clients claiming the same opponent.                    |
+| RLS policies  | What makes the publishable key safe to ship in browser code.                                                      |
 
 (`ladders` used to be created here too - it is gone until ranked is
 real; see THE BACKEND MAP and section 9b.) There is no `decks` table:
@@ -177,13 +177,13 @@ nobody was playing.
 
 What it adds:
 
-| Object | Purpose |
-| --- | --- |
-| `p1_seen` / `p2_seen` | Heartbeat timestamps, written every 15s by each client. |
-| `touch_match()` | "I am still here." Can only ever update the caller's own timestamp. |
-| `end_match()` | Closes a match on a natural finish or a forfeit. |
-| `sweep_matches()` | Closes matches where **both** sides have been quiet 90s, and clears stale queue rows. |
-| `find_my_match()` | The rejoin lookup, called at page load. |
+| Object                | Purpose                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `p1_seen` / `p2_seen` | Heartbeat timestamps, written every 15s by each client.                               |
+| `touch_match()`       | "I am still here." Can only ever update the caller's own timestamp.                   |
+| `end_match()`         | Closes a match on a natural finish or a forfeit.                                      |
+| `sweep_matches()`     | Closes matches where **both** sides have been quiet 90s, and clears stale queue rows. |
+| `find_my_match()`     | The rejoin lookup, called at page load.                                               |
 
 Cleanup is **lazy** - `sweep_matches()` runs inside `try_match()`, which
 every player calls before queueing. No cron job, no Edge Function,
@@ -204,11 +204,11 @@ them, refreshing mid-draft or mid-battle forfeits the match.
 
 What it adds:
 
-| Object | Purpose |
-| --- | --- |
-| `mp_match_state` | Stores a snapshot of the match at each phase boundary. |
-| `save_match_state()` | Writes the current game state (called by the host after every phase change). |
-| `find_my_match()` | Returns the persisted state so the rejoining client resumes where it left off. |
+| Object               | Purpose                                                                        |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `mp_match_state`     | Stores a snapshot of the match at each phase boundary.                         |
+| `save_match_state()` | Writes the current game state (called by the host after every phase change).   |
+| `find_my_match()`    | Returns the persisted state so the rejoining client resumes where it left off. |
 
 ## 4d. Migration 04 - official Daily Puzzle
 
@@ -327,6 +327,126 @@ can still redeem public codes once in their local save; a globally single-user
 code always requires a signed-in account and the RPC. Direct browser access to
 both tables is revoked, and RLS has no client policies.
 
+## 4i. Migration 11 - private rooms
+
+Run **[`docs/supabase-migration-11.sql`](supabase-migration-11.sql)** once in
+the SQL Editor. It needs migrations 02, 03 and 09 first. Idempotent.
+
+Until it is run, the Private Room card reports *"Private rooms are not set up
+on the server yet"* and everything else - the queue, the Daily Puzzle,
+campaign - is unaffected.
+
+What it adds:
+
+- **`mp_rooms`** - a room that exists BEFORE an opponent does. A six
+  character code from an unambiguous alphabet (no `O`/`0`, no `I`/`1`/`L`),
+  a leader, an optional guest, and the leader's chosen settings as jsonb.
+- **`create_room` / `join_room` / `leave_room`** - the lifecycle.
+  `join_room` is `security definer` because the joiner cannot read the room
+  until they are in it, which also stops anyone enumerating open rooms.
+  It locks the row, so two people racing for the last seat cannot both win.
+- **`set_room_settings`** - **only the party leader**, enforced by
+  `and leader = me` in the update rather than by the UI.
+- **`start_room`** - mints an ordinary `mp_matches` row and closes the room.
+  This is the important bit: the draft, heartbeat, `save_match_state`,
+  resume and `end_match` are all reused untouched. The leader becomes `p1`,
+  which is also the host, so the player who chose the settings is the
+  authority for host-decided rolls.
+- **`find_my_room`** - the reconnect path, mirroring `find_my_match`.
+- **`player_exists`** - backs "invite by callsign". It returns only a
+  boolean, never a user id, so it cannot be used to enumerate accounts.
+
+Rooms are swept after 30 minutes without a heartbeat.
+
+## 4j. Migration 12 - match history
+
+Run **[`docs/supabase-migration-12.sql`](supabase-migration-12.sql)** once in
+the SQL Editor. It needs migration 02. Idempotent.
+
+**Migration 11 is not a prerequisite, and the two can be run in either
+order.** 11 adds `mp_matches.settings` and 12 archives that column, so an
+earlier draft of 12 failed with `ERROR: 42703: column m.settings does not
+exist` on a project that had not run 11 yet. Both files now declare the
+column with `add column if not exists`, using the same definition, so
+neither depends on the other.
+
+Until 12 is run, the **Match history** item in the account menu reports that
+history could not be loaded. Nothing else is affected: finishing a match
+falls back to `end_match`, so no one is ever stranded in a decided game.
+
+What it adds:
+
+- **`mp_history`** - the archive. One row per match, holding the result and
+  a `replay` jsonb: the opening position plus the ordered action stream.
+  Because the engine is deterministic, that is enough to reconstruct the
+  whole battle - the same property the netcode already relies on - so a long
+  match costs a few kilobytes rather than a frame-by-frame dump.
+- **`archive_match`** - the only way a match becomes history. It copies the
+  row into `mp_history` and then **deletes it from `mp_matches`**, so the
+  live table only ever holds live games. Idempotent: both clients archive
+  the same match and the second is absorbed, which is what makes the record
+  survive one player disconnecting.
+- **`my_history` / `match_replay`** - the read side. `my_history` resolves
+  win/loss from the caller's own seat and deliberately omits the big
+  `replay` column; `match_replay` fetches one match in full.
+- **`sweep_matches`, revised** - migration 02's sweeper marked abandoned
+  matches `done` and left them in place. It now archives them with
+  `ending='disconnect'` and deletes them, along with any legacy `done` rows.
+- **A backfill** - every finished match already sitting in `mp_matches` is
+  archived and removed, which is the clutter that prompted this migration.
+
+RLS: you may read only matches you played in, and there is no client write
+policy at all - only the `security definer` functions write.
+
+## 4k. Migration 14 - one username change per week
+
+Run **[`docs/supabase-migration-14.sql`](supabase-migration-14.sql)** once in
+the SQL Editor. It needs `supabase-setup.sql`. Idempotent.
+
+Renaming used to be unlimited, and the Settings modal had a **Roll** button
+that generated a fresh callsign on demand. Both are gone: a random name is
+assigned **once**, when the profile row is created, and after that a player
+may change it **once every 7 days**.
+
+**The rule could not live in the browser.** The `own profile update` policy
+lets any signed-in client write its own `profiles` row, so a limit enforced
+only in `js/app.js` is a suggestion that anyone with the dev console open can
+ignore. This migration:
+
+- adds **`profiles.handle_changed_at`** - when the name last changed. `NULL`
+  means "never renamed", which counts as eligible, so **no existing player is
+  locked out on day one**. Nothing is renamed or reset by this migration.
+- adds **`set_handle(text)`** - the only way a username changes. Validates the
+  format, refuses a change inside the cooldown with a message naming the date,
+  and rejects a name somebody else holds. Re-saving the name you already have
+  is a **no-op, not a rename**, so opening Settings and pressing Save does not
+  burn the weekly change.
+- adds **`handle_status()`** - how long until the next rename is allowed, so
+  Settings can disable the field and show the date up front.
+- adds a **unique index on `lower(handle)`**. `setHandle()` has always claimed
+  to report "that username is taken" on a `23505`, but no constraint existed
+  to raise one - two accounts could hold the same callsign. Now the claim is
+  true. If the index fails to create you already have duplicates; the file
+  shows the query that finds them.
+- **pins the columns with a BEFORE UPDATE trigger** so an ordinary client
+  UPDATE cannot move `handle` or `handle_changed_at`. The avatar still updates
+  normally, and `ensureProfile()`'s INSERT for a brand-new row is untouched.
+  A direct `update profiles set handle = ...` now reports success but silently
+  leaves the name alone; `set_handle()` is the only door.
+
+  The trigger is deliberate, not incidental. The obvious alternative -
+  `with check (handle = (select handle from profiles where id = auth.uid()))` -
+  is a policy on `profiles` that reads `profiles`, which Postgres aborts with
+  `42P17: infinite recursion detected in policy for relation "profiles"`. That
+  does not just break renaming, it makes the table unreadable for everyone.
+  Wrapping the sub-select in a plain SQL function does not help either: simple
+  SQL functions are inlined during planning and the recursion returns. A
+  trigger sees `OLD` and `NEW` directly and never queries the table.
+
+Until 14 is run, renaming reports *"Username changes are not available yet.
+Run migration 14."* rather than failing silently. Everything else - sign-in,
+matchmaking, the minted name on a new account - is unaffected.
+
 ## 5. Realtime - nothing to do
 
 **Skip this step.** Realtime Broadcast is on by default for every
@@ -336,10 +456,10 @@ An earlier version of this document told you to visit **Database ->
 Replication**. That was wrong and sent people hunting for a switch that
 does not apply. Here is the distinction:
 
-| | What it is | Does this game need it? |
-| --- | --- | --- |
-| **Broadcast** | Clients send ephemeral messages to each other through a named channel. Never touches the database. | **Yes** - this is all the game uses. On by default. |
-| **Postgres Changes** | The database streams row inserts/updates to clients. Configured per table under Database -> Replication. | **No.** |
+|                      | What it is                                                                                               | Does this game need it?                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Broadcast**        | Clients send ephemeral messages to each other through a named channel. Never touches the database.       | **Yes** - this is all the game uses. On by default. |
+| **Postgres Changes** | The database streams row inserts/updates to clients. Configured per table under Database -> Replication. | **No.**                                             |
 
 Draft picks and battle actions are messages between two players, not
 rows, so there is no table to add to a publication. The **Replication**
@@ -426,18 +546,18 @@ separate sessions, so you can queue two accounts against yourself.
 
 ## How the multiplayer actually works
 
-| Piece | Approach |
-| --- | --- |
-| Matchmaking | `try_match()` in Postgres. `for update skip locked` makes a double-claim impossible. |
-| Match channel | Supabase Realtime **Broadcast**, one channel per match id. |
-| Draft sync | Only `{pack, idx}` crosses. Both clients build the identical pack order from the shared `seed`, so the card pool is never transmitted. |
-| Bans | Both sides submit blind. Neither reveal happens until **both** have landed, so committing first cannot leak your picks. |
-| Battlefield | Derived from the match seed on both clients, so the terrain always matches. |
-| Battle | One message per action, naming heroes by `(side, index)` - never by `uid`, which differs per browser. Each client recomputes the result with its own engine. |
-| Luck | Crits and coin flips come from one seeded PRNG per match, consumed in the same order on both sides. |
-| Turn order | Each client calls itself `player`, so the engine takes `oddFirst`: the host opens odd rounds, the guest even ones. |
-| Drift detection | Every action carries a checksum of the resulting board. A mismatch stops the match instead of letting two different games play on. |
-| Disconnects | Realtime presence `leave` returns both players to the menu with a notice. |
+| Piece           | Approach                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Matchmaking     | `try_match()` in Postgres. `for update skip locked` makes a double-claim impossible.                                                                         |
+| Match channel   | Supabase Realtime **Broadcast**, one channel per match id.                                                                                                   |
+| Draft sync      | Only `{pack, idx}` crosses. Both clients build the identical pack order from the shared `seed`, so the card pool is never transmitted.                       |
+| Bans            | Both sides submit blind. Neither reveal happens until **both** have landed, so committing first cannot leak your picks.                                      |
+| Battlefield     | Derived from the match seed on both clients, so the terrain always matches.                                                                                  |
+| Battle          | One message per action, naming legends by `(side, index)` - never by `uid`, which differs per browser. Each client recomputes the result with its own engine. |
+| Luck            | Crits and coin flips come from one seeded PRNG per match, consumed in the same order on both sides.                                                          |
+| Turn order      | Each client calls itself `player`, so the engine takes `oddFirst`: the host opens odd rounds, the guest even ones.                                           |
+| Drift detection | Every action carries a checksum of the resulting board. A mismatch stops the match instead of letting two different games play on.                           |
+| Disconnects     | Realtime presence `leave` returns both players to the menu with a notice.                                                                                    |
 
 ### Two engine bugs this work uncovered
 
@@ -445,11 +565,11 @@ Both were real, both were latent in singleplayer, and both are fixed:
 
 - **Unstable target sorting.** "Lowest HP" and "highest ATK" selectors
   broke ties by array order. Ties are common (shared statlines, full-HP
-  openings), so two clients could heal or execute *different* heroes.
+  openings), so two clients could heal or execute _different_ legends.
   All such orderings now break ties on `(slot, index)`.
 - **Delayed effects resolved in array order.** Two prophecies landing on
   the same round rollover could resolve in opposite orders on the two
-  machines, and the first one killing a hero cancelled the second on
+  machines, and the first one killing a legend cancelled the second on
   only one screen. Board-wide sweeps now run in a canonical order.
 
 ---
@@ -468,9 +588,9 @@ Both were real, both were latent in singleplayer, and both are fixed:
 - **Server-authoritative battle.** Both clients run the engine and trust
   each other's moves. The checksum catches accidental drift, not a
   determined cheater. Replaying the action log in an Edge Function is
-  the next step, and it has to come *before* trophies mean anything.
+  the next step, and it has to come _before_ trophies mean anything.
 - **Server-authoritative ECONOMY.** The vault stores whatever the client
-  says the wallet holds - RLS keeps players out of *each other's* rows,
+  says the wallet holds - RLS keeps players out of _each other's_ rows,
   not out of their own. The day coins are sold for money, wallet writes
   must move behind an Edge Function that is the only thing allowed to
   add coins. Until then a cheater can only cheat themselves.
@@ -508,15 +628,15 @@ browsers and checks the board checksum after every action.
 
 ## Troubleshooting
 
-| Symptom | Cause |
-| --- | --- |
-| "Accounts are not configured yet" | `js/supabase-config.js` is still blank. |
-| Console: "REFUSING TO START SUPABASE" | You pasted a secret key. Use the publishable one. |
-| "Multiplayer tables are missing" | The SQL in steps 2-3 has not been run. |
-| Single-user code says redemption is unavailable | Run migration 08; these claims deliberately have no offline fallback. |
-| Sign-in does nothing on `file://` | Serve over http (step 7). |
-| Stuck at "Looking for an opponent" | Only one player is queued, or the two are signed in as the same account. |
-| Paired but the draft never starts | Realtime is off for the project (step 5). |
+| Symptom                                         | Cause                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
+| "Accounts are not configured yet"               | `js/supabase-config.js` is still blank.                                  |
+| Console: "REFUSING TO START SUPABASE"           | You pasted a secret key. Use the publishable one.                        |
+| "Multiplayer tables are missing"                | The SQL in steps 2-3 has not been run.                                   |
+| Single-user code says redemption is unavailable | Run migration 08; these claims deliberately have no offline fallback.    |
+| Sign-in does nothing on `file://`               | Serve over http (step 7).                                                |
+| Stuck at "Looking for an opponent"              | Only one player is queued, or the two are signed in as the same account. |
+| Paired but the draft never starts               | Realtime is off for the project (step 5).                                |
 
 ## 9b. CLEANUP - drop the dead tables (2026-08-10)
 
@@ -607,10 +727,22 @@ alongside the multiplayer ones.
 1. **The game must work signed out.** No account, no SDK, no network:
    nothing syncs, localStorage remains the save, every singleplayer
    feature works.
-2. **The account is the save.** Sign-in pulls the vault; if the account
-   already has one, it wins over the device (one clean reload applies
-   it). A brand-new account adopts the device's current save as its
-   first vault. Signing out changes nothing locally.
+2. **The account is the save.** Progress belongs to the account, not to
+   the browser.
+   - **Signing in, new account:** the device's current save becomes its
+     first vault, so a guest who registers keeps everything.
+   - **Signing in, returning account, nothing on this device:** the
+     account save is applied and the page reloads once into it.
+   - **Signing in, returning account, real progress on this device:**
+     both cannot survive, so the player is **asked** which to keep.
+     Cancelling changes nothing and signs back out. "Real progress"
+     means coins, cards beyond the seeded starter, a cleared gate, a
+     battle fought, or a deck they built - never settings, tutorial
+     flags, or the starter deck alone.
+   - **Signing out:** the final state is flushed to the vault, then
+     **every local key is erased** and the page reloads to a true first
+     run. A failed flush aborts the wipe and keeps the player signed in,
+     so a dropped connection can never cost a save.
 3. **The vault is never half-written.** The whole snapshot travels in
    one upsert; there is no per-key merge that could tear the wallet
    away from the collection it paid for.
@@ -622,3 +754,254 @@ next tick retries.
 **Monetization note:** RLS protects players from each other, not from
 themselves. Before coins are ever sold for money, wallet writes must
 move server-side (Edge Function) - see the list above.
+
+## 11. CRAZYGAMES ACCOUNTS - real identities on the portal (2026-08-13)
+
+This is what makes **multiplayer work on the CrazyGames build**. Without
+it the portal only ever had an anonymous session: a per-browser uid, no
+`profiles` row, and `try_match()` naming every portal opponent `'Player'`.
+
+Three steps. The game keeps working after each one, so you can stop
+partway without breaking anything.
+
+### 11.1 Run the migration
+
+Dashboard -> SQL Editor -> New query -> paste
+**`docs/supabase-migration-09.sql`** -> Run. Idempotent, so re-running is
+safe. It creates `cg_link`, adds `profiles.is_portal`, and revises
+`try_match()` so a portal player queues under their CrazyGames username.
+
+### 11.2 Deploy the Edge Function
+
+**First, get the CLI.** It is a Go binary, not a JavaScript package -
+`npm i -g supabase` is explicitly unsupported and the postinstall script
+aborts with *"Installing Supabase CLI as a global module is not
+supported"* on some package managers. Use one of:
+
+```bash
+npx supabase@latest --version          # no install at all - prefix every command with npx
+brew install supabase/tap/supabase     # macOS / Linuxbrew
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git && scoop install supabase   # Windows
+npm i -D supabase                      # per-project dev dependency, then `npx supabase ...`
+```
+
+`npx` is the least-effort route: no install, always current. Everything
+below works the same, just prefixed - `npx supabase login`, and so on.
+If you use npx or the dev dependency, you need **Node 20+**.
+
+Then run these from the **repository root** - the CLI looks for
+`supabase/functions/cg-auth/` relative to where you are, and there is no
+`supabase/config.toml` in this repo, so `link` is what creates the local
+project binding:
+
+```bash
+cd /path/to/echoes-of-legend     # the folder containing supabase/
+npx supabase login               # opens a browser, once per machine
+npx supabase link --project-ref ghchcvrojojrlbgqbvga
+npx supabase functions deploy cg-auth --no-verify-jwt
+```
+
+`login` and `link` are one-time; only the `deploy` line is repeated when
+the function changes.
+
+**If `deploy` says the function/entrypoint was not found**, you are in
+the wrong directory - `ls supabase/functions/cg-auth/index.ts` should
+print the file.
+
+**If `link` asks for a database password**, that is the Postgres password
+from Project Settings -> Database, not your Supabase account password.
+Deploying functions does not need the database, so a wrong guess here
+only blocks `link`, not the endpoint.
+
+**`--no-verify-jwt` is required and is not a weakening.** The caller has
+no Supabase session yet - obtaining one is the entire point of the
+endpoint. The request is authenticated by the CrazyGames token instead,
+whose RS256 signature the function verifies against
+`https://sdk.crazygames.com/publicKey.json` before it trusts a single
+field.
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the
+platform - you do **not** need to set them, and the service-role key must
+never appear in browser code. (`js/auth.js` refuses to boot if one is
+pasted into `js/supabase-config.js`.)
+
+**Set `CG_GAME_ID` before launch.** Every CrazyGames title's tokens are
+signed with the same key, so a signature proves CrazyGames issued the
+token but *not* that they issued it for **this** game. With the secret
+set, a token minted for some other portal game is rejected.
+
+`gameId` is a short **numeric string** - e.g. `20267`. Not a slug, not a
+uuid. (See docs.crazygames.com/sdk/user, "Get user token", which shows
+the token payload.)
+
+*How to find yours - fastest route, no deploy needed.* Open your game on
+CrazyGames (a **preview link is enough** - it does not have to be a
+public release), log in to CrazyGames, then open devtools.
+
+**Switch the console context to the game frame first.** The game runs in
+an iframe on `*.game-files.crazygames.com`, which is a different origin
+from the `www.crazygames.com` page around it. At the top level
+`window.CrazyGames` is `undefined`, and the same-origin policy blocks
+you from reaching into the frame from outside. In Chrome use the
+dropdown in the console toolbar that says `top` and pick the
+`echoes-of-legend...` frame; in Firefox it is the "iframe" picker.
+
+Then paste:
+
+```js
+(async () => {
+  const sdk = window.CrazyGames && window.CrazyGames.SDK;
+  if (!sdk) return console.error('Wrong frame - switch the console context to the game iframe.');
+  if (!sdk.user.isUserAccountAvailable) return console.error('Accounts unavailable on this domain.');
+  const t = await sdk.user.getUserToken();
+  console.log(JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))));
+})()
+```
+
+Read `gameId` off the object it prints. That is your number. Treat it as
+a **string** - copy the digits exactly, including any leading zero.
+
+This will not work on localhost (the SDK is only served to portal
+domains), and `getUserToken()` throws `userNotAuthenticated` if you are
+not logged in to CrazyGames.
+
+*How to find yours - via the function logs.* Only works **after**
+`cg-auth` has actually been deployed; until then there is no `cg-auth`
+entry in the dashboard at all.
+
+1. Deploy **without** the secret.
+2. Open the game once on CrazyGames, logged in.
+3. Dashboard -> Edge Functions -> `cg-auth` -> **Logs**. Look for:
+
+   ```
+   CG_GAME_ID is not set, so ANY CrazyGames game's token is accepted here.
+   This token was issued for gameId=20267 - if that is Echoes of Legend,
+   run: supabase secrets set CG_GAME_ID=20267
+   ```
+
+4. Run exactly that command.
+
+```bash
+npx supabase secrets set CG_GAME_ID=109847
+```
+
+Secrets belong to the **project**, not to a deployment, and the function
+reads `CG_GAME_ID` per request rather than at module load - so setting
+it takes effect on the next invocation with no redeploy. `secrets set`
+also accepts `--project-ref ghchcvrojojrlbgqbvga` if you have not run
+`supabase link`.
+
+Confirm it landed with `npx supabase secrets list`; the value is shown
+only as a digest, which is expected.
+
+The id is not a secret - it identifies the game, not a player - so it is
+safe to print in logs and to paste around.
+
+Two other places the same number shows up, if you would rather not wait:
+the URL of your game's page in the developer dashboard, and the `gameId`
+field of any token pasted into [jwt.io](https://jwt.io/) (fine for a
+token you generated yourself while testing - never paste a real
+player's).
+
+Left unset the function still works, but the warning repeats on every
+login and any game's token would be accepted. Do not ship that way.
+
+### 11.3 Check the endpoint is live (no game needed)
+
+Do this first - it isolates "the function is deployed" from "the SDK
+handed us a token":
+
+```bash
+curl -i -X POST \
+  https://ghchcvrojojrlbgqbvga.supabase.co/functions/v1/cg-auth \
+  -H 'content-type: application/json' \
+  -H 'apikey: sb_publishable_SFZP7hPVaqIe8jB0GAO1TA_OyCo-JYl' \
+  -d '{"token":"not-a-real-token"}'
+```
+
+(The `apikey` is the publishable key from `js/supabase-config.js` - the
+function does not check it, but the platform gateway may want it. The
+game sends the same header.)
+
+| Response | Meaning |
+| --- | --- |
+| **401** `{"error":"invalid token"}` | **Correct.** Deployed, and it rejected a forgery. |
+| 404 | Not deployed, or deployed under a different name. |
+| 401 from the *gateway* (HTML, or `Missing authorization header`) | Deployed **without** `--no-verify-jwt`. Redeploy with the flag. |
+| 500 `function is not configured` | Env vars missing - unusual, they are injected automatically. |
+
+A 401 here is success. It proves the whole path works: only a genuine
+CrazyGames signature gets further.
+
+### 11.4 Check it in the game
+
+**This cannot be tested from `localhost`.** `?platform=crazygames` forces
+the portal *build*, but the CrazyGames SDK only exists inside a real
+portal frame, so `getUserToken()` never resolves and the game correctly
+falls back to a guest. You need the QA/preview link from your CrazyGames
+developer dashboard - upload the build, open it there, and be **logged in
+to CrazyGames**.
+
+Console should print:
+
+```
+[EOL] CrazyGames SDK: signed in as <your name>
+[EOL] CrazyGames SDK: CrazyGames account linked - multiplayer available
+```
+
+and the account pill shows your CrazyGames name and avatar, and the
+Multiplayer tab has no lock badge.
+
+If instead you see `CrazyGames sign-in unavailable: cg-auth 404: ...`,
+step 11.2 did not take effect.
+
+Then confirm the database agrees:
+
+```sql
+select cg_user_id, username, created_at, last_seen from public.cg_link;
+select id, handle, is_portal from public.profiles where is_portal;
+```
+
+`handle` must be your CrazyGames username - that is the string your
+opponent sees in a match.
+
+### 11.5 The first real match
+
+Matchmaking needs **two** accounts, and `try_match()` refuses to pair a
+player with themselves (`user_id <> me`), so one browser cannot test it.
+Use two different CrazyGames accounts - a second device, or a private
+window logged in as someone else - and queue for the same mode within
+five minutes of each other (a lone player times out after ~5 min with
+"No opponent found").
+
+### If you skip or delay this
+
+Everything degrades to exactly what shipped before: the token exchange
+fails, the anonymous fallback takes over, the Daily Puzzle keeps working,
+and multiplayer stays locked with the lock badge on it. Nothing breaks -
+verified in `sim/verify_cg_accounts.js` section C.
+
+### What is deliberately NOT here
+
+- **Progress does not move to Supabase.** Saves stay in the SDK's Data
+  module, which is what the submission form declares and what CrazyGames
+  syncs across the player's devices. The Supabase account is for identity
+  and matchmaking only. Two cloud saves writing the same localStorage keys
+  would be a data-loss bug.
+- **No account linking prompt.** CrazyGames' `showAccountLinkPrompt` is
+  for joining a CG account to a pre-existing in-game account. There is no
+  in-game account on the portal build to join it to.
+
+### Sweeping the old anonymous rows
+
+Every portal visitor used to leave an anonymous `auth.users` row behind.
+They are harmless but they accumulate. Count, then delete - the
+`not exists` guard protects migrated portal players:
+
+```sql
+select count(*) from auth.users where is_anonymous;
+
+delete from auth.users u
+ where u.is_anonymous
+   and not exists (select 1 from public.cg_link l where l.user_id = u.id);
+```

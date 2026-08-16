@@ -11,7 +11,7 @@ tier list and lineup analysis.
 "is this card fair beside five strangers" and quietly implies it has
 answered "is this card fair when a human builds around it and bans what
 scares them". It has not. A full run must therefore report FOUR
-measurements per hero, of which **win rate is the weakest**:
+measurements per legend, of which **win rate is the weakest**:
 
 | Metric | Question | Source |
 | --- | --- | --- |
@@ -22,16 +22,16 @@ measurements per hero, of which **win rate is the weakest**:
 
 Required sub-sections:
 
-- **0a. Most-banned heroes** - ranked by ban rate. A 50% hero banned 90% of
+- **0a. Most-banned legends** - ranked by ban rate. A 50% legend banned 90% of
   the time is not balanced; its win rate is average *because* the threat is
   high and opponents keep deleting it.
-- **0b. Where the passes disagree** - heroes whose forced and free win rates
+- **0b. Where the passes disagree** - legends whose forced and free win rates
   are **statistically separated** (non-overlapping Wilson intervals). A gap
   the sample cannot support must NOT be listed.
 - **0c. Cards the draft AI is misjudging** - strong when forced, rarely
-  picked. This is a bug report about `data/draft-ai.js`, not about the hero.
-- **0d. Confidence** - median sample per hero, the resulting margin, and an
-  explicit list of heroes too thin to trust.
+  picked. This is a bug report about `data/draft-ai.js`, not about the legend.
+- **0d. Confidence** - median sample per legend, the resulting margin, and an
+  explicit list of legends too thin to trust.
 
 ### Statistical honesty is mandatory
 
@@ -40,15 +40,15 @@ appearances the margin is roughly ±15pp, so `47.3%` and `62.0%` are the same
 measurement. Printing a bare decimal implies a precision the data does not
 have, and half the "findings" in a thin run are noise.
 
-Two heroes may only be described as different if their intervals do not
+Two legends may only be described as different if their intervals do not
 overlap.
 
 ### Forced inclusion must reach the BOARD
 
-Pinning a hero into the twelve is not enough - fielding is also the draft
+Pinning a legend into the twelve is not enough - fielding is also the draft
 AI's judgement, so a card it dislikes gets drafted and benched. Measured on
-a real run, **17 of 63 forced heroes never played a single game**, including
-Merlin, the card that prompted this work. A forced hero must be exempt from
+a real run, **17 of 63 forced legends never played a single game**, including
+Merlin, the card that prompted this work. A forced legend must be exempt from
 the opponent's bans and guaranteed a slot in the six, or the pass measures
 nothing. Ban rate is still measured honestly by the unforced passes.
 
@@ -67,7 +67,7 @@ These tell you whether the game itself is healthy.
 - Average actions per game
 - Average actions per round
 - Signature vs Basic usage %
-- Average remaining heroes on winning team
+- Average remaining legends on winning team
 - Average remaining HP on winning team
 - First kill rate
 - First kill conversion rate
@@ -93,9 +93,9 @@ For each role (`Tank`, `Bruiser`, `Controller`, `Caster`, `Medic`, `Sniper`):
 - Signature casts/game
 - Basic casts/game
 
-## 3. Hero Statistics
+## 3. Legend Statistics
 
-For every hero (`id`, `name`, `faction`, `rarity`, `role`, `element`):
+For every legend (`id`, `name`, `faction`, `rarity`, `role`, `element`):
 
 ### General
 
@@ -129,7 +129,7 @@ For every hero (`id`, `name`, `faction`, `rarity`, `role`, `element`):
 - Redirects (`redirects`)
 - Buff Uptime (`buffUpN / upSamples`)
 - Debuff Uptime (`debuffUpN / upSamples`)
-- Ally Damage Enabled (`exposedBonusEnabled` - only for heroes whose effects enable Exposed or Mark consumption)
+- Ally Damage Enabled (`exposedBonusEnabled` - only for legends whose effects enable Exposed or Mark consumption)
 
 ### Economy
 
@@ -140,7 +140,7 @@ For every hero (`id`, `name`, `faction`, `rarity`, `role`, `element`):
 
 ## 4. Ability Statistics
 
-For every signature/passive (`heroId + '|' + abilityName`):
+For every signature/passive (`legendId + '|' + abilityName`):
 
 - Average casts (`casts / games` or `casts / apps`)
 - Average value per cast (`value / casts`)
@@ -185,7 +185,7 @@ For every status (`burn`, `exposed`, `marked`, `silence`, `taunt`, `healMod`, `u
 
 Only show pairs with **65+ appearances** (`games >= 65` in `A.pairs`).
 
-For each pair (`heroA|heroB`, sorted id):
+For each pair (`legendA|legendB`, sorted id):
 
 - Games together (`games`)
 - Win Rate (`wins / games`)
@@ -194,7 +194,7 @@ For each pair (`heroA|heroB`, sorted id):
 
 ## 7. Role Pair Synergies
 
-Only pairs formed from the roles actually present in the 6-hero team (e.g., `Tank+Medic`, `Bruiser+Controller`, `Sniper+Controller`, `Double Sniper`, `Double Medic`, `Double Tank`, etc.).
+Only pairs formed from the roles actually present in the 6-legend team (e.g., `Tank+Medic`, `Bruiser+Controller`, `Sniper+Controller`, `Double Sniper`, `Double Medic`, `Double Tank`, etc.).
 
 For each role pair (`Tank+Medic`, `Bruiser+Controller`, etc.):
 
@@ -207,9 +207,9 @@ This tells you if an archetype is fundamentally broken.
 
 ## 8. Matchups
 
-For every hero (`id`):
+For every legend (`id`):
 
-- Best 5 matchups (`A.matchups[a + '>' + b].wins / A.matchups[a + '>' + b].games` for every `b` where `b` is an opposing hero, sorted descending by win rate)
+- Best 5 matchups (`A.matchups[a + '>' + b].wins / A.matchups[a + '>' + b].games` for every `b` where `b` is an opposing legend, sorted descending by win rate)
 - Worst 5 matchups (same calculation, sorted ascending by win rate)
 
 This helps balance without blindly nerfing.
@@ -275,7 +275,7 @@ This tells you if the AI is using cards correctly.
 
 Automatically flag anything outside the healthy band:
 
-### Heroes
+### Legends
 - Win Rate > 65% (flag)
 - Win Rate < 35% (flag)
 
@@ -289,7 +289,7 @@ Automatically flag anything outside the healthy band:
 - Damage per Energy top 10% or bottom 10% (`dmg / energy` ranking across all abilities)
 - Value per cast < 0 for any significant number of casts
 
-Flags must include the exact metric value, the role/hero/ability id, and whether the outlier is positive or negative.
+Flags must include the exact metric value, the role/legend/ability id, and whether the outlier is positive or negative.
 
 ## 13. New Metrics (Not Yet in Engine)
 
@@ -297,17 +297,17 @@ These do not exist in the current `sim/sim.js` or `js/engine.js` but would be in
 
 ### Value Over Average (VOA)
 
-How much does this hero improve a random team compared to replacing them with an average hero? Calculated as:
+How much does this legend improve a random team compared to replacing them with an average legend? Calculated as:
 
 ```
-VOA = (team_win_rate_with_hero - team_win_rate_with_average_substitute) / baseline_win_rate
+VOA = (team_win_rate_with_legend - team_win_rate_with_average_substitute) / baseline_win_rate
 ```
 
 Requires a substitute-model simulation branch (not implemented).
 
 ### Threat Rating
 
-How often enemies target this hero. Calculated as:
+How often enemies target this legend. Calculated as:
 
 ```
 Threat = (times_targeted_by_enemy / rounds_alive) * 100
@@ -317,7 +317,7 @@ Requires tracking `focus` per enemy source (`focusN` / `focusD` per side, not ju
 
 ### Focus Fire Rate
 
-Average attackers targeting this hero per round:
+Average attackers targeting this legend per round:
 
 ```
 Focus Fire Rate = focusN / focusD / rounds_alive
@@ -331,29 +331,29 @@ Damage wasted on already-lethal hits:
 Overkill Rate = overkill / total_damage_dealt
 ```
 
-Already partially tracked (`A.heroes[*].overkill` in `sim/sim.js`).
+Already partially tracked (`A.legends[*].overkill` in `sim/sim.js`).
 
 ### Clutch Factor
 
-Win rate when this hero is the last survivor (`lastSurvivorGames` / `lastSurvivorWins`).
+Win rate when this legend is the last survivor (`lastSurvivorGames` / `lastSurvivorWins`).
 
 Already tracked (`lastSurvivorWins / lastSurvivorGames`).
 
 ### Snowball Index
 
-Win rate after this hero gets the first kill (`firstKillWins / firstKills`).
+Win rate after this legend gets the first kill (`firstKillWins / firstKills`).
 
-Already tracked (`A.heroes[*].firstKillWins` / `firstKills`).
+Already tracked (`A.legends[*].firstKillWins` / `firstKills`).
 
 ### Comeback Rate
 
-Win rate after this hero's team loses the first kill (`win_rate_when_first_kill_conceded` or derived from `fkConverted` / `fkDecisiveGames`).
+Win rate after this legend's team loses the first kill (`win_rate_when_first_kill_conceded` or derived from `fkConverted` / `fkDecisiveGames`).
 
 Requires tracking which team lost the first kill per game (partially available via `fkWon` and `fkDecisiveGames`).
 
 ### Tempo Rating
 
-Average round this hero secures their first kill (`firstKillRoundSum / killGames`).
+Average round this legend secures their first kill (`firstKillRoundSum / killGames`).
 
 Already tracked (`firstKillRoundSum / killGames` in `sim/sim.js`).
 
@@ -365,7 +365,7 @@ Combined support metric:
 Effective HP Created = total_heals + total_shield + total_damage_prevented + (damage_prevented_by_taunt_redirects)
 ```
 
-Requires unifying `heals`, `shields`, `prevented`, and `redirects` into a single index per hero.
+Requires unifying `heals`, `shields`, `prevented`, and `redirects` into a single index per legend.
 
 ---
 
@@ -376,7 +376,7 @@ in a neat and orderly fashion with analysis and insights on each part of the
 data. The data and analysis presented should NOT include games that ended in
 a draw, aside from Global match statistics.
 
-A report must never crash on a thin sample. A composition, pair or hero with
+A report must never crash on a thin sample. A composition, pair or legend with
 no data is a normal condition and must render as "insufficient data", not as
 an exception or - worse - as a confident-looking zero.
 
@@ -395,7 +395,7 @@ an exception or - worse - as a confident-looking zero.
 
 State these limits rather than letting the numbers imply otherwise:
 
-- **Depth 4 is better than depth 2, not good.** A hero that climbs with
+- **Depth 4 is better than depth 2, not good.** A legend that climbs with
   depth was being under-played, not under-powered.
 - **The draft AI is a proxy for a drafting human, not a replacement.**
 - **No bot adapts across games** the way two players do by their third match.

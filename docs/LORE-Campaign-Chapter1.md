@@ -9,7 +9,7 @@
 
 There is a moment at the end of every story when the world becomes very quiet.
 
-Not when the hero dies. Death is usually noisy. It has bells, witnesses, a final hand held too tightly, an enemy who looks away because they cannot bear to be seen looking. The quiet comes later, when the last person who knew the hero’s name has said it for the last time without realizing what they are doing.
+Not when the legend dies. Death is usually noisy. It has bells, witnesses, a final hand held too tightly, an enemy who looks away because they cannot bear to be seen looking. The quiet comes later, when the last person who knew the legend’s name has said it for the last time without realizing what they are doing.
 
 A lullaby loses a verse. A monument crumbles beneath ivy. A child closes a book and grows old enough not to open it again.
 
@@ -483,7 +483,7 @@ She flicked her wrist. Twelve cards landed on the table.
 
 The Trickster’s smile paused.
 
-“In my first story, I was a daughter who stood behind the hero. I had three lines. One was ‘Brother, be careful.’ One was ‘Brother, come home.’ The third was never printed.”
+“In my first story, I was a daughter who stood behind the legend. I had three lines. One was ‘Brother, be careful.’ One was ‘Brother, come home.’ The third was never printed.”
 
 She tapped the cards.
 
@@ -551,7 +551,7 @@ The wind caught the edge of his mantle.
 
 “People praised the result. I came to the Road because praise is not acquittal.”
 
-His battle was cold, exacting, and terrible in its restraint. He made every careless victory costly. A defeated echo became a path to another defeat. A moment of greed became a line the enemy could walk. The Wayfarer began to see the battlefield the way he did: not as six isolated heroes, but as consequences waiting for their turn.
+His battle was cold, exacting, and terrible in its restraint. He made every careless victory costly. A defeated echo became a path to another defeat. A moment of greed became a line the enemy could walk. The Wayfarer began to see the battlefield the way he did: not as six isolated legends, but as consequences waiting for their turn.
 
 Then the Strategist made a mistake.
 

@@ -102,6 +102,21 @@ async function scenario(options) {
   return { local, session, writes, reloads, greeted };
 }
 
+function canonicalDigest(v) {
+  const canonical = (x) => {
+    if (Array.isArray(x)) return x.map(canonical);
+    if (x && typeof x === 'object') {
+      const out = {};
+      Object.keys(x)
+        .sort()
+        .forEach((k) => (out[k] = canonical(x[k])));
+      return out;
+    }
+    return x;
+  };
+  return JSON.stringify(canonical(v));
+}
+
 (async function () {
   const legacyCampaign = {
     v: 2,
@@ -142,7 +157,11 @@ async function scenario(options) {
     remoteDocument: remote,
     session: {
       'eol.cloud.restored': '1',
-      'eol.cloud.restoreDigest': JSON.stringify(remote),
+      /* the guard stores a CANONICAL digest (keys sorted at every
+         level), not a raw stringify - the fixture must match what
+         restore() actually wrote or the promotion path is never
+         reached */
+      'eol.cloud.restoreDigest': canonicalDigest(remote),
     },
   });
   ok(afterRestore.greeted, 'the restored-save greeting remains available to the app');

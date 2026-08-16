@@ -276,20 +276,20 @@ const t = (ok, m) => console.log((ok ? '  PASS  ' : '  FAIL  ') + m) || (ok ? 0 
     await p.evaluate(() => document.body.dataset.view === 'battle'),
     '1 swap accepted: game 2 battle started'
   );
-  /* sub lockout law: the hero swapped OUT sits out the rest of the set */
+  /* sub lockout law: the legend swapped OUT sits out the rest of the set */
   t(
     await p.evaluate(
       (o) => window.EOL.play._setState().lockedOut.indexOf(o.out) >= 0,
       swapIds
     ),
-    'subbed-out hero locked for the rest of the set (' + swapIds.out + ')'
+    'subbed-out legend locked for the rest of the set (' + swapIds.out + ')'
   );
   t(
     await p.evaluate(
       (o) => window.EOL.play._setState().lockedOut.indexOf(o.inn) < 0,
       swapIds
     ),
-    'subbed-in hero stays eligible (only the out-going lock)'
+    'subbed-in legend stays eligible (only the out-going lock)'
   );
   t(
     await p.evaluate(() => {

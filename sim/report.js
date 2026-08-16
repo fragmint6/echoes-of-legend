@@ -34,7 +34,7 @@ process.argv.slice(2).forEach((a, i, arr) => {
    --in <results.json>   a single run (the classic path)
    --full <full.json>    the combined output of sim/full.js, which
                          bundles a random pass, a draft pass and a
-                         per-hero forced pass
+                         per-legend forced pass
 
    In full mode the RANDOM pass supplies every section below, so all
    the existing analysis keeps working unchanged, and section 0 adds
@@ -92,7 +92,7 @@ function table(headers, rows) {
 
    Wilson rather than the normal approximation because it behaves
    sanely at small n and near 0% or 100%, which is exactly where a
-   per-hero table spends its time.
+   per-legend table spends its time.
    ============================================================= */
 /* A composition can be entirely absent from a small run, and a
    missing comp is not an error - it just has no data. Reading it
@@ -132,11 +132,11 @@ const w = (s) => L.push(s == null ? '' : s);
 
 const games = A.meta.games;
 const decided = A.p1Wins + A.p2Wins;
-/* Roster from heroInfo (every registered hero), restricted to those that
+/* Roster from legendInfo (every registered legend), restricted to those that
    actually appeared in a decided game so no table divides by zero. */
-const heroIds = Object.keys(A.heroInfo).filter((id) => A.heroes[id] && A.heroes[id].apps > 0);
-/* Signature cost per hero, read straight from the card data - used to test
-   whether the energy change moved expensive and cheap heroes differently. */
+const legendIds = Object.keys(A.legendInfo).filter((id) => A.legends[id] && A.legends[id].apps > 0);
+/* Signature cost per legend, read straight from the card data - used to test
+   whether the energy change moved expensive and cheap legends differently. */
 const COST = (function () {
   const out = {};
   try {
@@ -171,15 +171,15 @@ const COST = (function () {
   }
   return out;
 })();
-const missing = Object.keys(A.heroInfo).filter((id) => !A.heroes[id] || !A.heroes[id].apps);
+const missing = Object.keys(A.legendInfo).filter((id) => !A.legends[id] || !A.legends[id].apps);
 const info = (id) =>
-  A.heroInfo[id] || { name: id, faction: '?', rarity: '?', role: '?', element: '?' };
-/* A hero absent from a run is a normal condition on a small sample,
+  A.legendInfo[id] || { name: id, faction: '?', rarity: '?', role: '?', element: '?' };
+/* A legend absent from a run is a normal condition on a small sample,
    not an error. Returning a zeroed record keeps every downstream
    table rendering "-" instead of crashing the whole report - which
-   it used to do the moment any named hero happened not to appear. */
-const EMPTY_HERO = { apps: 0, wins: 0, draws: 0 };
-const H = (id) => A.heroes[id] || EMPTY_HERO;
+   it used to do the moment any named legend happened not to appear. */
+const EMPTY_LEGEND = { apps: 0, wins: 0, draws: 0 };
+const H = (id) => A.legends[id] || EMPTY_LEGEND;
 const wr = (id) => div(H(id).wins, H(id).apps);
 const isRoma = (id) => info(id).faction === NEW_FACTION;
 const tag = (id) => (isRoma(id) ? ' 🆕' : '');
@@ -194,8 +194,8 @@ w(
 );
 w(`**Generated:** ${A.meta.date}`);
 w(
-  `**Roster:** ${Object.keys(A.heroInfo).length} heroes across ${new Set(Object.keys(A.heroInfo).map((i) => info(i).faction)).size} factions ` +
-    `- this run introduces **Takamagahara** (6 heroes, marked 🆕 throughout).`
+  `**Roster:** ${Object.keys(A.legendInfo).length} legends across ${new Set(Object.keys(A.legendInfo).map((i) => info(i).faction)).size} factions ` +
+    `- this run introduces **Takamagahara** (6 legends, marked 🆕 throughout).`
 );
 w('');
 w(
@@ -205,7 +205,7 @@ w(
 w('');
 w(
   `> **Battlefield:** every game in this run was fought in **${FIELD_NOTE}**, the neutral field, so ` +
-    'hero win rates stay comparable with previous balance passes and are never skewed by terrain.'
+    'legend win rates stay comparable with previous balance passes and are never skewed by terrain.'
 );
 w('');
 w(
@@ -218,44 +218,44 @@ w(
 w('');
 
 /* Roma at a glance - the reason this run exists */
-const romaIds = heroIds.filter(isRoma);
+const romaIds = legendIds.filter(isRoma);
 const romaApps = romaIds.reduce((s, id) => s + H(id).apps, 0);
 const romaWins = romaIds.reduce((s, id) => s + H(id).wins, 0);
-const nonRomaIds = heroIds.filter((id) => !isRoma(id));
+const nonRomaIds = legendIds.filter((id) => !isRoma(id));
 const nonRomaWR = div(
   nonRomaIds.reduce((s, id) => s + H(id).wins, 0),
   nonRomaIds.reduce((s, id) => s + H(id).apps, 0)
 );
 if (missing.length) {
   w(
-    `**Note:** ${missing.length} hero(es) never appeared in a decided game and are omitted: ${missing.map((i) => info(i).name).join(', ')}.`
+    `**Note:** ${missing.length} legend(es) never appeared in a decided game and are omitted: ${missing.map((i) => info(i).name).join(', ')}.`
   );
   w('');
 }
 /* =============================================================
    SECTION 0 - THE FULL-RUN VIEW  (sim/full.js only)
    -------------------------------------------------------------
-   The reason full.js exists. Four measurements per hero, and win
+   The reason full.js exists. Four measurements per legend, and win
    rate is the WEAKEST of them.
    ============================================================= */
 if (FULL) {
   const R = FULL.random;
   const D = FULL.draft;
   const F = FULL.forced || {};
-  const ids = Object.keys(R.heroInfo);
+  const ids = Object.keys(R.legendInfo);
 
   w('---');
   w('');
   w('## 0. Power Assessment  (full run)');
   w('');
   w(
-    '*Four measurements per hero. Win rate alone is the weakest of them: a card ' +
+    '*Four measurements per legend. Win rate alone is the weakest of them: a card ' +
       'can sit at 50% precisely because opponents keep deleting it.*'
   );
   w('');
   w(
     `**Phases:** ${n0(FULL.meta.phases.random)} random + ${n0(FULL.meta.phases.draft)} drafted + ` +
-      `${n0(FULL.meta.phases.forcedTotal)} forced (${FULL.meta.phases.forcedPerHero}/hero) ` +
+      `${n0(FULL.meta.phases.forcedTotal)} forced (${FULL.meta.phases.forcedPerLegend}/legend) ` +
       `· depth ${FULL.meta.depth} · ${(FULL.meta.wallSeconds / 60).toFixed(1)} min`
   );
   w('');
@@ -272,7 +272,7 @@ if (FULL) {
     .map((id) => {
       const f = F[id] || {};
       const ds = (D.draftStats || {})[id] || {};
-      const rh = R.heroes[id] || { apps: 0, wins: 0 };
+      const rh = R.legends[id] || { apps: 0, wins: 0 };
       const dGames = D.meta.games || 1;
       return {
         id,
@@ -291,17 +291,17 @@ if (FULL) {
   /* Threat = banned often AND wins when it does play. Ranked by ban
      rate because that is the opponent's own verdict on the card. */
   const byBan = rows.slice().sort((a, b) => (b.banRate || 0) - (a.banRate || 0));
-  w('### 0a. Most-banned heroes');
+  w('### 0a. Most-banned legends');
   w('');
   w(
-    '*Ban rate is share of drafts in which the opponent deleted this hero. ' +
+    '*Ban rate is share of drafts in which the opponent deleted this legend. ' +
       'It is the purest power signal available: it is what a real opponent, ' +
       'looking at the card, decided to spend a ban on.*'
   );
   w('');
   w(
     table(
-      ['Hero', 'Ban rate', 'Pick rate', 'Forced WR', 'Free WR'],
+      ['Legend', 'Ban rate', 'Pick rate', 'Forced WR', 'Free WR'],
       byBan
         .slice(0, 20)
         .map((r) => [
@@ -325,7 +325,7 @@ if (FULL) {
   w('### 0b. Where the passes disagree');
   w('');
   w(
-    '*Heroes whose forced win rate and free win rate are **statistically ' +
+    '*Legends whose forced win rate and free win rate are **statistically ' +
       'separated** - their confidence intervals do not overlap. Anything not ' +
       'listed here is a difference the sample cannot support.*'
   );
@@ -333,7 +333,7 @@ if (FULL) {
   if (disagree.length) {
     w(
       table(
-        ['Hero', 'Forced WR', 'Free WR', 'Gap', 'Reading'],
+        ['Legend', 'Forced WR', 'Free WR', 'Gap', 'Reading'],
         disagree
           .slice(0, 20)
           .map((r) => [
@@ -348,7 +348,7 @@ if (FULL) {
       )
     );
   } else {
-    w('No hero shows a statistically separated gap at this sample size.');
+    w('No legend shows a statistically separated gap at this sample size.');
   }
   w('');
 
@@ -362,14 +362,14 @@ if (FULL) {
   w('');
   w(
     '*Strong when forced to play, yet rarely picked. This is a bug report about ' +
-      '`data/draft-ai.js`, not about the hero - and it is exactly the blind spot ' +
+      '`data/draft-ai.js`, not about the legend - and it is exactly the blind spot ' +
       'that made a drafted-only simulation circular in the first place.*'
   );
   w('');
   if (blind.length) {
     w(
       table(
-        ['Hero', 'Forced WR', 'Pick rate', 'Ban rate'],
+        ['Legend', 'Forced WR', 'Pick rate', 'Ban rate'],
         blind
           .slice(0, 15)
           .map((r) => [
@@ -396,14 +396,14 @@ if (FULL) {
     ? (((wilson(medN / 2, medN).hi - wilson(medN / 2, medN).lo) / 2) * 100).toFixed(1)
     : '-';
   w(
-    `Median forced sample: **${n0(medN)} games/hero**, giving a 95% margin of roughly ` +
-      `**±${halfAt}pp** on a 50% hero. Two heroes are only genuinely different if their ` +
+    `Median forced sample: **${n0(medN)} games/legend**, giving a 95% margin of roughly ` +
+      `**±${halfAt}pp** on a 50% legend. Two legends are only genuinely different if their ` +
       'intervals do not overlap - which is the test used in 0b.'
   );
   w('');
   if (thin.length) {
     w(
-      `> **${thin.length} hero(es) have fewer than 20 forced games** and should be read as ` +
+      `> **${thin.length} legend(es) have fewer than 20 forced games** and should be read as ` +
         'indicative only. Raise `--forced` to tighten them.'
     );
     w('');
@@ -421,7 +421,7 @@ w('');
 w(
   table(
     [
-      'Hero',
+      'Legend',
       'Role',
       'Rarity',
       'Win Rate',
@@ -451,16 +451,16 @@ w(
 );
 w('');
 w(
-  `**Duat aggregate win rate: ${pct(div(romaWins, romaApps))}** across ${n0(romaApps)} hero-appearances, ` +
-    `versus **${pct(nonRomaWR)}** for the ${nonRomaIds.length} pre-existing heroes. ` +
-    `A perfectly neutral faction sits at 50%; the healthy band per the requirements is 35 - 65% per hero.`
+  `**Duat aggregate win rate: ${pct(div(romaWins, romaApps))}** across ${n0(romaApps)} legend-appearances, ` +
+    `versus **${pct(nonRomaWR)}** for the ${nonRomaIds.length} pre-existing legends. ` +
+    `A perfectly neutral faction sits at 50%; the healthy band per the requirements is 35 - 65% per legend.`
 );
 w('');
 
 /* ================= BALANCE PASS ================= */
 if (BL) {
   const bwr = (id) =>
-    BL.heroes[id] && BL.heroes[id].apps ? BL.heroes[id].wins / BL.heroes[id].apps : NaN;
+    BL.legends[id] && BL.legends[id].apps ? BL.legends[id].wins / BL.legends[id].apps : NaN;
   w('## Balance Pass - Before / After');
   w('');
   w(
@@ -524,7 +524,7 @@ if (BL) {
           `${A2.fk - B2.fk >= 0 ? '+' : ''}${n1((A2.fk - B2.fk) * 100)}pp`,
         ],
         [
-          'Winner heroes remaining',
+          'Winner legends remaining',
           n2(B2.alive),
           n2(A2.alive),
           `${A2.alive - B2.alive >= 0 ? '+' : ''}${n2(A2.alive - B2.alive)}`,
@@ -546,18 +546,18 @@ if (BL) {
       `(${n2(B2.rounds)} → ${n2(A2.rounds)} rounds).`
   );
   w('');
-  w('### Heroes most affected');
+  w('### Legends most affected');
   w('');
-  const moved = heroIds
-    .filter((id) => BL.heroes[id] && BL.heroes[id].apps >= 100)
+  const moved = legendIds
+    .filter((id) => BL.legends[id] && BL.legends[id].apps >= 100)
     .map((id) => ({ id, d: wr(id) - bwr(id) }))
     .sort((a, b) => Math.abs(b.d) - Math.abs(a.d))
     .slice(0, 14);
   w(
     table(
-      ['Hero', 'Role', 'Cost', 'Before', 'After', 'Δ'],
+      ['Legend', 'Role', 'Cost', 'Before', 'After', 'Δ'],
       moved.map((x) => {
-        const c = A.heroInfo[x.id];
+        const c = A.legendInfo[x.id];
         const card = null;
         return [
           info(x.id).name,
@@ -584,11 +584,11 @@ if (BL) {
     ];
     w(
       table(
-        ['Hero', 'Change', 'Before', 'After', 'Δ', 'z'],
-        T.filter((t) => BL.heroes[t[0]]).map(([id, ch]) => {
+        ['Legend', 'Change', 'Before', 'After', 'Δ', 'z'],
+        T.filter((t) => BL.legends[t[0]]).map(([id, ch]) => {
           const p1 = bwr(id),
             p2 = wr(id);
-          const se = Math.sqrt((p1 * (1 - p1)) / BL.heroes[id].apps + (p2 * (1 - p2)) / H(id).apps);
+          const se = Math.sqrt((p1 * (1 - p1)) / BL.legends[id].apps + (p2 * (1 - p2)) / H(id).apps);
           return [
             `**${info(id).name}**`,
             ch,
@@ -604,7 +604,7 @@ if (BL) {
     w(
       'Plus two systemic changes: **Silence now blocks every action** (it previously gated only ' +
         'signatures, so the AI answered with a Basic and a 40 EN Silence bought almost nothing), and a ' +
-        '**comeback grant** of +15 Energy per round per hero of deficit.'
+        '**comeback grant** of +15 Energy per round per legend of deficit.'
     );
     w('');
   }
@@ -620,8 +620,8 @@ if (BL) {
       'Cheap (1-30 EN)': [],
       'Passive (0 EN)': [],
     };
-    heroIds.forEach((id) => {
-      if (!BL.heroes[id] || BL.heroes[id].apps < 100) return;
+    legendIds.forEach((id) => {
+      if (!BL.legends[id] || BL.legends[id].apps < 100) return;
       const c = COST[id] == null ? 0 : COST[id];
       const d = (wr(id) - bwr(id)) * 100;
       const k =
@@ -636,7 +636,7 @@ if (BL) {
     });
     w(
       table(
-        ['Cost band', 'Heroes', 'Mean Δ win rate'],
+        ['Cost band', 'Legends', 'Mean Δ win rate'],
         Object.keys(buckets).map((k) => [
           k,
           buckets[k].length,
@@ -651,9 +651,9 @@ if (BL) {
       exp = buckets['Expensive (45+ EN)'];
     w(
       `- The prediction was that banking would lift **expensive** signatures and squeeze **cheap-spam** ` +
-        'efficiency. The data leans that way: cheap heroes average ' +
+        'efficiency. The data leans that way: cheap legends average ' +
         `${n2(mean(cheap))}pp against ${n2(mean(exp))}pp for expensive ones. ` +
-        'Cheap heroes lose their edge because saving two rounds now buys a big skill, so the ability to ' +
+        'Cheap legends lose their edge because saving two rounds now buys a big skill, so the ability to ' +
         'cast *something* every round is worth less than it was.'
     );
     w(
@@ -686,14 +686,14 @@ w(
 w(
   '- **Soak** - 120 AI-vs-AI games asserting global invariants: no negative or overflowed HP, no unit ' +
     'acting twice in a round, no dead unit acting or dealing damage, role cap never breached, and every ' +
-    'hero in the roster appearing at least once.'
+    'legend in the roster appearing at least once.'
 );
 w('');
 w('**Three real bugs were found and fixed this pass:**');
 w('');
 w(
   '1. **Deferred effects resolved from a dead caster.** `resolveDeferred` never checked that the source ' +
-    'was alive, so a hero killed before their delayed payoff landed still dealt full damage from the grave. ' +
+    'was alive, so a legend killed before their delayed payoff landed still dealt full damage from the grave. ' +
     'Measured at 12,995 damage in a constructed case.'
 );
 w(
@@ -708,7 +708,7 @@ w(
 );
 w('');
 w(
-  'Two further engine behaviours were confirmed as intended rather than bugs: a hero killed mid-cast ' +
+  'Two further engine behaviours were confirmed as intended rather than bugs: a legend killed mid-cast ' +
     'still walks its remaining effect list but every hit resolves for **0** damage, and the engine leaves ' +
     'flag values on corpses without ever returning a dead unit as a legal target.'
 );
@@ -740,7 +740,7 @@ w(
       ['Average actions per round', n2(div(totalActions, totalRounds))],
       ['Signature usage %', `${pct(div(A.sigCasts, totalCasts))} (${n0(A.sigCasts)} casts)`],
       ['Basic usage %', `${pct(div(A.basicCasts, totalCasts))} (${n0(A.basicCasts)} casts)`],
-      ['Avg remaining heroes on winning team', `${n2(mean(A.winnerAliveLeft))} / 6`],
+      ['Avg remaining legends on winning team', `${n2(mean(A.winnerAliveLeft))} / 6`],
       ['Avg remaining HP on winning team', `${n1(mean(A.winnerHpLeft))}%`],
       ['First kill rate (games with a kill)', pct(div(A.gamesWithKill, games))],
       ['First kill conversion rate', pct(div(A.fkConverted, A.fkDecisiveGames))],
@@ -757,7 +757,7 @@ w('');
 w(
   `- **Seat balance:** among decided games P1 takes ${pct(p1Edge)} and P2 ${pct(1 - p1Edge)}. ` +
     (Math.abs(p1Edge - 0.5) < 0.03
-      ? 'That is within ±3pp of even, so the alternating-opener rule is doing its job and no seat advantage contaminates the hero numbers below.'
+      ? 'That is within ±3pp of even, so the alternating-opener rule is doing its job and no seat advantage contaminates the legend numbers below.'
       : `That is a ${n1(Math.abs(p1Edge - 0.5) * 100)}pp skew - large enough to keep in mind when reading close matchups.`)
 );
 w(
@@ -765,7 +765,7 @@ w(
     `damage, not on the timer. The draw rate of ${pct(div(A.draws, games))} confirms it.`
 );
 w(
-  `- **Decisiveness:** winners finish with ${n2(mean(A.winnerAliveLeft))} of 6 heroes and ` +
+  `- **Decisiveness:** winners finish with ${n2(mean(A.winnerAliveLeft))} of 6 legends and ` +
     `${n1(mean(A.winnerHpLeft))}% average HP - matches are won convincingly rather than scraped.`
 );
 w(
@@ -843,24 +843,24 @@ w(
     'converts Energy into damage best, which is what you would expect from the role that pays the least per cast.'
 );
 w(
-  "- **Roma's footprint:** Roma adds one hero to each of the six roles, so it applies even pressure " +
+  "- **Roma's footprint:** Roma adds one legend to each of the six roles, so it applies even pressure " +
     'to every role band rather than inflating a single archetype.'
 );
 w('');
 
-/* ================= 3. HERO STATISTICS ================= */
+/* ================= 3. LEGEND STATISTICS ================= */
 w('---');
 w('');
-w('## 3. Hero Statistics');
+w('## 3. Legend Statistics');
 w('');
-const byWR = heroIds.slice().sort((a, b) => wr(b) - wr(a));
+const byWR = legendIds.slice().sort((a, b) => wr(b) - wr(a));
 w('### 3.1 General');
 w('');
 w(
   table(
     [
       '#',
-      'Hero',
+      'Legend',
       'Faction',
       'Rarity',
       'Role',
@@ -900,7 +900,7 @@ w('');
 w(
   table(
     [
-      'Hero',
+      'Legend',
       'Total Dmg',
       'Dmg/Round',
       'Dmg/EN',
@@ -912,7 +912,7 @@ w(
       'vs Tanks',
       'vs Backline',
     ],
-    heroIds
+    legendIds
       .slice()
       .sort((a, b) => div(H(b).dmg, H(b).apps) - div(H(a).dmg, H(a).apps))
       .map((id) => {
@@ -939,7 +939,7 @@ w('');
 w(
   table(
     [
-      'Hero',
+      'Legend',
       'Healing',
       'Shielding',
       'Prevented',
@@ -949,7 +949,7 @@ w(
       'Debuff Uptime',
       'Ally Dmg Enabled',
     ],
-    heroIds
+    legendIds
       .slice()
       .sort(
         (a, b) =>
@@ -977,8 +977,8 @@ w('### 3.4 Economy');
 w('');
 w(
   table(
-    ['Hero', 'Energy Spent/game', 'Basics/game', 'Signatures/game', 'Avg EN When Sig Used'],
-    heroIds
+    ['Legend', 'Energy Spent/game', 'Basics/game', 'Signatures/game', 'Avg EN When Sig Used'],
+    legendIds
       .slice()
       .sort((a, b) => div(H(b).sigs, H(b).apps) - div(H(a).sigs, H(a).apps))
       .map((id) => {
@@ -1004,12 +1004,12 @@ w(`- **Bottom 5:** ${botN.map((id) => `${info(id).name} (${pct(wr(id))})`).join(
   const rr = romaIds.slice().sort((a, b) => wr(b) - wr(a));
   w(
     `- **Roma placement:** ${rr.map((id) => `${info(id).name} #${byWR.indexOf(id) + 1}`).join(', ')} ` +
-      `out of ${heroIds.length}. ` +
-      (rr.every((id) => byWR.indexOf(id) > 4 && byWR.indexOf(id) < heroIds.length - 4)
-        ? 'No Roma hero lands in either the top-5 or bottom-5 - the faction integrated without displacing the existing meta poles.'
-        : 'At least one Roma hero reaches an extreme of the ladder; see Section 12 for flags.')
+      `out of ${legendIds.length}. ` +
+      (rr.every((id) => byWR.indexOf(id) > 4 && byWR.indexOf(id) < legendIds.length - 4)
+        ? 'No Roma legend lands in either the top-5 or bottom-5 - the faction integrated without displacing the existing meta poles.'
+        : 'At least one Roma legend reaches an extreme of the ladder; see Section 12 for flags.')
   );
-  const dmgRank = heroIds
+  const dmgRank = legendIds
     .slice()
     .sort((a, b) => div(H(b).dmg, H(b).apps) - div(H(a).dmg, H(a).apps));
   const caesar = romaIds.find((id) => info(id).name.includes('Caesar'));
@@ -1043,7 +1043,7 @@ w(
   table(
     [
       'Ability',
-      'Hero',
+      'Legend',
       'Kind',
       'Casts',
       'Casts/game',
@@ -1058,7 +1058,7 @@ w(
     ],
     abilRows.map(({ a, id, nm }) => [
       nm,
-      `${info(id).name || a.heroName}${isRoma(id) ? ' 🆕' : ''}`,
+      `${info(id).name || a.legendName}${isRoma(id) ? ' 🆕' : ''}`,
       a.kind || (info(id).id ? 'Passive' : ''),
       n0(a.casts),
       n2(div(a.casts, games)),
@@ -1277,24 +1277,24 @@ w(
   )
 );
 w('');
-/* ============ 6b. CEILING vs FLOOR (per hero) ============
+/* ============ 6b. CEILING vs FLOOR (per legend) ============
    The single most useful table for spotting a card that a human can
    break but a random draw cannot.
 
-   A hero's plain win rate is their AVERAGE across random teammates.
+   A legend's plain win rate is their AVERAGE across random teammates.
    A combo card - Merlin discounting expensive allies, a Mark setter
    beside a Mark consumer - is mediocre on average and devastating
    next to the right partner. Averaging hides exactly the thing a
    drafting opponent will find.
 
-   So: for each hero, the win rate with their BEST qualifying partner
+   So: for each legend, the win rate with their BEST qualifying partner
    next to their overall rate. The GAP is the signal. A large gap
    means "fine in a vacuum, strong when built around", which is the
    profile of every card that felt unfair in a real match.
    ======================================================== */
 {
   /* THE THRESHOLD HAS TO ADAPT, or this table is silently empty.
-     There are 1,596 possible pairs in a 57-hero roster and each game
+     There are 1,596 possible pairs in a 57-legend roster and each game
      shows only 30 of them, so a 1,200-game random run gives a median
      of ~21 games per pair and a MAXIMUM of 39. A fixed 40-game bar
      printed nothing and looked like "no combos found" rather than
@@ -1321,7 +1321,7 @@ w('');
       if (!best[self] || wr > best[self].wr) best[self] = { mate, wr, games: p.games };
     });
   });
-  const rows = heroIds
+  const rows = legendIds
     .filter((id) => best[id])
     .map((id) => {
       const solo = div(H(id).wins, H(id).apps);
@@ -1333,7 +1333,7 @@ w('');
   w('');
   w(
     `*Overall win rate against the best partner with ${MIN_PAIR}+ shared games. ` +
-      'A large gap means the hero is average on a random team and strong on a built one - ' +
+      'A large gap means the legend is average on a random team and strong on a built one - ' +
       'which is what a drafting opponent will find and a random-draw simulation will not.*'
   );
   w('');
@@ -1341,7 +1341,7 @@ w('');
     w(
       `> **Thin sample.** With ${n0(A.meta.games)} games the best-covered pair has only ` +
         `${n0(pairGames[0] || 0)} appearances, so these gaps are indicative, not conclusive. ` +
-        'A 57-hero roster has 1,596 possible pairs and each game shows 30 of them, which is ' +
+        'A 57-legend roster has 1,596 possible pairs and each game shows 30 of them, which is ' +
         'why random draw can never settle a combo question on its own. Use ' +
         '`--teams pairs` to put real sample behind the duos that matter.'
     );
@@ -1349,7 +1349,7 @@ w('');
   }
   w(
     table(
-      ['Hero', 'Overall', 'Best partner', 'With them', 'Gap'],
+      ['Legend', 'Overall', 'Best partner', 'With them', 'Gap'],
       rows
         .slice(0, 20)
         .map((r) => [
@@ -1366,13 +1366,13 @@ w('');
     const flagged = rows.filter((r) => r.gap >= 0.12);
     if (flagged.length) {
       w(
-        `**${flagged.length} hero(es) gain 12pp or more from their best partner.** ` +
+        `**${flagged.length} legend(es) gain 12pp or more from their best partner.** ` +
           'Those are the combo risks: the average says they are fine, the ceiling says ' +
           'otherwise. Re-check them with `--teams draft` and `--teams pairs`, where the ' +
           'pairing is deliberate rather than accidental.'
       );
     } else {
-      w('No hero gains 12pp or more from its best partner at this sample size.');
+      w('No legend gains 12pp or more from its best partner at this sample size.');
     }
     w('');
   }
@@ -1413,8 +1413,8 @@ if (romaInternal.length) {
   );
 }
 w(
-  `- **Roma cross-faction:** ${romaPairs.length} qualifying pairs include a Roma hero, averaging ` +
-    `${pct(mean(romaPairs.map((x) => x.wr)))} - versus ${pct(mean(pairs.filter((x) => !isRoma(x.a) && !isRoma(x.b)).map((x) => x.wr)))} for pairs with no Roma hero.`
+  `- **Roma cross-faction:** ${romaPairs.length} qualifying pairs include a Roma legend, averaging ` +
+    `${pct(mean(romaPairs.map((x) => x.wr)))} - versus ${pct(mean(pairs.filter((x) => !isRoma(x.a) && !isRoma(x.b)).map((x) => x.wr)))} for pairs with no Roma legend.`
 );
 w('');
 
@@ -1459,12 +1459,12 @@ w('---');
 w('');
 w('## 8. Matchups');
 w('');
-w('*Best and worst 5 opposing heroes for each hero. Minimum 20 meetings.*');
+w('*Best and worst 5 opposing legends for each legend. Minimum 20 meetings.*');
 w('');
 const MIN_M = 20;
 function matchupsFor(id) {
   const out = [];
-  heroIds.forEach((b) => {
+  legendIds.forEach((b) => {
     if (b === id) return;
     const f = A.matchups[id + '>' + b],
       r = A.matchups[b + '>' + id];
@@ -1482,7 +1482,7 @@ function matchupsFor(id) {
   });
   return out.sort((x, y) => y.wr - x.wr);
 }
-heroIds
+legendIds
   .slice()
   .sort(
     (a, b) =>
@@ -1520,7 +1520,7 @@ heroIds
 w('**Insights**');
 w('');
 {
-  const spreads = heroIds
+  const spreads = legendIds
     .map((id) => {
       const m = matchupsFor(id);
       return m.length >= 10 ? { id, sp: m[0].wr - m[m.length - 1].wr } : null;
@@ -1536,7 +1536,7 @@ w('');
     );
   }
   w(
-    '- Matchup tables are the balance-safe lens: a hero with a high overall win rate but a flat matchup ' +
+    '- Matchup tables are the balance-safe lens: a legend with a high overall win rate but a flat matchup ' +
       'spread is *generically* strong (nerf the numbers), while one with a jagged spread is *situationally* ' +
       'strong (adjust the counters instead).'
   );
@@ -1624,7 +1624,7 @@ w('');
   const fd = div(f.deaths, f.apps),
     bd = div(b.deaths, b.apps);
   w(
-    `- **Front-line tax:** front-row heroes die ${n2(fd)} times per appearance versus ${n2(bd)} in the back ` +
+    `- **Front-line tax:** front-row legends die ${n2(fd)} times per appearance versus ${n2(bd)} in the back ` +
       `(${n1((fd / bd - 1) * 100)}% more), and are targeted ${n1(div(div(f.targeted, f.apps), div(b.targeted, b.apps)))}× as often.`
   );
   w(
@@ -1699,12 +1699,12 @@ w('');
 w('## 12. Outlier Detection');
 w('');
 const flags = [];
-heroIds.forEach((id) => {
+legendIds.forEach((id) => {
   const v = wr(id);
   if (v > 0.65)
-    flags.push(['Hero', info(id).name + tag(id), id, 'Win Rate', pct(v), '> 65%', 'POSITIVE']);
+    flags.push(['Legend', info(id).name + tag(id), id, 'Win Rate', pct(v), '> 65%', 'POSITIVE']);
   if (v < 0.35)
-    flags.push(['Hero', info(id).name + tag(id), id, 'Win Rate', pct(v), '< 35%', 'NEGATIVE']);
+    flags.push(['Legend', info(id).name + tag(id), id, 'Win Rate', pct(v), '< 35%', 'NEGATIVE']);
 });
 ROLES.forEach((r) => {
   const v = div(A.roles[r].wins, A.roles[r].apps);
@@ -1736,8 +1736,8 @@ sigAbils.forEach(({ a, id, nm, k }) => {
   if (a.casts > 0 && div(a.value, a.casts) < 0)
     flags.push(['Ability', nm, k, 'Value/cast', n0(div(a.value, a.casts)), '< 0', 'NEGATIVE']);
 });
-// dmg/energy deciles across heroes with meaningful energy spend
-const dpe = heroIds
+// dmg/energy deciles across legends with meaningful energy spend
+const dpe = legendIds
   .filter((id) => H(id).energy > 0)
   .map((id) => ({ id, v: div(H(id).dmg, H(id).energy) }))
   .sort((a, b) => b.v - a.v);
@@ -1773,24 +1773,24 @@ if (flags.length) {
   w(table(['Scope', 'Name', 'ID', 'Metric', 'Value', 'Threshold', 'Direction'], flags));
 } else {
   w(
-    '**No outliers.** Every hero sits inside 35 - 65%, every role inside 45 - 55%, and every ability is cast at least 0.5×/game.'
+    '**No outliers.** Every legend sits inside 35 - 65%, every role inside 45 - 55%, and every ability is cast at least 0.5×/game.'
   );
 }
 w('');
 w('**Insights**');
 w('');
 {
-  const heroFlags = flags.filter((f) => f[0] === 'Hero');
+  const legendFlags = flags.filter((f) => f[0] === 'Legend');
   const roleFlags = flags.filter((f) => f[0] === 'Role');
   const abilFlags = flags.filter((f) => f[0] === 'Ability');
   const romaFlags = flags.filter((f) => f[1].includes('🆕'));
   w(
-    `- **${heroFlags.length}** hero win-rate flags, **${roleFlags.length}** role flags, **${abilFlags.length}** ability-usage flags.`
+    `- **${legendFlags.length}** legend win-rate flags, **${roleFlags.length}** role flags, **${abilFlags.length}** ability-usage flags.`
   );
   w(
     `- **Roma flags: ${romaFlags.length}.** ` +
       (romaFlags.length === 0
-        ? 'No Roma hero, ability or efficiency metric breached a healthy-band threshold - the faction shipped in balance.'
+        ? 'No Roma legend, ability or efficiency metric breached a healthy-band threshold - the faction shipped in balance.'
         : 'Detail: ' +
           romaFlags.map((f) => `${f[1]} (${f[3]} ${f[4]}, ${f[6].toLowerCase()})`).join('; ') +
           '.')
@@ -1812,7 +1812,7 @@ w('');
 w(
   table(
     [
-      'Hero',
+      'Legend',
       'Threat Rating',
       'Focus Fire Rate',
       'Overkill Rate',
@@ -1822,7 +1822,7 @@ w(
       'Tempo Rating',
       'Effective HP Created',
     ],
-    heroIds
+    legendIds
       .slice()
       .sort((a, b) => div(H(b).focusN, H(b).focusD) - div(H(a).focusN, H(a).focusD))
       .map((id) => {
@@ -1846,34 +1846,34 @@ w(
   '**Definitions.** Threat Rating = `targeted / rounds_alive × 100`. Focus Fire Rate = `focusN / focusD` ' +
     '(distinct attackers per round alive). Overkill Rate = `overkill / damage dealt`. Clutch Factor = win rate ' +
     'when last survivor. Snowball Index = win rate after landing the first kill. Comeback Rate = win rate after ' +
-    "conceding the first kill. Tempo Rating = average round of the hero's first kill. Effective HP Created = " +
+    "conceding the first kill. Tempo Rating = average round of the legend's first kill. Effective HP Created = " +
     '`heals + shields + prevented + absorbCredit` per appearance.'
 );
 w('');
 w(
   '**Not implemented - Value Over Average (VOA).** VOA requires a substitute-model branch that re-simulates ' +
-    'each team with the hero swapped for an average stand-in. That is a second full simulation pass per hero ' +
+    'each team with the legend swapped for an average stand-in. That is a second full simulation pass per legend ' +
     'and is out of scope for this run; it remains genuinely absent rather than approximated.'
 );
 w('');
 w('**Insights**');
 w('');
 {
-  const byThreat = heroIds
+  const byThreat = legendIds
     .slice()
     .sort((a, b) => div(H(b).targeted, H(b).focusD) - div(H(a).targeted, H(a).focusD));
-  const bySnow = heroIds
+  const bySnow = legendIds
     .filter((id) => H(id).firstKills >= 20)
     .sort(
       (a, b) => div(H(b).firstKillWins, H(b).firstKills) - div(H(a).firstKillWins, H(a).firstKills)
     );
-  const byComeback = heroIds
+  const byComeback = legendIds
     .filter((id) => H(id).concededFK >= 20)
     .sort(
       (a, b) =>
         div(H(b).concededFKWins, H(b).concededFK) - div(H(a).concededFKWins, H(a).concededFK)
     );
-  const byOver = heroIds
+  const byOver = legendIds
     .filter((id) => H(id).dmg > 0)
     .sort((a, b) => div(H(b).overkill, H(b).dmg) - div(H(a).overkill, H(a).dmg));
   w(
@@ -1889,13 +1889,13 @@ w('');
     );
   if (byOver.length)
     w(
-      `- **Most overkill:** ${info(byOver[0]).name} wastes ${pct(div(H(byOver[0]).overkill, H(byOver[0]).dmg))} of his damage on already-lethal blows - a burst hero without a damage cap.`
+      `- **Most overkill:** ${info(byOver[0]).name} wastes ${pct(div(H(byOver[0]).overkill, H(byOver[0]).dmg))} of his damage on already-lethal blows - a burst legend without a damage cap.`
     );
   const romaComeback = romaIds.filter((id) => H(id).concededFK >= 20);
   if (romaComeback.length) {
     const avgR = mean(romaComeback.map((id) => div(H(id).concededFKWins, H(id).concededFK)));
     const avgAll = mean(
-      heroIds
+      legendIds
         .filter((id) => H(id).concededFK >= 20)
         .map((id) => div(H(id).concededFKWins, H(id).concededFK))
     );
@@ -1910,7 +1910,7 @@ w('');
 /* ================= CONTROL RUN ================= */
 if (C) {
   const cwr = (id) =>
-    C.heroes[id] && C.heroes[id].apps ? C.heroes[id].wins / C.heroes[id].apps : NaN;
+    C.legends[id] && C.legends[id].apps ? C.legends[id].wins / C.legends[id].apps : NaN;
   w('---');
   w('');
   w('## 13b. Control Run - Attribution');
@@ -1933,16 +1933,16 @@ if (C) {
     )
   );
   w('');
-  w('### Pre-existing heroes most affected by this build');
+  w('### Pre-existing legends most affected by this build');
   w('');
   const moved = nonRomaIds
-    .filter((id) => C.heroes[id] && C.heroes[id].apps >= 40)
+    .filter((id) => C.legends[id] && C.legends[id].apps >= 40)
     .map((id) => ({ id, d: wr(id) - cwr(id) }))
     .sort((a, b) => Math.abs(b.d) - Math.abs(a.d))
     .slice(0, 12);
   w(
     table(
-      ['Hero', 'With Roma', 'Control', 'Δ'],
+      ['Legend', 'With Roma', 'Control', 'Δ'],
       moved.map((x) => [
         info(x.id).name,
         pct(wr(x.id)),
@@ -1960,11 +1960,11 @@ if (C) {
     );
     w(
       `- **Role stability:** the largest role shift caused by adding Roma is ${n1(Math.max(...roleDelta) * 100)}pp. ` +
-        'Adding six heroes to a 39-hero roster necessarily reshuffles matchups; nothing here indicates Roma ' +
+        'Adding six legends to a 39-legend roster necessarily reshuffles matchups; nothing here indicates Roma ' +
         'broke a role band.'
     );
     const abe = 'yamato-abe-no-seimei';
-    if (C.heroes[abe]) {
+    if (C.legends[abe]) {
       w(
         `- **Abe no Seimei is a pre-existing outlier, not a Roma artifact:** ${pct(wr(abe))} in this run versus ` +
           `${pct(cwr(abe))} in the Roma-free control. He breaches the >65% flag in both, so the fix belongs to ` +
@@ -1972,7 +1972,7 @@ if (C) {
       );
     }
     const mom = 'yamato-momotaro';
-    if (C.heroes[mom]) {
+    if (C.legends[mom]) {
       w(
         `- **Momotaro and the shield fix:** ${pct(wr(mom))} here versus ${pct(cwr(mom))} in the control ` +
           '(both runs include the fix, so this pair does not isolate it). The correction removed an ' +
@@ -1981,7 +1981,7 @@ if (C) {
       );
     }
     w(
-      '- **Caveat:** the control is a smaller sample than the main run, so per-hero deltas of a few points ' +
+      '- **Caveat:** the control is a smaller sample than the main run, so per-legend deltas of a few points ' +
         'are inside noise. Role-level and flag-level conclusions are the reliable readings.'
     );
   }
@@ -1995,7 +1995,7 @@ w('## 14. Tier List');
 w('');
 w(
   'Tiers are assigned on a composite score - win rate (60%), MVP per game (25%) and kill participation ' +
-    '(15%), each normalised across the roster - so a support hero is not punished for low damage.'
+    '(15%), each normalised across the roster - so a support legend is not punished for low damage.'
 );
 w('');
 const zs = (vals) => {
@@ -2003,10 +2003,10 @@ const zs = (vals) => {
     sd = Math.sqrt(mean(vals.map((v) => (v - m) ** 2))) || 1;
   return (v) => (v - m) / sd;
 };
-const zWR = zs(heroIds.map((id) => wr(id)));
-const zMVP = zs(heroIds.map((id) => div(H(id).mvp, H(id).apps)));
-const zKP = zs(heroIds.map((id) => div(H(id).kpSum, H(id).apps)));
-const scored = heroIds
+const zWR = zs(legendIds.map((id) => wr(id)));
+const zMVP = zs(legendIds.map((id) => div(H(id).mvp, H(id).apps)));
+const zKP = zs(legendIds.map((id) => div(H(id).kpSum, H(id).apps)));
+const scored = legendIds
   .map((id) => ({
     id,
     score:
@@ -2020,7 +2020,7 @@ const TIERS = { S: [], A: [], B: [], C: [], D: [] };
 scored.forEach((x) => TIERS[tierOf(x.score)].push(x));
 w(
   table(
-    ['Tier', 'Heroes'],
+    ['Tier', 'Legends'],
     ['S', 'A', 'B', 'C', 'D'].map((t) => [
       `**${t}**`,
       TIERS[t].length
@@ -2034,7 +2034,7 @@ w('### Full ranking');
 w('');
 w(
   table(
-    ['#', 'Hero', 'Faction', 'Role', 'Tier', 'Score', 'Win Rate', 'MVP/game', 'KP'],
+    ['#', 'Legend', 'Faction', 'Role', 'Tier', 'Score', 'Win Rate', 'MVP/game', 'KP'],
     scored.map((x, i) => [
       i + 1,
       `**${info(x.id).name}**${tag(x.id)}`,
@@ -2064,11 +2064,11 @@ w('');
       .map((k) => `${counts[k]}× ${k}`)
       .join(', ')} - ` +
       (counts.S
-        ? 'it does place a hero in S tier, which is worth monitoring.'
+        ? 'it does place a legend in S tier, which is worth monitoring.'
         : 'no S-tier entry, so the faction did not arrive over-tuned.')
   );
   const facScore = {};
-  heroIds.forEach((id) => {
+  legendIds.forEach((id) => {
     const f = info(id).faction;
     (facScore[f] = facScore[f] || []).push(wr(id));
   });
@@ -2076,7 +2076,7 @@ w('');
     .map((f) => ({ f, v: mean(facScore[f]) }))
     .sort((a, b) => b.v - a.v);
   w(
-    `- **Faction ladder (mean hero win rate):** ${facRank.map((x) => `${x.f} ${pct(x.v)}`).join(' · ')}.`
+    `- **Faction ladder (mean legend win rate):** ${facRank.map((x) => `${x.f} ${pct(x.v)}`).join(' · ')}.`
   );
 }
 w('');
@@ -2088,7 +2088,7 @@ w('## 15. Lineup Analysis');
 w('');
 w(
   'The sim draws random legal sixes (max 3 per role), so "lineups" are read from the role skeletons and ' +
-    'hero pairings that actually appeared, rather than from hand-built decks.'
+    'legend pairings that actually appeared, rather than from hand-built decks.'
 );
 w('');
 w('### Best role skeletons');
@@ -2163,7 +2163,7 @@ w('');
   ROLES.forEach((r) => (roleAvg[r] = div(A.roles[r].wins, A.roles[r].apps)));
   w(
     table(
-      ['Hero', 'Role', 'Win Rate', 'Role average', 'Δ vs role', 'Sig casts/app', 'Verdict'],
+      ['Legend', 'Role', 'Win Rate', 'Role average', 'Δ vs role', 'Sig casts/app', 'Verdict'],
       romaIds
         .slice()
         .sort((a, b) => wr(b) - roleAvg[info(b).role] - (wr(a) - roleAvg[info(a).role]))
@@ -2271,7 +2271,7 @@ w('');
               ],
               [
                 'Casts per appearance',
-                n2(div(b.casts, BL.heroes[ama].apps)),
+                n2(div(b.casts, BL.legends[ama].apps)),
                 n2(div(a.casts, H(ama).apps)),
                 ' - ',
               ],
@@ -2292,9 +2292,9 @@ w('');
   w('> ### ⚠️ Sample-size warning');
   w('>');
   w(
-    `> This run is **${n0(games)} games**, giving each hero only ~40 appearances and a 95% confidence ` +
+    `> This run is **${n0(games)} games**, giving each legend only ~40 appearances and a 95% confidence ` +
       'interval of roughly **±14pp**. Against the previous 2,000-game baseline, *none* of the six ' +
-      'Duat win-rate changes reach significance (all |z| < 1.96), and several heroes flagged ' +
+      'Duat win-rate changes reach significance (all |z| < 1.96), and several legends flagged ' +
       'below are almost certainly noise. **Do not tune on these win rates.** Ability-level metrics ' +
       '(damage per cast, kills per cast) aggregate over far more events and are the trustworthy signal ' +
       'at this sample size. Re-run at 2,000 games before making another balance decision.'
@@ -2304,7 +2304,7 @@ w('');
   w('### Faction totals');
   w('');
   const facAgg = {};
-  heroIds.forEach((id) => {
+  legendIds.forEach((id) => {
     const f = info(id).faction;
     facAgg[f] = facAgg[f] || { w: 0, a: 0, n: 0 };
     facAgg[f].w += H(id).wins;
@@ -2313,7 +2313,7 @@ w('');
   });
   w(
     table(
-      ['Faction', 'Heroes', 'Appearances', 'Win Rate'],
+      ['Faction', 'Legends', 'Appearances', 'Win Rate'],
       Object.keys(facAgg)
         .sort((a, b) => div(facAgg[b].w, facAgg[b].a) - div(facAgg[a].w, facAgg[a].a))
         .map((f) => [
@@ -2334,10 +2334,10 @@ w('## 17. Roster Shape');
 w('');
 {
   const byRole = {};
-  heroIds.forEach((id) => (byRole[info(id).role] = (byRole[info(id).role] || 0) + 1));
+  legendIds.forEach((id) => (byRole[info(id).role] = (byRole[info(id).role] || 0) + 1));
   w(
     table(
-      ['Role', 'Heroes', 'Win Rate', 'Note'],
+      ['Role', 'Legends', 'Win Rate', 'Note'],
       ROLES.slice()
         .sort((a, b) => (byRole[b] || 0) - (byRole[a] || 0))
         .map((r) => {
@@ -2357,7 +2357,7 @@ w('');
     'Duat added 2 Snipers, 2 Medics and 2 Casters - deliberately no Tank, Bruiser or ' +
       'Sniper - because Caster and Controller were the thinnest and weakest roles in the previous run. ' +
       (ROLES.every((r) => (byRole[r] || 0) >= 6)
-        ? '**Every role now has 6+ heroes, so the draft-snapshot pool law is satisfiable for the first time.**'
+        ? '**Every role now has 6+ legends, so the draft-snapshot pool law is satisfiable for the first time.**'
         : 'Some roles remain below 6.')
   );
   w('');
@@ -2462,13 +2462,13 @@ w('### Comeback mechanic');
 w('');
 w(
   'First blood decided 68.9% of games. The cause was **action economy, not damage**: turns strictly ' +
-    'alternate, so a side down two heroes gets 4 actions against 6, deals 67% of the damage and takes ' +
-    '150% per surviving hero. Energy-based relief was the right instinct because it buys back *value ' +
+    'alternate, so a side down two legends gets 4 actions against 6, deals 67% of the damage and takes ' +
+    '150% per surviving legend. Energy-based relief was the right instinct because it buys back *value ' +
     'per action* without handing out extra turns.'
 );
 w('');
 w(
-  'The grant is **+15 Energy per round per hero of deficit**, recomputed every round so it fades as ' +
+  'The grant is **+15 Energy per round per legend of deficit**, recomputed every round so it fades as ' +
     'the deficit closes and vanishes on a tie. Tuned empirically over 1,200-game runs:'
 );
 w('');
@@ -2477,9 +2477,9 @@ w(
     ['Grant', 'First-kill conversion', 'Note'],
     [
       ['0 (control)', '68.8%', 'the original problem'],
-      ['+10/hero', '65.3%', 'first attempt - short of target'],
-      ['**+15/hero**', '**63.2%**', '**chosen**'],
-      ['+20/hero', '62.7%', 'diminishing; P1 drifts to 51.3%'],
+      ['+10/legend', '65.3%', 'first attempt - short of target'],
+      ['**+15/legend**', '**63.2%**', '**chosen**'],
+      ['+20/legend', '62.7%', 'diminishing; P1 drifts to 51.3%'],
     ]
   )
 );
@@ -2487,7 +2487,7 @@ w('');
 w(
   `Final measured value over ${n0(games)} games: **${pct(div(A.fkConverted, A.fkDecisiveGames))}**. ` +
     'That is short of the 60% goal. The curve flattens hard past +15 - the remaining 3 - 4pp is not ' +
-    'purchasable with energy, because energy cannot buy back the *actions* a dead hero would have ' +
+    'purchasable with energy, because energy cannot buy back the *actions* a dead legend would have ' +
     'taken. Closing the rest needs a different lever (a softer round-6 ATK ramp, or reviving), and I ' +
     'would rather report the honest ceiling than overtune the economy chasing it.'
 );
@@ -2514,34 +2514,34 @@ w(
 w('');
 {
   const BF = [
-    ['The Narrow Pass', 'Only front-row heroes may use Basics', 'Tanks/Bruisers up, Snipers down'],
+    ['The Narrow Pass', 'Only front-row legends may use Basics', 'Tanks/Bruisers up, Snipers down'],
     [
       'The Open Plains',
       'Back row +15% ATK, front row -15% DEF',
       'Snipers/Casters up, turtling down',
     ],
     ['The Mana Spring', '+20 Energy/round, cap 150 → 170', 'Expensive legendaries up'],
-    ['The Energy Void', '-10 Energy/round, costs unchanged', 'Cheap efficient heroes up'],
+    ['The Energy Void', '-10 Energy/round, costs unchanged', 'Cheap efficient legends up'],
     ['The Colosseum', 'No modifiers', 'The neutral benchmark - used for all simulation'],
     [
       'The Mirror Realm',
       'First ability each round echoes at 50%, free',
-      'Ability-centric heroes up',
+      'Ability-centric legends up',
     ],
     [
       'The Spirit World',
-      'A fallen hero gives their team +15 Energy',
+      'A fallen legend gives their team +15 Energy',
       'Comeback and sacrifice lines',
     ],
     ['The Ancient Ruins', 'A random relic fires each round (8-entry pool)', 'Flexible teams up'],
-    ["The Hero's Trial", 'Costliest signature per side: +30% HP, +20% ATK', 'Hypercarry archetype'],
+    ["The Legend's Trial", 'Costliest signature per side: +30% HP, +20% ATK', 'Hypercarry archetype'],
     ['The Blood Battlefield', 'Below 50% HP: +25% ATK', 'Bruisers up, burst less reliable'],
   ];
   w(table(['Battlefield', 'Effect', 'Draft impact'], BF));
 }
 w('');
 w(
-  '**Why the sim is Colosseum-only.** Terrain would confound hero win rates - Snipers would look ' +
+  '**Why the sim is Colosseum-only.** Terrain would confound legend win rates - Snipers would look ' +
     'strong purely because Open Plains rolled often. Pinning every simulated game to the neutral field ' +
     'keeps this report comparable with every previous balance pass. Measuring a specific field is a ' +
     'deliberate, separate exercise: `node sim/run_parallel.js --games N --field open-plains`.'
@@ -2601,7 +2601,7 @@ w(
 );
 w('');
 w(
-  '1. `data/duat.js` - new 6-hero faction (Duat, The Scales): Anubis, ' +
+  '1. `data/duat.js` - new 6-legend faction (Duat, The Scales): Anubis, ' +
     'Tsukuyomi, Izanami, Inari, Izanagi, Susanoo. Built from existing keywords only - no faction-private ' +
     'mechanic.'
 );

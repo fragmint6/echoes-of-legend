@@ -773,6 +773,13 @@
     return window.EOL.auth && window.EOL.auth.user ? window.EOL.auth.user() : null;
   }
 
+  /* May THIS build take a generation lease and publish the shared board?
+     Only builds with real accounts may: see maybeForgeShared. */
+  function canForgeDaily() {
+    var p = window.EOL.platform;
+    return !p || p.canForgeDaily !== false;
+  }
+
   function delay(ms) {
     return new Promise(function (resolve) {
       setTimeout(resolve, ms);
@@ -925,6 +932,13 @@
   function maybeForgeShared(recover, visible) {
     if (generationPromise) return generationPromise;
     if (!signedInUser()) return Promise.resolve(false);
+    /* PORTAL BUILDS NEVER FORGE. The CrazyGames build signs in
+       anonymously so the shared board and the two-attempt ledger keep
+       working - but an anonymous session satisfies signedInUser(), which
+       would let portal tabs win the 6:55 lease and generate the puzzle
+       THE WHOLE PLAYERBASE receives. They consume the Daily; they do not
+       produce it. */
+    if (!canForgeDaily()) return Promise.resolve(false);
     if (!recover && !idleForBackgroundForge()) return Promise.resolve(false);
     var client = supabaseClient();
     if (!client) return Promise.resolve(false);
@@ -969,6 +983,8 @@
   function armGenerationClock() {
     if (generationTimer) clearTimeout(generationTimer);
     if (!signedInUser()) return;
+    /* No lease, no need for the 6:55 alarm either (maybeForgeShared). */
+    if (!canForgeDaily()) return;
 
     var now = Date.now();
     var next = null;
@@ -1060,7 +1076,16 @@
         : MAX_DAILY_ATTEMPTS - used;
     if (!isFinite(remaining)) remaining = MAX_DAILY_ATTEMPTS - used;
     remaining = Math.max(0, Math.min(MAX_DAILY_ATTEMPTS, Math.floor(remaining)));
-    return { used: used, remaining: remaining };
+    /* SOLVING IT ENDS THE DAY. The second attempt exists to give a
+       player who lost another crack at the same shared position - it
+       was never a replay token for a puzzle already beaten. A solver
+       who spends it can only match their own result, and a leaderboard
+       that counts "solved in N rounds" would quietly reward whoever
+       burned a redundant attempt to shave a round off. Once won, the
+       day is closed. The database enforces the same rule (migration
+       10); this keeps the UI honest even against a stale status row. */
+    if (row && row.won) remaining = 0;
+    return { used: used, remaining: remaining, won: !!(row && row.won) };
   }
 
   function showOfficialStatus(row) {
@@ -1069,22 +1094,30 @@
     if (modal) modal.classList.add('ready');
     var count = attemptCounts(row);
     setDailyStatus(
-      count.remaining > 0
-        ? 'Ready · ' + count.remaining + ' attempt' + (count.remaining === 1 ? '' : 's') + ' remaining'
-        : 'Both attempts have been used'
+      count.won
+        ? 'Solved · come back at the next reset'
+        : count.remaining > 0
+          ? 'Ready · ' +
+            count.remaining +
+            ' attempt' +
+            (count.remaining === 1 ? '' : 's') +
+            ' remaining'
+          : 'Both attempts have been used'
     );
     if ($('daily-fine')) $('daily-fine').textContent = 'Resets every day at 7:00 AM Eastern Time';
 
     var enter = $('daily-enter');
     if (count.remaining <= 0) {
       if ($('daily-title'))
-        $('daily-title').textContent = row.won ? 'Puzzle solved' : 'Both attempts spent';
+        $('daily-title').textContent = count.won ? 'Puzzle solved' : 'Both attempts spent';
       if ($('daily-copy')) {
-        $('daily-copy').textContent = row.finished
-          ? row.won
-            ? 'You found today’s winning line. A new shared position arrives at the next reset.'
-            : 'Both lines are closed. A new shared position arrives at the next reset.'
-          : 'Both attempts were claimed when their battles opened and cannot be replayed today.';
+        $('daily-copy').textContent = count.won
+          ? count.used === 1
+            ? 'You solved today’s position on your first attempt. A new shared position arrives at the next reset.'
+            : 'You found today’s winning line. A new shared position arrives at the next reset.'
+          : row.finished
+            ? 'Both lines are closed. A new shared position arrives at the next reset.'
+            : 'Both attempts were claimed when their battles opened and cannot be replayed today.';
       }
       if (enter) enter.hidden = true;
       return;
@@ -1092,19 +1125,13 @@
 
     if ($('daily-title')) {
       $('daily-title').textContent =
-        count.used === 0
-          ? 'Today’s position awaits'
-          : row.won
-            ? 'Puzzle solved · replay available'
-            : 'Second attempt awaits';
+        count.used === 0 ? 'Today’s position awaits' : 'Second attempt awaits';
     }
     if ($('daily-copy')) {
       $('daily-copy').textContent =
         count.used === 0
           ? 'Everyone receives this exact board and this exact future luck. Opening the battle consumes the first of your two attempts.'
-          : row.won
-            ? 'You found the winning line and still have one official replay available on the same position.'
-            : 'Your first attempt is spent. Opening the battle again consumes your final attempt on the same shared position.';
+          : 'Your first attempt is spent. Opening the battle again consumes your final attempt on the same shared position.';
     }
     if (enter) {
       enter.hidden = false;
@@ -1261,6 +1288,14 @@
   function onResult(win, B) {
     if (!B || !B.puzzle) return null;
     activePuzzle = true;
+    /* Quest metric `dailyPuzzle` - the one objective that cannot be
+       farmed at all, because the server grants two attempts per reset
+       and a win closes the day. Counted per completed attempt, win or
+       lose, so a hard board is not a wasted quest. */
+    if (window.EOL.quests && !B.puzzle._questCounted) {
+      B.puzzle._questCounted = true;
+      window.EOL.quests.record('dailyPuzzle', 1);
+    }
     if (B.puzzle.official && B.puzzle.id && !B.puzzle._reported) {
       B.puzzle._reported = true;
       var client = supabaseClient();
@@ -1281,8 +1316,9 @@
       puzzle: true,
       title: win ? 'Puzzle Solved' : 'Line Broken',
       sub: win
-        ? B.puzzle.official && (B.puzzle.attemptNo || 1) < MAX_DAILY_ATTEMPTS
-          ? 'You found the winning line. One official replay remains on today’s position.'
+        ? B.puzzle.official
+          ? /* A win closes the day - there is no replay to offer. */
+            'You found the winning line. A new position arrives at 7:00 AM Eastern.'
           : 'You turned a losing story into a victory.'
         : B.puzzle.official
           ? (B.puzzle.attemptNo || 1) < MAX_DAILY_ATTEMPTS

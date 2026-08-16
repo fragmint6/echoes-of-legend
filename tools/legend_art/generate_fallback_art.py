@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 from pathlib import Path
 import hashlib, math, random
 
-OUT = Path('/home/user/assets/heroes')
+OUT = Path('/home/user/assets/legends')
 OUT.mkdir(parents=True, exist_ok=True)
 W, H = 160, 220
 SCALE = 4
@@ -120,7 +120,7 @@ ROSTER = [
     ('yamato-tomoe-gozen','Yamato','Tomoe Gozen','rare','Sniper','Physical','unflinching onna-musha archer','red and gold lamellar over dark kimono','high-hair-yumi'),
     ('yamato-benkei','Yamato','Benkei','common','Tank','Physical','immovable warrior monk','plain dark robes over simple armour','shaved-naginata'),
     ('yamato-abe-no-seimei','Yamato','Abe no Seimei','legendary','Controller','Magic','serene onmyoji','white silk kariginu with intricate seal pattern','eboshi-shikigami'),
-    ('yamato-momotaro','Yamato','Momotaro','epic','Tank','Physical','confident peach boy hero','simple armour over peach-pink haori and headband','banner-feather'),
+    ('yamato-momotaro','Yamato','Momotaro','epic','Tank','Physical','confident peach boy legend','simple armour over peach-pink haori and headband','banner-feather'),
     ('yamato-kaguya','Yamato','Kaguya','epic','Caster','Magic','ethereal moon princess','twelve-layered white and silver junihitoe','moon-longhair'),
     ('huaxia-qin-shi-huang','Huaxia','Qin Shi Huang','legendary','Caster','Magic','severe first emperor','black and gold imperial robes with dense ornament','mianguan-beads'),
     ('huaxia-lu-bu','Huaxia','Lu Bu','rare','Bruiser','Physical','arrogant peerless warrior','red and gold scale armour with tall headdress','pheasant-plumes'),
@@ -560,7 +560,7 @@ def draw_head_feature(d,cx,cy,feature,meta,rng,small=False):
             for j in range(3): line(d,[(cx+side*(22+j*5),cy+14+j*12),(cx+side*(39+j*3),cy+31+j*10)],shade(col,.2),1)
     if feature=='raven-smoke':
         poly(d,[(cx+18,cy+18),(cx+35,cy+6),(cx+43,cy+14),(cx+29,cy+24),(cx+46,cy+30),(cx+27,cy+31)],'#282033',None,0)
-    # generic facial scars/marks for specific heroes
+    # generic facial scars/marks for specific legends
     if name in ['Ares','Will Scarlet','Spartacus','Lu Bu','Huang Zhong']:
         line(d,[(cx+5,cy-10),(cx+11,cy+4)],'#6d3538',1)
     if name in ['Horus']:
@@ -568,7 +568,7 @@ def draw_head_feature(d,cx,cy,feature,meta,rng,small=False):
 
 
 def draw_costume(d,cx,head_y,meta,rng):
-    hero_id,faction,name,rarity,role,element,identity,costume,feature=meta
+    legend_id,faction,name,rarity,role,element,identity,costume,feature=meta
     body,accent,shadow,hi=outfit_colors(faction,name,rng)
     # body silhouette and garment
     sw={'Tank':43,'Bruiser':38,'Caster':34,'Controller':33,'Medic':32,'Sniper':31}[role]
@@ -723,9 +723,9 @@ def draw_weapons_and_specials(d,cx,head_y,meta,rng):
     if feat in ('feathered-wings','folded-wings'): pass
 
 
-def draw_hero(meta):
-    hero_id,faction,name,rarity,role,element,identity,costume,feature=meta
-    rng=seeded(hero_id)
+def draw_legend(meta):
+    legend_id,faction,name,rarity,role,element,identity,costume,feature=meta
+    rng=seeded(legend_id)
     im=Image.new('RGB',(W,H),rgb(FACTIONS[faction]['sky'][1]))
     d=background(im,faction,rng)
     cx=80+rng.randrange(-4,5); head_y=56+rng.randrange(-2,3)
@@ -778,13 +778,13 @@ def draw_hero(meta):
 def main():
     created=[]
     for meta in ROSTER:
-        hero_id=meta[0]
-        p=OUT/(hero_id+'.jpg')
+        legend_id=meta[0]
+        p=OUT/(legend_id+'.jpg')
         if p.exists():
             continue
-        im=draw_hero(meta)
+        im=draw_legend(meta)
         im.save(p,'JPEG',quality=85,optimize=True,progressive=True,subsampling=2)
-        created.append((hero_id,p.stat().st_size))
+        created.append((legend_id,p.stat().st_size))
     print(f'Created {len(created)} fallback assets')
     for item in created: print(item[0],item[1])
 

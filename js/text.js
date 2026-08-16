@@ -261,6 +261,28 @@
       color: '#8fe3b0',
       desc: 'Decreases Energy cost of abilities for this team.',
     },
+    /* A SEALED FATE THAT HAS NOT LANDED YET.
+       Abe no Seimei's shikigami is the roster's only `delayed` effect:
+       it sits on the target and strikes at the end of the round. It
+       was completely invisible - no chip, no clock - so from the
+       receiving side a legend simply took a second, unexplained hit
+       after the turn was over, and there was nothing to play around.
+       Being telegraphed is the whole point of the card (see the
+       rework note in data/yamato.js), and it could not telegraph
+       anything without a marker. */
+    shikigami: {
+      /* ra-quill-ink: a shikigami is an inked paper charm, and this is
+         the one glyph in the font that reads as writing-as-magic.
+         Checked against the real RPG-Awesome 0.2.0 stylesheet - the
+         obvious 'ra-paper-lantern' does NOT exist in the font and
+         would have rendered an empty box. It is also unused elsewhere
+         in the game, which the glyph law above requires. */
+      icon: 'ra-quill-ink',
+      kind: 'debuff',
+      label: 'Shikigami Sealed',
+      color: '#c7a3ff',
+      desc: 'A paper servant strikes this legend at the end of the round. Killing the caster first stops it.',
+    },
   };
 
   /* Collapse a unit's live state into a de-duplicated icon list.
@@ -337,6 +359,14 @@
     }
     // Mark has no duration (it lasts until damaged), so no turn count
     if (u.flags && u.flags.marked > 0) push('marked', null, 1);
+    /* Delayed effects waiting on this unit. Each carries its own tag,
+       so a future delayed card gets its own chip by registering one
+       above rather than by touching this loop. The clock is the real
+       `turns` left on the prophecy, which is what makes it playable
+       around: kill Abe no Seimei before it ticks and it never lands. */
+    (u.pending || []).forEach(function (p) {
+      if (p && p.tag && window.EOL.STATUS[p.tag]) push(p.tag, p.turns, 1);
+    });
     (u.costMods || []).forEach(function (m) {
       var up = (m.flat || 0) > 0 || (m.pct || 0) > 0;
       push(up ? 'costup' : 'costdown', m.turns, 1);

@@ -297,6 +297,13 @@ EOL.factions.forEach(function (f) {
   var exempt = {
     'eol.deck.v1': true, // legacy key, read-and-migrated only
     'eol.cloud.restored': true, // sessionStorage marker, per-boot
+    /* The data-notice acknowledgement is a per-DEVICE disclosure
+       record, not progress. Syncing it would mean a player who
+       acknowledged the notice on one machine is never shown it on the
+       next one - the opposite of what the requirement asks for - and
+       it would not sync on the portal build anyway, where the Supabase
+       vault is off by design. Losing it costs the player one dismissal. */
+    'eol.policy.seen': true,
   };
   var missing = [];
   ['app.js', 'campaign.js', 'deck.js', 'economy.js', 'play.js', 'shop.js', 'battle.js'].forEach(
@@ -810,7 +817,7 @@ var bossSix = ['campaign-gilgamesh', 'duat-anubis', 'duat-maat', 'duat-sekhmet',
     return dict[id];
   }
 );
-var heroSix = [
+var legendSix = [
   'grimmwood-hansel-gretel',
   'grimmwood-big-bad-wolf',
   'grimmwood-evil-queen',
@@ -844,7 +851,7 @@ function mulberryBoss(seed) {
   };
 }
 try {
-  var B = E.createBattle(heroSix, E.optimizeFormation(bossSix), {
+  var B = E.createBattle(legendSix, E.optimizeFormation(bossSix), {
     roleAware: false,
     field: EOL.battlefieldById('heros-trial'),
     rng: mulberryBoss(7),

@@ -14,29 +14,33 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 
 ## TL;DR
 
-| I just changed... | Run | Time |
-| --- | --- | --- |
-| A card's numbers or a new card | `verify_all` + `verify_preview` + `verify_stacks` | ~26s |
-| Multiplayer / netcode / match flow | `browser_mp_lifecycle` | ~15s |
-| Battlefields or energy | `verify_all` + `verify_fields` | ~50s |
-| Buffs, debuffs, comeback | `verify_all` + `verify_buffs` | ~47s |
-| `js/engine.js` (anything) | `verify_all` + `fields` + `buffs` + `mirror` | ~2m |
-| UI / CSS / `js/play.js` | `browser_solo` + `browser_panel` | ~60s |
-| Icon markup or icon choices | `node tools/audit_icons.js` | <1s |
-| Battlefield scenes / animation | `browser_loops` | ~45s |
-| Multiplayer or netcode | `mirror` + `browser_mp_match` + `browser_desync` | ~20m |
-| Supabase settings | `preflight` | ~5s |
-| Shop codes / redemption SQL | `node sim/verify_code_redemption.js` | <1s |
-| Measurement / feedback | `node sim/verify_telemetry.js` | <1s |
-| Daily attempts / mode carousel | `node sim/verify_daily_ui.js` | <1s |
-| Daily Puzzle generation / serialization | `generate_daily_puzzle --dry-run` | ~5-60s |
-| About to deploy | see [Before you deploy](#before-you-deploy) | ~3m |
+| I just changed...                              | Run                                               | Time   |
+| ---------------------------------------------- | ------------------------------------------------- | ------ |
+| A card's numbers or a new card                 | `verify_all` + `verify_preview` + `verify_stacks` | ~26s   |
+| Multiplayer / netcode / match flow             | `browser_mp_lifecycle`                            | ~15s   |
+| Battlefields or energy                         | `verify_all` + `verify_fields`                    | ~50s   |
+| Buffs, debuffs, comeback                       | `verify_all` + `verify_buffs`                     | ~47s   |
+| `js/engine.js` (anything)                      | `verify_all` + `fields` + `buffs` + `mirror`      | ~2m    |
+| UI / CSS / `js/play.js`                        | `browser_solo` + `browser_panel`                  | ~60s   |
+| Icon markup or icon choices                    | `node tools/audit_icons.js`                       | <1s    |
+| Battlefield scenes / animation                 | `browser_loops`                                   | ~45s   |
+| Multiplayer or netcode                         | `mirror` + `browser_mp_match` + `browser_desync`  | ~20m   |
+| Supabase settings                              | `preflight`                                       | ~5s    |
+| Shop codes / redemption SQL                    | `node sim/verify_code_redemption.js`              | <1s    |
+| Measurement / feedback                         | `node sim/verify_telemetry.js`                    | <1s    |
+| Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
+| Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |
+| Cloud saves, sign-in/sign-out, save collisions | `node sim/verify_save_ownership.js`               | <2s    |
+| CrazyGames SDK / gameplay timing               | `node sim/verify_crazygames_sdk.js`               | <2s    |
+| CrazyGames accounts / portal multiplayer       | `node sim/verify_cg_accounts.js`                  | ~7s    |
+| Daily Puzzle generation / serialization        | `generate_daily_puzzle --dry-run`                 | ~5-60s |
+| About to deploy                                | see [Before you deploy](#before-you-deploy)       | ~3m    |
 
 ---
 
 ## The playtesting loop
 
-**This is the common case.** You are tuning numbers, adding a hero, or
+**This is the common case.** You are tuning numbers, adding a legend, or
 trying a new Skill.
 
 ```bash
@@ -57,7 +61,7 @@ It catches, per card:
 - printed text only uses defined status words
 - the Skill's actual engine outcome matches its printed text
 - soak games asserting no negative HP, no double actions, no effects
-  from dead heroes
+  from dead legends
 
 Then, when the numbers feel right, measure them:
 
@@ -77,11 +81,13 @@ Reads `sim/results.json`, writes `sim/results.md`.
 ## What each file is for
 
 ### `verify_all.js` - 1,492 assertions, ~25s
+
 **The one that matters.** Whole-roster audit in three layers: static
 (schema, bands, icons, keyword legality), dynamic (cast each Skill and
 check the real outcome), soak (AI-vs-AI invariants). Run it constantly.
 
 ### `verify_preview.js` - ~1s
+
 Hovering a Skill highlights who it will hit; that highlight must not
 lie. Zeus lights up all six enemies, but if any are Marked he strikes
 only those - so the preview used to promise five victims it would
@@ -94,15 +100,18 @@ produced. Generic, so a new card that narrows its targets is covered
 without a new test. Effectively free to run; run it with `verify_all`.
 
 ### `verify_fields.js` - 111 assertions, ~25s
+
 The nine battlefields and energy carryover. Only run it if you touched
 `data/battlefields.js`, energy, or the round rollover. Card changes
 cannot break it.
 
 ### `verify_buffs.js` - 43 assertions, ~21s
+
 Buff/debuff economy and the comeback grant. Run it if you touched
-buffs, debuffs, `COMEBACK_PER_HERO`, or stat modifiers.
+buffs, debuffs, `COMEBACK_PER_LEGEND`, or stat modifiers.
 
 ### `verify_mirror.js` - ~24s per 60 games
+
 Proves the engine is **perspective-symmetric**: mirrored inputs must
 produce mirrored outputs. This is what makes two-machine multiplayer
 safe, and it found both real desync bugs (unstable target sorting;
@@ -119,6 +128,7 @@ node sim/verify_mirror.js --games 500     # before shipping engine work
 ```
 
 ### `tools/audit_icons.js` - <1s
+
 Enforces the boundary in [the icon system](icon-system.md): Remix Icon for interface chrome and RPG Awesome only for explicitly marked game-domain concepts. It also rejects Remix class names outside the pinned 4.5.0 catalog.
 
 ```bash
@@ -126,17 +136,20 @@ node tools/audit_icons.js
 ```
 
 ### `browser_solo.js` - ~45s, needs browser
+
 Full singleplayer run in a real browser with **no backend configured**:
 draft, bans, formation, battle. Fails on any console error. This is
 your UI regression test.
 
 ### `browser_mp_match.js` - ~18m, needs browser
+
 Two headless browsers play a **complete match** against each other,
 comparing a board checksum after every action. Thorough and slow. Run
 it when you change netcode, or before a release - not in a loop.
 
 ### `browser_panel.js` - ~13s, needs browser + a local server
-Guards the hero panel's *rendered geometry*, which no source-level
+
+Guards the legend panel's _rendered geometry_, which no source-level
 test can see. Two real bugs live here:
 
 - **Clipped Skill names.** `fitAbilityNames` used to predict the width
@@ -157,6 +170,7 @@ node sim/browser_panel.js
 Run it after any change to the panel, the ability rows, or their CSS.
 
 ### `browser_loops.js` - ~45s, needs browser + a local server
+
 Every battlefield background loops forever, so it must arrive back
 exactly where it started or the restart shows as a visible snap. Found
 three real offenders: the Energy Void gradient ended at 0.9 opacity
@@ -174,6 +188,7 @@ node sim/browser_loops.js
 ```
 
 ### `browser_mp_lifecycle.js` - ~15s, needs browser + a local server
+
 Forfeit and the 30s turn clock, driven through two real clients. Two
 players can stall or rage-quit; the bot never could, so none of this
 existed before multiplayer.
@@ -184,12 +199,14 @@ node sim/browser_mp_lifecycle.js
 ```
 
 ### `verify_stacks.js` - ~1s
+
 "Max: 4 stacks" must mean four for the WHOLE BATTLE. It used to count
 only buffs currently held, which with a 2-round buff is barely a cap -
 Red Riding Hood reached a **13,000 shield** in a live match. Run it if
 you touch `addBuff`, `stackTag`, or any passive that stacks.
 
 ### `browser_quit_guard.js` - ~20s, needs browser + a local server
+
 Leaving a ranked match forfeits it, so the exit is guarded - and the
 guard must stay silent everywhere else. A warning that fires on every
 page close gets ignored and protects nothing, so "does not nag" is
@@ -201,11 +218,13 @@ node sim/browser_quit_guard.js
 ```
 
 ### `browser_desync.js` - ~2s, needs browser
+
 Proves the desync guard actually fires (a guard that never fires is
 worse than none). Fast enough to run any time you touch
 `js/netplay.js`.
 
 ### `preflight.js` - ~5s
+
 Interrogates your **live** Supabase project: tables, `try_match()`, the
 Daily Puzzle gate, RLS, sign-in settings, and a real Realtime Broadcast
 round trip. Run after any dashboard change. Migration 04 must be installed
@@ -216,17 +235,20 @@ single-user shop codes require migration 08; `verify_code_redemption.js`
 audits that SQL before it is applied.
 
 ### `verify_code_redemption.js` - <1s
+
 Exercises signed-in RPC claims, same-account replay rejection, the global
 single-user loser path, public-code fallback, private-table permissions, and
 the locked migration-08 claim contract.
 
 ### `verify_daily_ui.js` - <1s
+
 Exercises the fresh, one-used, and exhausted two-attempt states against a
 small dependency-free DOM. It also audits migration 07's numbered primary
 key, 1–2 check constraint, concurrent-claim lock, and third-claim rejection,
 then verifies the solo/multiplayer carousel and Guild Battles placeholder.
 
 ### `generate_daily_puzzle.js --dry-run` - ~5-60s
+
 Runs the same depth-4 worker used by the scheduled Daily Puzzle job,
 serializes its rounds 5-8 checkpoint, deserializes it, and requires an
 exact second serialization before succeeding. A dry run never contacts
@@ -241,9 +263,10 @@ never contacts Supabase; official staging is performed by the leased browser
 Web Worker through migration 04's authenticated RPC.
 
 ### `full.js` - the balance command, ~40 min
+
 Not a test - it asserts nothing. **This is the one command for a
 balance check.** Three passes (random+bans, draft+bans, forced
-inclusion per hero), four metrics per hero, Wilson confidence
+inclusion per legend), four metrics per legend, Wilson confidence
 intervals throughout.
 
 ```bash
@@ -255,11 +278,12 @@ Read section 0 of `sim/full.md` first. See
 **[SIM-METHODOLOGY.md](SIM-METHODOLOGY.md)**.
 
 ### `sim.js` / `run_parallel.js` / `report.js`
+
 The individual pieces `full.js` drives. Use them directly only for a
 specific comparison, such as depth 2 against depth 4 on a fixed seed.
 
 They now take `--teams random|draft|pairs` and `--depth N`, which exist
-because random draw cannot measure combos: the 63-hero roster has 1,953
+because random draw cannot measure combos: the 63-legend roster has 1,953
 possible pairs and a 1,200-game run gives the best-covered one just a
 few dozen games. See **[SIM-METHODOLOGY.md](SIM-METHODOLOGY.md)** for what each
 mode answers and how to read a disagreement between them.
@@ -273,19 +297,19 @@ useful assertions were **ported into `verify_all.js` first**, not
 thrown away.
 
 It was frozen in time: it deliberately loaded only a **7-faction
-subset** and asserted `7 factions total` / `45 heroes total`. You have
-**9 factions and (now) 63 heroes**. It passed only because it never
+subset** and asserted `7 factions total` / `45 legends total`. You have
+**9 factions and (now) 63 legends**. It passed only because it never
 loaded `takamagahara.js` or `duat.js` - so it would have kept showing a green
 tick no matter what broke in the two newest factions. A test that
 cannot fail is worse than no test.
 
 Most of what it did (stat bands, icon uniqueness, text keyword
-legality) `verify_all` already does across the *whole* roster. Four of
-the six Roma heroes also already had behaviour probes there.
+legality) `verify_all` already does across the _whole_ roster. Four of
+the six Roma legends also already had behaviour probes there.
 
 The genuine gap was **Spartacus and Augustus** - death-triggered
 passives, which the `PROBES` table cannot reach because it only casts
-a hero's own signature. Those are now a dedicated
+a legend's own signature. Those are now a dedicated
 `D. DEATH-TRIGGERED PASSIVES` section in `verify_all.js`, written
 against the live roster:
 
@@ -302,11 +326,13 @@ genuinely bite rather than passing vacuously.
 ## Recipes
 
 ### While playtesting cards
+
 ```bash
 node sim/verify_all.js && node sim/verify_preview.js
 ```
 
 ### After engine changes
+
 ```bash
 node sim/verify_all.js && \
 node sim/verify_preview.js && \
@@ -314,14 +340,17 @@ node sim/verify_fields.js && \
 node sim/verify_buffs.js && \
 node sim/verify_mirror.js --games 60
 ```
+
 ~2 minutes.
 
 ### After UI changes
+
 ```bash
 node sim/browser_solo.js
 ```
 
 ### After netcode changes
+
 ```bash
 node sim/verify_mirror.js --games 200 && \
 node sim/browser_desync.js && \
@@ -329,6 +358,7 @@ node sim/browser_mp_match.js
 ```
 
 ### Before you deploy
+
 ```bash
 node sim/verify_all.js && \
 node sim/verify_preview.js && \
@@ -339,10 +369,12 @@ node sim/browser_solo.js && \
 node sim/browser_desync.js && \
 node sim/preflight.js
 ```
+
 ~3 minutes. Skips `browser_mp_match` (18m) - run that separately if you
 touched multiplayer.
 
 ### Everything
+
 Add `node sim/browser_mp_match.js` to the above. ~21 minutes.
 
 ---

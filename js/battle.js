@@ -275,9 +275,9 @@
      team building
      -------------------------------------------------------------
      With a player deck (6 card ids from the deck builder): the player
-     fields exactly those heroes, and the enemy draws 6 distinct random
-     heroes from the remaining pool. Without a deck, both sides are
-     random - 12 distinct heroes split 6v6, as before. */
+     fields exactly those legends, and the enemy draws 6 distinct random
+     legends from the remaining pool. Without a deck, both sides are
+     random - 12 distinct legends split 6v6, as before. */
   var playerDeck = null; // card ids of the last deck used (for rematch)
 
   function flatten() {
@@ -469,7 +469,7 @@
   /* ---------------------------------------------------------
      rendering
      --------------------------------------------------------- */
-  /* `deadView` renders the hero as a corpse regardless of engine state.
+  /* `deadView` renders the legend as a corpse regardless of engine state.
      A revive resolves synchronously in the engine, so without this the
      card would already show its restored HP and new buffs while the
      death/resurrection is still playing out on screen. */
@@ -570,9 +570,34 @@
         ? '<span class="bbar-shield" style="width:' + shieldPct + '%"></span>'
         : '') +
       '</span>' +
+      /* The number shown is HP + SHIELD (what you must chew through),
+         but every HP-percentage condition in the game tests RAW HP. A
+         shielded legend can therefore read as "half health" while the
+         engine sees them near death. The title spells out the split so
+         the difference is inspectable rather than a trap. */
       '<span class="bhp-txt' +
       (!deadView && u.shield > 0 ? ' shielded' : '') +
-      '">' +
+      '"' +
+      (deadView
+        ? ''
+        : ' title="' +
+          esc(
+            u.shield > 0
+              ? Math.ceil(u.hp).toLocaleString() +
+                ' HP + ' +
+                Math.ceil(u.shield).toLocaleString() +
+                ' shield (' +
+                Math.round((u.hp / u.maxHp) * 100) +
+                '% HP - shields do not count toward HP conditions)'
+              : Math.ceil(u.hp).toLocaleString() +
+                ' / ' +
+                Math.ceil(u.maxHp).toLocaleString() +
+                ' HP (' +
+                Math.round((u.hp / u.maxHp) * 100) +
+                '%)'
+          ) +
+          '"') +
+      '>' +
       (deadView ? '0' : Math.ceil(u.hp + u.shield).toLocaleString()) +
       '</span>' +
       '</div>' +
@@ -647,10 +672,10 @@
   /* WHY IS THIS CARD DEAD IN THE WATER?
      -------------------------------------------------------------
      Outside playtest (2026-08-09): on the Narrow Pass, a back-row
-     hero in round 1 had its Basic blocked by the terrain AND its
+     legend in round 1 had its Basic blocked by the terrain AND its
      signature blocked by the phase - a full lockout with a full
      energy bar, and nothing said why. Two rules, both taught, whose
-     INTERSECTION nobody taught. When a living, unacted hero of yours
+     INTERSECTION nobody taught. When a living, unacted legend of yours
      has no legal action on your turn, the card itself now says why -
      shortest true words, worst offender first. */
   function unitLockMsg(u) {
@@ -662,8 +687,7 @@
     var abs = [basic, sig].filter(Boolean);
     if (!abs.length) return '';
     var usable = abs.some(function (a) {
-      var n = E.pickCount(a);
-      return E.canUse(B, u, a) && (n === 0 || E.legalTargets(B, u, a).length >= n);
+      return E.usableNow(B, u, a);
     });
     if (usable) return '';
     if (u.flags.silence > 0) return 'Silenced - loses this turn';
@@ -674,8 +698,7 @@
       if (B.field && B.field.basicsFrontRowOnly && a.basic && !E.isFront(u))
         return 'back row: no Basics on this arena';
       if (B.energy.player < E.costOf(B, u, a)) return 'not enough Energy';
-      var n = E.pickCount(a);
-      if (n > 0 && E.legalTargets(B, u, a).length < n) return 'no legal targets';
+      if (!E.usableNow(B, u, a, { ignoreEnergy: true })) return 'no legal targets';
       return null;
     };
     var rb = why(basic);
@@ -818,7 +841,7 @@
           return;
         }
 
-        // a hero whose resurrection hasn't lit yet still reads as a corpse
+        // a legend whose resurrection hasn't lit yet still reads as a corpse
         var vdead = !u.alive || isDownForRevive(u.uid);
         cell.className =
           'bcell-wrap ' + side + (vdead ? ' dead' : '') + (E.isFront(u) ? ' front' : ' back');
@@ -841,7 +864,7 @@
           if (E.isFront(u)) inner.classList.add('front');
           else inner.classList.add('back');
         }
-        /* A fallen hero stays READABLE: hovering still opens its panel
+        /* A fallen legend stays READABLE: hovering still opens its panel
            (buffs, causes of death, the flyout), it just can never be
            selected - onCardClick treats it as strictly view-only. */
         var hit = inner;
@@ -1010,12 +1033,12 @@
   }
 
   /* ---------------------------------------------------------
-     Per-hero name fitting
+     Per-legend name fitting
      -------------------------------------------------------------
      Names range from "Zeus" to "Rumpelstiltskin", so one font size
      can't serve both: the long ones were clipped by the card border.
      Each name is measured against its own card and given its own size,
-     so every hero's name fills the available width as fully as it can
+     so every legend's name fills the available width as fully as it can
      without overflowing.
 
      Measurement is done on a shared off-screen canvas rather than by
@@ -1159,7 +1182,7 @@
       if (!text) return;
 
       /* Start from the full size every time. Without this the element
-         keeps a smaller size left over from a previous, longer hero
+         keeps a smaller size left over from a previous, longer legend
          and short names render needlessly shrunken. */
       el.style.fontSize = MAX_AB_PX + 'px';
       if (el.scrollWidth <= el.clientWidth) return; // already fits
@@ -1180,6 +1203,117 @@
         el.style.fontSize = px + 'px';
       }
     });
+  }
+
+  /* ---------------------------------------------------------
+     THE DAMAGE BREAKDOWN
+     -------------------------------------------------------------
+     The chip answers "how much?"; hovering it answers "why that
+     much?". Players could see a number but not the attack stat,
+     skill power, defence reduction and conditional arm behind it,
+     so a preview that disagreed with their mental maths looked like
+     a bug rather than a defence stat they had forgotten about.
+
+     Every row comes from engine.previewDamage's `hits[].steps`,
+     which records each factor AS IT IS APPLIED - the panel cannot
+     drift from the arithmetic because it is not recomputing any of
+     it. Multi-hit skills get one block per hit plus a grand total.
+     --------------------------------------------------------- */
+  function fmtMult(m) {
+    /* 0.7 -> "x0.7", 2.5 -> "x2.5", and never "x0.7000000000000001" */
+    return '\u00d7' + (Math.round(m * 1000) / 1000).toLocaleString();
+  }
+
+  function stepRowHTML(s) {
+    var right;
+    if (s.mult != null) right = fmtMult(s.mult);
+    else if (s.add != null) right = '+' + Math.round(s.add).toLocaleString();
+    else right = Math.round(s.value).toLocaleString();
+    return (
+      '<div class="dpb-row' +
+      (s.subtotal ? ' sub' : '') +
+      (s.k === 'total' ? ' tot' : '') +
+      '"><span class="dpb-k">' +
+      esc(s.label) +
+      '</span><span class="dpb-v">' +
+      right +
+      '</span></div>'
+    );
+  }
+
+  /* Open downward when there is not enough room above. Measured
+     against the board rect, not the window: the board is what the
+     panel would visually escape from, and the game is scaled, so
+     window coordinates alone would misjudge it. */
+  var DPB_H = 190; /* generous estimate; only decides the side */
+  function flipBreakdown(chip) {
+    try {
+      var r = chip.getBoundingClientRect();
+      var host = document.getElementById('board');
+      var top = host ? host.getBoundingClientRect().top : 0;
+      chip.classList.toggle('flip', r.top - top < DPB_H);
+    } catch (e) {
+      /* positioning is a nicety - never let it break targeting */
+    }
+  }
+
+  function dmgBreakdownHTML(pv, tgt, lethal) {
+    var hits = pv && pv.hits;
+    if (!hits || !hits.length) return '';
+    var multi = hits.length > 1;
+    var body = '';
+    hits.forEach(function (h, i) {
+      if (multi) body += '<div class="dpb-hit">Hit ' + (i + 1) + '</div>';
+      h.steps.forEach(function (s) {
+        /* on a multi-hit skill the per-hit "Damage" line is the hit,
+           not the answer - the grand total below is the answer */
+        body += stepRowHTML(s);
+      });
+    });
+    if (multi) {
+      body += stepRowHTML({ k: 'total', label: 'Total damage', value: pv.dmg, subtotal: true });
+    }
+    var foot = '';
+    if (pv.critChance > 0) {
+      foot +=
+        '<div class="dpb-note">On a crit (' +
+        pv.critChance +
+        '% chance): <b>' +
+        pv.crit.toLocaleString() +
+        '</b></div>';
+    }
+    /* WHY A BIGGER NUMBER THAN THEIR HP STILL WILL NOT KILL.
+       Provoke recovery heals the target before the blow lands, so the
+       pool this hit must beat is larger than the HP bar shows. Saying
+       so is the difference between "the tank cheated" and "their
+       Skill is doing what it says". */
+    if (pv.preHeal > 0) {
+      foot +=
+        '<div class="dpb-note">Recovers <b>' +
+        Math.round(pv.preHeal).toLocaleString() +
+        '</b> HP before this hit lands, so it must beat <b>' +
+        Math.round(pv.effectiveHp).toLocaleString() +
+        '</b>.</div>';
+    }
+    if (lethal) foot += '<div class="dpb-note kill">This is lethal.</div>';
+    if (pv.bonus === true) {
+      foot += '<div class="dpb-note good">The Skill\u2019s bonus condition is met.</div>';
+    } else if (pv.bonus === false) {
+      foot +=
+        '<div class="dpb-note bad">The Skill\u2019s bonus condition is not met' +
+        (tgt && tgt.shield > 0
+          ? ' \u2013 HP conditions ignore shields, and this target has ' +
+            Math.ceil(tgt.shield).toLocaleString() +
+            ' shield.'
+          : '.') +
+        '</div>';
+    }
+    return (
+      '<span class="dmg-breakdown"><span class="dpb-title">How this is calculated</span>' +
+      body +
+      foot +
+      '</span>'
+    );
   }
 
   /* highlight selected unit + legal targets */
@@ -1216,18 +1350,38 @@
                 chip.className = 'dmg-preview';
                 el.appendChild(chip);
               }
-              var lethal = pv.dmg >= u.hp + u.shield;
+              /* Ask the engine, do not re-derive it. Some targets heal
+                 BEFORE the blow lands (Provoke recovery), so hp+shield
+                 is not the pool this hit has to beat. */
+              var lethal = pv.lethal;
               chip.classList.toggle('lethal', lethal);
+              /* CONDITIONAL BONUSES ANNOUNCE THEMSELVES. Goldilocks'
+                 "between 30% and 70% HP" (and every other branch skill)
+                 was invisible until after the cast, and the HP a player
+                 reads off the card includes SHIELD - so a target could
+                 look squarely inside the window while the engine, which
+                 tests raw HP, correctly refused the bonus. The star says
+                 which arm this exact shot will take, before committing. */
+              chip.classList.toggle('bonus', pv.bonus === true);
               chip.innerHTML =
                 '<i data-icon-domain="game" class="ra ra-sword"></i>' +
                 pv.dmg.toLocaleString() +
-                (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
-              chip.title =
-                'Estimated damage (before crits). Crit chance ' +
-                pv.critChance +
-                '%: ' +
-                pv.crit.toLocaleString() +
-                (lethal ? '. Lethal.' : '.');
+                (pv.bonus === true
+                  ? '<i data-icon-domain="game" class="ra ra-star-formation dp-bonus"></i>'
+                  : '') +
+                (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '') +
+                dmgBreakdownHTML(pv, u, lethal);
+              /* No `title`: the hover panel above says all of this and
+                 more, and a native tooltip on top of it would cover the
+                 breakdown the player opened it to read. */
+              chip.removeAttribute('title');
+              /* The panel opens upward by default. For a unit on the top
+                 row that would run off the board, so those flip below.
+                 Enemies occupy the top of the board, and they are exactly
+                 who wears this chip, so this is the common case - it is
+                 decided per chip from its real position rather than
+                 assumed from the side. */
+              flipBreakdown(chip);
             }
           }
         }
@@ -1254,8 +1408,8 @@
     /* WHO WOULD ACTUALLY BE HIT, not merely who is legal.
        E.affectedTargets walks the card's own effect tree, so a Skill
        that narrows its victims (Zeus striking only the Marked, a
-       row-choice, a `take: top N`) highlights exactly the heroes it
-       will strike. Reading the card data rather than naming heroes
+       row-choice, a `take: top N`) highlights exactly the legends it
+       will strike. Reading the card data rather than naming legends
        means every card behaves consistently, including future ones. */
     var pool;
     try {
@@ -1275,13 +1429,11 @@
           var pv = E.previewDamage(B, u, ability, t, choose || 0);
           if (pv) {
             var chip = document.createElement('span');
-            chip.className = 'dmg-preview' + (pv.dmg >= t.hp + t.shield ? ' lethal' : '');
+            chip.className = 'dmg-preview' + (pv.lethal ? ' lethal' : '');
             chip.innerHTML =
               '<i data-icon-domain="game" class="ra ra-sword"></i>' +
               pv.dmg.toLocaleString() +
-              (pv.dmg >= t.hp + t.shield
-                ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>'
-                : '');
+              (pv.lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
             el.appendChild(chip);
           }
         }
@@ -1299,9 +1451,9 @@
   }
 
   /* ---------------------------------------------------------
-     Floating hero panel
+     Floating legend panel
      Appears in the empty space beside the board: allies on the
-     left, enemies on the right. Hovering previews a hero; clicking
+     left, enemies on the right. Hovering previews a legend; clicking
      one of yours locks it there and makes the abilities clickable.
      The layout is identical either way.
      --------------------------------------------------------- */
@@ -1315,9 +1467,13 @@
        someone: Tsukuyomi-style "choose 2" used to stay lit with one
        enemy alive and then soft-lock the target picker demanding a
        second click that could never come */
+    /* ...and an `all` ability (pickCount 0) still needs SOMEBODY in its
+       pool. Rapunzel only reaches the back row; facing a team that is all
+       front-row her pool is empty, and this row used to stay lit and let
+       the player burn 40 Energy on nothing. usableNow() is the engine's
+       own answer to "can this fire right now", pick count included. */
     var needTargets = isActive ? E.pickCount(a) : 0;
-    var hasTargets =
-      !isActive || needTargets === 0 || E.legalTargets(B, u, a).length >= needTargets;
+    var hasTargets = !isActive || E.usableNow(B, u, a, { ignoreEnergy: true });
     /* Only Actives may grey out (locked/unaffordable/no targets). Passives
        simply aren't selectable - greying them read as "broken". */
     var dis = isActive && (!usable || !hasTargets);
@@ -1438,7 +1594,7 @@
       .join(' &middot; ');
   }
 
-  /* Live value for THIS hero, then the rule from window.EOL.STATUS if
+  /* Live value for THIS legend, then the rule from window.EOL.STATUS if
      there is one worth printing. Most stat buffs need no rule at all -
      "+15% Attack" says everything, and nobody needs DEF explained. */
   function statusDesc(u, st) {
@@ -1486,7 +1642,7 @@
   /* THE STATUS ROW.
      -------------------------------------------------------------
      Statuses used to be a stacked list of full rule paragraphs. On a
-     hero carrying four of them that was taller than everything else
+     legend carrying four of them that was taller than everything else
      in the panel combined, which is what forced the panel to be so
      large it had nowhere to sit.
 
@@ -1523,7 +1679,7 @@
     });
 
     /* An explicit empty state. A blank gap left players unsure
-       whether the hero had no statuses or the panel was broken. */
+       whether the legend had no statuses or the panel was broken. */
     if (!sts.length) {
       return (
         '<div class="dk-strip empty">' +
@@ -1579,7 +1735,7 @@
   }
 
   /* Roster-wide maxima for the flyout's stat bars. Computed once from
-     the card data so a bar is a real comparison between heroes rather
+     the card data so a bar is a real comparison between legends rather
      than a hard-coded ceiling that everyone clips. Head-room is added so
      buffed values still have somewhere to go. */
   var STAT_MAX = null;
@@ -1635,7 +1791,7 @@
     if (!fly) return;
 
     var u = (sel && sel.unit) || hoverUnit;
-    // a hero mid-resurrection has no live stats to show
+    // a legend mid-resurrection has no live stats to show
     if (u && isDownForRevive(u.uid)) u = null;
     if (!u) {
       fly.classList.remove('show');
@@ -1648,7 +1804,7 @@
     var role = E.roleAbility(u);
     var mine = u.side === 'player';
     var interactive = locked && mine && u.alive && !sel.view && !B.over && B.turn === 'player';
-    // Only a genuinely different hero replays the swap animation. Locking
+    // Only a genuinely different legend replays the swap animation. Locking
     // the same card (hover -> click) must not re-animate the panel.
     var fresh = dockKey !== u.uid;
     dockKey = u.uid;
@@ -1684,9 +1840,9 @@
 
     fly.innerHTML =
       '<div class="dk-head">' +
-      /* The portrait plate shows the hero's assigned ra glyph, not the
+      /* The portrait plate shows the legend's assigned ra glyph, not the
          art: at this size the art read as texture while the icon is what
-         already identifies the hero on the card, in the collection and
+         already identifies the legend on the card, in the collection and
          in the prep tip. The plate is square now that nothing portrait-
          shaped needs to sit in it. */
       '<div class="dk-portrait" style="--fc-primary:' +
@@ -1717,7 +1873,13 @@
       statLine(
         'ra-health',
         'HP',
-        Math.max(0, Math.ceil((u.hp / u.maxHp) * 100)) + '%',
+        /* ROUND, DO NOT CEIL. Math.ceil turned 29.01% into "30%", which
+           put the displayed number inside Goldilocks' 30-70% window
+           while the engine (correctly) read 29.01% and withheld the
+           bonus - the card said the trigger should fire and it did not.
+           Rounding is off by at most half a point and never crosses a
+           threshold the engine has not also crossed. */
+        Math.max(0, Math.round((u.hp / u.maxHp) * 100)) + '%',
         (u.hp / u.maxHp) * 100,
         '#ff5f7e'
       ) +
@@ -1771,7 +1933,7 @@
       fly.classList.remove('swap');
       void fly.offsetWidth;
       fly.classList.add('swap');
-      // drop the class once it's done so a later rebuild of the SAME hero
+      // drop the class once it's done so a later rebuild of the SAME legend
       // (e.g. hover -> click) doesn't leave it armed and replay
       clearTimeout(swapTimer);
       swapTimer = setTimeout(function () {
@@ -1916,7 +2078,7 @@
 
   function onCardClick(u) {
     /* Inspection stays available even when it is not your action and
-       even after the battle ends - reading a hero's statuses is not a
+       even after the battle ends - reading a legend's statuses is not a
        move. Only TARGETING is gated below. */
     if (busy) return;
 
@@ -1982,13 +2144,13 @@
 
     /* ANY card can be opened, including the enemy's.
        Statuses now live in the panel, so being unable to open an
-       opposing hero meant there was no way to read what is on them -
+       opposing legend meant there was no way to read what is on them -
        exactly the information you need to decide a play. Opening an
        enemy is view-only: their Skills never become clickable,
-       because `interactive` in paintDock still demands the hero be
+       because `interactive` in paintDock still demands the legend be
        yours, unacted and on your turn. */
-    /* A dead hero can be opened but never helm an action: alive joins
-       the same gates that already keep enemy and already-acted heroes
+    /* A dead legend can be opened but never helm an action: alive joins
+       the same gates that already keep enemy and already-acted legends
        strictly read-only. */
     // Toggle/deselect if clicking the currently selected/viewed card
     if (sel && sel.unit && sel.unit.uid === u.uid && !targeting) {
@@ -1997,7 +2159,7 @@
     }
 
     var viewOnly = u.side !== 'player' || !u.alive || !myTurn || !!B.acted.player[u.uid];
-    /* THE SCRIPTED MATCH: other heroes stay inspectable, but only the
+    /* THE SCRIPTED MATCH: other legends stay inspectable, but only the
        line's unit may take the action. */
     var mvU = scriptMove();
     if (!viewOnly && mvU && mvU.side === 'player') {
@@ -2028,6 +2190,11 @@
       toast('Cannot use that: ' + res.reason);
       return;
     }
+    /* Quest metric `abilities` counts SIGNATURES cast by the player -
+       the ability printed on the card, not the shared role basic.
+       Tallied on the battle so it banks with everything else at the
+       end, in one write. */
+    if (s.ability && !s.ability.basic) B._questCasts = (B._questCasts || 0) + 1;
     /* THE SCRIPTED MATCH: the line's player move just resolved. Read
        the RAW script here - on the killing blow B.over is already
        true and scriptMove() would refuse, stranding the final index
@@ -2887,7 +3054,7 @@
   function startNextRound() {
     E.nextRound(B);
     render();
-    /* The rollover itself can deal damage and kill heroes (Burn ticks,
+    /* The rollover itself can deal damage and kill legends (Burn ticks,
        delayed strikes, battlefield relics). Let those animations play
        before the round banner or the result screen lands on top. */
     var rollHold = flashRecent();
@@ -4028,13 +4195,13 @@
 
   /* --------------------------------------------------------
      Revive (Sun Wukong's 72 Transformations)
-     Smoke swallows the falling hero, a golden pillar erupts,
+     Smoke swallows the falling legend, a golden pillar erupts,
      rings snap outward and the card burns off its death pallor.
      -------------------------------------------------------- */
   /* Timeline. The engine resurrects synchronously, so the whole
      death-and-return has to be staged here:
 
-       falling   340ms  hero drains to grey, stats blank out
+       falling   340ms  legend drains to grey, stats blank out
        down      500ms  held grey while the smoke and pillar erupt
        restoring 700ms  colour and stats come back with the light
 
@@ -4062,7 +4229,7 @@
   var REVIVE_TOTAL_MS = REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
   var reviveFx = {}; // uid -> { phase, at } so render() can resume the anim
 
-  /* true while the hero should still be drawn as a corpse */
+  /* true while the legend should still be drawn as a corpse */
   function isDownForRevive(uid) {
     var st = reviveFx[uid];
     return !!st && (st.phase === 'falling' || st.phase === 'down');
@@ -4110,7 +4277,7 @@
     dim.style.top = '0';
     dim.style.animationDuration = REVIVE_TOTAL_MS + 300 + 'ms';
 
-    // 0. the hero visibly falls, stays down, then is restored
+    // 0. the legend visibly falls, stays down, then is restored
     reviveStep(
       uid,
       'falling',
@@ -4147,7 +4314,7 @@
     // 2. pillar of golden light climbs out of the smoke
     setTimeout(function () {
       // pillar stands on the card and rises off the top of the board
-      // (CSS pins it to top:0, so --h is the distance down to the hero)
+      // (CSS pins it to top:0, so --h is the distance down to the legend)
       var col = spawn('fx-revive-pillar', c.x, c.y, GOLD, 1200);
       col.style.top = '0px'; // spawn() sets top inline
       col.style.setProperty('--h', c.y + 40 + 'px');
@@ -4201,7 +4368,12 @@
     var reduced =
       document.body.dataset.gfx === 'low' ||
       (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    var landAt = reduced ? 360 : 1510;
+    /* IMPACT IS AT 1450ms, NOT 1510ms. The flight keyframes put the
+       coin on the table at 96% of a 1.51s animation, and js/audio.js
+       already rings its landing tone at t+1.45s. Firing the land pulse,
+       sparks and result label at 1510 left them 60ms late - just enough
+       to read as a separate event from the impact. */
+    var landAt = reduced ? 360 : 1450;
     var fadeAt = reduced ? 1740 : 2780;
     var doneAt = reduced ? 1940 : 3000;
     if (window.EOL.audio) {
@@ -4356,7 +4528,7 @@
     if (kind === 'heal' && window.EOL.audio) window.EOL.audio.battle('heal');
     spawn('fx-aura ' + kind, t.x, t.y, null, 640);
     if (kind === 'heal') {
-      // a swelling ring of light under the hero
+      // a swelling ring of light under the legend
       spawn('fx-heal-ring', t.x, t.y, '#7ef0a8', 820);
       for (var i = 0; i < 5; i++) {
         var m = spawn('fx-plus', t.x + (Math.random() * 44 - 22), t.y + 14, '#7ef0a8', 900);
@@ -4402,7 +4574,7 @@
     }
   }
 
-  /* Energy gained / stolen: a chevron pulse at the hero. */
+  /* Energy gained / stolen: a chevron pulse at the legend. */
   function playEnergy(uid, positive) {
     var t = centreOf(uid);
     if (!t) return;
@@ -4498,7 +4670,7 @@
         return;
       }
       if (l.type === 'revive') {
-        // land the resurrection just after the blow that felled the hero
+        // land the resurrection just after the blow that felled the legend
         var rdelay = (lastHit[l.meta.uid] || 0) + 420;
         revived[l.meta.uid] = rdelay + REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
         hold = Math.max(hold, rdelay + REVIVE_TOTAL_MS + 500);
@@ -4562,7 +4734,7 @@
         if (!key) return;
         var positive = l.type === 'buff' || l.type === 'shield';
         if (l.meta.amt != null) positive = l.meta.amt >= 0;
-        // a hero mid-resurrection shows its new buffs once the light clears
+        // a legend mid-resurrection shows its new buffs once the light clears
         var wait = revived[l.meta.uid] || 0;
         if (wait) {
           (function (uid, k, pos, sig, d) {
@@ -4675,8 +4847,31 @@
   var popLane = {};
 
   var toastTimer;
-  function toast(msg) {
+  /* THE ONE STATUS TOAST.
+     -------------------------------------------------------------
+     This used to be a second, independent implementation writing to
+     a different element (<div id="toast">) than the rest of the game
+     (<div id="toasts">), with its own CSS block. Two consequences:
+
+       - the two `.toast` rules in style.css fought each other, since
+         both elements carry the same class;
+       - this copy took no icon, so battle.js:2445 was already calling
+         toast('Out of time - passing', 'ri-timer-line') and silently
+         dropping the icon.
+
+     Now it delegates to the shared helper (js/play.js toast, reached
+     through EOL.ui.toast, which app.js already routes for everyone
+     else). Stacking, icons and timing come free and identical.
+     Falls back to the old element only if play.js has not loaded -
+     a fight can start before the menu layer in some entry paths. */
+  function toast(msg, icon) {
+    if (window.EOL.ui && typeof window.EOL.ui.toast === 'function' &&
+        window.EOL.play && typeof window.EOL.play.toast === 'function') {
+      window.EOL.ui.toast(msg, icon);
+      return;
+    }
     var t = $('toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
@@ -4694,7 +4889,9 @@
     /* Tell the server the match is over, so an abandoned-looking row
        is not left `active` and neither player gets rejoined into a
        finished game. */
-    if (netCtl && netCtl.finish) netCtl.finish();
+    /* The board is passed so the archive can record who won and how
+       long it took; netplay owns the replay tape itself. */
+    if (netCtl && netCtl.finish) netCtl.finish(B);
     var fb = $('btn-forfeit');
     if (fb) fb.hidden = true;
     cancelAuto();
@@ -4889,6 +5086,47 @@
     if (coinsEl) {
       coinsEl.hidden = true;
       coinsEl.classList.remove('campaign-rewards');
+    }
+    /* QUEST PROGRESS (docs/DESIGN-Quests.md).
+       Banked ONCE per battle instance, from the engine's own lifetime
+       tally, at the end rather than per hit: a disconnect mid-fight
+       banks nothing (which is the correct anti-abuse behaviour) and it
+       avoids a localStorage write on every damage tick.
+
+       Every mode counts, including drafts and the Daily Puzzle -
+       upgrades are restricted by mode, quests are not. Playing any
+       mode is playing the game.
+
+       Note what is NOT counted: matches, wins, losses. Match pay
+       rewards a loss and a forfeit takes this same path, so a
+       match-counting quest would be a forfeit-farm button. */
+    if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(false);
+    if (window.EOL.quests && !B._questsPaid) {
+      B._questsPaid = true;
+      var qd = 0,
+        qh = 0,
+        qs = 0,
+        qk = 0;
+      var facs = {};
+      (B.units || []).forEach(function (u) {
+        if (u.side !== 'player') return;
+        facs[u.faction && u.faction.id ? u.faction.id : u.faction] = 1;
+        var t = (B.tally || {})[u.uid];
+        if (!t) return;
+        qd += t.dealt || 0;
+        qh += t.healed || 0;
+        qs += t.absorbed || 0;
+        qk += t.kills || 0;
+      });
+      window.EOL.quests.recordBatch({
+        damage: Math.round(qd),
+        healing: Math.round(qh),
+        shield: Math.round(qs),
+        kills: qk,
+        rounds: B.round || 0,
+        factions: Object.keys(facs).length,
+        abilities: B._questCasts || 0,
+      });
     }
     if (!B.campaignStage && !B.puzzle && window.EOL.econ && !B._coinsPaid) {
       B._coinsPaid = true;
@@ -5224,6 +5462,11 @@
           rng: opts.rng || null,
           oddFirst: opts.oddFirst || null,
           enemyStatBonus: opts.enemyStatBonus || 0,
+          /* Card upgrades. The CALLER decides - a mode that passes
+             nothing fights stock, which is what keeps drafts and the
+             Daily Puzzle honest. See play.js upgradesFor(). */
+          upgrades: opts.upgrades || null,
+          enemyUpgrades: opts.enemyUpgrades || null,
         }
       );
     } else {
@@ -5238,6 +5481,8 @@
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
             enemyStatBonus: opts.enemyStatBonus || 0,
+            upgrades: opts.upgrades || null,
+            enemyUpgrades: opts.enemyUpgrades || null,
           })
         : E.createBattle(teams.player, teams.enemy, {
             roleAware: true,
@@ -5245,10 +5490,16 @@
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
             enemyStatBonus: opts.enemyStatBonus || 0,
+            upgrades: opts.upgrades || null,
+            enemyUpgrades: opts.enemyUpgrades || null,
           });
     }
     /* Campaign personality changes evaluation priorities only. The rival
        still enters the exact normal depth-4 bestAction path below. */
+    /* RESPEC LOCK. Stat choices are free and re-assignable, but only
+       OUTSIDE a fight - otherwise "switch to +HP now that I am losing"
+       becomes a tactical ability. Released on the result screen. */
+    if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(true);
     B.aiProfiles = opts.aiProfiles || null;
     B.campaignDifficulty = opts.campaignDifficulty || null;
     B.enemyStatBonus = Math.max(0, +opts.enemyStatBonus || 0);

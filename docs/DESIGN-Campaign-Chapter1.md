@@ -16,7 +16,7 @@
 >   `chooseSix`/`setBotSix`/the ban grid (§9.3), and `opts.pool` +
 >   `opts.persona` on `startDraft` (§9.4).
 > - **Dialogue moved to a bottom-anchored bar** (the centred modal covered
->   the screen and was rejected). Busts render the full 128x176 hero-art
+>   the screen and was rejected). Busts render the full 128x176 legend-art
 >   frame at native scale, `image-rendering: pixelated`, fully inside the
 >   bar. Rivals also **speak during the match** via a pointer-transparent,
 >   self-expiring bark card front-and-centre under the HUD - lines queue,
@@ -154,7 +154,7 @@
 | L1 | **Terrain is always symmetric.** Stages pin an existing battlefield; no bespoke one-sided rules, ever. | `data/battlefields.js:35` makes symmetry a standing law; the entire balance methodology rests on it. |
 | L2 | **Difficulty comes from decks, never from the AI.** Search depth and turn order are both banned as dials. | Measured: depth is non-monotonic; opener is now worth ~0-10pp, deck power ~67pp. See §8. |
 | L3 | **One new system per stage.** Combat loop, then prep, then sets, then draft. | A first-ever fight that opens with a ban phase teaches nothing. |
-| L4 | **Everything bespoke is a card, and every card is audited.** | The boss is data like any other hero, so `sim/audit_abilities.js` covers him. |
+| L4 | **Everything bespoke is a card, and every card is audited.** | The boss is data like any other legend, so `sim/audit_abilities.js` covers him. |
 | **L5** | **Bespoke cards get hard guarantees, not AI hints.** Where a campaign card *must* appear, pin it by hardcode; do not rely on the bot valuing it correctly. | Rev 4 (R5). Rev 3 made AI registration a law; that was over-engineering. The scoring blindness in §5 is real, but the fix is a must-keep, not a tuned heuristic. Registration survives as optional polish. |
 
 ---
@@ -406,7 +406,7 @@ Provoke wall, wants the Narrow Pass and gets it.
 *Card:* "Nothing reaches your back line while he stands - go through him."
 
 **Stage 3 - The Outlaw** (Sherwood). Charming, insolent, fixated on your
-biggest gun. Focus-fires your highest-ATK hero; bans your protectors.
+biggest gun. Focus-fires your highest-ATK legend; bans your protectors.
 *Card:* "Always shoots your strongest legend. Bait or bury them."
 
 **Stage 4 - The Anointed** (Olympus). Anoints his prey before the kill and
@@ -494,7 +494,7 @@ propose deleting the flag in favour of "just make him a strong card."
 > `powerOf(card) * 3.0 + structureScore + pairSynergy + rarity`
 > (`data/draft-ai.js:276-289`). For a card outside `EOL.factions`:
 > - `powerOf` returns **0** (`draft-ai.js:92-95`) - and 0 is the roster
->   *mean*, so the First Legend scores as a perfectly average hero;
+>   *mean*, so the First Legend scores as a perfectly average legend;
 > - `tags()` returns `{gives:{},wants:{}}` because `buildWeb()` only walks
 >   `EOL.factions` (`draft-ai.js:107-110`), so **every `pairSynergy` term
 >   involving him is zero** - he reads as synergy-dead with his own team;
@@ -533,7 +533,7 @@ let the AI fill.** Revisit only if soak shows incoherent support lines.
 ### His ramp is in his kit, not in the ground
 
 Per L1 and the standing ruling, the terrain stays symmetric. Gilgamesh
-gets his menace the same way every other hero does - **a strong card**:
+gets his menace the same way every other legend does - **a strong card**:
 
 - Theme "He who saw the Deep": kingship that outlasts. A `static` passive
   granting permanent stacking growth per round survived, plus a judgement
@@ -808,7 +808,7 @@ filter those choices by role as well as by faction.
 > The analysis below stands as written and is left intact, because it is
 > the reasoning that justified the fix and because §8's authoring dial
 > is defined in terms of it. What changed: `data/draft-ai.js` no longer
-> has a `POWER` table to be incomplete. It works out how strong a hero
+> has a `POWER` table to be incomplete. It works out how strong a legend
 > is by **playing it** - one controlled duel per card against a squad of
 > average bodies, run by the real engine under the real search AI - and
 > caches the result under a fingerprint of the roster's stats and
@@ -823,7 +823,7 @@ filter those choices by role as well as by faction.
 >   constant - read them with `node sim/rate_check.js` rather than
 >   copying them into prose, which is how the original table rotted.
 > - **§9.0 item 0 is done**, and its assertion exists:
->   `sim/verify_all.js` §F fails if the brain cannot rate a hero, and
+>   `sim/verify_all.js` §F fails if the brain cannot rate a legend, and
 >   `--probe` runs the real measurement end to end.
 > - Rev 3's "-0.73 for Duat" style per-faction means were arithmetic on
 >   missing entries and should be re-derived before use.
@@ -875,8 +875,8 @@ no assertion, no preflight check covers table coverage, which is why it
 has sat.
 
 **Fix (§9.0):** regenerate the table with `sim/full.js` (which already
-measures the four per-hero numbers the methodology doc describes, and
-whose own header still says "57 heroes" - another marker that it predates
+measures the four per-legend numbers the methodology doc describes, and
+whose own header still says "57 legends" - another marker that it predates
 the current roster), then add a `verify_all` assertion that `POWER` covers
 `EOL.factions` exactly, so a new faction can never ship unrated again.
 
@@ -992,7 +992,7 @@ Rev 1's §8 listed several of these as already working. They are not.
    card changes, so there is no artefact left to go stale. The coverage
    assertion asked for here exists as `sim/verify_all.js` §F, and it
    asserts more than was asked: finite and discriminating ratings for
-   every hero, at most one hero exactly on the mean, live pair synergy,
+   every legend, at most one legend exactly on the mean, live pair synergy,
    and that neither public score inflates with team size. `--probe`
    additionally runs the real measurement and asserts 63/63.
 
@@ -1145,7 +1145,7 @@ Rev 3 leans **(c)** for honesty and **(a)** where it is cheap. **[OPEN]**
 - ~~**[D1] Complete the `POWER` table** (§8.0, §9.0). 12 of 63 cards
   unrated - all of Duat, half of Grimmwood.~~ **CLOSED 2026-08-05.** The
   table is gone; the brain measures the roster by playing it and
-  `verify_all.js` §F asserts it can rate every hero. Stage tuning is
+  `verify_all.js` §F asserts it can rate every legend. Stage tuning is
   unblocked, and §8's dial 1 is valid for Duat for the first time.
 
 **Resolved this revision:**

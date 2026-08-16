@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Normalize card-art sources to the canonical 640×880 portrait canvas.
 
-The original hero-art helper was fixed to one local directory.  This version
+The original legend-art helper was fixed to one local directory.  This version
 keeps that default while allowing campaign/rival source art to use the exact
-same crop-and-normalize step before `resize_hero_art_hq.py` creates the
+same crop-and-normalize step before `resize_legend_art_hq.py` creates the
 lossless 128×176 delivery assets.
 """
 
@@ -39,8 +39,8 @@ def main() -> None:
     parser.add_argument(
         '--source',
         type=Path,
-        default=Path('/home/user/assets/heroes'),
-        help='directory containing source JPEGs (default: legacy hero-art directory)',
+        default=Path('/home/user/assets/legends'),
+        help='directory containing source JPEGs (default: legacy legend-art directory)',
     )
     parser.add_argument(
         '--output',

@@ -2,7 +2,7 @@
    -------------------------------------------------------------
    The Plain of High Heaven. Where Roma is paid when the ENEMY dies and
    Grimmwood stacks debuffs onto them, Takamagahara is the faction built
-   around its OWN side breaking and being made whole again: heroes are
+   around its OWN side breaking and being made whole again: legends are
    purified, cursed, avenged and restored.
 
    The myth is the mechanic. Izanami dies and becomes queen of Yomi;
@@ -20,7 +20,7 @@
      multi-trigger passive in any future faction can use it.
 
    Role allocation is deliberate. Per the last balance report Caster (5
-   heroes, 46.9% WR) and Controller (8, 47.8%) were the thinnest and
+   legends, 46.9% WR) and Controller (8, 47.8%) were the thinnest and
    weakest roles while Bruiser sat at 10. This faction adds 2 Casters,
    2 Controllers, 1 Medic and 1 Tank - and no Bruiser or Sniper.
    ============================================================= */
@@ -43,9 +43,9 @@ window.EOL.registerFaction({
         name: 'Heaven-Shining Radiance',
         /* REDESIGN NOTE. The first draft of this card gave her self-
            Untargetable + self-Silence for a round and a delayed AoE. It was
-           broken three ways: (1) a hero acts at most once per round, so
+           broken three ways: (1) a legend acts at most once per round, so
            Silencing herself AFTER casting cost nothing and the flag ticked
-           off before it could ever block anything; (2) as the last hero
+           off before it could ever block anything; (2) as the last legend
            standing, Untargetable left the enemy with zero legal targets,
            and 50 EN against a 90-100 EN pool sustained the lock forever;
            (3) the delayed payoff resolved even from a dead caster.
@@ -98,7 +98,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sun',
-      art: 'assets/heroes/takamagahara-amaterasu.png',
+      art: 'assets/legends/takamagahara-amaterasu.png',
     },
     {
       id: 'takamagahara-tsukuyomi',
@@ -138,7 +138,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-mirror',
-      art: 'assets/heroes/takamagahara-tsukuyomi.png',
+      art: 'assets/legends/takamagahara-tsukuyomi.png',
     },
     {
       id: 'takamagahara-izanami',
@@ -171,7 +171,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-tombstone',
-      art: 'assets/heroes/takamagahara-izanami.png',
+      art: 'assets/legends/takamagahara-izanami.png',
     },
     {
       id: 'takamagahara-inari',
@@ -203,7 +203,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fox',
-      art: 'assets/heroes/takamagahara-inari.png',
+      art: 'assets/legends/takamagahara-inari.png',
     },
     {
       id: 'takamagahara-izanagi',
@@ -245,7 +245,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-water-drop',
-      art: 'assets/heroes/takamagahara-izanagi.png',
+      art: 'assets/legends/takamagahara-izanagi.png',
     },
     {
       id: 'takamagahara-susanoo',
@@ -309,7 +309,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-trident',
-      art: 'assets/heroes/takamagahara-susanoo.png',
+      art: 'assets/legends/takamagahara-susanoo.png',
     },
   ],
 });

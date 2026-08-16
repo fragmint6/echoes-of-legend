@@ -9,10 +9,10 @@
  *
  * THE THREE HARD PROBLEMS AND THEIR ANSWERS
  *
- * 1. NAMING. `uid` is a page-global counter, so hero u7 on my screen
- *    is a different hero on yours. Nothing may ever be addressed by
+ * 1. NAMING. `uid` is a page-global counter, so legend u7 on my screen
+ *    is a different legend on yours. Nothing may ever be addressed by
  *    uid. Every wire reference is (side, idx) where `idx` is the
- *    hero's fixed position in its team array, and `side` is flipped
+ *    legend's fixed position in its team array, and `side` is flipped
  *    on receipt: my 'player' is your 'enemy'. `mirrorSide()` is the
  *    only place that flip happens.
  *
@@ -82,7 +82,31 @@
       pendingAction: null, // resolver waiting on the opponent's move
       dead: false,
       onDesync: null,
+      /* THE REPLAY TAPE.
+         The engine is deterministic, so "exactly what happened" is
+         fully described by the opening position plus the ordered list
+         of actions - which is the same property the netcode already
+         depends on to keep two machines agreeing. Recording it costs
+         one small object per action and lets the history screen
+         reconstruct the whole battle rather than just its score.
+
+         Actions are stored in LOCAL terms and tagged with who acted,
+         because that is the form both encode() and decode() already
+         speak; the viewer flips perspective the same way live play
+         does. */
+      tape: { actions: [], opening: null },
     };
+  }
+
+  /* Append one action to the replay tape. `mine` records whose move it
+     was so a replay can be watched from either seat. */
+  function tapeAct(mine, wire, round) {
+    if (!S || !S.tape) return;
+    /* A very long match must not become an unbounded upload. 600
+       actions is far beyond a real game (a 30-round battle is well
+       under 200) and keeps the JSON in the low kilobytes. */
+    if (S.tape.actions.length >= 600) return;
+    S.tape.actions.push({ by: mine ? 'me' : 'them', act: wire || null, r: round || 0 });
   }
 
   function send(kind, body) {
@@ -139,6 +163,43 @@
     fail('Your opponent forfeited.');
   }
 
+  /* =============================================================
+     ARCHIVE THE FINISHED MATCH
+     -------------------------------------------------------------
+     Moves the match out of mp_matches and into mp_history along with
+     its replay tape. Both clients call this for the same match and
+     the server absorbs the duplicate (archive_match is idempotent),
+     which is deliberate: it means the record survives even if one
+     player's browser dies on the result screen.
+
+     `winner` is reported in ABSOLUTE terms - 'p1'/'p2', matching the
+     row - not "player"/"enemy", which are relative to whoever is
+     asking. Getting that wrong would show one player a win and the
+     other a win as well.
+     ============================================================= */
+  function archive(B, ending) {
+    if (!S || S.archived) return;
+    S.archived = true;
+    var mp = window.EOL.mp;
+    if (!mp || !mp.archiveMatch) return;
+
+    /* The host is always p1 (start_room and try_match both build the
+       row that way), so "did I win" maps onto p1/p2 through host. */
+    var winner = null;
+    if (B && B.winner) {
+      var iWon = B.winner === 'player';
+      var meP1 = !!(S.match && S.match.host);
+      winner = iWon === meP1 ? 'p1' : 'p2';
+    }
+
+    mp.archiveMatch({
+      winner: winner,
+      ending: ending || 'unknown',
+      rounds: (B && B.round) || 0,
+      replay: S.tape && S.tape.opening ? S.tape : null,
+    });
+  }
+
   function fail(text) {
     if (!S || S.dead) return;
     S.dead = true;
@@ -162,10 +223,10 @@
      --------------------------------------------------------- */
   /* Some flags hold a UID rather than a value - `counterSrc` names who
      swings back, `burnSrc` who lit the fire. Uids come from a
-     page-global counter, so the same hero is u1 here and u19 there.
+     page-global counter, so the same legend is u1 here and u19 there.
      Hashing them raw would report a desync on every single one of
      them, which is a false alarm: each engine resolves its own uids
-     locally and both mean the same hero.
+     locally and both mean the same legend.
 
      They still have to be CHECKED though - "who is the counter-attacker"
      is real game state. So a uid is translated to the stable
@@ -294,24 +355,45 @@
     cb(theirs);
   }
 
-  var six = { mine: null, theirs: null, done: null };
+  var six = { mine: null, theirs: null, done: null, up: null };
 
   function startSix(cb) {
     six.mine = null;
+    six.up = null;
     six.done = cb;
     maybeStartBattle(); // latched early arrival, same as bans
   }
 
-  function submitSix(ids) {
+  /* CARD UPGRADES ON THE WIRE (docs/DESIGN-Card-Upgrades.md §2.1).
+     Both clients build units from their OWN copy of data/*.js, and
+     every action carries a checksum of rounded HP and shield. An
+     upgrade that existed on only one side would desync the boards on
+     the first hit, so the levels travel with the six and both
+     simulations build the same upgraded units.
+
+     Sent as a plain map { cardId: {lv, stat} }, omitted entirely when
+     nothing is upgraded so an unmodified match is byte-identical to
+     the old format. */
+  function submitSix(ids, upgrades) {
     if (!S || S.dead) return;
     six.mine = ids.slice();
-    send('six', { ids: six.mine });
+    var body = { ids: six.mine };
+    if (upgrades && Object.keys(upgrades).length) body.up = upgrades;
+    send('six', body);
     maybeStartBattle();
   }
 
   function onRemoteSix(body) {
     six.theirs = (body.ids || []).slice();
+    six.up = body && body.up && typeof body.up === 'object' ? body.up : null;
     maybeStartBattle();
+  }
+
+  /* The opponent's levels, for the battle that is starting. Read by
+     play.js and clamped through upgrades.sanitize() before it reaches
+     the engine - never trusted raw. */
+  function foeUpgrades() {
+    return six.up;
   }
 
   function maybeStartBattle() {
@@ -319,6 +401,19 @@
     var cb = six.done;
     var theirs = six.theirs;
     six.done = null;
+    /* THE OPENING POSITION. Everything the engine needs to rebuild
+       this battle from scratch, captured at the one moment both sides
+       are known and nothing has happened yet. Card ids only - the
+       replay resolves them against the shipped card data, so it stays
+       small and keeps working if art or flavour text changes. */
+    if (S && S.tape) {
+      S.tape.opening = {
+        mine: (six.mine || []).slice(),
+        theirs: (theirs || []).slice(),
+        bans: bans && bans.mine ? { mine: bans.mine.slice(), theirs: (bans.theirs || []).slice() } : null,
+        host: !!(S.match && S.match.host),
+      };
+    }
     cb(theirs);
   }
 
@@ -326,7 +421,7 @@
      phase 3 - the battle
      -------------------------------------------------------------
      One action per message. `null` means a pass. A move names its
-     hero and its targets by (side, idx) and its skill by slot: 0 is
+     legend and its targets by (side, idx) and its skill by slot: 0 is
      the signature, 1 the role Basic. Nothing else needs to cross,
      because the receiving engine recomputes the whole outcome.
      --------------------------------------------------------- */
@@ -396,6 +491,7 @@
 
   function settleAction(p, body) {
     var B = p.battle;
+    tapeAct(false, body.act || null, B && B.round);
     if (!body.act) {
       S.expectSum = body.sum || null;
       p.resolve(null); // they passed
@@ -443,7 +539,9 @@
            skill did to them - damage rolls, crits, coin flips, deaths.
            If their replay of our move lands anywhere else, they will
            see it immediately. */
-        send('act', { act: encode(B, act), sum: checksum(B) });
+        var wire = encode(B, act);
+        tapeAct(true, wire, B && B.round);
+        send('act', { act: wire, sum: checksum(B) });
       },
       /* A remote concession is terminal even if it arrives during our
          own turn (there may be no pending decide() promise to release).
@@ -461,7 +559,12 @@
          being "your active match" - otherwise the next time either
          player opens the game the rejoin path would pull them back
          into a game that is already decided. */
-      finish: function () {
+      finish: function (B) {
+        /* Archive BEFORE retiring the session, while the tape is still
+           reachable. archiveMatch() falls back to end_match() if the
+           history migration has not been run, so an un-migrated
+           project still closes its rows correctly. */
+        archive(B, 'victory');
         if (window.EOL.mp && window.EOL.mp.endMatch) window.EOL.mp.endMatch();
         /* Retire the session as well as the row. Leaving it alive
            meant a DECIDED match still counted as "in an online match",
@@ -517,7 +620,7 @@
     }
     S = null;
     bans = { mine: null, theirs: null, done: null };
-    six = { mine: null, theirs: null, done: null };
+    six = { mine: null, theirs: null, done: null, up: null };
     decks = { mine: null, theirs: null, done: null };
   }
 
@@ -614,6 +717,7 @@
     submitBans: submitBans,
     startSix: startSix,
     submitSix: submitSix,
+    foeUpgrades: foeUpgrades,
     controller: controller,
     rngFrom: rngFrom,
     checksum: checksum,

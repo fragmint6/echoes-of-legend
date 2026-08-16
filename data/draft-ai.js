@@ -10,7 +10,7 @@
    fatal properties:
 
      1. It went stale silently. It rated 51 of 63 cards - every Duat
-        hero and half of Grimmwood were missing - and `powerOf`
+        legend and half of Grimmwood were missing - and `powerOf`
         returned 0 for an unknown id. Zero is the roster MEAN, so 19%
         of the game was scored as "perfectly average" by ban
         valuation (x4.2), draft picks (x3.0), fielding and
@@ -26,7 +26,7 @@
         exactly 0.0.
 
    Nothing here is a table. Everything is derived from the cards
-   themselves, at runtime, so a new hero, a new faction or a balance
+   themselves, at runtime, so a new legend, a new faction or a balance
    tweak is picked up automatically and correctly.
 
      1. RATING     HOW GOOD IS THIS CARD. Answered by PLAYING it: the
@@ -107,7 +107,7 @@ window.EOL.draftAI = (function () {
   /* ---------------------------------------------------------
      1. THE CURRENCY
      -------------------------------------------------------------
-     One point = "1% of a reference hero's ATK, dealt once, to one
+     One point = "1% of a reference legend's ATK, dealt once, to one
      enemy". Everything - healing, shields, energy, control - is
      converted into that unit so a Medic and a Sniper can be compared
      without a hand-written opinion about which role matters.
@@ -579,7 +579,7 @@ window.EOL.draftAI = (function () {
      table it replaces (0.44), and that table needed a human to
      regenerate it after every balance pass. For scale: the win-rate
      run it is being scored against is itself only reliable to 0.87
-     (~370 games per hero), which caps ANY rating at r=0.93.
+     (~370 games per legend), which caps ANY rating at r=0.93.
 
      COST AND WHEN IT RUNS. About 45ms per duel, six duels per card
      (three seeds x two seats), ~15s for a 63-card roster. That is far
@@ -643,7 +643,7 @@ window.EOL.draftAI = (function () {
      KNOWN BIAS, so it is not rediscovered as a surprise. The sparring
      squad is a mirror of average bodies, so a card whose worth is
      CONDITIONAL on its team-mates is measured against mediocre ones.
-     The residuals say exactly that: the heroes the probe most
+     The residuals say exactly that: the legends the probe most
      underrates against real win rate are the supports and sustain
      pieces (Maid Marian, Snow White, Little John, Pied Piper), whose
      output scales with what they are keeping alive. §4's keyword web
@@ -1012,7 +1012,7 @@ window.EOL.draftAI = (function () {
   }
 
   /* ---------------------------------------------------------
-     4. KEYWORD WEB - what each hero GIVES and what it WANTS
+     4. KEYWORD WEB - what each legend GIVES and what it WANTS
      --------------------------------------------------------- */
   function tags(card) {
     var C = ctx();
@@ -1093,7 +1093,7 @@ window.EOL.draftAI = (function () {
     }
     if (a.spec && a.spec.noPierceTax) gives.pierce = 1;
 
-    /* passive triggers describe what a hero feeds on */
+    /* passive triggers describe what a legend feeds on */
     var trigs = a.passive ? a.passive.triggers || [a.passive.trigger] : [];
     trigs.forEach(function (t) {
       if (t === 'allyDied') wants.deaths = 1;
@@ -1105,7 +1105,7 @@ window.EOL.draftAI = (function () {
       if (t === 'wasAttacked' || t === 'selfAttacked' || t === 'incomingAbilityDamage')
         gives.punish = 1;
     });
-    /* a hero that dies a lot feeds death-triggers; tanks tend to */
+    /* a legend that dies a lot feeds death-triggers; tanks tend to */
     if (c.role === 'Tank' || c.role === 'Bruiser') gives.deaths = 0.5;
     /* every damage role can pop a Mark / cash an Exposed */
     if (c.role === 'Sniper' || c.role === 'Caster' || c.role === 'Bruiser') gives.kills = 1;
@@ -1155,6 +1155,71 @@ window.EOL.draftAI = (function () {
     Controller: -0.6,
   };
 
+  /* WHAT A DRAFTED TWELVE SHOULD LOOK LIKE.
+     -------------------------------------------------------------
+     The reported bug: the bot drafted four Tanks and only two
+     Snipers, and banning both Snipers left it with almost no damage.
+
+     The cause is that these targets were literals tuned for a SIX
+     ("2 damage cards is enough", "a third Tank is bad"), while a
+     DRAFT builds a TWELVE. Past the six-sized thresholds the role
+     signal simply switched off: with three damage cards, every
+     further damage pick scored a flat +0.5 - the same as anything
+     else - so raw power decided the entire back half of the deck.
+
+     THE FIRST ATTEMPT AT THIS SCALED THE TARGETS UP (a twelve wants
+     two Tanks, two Medics, five damage) AND MADE IT WORSE. It lost
+     the A/B three times, 54-46, 54.5-45.5 and 55.7-44.3, and the
+     marginal-value dump says exactly why: raising wantTank to 2 paid
+     +9.05 for a SECOND tank where the old code paid +5.05. I had
+     made the bot buy MORE of the role it was already over-buying.
+
+     A twelve is not two sixes. It is a six that will be fielded plus
+     six that will not, so the surplus should look like DEPTH -
+     spread across roles to survive bans - not like a second copy of
+     the same front line. The targets below therefore stay near their
+     six-sized values, and the extra slots are steered by the ban
+     resilience term instead. */
+  var WANT_PER_SIX = { Tank: 1.15, Medic: 0.9, damage: 2.5, Controller: 0.75 };
+
+  /* Diminishing-returns curve: the Nth copy of a role is worth less
+     than the (N-1)th, and past the target it hurts. `want` is the
+     scaled target, `have` how many are already on the roster. */
+  /* THE SIX IS NOT A FREE PARAMETER - IT IS TUNED, AND IT STAYS PUT.
+     -------------------------------------------------------------
+     value() is called for two different jobs: drafting a TWELVE, and
+     choosing which SIX of that twelve to field. Only the first was
+     broken. The first rewrite replaced the literals with a smooth
+     curve that scaled cleanly - and lost the A/B 54% to 46%, twice,
+     because at size 6 it no longer reproduced the tuned numbers: it
+     wanted a first Tank at +3.2 where the tuned value is +9.
+
+     So these curves are built to return the ORIGINAL constants
+     exactly when scale === 1, and to generalise only above it. The
+     fielding AI cannot tell this change happened; the drafting AI
+     now keeps wanting damage until it has a twelve's worth of it
+     rather than a six's. Verified by sim/verify_draft_roles.js,
+     which asserts the size-6 outputs against the old literals. */
+  function tankCurve(have, needed) {
+    if (have < needed) return 9 - 1.5 * have;
+    if (have === needed) return 3.5;
+    /* The old code returned a flat -1 for ANY surplus tank. Keep that
+       exactly at the tuned six; only a larger roster gets the steeper
+       slope that actually discourages a fourth. */
+    return needed <= 1 ? -1 : -1 * (have - needed);
+  }
+  function medicCurve(have, needed) {
+    if (have < needed) return 6.5 - 1.5 * have;
+    if (have === needed) return 1.0;
+    /* Flat -2.5 at the tuned six, as before; steeper only above it. */
+    return needed <= 1 ? -2.5 : -2.5 * (have - needed);
+  }
+  function damageCurve(dmg, needed) {
+    if (dmg < needed - 1) return 4.5;
+    if (dmg < needed) return 2.0;
+    return 0.5;
+  }
+
   function structureScore(team, cand, size) {
     var counts = {};
     team.forEach(function (t) {
@@ -1162,25 +1227,97 @@ window.EOL.draftAI = (function () {
     });
     var role = cand.card.role;
     var have = counts[role] || 0;
-    var slotsLeft = (size || 6) - team.length;
+    var roster = size || 6;
+    var slotsLeft = roster - team.length;
+    var scale = roster / 6;
     var s = 0;
 
-    if (role === 'Tank') s += have === 0 ? 9 : have === 1 ? 3.5 : -1;
-    else if (role === 'Medic') s += have === 0 ? 6.5 : have === 1 ? 1.0 : -2.5;
-    else {
+    /* NEEDS DO NOT DOUBLE WITH THE ROSTER - only DAMAGE grows.
+       A twelve still wants one good Tank and one good Medic before
+       anything else; what it additionally needs, and the old code
+       never asked for, is enough damage to still function after two
+       of it is banned. So the Tank/Medic targets stay at their tuned
+       six-sized values and only the damage target scales. */
+    var wantTank = 1;
+    var wantMedic = 1;
+    var wantDmg = Math.max(3, Math.round(WANT_PER_SIX.damage * scale));
+
+    if (role === 'Tank') {
+      s += tankCurve(have, wantTank);
+    } else if (role === 'Medic') {
+      s += medicCurve(have, wantMedic);
+    } else if (role === 'Controller' && roster > 6) {
+      /* Controller USED TO FALL INTO THE DAMAGE BRANCH, which was a
+         real scoring bug rather than a tuning choice: a Controller
+         does not close a damage deficit, but it was being paid as if
+         it did. A roster with four Controllers and no damage still
+         scored a fifth Controller at +9, because the unfilled damage
+         gap kept rewarding the pick that could never fill it.
+
+         Only corrected above a six. At a six the old behaviour is
+         load-bearing for the fielding AI and is left untouched. */
+      var wantCtrl = Math.max(1, Math.round(WANT_PER_SIX.Controller * scale));
+      s += have < wantCtrl ? 2.0 : have === wantCtrl ? 0.5 : -2.2 * (have - wantCtrl);
+    } else {
       var dmg = (counts.Bruiser || 0) + (counts.Sniper || 0) + (counts.Caster || 0);
-      s += dmg < 2 ? 4.5 : dmg < 3 ? 2.0 : 0.5;
+      s += damageCurve(dmg, wantDmg);
     }
     s += ROLE_BIAS[role] == null ? 0 : ROLE_BIAS[role];
     s -= have * 1.1;
 
-    if (slotsLeft <= 2 && role === 'Tank' && !counts.Tank) s += 5;
-    if (slotsLeft <= 1 && role === 'Medic' && !counts.Medic) s += 4;
+    /* DAMAGE MUST NOT BE ONE-DIMENSIONAL.
+       The other half of the report: the bot took two Snipers and no
+       Casters, so banning the two Snipers left it with almost no way
+       to kill anything. Bans remove specific cards, which means a
+       deck whose damage all sits in one role is two bans from being
+       disarmed. Spreading damage across Sniper / Caster / Bruiser is
+       what makes a deck ban-resilient, so the second distinct damage
+       role is worth real points and the third is worth a little more.
+
+       This is deliberately about the ROLE SPREAD, not the count: it
+       fires even when the deck already has plenty of damage. */
+    if (roster > 6 && (role === 'Sniper' || role === 'Caster' || role === 'Bruiser')) {
+      var kinds = 0;
+      if (counts.Sniper) kinds++;
+      if (counts.Caster) kinds++;
+      if (counts.Bruiser) kinds++;
+      if (!counts[role]) {
+        /* a damage role we do not have at all */
+        s += kinds === 0 ? 1.2 : kinds === 1 ? 3.4 : 2.0;
+      } else if (counts[role] >= 2 && kinds < 3) {
+        /* piling a third into a role while another is missing */
+        s -= 1.8;
+      }
+
+      /* NO SEPARATE "SURVIVE THE BAN PHASE" TERM.
+         One was written and then deleted. It counted what would be
+         left after the two best damage cards were banned and paid to
+         keep that above three - and measurement said the scaled
+         damage target above had already done the job: removing the
+         term moved the reported exploit not at all (0.3% either way)
+         and a harsher hypothetical 3-ban meta only 10.7% -> 8.8%.
+         It was a second control on the same dial, and the first one
+         is doing the work. Deleted rather than shipped as decoration:
+         the earlier version of it was also loud enough to start
+         crowding out the deck's only Medic. */
+    }
+
+    /* Late-draft insurance, scaled to the roster. Below the floor a
+       missing essential outranks almost anything else on the table. */
+    if (slotsLeft <= 2 * scale && role === 'Tank' && (counts.Tank || 0) < wantTank) s += 5;
+    if (slotsLeft <= 1 * scale && role === 'Medic' && (counts.Medic || 0) < wantMedic) s += 4;
 
     var front = 0;
     team.forEach(function (t) {
       if (t.card.role === 'Tank' || t.card.role === 'Bruiser') front++;
     });
+    /* FRONT-LINE THRESHOLDS DO NOT SCALE EITHER.
+       Multiplying these by the roster was the single worst part of
+       the first attempt: at a twelve it meant "keep paying +2.2 for
+       front-liners until you have four", which rewarded exactly the
+       four-Tank pile-up being fixed. Two front-liners is a front
+       line at any roster size; beyond three it is a liability that
+       AoE punishes. Unscaled. */
     var isFront = role === 'Tank' || role === 'Bruiser';
     if (isFront && front < 2) s += 2.2;
     if (isFront && front >= 3) s -= 1.5;
@@ -1246,7 +1383,7 @@ window.EOL.draftAI = (function () {
        And whatever cohesion factions DO have is already in the keyword
        web, measured rather than asserted: same-faction pairs average
        0.77 on pairSynergy against 0.60 for cross-faction pairs, because
-       a faction's heroes really do share themes. Paying for it twice,
+       a faction's legends really do share themes. Paying for it twice,
        with a term that SUMMED to as much as +6.6 across a twelve, was
        the same scale defect the synergy weight below had - it made the
        bot chase banners over cards. */

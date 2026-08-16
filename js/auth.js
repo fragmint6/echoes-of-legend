@@ -52,6 +52,67 @@
      the difference between "has a name" and "was asked". */
   var USERNAME_RE = /^[A-Za-z0-9._-]{3,24}$/;
 
+  /* ---------------------------------------------------------
+     AUTO-GENERATED CALLSIGNS
+     ---------------------------------------------------------
+     Google hands us a real-world name ("John Smith") and no
+     callsign. Asking the player to invent one at the door was both
+     an interruption and a dead end: the name they typed was
+     overwritten by the next sign-in (see ensureProfile). So nobody
+     is asked any more - everyone is MINTED a name in the game's own
+     voice, and can change it in Settings whenever they like.
+
+     Shape: two adjectives + three digits, e.g. GildedIronclad418.
+     Both word lists are adjectives so any pairing reads as a title
+     rather than a sentence, and every character is inside
+     USERNAME_RE (letters/digits only), so a generated name can
+     never fail the validator that guards the settings form.
+
+     Length: longest pair is 9 + 10 + 3 = 22 <= 24. Checked by
+     sim/verify_callsign.js so a future word can't silently break it. */
+  var CALLSIGN_A = [
+    'Gilded', 'Ashen', 'Crimson', 'Silent', 'Iron', 'Hollow', 'Radiant', 'Vagrant',
+    'Umbral', 'Gallant', 'Sombre', 'Feral', 'Verdant', 'Frozen', 'Storied', 'Wayward',
+    'Molten', 'Argent', 'Grim', 'Lucid', 'Rusted', 'Sacred', 'Wintry', 'Fabled',
+  ];
+  var CALLSIGN_B = [
+    'Ironclad', 'Wandering', 'Undaunted', 'Nameless', 'Thorned', 'Vigilant', 'Restless',
+    'Errant', 'Stalwart', 'Unbowed', 'Hallowed', 'Cunning', 'Weathered', 'Tempered',
+    'Fearless', 'Solemn', 'Relentless', 'Wary', 'Dauntless', 'Steadfast',
+  ];
+
+  /* Prefers the platform CSPRNG; Math.random is only a fallback for
+     ancient engines. `max` is exclusive. */
+  function randBelow(max) {
+    try {
+      var c = window.crypto || window.msCrypto;
+      if (c && c.getRandomValues) {
+        var a = new Uint32Array(1);
+        /* Reject the unfair tail so every word stays equally likely. */
+        var limit = Math.floor(4294967296 / max) * max;
+        do {
+          c.getRandomValues(a);
+        } while (a[0] >= limit);
+        return a[0] % max;
+      }
+    } catch (e) {
+      /* fall through to Math.random */
+    }
+    return Math.floor(Math.random() * max);
+  }
+
+  /* 24 x 20 x 900 = 432,000 combinations. Collisions are possible,
+     not likely; claimHandle() retries on the unique violation when
+     the row is first created. Called exactly once per account - at
+     profile creation - and never again. */
+  function generateHandle() {
+    return (
+      CALLSIGN_A[randBelow(CALLSIGN_A.length)] +
+      CALLSIGN_B[randBelow(CALLSIGN_B.length)] +
+      String(100 + randBelow(900))
+    );
+  }
+
   /* Returns null when valid, otherwise the message to show. */
   function validateHandle(h) {
     if (!h) return 'Pick a username.';
@@ -117,30 +178,414 @@
     }
 
     setState('wait');
+
+    /* Arm the boot gate before the first session lookup, on builds
+       where the SDK owns identity and an anonymous fallback exists. */
+    var P0 = window.EOL.platform;
+    if (P0 && P0.sdk && P0.anonymousAuth) {
+      portalGate = true;
+      portalGateTimer = setTimeout(function () {
+        /* The SDK never answered. Fall back rather than leaving the
+           Daily Puzzle without a session forever. */
+        openPortalGate();
+      }, 9000);
+
+      /* SAY SO WHEN IT IS STUCK.
+         A stalled sign-in produces no error and no log line - the
+         symptom is silence, which is the hardest thing to report and
+         the hardest thing to debug remotely. Nobody should have to
+         find the right console frame to discover why the spinner is
+         still turning, so after every timeout has had its chance the
+         game prints the diagnosis itself. */
+      setTimeout(function () {
+        if (isPortalAccount()) return;
+        var s = document.body ? document.body.dataset.auth : '';
+        console.warn(
+          '[EOL] portal sign-in did not complete. stage=' +
+            portalStage +
+            ' authState=' +
+            s +
+            ' haveSession=' +
+            !!session +
+            ' anonymous=' +
+            sessionIsAnonymous() +
+            '\n      Full report: window.EOL.auth.portalStage()'
+        );
+      }, 15000);
+    }
+
     client = window.supabase.createClient(cfg().url, cfg().anonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
 
     client.auth.getSession().then(function (res) {
-      handleSession(res && res.data ? res.data.session : null);
+      var s = res && res.data ? res.data.session : null;
+      handleSession(s);
+      if (!s) maybeSignInAnonymously();
     });
     client.auth.onAuthStateChange(function (_evt, s) {
       handleSession(s);
     });
   }
 
+  /* ---------------------------------------------------------
+     ANONYMOUS SESSIONS (portal builds)
+     -------------------------------------------------------------
+     The Daily Puzzle is enforced in Postgres, not in the client: one
+     shared `active` board per day, and a (puzzle_id, user_id,
+     attempt_no) ledger capped at two. Every one of those RPCs opens
+     with `auth.uid()` and raises 'authentication required' when it is
+     null, and the tables themselves are REVOKEd from anon.
+
+     Inside the CrazyGames iframe, Google cannot redirect and there is
+     no account to sign into - so without a session the Daily is simply
+     gone. signInAnonymously() creates a REAL auth.users row, which
+     means auth.uid() is non-null and every existing RPC, grant, and
+     policy keeps working with no schema change at all. The player gets
+     the genuine shared board and a genuine two-attempt limit.
+
+     Two things this deliberately does NOT do:
+       - it never runs on the web build, where a real account is
+         offered and anonymous rows would just be litter;
+       - it never grants a generation lease (js/daily.js), so portal
+         tabs consume the Daily and never publish it.
+     --------------------------------------------------------- */
+  function wantsAnonymous() {
+    var p = window.EOL.platform;
+    if (!p || !p.anonymousAuth) return false;
+    /* A CrazyGames sign-in is in flight, or has already produced a
+       real account. Creating an anonymous row now would race it and
+       leave the player on a throwaway identity. See signInWithCrazyGames. */
+    if (portalExchange) return false;
+    return true;
+  }
+
+  /* THE BOOT RACE.
+     -------------------------------------------------------------
+     init() runs from app.js the moment the page is ready, but the
+     CrazyGames SDK resolves asynchronously and may take seconds (it
+     has its own 8s timeout). Left alone, the anonymous sign-in
+     always won, and the player was stranded on a throwaway identity
+     a few hundred milliseconds before their real account arrived.
+
+     So on a build that has BOTH the SDK and the anonymous fallback,
+     the fallback waits for the SDK to say which it is: an account
+     (signInWithCrazyGames) or a guest (portalIsGuest). The timeout
+     is the backstop for an SDK that never answers at all - the
+     Daily Puzzle still gets its session, just a little later. */
+  var portalGate = false;
+  var portalGateTimer = 0;
+
+  /* Upper bound on the cg-auth round trip. Supabase Edge Functions
+     cold-start in well under a second normally; a first hit after a
+     deploy, or one that has to re-fetch CrazyGames' public key, is the
+     slow case this allows for. Past this the anonymous session is the
+     better outcome than a spinner. */
+  var CG_AUTH_TIMEOUT_MS = 12000;
+
+  /* The profiles upsert is a nicety - a name for an opponent to read.
+     It must not hold the sign-in UI hostage. */
+  var PROFILE_TIMEOUT_MS = 8000;
+
+  /* Settle `p`, or reject after `ms`. Used for calls that have no
+     timeout of their own and whose failure is survivable. */
+  function raceTimeout(p, ms, label) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var t = setTimeout(function () {
+        if (done) return;
+        done = true;
+        reject(new Error((label || 'request') + ' timed out after ' + ms + 'ms'));
+      }, ms);
+      Promise.resolve(p).then(
+        function (v) {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          resolve(v);
+        },
+        function (e) {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          reject(e);
+        }
+      );
+    });
+  }
+
+  /* RELEASE THE GATE AND ACTUALLY GET A SESSION.
+
+     This used to early-return when the gate was already open, which
+     created a deadlock between the two timers:
+
+       t=9s   the backstop fires, opens the gate, and calls
+              maybeSignInAnonymously() - which refuses, because
+              portalExchange is still true;
+       t=12s  the cg-auth fetch aborts and the catch calls this again -
+              which now returns immediately, because the gate was
+              already opened at 9s.
+
+     Nobody ever signed in. body[data-auth] stayed 'wait' forever: a
+     permanent "loading" on the sign-in button and a locked multiplayer
+     tab, for a player the SDK had already identified.
+
+     The gate being open is not the goal - HAVING A SESSION is. So
+     always fall through to the fallback when there is still no
+     session; maybeSignInAnonymously() is itself idempotent. */
+  function openPortalGate() {
+    if (portalGate) {
+      portalGate = false;
+      clearTimeout(portalGateTimer);
+    }
+    if (!session) maybeSignInAnonymously();
+  }
+
+  /* js/crazygames-sdk.js calls this when the player is NOT logged in
+     to CrazyGames. A guest is a normal, supported state. */
+  function portalIsGuest() {
+    openPortalGate();
+  }
+
+  /* ---------------------------------------------------------
+     CRAZYGAMES ACCOUNTS
+     -------------------------------------------------------------
+     A REAL account for a portal player, so multiplayer works.
+
+     The anonymous session above is not an account: its uid is
+     per-browser, it has no profiles row (so opponents saw the
+     literal name 'Player'), and nothing ties it to the person
+     playing. This exchanges the SDK's signed token for a durable
+     Supabase account keyed on the CrazyGames id.
+
+     WHAT IS TRUSTED. Only getUserToken(), and only after the Edge
+     Function has checked its RS256 signature against CrazyGames'
+     published key. `__dangerousUserId` is never sent - it is
+     forgeable from the console. The token is never stored, never
+     decoded here, and never logged: it goes straight to the
+     function and is dropped.
+
+     WHY THE FUNCTION RETURNS CREDENTIALS. Minting a session
+     server-side would mean hand-managing access and refresh tokens
+     in the client. Instead the function returns the shadow
+     account's email and password, the normal SDK sign-in runs, and
+     session persistence and refresh work exactly as they do for an
+     email account. Those credentials are derived from the service
+     role key and are unobtainable without a valid CrazyGames token.
+
+     DEGRADING. Every failure path leaves the player exactly where
+     they were: a guest with local progress. The Daily Puzzle's
+     anonymous fallback still runs, because a portal player who is
+     not logged in to CrazyGames is a perfectly normal case.
+     --------------------------------------------------------- */
+  var portalExchange = false;
+
+  function cgAuthEndpoint() {
+    var c = cfg();
+    if (c.cgAuthUrl) return c.cgAuthUrl;
+    if (!c.url) return '';
+    return c.url.replace(/\/+$/, '') + '/functions/v1/cg-auth';
+  }
+
+  /* True once a CrazyGames-backed session is live. The UI asks this
+     to tell a real portal account from the anonymous fallback. */
+  function isPortalAccount() {
+    var u = session && session.user;
+    if (!u) return false;
+    var meta = u.user_metadata || {};
+    return !!meta.cg_user_id;
+  }
+
+  /* Remembered so a retry can redo the exchange without the caller
+     having to hold on to the SDK's token getter. */
+  var portalTokenGetter = null;
+
+  /* How far the CrazyGames -> Supabase exchange has got. Read it with
+     window.EOL.auth.portalStage() when the sign-in UI is stuck: a
+     stalled request logs nothing, so this is the only way to tell
+     "never started" from "waiting on cg-auth" from "cg-auth answered
+     but Supabase did not". */
+  var portalStage = 'not started';
+
+  /* THE PLAYER ASKED AGAIN.
+     signInWithCrazyGames() is fire-and-forget at boot and gives up
+     quietly on failure - which is right, because a guest must not be
+     nagged. But when a logged-in player then TRIES TO QUEUE, the
+     failure matters and they deserve another attempt: the usual cause
+     is a cg-auth function that was not deployed yet, which can start
+     working without the page reloading. */
+  function retryCrazyGamesSignIn() {
+    if (isPortalAccount()) return Promise.resolve(session);
+    if (!portalTokenGetter) return Promise.resolve(null);
+    return signInWithCrazyGames(portalTokenGetter);
+  }
+
+  function signInWithCrazyGames(getToken) {
+    if (!client) return Promise.resolve(null);
+    if (portalExchange) return Promise.resolve(null);
+    if (isPortalAccount()) return Promise.resolve(session);
+    if (getToken) portalTokenGetter = getToken;
+
+    var endpoint = cgAuthEndpoint();
+    if (!endpoint) return Promise.resolve(null);
+
+    portalExchange = true;
+    /* Hold the gate closed so the anonymous fallback cannot fire
+       underneath the exchange.
+
+       The gate's BACKSTOP TIMER IS DELIBERATELY LEFT RUNNING. It used
+       to be cleared here, on the reasoning that we were about to
+       answer the gate ourselves - but "about to" assumed the exchange
+       would always settle. A cold Edge Function, a hung connection or
+       a dropped response left the promise pending forever, and with
+       the backstop gone the UI sat on data-auth='wait' ("connecting...")
+       with nothing left to rescue it. Keeping the timer means the
+       worst case is the anonymous fallback arriving a few seconds
+       late, not a permanent spinner. Every settle path below closes
+       the gate, so an exchange that DOES finish still wins the race. */
+    portalGate = true;
+    setState('wait');
+
+    /* WHERE DID IT GET STUCK? Every stage of this exchange is
+       invisible to CrazyGames' SDK panel (which stops at
+       getUserToken) and, on a hung request, invisible in the console
+       too - the failure is the ABSENCE of a message. Record the stage
+       so window.EOL.auth.portalStage() can be asked directly. */
+    portalStage = 'getting token';
+
+    return Promise.resolve()
+      .then(getToken)
+      .then(function (token) {
+        if (!token) throw new Error('no token');
+        portalStage = 'calling cg-auth';
+        /* A fetch with no timeout can hang for as long as the browser
+           allows. Bound it: a cold start is slow, but not this slow,
+           and failing over to the anonymous session beats waiting. */
+        var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+        var slow = setTimeout(function () {
+          if (ctl) ctl.abort();
+        }, CG_AUTH_TIMEOUT_MS);
+        var opts = {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            /* The function runs with --no-verify-jwt, but the
+               platform's gateway still wants an apikey header. */
+            apikey: cfg().anonKey || '',
+          },
+          body: JSON.stringify({ token: token }),
+        };
+        if (ctl) opts.signal = ctl.signal;
+        return fetch(endpoint, opts).then(
+          function (res) {
+            clearTimeout(slow);
+            return res;
+          },
+          function (err) {
+            clearTimeout(slow);
+            throw err && err.name === 'AbortError'
+              ? new Error('cg-auth timed out after ' + CG_AUTH_TIMEOUT_MS + 'ms')
+              : err;
+          }
+        );
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error('cg-auth ' + res.status + ': ' + t.slice(0, 200));
+          });
+        }
+        return res.json();
+      })
+      .then(function (creds) {
+        if (!creds || !creds.email || !creds.password)
+          throw new Error('cg-auth gave no credentials');
+        portalStage = 'signing in to supabase';
+        /* An anonymous session may already be live from a previous
+           boot. Signing in replaces it; the anonymous row is left
+           behind and migration 09 documents how to sweep those. */
+        return client.auth.signInWithPassword({
+          email: creds.email,
+          password: creds.password,
+        });
+      })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        /* A real account is live: the gate has served its purpose and
+           the anonymous fallback must never run now. */
+        portalGate = false;
+        clearTimeout(portalGateTimer);
+        portalStage = 'done';
+        return res.data && res.data.session ? res.data.session : null;
+      })
+      .catch(function (err) {
+        /* A guest, an undeployed function, or a portal outage all
+           land here, and none of them should break the game. */
+        console.warn('[EOL] CrazyGames sign-in unavailable:', (err && err.message) || err);
+        portalStage = 'failed: ' + ((err && err.message) || err);
+        portalExchange = false;
+        /* The anonymous fallback was suppressed while this ran, so
+           give the Daily Puzzle its session back. */
+        openPortalGate();
+        /* AND PUT THE UI BACK.
+           setState('wait') went up when this exchange started. If a
+           session was ALREADY live - the usual case for a retry, where
+           an anonymous session landed after the first failure -
+           openPortalGate() has nothing to do and no auth state change
+           fires, so nothing ever clears 'wait'. The button spins for
+           good on a request that finished long ago. Re-assert the
+           state we actually have. */
+        setState(session);
+        return null;
+      });
+  }
+
+  function maybeSignInAnonymously() {
+    if (!client || !wantsAnonymous()) return;
+    /* Hold for the SDK's verdict - see THE BOOT RACE above. */
+    if (portalGate) return;
+    if (!client.auth.signInAnonymously) {
+      console.warn('[EOL] Supabase build has no signInAnonymously; Daily Puzzle stays locked.');
+      return;
+    }
+    setState('wait');
+    client.auth
+      .signInAnonymously()
+      .then(function (res) {
+        if (res.error) throw res.error;
+      })
+      .catch(function (err) {
+        /* Anonymous sign-ins are a project-level toggle in the Supabase
+           dashboard. If it is off, say so precisely rather than leaving
+           a silent 'wait' spinner - the rest of the game is unaffected,
+           only the Daily Puzzle needs the session. */
+        console.warn(
+          '[EOL] Anonymous sign-in failed (enable it in Supabase -> ' +
+            'Authentication -> Sign In / Providers -> Anonymous): ' +
+            ((err && err.message) || err)
+        );
+        setState(null);
+      });
+  }
+
   function handleSession(s) {
     var wasSignedIn = !!session;
     session = s || null;
     if (session) {
-      ensureProfile()
-        .then(function () {
-          setState(session);
-        })
+      /* The profile upsert must never be the reason the UI stays on
+         'wait'. An ERROR was always handled, but a request that simply
+         never settles - RLS recursion, a stalled socket - left the
+         spinner up forever, because setState only ran in the then/catch.
+         Bound it: whichever finishes first, the session is live and the
+         UI must reflect that. The identity matchmaking needs is in the
+         JWT, not in this row. */
+      raceTimeout(ensureProfile(), PROFILE_TIMEOUT_MS, 'profile write')
         .catch(function (err) {
           /* A missing profiles table must not lock anyone out of a
              match - the identity in the JWT is what matchmaking uses. */
           console.warn('[EOL] profile write failed, continuing:', err && err.message);
+        })
+        .then(function () {
           setState(session);
         });
     } else {
@@ -170,16 +615,91 @@
     });
   }
 
+  /* An anonymous session is a real auth.users row with no email and no
+     identities - it exists so the Daily Puzzle's server-side ledger has
+     a uid to key on. Supabase marks it is_anonymous; the identities
+     fallback covers older SDK builds. */
+  function sessionIsAnonymous() {
+    var u = session && session.user;
+    if (!u) return false;
+    if (typeof u.is_anonymous === 'boolean') return u.is_anonymous;
+    return !u.email && Array.isArray(u.identities) && u.identities.length === 0;
+  }
+
+  /* ---------------------------------------------------------
+     THE PORTAL OWNS THE PLAYER'S IDENTITY
+     -------------------------------------------------------------
+     On CrazyGames the name and avatar belong to the CrazyGames
+     account, not to us. js/crazygames-sdk.js reads them from the
+     user module and parks them here, and they are overlaid onto
+     whatever the Supabase session says.
+
+     Two reasons this is an overlay rather than a write into the
+     session: the portal's session is anonymous and has nothing to
+     write to, and the player can rename themselves on CrazyGames at
+     any moment - the auth listener then updates this and the UI
+     follows, with no stale copy of a username anywhere in our code.
+
+     This is display only. `__dangerousUserId` is exactly what its
+     name says: it is trivially forged from the browser console and
+     must never authenticate anything. Anything server-side needs
+     getUserToken() verified against CrazyGames' public key. */
+  var portalIdentity = null;
+
+  function setPortalIdentity(user) {
+    portalIdentity =
+      user && user.username
+        ? { name: String(user.username), avatar: String(user.profilePictureUrl || '') }
+        : null;
+    notify();
+  }
+
   function publicUser() {
+    /* THE PORTAL IDENTITY DOES NOT DEPEND ON SUPABASE.
+       A CrazyGames player is signed in whether or not we ever got a
+       Supabase session - and on the portal we frequently will not,
+       because the anonymous sign-in needs a CDN and a network that
+       an embedded iframe may not have. Checking the session first
+       would throw away a perfectly good identity for a reason the
+       player cannot see. The Supabase uid is still used when it
+       exists (the Daily Puzzle needs it); it is simply not required
+       in order to have a name. */
+    if (portalIdentity) {
+      return {
+        id: session && session.user ? session.user.id : '',
+        email: '',
+        name: portalIdentity.name,
+        avatar: portalIdentity.avatar,
+        anonymous: false,
+        portal: true,
+        /* A CrazyGames NAME is not a CrazyGames ACCOUNT. The name
+           arrives from the SDK the moment the page loads; the
+           account only exists once the token has been verified and
+           a session minted. Multiplayer, the vault and anything
+           else that needs a durable uid must read this, not
+           `portal`. */
+        portalAccount: isPortalAccount(),
+      };
+    }
     if (!session || !session.user) return null;
     var u = session.user;
     var meta = u.user_metadata || {};
+    var anon = sessionIsAnonymous();
     return {
       id: u.id,
       email: u.email || '',
-      name:
-        (profile && profile.handle) || meta.full_name || meta.name || (u.email || '').split('@')[0],
-      avatar: meta.avatar_url || meta.picture || '',
+      /* No email to derive a name from, and nothing the player can
+         rename, so anonymous sessions carry a fixed label rather than
+         an empty string that the UI would render as a blank pill. */
+      name: anon
+        ? 'Guest'
+        : (profile && profile.handle) ||
+          meta.full_name ||
+          meta.name ||
+          (u.email || '').split('@')[0],
+      avatar: anon ? '' : meta.avatar_url || meta.picture || '',
+      anonymous: anon,
+      portal: false,
     };
   }
 
@@ -188,22 +708,98 @@
      --------------------------------------------------------- */
   function ensureProfile() {
     if (!client || !session) return Promise.resolve(null);
+    /* profiles is the table matchmaking reads to show your opponent a
+       name. An anonymous portal session never queues, so it needs no
+       row - skip the upsert instead of seeding thousands of identical
+       'Guest' profiles that nothing will ever read. */
+    if (sessionIsAnonymous()) {
+      profile = null;
+      return Promise.resolve(null);
+    }
     var u = session.user;
     var meta = u.user_metadata || {};
+
+    /* READ BEFORE WRITE - THIS IS THE WHOLE POINT.
+       This function used to upsert `handle` unconditionally on every
+       session load, which meant it ran again on the next sign-in and
+       stamped the Google display name straight over the callsign the
+       player had chosen. The name saved correctly and then quietly
+       reverted, which is exactly what a player reports as "it doesn't
+       save". A signing-in user must never overwrite their own name:
+       the row is created once, and after that only setHandle() may
+       touch the handle. */
     return client
       .from('profiles')
-      .upsert(
-        {
-          id: u.id,
-          handle: meta.full_name || meta.name || (u.email || 'player').split('@')[0],
-          avatar_url: meta.avatar_url || meta.picture || null,
-        },
-        { onConflict: 'id' }
-      )
+      .select('handle, avatar_url')
+      .eq('id', u.id)
+      .maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        var row = res.data;
+        var avatar = meta.avatar_url || meta.picture || null;
+
+        if (row && row.handle) {
+          /* Already has a name - leave it alone. The avatar is not
+             player-owned, so it may follow the provider. */
+          if (avatar && avatar !== row.avatar_url) {
+            return client
+              .from('profiles')
+              .update({ avatar_url: avatar })
+              .eq('id', u.id)
+              .select()
+              .single()
+              .then(function (up) {
+                profile = up.error ? row : up.data;
+                return profile;
+              });
+          }
+          profile = row;
+          return profile;
+        }
+
+        /* No row yet: mint a callsign. Nobody is asked to invent one,
+           and we never seed the row with the player's real name from
+           Google. Portal accounts are the exception - cg-auth already
+           wrote the CrazyGames username, which is the name that build
+           is required to display. */
+        var minted = isPortalAccount()
+          ? meta.full_name || meta.name || generateHandle()
+          : generateHandle();
+
+        return claimHandle(u.id, minted, avatar).then(function (saved) {
+          /* Record that the name is a real callsign so nothing later
+             mistakes it for a derived placeholder and re-derives it. */
+          if (!meta.handle_chosen) {
+            client.auth
+              .updateUser({ data: { full_name: saved.handle, handle_chosen: true } })
+              .catch(function () {
+                /* the profiles row is the record that matters */
+              });
+          }
+          return saved;
+        });
+      });
+  }
+
+  /* Insert `handle` for `id`, retrying on a uniqueness collision with
+     a freshly generated name. Returns the stored profile row. */
+  function claimHandle(id, handle, avatar, tries) {
+    tries = tries || 0;
+    return client
+      .from('profiles')
+      .upsert({ id: id, handle: handle, avatar_url: avatar }, { onConflict: 'id' })
       .select()
       .single()
       .then(function (res) {
-        if (res.error) throw res.error;
+        if (res.error) {
+          /* 23505 = someone already holds this callsign. With 432k
+             combinations this is rare; three attempts makes it
+             vanishingly so. */
+          if (res.error.code === '23505' && tries < 3) {
+            return claimHandle(id, generateHandle(), avatar, tries + 1);
+          }
+          throw res.error;
+        }
         profile = res.data;
         return profile;
       });
@@ -222,26 +818,80 @@
     if (!client || !session) return Promise.reject(new Error('Sign in first.'));
     var bad = validateHandle(handle);
     if (bad) return Promise.reject(new Error(bad));
-    return client.auth
-      .updateUser({ data: { full_name: handle, handle_chosen: true } })
+    /* THE RENAME GOES THROUGH THE SERVER, NOT THROUGH THE TABLE.
+       This used to upsert profiles.handle directly, which meant the
+       one-change-per-week rule could only ever be advisory: the
+       "own profile update" policy lets any signed-in client write
+       its own row straight from the dev console. migration 14 moves
+       the column behind set_handle() (security definer) and pins it
+       with a BEFORE UPDATE trigger, so this RPC is now the only
+       door - a direct write silently leaves the name alone. The
+       cooldown,
+       the format check and the uniqueness check all live there and
+       come back as plain messages. */
+    return client
+      .rpc('set_handle', { p_handle: handle })
       .then(function (res) {
-        if (res.error) throw res.error;
-        return client
-          .from('profiles')
-          .upsert({ id: session.user.id, handle: handle }, { onConflict: 'id' })
-          .select()
-          .single();
+        if (res.error) throw new Error(rpcMessage(res.error));
+        var row = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (row) profile = row;
+        /* user_metadata is a MIRROR of the row, never the authority.
+           It is updated after the fact so the name still resolves if
+           a later read of `profiles` fails; if this write fails the
+           rename has still happened and must not be reported as an
+           error. */
+        return client.auth
+          .updateUser({ data: { full_name: (row && row.handle) || handle, handle_chosen: true } })
+          .catch(function () {
+            /* the profiles row is the record that matters */
+          })
+          .then(function () {
+            notify();
+            return profile;
+          });
+      });
+  }
+
+  /* Postgres errors arrive with the message we raised, but the
+     transport wraps them inconsistently. Prefer the human sentence
+     and fall back to something a player can act on. */
+  function rpcMessage(err) {
+    var m = (err && (err.message || err.details || err.hint)) || '';
+    /* A missing function means migration 14 has not been run. Say so
+       plainly rather than showing the player a Postgres string. */
+    if (/function .*set_handle.* does not exist|PGRST202/i.test(m)) {
+      return 'Username changes are not available yet. Run migration 14.';
+    }
+    if (/row-level security/i.test(m)) {
+      return 'That change was refused. Try again from Settings.';
+    }
+    return m || 'Could not change your username.';
+  }
+
+  /* How long until this account may rename again.
+     Resolves to { canChange, nextAllowedAt, changedAt } - and
+     defaults to "yes" whenever the answer cannot be established, so
+     a server that has not run migration 14 (or a transient read
+     failure) leaves the field usable rather than locking a player
+     out of a name they are entitled to change. set_handle() is the
+     authority either way; this only decides what Settings shows. */
+  function handleStatus() {
+    var open = { canChange: true, nextAllowedAt: null, changedAt: null };
+    if (!client || !session || sessionIsAnonymous()) return Promise.resolve(open);
+    return client
+      .rpc('handle_status')
+      .then(function (res) {
+        if (res.error || !res.data) return open;
+        var row = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (!row) return open;
+        return {
+          canChange: row.can_change !== false,
+          nextAllowedAt: row.next_allowed_at || null,
+          changedAt: row.changed_at || null,
+        };
       })
-      .then(function (res) {
-        /* Postgres 23505 = unique violation: someone else owns this
-           callsign. Surface it as a pick-another message. */
-        if (res.error) {
-          if (res.error.code === '23505') throw new Error('That username is taken.');
-          throw res.error;
-        }
-        profile = res.data;
-        notify();
-        return profile;
+      .catch(function () {
+        return open;
       });
   }
 
@@ -259,9 +909,14 @@
      from their email/Google instead of one they chose. The prompt
      (see app.js) stays on them until this is false. */
   function needsHandle() {
-    if (!session || !session.user) return false;
-    var meta = session.user.user_metadata || {};
-    return !meta.handle_chosen;
+    /* ALWAYS FALSE NOW - AND DELIBERATELY KEPT.
+       Every account is minted a callsign by ensureProfile(), so there
+       is no longer a state where the game has to stop and ask. The
+       function stays because callers (js/app.js) and the platform
+       suite still ask the question; it simply always answers "no",
+       which retires the prompt without leaving dangling references.
+       Renaming happens in Settings, on the player's schedule. */
+    return false;
   }
 
   /* ---------------------------------------------------------
@@ -270,6 +925,22 @@
   window.EOL.auth = {
     init: init,
     configured: configured,
+    /* js/crazygames-sdk.js calls this with the CrazyGames user (or
+       null for a guest). Display only - see setPortalIdentity. */
+    setPortalIdentity: setPortalIdentity,
+    /* Exchanges a CrazyGames token for a REAL account (multiplayer,
+       a stable uid, a profiles row). Takes a function returning the
+       token so the token never has to sit in a variable here. */
+    signInWithCrazyGames: signInWithCrazyGames,
+    /* Retry the exchange for a player who is already logged in to
+       CrazyGames but whose account never materialised. */
+    retryCrazyGamesSignIn: retryCrazyGamesSignIn,
+    /* The player is not logged in to CrazyGames - release the boot
+       gate so the Daily Puzzle's anonymous session can be created. */
+    portalIsGuest: portalIsGuest,
+    /* True when the live session is a CrazyGames-backed account, as
+       opposed to the anonymous Daily-Puzzle fallback. */
+    isPortalAccount: isPortalAccount,
     isReady: function () {
       return !!client;
     },
@@ -280,16 +951,247 @@
       fn(publicUser());
     },
 
+    /* GOOGLE SIGN-IN OPENS A POPUP, NOT A FULL-PAGE REDIRECT.
+       Navigating the whole tab away mid-session tears down the running
+       game: an unsaved battle, an open prep screen and the boot cost of
+       coming back. The popup keeps the game alive underneath.
+
+       The popup is opened SYNCHRONOUSLY inside the click handler -
+       browsers only allow that inside a user gesture, and awaiting the
+       provider URL first is exactly what gets a popup blocked. If the
+       browser blocks it anyway (or we are inside an iframe that
+       forbids popups) we fall back to the old full-page redirect, so
+       sign-in still works everywhere it used to. */
     signInWithGoogle: function () {
       if (!client) return Promise.reject(new Error('offline'));
+      var origin = window.location.origin;
+      var back = cfg().redirectTo || window.location.href.split('#')[0];
+
+      var popup = null;
+      try {
+        /* The name is the handshake: index.html's early boot script
+           looks for it and hands the result back instead of booting
+           a second copy of the game inside the popup. */
+        popup = window.open('', 'eol-oauth', 'width=520,height=640,noopener=no,noreferrer=no');
+      } catch (e) {
+        popup = null;
+      }
+
+      if (!popup || popup.closed) {
+        /* Blocked. Do what we have always done. */
+        return client.auth
+          .signInWithOAuth({ provider: 'google', options: { redirectTo: back } })
+          .then(function (res) {
+            if (res.error) throw res.error;
+            return res;
+          });
+      }
+
+      try {
+        popup.document.write(
+          '<!doctype html><meta charset="utf-8"><title>Signing in...</title>' +
+            '<body style="margin:0;display:grid;place-items:center;height:100vh;' +
+            'background:#0b0e18;color:#8b93ad;font:14px system-ui,sans-serif">' +
+            'Connecting to Google...</body>'
+        );
+      } catch (e) {
+        /* cross-origin already, or a browser that will not let us write
+           into a blank popup - harmless, the navigation below still runs */
+      }
+
       return client.auth
         .signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: cfg().redirectTo || window.location.href.split('#')[0] },
+          options: { redirectTo: back, skipBrowserRedirect: true },
         })
         .then(function (res) {
           if (res.error) throw res.error;
-          return res;
+          var url = res.data && res.data.url;
+          if (!url) throw new Error('Google sign-in is unavailable right now.');
+          popup.location.href = url;
+
+          return new Promise(function (resolve, reject) {
+            var settled = false;
+            var poll = null;
+            var bc = null;
+
+            function cleanup() {
+              settled = true;
+              window.removeEventListener('message', onMsg);
+              window.removeEventListener('storage', onStorage);
+              if (bc) {
+                try {
+                  bc.close();
+                } catch (e) {
+                  /* already closed */
+                }
+                bc = null;
+              }
+              if (poll) clearInterval(poll);
+              try {
+                /* do not leave a consumed result behind for the next
+                   sign-in to pick up as if it were fresh */
+                localStorage.removeItem('eol:oauth:relay');
+              } catch (e) {
+                /* storage disabled */
+              }
+              try {
+                if (popup && !popup.closed) popup.close();
+              } catch (e) {
+                /* already gone */
+              }
+            }
+
+            /* One handler for all three delivery channels. Whichever
+               arrives first wins; `settled` makes the rest no-ops. */
+            function accept(d) {
+              if (settled) return;
+              if (!d || d.source !== 'eol-oauth') return;
+
+              if (d.error) {
+                cleanup();
+                reject(new Error(d.error));
+                return;
+              }
+              /* Two shapes, because the provider flow decides which:
+                 PKCE returns a one-time ?code=, implicit returns the
+                 tokens directly in the hash. The code is exchanged HERE
+                 rather than in the popup, because the matching verifier
+                 lives in this window's client. */
+              var done = d.code
+                ? client.auth.exchangeCodeForSession(d.code)
+                : d.access_token
+                  ? client.auth.setSession({
+                      access_token: d.access_token,
+                      refresh_token: d.refresh_token,
+                    })
+                  : null;
+              if (!done) return;
+              cleanup();
+              done
+                .then(function (r) {
+                  if (r && r.error) throw r.error;
+                  resolve(r);
+                })
+                .catch(reject);
+            }
+
+            /* postMessage: the fast path, when COOP left the opener
+               relationship intact. */
+            function onMsg(ev) {
+              /* The popup is same-origin: anything else is not ours. */
+              if (!ev || ev.origin !== origin) return;
+              accept(ev.data);
+            }
+
+            /* localStorage: survives COOP, and also covers a popup that
+               was closed by the browser before BroadcastChannel flushed. */
+            function onStorage(ev) {
+              if (!ev || ev.key !== 'eol:oauth:relay' || !ev.newValue) return;
+              try {
+                var j = JSON.parse(ev.newValue);
+                if (j && j.msg) accept(j.msg);
+              } catch (e) {
+                /* not ours */
+              }
+            }
+
+            window.addEventListener('message', onMsg);
+            window.addEventListener('storage', onStorage);
+            try {
+              bc = new BroadcastChannel('eol-oauth');
+              bc.onmessage = function (ev) {
+                accept(ev && ev.data);
+              };
+            } catch (e) {
+              bc = null; /* the other two channels still cover us */
+            }
+
+            /* A result the relay wrote just before we began listening
+               would otherwise be missed. */
+            try {
+              var pending = localStorage.getItem('eol:oauth:relay');
+              if (pending) {
+                localStorage.removeItem('eol:oauth:relay');
+                var pj = JSON.parse(pending);
+                if (pj && pj.msg && Date.now() - (pj.t || 0) < 120000) accept(pj.msg);
+              }
+            } catch (e) {
+              /* nothing usable was waiting */
+            }
+
+            /* ----------------------------------------------------------
+               THE CLOSE POLL, AND WHY IT IS NOT ALWAYS SAFE TO ARM.
+
+               Cross-Origin-Opener-Policy. Once the popup navigates to
+               the provider, the browser may sever the opener link, and
+               `popup.closed` then returns TRUE for a window that is very
+               much open - Chrome logs "Cross-Origin-Opener-Policy policy
+               would block the window.closed call". The old code believed
+               it, so sign-in was randomly rejected with "Google sign-in
+               was cancelled" about half a second in. That is the bug.
+
+               A window we opened and navigated one tick ago cannot
+               genuinely be closed. So probe first: if it ALREADY reads
+               closed, the reading is a COOP artefact and the poll is
+               never armed - we wait for one of the three delivery
+               channels instead, which is what actually completes the
+               sign-in. */
+            setTimeout(function () {
+              if (settled) return;
+              var liesAboutClosed = false;
+              try {
+                liesAboutClosed = !popup || popup.closed;
+              } catch (e) {
+                liesAboutClosed = true;
+              }
+              if (liesAboutClosed) return; // COOP: never poll, never guess
+
+              var strikes = 0;
+              poll = setInterval(function () {
+                if (settled) return;
+                var gone = false;
+                try {
+                  gone = !popup || popup.closed;
+                } catch (e) {
+                  gone = false;
+                }
+                if (!gone) {
+                  strikes = 0;
+                  return;
+                }
+                /* Even here, confirm rather than assert: the window can
+                   close a beat before the session lands. Only give up
+                   once the reading has held AND there is still no
+                   session. */
+                if (++strikes < 3) return;
+                client.auth
+                  .getSession()
+                  .then(function (r) {
+                    var s = r && r.data ? r.data.session : null;
+                    if (settled) return;
+                    if (s) {
+                      cleanup();
+                      resolve({ data: { session: s }, error: null });
+                    } else if (strikes >= 6) {
+                      cleanup();
+                      reject(new Error('Google sign-in was cancelled.'));
+                    }
+                  })
+                  .catch(function () {
+                    /* transient - the next tick tries again */
+                  });
+              }, 500);
+            }, 400);
+          });
+        })
+        .catch(function (err) {
+          try {
+            if (popup && !popup.closed) popup.close();
+          } catch (e) {
+            /* nothing to close */
+          }
+          throw err;
         });
     },
 
@@ -324,11 +1226,43 @@
       return client.auth.signOut();
     },
 
-    /* settings modal + callsign prompt */
+    /* settings modal */
     validateHandle: validateHandle,
+    /* Settings asks this to decide whether the username field is
+       editable this week. Advisory only - set_handle() re-checks. */
+    handleStatus: handleStatus,
     setHandle: setHandle,
     updatePassword: updatePassword,
+    /* Every account is minted a name at creation, so this is now
+       always false. Kept so existing callers keep working. */
     needsHandle: needsHandle,
+    /* Two adjectives + three digits, assigned ONCE when the profile
+       row is created (see ensureProfile). It is deliberately NOT a
+       thing the player can re-roll: the Settings dice button is gone
+       and renaming is one deliberate change a week. Still exported so
+       the suite can test the shape of a minted name. */
+    generateHandle: generateHandle,
+    /* Lets the UI ask "is this a real account?" without knowing which
+       build it is running in. */
+    isAnonymous: sessionIsAnonymous,
+
+    /* ONE CALL THAT EXPLAINS A STUCK SIGN-IN.
+       Paste window.EOL.auth.portalStage() into the console (in the
+       GAME frame) and it reports every piece of state that decides
+       whether the spinner clears and whether multiplayer unlocks. */
+    portalStage: function () {
+      return {
+        stage: portalStage,
+        authState: document.body ? document.body.dataset.auth : '(no body)',
+        exchangeInFlight: portalExchange,
+        gateClosed: portalGate,
+        haveSession: !!session,
+        isAnonymous: sessionIsAnonymous(),
+        isPortalAccount: isPortalAccount(),
+        endpoint: cgAuthEndpoint() || '(none - supabase not configured)',
+        canQueue: !!(window.EOL.mp && window.EOL.mp.available && window.EOL.mp.available()),
+      };
+    },
 
     /* js/mp.js borrows the configured client rather than creating a
        second one, so both share a single auth session and socket. */

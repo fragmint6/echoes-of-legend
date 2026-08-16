@@ -12,9 +12,9 @@ node sim/full.js
 **Read section 0 first.**
 
 That is the whole balance workflow. It runs three passes (random with
-bans, full draft with bans, and forced inclusion for every hero in the
+bans, full draft with bans, and forced inclusion for every legend in the
 roster - all 63 of them as of 2026-08-05) and reports four metrics per
-hero with confidence intervals.
+legend with confidence intervals.
 
 Useful flags:
 
@@ -22,7 +22,7 @@ Useful flags:
 | --- | --- | --- |
 | `--depth N` | 4 | Search depth |
 | `--quick` | off | ~4 min pipeline test. **Not enough data to balance on.** |
-| `--forced N` | 40 | Games per hero in the forced pass |
+| `--forced N` | 40 | Games per legend in the forced pass |
 | `--random N` | 5000 | Random-draw pass |
 | `--draft N` | 2000 | Drafted pass |
 
@@ -40,11 +40,11 @@ node sim/verify_all.js && node sim/verify_preview.js && node sim/verify_stacks.j
 
 A live match exposed a gap the simulation could not see. One player
 out-drafted the other decisively, and the sim's numbers gave no warning:
-Merlin's discount is mediocre beside five random heroes and enormous
+Merlin's discount is mediocre beside five random legends and enormous
 beside expensive ones, but random draw almost never produces that
 pairing. **The sim measured his floor while the player used his ceiling.**
 
-The arithmetic is stark. At the time the roster held 57 heroes -
+The arithmetic is stark. At the time the roster held 57 legends -
 **1,596 possible pairs** (the roster is now 63, i.e. 1,953 pairs, which
 only makes the problem worse) - and each game shows only 30 of them.
 Measured on a 1,200-game run:
@@ -74,7 +74,7 @@ Three separate failures were at work:
 
 ## What `full.js` measures, and why win rate is not enough
 
-Four numbers per hero. **Win rate is the weakest of them.**
+Four numbers per legend. **Win rate is the weakest of them.**
 
 | Metric | Question |
 | --- | --- |
@@ -83,7 +83,7 @@ Four numbers per hero. **Win rate is the weakest of them.**
 | **Pick rate** | Does the draft AI want it? |
 | **Free win rate** | The classic number, confounded by the three above |
 
-**Ban rate is probably the best single signal.** A 50% hero banned 95%
+**Ban rate is probably the best single signal.** A 50% legend banned 95%
 of the time is not balanced - its win rate is average *because* the
 threat is real and opponents keep deleting it. On a live test run
 Maid Marian, Spartacus, Snow White and Susanoo were each banned in
@@ -93,12 +93,12 @@ Maid Marian, Spartacus, Snow White and Susanoo were each banned in
 `draft-ai.js` means a card the heuristic undervalues is rarely
 drafted, so it gets little data, so nobody learns it is strong - and
 the heuristic's weights came from earlier sim results. Pinning each
-hero in regardless of the AI's opinion escapes that loop.
+legend in regardless of the AI's opinion escapes that loop.
 
-One implementation detail that mattered: pinning a hero into the
+One implementation detail that mattered: pinning a legend into the
 *twelve* is not enough, because fielding is also the AI's judgement.
-**17 of 57 forced heroes never played a single game** on the first
-attempt, Merlin among them. A forced hero is now exempt from the
+**17 of 57 forced legends never played a single game** on the first
+attempt, Merlin among them. A forced legend is now exempt from the
 opponent's bans and guaranteed a slot in the six. Ban rate is still
 measured honestly by the unforced passes.
 
@@ -130,16 +130,16 @@ node sim/run_parallel.js --games 1000 --seed 777 --depth 4 --out sim/d4.json
 
 Depth 2 is a **speed** choice for a 5,000-game run, not a claim that
 depth 2 plays well. Same seed, different depth, then diff the rankings.
-**A hero that climbs when depth rises was being under-played, not
+**A legend that climbs when depth rises was being under-played, not
 under-powered** - the earlier number measured the AI's blind spot rather
 than the card.
 
 ### 3. Ceiling vs floor - report section 6b
 
-Generated automatically by `sim/report.js`. For every hero it shows
+Generated automatically by `sim/report.js`. For every legend it shows
 their overall win rate beside their win rate with their best partner.
 
-**The gap is the signal.** A hero at 48% overall who hits 78% with one
+**The gap is the signal.** A legend at 48% overall who hits 78% with one
 partner is not a 48% card - they are a 48% card that a drafting opponent
 will turn into a 78% card.
 

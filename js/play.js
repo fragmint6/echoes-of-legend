@@ -9,7 +9,7 @@
      Draft         snake-draft: packs of 3, you open odd packs and the
                    bot opens even ones (3 -> 1+1, one discard per pack);
                    12 packs = two legal decks of 12
-     Preparation   shared by both modes: ban 2 enemy heroes (choices
+     Preparation   shared by both modes: ban 2 enemy legends (choices
                    hidden until you commit yours), then field 6 of your
                    surviving 10 and arrange front/back rows
 
@@ -40,6 +40,36 @@
     });
     return FLAT;
   }
+  /* =============================================================
+     WHERE CARD UPGRADES APPLY  (docs/DESIGN-Card-Upgrades.md §2)
+     -------------------------------------------------------------
+     Classic only - singleplayer, campaign, multiplayer and private
+     rooms, single and Unabridged alike.
+
+     Stock cards everywhere else, and the DEFAULT is stock: a mode
+     that does not call this gets no upgrades at all. That is what
+     keeps the two promises the game already makes -
+
+       drafts are "the great equalizer", built from nothing, and
+       ownership has never gated them; and
+
+       the Daily Puzzle tells every player "Everyone receives this
+       exact board and this exact future luck", which an upgraded
+       board would make false.
+
+     A puzzle battle is Classic-shaped, so `puzzle` is checked
+     explicitly rather than inferred from the mode. */
+  function upgradesFor(cfg, six) {
+    if (!window.EOL.upgrades) return null;
+    if (!cfg || cfg.mode !== 'classic') return null;
+    if (cfg.puzzle || cfg.campaignStage === 'puzzle') return null;
+    return window.EOL.upgrades.payloadFor(
+      (six || []).map(function (e) {
+        return e && e.card ? e.card.id : e;
+      })
+    );
+  }
+
   function byId() {
     if (!BY_ID) {
       BY_ID = {};
@@ -48,6 +78,19 @@
       });
     }
     return BY_ID;
+  }
+  /* Resolve a custom draft pool (card ids, agreed in a private room)
+     into the {card,faction} entries startDraft works in. Unknown ids
+     are dropped rather than throwing: a pool built before a card was
+     renamed or removed should deal a slightly smaller draft, not
+     break the match outright. */
+  function poolEntries(ids) {
+    var dict = byId();
+    return (ids || [])
+      .map(function (id) {
+        return dict[id];
+      })
+      .filter(Boolean);
   }
   function $(id) {
     return document.getElementById(id);
@@ -169,7 +212,7 @@
 
   /* ---------------- bot brains ---------------- */
   /* All three roster decisions (draft pick, ban, field six) route through
-     window.EOL.draftAI - see data/draft-ai.js. It scores measured hero
+     window.EOL.draftAI - see data/draft-ai.js. It scores measured legend
      power, a full keyword-synergy web, role structure from the comp data,
      and (for bans) how much a card threatens the bot's own plan.
      A small random roll keeps identical decks from drawing identical
@@ -178,7 +221,7 @@
     return window.EOL.draftAI;
   }
 
-  /* The bot's two bans against a 12-hero deck.
+  /* The bot's two bans against a 12-legend deck.
      It bans what is strongest IN CONTEXT: raw power, what the rest of
      your deck would unlock with it, and what would punish its own six. */
   function banCandidates(deckEntries, allowLegendaries) {
@@ -500,7 +543,7 @@
     return team;
   }
 
-  /* Small bonus for fielding a hero that punishes what the enemy fields. */
+  /* Small bonus for fielding a legend that punishes what the enemy fields. */
   function counterBonus(mine, theirs) {
     var ai = DAI();
     var M = ai.tags(mine),
@@ -586,7 +629,7 @@
 
   /* The prep board speaks the battle board's language: cards look like
      the ones on the battlefield, and hovering one opens the same
-     floating hero panel the fight uses (signature + role basic). */
+     floating legend panel the fight uses (signature + role basic). */
   var SMAX = null;
   function statMax() {
     if (SMAX) return SMAX;
@@ -691,7 +734,7 @@
      bottom it is pulled up to bottom-align, and it never leaves the view. */
   var TIP_GAP = 12,
     TIP_EDGE = 10;
-  /* Anchor the hero panel beside the hovered card.
+  /* Anchor the legend panel beside the hovered card.
      -------------------------------------------------------------
      THE BAN-STAMP RULE: the panel must never cover another card's BAN
      stamp. The stamp is a ::after inside a card, so it is trapped in
@@ -1661,7 +1704,7 @@
     var c = $('prep-confirm');
     var sixOk = p.front.length + p.back.length === RULES().FIELD_SIZE;
     /* THE SET rotation law, surfaced on the button itself: games 2+
-       demand 1-2 fresh heroes, and a button that only fails AFTER the
+       demand 1-2 fresh legends, and a button that only fails AFTER the
        click reads as broken - it greys out and says why up front. */
     var needSubs = !!(setState && setState.lastSix && p.phase === 'pick');
     var swaps = needSubs ? setSwapCount() : 0;
@@ -1730,7 +1773,7 @@
     p.player12.forEach(function (e, i) {
       var el = boardCard(e, i, 'you');
       var foeBanned = foeBanList.indexOf(e.card.id) >= 0;
-      /* THE SET: a hero subbed out of the six sits out the rest of the
+      /* THE SET: a legend subbed out of the six sits out the rest of the
          set - rendered exactly like a ban, and unslottable */
       var locked = p.lockouts && p.lockouts.indexOf(e.card.id) >= 0;
       if (p.revealed && (foeBanned || locked)) el.classList.add('banned');
@@ -1848,7 +1891,7 @@
   }
 
   /* Free-slot suggestion for the field tray: frontline roles go front. */
-  /* The live grid tile for one of YOUR heroes (null when not on
+  /* The live grid tile for one of YOUR legends (null when not on
      screen - e.g. resolved bans rebuild the grid once, legitimately).
      Tiles are appended in player12 order and never re-ordered. */
   function allyTile(id) {
@@ -1892,7 +1935,7 @@
   }
 
   function toggleSix(id) {
-    /* THE SET: locked-out heroes (subbed out earlier in the set) can
+    /* THE SET: locked-out legends (subbed out earlier in the set) can
        never re-enter the six */
     if (prep.lockouts && prep.lockouts.indexOf(id) >= 0) return;
     var all = prep.front.concat(prep.back);
@@ -1999,7 +2042,7 @@
             esc(e.card.role) +
             '</span>' +
             '<span class="fs-x" title="Swap rows"><i class="ri-arrow-up-down-line"></i></span>';
-          /* Seat shuffle (hero moved rows or list shifted after a
+          /* Seat shuffle (legend moved rows or list shifted after a
              removal): rebuild silently - slot-in is a NEW-occupant
              celebration, not a "things moved" siren. */
           if (cell && !cell.dataset.slotkey.match(/^empty-/)) fresh.classList.add('no-enter');
@@ -2129,7 +2172,7 @@
     var dict = byId();
     var sixIds = prep.front.concat(prep.back);
     if (sixIds.length !== RULES().FIELD_SIZE) return;
-    /* THE SET substitution law: games 2+ must field 1-2 heroes that
+    /* THE SET substitution law: games 2+ must field 1-2 legends that
        were not in last game's public six. Broken combos rotate. */
     if (setState && setState.lastSix) {
       var swaps = setSwapCount();
@@ -2162,13 +2205,19 @@
          Any use of `prep` after this point is a null dereference, and
          it crashed the second player to confirm in every match. */
       var fieldId = prep.field && prep.field.id;
+      /* Read the upgrade payload off `prep` BEFORE submitting, for the
+         same reason as fieldId: submitSix() can finish the handshake
+         synchronously and null `prep` out from under us. */
+      var myUp = upgradesFor(prep, sixIds.map(function (id) {
+        return dict[id];
+      }));
       window.EOL.netplay.startSix(onFoeSix);
       window.EOL.mp.saveState({
         phase: 'field',
         six: sixIds.slice(),
         field: fieldId,
       });
-      window.EOL.netplay.submitSix(sixIds.slice());
+      window.EOL.netplay.submitSix(sixIds.slice(), myUp);
       return;
     }
 
@@ -2177,7 +2226,7 @@
     });
     var survive = prep.enemy12.filter(function (e) {
       if (prep.youBans.indexOf(e.card.id) >= 0) return false;
-      /* THE SET: heroes the bot subbed out sit out the rest of the set */
+      /* THE SET: legends the bot subbed out sit out the rest of the set */
       if (setState && setState.botLockedOut.indexOf(e.card.id) >= 0) return false;
       return true;
     });
@@ -2241,7 +2290,7 @@
           : chooseSix(survive, predictedSix, mustKeep, prep.aiProfile);
     }
     if (setState) {
-      /* heroes leaving the six become locked out for the rest of the
+      /* legends leaving the six become locked out for the rest of the
          set (BEFORE lastSix is overwritten with the new six) */
       if (setState.lastSix) {
         setState.lastSix.front.concat(setState.lastSix.back).forEach(function (id) {
@@ -2286,6 +2335,9 @@
       campaignTutorialsEnabled(cfg) && cfg.script && cfg.script.match ? cfg.script.match : null;
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
+      /* Upgrades are Classic-only; the enemy is always stock here
+         (a campaign rival scales through enemyStatBonus instead). */
+      upgrades: upgradesFor(cfg, playerSix),
       field: cfg.field,
       mode: cfg.mode,
       war: setState ? 'unabridged' : 'single',
@@ -2347,6 +2399,14 @@
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
       enemyFormed: true,
+      /* ONLINE: both sides' levels are exchanged with the six, so the
+         two clients build identical units and the board checksum
+         agrees. Theirs arrives over the wire and is clamped by
+         upgrades.sanitize() before it reaches the engine. */
+      upgrades: upgradesFor(cfg, playerSix),
+      enemyUpgrades: window.EOL.upgrades
+        ? window.EOL.upgrades.sanitize(cfg.mode === 'classic' ? window.EOL.netplay.foeUpgrades() : null)
+        : null,
       field: cfg.field,
       mode: cfg.mode,
       war: 'single',
@@ -2729,7 +2789,7 @@
      -------------------------------------------------------------
      The pack is dealt ONCE and stays on the table: picks mark the
      card in place (greyed + a colored claim stamp), piles update
-     the instant each hero is chosen, and only a brand-new pack gets
+     the instant each legend is chosen, and only a brand-new pack gets
      the entrance deal.
      ===================================================== */
   var draft = null;
@@ -2775,7 +2835,7 @@
   var mpDeckId = null;
 
   function startDraft(opts) {
-    /* flatten() hands back ONE shared entry object per hero, cached for the
+    /* flatten() hands back ONE shared entry object per legend, cached for the
        life of the page, and the draft stamps per-game state (_taken and
        _wrap) straight onto those objects. Without this scrub a second
        draft inherits the first one's stamps: cards render pre-greyed as
@@ -2794,7 +2854,17 @@
        shuffle to the identical pack order. Singleplayer keeps using
        Math.random. */
     var rnd = opts.seed != null ? window.EOL.mp.rngFrom(opts.seed) : Math.random;
-    mpState = opts.seed != null ? { host: !!opts.host, seed: opts.seed, waiting: false } : null;
+    mpState =
+      opts.seed != null
+        ? {
+            host: !!opts.host,
+            seed: opts.seed,
+            waiting: false,
+            /* a private room's agreed terms travel with the draft so the
+               board it hands to prep obeys them - see roomCfg() */
+            settings: opts.settings || {},
+          }
+        : null;
     var pool =
       opts.pool && opts.pool.length ? opts.pool.slice() : RULES().draftPool(flatten(), rnd);
     var shuffled = pool.slice();
@@ -3102,6 +3172,7 @@
       draft = null;
       var wasMp = !!mpState;
       var seed = mpState ? mpState.seed : null;
+      var mpSettings = mpState ? mpState.settings || {} : {};
       mpState = null;
       var camp = draftCampaign;
       draftCampaign = null;
@@ -3116,7 +3187,9 @@
            derived from the shared seed rather than rolled twice. A
            campaign draft instead lands on the stage's PINNED board. */
         field: wasMp
-          ? window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((seed | 0) + 0x1b7))
+          ? mpSettings.field && window.EOL.battlefieldById(mpSettings.field)
+            ? window.EOL.battlefieldById(mpSettings.field)
+            : window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((seed | 0) + 0x1b7))
           : camp
             ? camp.field || null
             : null,
@@ -3239,7 +3312,7 @@
       report: [],
       lastSix: null, // {front:[ids], back:[ids]} - the player's public six
       lastBotIds: [], // the bot's public six
-      /* ROTATION law, extended: a hero subbed OUT of a six sits out the
+      /* ROTATION law, extended: a legend subbed OUT of a six sits out the
          rest of the set (rendered like a banned card; cannot re-enter).
          Tracked for both sides so the bot plays the same game. */
       lockedOut: [],
@@ -3643,7 +3716,7 @@
         })
       );
     });
-    /* score bench heroes, best first */
+    /* score bench legends, best first */
     bench.sort(function (a, b) {
       return (
         ai.value(chosen, b, { size: 6 }) +
@@ -3658,7 +3731,7 @@
     var base = survive.filter(function (e) {
       return old.indexOf(e.card.id) >= 0;
     });
-    /* drop the weakest old-timers until `need` bench heroes fit with
+    /* drop the weakest old-timers until `need` bench legends fit with
        role caps respected: chooseSix over the reduced pool keeps the
        rails (Tank/Medic forces) identical to side one. The pinned boss
        is exempt from the drop by construction. */
@@ -3811,6 +3884,14 @@
       back: setState.lastSix.back.slice(),
       lockouts: setState.lockedOut.slice(),
       setContinues: true,
+      /* THE LOSER OPENS THE NEXT GAME.
+         Moving first is a real edge - the opener picks the first
+         trade and spends energy into an empty board - so handing it
+         to the player who just lost is the standard concession, and
+         it matches the other consolation this set already gives them:
+         the loser also calls the next battlefield (see setAdvance).
+         Game 1 has no previous game, so it keeps the 50/50 roll. */
+      oddFirst: setState.lastWinner === 'you' ? 'enemy' : 'player',
     };
     prepAnim = true;
     window.EOL.ui.show('prep');
@@ -3843,11 +3924,41 @@
     var m = $('mm-modal');
     if (m) m.hidden = !on;
   }
-  function mmSay(title, sub) {
+  /* THE MATCHMAKING MODAL'S ICON IS NOT ALWAYS A SPINNER.
+     It used to be one unconditionally, so "Account required" - which is
+     not a wait at all - was announced by a pulsing loader that implied
+     something was still happening. The icon now matches the mood:
+
+       search   the orbiting loader, for a real wait
+       account  a shield, for "you need to be signed in"
+       warn     a warning triangle, for a failure
+
+     `mm-spinner` keeps its name (the pulse and layout live there) and
+     the state is a modifier class, so nothing else has to change. */
+  var MM_ICONS = {
+    search: 'ri-loader-4-line',
+    account: 'ri-shield-user-line',
+    warn: 'ri-error-warning-line',
+  };
+  function mmIcon(state) {
+    var box = $('mm-icon');
+    if (!box) return;
+    var name = MM_ICONS[state] ? state : 'search';
+    var i = box.querySelector('i');
+    if (i) i.className = MM_ICONS[name];
+    box.classList.toggle('mm-icon-account', name === 'account');
+    box.classList.toggle('mm-icon-warn', name === 'warn');
+    /* Only the searching state spins - a static shield that rotates
+       reads as a broken animation rather than a deliberate one. */
+    box.classList.toggle('mm-icon-still', name !== 'search');
+  }
+
+  function mmSay(title, sub, state) {
     var t = $('mm-title'),
       s2 = $('mm-sub');
     if (t && title) t.textContent = title;
     if (s2 && sub != null) s2.textContent = sub;
+    if (state) mmIcon(state);
   }
 
   /* ---------------------------------------------------------
@@ -4030,6 +4141,34 @@
     var MP = window.EOL.mp;
     if (!MP) return;
 
+    /* THE PORTAL BUILD HAS NO ONLINE ARENA.
+       css/platform.css hides the Singleplayer/Multiplayer switch and the
+       multiplayer carousel, but hiding is not reaching: the arena could
+       still be flipped by a stale keyboard focus or anything that calls
+       setArena('mp'). Pin the whole module to solo instead, and leave the
+       rest of initMultiplayer unbound so no queue, no lock badge, and no
+       auth listener exist in that build at all. */
+    var PLAT = window.EOL.platform;
+    if (PLAT && !PLAT.canPlayOnline) {
+      var soloGrid = $('mode-grid-solo');
+      var mpGrid = $('mode-grid-mp');
+      var mpShell = $('mode-carousel-mp');
+      if (soloGrid) soloGrid.hidden = false;
+      if (mpGrid) mpGrid.hidden = true;
+      if (mpShell) mpShell.hidden = true;
+      document.querySelectorAll('.play-tab').forEach(function (t) {
+        var on = t.dataset.arena === 'solo';
+        t.classList.toggle('sel', on);
+        t.setAttribute('aria-selected', String(on));
+        /* hidden AND unreachable by Tab */
+        if (!on) t.tabIndex = -1;
+      });
+      var tabsHome = $('play-tabs');
+      if (tabsHome) tabsHome.dataset.arena = 'solo';
+      refreshModeCarousel($('mode-carousel-solo'));
+      return;
+    }
+
     /* tab switching */
     var tabs = document.querySelectorAll('.play-tab');
     var gridAnimT = 0;
@@ -4090,7 +4229,18 @@
        overhanging the tab it belongs to. */
     function refreshLock() {
       var lock = $('mp-lock');
-      if (lock) lock.hidden = MP.available();
+      if (lock) {
+        lock.hidden = MP.available();
+        /* SAY WHICH ACCOUNT. On the portal the only way in is a
+           CrazyGames login, so a bare "account" badge sends players
+           hunting for a sign-in form that build does not have. The
+           web build keeps the generic wording, because there the
+           answer really is "any account". */
+        var CG = window.EOL.crazygames;
+        var portal = !!(CG && CG.canPromptLogin && CG.canPromptLogin());
+        lock.textContent = portal ? 'log in with CrazyGames' : 'account';
+        lock.classList.toggle('play-tab-note-cg', portal);
+      }
       moveTabThumb();
     }
     if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(refreshLock);
@@ -4102,13 +4252,107 @@
       if (ev.detail === 'play') moveTabThumb();
     });
 
+    /* The account is minted asynchronously after a portal login:
+       getUserToken -> verify -> session. Poll briefly rather than
+       guessing a delay, and give up rather than hang if the exchange
+       fails (the caller shows a retry message). */
+    function waitForAccount(done) {
+      var tries = 0;
+      var t = setInterval(function () {
+        if (MP.available()) {
+          clearInterval(t);
+          done(true);
+          return;
+        }
+        if (++tries > 40) {
+          /* ~10s: enough for the token round trip on a slow link. */
+          clearInterval(t);
+          done(false);
+        }
+      }, 250);
+    }
+
     /* Which online mode we are queueing for. Draft builds its squad
        in-game; Classic brings a saved deck, so it has to pick one
        first and carry it into the match. */
     function queueFor(mode, deckId) {
       if (!MP.available()) {
+        var CG = window.EOL.crazygames;
+        var A = window.EOL.auth;
+        var onPortal = !!(CG && CG.canPromptLogin && CG.canPromptLogin());
+
+        /* ALREADY LOGGED IN TO CRAZYGAMES, BUT STILL NO ACCOUNT.
+           This is the case that used to lie. The player has done
+           everything right - their name and avatar are in the corner -
+           so telling them an "account is required" is nonsense, and
+           re-opening the login popup would just fail with
+           userAlreadySignedIn. It means the token exchange did not
+           complete: usually because the cg-auth function has not been
+           deployed yet (see docs/SUPABASE-SETUP.md section 11), or the
+           network dropped it. Say THAT, and offer a retry that redoes
+           the exchange rather than the login. */
+        if (onPortal && A && A.user && A.user() && A.user().portal) {
+          mmShow(true);
+          mmSay(
+            'Setting up your account',
+            'Linking your CrazyGames profile - one moment...',
+            'search'
+          );
+          var again = A.retryCrazyGamesSignIn ? A.retryCrazyGamesSignIn() : Promise.resolve(null);
+          again.then(function () {
+            waitForAccount(function (ok) {
+              if (ok) {
+                queueFor(mode, deckId);
+                return;
+              }
+              mmSay(
+                'Online play is unavailable',
+                'Your CrazyGames profile could not be linked to the match service. ' +
+                  'This is on our side - please try again in a moment.',
+                'warn'
+              );
+            });
+          });
+          return;
+        }
+
+        /* A PORTAL GUEST. "Sign in from the main menu" is a dead end
+           there - that build has no sign-in form, because CrazyGames
+           owns the identity - so offer the SDK's own login popup.
+           Guests are never prompted unasked (the docs are explicit),
+           but this IS the player asking. */
+        if (onPortal) {
+          mmShow(true);
+          mmSay('Log in to play online', 'Opening the CrazyGames login...', 'account');
+          CG.promptLogin().then(function (user) {
+            if (!user) {
+              mmSay(
+                'Log in to play online',
+                'Multiplayer needs a CrazyGames account so your opponent can see who they are facing.',
+                'account'
+              );
+              return;
+            }
+            /* The account arrives asynchronously (token -> verify ->
+               session), so wait for mp to actually be ready rather
+               than queueing into a session that does not exist yet. */
+            mmSay('Setting up your account', 'Almost there...', 'search');
+            waitForAccount(function (ok) {
+              if (ok) queueFor(mode, deckId);
+              else
+                mmSay(
+                  'Online play is unavailable',
+                  'Your CrazyGames profile could not be linked to the match service. ' +
+                    'This is on our side - please try again in a moment.',
+                  'warn'
+                );
+            });
+          });
+          return;
+        }
+
         mmShow(true);
-        mmSay('Account required', 'Sign in from the main menu to play multiplayer.');
+        mmSay('Account required', 'Sign in from the main menu to play multiplayer.', 'account');
         return;
       }
       mpQueueMode = mode;
@@ -4167,6 +4411,87 @@
       else mmSay(null, st.text);
     });
 
+    /* Send our twelve and wait for theirs. Split out of the `matched`
+       handler so a private room can ask for a deck first and then join
+       the same path, rather than keeping two copies of the exchange. */
+    function sendClassicDeck(m) {
+      var deck = mpDeckId ? window.EOL.decks.get(mpDeckId) : null;
+      var mine =
+        deck && window.EOL.decks.isComplete(deck)
+          ? window.EOL.decks.entriesOf(deck)
+          : RULES().randomDeck(ownedFlat(), Math.random);
+      var myIds = mine.map(function (e) {
+        return e.card.id;
+      });
+      window.EOL.netplay.startDecks(function (foeIds) {
+        var dict = byId();
+        var foe12 = (foeIds || [])
+          .map(function (id) {
+            return dict[id];
+          })
+          .filter(Boolean);
+        if (foe12.length !== RULES().DECK_SIZE || !RULES().isLegal(foe12)) {
+          toast('The opponent sent an illegal deck', 'ri-error-warning-line');
+          leaveMatch();
+          return;
+        }
+        mmShow(false);
+        startPrep(
+          roomCfg(m, {
+            mode: 'classic',
+            mp: true,
+            seed: m.seed,
+            deckId: mpDeckId,
+            player12: mine,
+            enemy12: foe12,
+          })
+        );
+      });
+      /* submitDeck() can start preparation synchronously if their
+         deck already arrived, so persist before handing over. */
+      window.EOL.mp.saveState({ phase: 'ban', deck: myIds });
+      window.EOL.netplay.submitDeck(myIds);
+    }
+
+    /* THE ROOM'S TERMS, applied to a prep config.
+       A queue match has no settings and keeps its rolled behaviour.
+       A private room's leader may pin the battlefield and ask for
+       Unabridged; both clients read the SAME stored settings, so they
+       cannot disagree. A pinned board is resolved by id and falls back
+       to the roll if the id is unknown. */
+    function roomCfg(m, cfg) {
+      var st = (m && m.settings) || {};
+      var seeded = window.EOL.netplay.rngFrom((m.seed | 0) + 0x1b7);
+
+      if (st.length === 'unabridged') {
+        cfg.set = true;
+        var pinned = [st.field, st.field2, st.field3]
+          .map(function (id) {
+            return id ? window.EOL.battlefieldById(id) : null;
+          })
+          .filter(Boolean);
+        /* Any slot left on Random is filled from the shared seed, so
+           both clients roll the identical board. */
+        var guard = 0;
+        while (pinned.length < 3 && guard++ < 60) {
+          var f = window.EOL.rollBattlefield(seeded);
+          if (
+            !pinned.some(function (x) {
+              return x.id === f.id;
+            })
+          )
+            pinned.push(f);
+        }
+        cfg.fightCard = pinned;
+        cfg.field = pinned[0];
+        return cfg;
+      }
+
+      var one = st.field ? window.EOL.battlefieldById(st.field) : null;
+      cfg.field = one || window.EOL.rollBattlefield(seeded);
+      return cfg;
+    }
+
     MP.on('matched', function (m) {
       if (window.EOL.telemetry && window.EOL.telemetry.track) {
         window.EOL.telemetry.track('multiplayer_match_found', {
@@ -4186,6 +4511,14 @@
         concedeAbandoned(m);
         return;
       }
+      /* THE HANDOVER PANEL MUST BE ON SCREEN.
+         Coming from the queue this modal is already open - it has been
+         saying "Finding an opponent". Coming from a PRIVATE ROOM it is
+         not, and the room modal is closed a moment later, so the guest
+         was left staring at the main menu while the draft/deck exchange
+         ran invisibly behind it. Show it explicitly; it is idempotent. */
+      mmShow(true);
+      mmIcon('search');
       var vs = $('mm-vs');
       var youEl = $('mm-you'),
         oppEl = $('mm-opp');
@@ -4203,48 +4536,43 @@
       if (isClassic) {
         /* Both players send their twelve, then preparation begins the
            moment BOTH have landed - the same latch used for bans, so
-           whoever is slower does not strand the other. */
-        var deck = mpDeckId ? window.EOL.decks.get(mpDeckId) : null;
-        var mine =
-          deck && window.EOL.decks.isComplete(deck)
-            ? window.EOL.decks.entriesOf(deck)
-            : RULES().randomDeck(ownedFlat(), Math.random);
-        var myIds = mine.map(function (e) {
-          return e.card.id;
-        });
-        window.EOL.netplay.startDecks(function (foeIds) {
-          var dict = byId();
-          var foe12 = (foeIds || [])
-            .map(function (id) {
-              return dict[id];
-            })
-            .filter(Boolean);
-          if (foe12.length !== RULES().DECK_SIZE || !RULES().isLegal(foe12)) {
-            toast('The opponent sent an illegal deck', 'ri-error-warning-line');
-            leaveMatch();
-            return;
-          }
+           whoever is slower does not strand the other.
+
+           THE DECK MUST BE CHOSEN FIRST. Queue Classic picks a deck on
+           the way into matchmaking, so mpDeckId is already set by the
+           time we get here. A PRIVATE ROOM has no such step - the
+           leader chose the format, not a deck - so mpDeckId was null
+           and both players were silently handed a RANDOM deck. Ask
+           now, then carry on exactly as before. */
+        if (!mpDeckId) {
           mmShow(false);
-          startPrep({
-            mode: 'classic',
-            mp: true,
-            seed: m.seed,
-            deckId: mpDeckId,
-            player12: mine,
-            enemy12: foe12,
-            field: window.EOL.rollBattlefield(window.EOL.netplay.rngFrom((m.seed | 0) + 0x1b7)),
+          openClassicModal(function (deckId) {
+            modalShow(false);
+            mpDeckId = deckId || null;
+            mmShow(true);
+            mmSay('Opponent found', 'Exchanging decks...');
+            sendClassicDeck(m);
           });
-        });
-        /* submitDeck() can start preparation synchronously if their
-           deck already arrived, so persist before handing over. */
-        window.EOL.mp.saveState({ phase: 'ban', deck: myIds });
-        window.EOL.netplay.submitDeck(myIds);
+          return;
+        }
+        sendClassicDeck(m);
         return;
       }
 
       setTimeout(function () {
         mmShow(false);
-        startDraft({ seed: m.seed, host: m.host });
+        /* A custom pool agreed in the room replaces the generated
+           one. Both clients read it from the same match settings, so
+           they deal identical packs - the draft's determinism comes
+           from the shared seed shuffling a shared list, and the list
+           is now theirs rather than rolled. */
+        var agreed = (m.settings && m.settings.pool36) || null;
+        startDraft({
+          seed: m.seed,
+          host: m.host,
+          settings: m.settings || {},
+          pool: agreed && agreed.length ? poolEntries(agreed) : null,
+        });
       }, 1200);
     });
 
@@ -4261,8 +4589,21 @@
         resumed = false; // a failed attempt may retry on the next change
       });
     }
-    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(tryResume);
+    /* Listen for invites whenever there is an account to address one
+       to. Signing out stops the watch, so a signed-out browser never
+       polls and never shows somebody else's invite. */
+    function syncInviteWatch() {
+      if (!MP.startInviteWatch) return;
+      if (MP.available()) MP.startInviteWatch();
+      else MP.stopInviteWatch();
+    }
+    if (window.EOL.auth && window.EOL.auth.onChange)
+      window.EOL.auth.onChange(function () {
+        tryResume();
+        syncInviteWatch();
+      });
     tryResume();
+    syncInviteWatch();
 
     MP.on('pick', applyRemotePick);
     MP.on('net', function (msg) {
@@ -4279,6 +4620,506 @@
       clearDraftMarks();
       window.EOL.ui.show('play');
     });
+
+    initRooms(MP);
+  }
+
+  /* =============================================================
+     PRIVATE ROOMS - the UI
+     -------------------------------------------------------------
+     js/mp.js owns the room; this renders it. The whole panel is
+     driven from the `room` event, so the leader's client and the
+     guest's client run the SAME render path and cannot disagree
+     about what is on screen - the only difference is that the
+     guest's controls are disabled.
+     ============================================================= */
+  function initRooms(MP) {
+    if (!MP.createRoom) return; // older mp.js - nothing to bind
+
+    var modal = $('room-modal');
+    if (!modal) return;
+
+    var door = $('room-door');
+    var lobby = $('room-lobby');
+
+    function roomShow(on) {
+      modal.hidden = !on;
+      if (on) {
+        fillRoomChoices();
+        var r = MP.room && MP.room();
+        renderRoom(r || null);
+      }
+    }
+
+    function face(inRoom) {
+      if (door) door.hidden = !!inRoom;
+      if (lobby) lobby.hidden = !inRoom;
+    }
+
+    function say(id, text) {
+      var n = $(id);
+      if (!n) return;
+      n.textContent = text || '';
+      n.hidden = !text;
+    }
+
+    /* The battlefield and pool lists come from the data files rather
+       than being written twice - a hardcoded list here would rot the
+       moment a board or faction is added. */
+    var choicesFilled = false;
+    function fillRoomChoices() {
+      if (choicesFilled) return;
+      choicesFilled = true;
+      ['room-field', 'room-field2', 'room-field3'].forEach(function (id) {
+        var sel = $(id);
+        if (!sel || !window.EOL.battlefields) return;
+        window.EOL.battlefields.forEach(function (b) {
+          var o = document.createElement('option');
+          o.value = b.id;
+          o.textContent = b.name || b.id;
+          sel.appendChild(o);
+        });
+      });
+    }
+
+    /* One source of truth for the pool size, read from the builder so
+       the two can never disagree about what "complete" means. */
+    var POOL36 = (window.EOL.poolBuilder && window.EOL.poolBuilder.SIZE) || 36;
+
+    function settingsOf(r) {
+      var d = MP.roomDefaults();
+      var s = (r && r.settings) || {};
+      return {
+        mode: s.mode || d.mode,
+        length: s.length || d.length,
+        field: s.field || null,
+        field2: s.field2 || null,
+        field3: s.field3 || null,
+        /* The hand-built draft pool MUST be carried through. push()
+           rebuilds the settings object from this function, so a key
+           omitted here is a key deleted from the room the next time
+           anyone touches any other setting - changing the
+           battlefield would have silently thrown the pool away. */
+        pool36: (s.pool36 && s.pool36.slice()) || null,
+      };
+    }
+
+    function renderRoom(r) {
+      if (!r) {
+        face(false);
+        say('room-door-err', '');
+        return;
+      }
+      face(true);
+
+      var code = $('room-code');
+      if (code) code.textContent = r.code;
+
+      var n1 = $('room-seat-1-name');
+      if (n1) n1.textContent = r.leaderName || 'Leader';
+      var n2 = $('room-seat-2-name');
+      var t2 = $('room-seat-2-tag');
+      var s2 = $('room-seat-2');
+      if (n2) n2.textContent = r.guest ? r.guestName || 'Challenger' : 'Waiting...';
+      if (t2) t2.textContent = r.guest ? 'Challenger' : 'Empty';
+      if (s2) s2.classList.toggle('filled', !!r.guest);
+
+      var lead = !!r.isLeader;
+      var s = settingsOf(r);
+
+      /* pills */
+      modal.querySelectorAll('.room-pill').forEach(function (b) {
+        var k = b.dataset.set;
+        b.classList.toggle('on', s[k] === b.dataset.val);
+        b.disabled = !lead;
+      });
+      /* selects */
+      var set3 = s.length === 'unabridged';
+      [
+        ['room-field', s.field],
+        ['room-field2', s.field2],
+        ['room-field3', s.field3],
+      ].forEach(function (pair) {
+        var sel = $(pair[0]);
+        if (!sel) return;
+        sel.value = pair[1] || '';
+        sel.disabled = !lead;
+      });
+      /* Unabridged is best of three, so it needs three boards. Single
+         Battle needs one, and the other two rows would be a lie. */
+      ['field2', 'field3'].forEach(function (k) {
+        var row = modal.querySelector('.room-opt[data-opt="' + k + '"]');
+        if (row) row.hidden = !set3;
+      });
+      var fk = $('room-field-k');
+      if (fk) fk.textContent = set3 ? 'Battlefield 1' : 'Battlefield';
+
+      /* THE DRAFT POOL ONLY EXISTS IN A DRAFT. In Classic both players
+         bring a deck they built, so there is no pool to choose from -
+         the row is removed rather than greyed, because a disabled
+         control still reads as "this applies to you". */
+      var poolRow = modal.querySelector('.room-opt[data-opt="pool"]');
+      if (poolRow) poolRow.hidden = s.mode !== 'draft';
+      /* The count IS the status, and it is the reason Start is
+         disabled, so a guest reads it too - they just cannot act on
+         it, which is why only the button is leader-only. */
+      var cpCount = $('room-pool-count');
+      if (cpCount) {
+        var n = (s.pool36 && s.pool36.length) || 0;
+        cpCount.textContent = n ? n + ' cards' : 'Not built';
+        cpCount.classList.toggle('on', n === POOL36);
+      }
+      var cpBtn = $('room-pool-edit');
+      if (cpBtn) {
+        cpBtn.hidden = !lead;
+        cpBtn.querySelector('span').textContent =
+          (s.pool36 && s.pool36.length) === POOL36 ? 'Edit' : 'Build';
+      }
+
+      var hint = $('room-leader-hint');
+      if (hint) hint.textContent = lead ? 'You decide' : 'The party leader decides';
+
+      /* Only the leader may start, with someone to play, and - in a
+         draft - only once the pool actually exists. A draft cannot be
+         dealt from a half-built pool, and the button says which of
+         the three is missing rather than sitting dead. */
+      var start = $('room-start');
+      if (start) {
+        var poolReady = s.mode !== 'draft' || (s.pool36 && s.pool36.length) === POOL36;
+        start.hidden = !lead;
+        start.disabled = !lead || !r.guest || !poolReady;
+        var lbl = start.querySelector('span');
+        if (lbl)
+          lbl.textContent = !r.guest
+            ? 'Waiting for a challenger'
+            : !poolReady
+              ? 'Build the draft pool'
+              : 'Start match';
+      }
+    }
+
+    function push(patch) {
+      var r = MP.room && MP.room();
+      if (!r || !r.isLeader) return;
+      var s = settingsOf(r);
+      for (var k in patch) if (patch.hasOwnProperty(k)) s[k] = patch[k];
+      MP.setRoomSettings(s).catch(function () {});
+    }
+
+    MP.on('room', function (r) {
+      if (!modal.hidden) renderRoom(r);
+    });
+    MP.on('roomError', function (e) {
+      /* A DISBAND IS NOT A FORM ERROR. Every other roomError is a
+         failed action the player just attempted, so it belongs beside
+         the control they used. A disband happens TO them while they
+         wait, and the lobby it refers to no longer exists - so put the
+         lobby away first and report it on the door screen they are
+         being returned to, rather than printing "the party leader
+         left" inside a lobby that is still on screen. */
+      if (e && e.disbanded) {
+        face(false);
+        say('room-lobby-err', '');
+        say('room-door-err', e.text);
+        return;
+      }
+      say(modal.hidden || (lobby && lobby.hidden) ? 'room-door-err' : 'room-lobby-err', e.text);
+    });
+
+    /* =============================================================
+       AN INVITE ARRIVES
+       -------------------------------------------------------------
+       Shown as an actionable toast rather than a modal: it is an
+       offer, not a demand, and it must never seize the screen from
+       someone who is busy doing something else. It expires on its own
+       so an ignored invite does not sit there forever.
+
+       js/mp.js only polls for these while the player is idle on the
+       menu, so "no invite while in a game" is guaranteed upstream of
+       this code - there is nothing to render mid-battle.
+       ============================================================= */
+    MP.on('invite', function (inv) {
+      var host = $('toasts');
+      if (!host || !inv) return;
+
+      var el = document.createElement('div');
+      el.className = 'toast toast-invite';
+
+      var ico = document.createElement('i');
+      ico.className = 'ri ri-sword-line';
+      el.appendChild(ico);
+
+      var body = document.createElement('span');
+      body.className = 'toast-invite-body';
+      var who = document.createElement('b');
+      who.textContent = inv.from_name || 'A player';
+      var what = document.createElement('small');
+      what.textContent = 'invited you to a private match';
+      body.appendChild(who);
+      body.appendChild(what);
+      el.appendChild(body);
+
+      var no = document.createElement('button');
+      no.type = 'button';
+      no.className = 'toast-btn';
+      no.textContent = 'Decline';
+
+      var yes = document.createElement('button');
+      yes.type = 'button';
+      yes.className = 'toast-btn primary';
+      yes.textContent = 'Join';
+
+      el.appendChild(no);
+      el.appendChild(yes);
+      host.appendChild(el);
+
+      var done = false;
+      function close(answer) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        MP.answerInvite(inv.id, answer);
+        el.classList.add('out');
+        setTimeout(function () {
+          el.remove();
+        }, 320);
+      }
+
+      /* Two minutes matches the server's own expiry, so the card
+         cannot outlive the invite it represents. */
+      var timer = setTimeout(function () {
+        close('seen');
+      }, 120000);
+
+      no.addEventListener('click', function () {
+        close('declined');
+      });
+      yes.addEventListener('click', function () {
+        close('seen');
+        /* Accepting IS joining the room - the room decides whether a
+           seat is still free, so there is no second source of truth
+           about whether the invite is still good. */
+        roomShow(true);
+        MP.joinRoom(inv.code).catch(function () {});
+      });
+    });
+
+    /* ---- entry ---- */
+    var open = $('mode-mp-room');
+    if (open)
+      open.addEventListener('click', function () {
+        if (!MP.available()) {
+          mmShow(true);
+          mmSay('Account required', 'Sign in from the main menu to play multiplayer.', 'account');
+          return;
+        }
+        roomShow(true);
+      });
+
+    var close = $('room-close');
+    if (close) close.addEventListener('click', function () { roomShow(false); });
+    var scrim = $('room-scrim');
+    if (scrim) scrim.addEventListener('click', function () { roomShow(false); });
+
+    var create = $('room-create');
+    if (create)
+      create.addEventListener('click', function () {
+        say('room-door-err', '');
+        create.disabled = true;
+        MP.createRoom(MP.roomDefaults())
+          .catch(function () {})
+          .then(function () {
+            create.disabled = false;
+          });
+      });
+
+    var joinForm = $('room-join-form');
+    if (joinForm)
+      joinForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var inp = $('room-code-in');
+        var v = ((inp && inp.value) || '').trim().toUpperCase();
+        if (!v) return;
+        say('room-door-err', '');
+        MP.joinRoom(v).catch(function () {});
+      });
+
+    /* Codes are upper-case and unambiguous; typing is forgiving. */
+    var codeIn = $('room-code-in');
+    if (codeIn)
+      codeIn.addEventListener('input', function () {
+        codeIn.value = codeIn.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      });
+
+    /* ---- sharing ---- */
+    function copy(text, okMsg) {
+      if (!text) return;
+      var done = function () {
+        toast(okMsg, 'ri-check-line');
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {
+            toast('Could not copy - the code is ' + text, 'ri-error-warning-line');
+          });
+          return;
+        }
+      } catch (e) {
+        /* fall through to the manual path */
+      }
+      toast('Copy this: ' + text, 'ri-file-copy-line');
+    }
+
+    var cc = $('room-copy-code');
+    if (cc)
+      cc.addEventListener('click', function () {
+        var r = MP.room && MP.room();
+        copy(r && r.code, 'Room code copied');
+      });
+    var cl = $('room-copy-link');
+    if (cl)
+      cl.addEventListener('click', function () {
+        copy(MP.inviteLink && MP.inviteLink(), 'Invite link copied');
+      });
+
+    /* INVITE BY CALLSIGN - actually invites them.
+       This used to call playerExists() and then tell the inviter to
+       go and deliver the code themselves, which made it a
+       spellchecker rather than an invitation. send_invite() puts the
+       invite on the other player's screen, and answers with a reason
+       when it cannot: they are in a game, there is no such callsign,
+       or you are not leading an open room. */
+    var invForm = $('room-invite-form');
+    if (invForm)
+      invForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var inp = $('room-invite-name');
+        var name = ((inp && inp.value) || '').trim();
+        if (!name) return;
+        var r = MP.room && MP.room();
+        if (!r || !r.code) {
+          say('room-invite-note', 'Create a room first.');
+          return;
+        }
+        say('room-invite-note', 'Inviting ' + name + '...');
+        MP.sendInvite(name, r.code).then(function (status) {
+          var msg = {
+            sent: 'Invite sent to ' + name + '.',
+            busy: name + ' is in a game right now.',
+            no_player: 'No player called ' + name + '.',
+            self: 'You cannot invite yourself.',
+            no_room: 'Only the party leader can invite.',
+          }[status];
+          say('room-invite-note', msg || 'That invite could not be sent.');
+          if (status === 'sent' && inp) inp.value = '';
+        });
+      });
+
+    /* ---- settings ---- */
+    modal.querySelectorAll('.room-pill').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var p = {};
+        p[b.dataset.set] = b.dataset.val;
+        push(p);
+      });
+    });
+    [
+      ['room-field', 'field'],
+      ['room-field2', 'field2'],
+      ['room-field3', 'field3'],
+    ].forEach(function (pair) {
+      var sel = $(pair[0]);
+      if (!sel) return;
+      sel.addEventListener('change', function () {
+        var p = {};
+        p[pair[1]] = sel.value || null;
+        push(p);
+      });
+    });
+    /* Open the 36-slot builder, seeded with whatever the room already
+       has so reopening it edits rather than restarts. The chosen pool
+       rides in the room settings like every other term, which is what
+       carries it through start_room -> mp_matches.settings -> both
+       clients without any new plumbing. */
+    var poolEdit = $('room-pool-edit');
+    if (poolEdit)
+      poolEdit.addEventListener('click', function () {
+        if (!window.EOL.poolBuilder) return;
+        var r = MP.room && MP.room();
+        var cur = (r && r.settings && r.settings.pool36) || [];
+        window.EOL.poolBuilder.show(true, {
+          pool: cur,
+          onCommit: function (ids) {
+            push({ pool36: ids });
+          },
+        });
+      });
+
+    /* ---- start / leave ---- */
+    var start = $('room-start');
+    if (start)
+      start.addEventListener('click', function () {
+        say('room-lobby-err', '');
+        start.disabled = true;
+        /* A deck chosen for an earlier QUEUE match must not be silently
+           reused here - the room asks for one on the way in. */
+        mpDeckId = null;
+        MP.startRoom().catch(function () {
+          start.disabled = false;
+        });
+      });
+
+    var leave = $('room-leave');
+    if (leave)
+      leave.addEventListener('click', function () {
+        MP.leaveRoom();
+        roomShow(false);
+      });
+
+    /* A room match starts like any other match, so the existing
+       `matched` handler takes it from here - all this has to do is get
+       the lobby out of the way.
+
+       This runs AFTER that handler (it was registered later), which is
+       what we want: the handler shows the matchmaking panel, then the
+       lobby closes off the top of it. The reverse order would flash the
+       main menu in between. */
+    MP.on('matched', function () {
+      roomShow(false);
+    });
+
+    /* The guest never presses Start, so clear their stale queue deck as
+       soon as a room match is on the way. `room` fires with the closed
+       row (carrying match_id) just before `matched`. */
+    MP.on('room', function (r) {
+      if (r && r.matchId) mpDeckId = null;
+    });
+
+    /* ---- arriving from an invite, or from Instant Multiplayer ---- */
+    var booted = false;
+    function boot() {
+      if (booted || !MP.available() || !MP.bootstrap) return;
+      booted = true;
+      MP.bootstrap().then(function (res) {
+        if (!res || res.action === 'none') return;
+        if (res.action === 'joined' || res.action === 'leading') {
+          roomShow(true);
+          if (res.instant) {
+            toast('Private room ready - invite a friend', 'ri-group-line');
+          }
+        } else if (res.action === 'joinFailed') {
+          roomShow(true);
+          say('room-door-err', 'That invite has expired or the room is full.');
+        }
+      });
+    }
+    if (window.EOL.auth && window.EOL.auth.onChange) window.EOL.auth.onChange(boot);
+    boot();
+
+    /* someone accepted an invite while we were already in the game */
+    MP.on('roomJoined', function () {
+      roomShow(true);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -4287,7 +5128,7 @@
     initMultiplayer();
     /* Rate the roster while the player is still on the menu.
        -------------------------------------------------------------
-       The draft brain works out how strong a hero is by PLAYING it -
+       The draft brain works out how strong a legend is by PLAYING it -
        a controlled duel per card against a squad of average bodies -
        instead of reading a hand-maintained table that goes stale
        (see data/draft-ai.js §2). That costs a few seconds of CPU the

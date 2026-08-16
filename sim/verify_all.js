@@ -103,7 +103,7 @@ const model = (src, t, power) => E.atkOf(src) * power * (1 - E.defOf(t) / 100);
 const near = (a, b, tol) =>
   b === 0 ? Math.abs(a) < 1 : Math.abs(a - b) / Math.abs(b) <= (tol || 0.06);
 
-/* solo-cast a hero's signature and return per-unit HP deltas */
+/* solo-cast a legend's signature and return per-unit HP deltas */
 function cast(B, id, targets) {
   const u = U(B, id);
   const before = new Map(B.units.map((x) => [x.uid, x.hp]));
@@ -353,8 +353,8 @@ ok(new Set(sigs).size === sigs.length, 'no two cards share an ability specificat
 /* role depth */
 const byRole = {};
 ALL.forEach((c) => (byRole[c.role] = (byRole[c.role] || 0) + 1));
-ROLES.forEach((r) => ok(byRole[r] >= 3, `role ${r} has >=3 heroes (${byRole[r]})`));
-console.log('  roster: ' + ALL.length + ' heroes | ' + JSON.stringify(byRole));
+ROLES.forEach((r) => ok(byRole[r] >= 3, `role ${r} has >=3 legends (${byRole[r]})`));
+console.log('  roster: ' + ALL.length + ' legends | ' + JSON.stringify(byRole));
 
 /* =============================================================
    B. DYNAMIC - Takamagahara, card by card
@@ -656,7 +656,7 @@ const PROBES = {
     ok(after <= before, 'Merlin: allied skill costs reduced');
     /* BOTH halves of Prophecy are Signature-only (2026-08-05). Allied
        role Basics keep their printed price - without this the discount
-       silently subsidised the cheap fallback every hero casts. */
+       silently subsidised the cheap fallback every legend casts. */
     ok(E.costOf(B, mate, mateBasic) === beforeBasic, 'Merlin: allied Basics are NOT discounted');
     ok(
       alliesOf(B).every((a) => a.shield > 0),
@@ -1189,8 +1189,8 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     'takamagahara-izanagi',
   ];
 
-  function setup(heroId, { taunt, untarg } = {}) {
-    const B = board([heroId].concat(mates), foes);
+  function setup(legendId, { taunt, untarg } = {}) {
+    const B = board([legendId].concat(mates), foes);
     B.noOpeningLimit = true;
     B.energy.player = 150;
     if (taunt) U(B, taunt).flags.taunt = 2;
@@ -1221,11 +1221,11 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
 
   /* --- the Provoke tax: 0.7x to anyone who is NOT the provoker --- */
   {
-    const shoot = (heroId, victimId, taunt) => {
-      const B = setup(heroId, taunt ? { taunt } : {});
+    const shoot = (legendId, victimId, taunt) => {
+      const B = setup(legendId, taunt ? { taunt } : {});
       const v = U(B, victimId);
       const hp0 = v.hp;
-      E.useAbility(B, U(B, heroId), CARD[heroId].ability, [v]);
+      E.useAbility(B, U(B, legendId), CARD[legendId].ability, [v]);
       return hp0 - v.hp;
     };
     ['yamato-tomoe-gozen', 'huaxia-nezha'].forEach((id) => {
@@ -1246,11 +1246,11 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
 
   /* --- AoE now pays the same tax on everyone except the provoker --- */
   {
-    const spread = (heroId, taunt) => {
-      const B = setup(heroId, taunt ? { taunt } : {});
+    const spread = (legendId, taunt) => {
+      const B = setup(legendId, taunt ? { taunt } : {});
       const hp = {};
       B.units.filter((u) => u.side === 'enemy').forEach((u) => (hp[u.card.id] = u.hp));
-      E.useAbility(B, U(B, heroId), CARD[heroId].ability, []);
+      E.useAbility(B, U(B, legendId), CARD[legendId].ability, []);
       const out = {};
       B.units
         .filter((u) => u.side === 'enemy')
@@ -1313,7 +1313,7 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     const pool = E.legalTargets(B, U(B, 'camelot-mordred'), CARD['camelot-mordred'].ability);
     ok(
       pool.length > 0 && !pool.some((u) => u.card.id === 'camelot-merlin'),
-      'Untargetable + Taunt on one hero stays unreachable'
+      'Untargetable + Taunt on one legend stays unreachable'
     );
   }
 
@@ -1348,7 +1348,7 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     const ap = E.legalTargets(B, caster, attack);
     ok(
       ap.length === 1 && ap[0].card.id === 'camelot-king-arthur',
-      'Golden rule: a single-target ATTACK from the same hero IS blocked'
+      'Golden rule: a single-target ATTACK from the same legend IS blocked'
     );
     /* explicit override still works both ways */
     const forced = JSON.parse(JSON.stringify(attack));
@@ -1361,7 +1361,7 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
 
   /* --- to:'enemies' riders must respect Untargetable ---
      Apollo's "Mark the highest ATK enemy" bypassed the target picker
-     entirely and marked a hero who could not legally be targeted. */
+     entirely and marked a legend who could not legally be targeted. */
   {
     const B = setup('olympus-apollo', { untarg: 'yamato-kaguya' });
     E.useAbility(B, U(B, 'olympus-apollo'), CARD['olympus-apollo'].ability, [
@@ -1447,7 +1447,7 @@ section('C. SOAK - invariants over AI-vs-AI games');
       EOL.onBattleEvent = function (BB, ev) {
         if (ev.t === 'dmg' || ev.t === 'heal' || ev.t === 'shield') {
           const src = BB.units.find((x) => x.uid === ev.src);
-          /* A hero killed mid-cast (e.g. by a counter-strike) still walks the
+          /* A legend killed mid-cast (e.g. by a counter-strike) still walks the
              rest of its own effect list, but every remaining hit resolves for
              0 - dealDamage returns early on a dead source's target. Only
              NON-ZERO damage from a corpse is a real violation. */
@@ -1515,7 +1515,7 @@ section('C. SOAK - invariants over AI-vs-AI games');
   const never = ALL.filter((c) => !seen[c.id]);
   ok(
     never.length === 0,
-    `every hero appeared at least once${never.length ? ' (missing: ' + never.map((c) => c.name).join(', ') + ')' : ''}`
+    `every legend appeared at least once${never.length ? ' (missing: ' + never.map((c) => c.name).join(', ') + ')' : ''}`
   );
   const tk = ALL.filter((c) => c.faction === 'takamagahara');
   console.log(
@@ -1527,7 +1527,7 @@ section('C. SOAK - invariants over AI-vs-AI games');
    DEATH-TRIGGERED PASSIVES
    -------------------------------------------------------------
    These fire when an ALLY dies, so the PROBES table above cannot
-   reach them - it only casts a hero's own signature. They need a
+   reach them - it only casts a legend's own signature. They need a
    real kill driven through the damage path, because handleDeath is
    deliberately not exported.
 
@@ -1917,9 +1917,9 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
    -------------------------------------------------------------
    The defect this section exists to prevent, in full, because it
    shipped: the draft AI used to score cards from a hand-copied
-   `POWER` table that rated 51 of 63 heroes. `powerOf` returned 0 for
+   `POWER` table that rated 51 of 63 legends. `powerOf` returned 0 for
    the other twelve, and 0 is not "unknown", it is the roster MEAN -
-   so every Duat hero and half of Grimmwood were drafted, banned and
+   so every Duat legend and half of Grimmwood were drafted, banned and
    fielded as exactly average. Nothing anywhere asserted that the
    table covered the roster, so adding a faction silently degraded
    the bot and no test went red.
@@ -1927,7 +1927,7 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
    data/draft-ai.js no longer has a table - it prices cards off their
    own effect trees and then MEASURES them by playing them - so
    coverage is total by construction. These assertions make that
-   structural claim a checked one: add a hero, add a faction, and if
+   structural claim a checked one: add a legend, add a faction, and if
    the brain cannot rate it this goes red immediately.
 
    The cheap path (the analytic cold-start estimate) is asserted
@@ -1946,7 +1946,7 @@ section('F. DRAFT INTELLIGENCE - rating coverage');
     const bad = ALL.filter((c, i) => !isFinite(vals[i]));
     ok(
       bad.length === 0,
-      `${label}: every hero rates to a finite number (${bad.map((c) => c.id).join(', ')})`
+      `${label}: every legend rates to a finite number (${bad.map((c) => c.id).join(', ')})`
     );
     /* The old failure mode was invisible precisely because it looked
        like a valid number. A card is only allowed to sit exactly on
@@ -1955,7 +1955,7 @@ section('F. DRAFT INTELLIGENCE - rating coverage');
     const zeros = ALL.filter((c, i) => vals[i] === 0);
     ok(
       zeros.length <= 1,
-      `${label}: at most one hero sits exactly on the mean (got ${zeros.length}: ${zeros
+      `${label}: at most one legend sits exactly on the mean (got ${zeros.length}: ${zeros
         .map((c) => c.id)
         .slice(0, 14)
         .join(', ')})`
@@ -2084,7 +2084,7 @@ section('F. DRAFT INTELLIGENCE - rating coverage');
     console.log('  (probe took ' + ((Date.now() - t0) / 1000).toFixed(1) + 's for two full runs)');
   }
 
-  /* A hero the roster has never seen - a campaign boss handed straight
+  /* A legend the roster has never seen - a campaign boss handed straight
      to the engine - must be priced, not called average. Last, because
      `learn()` widens the roster and the coverage counts above are
      exact. */

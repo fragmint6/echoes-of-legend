@@ -223,7 +223,7 @@ guardian gets exactly one knife hidden in the warmth.
 - **Teaches:** draft fundamentals; the energy economy; that every
   choice leaves another possible self across the table.
 - **Who she is:** a gambler in a vermilion jacket in a void full of
-  things that almost existed. In her first story she was the hero's
+  things that almost existed. In her first story she was the legend's
   sister with three lines — "Brother, be careful," "Brother, come
   home," and a third that was never printed. "So I learned to deal
   myself into other stories. Now I have ALL the lines."

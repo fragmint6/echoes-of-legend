@@ -162,6 +162,80 @@ sec('C. The Narrow Pass');
     E.canUse(B2, U(B2, 'sherwood-robin-hood'), E.roleAbility(U(B2, 'sherwood-robin-hood'))),
     'without the field the back row keeps its Basic'
   );
+
+  /* THE STALL (reported 2026-08-14).
+     A back-row legend on this field has no Basic, so a signature is its
+     only move. Zhuge Liang's needs TWO targets; facing a single
+     survivor it cannot be aimed at all. usableNow() only asked for
+     "at least one" legal target, so the engine believed the side could
+     act, refused to auto-pass, and the round stalled with every
+     ability greyed out - the battle UI already required >= pickCount,
+     so the two disagreed.
+
+     Assert the whole chain, not just the predicate: a stuck side must
+     also actually pass when the round driver next runs. */
+  /* Zhuge is not in the shared SIX fixture, so build a board that has
+     him in the back row explicitly. (A previous version looked him up
+     in the default board and silently skipped the whole check when he
+     was absent - the suite prints only failures, so it looked green.) */
+  const zhugeSix = FRONT.concat(['huaxia-zhuge-liang', 'camelot-merlin', 'olympus-apollo']);
+  const buildZ = (foeIds) => {
+    let n = 1;
+    const rng = () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const b = E.createBattle(zhugeSix.map(ent), foeIds.map(ent), {
+      rng,
+      roleAware: true,
+      simulation: true,
+      field: F('narrow-pass'),
+    });
+    b.noOpeningLimit = true;
+    return b;
+  };
+
+  const B3 = buildZ(FOES);
+  B3.energy.player = 150;
+  B3.round = 3;
+  const zhuge = U(B3, 'huaxia-zhuge-liang');
+  ok(!!zhuge, 'Zhuge Liang is on the test board');
+  {
+    /* leave exactly one enemy standing */
+    E.unitsOf(B3, 'enemy').forEach((u, i) => {
+      if (i > 0) {
+        u.hp = 0;
+        u.alive = false;
+      }
+    });
+    /* and leave Zhuge as our only living legend */
+    E.unitsOf(B3, 'player').forEach((u) => {
+      if (u !== zhuge) {
+        u.hp = 0;
+        u.alive = false;
+      }
+    });
+    const sig = zhuge.card.ability;
+    ok(!E.isFront(zhuge), 'Zhuge Liang is in the back row');
+    ok(E.pickCount(sig) === 2, 'his signature needs two targets');
+    ok(E.legalTargets(B3, zhuge, sig).length === 1, 'only one enemy is left to aim at');
+    ok(!E.canUse(B3, zhuge, E.roleAbility(zhuge)), 'his Basic is blocked by the field');
+    ok(!E.usableNow(B3, zhuge, sig), 'a two-target skill is NOT usable against one enemy');
+    ok(!E.canAct(B3, 'player'), 'so the side genuinely cannot act');
+    ok(E.whyCantAct(B3, 'player') === 'targets', 'and the reason given is targets, not energy');
+    E.advanceAction(B3);
+    ok(B3.passed.player === true, 'the round driver auto-passes the stuck side');
+
+    /* The counterpart: two enemies alive and the same skill is fine. */
+    const B4 = buildZ(FOES);
+    B4.energy.player = 150;
+    B4.round = 3;
+    const z4 = U(B4, 'huaxia-zhuge-liang');
+    E.unitsOf(B4, 'enemy').forEach((u, i) => {
+      if (i > 1) {
+        u.hp = 0;
+        u.alive = false;
+      }
+    });
+    ok(E.usableNow(B4, z4, z4.card.ability), 'the same skill IS usable when two enemies remain');
+  }
 }
 
 /* ---------------- 2. Open Plains ---------------- */
@@ -285,8 +359,8 @@ sec('H. The Spirit World');
    every lethality assertion. */
 const SW_VICTIM = 'huaxia-guan-yu';
 {
-  /* New rule (2026-08-02): a lethal blow leaves the hero on 1 HP
-     instead of killing them. Once per hero. */
+  /* New rule (2026-08-02): a lethal blow leaves the legend on 1 HP
+     instead of killing them. Once per legend. */
   const B = board(F('spirit-world'));
   B.energy.player = 150;
   const killer = U(B, 'sherwood-guy-of-gisborne');
@@ -294,8 +368,8 @@ const SW_VICTIM = 'huaxia-guan-yu';
   tgt.hp = 1;
   E.useAbility(B, killer, E.roleAbility(killer), [tgt]); // single-hit BASIC
   ok(tgt.alive, 'a lethal blow does NOT kill in the Spirit World');
-  ok(tgt.hp === 1, `the hero is held on exactly 1 HP (got ${tgt.hp})`);
-  ok(tgt.spiritSpared === true, 'the reprieve is recorded on the hero');
+  ok(tgt.hp === 1, `the legend is held on exactly 1 HP (got ${tgt.hp})`);
+  ok(tgt.spiritSpared === true, 'the reprieve is recorded on the legend');
 }
 {
   /* the reprieve is spent: the next lethal blow finishes the job */
@@ -308,7 +382,7 @@ const SW_VICTIM = 'huaxia-guan-yu';
   B.acted.player = {};
   B.energy.player = 150;
   E.useAbility(B, killer, E.roleAbility(killer), [tgt]);
-  ok(!tgt.alive, 'the second lethal blow kills - the reprieve is once per hero');
+  ok(!tgt.alive, 'the second lethal blow kills - the reprieve is once per legend');
 }
 {
   /* USER LAW 2026-08-05: "the next blow finishes the job" - a TWO-PART
@@ -343,7 +417,7 @@ const SW_VICTIM = 'huaxia-guan-yu';
   tgt.hp = 5;
   E.setTurn(B, 'enemy'); // the burning side is handed the action -> tick
   ok(tgt.alive && tgt.hp === 1, `a lethal burn tick is reprieved to 1 HP (hp ${tgt.hp})`);
-  ok(tgt.spiritSpared === true, 'the burn reprieve is recorded on the hero');
+  ok(tgt.spiritSpared === true, 'the burn reprieve is recorded on the legend');
   const burnLog = B.log.filter((entry) => entry.type === 'burn').pop();
   ok(
     burnLog &&
@@ -438,7 +512,7 @@ sec('I. The Ancient Ruins');
   );
   ok(
     front.buffs.some((b) => b.stat === 'def'),
-    'frontOnly relic reaches a front hero'
+    'frontOnly relic reaches a front legend'
   );
   E.applyEffectsPublic(
     B,
@@ -447,11 +521,11 @@ sec('I. The Ancient Ruins');
     [{ k: 'stat', stat: 'def', amt: 10, turns: 1, to: 'self', frontOnly: true }],
     { immediate: true }
   );
-  ok(!back.buffs.some((b) => b.stat === 'def'), 'frontOnly relic skips a back hero');
+  ok(!back.buffs.some((b) => b.stat === 'def'), 'frontOnly relic skips a back legend');
 }
 
-/* ---------------- 9. Hero's Trial ---------------- */
-sec("J. The Hero's Trial");
+/* ---------------- 9. Legend's Trial ---------------- */
+sec("J. The Legend's Trial");
 {
   const plain = board(null),
     trial = board(F('heros-trial'));
