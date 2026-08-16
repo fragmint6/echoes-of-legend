@@ -99,6 +99,102 @@
     );
   }
 
+  /* =============================================================
+     THE UPGRADE PANEL  (collection only, owned cards only)
+     -------------------------------------------------------------
+     Levels 0..3, bought with duplicates (1 / 3 / 5), each granting a
+     compounding +1.5% skill power AND +2% of one chosen stat. The
+     stat is re-assignable for free outside a battle, so this shows
+     three radio-ish buttons rather than a one-time choice.
+
+     Rendered as markup inside the card overlay; the delegated
+     handler in initUpgrades() below owns the clicks.
+     ============================================================= */
+  function upgradePanel(card) {
+    var U = window.EOL.upgrades;
+    if (!U) return '';
+    var econ = window.EOL.econ;
+    if (econ && !econ.owns(card.id)) return '';
+    var lv = U.levelOf(card.id);
+    var dupes = U.dupesOf(card.id);
+    var maxed = lv >= U.MAX_LEVEL;
+    var need = U.costOfNextLevel(card.id);
+    var can = U.canLevel(card.id);
+    var stat = U.statOf(card.id);
+    var craft = U.craftCost(card.rarity);
+    var shards = U.shards();
+
+    var pips = '';
+    for (var i = 1; i <= U.MAX_LEVEL; i++) {
+      pips += '<span class="up-pip' + (i <= lv ? ' on' : '') + '"></span>';
+    }
+
+    var statBtns = ['atk', 'def', 'hp']
+      .map(function (k) {
+        return (
+          '<button type="button" class="up-stat' +
+          (stat === k && lv > 0 ? ' sel' : '') +
+          '" data-up-stat="' +
+          k +
+          '" data-up-card="' +
+          esc(card.id) +
+          '"' +
+          (lv > 0 ? '' : ' disabled') +
+          '>' +
+          k.toUpperCase() +
+          '</button>'
+        );
+      })
+      .join('');
+
+    return (
+      '<div class="up-panel" data-up-panel="' +
+      esc(card.id) +
+      '">' +
+      '<div class="up-head">' +
+      '<span class="up-title"><i class="ri-sparkling-2-fill"></i>Upgrade</span>' +
+      '<span class="up-pips">' +
+      pips +
+      '</span>' +
+      '</div>' +
+      (maxed
+        ? '<p class="up-note up-maxed">Fully upgraded &mdash; further copies pay shards only</p>'
+        : '<p class="up-note">' +
+          /* Clamp the numerator: banked copies can exceed what the NEXT
+             level costs (they are saved toward later levels too), and
+             "9 / 1" reads like a bug. */
+          Math.min(dupes, need) +
+          ' / ' +
+          need +
+          ' copies toward level ' +
+          (lv + 1) +
+          (dupes > need ? ' <span class="up-bank">(' + dupes + ' banked)</span>' : '') +
+          '</p>') +
+      '<div class="up-stats">' +
+      '<span class="up-stats-lbl">Boost</span>' +
+      statBtns +
+      '</div>' +
+      '<div class="up-actions">' +
+      (maxed
+        ? ''
+        : '<button type="button" class="up-btn up-level" data-up-level="' +
+          esc(card.id) +
+          '"' +
+          (can ? '' : ' disabled') +
+          '>Level up</button>' +
+          '<button type="button" class="up-btn up-craft" data-up-craft="' +
+          esc(card.id) +
+          '"' +
+          (shards >= craft ? '' : ' disabled') +
+          ' title="Spend Echo Shards on a copy of this legend">' +
+          '<i class="ri-sparkling-2-fill"></i>' +
+          craft.toLocaleString() +
+          '</button>') +
+      '</div>' +
+      '</div>'
+    );
+  }
+
   function buildCard(card, faction, index, options) {
     options = options || {};
     var el = document.createElement('article');
@@ -227,6 +323,7 @@
       esc(faction.name) +
       '</span>' +
       '</div>' +
+      (options.upgrades ? upgradePanel(card) : '') +
       '</div>';
 
     /* tap-to-toggle on touch devices */
@@ -346,7 +443,15 @@
     if (!grid || rendered >= filtered.length) return;
     var end = Math.min(rendered + PAGE, filtered.length);
     for (var i = rendered; i < end; i++) {
-      grid.appendChild(buildCard(filtered[i].card, filtered[i].faction, i, { markUnowned: true }));
+      /* The collection is the ONLY surface that shows the upgrade
+         panel: the deck builder, the draft and the pack ceremony all
+         want a clean card. */
+      grid.appendChild(
+        buildCard(filtered[i].card, filtered[i].faction, i, {
+          markUnowned: true,
+          upgrades: true,
+        })
+      );
     }
     rendered = end;
     var sent = document.getElementById('roster-sentinel');
@@ -691,6 +796,12 @@
       if (view !== 'battle') {
         document.body.dataset.busy = '0';
         document.body.dataset.netwait = '0';
+        /* Leaving the battle view for ANY reason - result, forfeit,
+           quit, desync, a campaign bail-out - releases the upgrade
+           respec lock. Catching it here rather than at each exit path
+           means a new exit cannot forget to unlock and strand the
+           player unable to re-pick a stat. */
+        if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(false);
       }
       window.scrollTo(0, 0);
       document.dispatchEvent(new CustomEvent('eol:view', { detail: view }));
@@ -1958,8 +2069,104 @@
     });
   }
 
+  /* =============================================================
+     UPGRADE PANEL CLICKS
+     -------------------------------------------------------------
+     Delegated from the roster, because cards are rendered lazily in
+     batches and re-rendered on every filter change - per-card
+     listeners would leak and go stale.
+
+     Only the touched card is repainted; re-rendering the grid would
+     close the hover overlay the player is reading.
+     ============================================================= */
+  function repaintUpgradePanel(cardId) {
+    var entry = null;
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (c.id === cardId) entry = c;
+      });
+    });
+    if (!entry) return;
+    document.querySelectorAll('[data-up-panel="' + cardId + '"]').forEach(function (panel) {
+      var host = document.createElement('div');
+      host.innerHTML = upgradePanel(entry);
+      var fresh = host.firstChild;
+      if (fresh) panel.replaceWith(fresh);
+    });
+    paintHomeCoins();
+    var sw = document.getElementById('shop-shards');
+    if (sw && window.EOL.upgrades)
+      sw.innerHTML =
+        '<i class="ri-sparkling-2-fill shard-ico"></i>' +
+        window.EOL.upgrades.shards().toLocaleString();
+  }
+
+  function initUpgrades() {
+    var grid = document.getElementById('roster');
+    if (!grid || !window.EOL.upgrades) return;
+    var U = window.EOL.upgrades;
+    grid.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+
+      var lvl = t.closest('[data-up-level]');
+      if (lvl) {
+        e.stopPropagation();
+        var id = lvl.dataset.upLevel;
+        var r = U.levelUp(id, U.statOf(id));
+        if (r.ok) {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Upgraded to level ' + r.lv, 'ri-sparkling-2-fill');
+          if (window.EOL.audio) window.EOL.audio.ui('confirm');
+        } else if (r.reason === 'dupes') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Needs ' + r.cost + ' copies of this legend', 'ri-information-line');
+        }
+        repaintUpgradePanel(id);
+        return;
+      }
+
+      var craft = t.closest('[data-up-craft]');
+      if (craft) {
+        e.stopPropagation();
+        var cid = craft.dataset.upCraft;
+        var cr = U.craft(cid);
+        if (cr.ok) {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Copy crafted for ' + cr.cost + ' shards', 'ri-sparkling-2-fill');
+          if (window.EOL.audio) window.EOL.audio.ui('confirm');
+        } else if (cr.reason === 'shards') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Not enough Echo Shards', 'ri-sparkling-2-fill');
+        } else if (cr.reason === 'unowned') {
+          /* Shards deepen legends you own; they never widen a
+             collection. Packs remain the only way to obtain a card. */
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Shards only buy copies of legends you own', 'ri-lock-line');
+        }
+        repaintUpgradePanel(cid);
+        return;
+      }
+
+      var st = t.closest('[data-up-stat]');
+      if (st) {
+        e.stopPropagation();
+        var sid = st.dataset.upCard;
+        var sr = U.setStat(sid, st.dataset.upStat);
+        if (!sr.ok && sr.reason === 'inBattle') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Boosts cannot change during a battle', 'ri-lock-line');
+        } else if (sr.ok && window.EOL.audio) {
+          window.EOL.audio.ui('tap');
+        }
+        repaintUpgradePanel(sid);
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initGfx();
+    initUpgrades();
     initTips();
     initScale();
     initMenuParticles();

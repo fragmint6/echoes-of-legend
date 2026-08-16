@@ -1288,6 +1288,14 @@
   function onResult(win, B) {
     if (!B || !B.puzzle) return null;
     activePuzzle = true;
+    /* Quest metric `dailyPuzzle` - the one objective that cannot be
+       farmed at all, because the server grants two attempts per reset
+       and a win closes the day. Counted per completed attempt, win or
+       lose, so a hard board is not a wasted quest. */
+    if (window.EOL.quests && !B.puzzle._questCounted) {
+      B.puzzle._questCounted = true;
+      window.EOL.quests.record('dailyPuzzle', 1);
+    }
     if (B.puzzle.official && B.puzzle.id && !B.puzzle._reported) {
       B.puzzle._reported = true;
       var client = supabaseClient();

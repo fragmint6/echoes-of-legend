@@ -40,6 +40,36 @@
     });
     return FLAT;
   }
+  /* =============================================================
+     WHERE CARD UPGRADES APPLY  (docs/DESIGN-Card-Upgrades.md §2)
+     -------------------------------------------------------------
+     Classic only - singleplayer, campaign, multiplayer and private
+     rooms, single and Unabridged alike.
+
+     Stock cards everywhere else, and the DEFAULT is stock: a mode
+     that does not call this gets no upgrades at all. That is what
+     keeps the two promises the game already makes -
+
+       drafts are "the great equalizer", built from nothing, and
+       ownership has never gated them; and
+
+       the Daily Puzzle tells every player "Everyone receives this
+       exact board and this exact future luck", which an upgraded
+       board would make false.
+
+     A puzzle battle is Classic-shaped, so `puzzle` is checked
+     explicitly rather than inferred from the mode. */
+  function upgradesFor(cfg, six) {
+    if (!window.EOL.upgrades) return null;
+    if (!cfg || cfg.mode !== 'classic') return null;
+    if (cfg.puzzle || cfg.campaignStage === 'puzzle') return null;
+    return window.EOL.upgrades.payloadFor(
+      (six || []).map(function (e) {
+        return e && e.card ? e.card.id : e;
+      })
+    );
+  }
+
   function byId() {
     if (!BY_ID) {
       BY_ID = {};
@@ -2175,13 +2205,19 @@
          Any use of `prep` after this point is a null dereference, and
          it crashed the second player to confirm in every match. */
       var fieldId = prep.field && prep.field.id;
+      /* Read the upgrade payload off `prep` BEFORE submitting, for the
+         same reason as fieldId: submitSix() can finish the handshake
+         synchronously and null `prep` out from under us. */
+      var myUp = upgradesFor(prep, sixIds.map(function (id) {
+        return dict[id];
+      }));
       window.EOL.netplay.startSix(onFoeSix);
       window.EOL.mp.saveState({
         phase: 'field',
         six: sixIds.slice(),
         field: fieldId,
       });
-      window.EOL.netplay.submitSix(sixIds.slice());
+      window.EOL.netplay.submitSix(sixIds.slice(), myUp);
       return;
     }
 
@@ -2299,6 +2335,9 @@
       campaignTutorialsEnabled(cfg) && cfg.script && cfg.script.match ? cfg.script.match : null;
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
+      /* Upgrades are Classic-only; the enemy is always stock here
+         (a campaign rival scales through enemyStatBonus instead). */
+      upgrades: upgradesFor(cfg, playerSix),
       field: cfg.field,
       mode: cfg.mode,
       war: setState ? 'unabridged' : 'single',
@@ -2360,6 +2399,14 @@
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
       enemyFormed: true,
+      /* ONLINE: both sides' levels are exchanged with the six, so the
+         two clients build identical units and the board checksum
+         agrees. Theirs arrives over the wire and is clamped by
+         upgrades.sanitize() before it reaches the engine. */
+      upgrades: upgradesFor(cfg, playerSix),
+      enemyUpgrades: window.EOL.upgrades
+        ? window.EOL.upgrades.sanitize(cfg.mode === 'classic' ? window.EOL.netplay.foeUpgrades() : null)
+        : null,
       field: cfg.field,
       mode: cfg.mode,
       war: 'single',

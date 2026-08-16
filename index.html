@@ -383,6 +383,56 @@
         <i class="ri-discord-fill" aria-hidden="true"></i>
         <span class="discord-tip" aria-hidden="true">Discord</span>
       </a>
+      <!-- ==================== QUEST BOARD ====================
+           Floating panel on the RIGHT of the menu, opposite the
+           Discord/tutorial stack on the left. Three dailies and three
+           weeklies, reset at 7:00 AM Eastern - the Daily Puzzle's own
+           boundary, because two definitions of "day" in one game is a
+           bug factory.
+
+           Collapsible, and it auto-collapses under 1100px because
+           .home is overflow:hidden and the centred 700px .home-inner
+           starts competing for room there. The collapsed tab keeps a
+           badge, so a folded board still says there is loot waiting.
+
+           NO QUEST COUNTS MATCHES, WINS OR LOSSES - match pay rewards
+           a loss and a forfeit takes the same path, so a "play N
+           matches" quest would be a forfeit-farm button. Objectives
+           count things that only accumulate inside a real fight.
+           See docs/DESIGN-Quests.md. -->
+      <aside class="quest-board" id="quest-board" data-collapsed="false" aria-label="Quests">
+        <button
+          type="button"
+          class="qb-tab"
+          id="qb-tab"
+          aria-expanded="true"
+          aria-controls="qb-body"
+          title="Quests"
+        >
+          <i class="ri-scroll-line" aria-hidden="true"></i>
+          <span class="qb-tab-txt">Quests</span>
+          <span class="qb-badge" id="qb-badge" hidden>0</span>
+        </button>
+        <div class="qb-body" id="qb-body">
+          <header class="qb-head">
+            <h2 class="qb-title"><i class="ri-scroll-line" aria-hidden="true"></i> Quests</h2>
+            <button type="button" class="qb-close" id="qb-close" aria-label="Collapse quest board">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </header>
+          <div class="qb-tabs" role="tablist">
+            <button class="qb-seg sel" id="qb-seg-daily" role="tab" aria-selected="true">
+              Daily <span class="qb-seg-timer" id="qb-timer-daily"></span>
+            </button>
+            <button class="qb-seg" id="qb-seg-weekly" role="tab" aria-selected="false">
+              Weekly <span class="qb-seg-timer" id="qb-timer-weekly"></span>
+            </button>
+          </div>
+          <div class="qb-list" id="qb-list"></div>
+          <div class="qb-bonus" id="qb-bonus" hidden></div>
+        </div>
+      </aside>
+
       <!-- BUILD TAG: outside testers were reporting against a moving
            target ('two changes shipped since last night'). One glance
            answers 'which build?' in every report. Bump per release. -->
@@ -993,6 +1043,11 @@
            wallet, packs pay only unowned legends. -->
       <div class="shop-wallet-row">
         <span class="shop-wallet" id="shop-wallet"></span>
+        <!-- ECHO SHARDS: the second wallet. Duplicates pay it, and it
+             crafts duplicates of legends you already own - including
+             legendaries, which no pack may ever contain. -->
+        <span class="shop-wallet shop-shards" id="shop-shards" hidden
+              title="Echo Shards - craft duplicates of legends you own"></span>
         <button
           class="shop-wallet shop-code-open"
           id="shop-code-open"
@@ -1094,6 +1149,7 @@
             <i class="ri-check-double-line"></i>
             Yours now - the ledger wrote them the moment the pack tore.
           </p>
+          <p class="po-shard-tally" id="po-shard-tally" hidden></p>
           <div class="po-sum-actions">
             <button class="btn btn-ghost btn-slim" id="po-again">
               <i class="ri-add-circle-line"></i><span>Open Another</span>
@@ -3640,6 +3696,9 @@
          before gameplay modules so every flow can call it safely. -->
     <script src="js/audio.js"></script>
     <script src="js/economy.js"></script>
+    <script src="js/upgrades.js"></script>
+    <script src="js/quests.js"></script>
+    <script src="js/quest-board.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>

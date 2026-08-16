@@ -2190,6 +2190,11 @@
       toast('Cannot use that: ' + res.reason);
       return;
     }
+    /* Quest metric `abilities` counts SIGNATURES cast by the player -
+       the ability printed on the card, not the shared role basic.
+       Tallied on the battle so it banks with everything else at the
+       end, in one write. */
+    if (s.ability && !s.ability.basic) B._questCasts = (B._questCasts || 0) + 1;
     /* THE SCRIPTED MATCH: the line's player move just resolved. Read
        the RAW script here - on the killing blow B.over is already
        true and scriptMove() would refuse, stranding the final index
@@ -5082,6 +5087,47 @@
       coinsEl.hidden = true;
       coinsEl.classList.remove('campaign-rewards');
     }
+    /* QUEST PROGRESS (docs/DESIGN-Quests.md).
+       Banked ONCE per battle instance, from the engine's own lifetime
+       tally, at the end rather than per hit: a disconnect mid-fight
+       banks nothing (which is the correct anti-abuse behaviour) and it
+       avoids a localStorage write on every damage tick.
+
+       Every mode counts, including drafts and the Daily Puzzle -
+       upgrades are restricted by mode, quests are not. Playing any
+       mode is playing the game.
+
+       Note what is NOT counted: matches, wins, losses. Match pay
+       rewards a loss and a forfeit takes this same path, so a
+       match-counting quest would be a forfeit-farm button. */
+    if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(false);
+    if (window.EOL.quests && !B._questsPaid) {
+      B._questsPaid = true;
+      var qd = 0,
+        qh = 0,
+        qs = 0,
+        qk = 0;
+      var facs = {};
+      (B.units || []).forEach(function (u) {
+        if (u.side !== 'player') return;
+        facs[u.faction && u.faction.id ? u.faction.id : u.faction] = 1;
+        var t = (B.tally || {})[u.uid];
+        if (!t) return;
+        qd += t.dealt || 0;
+        qh += t.healed || 0;
+        qs += t.absorbed || 0;
+        qk += t.kills || 0;
+      });
+      window.EOL.quests.recordBatch({
+        damage: Math.round(qd),
+        healing: Math.round(qh),
+        shield: Math.round(qs),
+        kills: qk,
+        rounds: B.round || 0,
+        factions: Object.keys(facs).length,
+        abilities: B._questCasts || 0,
+      });
+    }
     if (!B.campaignStage && !B.puzzle && window.EOL.econ && !B._coinsPaid) {
       B._coinsPaid = true;
       var P = window.EOL.econ.PAY;
@@ -5416,6 +5462,11 @@
           rng: opts.rng || null,
           oddFirst: opts.oddFirst || null,
           enemyStatBonus: opts.enemyStatBonus || 0,
+          /* Card upgrades. The CALLER decides - a mode that passes
+             nothing fights stock, which is what keeps drafts and the
+             Daily Puzzle honest. See play.js upgradesFor(). */
+          upgrades: opts.upgrades || null,
+          enemyUpgrades: opts.enemyUpgrades || null,
         }
       );
     } else {
@@ -5430,6 +5481,8 @@
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
             enemyStatBonus: opts.enemyStatBonus || 0,
+            upgrades: opts.upgrades || null,
+            enemyUpgrades: opts.enemyUpgrades || null,
           })
         : E.createBattle(teams.player, teams.enemy, {
             roleAware: true,
@@ -5437,10 +5490,16 @@
             rng: opts.rng || null,
             oddFirst: opts.oddFirst || null,
             enemyStatBonus: opts.enemyStatBonus || 0,
+            upgrades: opts.upgrades || null,
+            enemyUpgrades: opts.enemyUpgrades || null,
           });
     }
     /* Campaign personality changes evaluation priorities only. The rival
        still enters the exact normal depth-4 bestAction path below. */
+    /* RESPEC LOCK. Stat choices are free and re-assignable, but only
+       OUTSIDE a fight - otherwise "switch to +HP now that I am losing"
+       becomes a tactical ability. Released on the result screen. */
+    if (window.EOL.upgrades) window.EOL.upgrades.setBattleLock(true);
     B.aiProfiles = opts.aiProfiles || null;
     B.campaignDifficulty = opts.campaignDifficulty || null;
     B.enemyStatBonus = Math.max(0, +opts.enemyStatBonus || 0);

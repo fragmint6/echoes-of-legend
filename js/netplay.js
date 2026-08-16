@@ -355,24 +355,45 @@
     cb(theirs);
   }
 
-  var six = { mine: null, theirs: null, done: null };
+  var six = { mine: null, theirs: null, done: null, up: null };
 
   function startSix(cb) {
     six.mine = null;
+    six.up = null;
     six.done = cb;
     maybeStartBattle(); // latched early arrival, same as bans
   }
 
-  function submitSix(ids) {
+  /* CARD UPGRADES ON THE WIRE (docs/DESIGN-Card-Upgrades.md §2.1).
+     Both clients build units from their OWN copy of data/*.js, and
+     every action carries a checksum of rounded HP and shield. An
+     upgrade that existed on only one side would desync the boards on
+     the first hit, so the levels travel with the six and both
+     simulations build the same upgraded units.
+
+     Sent as a plain map { cardId: {lv, stat} }, omitted entirely when
+     nothing is upgraded so an unmodified match is byte-identical to
+     the old format. */
+  function submitSix(ids, upgrades) {
     if (!S || S.dead) return;
     six.mine = ids.slice();
-    send('six', { ids: six.mine });
+    var body = { ids: six.mine };
+    if (upgrades && Object.keys(upgrades).length) body.up = upgrades;
+    send('six', body);
     maybeStartBattle();
   }
 
   function onRemoteSix(body) {
     six.theirs = (body.ids || []).slice();
+    six.up = body && body.up && typeof body.up === 'object' ? body.up : null;
     maybeStartBattle();
+  }
+
+  /* The opponent's levels, for the battle that is starting. Read by
+     play.js and clamped through upgrades.sanitize() before it reaches
+     the engine - never trusted raw. */
+  function foeUpgrades() {
+    return six.up;
   }
 
   function maybeStartBattle() {
@@ -599,7 +620,7 @@
     }
     S = null;
     bans = { mine: null, theirs: null, done: null };
-    six = { mine: null, theirs: null, done: null };
+    six = { mine: null, theirs: null, done: null, up: null };
     decks = { mine: null, theirs: null, done: null };
   }
 
@@ -696,6 +717,7 @@
     submitBans: submitBans,
     startSix: startSix,
     submitSix: submitSix,
+    foeUpgrades: foeUpgrades,
     controller: controller,
     rngFrom: rngFrom,
     checksum: checksum,

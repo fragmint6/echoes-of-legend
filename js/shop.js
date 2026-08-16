@@ -115,6 +115,25 @@
   }
 
   /* ---------------- pack contents (pure) ---------------- */
+  /* THE SHELF NEVER DEAD-ENDS (see docs/DESIGN-Card-Upgrades.md).
+     Packs used to draw only from cards you did not own, so a complete
+     collection turned the shop off entirely and left coins with no
+     sink at all. Once nothing unowned is left, packs pay DUPLICATES
+     from the same non-legendary universe instead - which is exactly
+     the material the upgrade system runs on.
+
+     The Crown Law is untouched: this pool is still built from
+     obtainable, non-legendary cards, so no wrapper can ever contain a
+     crown. Legendary duplicates come from crafting, never a pack. */
+  function duplicateAwarePool() {
+    var econ = window.EOL.econ;
+    var fresh = econ.packableEntries();
+    if (fresh.length) return fresh;
+    return econ.obtainableEntries().filter(function (e) {
+      return e.card.rarity !== 'legendary';
+    });
+  }
+
   /* Pools are built from the PACKABLE roster only - unowned AND below
      legendary (the Crown Law). `entries` is injectable for tests, and
      the legendary filter applies even then: no injected pool can put
@@ -124,7 +143,7 @@
     var list =
       entries ||
       (window.EOL.econ
-        ? window.EOL.econ.packableEntries()
+        ? duplicateAwarePool()
         : (function () {
             var out = [];
             (window.EOL.factions || []).forEach(function (f) {
@@ -179,6 +198,7 @@
   /* ---------------- opening state machine ---------------- */
   var state = 'idle'; // idle | intro | await | charging | burst | reveal | summary
   var results = [];
+  var lastDupes = []; // duplicates in the pack just opened (shard payout)
   var timers = [];
   var revealed = 0;
 
@@ -232,7 +252,7 @@
       ['trio', 'echo', 'crown'].indexOf(pack.key) >= 0 &&
       !!econ &&
       econ.coins() >= pack.price &&
-      econ.packableEntries().length > 0;
+      duplicateAwarePool().length > 0;
     again.hidden = !canBuy;
   }
 
@@ -243,7 +263,11 @@
     if (!econ) return;
     /* the Legend Pack is the Road's to give, never the shelf's to sell */
     if (pack.key === 'legend' || pack.key === 'epic') return;
-    if (!econ.packableEntries().length) {
+    /* The old guard refused the sale once every card was owned. Packs
+       now pay duplicates (which are upgrade material and Echo Shards),
+       so the shelf only closes if there is genuinely nothing to draw -
+       which cannot happen while the roster has a non-legendary card. */
+    if (!duplicateAwarePool().length) {
       if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
         window.EOL.ui.toast(
@@ -261,7 +285,22 @@
     if (window.EOL.audio) window.EOL.audio.pack('buy');
     currentAwardMeta = null;
     results = rollPack(Math.random, pack);
-    /* GRANT NOW: the ceremony is theater, the ledger is truth */
+    /* GRANT NOW: the ceremony is theater, the ledger is truth.
+       A card already owned is a DUPLICATE: it pays Echo Shards and
+       banks toward that card's next upgrade level instead of being a
+       wasted pull. Recorded before the ceremony so a mid-reveal
+       refresh cannot eat it, exactly like the grant. */
+    var up = window.EOL.upgrades;
+    lastDupes = [];
+    results.forEach(function (e) {
+      var dupe = econ.owns(e.card.id);
+      e.duplicate = dupe;
+      if (dupe && up) {
+        var got = up.addDuplicate(e.card.id, 1);
+        e.shards = got.shards;
+        lastDupes.push(e);
+      }
+    });
     econ.grant(
       results.map(function (e) {
         return e.card.id;
@@ -464,6 +503,19 @@
       '</div>';
     var front = flip.querySelector('.po-front');
     front.appendChild(window.EOL.ui.buildCard(entry.card, entry.faction, i));
+    /* A DUPLICATE has to say so on the card, or the player reads it as
+       a pull they already had and feels cheated. It is not a dud - it
+       is shards plus a step toward that legend's next upgrade. */
+    if (entry.duplicate) {
+      flip.classList.add('po-dupe');
+      var tag = document.createElement('span');
+      tag.className = 'po-dupe-tag';
+      tag.innerHTML =
+        '<i class="ri-sparkling-2-fill"></i><b>+' +
+        (entry.shards || 0).toLocaleString() +
+        '</b><small>Echo Shards</small>';
+      front.appendChild(tag);
+    }
     return flip;
   }
 
@@ -485,6 +537,23 @@
   function summary() {
     state = 'summary';
     syncOpenAnother();
+    /* Total the shard payout so a pack of duplicates still lands as a
+       reward rather than as five cards you already owned. */
+    var tally = el('po-shard-tally');
+    if (tally) {
+      var total = lastDupes.reduce(function (n, e) {
+        return n + (e.shards || 0);
+      }, 0);
+      if (total > 0) {
+        tally.innerHTML =
+          '<i class="ri-sparkling-2-fill"></i><span>+' +
+          total.toLocaleString() +
+          ' Echo Shards</span>';
+        tally.hidden = false;
+      } else {
+        tally.hidden = true;
+      }
+    }
     el('po-cards').classList.add('settled');
     el('po-summary').classList.add('show');
     el('po-skip').classList.remove('show');
@@ -634,23 +703,27 @@
     /* the shelf sells down to the last ECHO; the legends that remain
        are the Road's business, and the counter says so */
     var left = econ.packableEntries().length;
+    var up = window.EOL.upgrades;
+    /* THE SHARD WALLET sits beside the coin wallet, because once the
+       collection is complete it is the only currency a pack pays. */
+    var sw = el('shop-shards');
+    if (sw && up) {
+      sw.innerHTML = '<i class="ri-sparkling-2-fill shard-ico"></i>' + up.shards().toLocaleString();
+      sw.hidden = false;
+    }
     var prog = el('shop-progress');
     if (prog)
       prog.textContent =
         left === 0
-          ? econ.unownedEntries().length === 0
-            ? 'Collection complete - every echo answers to you'
-            : 'Every echo the shelf sells is yours - the legends left walk the Road'
+          ? 'Collection complete - packs now pay duplicates and Echo Shards'
           : econ.ownedCount() + ' / ' + econ.obtainableEntries().length + ' legends collected';
+    /* Packs stay BUYABLE at a complete collection: they pay duplicates,
+       which are upgrade material. Only the price gates the button now. */
     document.querySelectorAll('.buy-pack').forEach(function (btn) {
       var pack = PACKS[btn.dataset.pack];
       if (!pack) return;
-      var can = left > 0 && econ.coins() >= pack.price;
-      btn.disabled = !can;
-      btn.innerHTML =
-        left === 0
-          ? '<i class="ri-check-line"></i><span>Complete</span>'
-          : COIN_IMG + '<span>' + pack.price + '</span>';
+      btn.disabled = econ.coins() < pack.price || !duplicateAwarePool().length;
+      btn.innerHTML = COIN_IMG + '<span>' + pack.price + '</span>';
     });
   }
 

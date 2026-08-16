@@ -105,6 +105,16 @@
   var uid = 0;
   function makeUnit(card, faction, side, slot) {
     return {
+      /* CARD UPGRADES. Set by createBattle from opts.upgrades /
+         opts.enemyUpgrades, never read from storage here - the engine
+         has no opinion about who owns what. A mode that passes
+         nothing fights with stock cards, which is what keeps drafts
+         and the Daily Puzzle honest. `upPower` multiplies signature
+         damage/heal/shield output; the stat share is folded into
+         baseAtk/baseDef/maxHp at creation. */
+      upLevel: 0,
+      upStat: null,
+      upPower: 1,
       battle: null, // set on createBattle so stats can read round/board state
       uid: 'u' + ++uid,
       card: card,
@@ -161,6 +171,21 @@
     });
     return t;
   }
+  /* SKILL POWER from card upgrades. Applies to a unit's SIGNATURE
+     output only - the ability printed on the card. Basic attacks and
+     role abilities are shared machinery, not the upgraded card, so
+     they stay stock. `ctx.signature` is already tracked everywhere
+     because the log and the battle report need it.
+
+     This multiplies the power coefficient, never a threshold and
+     never an Energy cost: Anubis's 130/260 becomes 132/264 at level
+     1, but his 25%/35% execute gate and his 45 Energy do not move. */
+  function upPow(u, ctx) {
+    if (!u || !u.upPower || u.upPower === 1) return 1;
+    if (ctx && ctx.signature === false) return 1;
+    return u.upPower;
+  }
+
   function atkOf(u) {
     var ramp = u.battle ? rampMult(u.battle.round) : 1;
     var pct = sumBuffs(u, 'atk');
@@ -446,7 +471,7 @@
           if (e.to && e.to !== 'targets') return; // redirected effects do not hit this target
           if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
           var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
-          var raw = atkOf(unit) * e.power * (ctx.scale || 1) * provokeM;
+          var raw = atkOf(unit) * e.power * (ctx.scale || 1) * provokeM * upPow(unit, ctx);
           if (e.ifMult) {
             e.ifMult.forEach(function (m) {
               if (condMet(B, m.when, condCtx(ctx, tgt))) raw *= m.mult;
@@ -455,12 +480,12 @@
           if (e.perDebuff) {
             var dn = debuffCount(tgt);
             if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
-            raw += atkOf(unit) * e.perDebuff * dn * (ctx.scale || 1) * provokeM;
+            raw += atkOf(unit) * e.perDebuff * dn * (ctx.scale || 1) * provokeM * upPow(unit, ctx);
           }
           if (e.perBuff) {
             var bn = buffCount(tgt);
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
-            raw += atkOf(unit) * e.perBuff * bn * (ctx.scale || 1) * provokeM;
+            raw += atkOf(unit) * e.perBuff * bn * (ctx.scale || 1) * provokeM * upPow(unit, ctx);
           }
           var outM = outgoingMult(B, unit, tgt);
           B._multTrail = null;
@@ -482,6 +507,15 @@
           var st = [];
           st.push({ k: 'atk', label: 'Attack', value: atkOf(unit) });
           st.push({ k: 'power', label: 'Skill power', mult: e.power });
+          /* The upgrade has to appear here or the working-out stops
+             adding up to the number above it. */
+          if (upPow(unit, ctx) !== 1) {
+            st.push({
+              k: 'upgrade',
+              label: 'Upgrade ' + '\u2605'.repeat(unit.upLevel || 0),
+              mult: upPow(unit, ctx),
+            });
+          }
           if (provokeM !== 1) st.push({ k: 'provoke', label: 'Provoke tax', mult: provokeM });
           if ((ctx.scale || 1) !== 1) st.push({ k: 'scale', label: 'Scaling', mult: ctx.scale });
           if (e.ifMult) {
@@ -497,7 +531,8 @@
               st.push({
                 k: 'perDebuff',
                 label: 'Per debuff (' + dn2 + ')',
-                add: atkOf(unit) * e.perDebuff * dn2 * (ctx.scale || 1) * provokeM,
+                add:
+                  atkOf(unit) * e.perDebuff * dn2 * (ctx.scale || 1) * provokeM * upPow(unit, ctx),
               });
           }
           if (e.perBuff) {
@@ -507,7 +542,8 @@
               st.push({
                 k: 'perBuff',
                 label: 'Per buff (' + bn2 + ')',
-                add: atkOf(unit) * e.perBuff * bn2 * (ctx.scale || 1) * provokeM,
+                add:
+                  atkOf(unit) * e.perBuff * bn2 * (ctx.scale || 1) * provokeM * upPow(unit, ctx),
               });
           }
           st.push({ k: 'raw', label: 'Base damage', value: raw, subtotal: true });
@@ -660,6 +696,49 @@
     B.units.forEach(function (u) {
       u.battle = B;
     });
+
+    /* CARD UPGRADES (docs/DESIGN-Card-Upgrades.md).
+       Applied BEFORE difficulty scaling, battlefield champions and
+       standing passives, so every downstream consumer reads the same
+       final base stats - exactly like the rival scaling below.
+
+       Levels arrive per side. Modes that pass nothing get stock
+       cards: drafts stay the great equalizer and the Daily Puzzle
+       keeps its promise that everyone receives the exact same board.
+
+       Only the ONE chosen stat moves, by 2% per level. Skill power
+       is a separate compounding multiplier applied at the effect
+       sites; thresholds and Energy costs never move. */
+    function applyUpgrades(side, table) {
+      if (!table) return;
+      B.units.forEach(function (u) {
+        if (u.side !== side) return;
+        var r = table[u.card.id];
+        if (!r) return;
+        var lv = Math.max(0, Math.min(3, Math.floor(+r.lv || 0)));
+        if (!lv) return;
+        u.upLevel = lv;
+        u.upStat = r.stat === 'def' || r.stat === 'hp' ? r.stat : 'atk';
+        u.upPower = Math.pow(1.015, lv);
+        var m = 1 + 0.02 * lv;
+        if (u.upStat === 'atk') u.baseAtk = Math.round(u.baseAtk * m);
+        else if (u.upStat === 'hp') {
+          u.maxHp = Math.round(u.maxHp * m);
+          u.hp = u.maxHp;
+        } else if (u.upStat === 'def') {
+          /* DEF is NOT a scalable stat - it is a percentage-point
+             damage reducer clamped to 0..75, and the roster only
+             spans 10..30. Multiplying it by 1.02 rounds straight back
+             to where it started, so the DEF choice would silently do
+             nothing. It gets FLAT POINTS instead, sized so its value
+             matches the other two: +1.5 points per level is +5.3% to
+             +6.9% effective HP at max, against +6% for the HP choice. */
+          u.baseDef = u.baseDef + 1.5 * lv;
+        }
+      });
+    }
+    applyUpgrades('player', opts.upgrades);
+    applyUpgrades('enemy', opts.enemyUpgrades);
 
     /* Campaign difficulty is a transparent rival-side base-stat multiplier.
        Multiplicative DEF means 20 becomes 22 on Heroic and 24 on Legend;
@@ -2809,7 +2888,7 @@
              rather than per cast so an AoE prices the provoker (full)
              and the rest of the board (taxed) in the same swing. */
           var provokeM = ctx.provokeTax && !(t.flags.taunt > 0) ? ctx.provokeTax : 1;
-          var power = e.power * (ctx.scale || 1) * provokeM;
+          var power = e.power * (ctx.scale || 1) * provokeM * upPow(src, ctx);
           var raw = atkOf(src) * power;
           if (e.ifMult) {
             e.ifMult.forEach(function (m) {
@@ -2822,12 +2901,12 @@
           if (e.perDebuff) {
             var dn = debuffCount(t);
             if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
-            raw += atkOf(src) * e.perDebuff * dn * (ctx.scale || 1) * provokeM;
+            raw += atkOf(src) * e.perDebuff * dn * (ctx.scale || 1) * provokeM * upPow(src, ctx);
           }
           if (e.perBuff) {
             var bn = buffCount(t);
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
-            raw += atkOf(src) * e.perBuff * bn * (ctx.scale || 1) * provokeM;
+            raw += atkOf(src) * e.perBuff * bn * (ctx.scale || 1) * provokeM * upPow(src, ctx);
           }
           /* Only a SIGNATURE spends a Mark - ctx.signature rides in from
              useAbility (`!ability.basic`). This used to pass a flat true,
@@ -2879,7 +2958,9 @@
       case 'heal': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          var amt = e.pctMaxHp != null ? t.maxHp * (e.pctMaxHp / 100) : atkOf(src) * (e.power || 1);
+          var amt =
+            (e.pctMaxHp != null ? t.maxHp * (e.pctMaxHp / 100) : atkOf(src) * (e.power || 1)) *
+            upPow(src, ctx);
           /* Cinderella (Glass Slipper): an extra slice of Max HP for
              every debuff this cast has already cleansed from THIS
              target, recorded on ctx by the cleanse case. The two heal
@@ -2992,7 +3073,7 @@
           }
           var amt = addShieldCapped(
             t,
-            t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1)
+            t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1) * upPow(src, ctx)
           );
           if (amt <= 0) return;
           t.shieldSrc = src.uid; // last granter is credited for absorbs
