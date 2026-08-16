@@ -28331,71 +28331,6 @@ body[data-gfx='low'] .qb-body {
   }
 }
 
-/* =============================================================
-   UPGRADE STATE ON THE CARD  (hover overlay corners)
-   -------------------------------------------------------------
-   Read-only. The level sits top-left and what it bought sits
-   top-right, so a hover answers "is this legend upgraded, and into
-   what?" without carrying a single control. The controls live in
-   the card detail dialog - see js/card-detail.js.
-
-   Positioned absolutely against .card-overlay rather than added to
-   its flex column, so they pin to the corners and cannot push the
-   stat bars or the skill text around.
-   ============================================================= */
-.ov-lv,
-.ov-boost {
-  position: absolute;
-  top: 12px;
-  z-index: 3;
-  /* the overlay's children animate in with a stagger; these are
-     chrome, so they arrive with the panel itself */
-  transition-delay: 0s !important;
-}
-.ov-lv {
-  left: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--r-epic-1) 55%, transparent);
-  background: color-mix(in srgb, var(--r-epic-1) 20%, rgba(8, 6, 16, 0.85));
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-.ov-lv i {
-  color: var(--r-epic-1);
-  font-size: 11px;
-}
-.ov-boost {
-  right: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--line-2);
-  background: rgba(8, 6, 16, 0.85);
-  text-align: right;
-  white-space: nowrap;
-}
-.ovb-stat {
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.03em;
-  color: var(--r-epic-1);
-}
-.ovb-pow {
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--txt-faint);
-}
 /* THE READY MARKER. A legend with enough banked copies to buy a level
    should be findable from across the grid. The card wears a bright
    chevron badge in the top-left corner - loud on purpose: the old
@@ -28447,46 +28382,33 @@ body[data-gfx='low'] .qb-body {
   }
 }
 
-/* THE STAR CREST. The upgrade level, set into the middle of the top
-   border, so it reads across a scrolling grid without a hover. Drawn
-   with clip-path because neither icon set carries a plain star. */
+/* LEVEL PIPS. One filled purple circle per level, sitting ON the top
+   border in the middle of the card. Readable across a scrolling grid
+   with no hover and no click - and no plate behind them, which is
+   what made the old star crest read as a box bolted to the frame. */
 .card-stars {
   position: absolute;
-  top: -1px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 7;
   display: flex;
-  gap: 3px;
-  padding: 3px 9px 4px;
-  border: 1px solid color-mix(in srgb, var(--r-legendary-1) 55%, transparent);
-  border-top: none;
-  border-radius: 0 0 9px 9px;
-  background: linear-gradient(180deg, rgba(10, 8, 18, 0.96), rgba(10, 8, 18, 0.82));
+  gap: 4px;
   pointer-events: none;
 }
 .card-stars i {
-  width: 9px;
-  height: 9px;
-  background: linear-gradient(180deg, #ffe9a8, var(--r-legendary-1));
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--r-legendary-1) 70%, transparent));
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #d7a6ff, var(--r-epic-1));
+  box-shadow:
+    0 0 0 1.5px rgba(6, 8, 15, 0.9),
+    0 0 9px color-mix(in srgb, var(--r-epic-1) 85%, transparent);
 }
 
 /* ---- upgrade state in the hover overlay ---- */
 .ov-lv,
-.ov-boost {
+.ovb-slot {
   position: absolute;
   top: 11px;
   z-index: 3;
@@ -28515,29 +28437,34 @@ body[data-gfx='low'] .qb-body {
   color: #fff;
 }
 
-/* THREE SLOTS, one per possible level: a filled slot is a coloured
-   icon naming the stat that level bought, an empty one is a hollow
-   socket. One dominant-stat badge could not tell 2xATK+1xHP from
-   3xATK; three slots show the whole build. */
-.ov-boost {
-  right: 12px;
-  display: flex;
-  gap: 3px;
-}
+/* THREE FLOATING SLOTS, laid out horizontally from the right edge.
+   Each is positioned individually rather than wrapped in a flex box:
+   the owner asked for floating slots, and a container around three
+   icons reads as a widget instead of as state. 22px pitch = 18px
+   slot + 4px gap. */
 .ovb-slot {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   display: grid;
   place-items: center;
   border-radius: 5px;
   border: 1px solid var(--line-2);
   background: rgba(8, 6, 16, 0.85);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
+}
+.ovb-slot[data-slot='0'] {
+  right: 56px;
+}
+.ovb-slot[data-slot='1'] {
+  right: 34px;
+}
+.ovb-slot[data-slot='2'] {
+  right: 12px;
 }
 .ovb-slot.empty {
   border-style: dashed;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 /* one colour per stat, matching the stat bars below */
 .ovb-slot[data-boost='atk'] {
@@ -29011,6 +28938,25 @@ body[data-gfx='low'] .qb-body {
 .cd-up[data-ready='1'] {
   border-color: color-mix(in srgb, var(--r-epic-1) 45%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r-epic-1) 12%, transparent);
+}
+.up-coin {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 7px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.32);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.up-coin i {
+  color: var(--r-legendary-1);
+  font-size: 11px;
+}
+.up-level:disabled .up-coin {
+  background: rgba(0, 0, 0, 0.2);
 }
 .up-shop {
   flex: 0 0 auto;

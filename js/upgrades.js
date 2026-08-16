@@ -71,10 +71,19 @@
   var MAX_LEVEL = 3;
   /* duplicates required for level 1, 2, 3 */
   var LEVEL_COST = [1, 3, 5];
-  /* compounding skill power per level */
-  var POWER_PER_LEVEL = 0.015;
+  /* FLAT skill bonus per level, in PERCENTAGE POINTS of the skill's
+     own printed numbers (owner ruling 2026-08-16). A 50% ATK skill
+     reads 52% at level 1, not 50.75% - legible without arithmetic,
+     which the old compounding multiplier was not. Kept in lockstep
+     with upAdd()/upPts() in js/engine.js. */
+  var POWER_PER_LEVEL = 0.02;
   /* chosen stat, per level */
   var STAT_PER_LEVEL = 0.02;
+  /* COINS PER LEVEL (owner ruling 2026-08-16). Copies alone were a
+     pure time gate; a price makes levelling compete with packs for
+     the same wallet, which is what makes it a decision. Flat rather
+     than per-rarity: the duplicate cost already scales the grind. */
+  var COIN_COST = 500;
   var STATS = ['atk', 'def', 'hp'];
 
   /* DEF is a percentage-POINT damage reducer (roster range 10..30,
@@ -237,9 +246,17 @@
   /* THE MULTIPLIERS. One place, so the engine, the collection UI and
      the battle preview can never disagree about what an upgrade is
      worth. Power compounds; the stat bonus is linear per level. */
-  function powerMult(lv) {
+  /* The skill bonus as a MULTIPLIER is gone - it is flat now. This
+     returns the added fraction (0.06 at max), which is what the text
+     scaler and the UI both want. */
+  function powerAdd(lv) {
     lv = Math.max(0, Math.min(MAX_LEVEL, Math.floor(+lv || 0)));
-    return Math.pow(1 + POWER_PER_LEVEL, lv);
+    return POWER_PER_LEVEL * lv;
+  }
+  /* Back-compat shim for anything still asking for a multiplier. It
+     is only meaningful as "+6%", never as a factor to multiply by. */
+  function powerMult(lv) {
+    return 1 + powerAdd(lv);
   }
   function statMult(lv) {
     lv = Math.max(0, Math.min(MAX_LEVEL, Math.floor(+lv || 0)));
@@ -347,19 +364,32 @@
      rarity. Never a card you do not own - crafting is an upgrade
      currency, not a collection shortcut, so packs stay the only way
      to widen a collection and the Crown Law is untouched. */
+  /* How many more copies this card can still USE: the duplicates its
+     remaining levels will consume, minus what is already banked. Zero
+     means every future level is already paid for. */
+  function copiesWanted(id) {
+    var r = rec(id);
+    var remaining = 0;
+    for (var i = r.boosts.length; i < MAX_LEVEL; i++) remaining += LEVEL_COST[i];
+    return Math.max(0, remaining - r.dupes);
+  }
+
   function craft(id) {
     var econ = window.EOL.econ;
     if (!cardById(id)) return { ok: false, reason: 'unknown' };
     if (econ && !econ.owns(id)) return { ok: false, reason: 'unowned' };
     var r = rec(id);
     if (r.boosts.length >= MAX_LEVEL) return { ok: false, reason: 'maxed' };
+    /* A CARD HOLDS AT MOST NINE COPIES - what its three levels can
+       consume - and never more (owner ruling 2026-08-16). This used
+       to take the shards and then silently clamp `dupes`, so a full
+       bank charged full price for nothing. Refused outright now. */
+    if (copiesWanted(id) <= 0) return { ok: false, reason: 'full' };
     var cost = craftCost(rarityOf(id));
     var s = load();
     if (s.shards < cost) return { ok: false, reason: 'shards', cost: cost };
     s.shards -= cost;
-    var remaining = 0;
-    for (var i = r.boosts.length; i < MAX_LEVEL; i++) remaining += LEVEL_COST[i];
-    r.dupes = Math.min(remaining, r.dupes + 1);
+    r.dupes += 1;
     save();
     return { ok: true, cost: cost, dupes: r.dupes };
   }
@@ -375,10 +405,22 @@
     if (r.boosts.length >= MAX_LEVEL) return { ok: false, reason: 'maxed' };
     var cost = LEVEL_COST[r.boosts.length];
     if (r.dupes < cost) return { ok: false, reason: 'dupes', cost: cost };
+    /* COINS TOO. Checked before anything is spent, and taken through
+       econ.spend so the one wallet stays the only place coins move. */
+    var econ = window.EOL.econ;
+    if (econ) {
+      if (econ.coins() < COIN_COST) return { ok: false, reason: 'coins', coins: COIN_COST };
+      if (!econ.spend(COIN_COST)) return { ok: false, reason: 'coins', coins: COIN_COST };
+    }
     r.dupes -= cost;
     r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : 'atk');
     save();
-    return { ok: true, lv: r.boosts.length, stat: r.boosts[r.boosts.length - 1] };
+    return {
+      ok: true,
+      lv: r.boosts.length,
+      stat: r.boosts[r.boosts.length - 1],
+      coins: COIN_COST,
+    };
   }
 
   /* RESPEC: free, and allowed only outside a battle. battle.js sets
@@ -452,6 +494,7 @@
     MAX_LEVEL: MAX_LEVEL,
     LEVEL_COST: LEVEL_COST,
     POWER_PER_LEVEL: POWER_PER_LEVEL,
+    COIN_COST: COIN_COST,
     STAT_PER_LEVEL: STAT_PER_LEVEL,
     DEF_POINTS_PER_LEVEL: DEF_POINTS_PER_LEVEL,
     STATS: STATS,
@@ -464,8 +507,10 @@
     boostCounts: boostCounts,
     dupesOf: dupesOf,
     costOfNextLevel: costOfNextLevel,
+    copiesWanted: copiesWanted,
     canLevel: canLevel,
     powerMult: powerMult,
+    powerAdd: powerAdd,
     statMult: statMult,
     statsFor: statsFor,
 

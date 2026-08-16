@@ -178,7 +178,14 @@
     var dupes = up.dupesOf(card.id);
     var maxed = lv >= up.MAX_LEVEL;
     var need = up.costOfNextLevel(card.id);
-    var can = up.canLevel(card.id);
+    var econ2 = window.EOL.econ;
+    var coinCost = up.COIN_COST || 0;
+    var coins = econ2 ? econ2.coins() : coinCost;
+    var hasCopies = up.canLevel(card.id);
+    var canAfford = coins >= coinCost;
+    /* Both gates, separately, so the button can say WHICH one is
+       missing rather than just sitting greyed out. */
+    var can = hasCopies && canAfford;
 
     var pips = '';
     for (var i = 1; i <= up.MAX_LEVEL; i++) {
@@ -242,7 +249,7 @@
         : '<p class="up-note' +
           (can ? ' up-ready' : '') +
           '">' +
-          (can
+          (hasCopies
             ? '<i class="ri-sparkling-line"></i>Ready to level up'
             : /* Clamp the numerator: banked copies can exceed what the
                  NEXT level costs (they are saved toward later levels
@@ -260,12 +267,13 @@
           '</div>' +
           '<p class="cd-up-worth">This build: <b>' +
           parts.join(' + ') +
-          '</b> and <b>+' +
-          Math.round((up.powerMult(lv) - 1) * 1000) / 10 +
-          '% skill power</b>.</p>'
+          '</b>, and every number in the skill below is <b>+' +
+          Math.round(up.powerAdd(lv) * 100) +
+          '</b> higher.</p>'
         : '<p class="cd-up-worth">Every level adds <b>+2%</b> of a stat you pick ' +
-          '<b>for that level</b> and <b>+1.5% skill power</b>. Mix them however you like &mdash; ' +
-          'the choices are free to change outside a battle.</p>') +
+          '<b>for that level</b>, and <b>+2 points</b> to every number in the skill ' +
+          '(a 50% hit becomes 52%). Mix them however you like &mdash; the choices are ' +
+          'free to change outside a battle.</p>') +
       '<div class="up-actions">' +
       (maxed
         ? ''
@@ -274,7 +282,10 @@
           '"' +
           (can ? '' : ' disabled') +
           '>' +
-          (can ? 'Level up to ' + (lv + 1) : 'Level up') +
+          (hasCopies && !canAfford ? 'Not enough coins' : 'Level up to ' + (lv + 1)) +
+          '<b class="up-coin"><i class="ri-coin-fill"></i>' +
+          coinCost.toLocaleString() +
+          '</b>' +
           '</button>') +
       (maxed
         ? ''
@@ -392,7 +403,7 @@
          not be the one place still quoting the stock numbers. */
       rich(
         up && window.EOL.scaleSkillText && owned
-          ? window.EOL.scaleSkillText(card.ability.text, card, up.powerMult(lvNow))
+          ? window.EOL.scaleSkillText(card.ability.text, card, up.powerAdd(lvNow) * 100)
           : card.ability.text
       ) +
       '</p>' +
@@ -525,10 +536,12 @@
     boosts.forEach(function (b) {
       was[b]++;
     });
+    /* Mirrors statsFor() exactly - if these two ever disagree the
+       number animates to a value the card does not actually have. */
     var prev = {
-      hp: was.hp ? Math.round(card.stats.hp * (1 + 0.02 * was.hp)) : card.stats.hp,
-      atk: was.atk ? Math.round(card.stats.atk * (1 + 0.02 * was.atk)) : card.stats.atk,
-      def: was.def ? card.stats.def + 1.5 * was.def : card.stats.def,
+      hp: was.hp ? Math.round(card.stats.hp * (1 + up.STAT_PER_LEVEL * was.hp)) : card.stats.hp,
+      atk: was.atk ? Math.round(card.stats.atk * (1 + up.STAT_PER_LEVEL * was.atk)) : card.stats.atk,
+      def: was.def ? card.stats.def + up.DEF_POINTS_PER_LEVEL * was.def : card.stats.def,
     };
 
     ['hp', 'atk', 'def'].forEach(function (k) {
@@ -598,6 +611,46 @@
     if (window.EOL.ui && window.EOL.ui.repaintCard) window.EOL.ui.repaintCard(openId);
   }
 
+  /* LEVEL-UP REFRESH, without the flicker.
+     -------------------------------------------------------------
+     A full render() during the ceremony tore the dialog down and
+     rebuilt it - so the panel visibly blinked out and "reappeared"
+     underneath the animation. Only two regions actually change, so
+     only those are replaced: the upgrade block, and the level chip
+     in the hero. The stat tiles are left ALONE on purpose, because
+     countUpStats() is mid-flight animating them to their new values
+     and a rebuild would snap them straight to the end. */
+  function refreshQuiet(id) {
+    var entry = entryFor(id);
+    if (!entry) return;
+    var body = $('cd-body');
+    if (!body) return;
+
+    var oldPanel = body.querySelector('.cd-up');
+    if (oldPanel) {
+      var host = document.createElement('div');
+      host.innerHTML = upgradePanel(entry.card);
+      var fresh = host.firstChild;
+      if (fresh) oldPanel.replaceWith(fresh);
+    }
+    var up = U();
+    var chip = body.querySelector('.cd-tag.lv');
+    if (chip && up) {
+      var lv = up.levelOf(id);
+      chip.dataset.lv = lv;
+      chip.innerHTML =
+        '<i class="ri-sparkling-2-fill"></i>Level ' + lv + ' / ' + up.MAX_LEVEL;
+    }
+    /* The skill text carries the card's own numbers, which just grew. */
+    var skill = body.querySelector('.cd-skill-text');
+    if (skill && up && window.EOL.scaleSkillText) {
+      skill.innerHTML = rich(
+        window.EOL.scaleSkillText(entry.card.ability.text, entry.card, up.powerAdd(up.levelOf(id)) * 100)
+      );
+    }
+    if (window.EOL.ui && window.EOL.ui.repaintCard) window.EOL.ui.repaintCard(id);
+  }
+
   function toast(msg, icon) {
     if (window.EOL.ui && window.EOL.ui.toast) window.EOL.ui.toast(msg, icon);
   }
@@ -625,16 +678,21 @@
          than defaulting to ATK for a Medic. */
       var r = up.levelUp(id, up.statOf(id));
       if (r.ok) {
-        if (window.EOL.audio) window.EOL.audio.ui('confirm');
-        /* THE CEREMONY. Play it before the repaint so the panel the
-           player is looking at is the one that erupts. */
+        /* THE CEREMONY. Played first, then the panel is patched in
+           place - a full re-render here is what made the dialog
+           blink out and reappear under the animation. */
         celebrate(id, before, r.lv);
-      } else if (r.reason === 'dupes') {
-        toast('Needs ' + r.cost + ' copies of this legend', 'ri-information-line');
-      } else if (r.reason === 'inBattle') {
-        toast('Upgrades cannot change during a battle', 'ri-lock-line');
+        refreshQuiet(id);
+      } else {
+        if (r.reason === 'dupes') {
+          toast('Needs ' + r.cost + ' copies of this legend', 'ri-information-line');
+        } else if (r.reason === 'coins') {
+          toast('Needs ' + r.coins.toLocaleString() + ' coins', 'ri-coin-fill');
+        } else if (r.reason === 'inBattle') {
+          toast('Upgrades cannot change during a battle', 'ri-lock-line');
+        }
+        refresh();
       }
-      refresh();
       return;
     }
 

@@ -50,6 +50,17 @@ global.CustomEvent = function (n, o) {
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 
 const EOL = window.EOL;
+/* LEVELLING COSTS COINS NOW (500 a level). Most assertions in this
+   file are about upgrade MECHANICS, not about the wallet, so the
+   harness keeps itself solvent and the coin gate is tested
+   explicitly in its own section. */
+const _rawLevelUp = EOL.upgrades.levelUp;
+EOL.upgrades.levelUp = function (id, stat) {
+  if (EOL.econ && EOL.econ.coins() < (EOL.upgrades.COIN_COST || 0)) {
+    EOL.econ.addCoins(EOL.upgrades.COIN_COST * 10);
+  }
+  return _rawLevelUp(id, stat);
+};
 const E = EOL.engine;
 const U = EOL.upgrades;
 const Q = EOL.quests;
@@ -101,21 +112,24 @@ ok(
   JSON.stringify(U.LEVEL_COST) === JSON.stringify([1, 3, 5]),
   'level costs are 1 / 3 / 5 duplicates'
 );
-ok(U.powerMult(0) === 1, 'level 0 is no power change');
-ok(near(U.powerMult(1), 1.015, 1e-9), 'level 1 power is +1.5%');
-ok(near(U.powerMult(3), Math.pow(1.015, 3), 1e-9), 'power compounds');
-ok(near(U.powerMult(3), 1.045678, 1e-5), 'max power is +4.57%');
-
-/* The ceiling exists because the roster's tightest INTENTIONAL gap
-   between comparable cards is 3.45% (Tomoe 145%@45 -> Puss in Boots
-   150%@40). One level must never cross it. */
-ok(U.powerMult(1) - 1 < 0.0345, 'one level stays inside the tightest designed gap (3.45%)');
+/* THE BONUS IS FLAT (owner ruling 2026-08-16): +2 PERCENTAGE POINTS
+   of the skill's own numbers per level, so 50 goes to 52 - not 50.75.
+   Legible without arithmetic, which the old compounding 1.5%
+   multiplier was not. */
+ok(U.powerAdd(0) === 0, 'level 0 adds nothing');
+ok(near(U.powerAdd(1), 0.02, 1e-9), 'level 1 adds +2 points');
+ok(near(U.powerAdd(3), 0.06, 1e-9), 'and it is linear, not compounding');
+ok(near(U.powerAdd(2), U.powerAdd(1) * 2, 1e-9), 'two levels are exactly twice one');
 
 sec('B. Anubis worked example (the number the owner asked for)');
-ok(Math.round(130 * U.powerMult(1)) === 132, '130% -> 132% at level 1');
-ok(Math.round(260 * U.powerMult(1)) === 264, '260% -> 264% at level 1');
-ok(Math.round(130 * U.powerMult(3)) === 136, '130% -> 136% at level 3');
-ok(Math.round(260 * U.powerMult(3)) === 272, '260% -> 272% at level 3');
+ok(Math.round(130 + U.powerAdd(1) * 100) === 132, '130% -> 132% at level 1');
+ok(Math.round(260 + U.powerAdd(1) * 100) === 262, '260% -> 262% at level 1 (flat, not scaled)');
+ok(Math.round(130 + U.powerAdd(3) * 100) === 136, '130% -> 136% at level 3');
+ok(Math.round(260 + U.powerAdd(3) * 100) === 266, '260% -> 266% at level 3');
+ok(
+  Math.round(50 + U.powerAdd(1) * 100) === 52,
+  'the rule, stated plainly: 50 goes to 52, not 51'
+);
 
 /* =============================================================
    C. THRESHOLDS AND COSTS NEVER MOVE
@@ -1053,10 +1067,26 @@ sec('S6. Card chrome: Lv0, three boost slots, stars, no dead gap');
     );
   });
 
-  /* STARS on the frame, readable without hovering. */
-  ok(/card-stars/.test(app) && /card-stars/.test(css), 'a levelled card wears stars on its border');
+  /* LEVEL PIPS on the frame, readable without hovering. Purple
+     circles, not stars (owner ruling 2026-08-16) - and no plate
+     behind them, which is what made the old crest read as a box. */
+  ok(/card-stars/.test(app) && /card-stars/.test(css), 'a levelled card wears pips on its border');
   ok(/dataset\.stars/.test(app), 'driven by the level');
-  ok(/clip-path/.test(css.slice(css.indexOf('.card-stars'))), 'drawn in CSS - no star exists in either icon set');
+  const pipCss = css.slice(css.indexOf('.card-stars i {'), css.indexOf('.card-stars i {') + 400);
+  ok(/border-radius:\s*50%/.test(pipCss), 'the pips are circles');
+  ok(!/clip-path/.test(pipCss), 'not star polygons');
+  ok(/r-epic-1/.test(pipCss), 'and they wear the upgrade colour');
+
+  /* The boost slots float horizontally - no container. */
+  const slotFnSrc = app.slice(app.indexOf('function boostSlots'), app.indexOf('function skillText'));
+  ok(!/<span class="ov-boost">/.test(slotFnSrc), 'the slots are not wrapped in a container');
+  ok(/data-slot="/.test(slotFnSrc), 'each slot is placed individually');
+  ["0", "1", "2"].forEach((i) => {
+    ok(
+      new RegExp("\\.ovb-slot\\[data-slot='" + i + "'\\]\\s*\\{[^}]*right:").test(css),
+      'slot ' + i + ' is positioned along the top-right'
+    );
+  });
 
   /* THE DEAD GAP above the name is gone. */
   ok(
@@ -1093,6 +1123,128 @@ sec('S8. The Echo Shop is a shopfront, not a list');
   ok(/ec-boost/.test(shop), 'and which boosts it already took');
   /* The rule that keeps packs meaningful. */
   ok(/econ\.owns/.test(shop.slice(shop.indexOf('function echoRows'))), 'only legends you own are listed');
+}
+
+sec('S9. Levelling costs coins as well as copies');
+{
+  U._reset();
+  EOL.econ._reset();
+  const id = 'grimmwood-snow-white';
+  U.addDuplicate(id, 9);
+  ok(U.COIN_COST === 500, 'a level costs 500 coins');
+  /* the real levelUp, not the harness's solvent wrapper */
+  const r0 = _rawLevelUp(id, 'atk');
+  ok(!r0.ok && r0.reason === 'coins', 'a broke player cannot level up');
+  ok(U.levelOf(id) === 0, 'and nothing was spent');
+  ok(U.dupesOf(id) === 9, 'the copies are still banked');
+
+  EOL.econ.addCoins(500);
+  const r1 = _rawLevelUp(id, 'atk');
+  ok(r1.ok, 'with the coins, it levels');
+  ok(EOL.econ.coins() === 0, 'and the coins are gone');
+  ok(U.dupesOf(id) === 8, 'along with one copy');
+}
+
+sec('S10. A card holds at most nine copies');
+{
+  U._reset();
+  EOL.econ._reset();
+  const id = 'grimmwood-snow-white';
+  U.addShards(999999);
+  /* 1 + 3 + 5 = every copy three levels can consume */
+  ok(U.copiesWanted(id) === 9, 'a fresh card wants nine copies');
+  for (let i = 0; i < 9; i++) ok(U.craft(id).ok, 'copy ' + (i + 1) + ' is bought');
+  ok(U.dupesOf(id) === 9, 'nine banked');
+  ok(U.copiesWanted(id) === 0, 'and it wants no more');
+
+  const shardsBefore = U.shards();
+  const over = U.craft(id);
+  ok(!over.ok && over.reason === 'full', 'a tenth copy is REFUSED');
+  ok(U.shards() === shardsBefore, 'and it costs nothing - the old code charged and clamped');
+
+  /* spending copies frees room again */
+  EOL.econ.addCoins(5000);
+  U.levelUp(id, 'atk');
+  ok(U.copiesWanted(id) === 0, 'level 1 spent 1 of 9, so the bank still covers the rest');
+  ok(U.dupesOf(id) === 8, 'eight left for levels 2 and 3');
+}
+
+sec('S11. Every legend gains something from an upgrade');
+{
+  /* Fourteen cards used to gain NOTHING: their whole signature is a
+     stat swing, a damage multiplier or a copy, none of which the old
+     power multiplier touched. */
+  const scaled = new Set([
+    'dmg',
+    'heal',
+    'shield',
+    'stat',
+    'lifesteal',
+    'taunt',
+    'revive',
+    'counterStrike',
+    'copyAllyActive',
+    'outgoingMult',
+    'damageMult',
+    'damageResist',
+  ]);
+  const dead = [];
+  Object.keys(CARD).forEach((id) => {
+    const c = CARD[id].card;
+    const kinds = new Set();
+    const walk = (effs) =>
+      (effs || []).forEach((e) => {
+        if (!e || typeof e !== 'object') return;
+        kinds.add(e.k);
+        ['then', 'other', 'effects'].forEach((k) => {
+          if (Array.isArray(e[k])) walk(e[k]);
+        });
+        ['heads', 'tails'].forEach((k) => {
+          if (e[k] && Array.isArray(e[k].effects)) walk(e[k].effects);
+        });
+        if (Array.isArray(e.choose)) e.choose.forEach((o) => walk(o.effects));
+      });
+    const sp = c.ability.spec || {};
+    walk(sp.effects);
+    if (Array.isArray(sp.choose)) sp.choose.forEach((o) => walk(o.effects));
+    if (c.ability.passive) walk(c.ability.passive.effects);
+    if (![...kinds].some((k) => scaled.has(k))) dead.push(id);
+  });
+  /* ONE DOCUMENTED EXEMPTION. Medusa's signature applies a binary
+     status (Exposed) and nothing else - there is no magnitude in it
+     to raise. Scaling its DURATION instead was rejected: a duration
+     is a cliff, and "Exposed for 1 round" becoming 2 would silently
+     double the combo window every Duat and Camelot payoff is tuned
+     against. She still gets the per-level STAT boost every card gets;
+     it is only her skill text that cannot move.
+
+     Listed by name rather than skipped by rule, so a NEW card with
+     no scalable magnitude fails this test instead of joining her. */
+  const NO_MAGNITUDE = ['olympus-medusa'];
+  const unexpected = dead.filter((id) => NO_MAGNITUDE.indexOf(id) < 0);
+  ok(
+    unexpected.length === 0,
+    'no legend is left with an upgrade that does nothing' +
+      (unexpected.length ? ' (' + unexpected.join(', ') + ')' : '')
+  );
+  ok(
+    dead.length === NO_MAGNITUDE.length,
+    'and the documented exemption list is still exactly right'
+  );
+}
+
+sec('S12. The Echo Shop sorts by rarity and refuses full cards');
+{
+  const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
+  ok(/RARITY_ORDER/.test(shop), 'rows are ordered by rarity');
+  ok(
+    /common:\s*0[\s\S]{0,60}legendary:\s*3/.test(shop),
+    'common first, legendary last'
+  );
+  const sortFn = shop.slice(shop.indexOf('out.sort('), shop.indexOf('return out;'));
+  ok(!/ready/.test(sortFn), 'and the order does not reshuffle as you buy');
+  ok(/copiesWanted/.test(shop), 'a card holding every copy it can use is not sellable');
+  ok(/r\.buyable/.test(shop), 'the buy button reads that, not just "not maxed"');
 }
 
 sec('T. The board cannot be closed');

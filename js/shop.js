@@ -792,6 +792,10 @@
         var maxed = lv >= U.MAX_LEVEL;
         var dupes = U.dupesOf(c.id);
         var need = U.costOfNextLevel(c.id);
+        /* A card holds at most nine copies - what its three levels
+           can consume. Once the bank covers every remaining level
+           there is nothing a further copy could ever be spent on. */
+        var wanted = U.copiesWanted ? U.copiesWanted(c.id) : 1;
         out.push({
           card: c,
           faction: f,
@@ -801,21 +805,28 @@
           need: need,
           toNext: maxed ? 0 : Math.max(0, need - dupes),
           ready: !maxed && dupes >= need,
+          full: !maxed && wanted <= 0,
+          buyable: !maxed && wanted > 0,
           cost: U.craftCost(c.rarity),
         });
       });
     });
+    /* ALWAYS BY RARITY (owner ruling 2026-08-16): common first,
+       legendary last. A shelf that reshuffles as you buy is a shelf
+       you have to re-read every time; rarity is a fixed order the
+       player already knows, and it happens to run cheapest-first
+       because craft cost scales with rarity. Name breaks ties. */
     out.sort(function (a, b) {
-      if (a.maxed !== b.maxed) return a.maxed ? 1 : -1;
-      if (a.ready !== b.ready) return a.ready ? -1 : 1;
-      if (a.toNext !== b.toNext) return a.toNext - b.toNext;
-      if (a.cost !== b.cost) return a.cost - b.cost;
+      var ra = RARITY_ORDER[a.card.rarity] || 0;
+      var rb = RARITY_ORDER[b.card.rarity] || 0;
+      if (ra !== rb) return ra - rb;
       return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
     });
     return out;
   }
 
   var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
+  var RARITY_ORDER = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
   function paintEcho() {
     var grid = el('echo-grid');
@@ -832,7 +843,7 @@
     var afford = el('echo-afford');
     if (afford) {
       var buyable = all.filter(function (r) {
-        return !r.maxed && shards >= r.cost;
+        return r.buyable && shards >= r.cost;
       }).length;
       afford.textContent = buyable
         ? 'enough for a copy of ' + buyable + ' of your legends'
@@ -843,7 +854,9 @@
 
     var rows = all.filter(function (r) {
       if (echoFilter === 'ready' && !r.ready) return false;
-      if (echoFilter === 'upgradable' && r.maxed) return false;
+      /* 'Upgradable' means a copy would DO something: not maxed, and
+         not already holding every copy its levels can spend. */
+      if (echoFilter === 'upgradable' && !r.buyable) return false;
       if (echoQuery && r.card.name.toLowerCase().indexOf(echoQuery) < 0) return false;
       return true;
     });
@@ -875,7 +888,9 @@
 
         var status = r.maxed
           ? '<span class="ec-status maxed">Fully upgraded</span>'
-          : r.ready
+          : r.full
+            ? '<span class="ec-status maxed">All 9 copies banked</span>'
+            : r.ready
             ? '<span class="ec-status ready"><i class="ri-sparkling-line"></i>Ready for level ' +
               (r.lv + 1) +
               '</span>'
@@ -889,7 +904,7 @@
         return (
           '<article class="ec-card' +
           (r.ready ? ' ready' : '') +
-          (r.maxed ? ' maxed' : '') +
+          (r.maxed || r.full ? ' maxed' : '') +
           '" data-echo-card="' +
           esc(r.card.id) +
           '" data-rarity="' +
@@ -927,7 +942,7 @@
           '<button type="button" class="ec-buy" data-echo-buy="' +
           esc(r.card.id) +
           '"' +
-          (shards >= r.cost && !r.maxed ? '' : ' disabled') +
+          (shards >= r.cost && r.buyable ? '' : ' disabled') +
           '><i class="ri-sparkling-2-line"></i>' +
           r.cost.toLocaleString() +
           '</button>' +
@@ -1158,6 +1173,15 @@
         } else if (r.reason === 'maxed') {
           if (window.EOL.ui.toast)
             window.EOL.ui.toast('That legend is already fully upgraded', 'ri-information-line');
+        } else if (r.reason === 'full') {
+          /* Nine copies is the cap - every level this card has left is
+             already paid for. Buying a tenth would burn shards on
+             nothing, which is what the old clamp quietly did. */
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast(
+              'Already holding every copy this legend can use',
+              'ri-information-line'
+            );
         }
         paintEcho();
         paintShop();

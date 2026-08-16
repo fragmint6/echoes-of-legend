@@ -5,9 +5,10 @@
 **Revised 2026-08-16:** the upgrade controls moved out of the card's hover overlay and
 into a card detail dialog (§5); each level now carries **its own** boost (§1.3); the
 shard spend moved to the Shop's Echo Shop tab (§3.5); levelling up has a ceremony and
-levellable cards are flagged (§5.4); the card shows `Lv0`, three boost slots and star
-pips on its frame (§5.1); and printed skill numbers scale with the card's own upgrades
-(§5.5).
+levellable cards are flagged (§5.4); the card shows `Lv0`, three boost slots and level
+pips on its frame (§5.1); printed skill numbers reflect the card's own upgrades (§5.5);
+the skill bonus is now **flat** (§1.4); a level also costs **500 coins** (§1.5); and a
+card holds at most **nine copies** (§3.6).
 
 **Purpose:** Turn the collection's dead end into a long tail. Packs used to pay nothing
 once every card was owned, and coins had exactly one sink in the entire codebase
@@ -30,8 +31,11 @@ Every card has an **upgrade level, 0 to 3**. Each level costs duplicates of that
 
 Each level grants **both**:
 
-- **+1.5% skill power**, compounding, rounded to whole percent for display; and
-- **one stat the player chooses** — **+2% ATK**, **+2% HP**, or **+1.5 DEF points**.
+- **+2 percentage points to every magnitude in its Signature Skill** (§1.4); and
+- **one stat the player chooses, per level** — **+2% ATK**, **+2% HP**, or
+  **+1.5 DEF points** (§1.3).
+
+It also costs **500 coins** (§1.5).
 
 ### 1.0 Why DEF is points and not a percentage
 
@@ -48,23 +52,12 @@ battle start, so a respec can never be used as a mid-fight tactic.
 
 ### 1.1 Why these numbers
 
-The roster's ATK band is tight and deliberate, and rarity is *scarcity, not power*
-(epic ATK spans 980–1955; rare spans 1020–1955 — they overlap almost entirely). So the
-ceiling is set by the tightest **intentional** margin between comparable cards, measured
-from the shipped data:
+Each level grants **+2% of one stat you choose for that level** (§1.3) and **+2
+percentage points to every magnitude in the card's own Signature Skill** (§1.4).
 
-| Gap | Cards |
-|---|---|
-| **3.45%** | Tomoe Gozen 145%@45 → Puss in Boots 150%@40 (Sniper) |
-| 4.00% | Goldilocks 250%@40 → Anubis 260%@45 (Sniper) |
-| 9.09% | Horus 165%@40 → Mordred 180%@40 (Sniper) |
-
-At +1.5% per level, a single level never crosses the 3.45% floor. A fully maxed card
-gains **+4.6%** total — just past that gap, but only after nine duplicates sunk into one
-legend, which is the point of a long tail.
-
-Worked example, the one from the design discussion: Anubis's 130%/260% becomes
-132/264 → 134/268 → **136/272**.
+The stat share is small on purpose: three levels is +6% of one stat, which is inside the
+natural spread between comparable cards, so a maxed legend is a better version of itself
+rather than a different card.
 
 ### 1.2 What upgrades never touch
 
@@ -76,28 +69,68 @@ a *cliff*: Anubis's 25% gate is the combo lock that Ma'at and Sekhmet exist to o
 shifting it would make Duat's internal chain behave differently at different upgrade
 levels. Costs are the same — they set the whole tempo of a turn.
 
-Upgrades scale by **percentage, not flat points**. A flat +2 on Anubis's 260% execute is
-+0.8%, but a flat +2 on Abe no Seimei's 50% is +4%; a flat bonus silently favours
-weak-hitting cards.
+The **stat** share is a percentage; the **skill** bonus is flat points (§1.4). Those are
+different jobs. A stat multiplies a number the engine already scales by round, buffs and
+battlefield, so a percentage keeps it proportional. A skill coefficient is a number the
+player reads off the card, so flat points keep it legible — and yes, that means +2 is
+worth relatively more to Abe no Seimei's 50% than to Anubis's 260%. That is the intended
+direction: the small-coefficient cards are the ones whose upgrades were invisible.
 
 
 ### 1.3 One boost per level
 
 *(Owner ruling 2026-08-16.)* Levels do **not** share a single chosen stat. Each level
 carries its own, so `["atk", "atk", "hp"]` is a real build: +4% ATK, +2% HP, and the
-+4.6% skill power that all three levels bought.
++6 skill points that all three levels bought.
 
 This makes a maxed card three small decisions instead of one toggle, and it lets a player
 answer a specific question — "this Medic wants survivability, but I still want the heal to
 scale" — rather than picking the least-bad single answer.
 
 Every level's choice stays free to re-assign outside a battle (`setBoost(id, level,
-stat)`), and the skill-power multiplier is unchanged: it compounds on the **level count**,
-not on any one stat, so mixing costs nothing in power.
+stat)`), and the skill bonus is unaffected by the mix: it counts **levels**, not any one
+stat, so a mixed build loses nothing in skill power.
 
 `statsFor()` and the engine's `applyUpgrades()` both compute per-stat counts from the same
 array, and `sim/verify_quests_upgrades.js` asserts the two agree exactly — a mismatch there
 would mean the collection lies about what a card does in a fight.
+
+### 1.4 The skill bonus is FLAT
+
+*(Owner ruling 2026-08-16.)* A level adds **+2 percentage points** to the skill's own
+printed numbers. A 50% hit becomes 52% at level 1 and 56% at max — not 50.75%.
+
+The previous rule was a compounding ×1.015 multiplier. It was defensible on paper and
+illegible in practice: nobody can read "130% ATK" and a level badge and work out 132.0,
+and the second level did not add the same amount as the first. Flat points mean the card
+text *is* the arithmetic.
+
+**What moves** is every magnitude the signature owns: damage coefficients (including
+per-debuff and per-buff riders), heal and shield percentages, the stat swings the
+signature applies, lifesteal shares, revive percentages, counter-strike power, and the
+taunt riders. Debuffs deepen rather than shrink — Morgan's `-30% ATK` becomes `-36%`, and
+a damage-taken multiplier like Athena's `0.85` drops to `0.79`.
+
+**What never moves**: thresholds (`below 25% HP`), durations (`for 2 rounds`), Energy
+costs and refunds, and counts (`2 enemies`). A cliff is not a curve; moving one silently
+rewrites every combo tuned against it.
+
+`upAdd()` / `upPts()` / `upToward()` in `js/engine.js` are the single implementation, and
+`EOL.scaleSkillText` mirrors them so the printed card and the fight agree.
+
+### 1.5 A level also costs coins
+
+*(Owner ruling 2026-08-16.)* **500 coins**, flat, on top of the duplicates.
+
+Copies alone were a pure time gate — you either had them or you waited. A price makes
+levelling compete with packs for the same wallet, which is what turns "can I?" into
+"should I?". Flat rather than per-rarity, because the duplicate cost already scales the
+grind and a legendary is hard enough to level without a second multiplier.
+
+Taken through `econ.spend()` so the one wallet stays the only place coins move, and
+checked **before** anything is deducted, so a failed level-up costs nothing.
+
+---
 
 ---
 
@@ -234,6 +267,21 @@ The upgrade panel keeps a **"Need copies?"** link that closes the dialog and lan
 that tab. The rule itself is unchanged: shards buy copies of legends you **already own**,
 never new ones.
 
+### 3.6 Nine copies, and not one more
+
+*(Owner ruling 2026-08-16.)* A card can hold **at most nine duplicates** — exactly what
+its three levels consume (1 + 3 + 5). Once the bank covers every remaining level, the
+Echo Shop refuses to sell another.
+
+This was a real bug, not just a UI gap: `craft()` took the shards and *then* clamped
+`dupes` to the remaining need, so buying into a full bank charged full price for nothing.
+It now returns `{ ok: false, reason: 'full' }` before any currency moves, the card is
+shown as *"All 9 copies banked"*, and its buy button is disabled.
+
+`copiesWanted(id)` is the shared predicate — remaining level costs minus what is banked.
+
+---
+
 ---
 
 ## 4. Storage
@@ -287,14 +335,17 @@ cannot push the stat bars around.
 badge" is ambiguous between un-upgraded and a UI that forgot. It renders quiet at zero and
 lights up once there is something to show.
 
-**Three boost slots, top-right.** One per possible level: a filled slot is a coloured icon
-naming the stat that level bought (ATK amber, DEF blue, HP red — the same colours as the
-stat bars), an empty slot is a dashed socket. The previous single badge collapsed the whole
-build into one *dominant* stat, which meant `2×ATK + 1×HP` and `3×ATK` looked identical.
+**Three boost slots, top-right.** One per possible level, laid out horizontally and
+positioned individually — deliberately *not* wrapped in a container, which made three 18px
+icons read as a widget rather than as state. A filled slot is a coloured icon naming the
+stat that level bought (ATK amber, DEF blue, HP red — the same colours as the stat bars);
+an empty slot is a dashed socket. The previous single badge collapsed the whole build into
+one *dominant* stat, so `2×ATK + 1×HP` and `3×ATK` looked identical.
 
-**Stars on the frame.** A levelled card wears 1–3 stars set into the middle of its top
-border, readable across a scrolling grid with no hover and no click. Drawn with `clip-path`
-because neither RPG Awesome 0.2.0 nor the pinned Remix set carries a plain star.
+**Level pips on the frame.** A levelled card wears 1–3 filled purple circles on the middle
+of its top border, readable across a scrolling grid with no hover and no click. Circles in
+the upgrade colour rather than stars, and with no plate behind them — the earlier star
+crest sat in a bordered box that read as a widget bolted to the frame.
 
 **The ready badge.** A card with enough banked copies wears a pulsing purple chevron in the
 top-left corner. It is a real `.card-ready` element, not a pseudo: `.card::before` is
@@ -348,7 +399,9 @@ deciding where to spend copies needs the baseline said out loud.
 
 **The ceremony.** Levelling up plays a flash, two expanding shockwave rings, eighteen
 light shards on deterministic angles, a struck `LEVEL 2` stamp, and a count-up on the stat
-that actually grew — so the animation tells you *which* choice you just bought. Level 3
+that actually grew — so the animation tells you *which* choice you just bought. The dialog
+is **patched in place** rather than re-rendered (`refreshQuiet`): a full rebuild tore the
+panel down mid-animation, which read as the popup blinking out and reappearing. Level 3
 gets a bigger version in the legendary colour reading `MAX LEVEL`, with its own fanfare
 (`audio.ui('levelmax')`). The whole thing is one overlay appended to the dialog and
 removed on completion, so nothing leaks.
@@ -363,12 +416,9 @@ so the collection told the player the upgrade did nothing to the thing the upgra
 **for**. `EOL.scaleSkillText()` (`js/text.js`) rewrites those numbers on both the hover
 overlay and the detail dialog.
 
-It rewrites **exactly** what `engine.js` multiplies by `upPower` at the effect sites: `dmg`
-power / perDebuff / perBuff, `heal` power and pctMaxHp, and `shield` pctMaxHp. Everything
-else is deliberately untouched, because the engine does not move it either — stat buffs,
-lifesteal shares, Energy refunds, thresholds and durations all stay put. Anubis at level 3
-reads *"Deal 135.9% ATK ... if the target is below 25% HP"*: the damage grew, the execute
-gate did not.
+It rewrites **exactly** what the engine moves (§1.4), by the same flat points. Anubis at
+level 3 reads *"Deal 136% ATK ... if the target is below 25% HP"*: the damage grew, the
+execute gate did not.
 
 Three safeguards keep it from lying:
 

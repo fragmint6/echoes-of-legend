@@ -2156,84 +2156,105 @@ section('LEGEND LORE');
    ============================================================= */
 section('SKILL TEXT SCALING');
 {
-  const MULT = Math.pow(1.015, 3); // a maxed card
-  /* Exactly what the engine scales: dmg power/perDebuff/perBuff,
-     heal power/pctMaxHp, shield pctMaxHp. Kept as its own walk so a
-     drift in js/text.js cannot hide behind a shared helper. */
-  const scalableOf = (c) => {
+  const PTS = 6; // a maxed card: +2 points per level, flat
+  /* Every magnitude engine.js now moves. Mirrored deliberately rather
+     than shared with js/text.js - if the two drift, this fails, which
+     is the whole point. */
+  const magsOf = (c) => {
     const S = new Set();
     const walk = (effs) =>
       (effs || []).forEach((e) => {
         if (!e || typeof e !== 'object') return;
         if (e.k === 'dmg') {
           ['power', 'perDebuff', 'perBuff'].forEach((k) => {
-            if (e[k] != null) S.add(Math.round(e[k] * 100) + '|atk');
+            if (e[k] != null) S.add(Math.round(e[k] * 100));
           });
         }
         if (e.k === 'heal') {
-          if (e.pctMaxHp != null) S.add(e.pctMaxHp + '|hp');
-          if (e.power != null) S.add(Math.round(e.power * 100) + '|atk');
+          if (e.pctMaxHp != null) S.add(e.pctMaxHp);
+          if (e.power != null) S.add(Math.round(e.power * 100));
+          if (e.perCleansed != null) S.add(e.perCleansed);
         }
-        if (e.k === 'shield' && e.pctMaxHp != null) S.add(e.pctMaxHp + '|hp');
+        if (e.k === 'shield' && e.pctMaxHp != null) S.add(e.pctMaxHp);
+        if (e.k === 'stat' && e.amt != null) S.add(Math.abs(e.amt));
+        if (e.k === 'lifesteal' && e.pct != null) S.add(e.pct);
+        if (e.k === 'taunt') {
+          if (e.shieldOnEnd != null) S.add(e.shieldOnEnd);
+          if (e.healOnHit != null) S.add(e.healOnHit);
+        }
+        if (e.k === 'revive') {
+          if (e.pctMaxHp != null) S.add(e.pctMaxHp);
+          if (e.shieldPctMaxHp != null) S.add(e.shieldPctMaxHp);
+        }
+        if (e.k === 'counterStrike') {
+          if (e.power != null) S.add(Math.round(e.power * 100));
+          if (e.markedPower != null) S.add(Math.round(e.markedPower * 100));
+        }
         ['then', 'other', 'effects'].forEach((k) => {
           if (Array.isArray(e[k])) walk(e[k]);
         });
+        ['heads', 'tails'].forEach((k) => {
+          if (e[k] && Array.isArray(e[k].effects)) walk(e[k].effects);
+        });
+        if (Array.isArray(e.choose)) e.choose.forEach((o) => walk(o.effects));
       });
-    walk((c.ability.spec || {}).effects);
+    const sp = c.ability.spec || {};
+    walk(sp.effects);
+    if (Array.isArray(sp.choose)) sp.choose.forEach((o) => walk(o.effects));
     if (c.ability.passive) walk(c.ability.passive.effects);
     return S;
   };
 
   ok(typeof EOL.scaleSkillText === 'function', 'EOL.scaleSkillText exists');
   ok(
-    ALL.every((c) => EOL.scaleSkillText(c.ability.text, c, 1) === c.ability.text),
-    'level 0 (mult 1) never touches the text'
+    ALL.every((c) => EOL.scaleSkillText(c.ability.text, c, 0) === c.ability.text),
+    'level 0 (no points) never touches the text'
   );
 
   let wrong = 0;
   let badMath = 0;
   let changed = 0;
-  const TOKEN =
-    /<span class="sk-up" title="(\d+)% before upgrades">([\d.]+)<\/span>%(\s*(?:<[^>]+>|\w+\s)*?\s*)(ATK|Max\s+HP)/g;
+  let tokens = 0;
+  const TOKEN = /title="(\d+)% before upgrades">([\d.]+)</g;
   ALL.forEach((c) => {
-    const out = EOL.scaleSkillText(c.ability.text, c, MULT);
+    const out = EOL.scaleSkillText(c.ability.text, c, PTS);
     if (out !== c.ability.text) changed++;
-    const S = scalableOf(c);
+    const S = magsOf(c);
     let m;
     TOKEN.lastIndex = 0;
     while ((m = TOKEN.exec(out))) {
-      const unit = /ATK/.test(m[4]) ? 'atk' : 'hp';
-      if (!S.has(m[1] + '|' + unit)) {
+      tokens++;
+      if (!S.has(+m[1])) {
         wrong++;
-        if (wrong <= 3) console.log('      scaled a value the engine does not:', c.id, m[1], unit);
+        if (wrong <= 3) console.log('      scaled a value the engine does not:', c.id, m[1]);
       }
-      const want = Math.round(+m[1] * MULT * 10) / 10;
-      if (Math.abs(+m[2] - want) > 0.001) badMath++;
+      if (Math.abs(+m[2] - (+m[1] + PTS)) > 0.001) badMath++;
     }
   });
   ok(wrong === 0, 'no number is scaled that the engine leaves alone');
-  ok(badMath === 0, 'every scaled number equals value x the power multiplier');
-  ok(changed > 40, 'most of the roster reflects its upgrades (' + changed + ' cards)');
+  ok(badMath === 0, 'every scaled number is value + the flat bonus');
+  ok(tokens > 90, 'the rewrite reaches the whole roster (' + tokens + ' numbers)');
+  ok(changed > 50, 'most of the roster reflects its upgrades (' + changed + ' cards)');
 
-  /* The three cards that print the same number twice with DIFFERENT
-     units are the trap this has to survive: the buff must not move
-     when the shield does. */
-  const momo = CARD['yamato-momotaro'];
-  const mo = EOL.scaleSkillText(momo.ability.text, momo, MULT);
-  ok(/\+12% <span class="sv-def">DEF/.test(mo) || /\+12%\s*(<[^>]+>)?\s*DEF/.test(mo),
-    "Momotaro's 12% DEF buff is untouched");
-  ok(/>12.5<\/span>%\s*(<[^>]+>)?\s*Max HP/.test(mo), "...while his 12% Max HP shield grows");
-
-  const con = CARD['roma-constantine-the-great'];
-  const co = EOL.scaleSkillText(con.ability.text, con, MULT);
-  ok(/10%\s*(<[^>]+>)?\s*ATK/.test(co), "Constantine's 10% ATK buff is untouched");
-  ok(/>10.5<\/span>%\s*(<[^>]+>)?\s*Max HP/.test(co), '...while his 10% Max HP shield grows');
-
-  /* Thresholds, durations and Energy costs never move. */
+  /* THE FLAT RULE, stated once: 50 goes to 52, not 50.75. */
   const anu = CARD['duat-anubis'];
-  const an = EOL.scaleSkillText(anu.ability.text, anu, MULT);
-  ok(/below <b>25% HP/.test(an) || /25% HP/.test(an), "Anubis's execute threshold does not move");
-  ok(/refund <b>10 Energy|10 Energy/.test(an), 'and neither does an Energy refund');
+  const an = EOL.scaleSkillText(anu.ability.text, anu, 2);
+  ok(/>132</.test(an), 'a 130% coefficient reads 132% at level 1');
+  ok(/25% HP/.test(an) && !/>27</.test(an), 'a THRESHOLD never moves');
+  ok(/10 Energy/.test(an), 'and neither does an Energy refund');
+  const anMax = EOL.scaleSkillText(anu.ability.text, anu, PTS);
+  ok(/>136</.test(anMax) && />266</.test(anMax), 'both coefficients move by the same flat points');
+
+  /* Durations and counts are not magnitudes. */
+  const morgan = CARD['camelot-morgan-le-fay'];
+  const mg = EOL.scaleSkillText(morgan.ability.text, morgan, PTS);
+  ok(/for 2 rounds/.test(mg), 'a duration is untouched');
+  ok(/>36</.test(mg), "and a debuff's magnitude DEEPENS (30% -> 36%)");
+
+  /* The same number printed twice with different units. */
+  const momo = CARD['yamato-momotaro'];
+  const mo = EOL.scaleSkillText(momo.ability.text, momo, PTS);
+  ok((mo.match(/>18</g) || []).length === 2, "Momotaro's 12% DEF and 12% shield both grow to 18%");
 }
 
 /* ---------------- summary ---------------- */

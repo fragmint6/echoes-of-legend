@@ -130,13 +130,20 @@
   var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
   var BOOST_NAME = { atk: 'ATK', def: 'DEF', hp: 'HP' };
 
+  /* Three slots in a row across the overlay's top-right. Deliberately
+     NOT wrapped in a panel - the owner wanted them floating, and a
+     container around three 19px icons reads as a widget rather than
+     as state. Each slot is absolutely positioned on its own so they
+     sit level with the Lv badge opposite. */
   function boostSlots(card, U) {
     var boosts = U.boostsOf(card.id);
     var out = '';
     for (var i = 0; i < U.MAX_LEVEL; i++) {
       var b = boosts[i];
       out += b
-        ? '<span class="ovb-slot" data-boost="' +
+        ? '<span class="ovb-slot" data-slot="' +
+          i +
+          '" data-boost="' +
           b +
           '" title="Level ' +
           (i + 1) +
@@ -145,9 +152,13 @@
           '"><i data-icon-domain="game" class="ra ' +
           BOOST_ICON[b] +
           '"></i></span>'
-        : '<span class="ovb-slot empty" title="Level ' + (i + 1) + ': not bought yet"></span>';
+        : '<span class="ovb-slot empty" data-slot="' +
+          i +
+          '" title="Level ' +
+          (i + 1) +
+          ': not bought yet"></span>';
     }
-    return '<span class="ov-boost">' + out + '</span>';
+    return out;
   }
 
   /* The Signature Skill as this copy of the card actually performs
@@ -160,7 +171,8 @@
     }
     var econ = window.EOL.econ;
     if (econ && !econ.owns(card.id)) return card.ability.text;
-    return window.EOL.scaleSkillText(card.ability.text, card, U.powerMult(U.levelOf(card.id)));
+    /* Flat points, not a multiplier - see EOL.scaleSkillText. */
+    return window.EOL.scaleSkillText(card.ability.text, card, U.powerAdd(U.levelOf(card.id)) * 100);
   }
 
   function upgradeBadges(card) {

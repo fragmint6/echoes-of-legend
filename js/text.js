@@ -125,14 +125,17 @@
      still read "Deal 130% ATK" - so the collection told the player
      the upgrade did nothing to the thing the upgrade is FOR.
 
-     scaleSkillText() rewrites the numbers that actually scale, and
-     ONLY those. What scales is exactly what engine.js multiplies by
-     `upPower` at the effect sites: dmg power / perDebuff / perBuff,
-     heal power and pctMaxHp, and shield pctMaxHp. Everything else -
-     stat buffs, lifesteal shares, Energy refunds, thresholds,
-     durations - is deliberately untouched, because the engine does
-     not move them either. A skill that says +12% ATK for 2 rounds
-     still says +12%, at every level.
+     scaleSkillText() rewrites the numbers that actually move, and
+     ONLY those. The bonus is FLAT: +2 percentage points per level,
+     so 50% becomes 52% at level 1 and 56% at max. That mirrors
+     upAdd()/upPts() in js/engine.js exactly.
+
+     What moves is every MAGNITUDE the signature owns - damage
+     coefficients, heal and shield percentages, the stat swings a
+     signature applies, and lifesteal shares. What never moves:
+     thresholds ("below 25% HP"), durations ("for 2 rounds"), Energy
+     costs and refunds, and counts ("2 enemies"). A cliff is not a
+     curve, and moving one silently rewrites a combo.
 
      HOW IT AVOIDS LYING
 
@@ -166,18 +169,44 @@
       } else if (e.k === 'shield') {
         if (e.pctMaxHp != null) out.yes.push({ v: e.pctMaxHp, unit: 'hp' });
       } else if (e.k === 'stat') {
-        /* NOT scaled by the engine - a stat buff is a stat buff at
-           every level. Recorded so a number used both ways on one
-           card can be detected and skipped. */
-        if (e.stat === 'atk') out.no.push({ v: Math.abs(e.amt), unit: 'atk' });
-        if (e.stat === 'hp') out.no.push({ v: Math.abs(e.amt), unit: 'hp' });
+        /* A signature's own stat swing DOES grow now (engine.js
+           upToward), so it is rewritten too - as a magnitude, since
+           the text prints "-30% ATK" as "by 30%". */
+        if (e.amt != null) out.yes.push({ v: Math.abs(e.amt), unit: STAT_UNIT[e.stat] || null });
+      } else if (e.k === 'lifesteal') {
+        if (e.pct != null) out.yes.push({ v: e.pct, unit: null });
+      } else if (e.k === 'taunt') {
+        /* Hercules's shield-on-end, Hansel & Gretel's heal-on-hit. */
+        if (e.shieldOnEnd != null) out.yes.push({ v: e.shieldOnEnd, unit: 'hp' });
+        if (e.healOnHit != null) out.yes.push({ v: e.healOnHit, unit: 'hp' });
+      } else if (e.k === 'revive') {
+        if (e.pctMaxHp != null) out.yes.push({ v: e.pctMaxHp, unit: 'hp' });
+        if (e.shieldPctMaxHp != null) out.yes.push({ v: e.shieldPctMaxHp, unit: 'hp' });
+      } else if (e.k === 'counterStrike') {
+        if (e.power != null) out.yes.push({ v: e.power * 100, unit: 'atk' });
+        if (e.markedPower != null) out.yes.push({ v: e.markedPower * 100, unit: 'atk' });
+      }
+      /* Cinderella's per-cleanse slice rides on a heal. */
+      if (e.k === 'heal' && e.perCleansed != null) {
+        out.yes.push({ v: e.perCleansed, unit: 'hp' });
       }
       ['then', 'other', 'effects'].forEach(function (k) {
         if (Array.isArray(e[k])) collectScalable(e[k], out);
       });
+      /* Branches and coin flips hide half a card's numbers. */
+      ['heads', 'tails'].forEach(function (k) {
+        if (e[k] && Array.isArray(e[k].effects)) collectScalable(e[k].effects, out);
+      });
+      if (Array.isArray(e.choose)) {
+        e.choose.forEach(function (o) {
+          collectScalable(o.effects, out);
+        });
+      }
     });
     return out;
   }
+
+  var STAT_UNIT = { atk: 'atk', hp: 'hp', def: 'def', crit: 'crit' };
 
   /* Percent tokens are matched with their unit. The unit may sit
      behind an element word and/or markup ("55% <b>Magic</b> Damage",
@@ -186,10 +215,13 @@
   var UNIT_RE = {
     atk: 'ATK',
     hp: 'Max\\s+HP',
+    def: 'DEF',
+    crit: 'Crit(?:\\s+Chance)?',
   };
 
-  window.EOL.scaleSkillText = function (html, card, mult) {
-    if (!html || !card || !mult || Math.abs(mult - 1) < 1e-9) return html;
+  /* `pts` is the flat bonus in percentage points (2 per level). */
+  window.EOL.scaleSkillText = function (html, card, pts) {
+    if (!html || !card || !pts) return html;
     var spec = (card.ability && card.ability.spec) || {};
     var found = collectScalable(spec.effects, { yes: [], no: [] });
     if (card.ability && card.ability.passive) {
@@ -219,10 +251,35 @@
          and a fractional source would need a different rounding rule
          than the engine's. */
       if (Math.abs(v - Math.round(v)) > 1e-9) return;
-      var re = new RegExp(
-        '(^|[^\\d.])(' + Math.round(v) + ')%(\\s*(?:<[^>]+>|\\w+\\s)*?\\s*' + UNIT_RE[item.unit] + ')',
-        'g'
-      );
+      /* A value with no unit (a bare lifesteal share) is matched on
+         its own; anything else must carry its unit, because three
+         cards print the same number twice with different ones. */
+      /* The unit can sit on either side of the number: "60% ATK
+         Damage" but also "reduce their ATK by 30%". Both forms are
+         tried, and the total across the two must still be
+         unambiguous. */
+      var n = Math.round(v);
+      var after = item.unit
+        ? new RegExp(
+            '(^|[^\\d.])(' + n + ')%(\\s*(?:<[^>]+>|\\w+\\s)*?\\s*' + UNIT_RE[item.unit] + ')',
+            'g'
+          )
+        : new RegExp('(^|[^\\d.])(' + n + ')%()', 'g');
+      var before = item.unit
+        ? new RegExp(
+            '(' + UNIT_RE[item.unit] + '(?:<[^>]+>|[^<>\\d]){0,14}?)(' + n + ')%()',
+            'g'
+          )
+        : null;
+      var re = after;
+      if (item.unit) {
+        var nAfter = (out.match(after) || []).length;
+        var nBefore = (out.match(before) || []).length;
+        /* Exactly one of the two forms must match, or the value is
+           printed in a way this cannot resolve safely. */
+        if (nAfter && nBefore) return;
+        if (!nAfter && nBefore) re = before;
+      }
       if (conflicted[key]) return;
       var hits = out.match(re);
       if (!hits) return;
@@ -232,9 +289,11 @@
          card prints twice (his 10% shield and 10% heal) both scale.
          Anything the engine leaves alone either carries a different
          unit or was caught by the conflict guard above. */
-      var scaled = Math.round(v * mult * 10) / 10;
+      var scaled = Math.round((v + pts) * 10) / 10;
       out = out.replace(re, function (m, pre, num, tail) {
-        return pre + '<span class="sk-up" title="' + num + '% before upgrades">' + scaled + '</span>%' + tail;
+        return (
+          pre + '<span class="sk-up" title="' + num + '% before upgrades">' + scaled + '</span>%' + tail
+        );
       });
     });
     return out;
