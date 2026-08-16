@@ -28382,28 +28382,57 @@ body[data-gfx='low'] .qb-body {
   }
 }
 
-/* LEVEL PIPS. One filled purple circle per level, sitting ON the top
-   border in the middle of the card. Readable across a scrolling grid
-   with no hover and no click - and no plate behind them, which is
-   what made the old star crest read as a box bolted to the frame. */
+/* THE LEVEL STARS. Set INTO the card's top border - the frame runs
+   behind them and the notch they sit in is cut out of it, so they
+   read as part of the border rather than a badge parked on top.
+
+   Stars, not circles (owner ruling 2026-08-16). Drawn with clip-path
+   because neither RPG Awesome 0.2.0 nor the pinned Remix set carries
+   a plain star, and a crest inlaid in a 1px border wants a crisp
+   shape at exactly one size. */
 .card-stars {
   position: absolute;
-  top: 4px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   z-index: 7;
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 3px;
+  height: 15px;
+  padding: 0 8px;
   pointer-events: none;
+  /* The notch: the card's own background, masked to a soft lozenge,
+     so the border visually PARTS around the stars instead of being
+     covered by an opaque plate. */
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-top: none;
+  border-radius: 0 0 9px 9px;
+}
+/* The rarity glow the rest of the frame carries, continued through
+   the notch so it does not look like a hole in the border. */
+.card:hover .card-stars {
+  border-color: color-mix(in srgb, var(--rar-1) 55%, transparent);
 }
 .card-stars i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #d7a6ff, var(--r-epic-1));
-  box-shadow:
-    0 0 0 1.5px rgba(6, 8, 15, 0.9),
-    0 0 9px color-mix(in srgb, var(--r-epic-1) 85%, transparent);
+  width: 11px;
+  height: 11px;
+  background: linear-gradient(180deg, #fff3cf, var(--r-legendary-1) 62%, #c8871f);
+  clip-path: polygon(
+    50% 0%,
+    61.8% 34.5%,
+    98% 34.5%,
+    68.9% 56%,
+    80.9% 90.5%,
+    50% 69.5%,
+    19.1% 90.5%,
+    31.1% 56%,
+    2% 34.5%,
+    38.2% 34.5%
+  );
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85))
+    drop-shadow(0 0 5px color-mix(in srgb, var(--r-legendary-1) 60%, transparent));
 }
 
 /* ---- upgrade state in the hover overlay ---- */
@@ -28419,22 +28448,29 @@ body[data-gfx='low'] .qb-body {
 .ov-lv {
   left: 12px;
   display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  background: rgba(8, 6, 16, 0.85);
+  align-items: baseline;
+  gap: 1px;
+  /* No pill. A bordered capsule around two characters was the
+     heaviest thing in the corner for the least information; this is
+     just the number, set in the card's own display face. */
+  padding: 0;
+  border: none;
+  background: none;
   color: var(--txt-faint);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
   white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
 }
 /* Lv0 is stated but quiet; a levelled card lights up. */
 .ov-lv.on {
-  border-color: color-mix(in srgb, var(--r-epic-1) 60%, transparent);
-  background: color-mix(in srgb, var(--r-epic-1) 22%, rgba(8, 6, 16, 0.88));
   color: #fff;
+  text-shadow:
+    0 1px 6px rgba(0, 0, 0, 0.9),
+    0 0 12px color-mix(in srgb, var(--r-epic-1) 75%, transparent);
 }
 
 /* THREE FLOATING SLOTS, laid out horizontally from the right edge.
@@ -28923,15 +28959,65 @@ body[data-gfx='low'] .qb-body {
   letter-spacing: 0.06em;
   color: var(--txt-faint);
 }
-.up-note.up-ready {
+.up-note {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--r-epic-1);
+  align-items: baseline;
+  gap: 7px;
+}
+/* HELD / NEEDED, one shape at every state. */
+.up-copies {
+  font-variant-numeric: tabular-nums;
+}
+.up-copies b {
+  color: var(--txt);
   font-weight: 800;
 }
-.up-note.up-ready i {
-  font-size: 13px;
+.up-toward {
+  color: var(--txt-faint);
+}
+.up-ready-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--r-epic-1) 22%, transparent);
+  color: var(--r-epic-1);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.up-note.up-ready .up-copies b {
+  color: var(--r-epic-1);
+}
+/* a level bought but not yet pointed at a stat */
+.up-row.unset .up-row-lbl {
+  color: var(--r-epic-1);
+}
+.up-row.unset .up-stat {
+  border-color: color-mix(in srgb, var(--r-epic-1) 40%, transparent);
+  animation: up-pick-pulse 2s ease-in-out infinite;
+}
+@keyframes up-pick-pulse {
+  0%,
+  100% {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  50% {
+    background: color-mix(in srgb, var(--r-epic-1) 14%, transparent);
+  }
+}
+.up-pick {
+  color: var(--r-epic-1);
+}
+body[data-gfx='low'] .up-row.unset .up-stat {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .up-row.unset .up-stat {
+    animation: none;
+  }
 }
 /* The whole block glows when a level is affordable, so the panel
    itself is the call to action. */

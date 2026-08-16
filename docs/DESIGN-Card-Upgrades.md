@@ -6,9 +6,10 @@
 into a card detail dialog (§5); each level now carries **its own** boost (§1.3); the
 shard spend moved to the Shop's Echo Shop tab (§3.5); levelling up has a ceremony and
 levellable cards are flagged (§5.4); the card shows `Lv0`, three boost slots and level
-pips on its frame (§5.1); printed skill numbers reflect the card's own upgrades (§5.5);
-the skill bonus is now **flat** (§1.4); a level also costs **500 coins** (§1.5); and a
-card holds at most **nine copies** (§3.6).
+stars on its frame (§5.1); printed skill numbers reflect the card's own upgrades (§5.5);
+the skill bonus is now **flat** (§1.4); a level also costs **500 coins** (§1.5); a card
+holds at most **nine copies** (§3.6); a new level starts with **no boost chosen** (§1.6);
+and **every legend** now has something an upgrade can raise (§1.7).
 
 **Purpose:** Turn the collection's dead end into a long tail. Packs used to pay nothing
 once every card was owned, and coins had exactly one sink in the entire codebase
@@ -129,6 +130,49 @@ grind and a legendary is hard enough to level without a second multiplier.
 
 Taken through `econ.spend()` so the one wallet stays the only place coins move, and
 checked **before** anything is deducted, so a failed level-up costs nothing.
+
+---
+
+### 1.6 A new level starts unassigned
+
+*(Owner ruling 2026-08-16.)* Buying a level does **not** pick its boost. `boosts[i]` is
+`null` until the player chooses, the row in the dialog shows nothing selected, and the
+summary says how many choices are still open.
+
+The previous behaviour defaulted to the build's dominant stat. That is a decision taken
+away from the player, and it was wrong every time somebody wanted to diversify — the one
+case where the choice actually matters.
+
+`null` is a first-class value throughout: the array's **length is still the level**, so an
+unassigned level pays the full flat skill bonus (§1.4) while moving no stat. Both
+`js/upgrades.js` and `js/engine.js` preserve nulls rather than filtering them, because
+dropping one would silently demote a level-3 card to level 2.
+
+### 1.7 Every legend benefits
+
+Fourteen legends originally gained nothing from an upgrade: their entire signature is a
+stat swing, a damage multiplier, or a copy, and the old power multiplier touched none of
+those. §1.4 extended the bonus to every magnitude a signature owns, which fixed thirteen
+of them.
+
+**Medusa was the last.** Her gaze applied `Exposed` and nothing else — a binary status
+with no number anywhere in it. Scaling its *duration* was rejected outright: a duration is
+a cliff, and `1 round` becoming `2` would silently double the combo window every Duat and
+Camelot payoff is tuned against. Instead her gaze now bites for **25% ATK Shadow**, a
+small number that is genuinely hers to grow (25% → 31% at max) and leaves the debuff as
+the reason to field her.
+
+This is verified by behaviour, not by inspection. `sim/verify_quests_upgrades.js` drives
+every legend through nine scenarios — casting its signature, taking a signature, taking a
+basic twice, landing two basics, an ally killing, an ally dying, taking a lethal blow, an
+ally casting — at level 0 and level 3 with the **stat boost held equal**, so only the
+skill bonus can differ. Any legend whose fingerprint is identical across both fails the
+suite.
+
+*(Three earlier versions of that audit reported false positives — a probe that never
+managed to cast, or that let the stat boost mask the result. The current one holds the
+stat constant and uses the engine's own `autoPick` and `noOpeningLimit` so every cast
+actually lands.)*
 
 ---
 
@@ -335,6 +379,10 @@ cannot push the stat bars around.
 badge" is ambiguous between un-upgraded and a UI that forgot. It renders quiet at zero and
 lights up once there is something to show.
 
+**The level, top-left.** Just the number in the card's display face — no pill, no border.
+A bordered capsule around two characters was the heaviest thing in the corner for the least
+information.
+
 **Three boost slots, top-right.** One per possible level, laid out horizontally and
 positioned individually — deliberately *not* wrapped in a container, which made three 18px
 icons read as a widget rather than as state. A filled slot is a coloured icon naming the
@@ -342,10 +390,11 @@ stat that level bought (ATK amber, DEF blue, HP red — the same colours as the 
 an empty slot is a dashed socket. The previous single badge collapsed the whole build into
 one *dominant* stat, so `2×ATK + 1×HP` and `3×ATK` looked identical.
 
-**Level pips on the frame.** A levelled card wears 1–3 filled purple circles on the middle
-of its top border, readable across a scrolling grid with no hover and no click. Circles in
-the upgrade colour rather than stars, and with no plate behind them — the earlier star
-crest sat in a bordered box that read as a widget bolted to the frame.
+**Level stars on the frame.** A levelled card wears 1–3 gold stars in the middle of its top
+border, readable across a scrolling grid with no hover and no click. They sit in a **notch
+cut out of the frame** — the card's own background and border continue around them — so
+they read as part of the border rather than a badge parked on it. Drawn with `clip-path`
+because neither icon set carries a plain star.
 
 **The ready badge.** A card with enough banked copies wears a pulsing purple chevron in the
 top-left corner. It is a real `.card-ready` element, not a pseudo: `.card::before` is
@@ -399,9 +448,19 @@ deciding where to spend copies needs the baseline said out loud.
 
 **The ceremony.** Levelling up plays a flash, two expanding shockwave rings, eighteen
 light shards on deterministic angles, a struck `LEVEL 2` stamp, and a count-up on the stat
-that actually grew — so the animation tells you *which* choice you just bought. The dialog
-is **patched in place** rather than re-rendered (`refreshQuiet`): a full rebuild tore the
-panel down mid-animation, which read as the popup blinking out and reappearing. Level 3
+that actually grew.
+
+The dialog is **patched field by field** (`refreshQuiet`), never re-rendered and never
+node-swapped. A full rebuild tore the panel down mid-animation; replacing just the `.cd-up`
+node still re-flowed the dialog. Both read as the popup blinking out and reappearing. Now
+the pips, the copies line, the button and the summary are each written in place, and a new
+level **appends** one row — so a boost the player already chose cannot flicker or reset.
+
+**The copies line** is one shape at every state: `8 / 3 copies`, held over what this level
+costs. It used to switch between *"Ready to level up"*, *"2 / 3 copies"* and a
+parenthesised *"(9 banked)"* — three readings of one fact. The numerator is deliberately
+**not** clamped: `9 / 1` is true and useful, because it says the next two levels are
+already paid for. Level 3
 gets a bigger version in the legendary colour reading `MAX LEVEL`, with its own fanfare
 (`audio.ui('levelmax')`). The whole thing is one overlay appended to the dialog and
 removed on completion, so nothing leaks.

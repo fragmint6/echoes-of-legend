@@ -752,8 +752,16 @@
            an older client's team still resolves identically. */
         var boosts = [];
         if (Array.isArray(r.boosts)) {
+          /* A null entry is a level that is BOUGHT but whose stat the
+             player has not picked yet. It must survive the copy: the
+             array's length is the level, and the level is what pays
+             the flat skill bonus. Dropping nulls here would silently
+             demote a level-3 card to level 2 the moment one of its
+             choices was left open. */
           r.boosts.forEach(function (b) {
-            if (boosts.length < 3 && (b === 'atk' || b === 'def' || b === 'hp')) boosts.push(b);
+            if (boosts.length < 3) {
+              boosts.push(b === 'atk' || b === 'def' || b === 'hp' ? b : null);
+            }
           });
         } else {
           var lv0 = Math.max(0, Math.min(3, Math.floor(+r.lv || 0)));
@@ -764,7 +772,7 @@
         if (!lv) return;
         var n = { atk: 0, def: 0, hp: 0 };
         boosts.forEach(function (b) {
-          n[b]++;
+          if (b) n[b]++; // an unassigned level moves no stat
         });
         u.upLevel = lv;
         u.upBoosts = boosts.slice();

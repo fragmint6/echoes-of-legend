@@ -109,8 +109,12 @@
     if (!r || typeof r !== 'object') return null;
     var boosts = [];
     if (Array.isArray(r.boosts)) {
+      /* null is legal and meaningful: the level is bought but its
+         boost has not been chosen yet. Anything unrecognised becomes
+         null rather than being dropped, so the array length always
+         equals the level. */
       r.boosts.forEach(function (b) {
-        if (boosts.length < MAX_LEVEL && STATS.indexOf(b) >= 0) boosts.push(b);
+        if (boosts.length < MAX_LEVEL) boosts.push(STATS.indexOf(b) >= 0 ? b : null);
       });
     } else {
       /* v1: ONE stat shared by every level. The honest migration is
@@ -199,8 +203,10 @@
   /* ---------------------------------------------------------
      reading a card's upgrade
      --------------------------------------------------------- */
-  /* THE LEVEL IS THE COUNT OF BOOSTS. Storing it separately would be
-     a second source of truth that could disagree with the array. */
+  /* THE LEVEL IS THE COUNT OF BOOSTS - including levels whose boost
+     is still unassigned (stored as null). Storing the level
+     separately would be a second source of truth that could disagree
+     with the array. */
   function levelOf(id) {
     var s = load();
     return s.cards[id] ? s.cards[id].boosts.length : 0;
@@ -215,7 +221,8 @@
   function boostCounts(id) {
     var out = { atk: 0, def: 0, hp: 0 };
     boostsOf(id).forEach(function (b) {
-      if (out[b] != null) out[b]++;
+      /* an unassigned level counts toward nothing until it is picked */
+      if (b && out[b] != null) out[b]++;
     });
     return out;
   }
@@ -299,8 +306,10 @@
          same way the v1 save migration does. */
       var boosts = [];
       if (Array.isArray(r.boosts)) {
+        /* null survives - it is a bought level with no stat picked
+           yet, and the array length is the level. */
         r.boosts.forEach(function (b) {
-          if (boosts.length < MAX_LEVEL && STATS.indexOf(b) >= 0) boosts.push(b);
+          if (boosts.length < MAX_LEVEL) boosts.push(STATS.indexOf(b) >= 0 ? b : null);
         });
       } else {
         var lv = Math.max(0, Math.min(MAX_LEVEL, Math.floor(+r.lv || 0)));
@@ -400,6 +409,9 @@
      automatic: the boost choice should be deliberate, and it is now
      made PER LEVEL - the new stat is appended, leaving the earlier
      levels' choices alone. */
+  /* `stat` is OPTIONAL. Omit it and the new level lands unassigned -
+     the player picks afterwards, which is the default the UI uses so
+     no boost is silently chosen on their behalf. */
   function levelUp(id, stat) {
     var r = rec(id);
     if (r.boosts.length >= MAX_LEVEL) return { ok: false, reason: 'maxed' };
@@ -413,7 +425,7 @@
       if (!econ.spend(COIN_COST)) return { ok: false, reason: 'coins', coins: COIN_COST };
     }
     r.dupes -= cost;
-    r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : 'atk');
+    r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : null);
     save();
     return {
       ok: true,

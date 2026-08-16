@@ -195,7 +195,12 @@
     /* ONE ROW PER PURCHASED LEVEL. The rows are the record of the
        build - three buttons each, the chosen one lit. A level that
        has not been bought is not shown at all: an empty row implies
-       a choice the player does not have yet. */
+       a choice the player does not have yet.
+
+       A freshly bought level starts with NOTHING selected (owner
+       ruling 2026-08-16): `boosts[i]` is null until the player
+       picks, so the row reads as a question rather than as a default
+       somebody already answered for them. */
     var rows = boosts
       .map(function (b, idx) {
         var level = idx + 1;
@@ -217,7 +222,9 @@
           })
           .join('');
         return (
-          '<div class="up-row">' +
+          '<div class="up-row' +
+          (b ? '' : ' unset') +
+          '">' +
           '<span class="up-row-lbl">Lv' +
           level +
           '</span>' +
@@ -227,12 +234,17 @@
       })
       .join('');
 
-    /* What the build currently adds up to, in the player's words. */
+    /* What the build currently adds up to, in the player's words. A
+       level whose boost is still unchosen contributes nothing yet and
+       is called out, so an unspent choice cannot be missed. */
     var counts = up.boostCounts(card.id);
     var parts = [];
     ['atk', 'hp', 'def'].forEach(function (k) {
       if (counts[k]) parts.push(counts[k] + '\u00d7 ' + STAT_LABEL[k]);
     });
+    var unset = boosts.filter(function (b) {
+      return !b;
+    }).length;
 
     return (
       '<div class="cd-up"' +
@@ -246,28 +258,47 @@
       '</div>' +
       (maxed
         ? '<p class="up-note up-maxed">Fully upgraded &mdash; further copies pay shards only</p>'
-        : '<p class="up-note' +
+        : /* HELD / NEEDED, always in that shape (owner ruling
+             2026-08-16). The old line switched between "Ready to
+             level up" and "2 / 3 copies", with a parenthesised
+             "(9 banked)" bolted on when the bank ran ahead - three
+             different readings of one fact. It is one fact, so it
+             gets one format: what you have over what this level
+             costs. The numerator is NOT clamped, because "9 / 1" is
+             the truth and it is useful - it says the next two levels
+             are already paid for. */
+          '<p class="up-note' +
           (can ? ' up-ready' : '') +
           '">' +
+          '<span class="up-copies"><b>' +
+          dupes +
+          '</b> / ' +
+          need +
+          ' copies</span>' +
           (hasCopies
-            ? '<i class="ri-sparkling-line"></i>Ready to level up'
-            : /* Clamp the numerator: banked copies can exceed what the
-                 NEXT level costs (they are saved toward later levels
-                 too), and "9 / 1" reads like a bug. */
-              Math.min(dupes, need) +
-              ' / ' +
-              need +
-              ' copies toward level ' +
-              (lv + 1)) +
-          (dupes > need ? ' <span class="up-bank">(' + dupes + ' banked)</span>' : '') +
+            ? '<span class="up-ready-tag"><i class="ri-sparkling-line"></i>Ready</span>'
+            : '<span class="up-toward">toward level ' + (lv + 1) + '</span>') +
           '</p>') +
+      /* The container is ALWAYS present, even at level 0 with no rows
+         inside it - refreshQuiet appends the new row into it, and a
+         container that only appears at level 1 would force a
+         re-render on the very first upgrade. */
+      '<div class="up-rows"' +
+      (lv ? '' : ' hidden') +
+      '><span class="up-stats-lbl">Boost per level</span>' +
+      rows +
+      '</div>' +
       (lv
-        ? '<div class="up-rows"><span class="up-stats-lbl">Boost per level</span>' +
-          rows +
-          '</div>' +
-          '<p class="cd-up-worth">This build: <b>' +
-          parts.join(' + ') +
-          '</b>, and every number in the skill below is <b>+' +
+        ?
+          '<p class="cd-up-worth">' +
+          (unset
+            ? '<b class="up-pick">' +
+              unset +
+              (unset === 1 ? ' boost' : ' boosts') +
+              ' still to choose.</b> '
+            : '') +
+          (parts.length ? 'This build: <b>' + parts.join(' + ') + '</b>, and e' : 'E') +
+          'very number in the skill below is <b>+' +
           Math.round(up.powerAdd(lv) * 100) +
           '</b> higher.</p>'
         : '<p class="cd-up-worth">Every level adds <b>+2%</b> of a stat you pick ' +
@@ -529,20 +560,36 @@
     var now = up.statsFor(id, card);
     if (!now) return;
 
-    /* What the numbers were one level ago: the same maths with the
-       last boost removed. */
-    var boosts = up.boostsOf(id).slice(0, fromLevel);
-    var was = { atk: 0, def: 0, hp: 0 };
-    boosts.forEach(function (b) {
-      was[b]++;
-    });
-    /* Mirrors statsFor() exactly - if these two ever disagree the
-       number animates to a value the card does not actually have. */
-    var prev = {
-      hp: was.hp ? Math.round(card.stats.hp * (1 + up.STAT_PER_LEVEL * was.hp)) : card.stats.hp,
-      atk: was.atk ? Math.round(card.stats.atk * (1 + up.STAT_PER_LEVEL * was.atk)) : card.stats.atk,
-      def: was.def ? card.stats.def + up.DEF_POINTS_PER_LEVEL * was.def : card.stats.def,
-    };
+    var prev;
+    if (fromLevel == null) {
+      /* A BOOST RE-PICK, not a level-up: start from whatever the
+         tiles currently show, because the change is sideways and
+         there is no "previous level" to compute from. */
+      prev = {};
+      ['hp', 'atk', 'def'].forEach(function (k) {
+        var el = document.querySelector('.cd-stat[data-stat="' + k + '"] .cd-stat-v');
+        var txt = el && el.firstChild ? String(el.firstChild.nodeValue) : '';
+        var n = parseFloat(txt.replace(/[^\d.]/g, ''));
+        prev[k] = isFinite(n) ? n : now[k];
+      });
+    } else {
+      /* What the numbers were one level ago: the same maths with the
+         last boost removed. */
+      var boosts = up.boostsOf(id).slice(0, fromLevel);
+      var was = { atk: 0, def: 0, hp: 0 };
+      boosts.forEach(function (b) {
+        if (b) was[b]++;
+      });
+      /* Mirrors statsFor() exactly - if these two ever disagree the
+         number animates to a value the card does not actually have. */
+      prev = {
+        hp: was.hp ? Math.round(card.stats.hp * (1 + up.STAT_PER_LEVEL * was.hp)) : card.stats.hp,
+        atk: was.atk
+          ? Math.round(card.stats.atk * (1 + up.STAT_PER_LEVEL * was.atk))
+          : card.stats.atk,
+        def: was.def ? card.stats.def + up.DEF_POINTS_PER_LEVEL * was.def : card.stats.def,
+      };
+    }
 
     ['hp', 'atk', 'def'].forEach(function (k) {
       if (prev[k] === now[k]) return;
@@ -624,28 +671,138 @@
     var entry = entryFor(id);
     if (!entry) return;
     var body = $('cd-body');
-    if (!body) return;
-
-    var oldPanel = body.querySelector('.cd-up');
-    if (oldPanel) {
-      var host = document.createElement('div');
-      host.innerHTML = upgradePanel(entry.card);
-      var fresh = host.firstChild;
-      if (fresh) oldPanel.replaceWith(fresh);
-    }
     var up = U();
-    var chip = body.querySelector('.cd-tag.lv');
-    if (chip && up) {
-      var lv = up.levelOf(id);
-      chip.dataset.lv = lv;
-      chip.innerHTML =
-        '<i class="ri-sparkling-2-fill"></i>Level ' + lv + ' / ' + up.MAX_LEVEL;
+    if (!body || !up) return;
+    var card = entry.card;
+    var lv = up.levelOf(id);
+
+    /* PATCH, NEVER REPLACE. Swapping the .cd-up node re-flowed the
+       dialog mid-ceremony, which is the "popup refreshes" the owner
+       kept seeing: the panel vanished and a new one appeared under
+       the animation. Every field below is written in place, so the
+       dialog's boxes never move. */
+    var panel = body.querySelector('.cd-up');
+    if (panel) {
+      var boosts = up.boostsOf(id);
+      var dupes = up.dupesOf(id);
+      var need = up.costOfNextLevel(id);
+      var maxed = lv >= up.MAX_LEVEL;
+      var econ = window.EOL.econ;
+      var coinCost = up.COIN_COST || 0;
+      var hasCopies = up.canLevel(id);
+      var canAfford = (econ ? econ.coins() : coinCost) >= coinCost;
+      var can = hasCopies && canAfford;
+
+      panel.toggleAttribute('data-ready', !!can);
+
+      /* pips */
+      var pips = panel.querySelectorAll('.up-pip');
+      for (var i = 0; i < pips.length; i++) pips[i].classList.toggle('on', i < lv);
+
+      /* the copies line */
+      var note = panel.querySelector('.up-note');
+      if (note) {
+        note.classList.toggle('up-ready', !!can);
+        note.classList.toggle('up-maxed', maxed);
+        note.innerHTML = maxed
+          ? 'Fully upgraded &mdash; further copies pay shards only'
+          : '<span class="up-copies"><b>' +
+            dupes +
+            '</b> / ' +
+            need +
+            ' copies</span>' +
+            (hasCopies
+              ? '<span class="up-ready-tag"><i class="ri-sparkling-line"></i>Ready</span>'
+              : '<span class="up-toward">toward level ' + (lv + 1) + '</span>');
+      }
+
+      /* ONE NEW ROW, appended. The existing rows are untouched, so a
+         boost the player already chose cannot flicker or reset. */
+      var rowHost = panel.querySelector('.up-rows');
+      if (rowHost) {
+        if (boosts.length) rowHost.hidden = false;
+        var have = rowHost.querySelectorAll('.up-row').length;
+        for (var n = have; n < boosts.length; n++) {
+          var b = boosts[n];
+          var level = n + 1;
+          var row = document.createElement('div');
+          row.className = 'up-row' + (b ? '' : ' unset');
+          row.innerHTML =
+            '<span class="up-row-lbl">Lv' +
+            level +
+            '</span>' +
+            ['atk', 'def', 'hp']
+              .map(function (k) {
+                return (
+                  '<button type="button" class="up-stat' +
+                  (b === k ? ' sel' : '') +
+                  '" data-up-stat="' +
+                  k +
+                  '" data-up-level-index="' +
+                  level +
+                  '" data-up-card="' +
+                  esc(card.id) +
+                  '">' +
+                  STAT_LABEL[k] +
+                  '</button>'
+                );
+              })
+              .join('');
+          rowHost.appendChild(row);
+        }
+      }
+
+      /* the summary line */
+      var worth = panel.querySelector('.cd-up-worth');
+      if (worth) {
+        var counts = up.boostCounts(id);
+        var parts = [];
+        ['atk', 'hp', 'def'].forEach(function (k) {
+          if (counts[k]) parts.push(counts[k] + '\u00d7 ' + STAT_LABEL[k]);
+        });
+        var unset = boosts.filter(function (x) {
+          return !x;
+        }).length;
+        worth.innerHTML =
+          (unset
+            ? '<b class="up-pick">' +
+              unset +
+              (unset === 1 ? ' boost' : ' boosts') +
+              ' still to choose.</b> '
+            : '') +
+          (parts.length ? 'This build: <b>' + parts.join(' + ') + '</b>, and e' : 'E') +
+          'very number in the skill below is <b>+' +
+          Math.round(up.powerAdd(lv) * 100) +
+          '</b> higher.';
+      }
+
+      /* the button */
+      var btn = panel.querySelector('.up-level');
+      if (btn) {
+        if (maxed) {
+          btn.remove();
+        } else {
+          btn.disabled = !can;
+          btn.innerHTML =
+            (hasCopies && !canAfford ? 'Not enough coins' : 'Level up to ' + (lv + 1)) +
+            '<b class="up-coin"><i class="ri-coin-fill"></i>' +
+            coinCost.toLocaleString() +
+            '</b>';
+        }
+      }
     }
-    /* The skill text carries the card's own numbers, which just grew. */
+
+    /* the hero's level chip */
+    var chip = body.querySelector('.cd-tag.lv');
+    if (chip) {
+      chip.dataset.lv = lv;
+      chip.innerHTML = '<i class="ri-sparkling-2-fill"></i>Level ' + lv + ' / ' + up.MAX_LEVEL;
+    }
+    /* the skill text carries the card's own numbers, which just grew */
     var skill = body.querySelector('.cd-skill-text');
-    if (skill && up && window.EOL.scaleSkillText) {
+    if (skill && window.EOL.scaleSkillText) {
       skill.innerHTML = rich(
-        window.EOL.scaleSkillText(entry.card.ability.text, entry.card, up.powerAdd(up.levelOf(id)) * 100)
+        window.EOL.scaleSkillText(card.ability.text, card, up.powerAdd(lv) * 100)
       );
     }
     if (window.EOL.ui && window.EOL.ui.repaintCard) window.EOL.ui.repaintCard(id);
@@ -672,11 +829,12 @@
     if (lvl) {
       var id = lvl.dataset.upLevel;
       var before = up.levelOf(id);
-      /* A new level defaults to the build's dominant stat, then the
-         player re-points it if they want something else. Defaulting
-         to "more of what you already chose" is right far more often
-         than defaulting to ATK for a Medic. */
-      var r = up.levelUp(id, up.statOf(id));
+      /* NO DEFAULT BOOST (owner ruling 2026-08-16). The level lands
+         unassigned and the player picks - a stat quietly chosen on
+         their behalf is a decision taken away, and the old default
+         ("more of whatever you already had") was wrong every time
+         somebody wanted to diversify. */
+      var r = up.levelUp(id);
       if (r.ok) {
         /* THE CEREMONY. Played first, then the panel is patched in
            place - a full re-render here is what made the dialog
@@ -716,10 +874,26 @@
       var sr = up.setBoost(sid, level, st.dataset.upStat);
       if (!sr.ok && sr.reason === 'inBattle') {
         toast('Boosts cannot change during a battle', 'ri-lock-line');
-      } else if (sr.ok && !sr.unchanged && window.EOL.audio) {
-        window.EOL.audio.ui('tap');
+        return;
       }
-      refresh();
+      if (sr.ok && !sr.unchanged) {
+        if (window.EOL.audio) window.EOL.audio.ui('tap');
+        /* Light the clicked button and clear its siblings by hand -
+           a re-render would rebuild the dialog under the player's
+           cursor for what is a one-class change. */
+        var row = st.closest('.up-row');
+        if (row) {
+          row.classList.remove('unset');
+          row.querySelectorAll('.up-stat').forEach(function (b) {
+            b.classList.toggle('sel', b === st);
+          });
+        }
+        /* The stats, the summary and the card behind all move with it.
+           The tiles animate from whatever they currently READ, since a
+           re-pick moves stats sideways rather than up a level. */
+        refreshQuiet(sid);
+        countUpStats(sid, null);
+      }
     }
   }
 

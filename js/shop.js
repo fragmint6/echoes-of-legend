@@ -889,7 +889,7 @@
         var status = r.maxed
           ? '<span class="ec-status maxed">Fully upgraded</span>'
           : r.full
-            ? '<span class="ec-status maxed">All 9 copies banked</span>'
+            ? '<span class="ec-status maxed">' + r.dupes + ' / ' + r.dupes + ' copies held</span>'
             : r.ready
             ? '<span class="ec-status ready"><i class="ri-sparkling-line"></i>Ready for level ' +
               (r.lv + 1) +
@@ -937,7 +937,7 @@
           '%"></span></div>' +
           '<div class="ec-foot">' +
           '<span class="ec-held">' +
-          (r.maxed ? 'no levels left' : Math.min(r.dupes, r.need) + ' / ' + r.need + ' copies') +
+          (r.maxed ? 'no levels left' : r.dupes + ' / ' + r.need + ' copies') +
           '</span>' +
           '<button type="button" class="ec-buy" data-echo-buy="' +
           esc(r.card.id) +

@@ -1067,15 +1067,18 @@ sec('S6. Card chrome: Lv0, three boost slots, stars, no dead gap');
     );
   });
 
-  /* LEVEL PIPS on the frame, readable without hovering. Purple
-     circles, not stars (owner ruling 2026-08-16) - and no plate
-     behind them, which is what made the old crest read as a box. */
-  ok(/card-stars/.test(app) && /card-stars/.test(css), 'a levelled card wears pips on its border');
+  /* LEVEL STARS on the frame, readable without hovering, set INTO
+     the border rather than parked on top of it. */
+  ok(/card-stars/.test(app) && /card-stars/.test(css), 'a levelled card wears stars on its border');
   ok(/dataset\.stars/.test(app), 'driven by the level');
-  const pipCss = css.slice(css.indexOf('.card-stars i {'), css.indexOf('.card-stars i {') + 400);
-  ok(/border-radius:\s*50%/.test(pipCss), 'the pips are circles');
-  ok(!/clip-path/.test(pipCss), 'not star polygons');
-  ok(/r-epic-1/.test(pipCss), 'and they wear the upgrade colour');
+  const starCss = css.slice(css.indexOf('.card-stars i {'), css.indexOf('.card-stars i {') + 700);
+  ok(/clip-path/.test(starCss), 'the pips are star polygons');
+  ok(/r-legendary-1/.test(starCss), 'in the legendary gold');
+  const notchCss = css.slice(css.indexOf('.card-stars {'), css.indexOf('.card-stars i {'));
+  ok(
+    /border-top:\s*none/.test(notchCss) && /background:\s*var\(--bg-2\)/.test(notchCss),
+    'and they sit in a notch cut out of the frame, not on a plate over it'
+  );
 
   /* The boost slots float horizontally - no container. */
   const slotFnSrc = app.slice(app.indexOf('function boostSlots'), app.indexOf('function skillText'));
@@ -1210,27 +1213,58 @@ sec('S11. Every legend gains something from an upgrade');
     if (c.ability.passive) walk(c.ability.passive.effects);
     if (![...kinds].some((k) => scaled.has(k))) dead.push(id);
   });
-  /* ONE DOCUMENTED EXEMPTION. Medusa's signature applies a binary
-     status (Exposed) and nothing else - there is no magnitude in it
-     to raise. Scaling its DURATION instead was rejected: a duration
-     is a cliff, and "Exposed for 1 round" becoming 2 would silently
-     double the combo window every Duat and Camelot payoff is tuned
-     against. She still gets the per-level STAT boost every card gets;
-     it is only her skill text that cannot move.
+  /* NO EXEMPTIONS LEFT. Medusa was the last one - her signature was a
+     binary status with no magnitude anywhere in it, so an upgrade
+     bought her a stat and nothing else. Rather than scale the Exposed
+     DURATION (a cliff: 1 round becoming 2 would silently double the
+     combo window every Duat and Camelot payoff is tuned against) her
+     gaze gained a small 25% ATK retaliation, which IS a magnitude and
+     scales like everything else. */
+  ok(
+    dead.length === 0,
+    'every legend has something an upgrade can raise' +
+      (dead.length ? ' (' + dead.join(', ') + ')' : '')
+  );
+}
 
-     Listed by name rather than skipped by rule, so a NEW card with
-     no scalable magnitude fails this test instead of joining her. */
-  const NO_MAGNITUDE = ['olympus-medusa'];
-  const unexpected = dead.filter((id) => NO_MAGNITUDE.indexOf(id) < 0);
-  ok(
-    unexpected.length === 0,
-    'no legend is left with an upgrade that does nothing' +
-      (unexpected.length ? ' (' + unexpected.join(', ') + ')' : '')
-  );
-  ok(
-    dead.length === NO_MAGNITUDE.length,
-    'and the documented exemption list is still exactly right'
-  );
+sec('S11b. A new level starts with NO boost chosen');
+{
+  U._reset();
+  EOL.econ._reset();
+  /* on the SIX board, so the engine assertions below can find it */
+  const id = 'duat-anubis';
+  U.addDuplicate(id, 9);
+  U.levelUp(id);                       // no stat argument
+  ok(U.levelOf(id) === 1, 'the level is bought');
+  ok(U.boostsOf(id)[0] === null, 'and its boost is unassigned');
+  ok(U.boostCounts(id).atk === 0, 'an unassigned level moves no stat');
+  const card = CARD[id].card;
+  ok(U.statsFor(id, card).atk === card.stats.atk, 'so the stats have not changed');
+  /* ...but the LEVEL still pays the flat skill bonus. */
+  ok(near(U.powerAdd(U.levelOf(id)), 0.02, 1e-9), 'the skill bonus is paid by the LEVEL, not the boost');
+  /* and the engine must not demote the card for the null */
+  const B = E.createBattle(mine(), foes(), { upgrades: U.payloadFor([id]) });
+  const u = unitOf(B, id);
+  ok(u.upLevel === 1, 'the engine still sees a level-1 card');
+  ok(u.baseAtk === card.stats.atk, 'with no stat moved');
+
+  U.setBoost(id, 1, 'hp');
+  ok(U.boostsOf(id)[0] === 'hp', 'picking assigns that level');
+  ok(U.statsFor(id, card).hp > card.stats.hp, 'and the stat moves then');
+}
+
+sec('S11c. The dialog patches in place instead of re-rendering');
+{
+  const detail = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
+  const quiet = detail.slice(detail.indexOf('function refreshQuiet'), detail.indexOf('function toast'));
+  /* Replacing .cd-up re-flowed the dialog mid-ceremony, which is what
+     read as the popup "refreshing". Every field is written in place. */
+  ok(!/oldPanel\.replaceWith|panel\.replaceWith/.test(quiet), 'the upgrade panel node is never swapped');
+  ok(/rowHost\.appendChild/.test(quiet), 'a new level APPENDS one row');
+  ok(/btn\.innerHTML/.test(quiet) && /note\.innerHTML/.test(quiet), 'the button and note are patched');
+  ok(!/render\(/.test(quiet), 'and it never calls the full render');
+  /* levelUp must not pass a default stat */
+  ok(/up\.levelUp\(id\)/.test(detail), 'levelling asks for no default boost');
 }
 
 sec('S12. The Echo Shop sorts by rarity and refuses full cards');
@@ -1245,6 +1279,14 @@ sec('S12. The Echo Shop sorts by rarity and refuses full cards');
   ok(!/ready/.test(sortFn), 'and the order does not reshuffle as you buy');
   ok(/copiesWanted/.test(shop), 'a card holding every copy it can use is not sellable');
   ok(/r\.buyable/.test(shop), 'the buy button reads that, not just "not maxed"');
+  /* HELD / NEEDED everywhere, never a parenthesised "(N banked)".
+     Checked against the strings the panel actually EMITS, not the
+     file - the rationale comment still mentions the old wording. */
+  const detail2 = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
+  const emitted = detail2.replace(/\/\*[\s\S]*?\*\//g, '');
+  ok(!/banked/.test(emitted), 'the upgrade panel does not say "banked"');
+  ok(!/banked/.test(shop.replace(/\/\*[\s\S]*?\*\//g, '')), 'and neither does the Echo Shop');
+  ok(/up-copies/.test(emitted) && /copies/.test(emitted), 'it reads held / needed');
 }
 
 sec('T. The board cannot be closed');

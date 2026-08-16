@@ -71,13 +71,21 @@ const FILL = [
   'olympus-apollo',
   'yamato-momotaro',
 ];
-/* opponents with NO incoming-damage modifiers, so damage models are exact.
-   (Athena has damageMult 0.85, Benkei damageResist - they'd skew every number.) */
+/* opponents with NO incoming-damage modifiers and NO reaction damage, so
+   damage models are exact. (Athena has damageMult 0.85, Benkei
+   damageResist - they'd skew every number.)
+
+   Medusa was here until 2026-08-16, when her gaze gained a 25% ATK
+   retaliation: she was the only legend with no scalable magnitude at
+   all, so an upgrade bought her nothing. That rider means she now
+   deals damage when struck, which silently perturbed every model that
+   attacked into this row. Lancelot replaces her - his passive fires
+   only on ALLY events, so it can never touch a foe-side number. */
 const CLEAN_FOES = [
   'olympus-hercules',
   'camelot-mordred',
   'huaxia-mulan',
-  'olympus-medusa',
+  'camelot-lancelot',
   'grimmwood-pied-piper',
   'sherwood-will-scarlet',
 ];

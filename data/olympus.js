@@ -140,12 +140,30 @@ window.EOL.registerFaction({
         type: 'Passive',
         name: 'Petrifying Gaze',
         cost: null,
-        text: 'When Medusa is attacked, the attacker is <b>Exposed</b> for 1 round (first attack each round).',
+        /* THE RETALIATION (2026-08-16). Medusa's kit was previously
+           Exposed and nothing else - a single binary status with no
+           magnitude anywhere in it, which made her the ONE legend an
+           upgrade could not improve: her levels bought a stat and
+           then stopped. Scaling the Exposed DURATION instead was
+           rejected outright - a duration is a cliff, and 1 round
+           becoming 2 would silently double the combo window that
+           every Duat and Camelot payoff is tuned against.
+
+           So the gaze now bites. 25% ATK Shadow is deliberately
+           small: she is a Controller on a Controller statline, this
+           fires at most once a round, and the debuff remains the
+           reason to field her. It gives the card a number that a
+           level can raise - 25% -> 31% at max - without touching
+           what she is for. */
+        text: 'When Medusa is attacked, the attacker is <b>Exposed</b> for 1 round and takes <b>25% ATK Shadow Damage</b> (first attack each round).',
         note: null,
         passive: {
           trigger: 'wasAttacked',
           firstPerRound: true,
-          effects: [{ k: 'exposed', turns: 1, to: 'targets' }],
+          effects: [
+            { k: 'exposed', turns: 1, to: 'targets' },
+            { k: 'dmg', power: 0.25, element: 'Shadow' },
+          ],
         },
       },
       icon: 'ra-snake',
