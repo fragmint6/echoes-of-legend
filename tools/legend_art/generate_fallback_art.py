@@ -52,6 +52,38 @@ FACTIONS = {
         'primary':'#c9a227','secondary':'#1f4e79',
         'sky':('#202b46','#10182e'),'ground':'#67543b','mid':'#816c48','light':'#a7915b'
     },
+    # ---- Chapter II factions (2026-08-17). Palettes match the faction
+    # `colors` in data/*.js and the tables in docs/ART-SPEC.md; the sky/
+    # ground/mid/light quartet is the backdrop ramp for the environment
+    # named in that doc's "Faction environments" table.
+    'Jotunheim': {
+        'primary':'#7fb4d4','secondary':'#3d5a80',
+        'sky':('#2b3f57','#141e2e'),'ground':'#3c4c5c','mid':'#55697d','light':'#8fa8bd'
+    },
+    'Achaea': {
+        'primary':'#d8b26a','secondary':'#8c3b2e',
+        'sky':('#48505e','#262b36'),'ground':'#5b5344','mid':'#7b6e57','light':'#a89373'
+    },
+    'Gehenna': {
+        'primary':'#c2402a','secondary':'#2b1418',
+        'sky':('#4a2320','#241012'),'ground':'#3a1f1c','mid':'#5c2f26','light':'#8a4633'
+    },
+    'Devaloka': {
+        'primary':'#e8a33d','secondary':'#7b3fa0',
+        'sky':('#4b3a63','#251c38'),'ground':'#4e3d52','mid':'#6d5470','light':'#9d7f96'
+    },
+    'Empyrean': {
+        'primary':'#f2e6c2','secondary':'#c9a227',
+        'sky':('#5c5847','#2e2c25'),'ground':'#6b6552','mid':'#8b8369','light':'#b9ae8d'
+    },
+    'Transylvania': {
+        'primary':'#8e2f45','secondary':'#241019',
+        'sky':('#33212c','#180d13'),'ground':'#2e2028','mid':'#48313c','light':'#6d4c56'
+    },
+    'Tortuga': {
+        'primary':'#2f6f6a','secondary':'#1a2a33',
+        'sky':('#22323b','#111b21'),'ground':'#2c3a3c','mid':'#3f5453','light':'#5f7d78'
+    },
 }
 
 def rgb(c):
@@ -149,6 +181,56 @@ ROSTER = [
     ('duat-sekhmet','Duat','Sekhmet','epic','Caster','Fire','lioness of war','gold-picked mane and solar disc','lioness-solar'),
     ('duat-isis','Duat','Isis','epic','Medic','Magic','goddess of magic and rebirth','white linen, gold collar and throne headdress','feathered-wings'),
     ('duat-nephthys','Duat','Nephthys','common','Medic','Shadow','goddess of mourning','simple dark linen and modest gold collar','folded-wings'),
+    # ---- Chapter II legends (2026-08-17). Briefs: docs/ART-SPEC.md 5b.
+    ('jotunheim-odin', 'Jotunheim', 'Odin', 'legendary', 'Caster', 'Lightning', 'one-eyed allfather unleashing', 'wolf-pelt mantle over frost-rimed ringmail, wide-brimmed hat', 'eye-patch-hat'),
+    ('jotunheim-thor', 'Jotunheim', 'Thor', 'epic', 'Bruiser', 'Lightning', 'red-bearded thunder mid-swing', 'iron-banded leather over bare arms, heavy studded belt', 'braided-beard-belt'),
+    ('jotunheim-fenrir', 'Jotunheim', 'Fenrir', 'epic', 'Bruiser', 'Physical', 'the bound wolf straining', 'dark pelt bound at throat and forelimbs by a silk-fine ribbon', 'thin-bright-binding'),
+    ('jotunheim-hel', 'Jotunheim', 'Hel', 'epic', 'Controller', 'Shadow', 'half-living queen of the quiet dead', 'raven-feather collar, grave-linen and dark furs', 'split-face'),
+    ('jotunheim-loki', 'Jotunheim', 'Loki', 'rare', 'Controller', 'Shadow', 'the bound trickster unrepentant', 'ragged finery with knotted serpent-scale collar', 'scarred-grin'),
+    ('jotunheim-freyja', 'Jotunheim', 'Freyja', 'rare', 'Medic', 'Light', 'she takes first pick of the slain', 'falcon-feather cloak clasped at the throat, amber torc', 'falcon-cloak'),
+    ('jotunheim-heimdall', 'Jotunheim', 'Heimdall', 'rare', 'Tank', 'Light', 'the watchman braced', 'frost-rimed scale over a heavy blue cloak', 'gold-teeth-stare'),
+    ('achaea-achilles', 'Achaea', 'Achilles', 'legendary', 'Bruiser', 'Physical', 'the short loud life mid-lunge', 'moulded bronze cuirass, oxblood cloak, greaves', 'bare-heel'),
+    ('achaea-odysseus', 'Achaea', 'Odysseus', 'epic', 'Controller', 'Physical', 'thinking three moves ahead', 'plain travelling leathers over a sailor tunic', 'felt-cap'),
+    ('achaea-perseus', 'Achaea', 'Perseus', 'epic', 'Sniper', 'Light', 'the boy who came back', 'light harness, curved harpe at the hip, closed satchel', 'winged-sandals'),
+    ('achaea-medea', 'Achaea', 'Medea', 'epic', 'Medic', 'Shadow', 'the herb that undoes death', 'colchian robe of deep green and gold', 'vial-collar'),
+    ('achaea-atalanta', 'Achaea', 'Atalanta', 'rare', 'Sniper', 'Nature', 'first spear into the boar', 'hide hunting gear, cropped practical hair', 'boar-tusk'),
+    ('achaea-ajax', 'Achaea', 'Ajax', 'rare', 'Tank', 'Physical', 'standing where the arrows are', 'plain heavy panoply, sevenfold shield at the forearm', 'layered-shield'),
+    ('achaea-jason', 'Achaea', 'Jason', 'rare', 'Medic', 'Nature', 'the captain not the voyage', 'sea-stained cloak with rope-worked belt', 'coiled-rigging'),
+    ('gehenna-pride', 'Gehenna', 'Pride', 'legendary', 'Caster', 'Light', 'the first refusal', 'immaculate white and gold, unburnt amid ruin', 'thorn-crown'),
+    ('gehenna-wrath', 'Gehenna', 'Wrath', 'epic', 'Bruiser', 'Fire', 'past the point words matter', 'armour half-shed and hanging by its straps', 'shed-plates'),
+    ('gehenna-envy', 'Gehenna', 'Envy', 'epic', 'Caster', 'Shadow', 'never quite anyone', 'ill-fitting stolen finery', 'borrowed-face'),
+    ('gehenna-greed', 'Gehenna', 'Greed', 'epic', 'Controller', 'Magic', 'he does not spend', 'coin-scale mail of pierced sewn coins', 'coin-mail'),
+    ('gehenna-gluttony', 'Gehenna', 'Gluttony', 'rare', 'Bruiser', 'Physical', 'feeding himself first', 'greasy bib-like leather apron', 'apron'),
+    ('gehenna-sloth', 'Gehenna', 'Sloth', 'rare', 'Tank', 'Shadow', 'unhurried in a frightening way', 'heavy layered robes gone to dust', 'cobwebs'),
+    ('gehenna-lust', 'Gehenna', 'Lust', 'rare', 'Controller', 'Magic', 'the wanting of being wanted', 'draped silks in ember tones', 'slack-chain'),
+    ('devaloka-shiva', 'Devaloka', 'Shiva', 'legendary', 'Bruiser', 'Shadow', 'the dance that keeps time', 'tiger-skin, serpent at the throat, rudraksha beads', 'third-eye-crescent'),
+    ('devaloka-vishnu', 'Devaloka', 'Vishnu', 'epic', 'Medic', 'Light', 'patient across ten lives', 'yellow silk with a tall jewelled crown and forest garland', 'tall-crown'),
+    ('devaloka-kali', 'Devaloka', 'Kali', 'epic', 'Caster', 'Shadow', 'when protecting stops being polite', 'wild unbound hair, minimal dark dress', 'skull-garland'),
+    ('devaloka-durga', 'Devaloka', 'Durga', 'epic', 'Tank', 'Fire', 'the line holds', 'crimson and gold silk over scale, tiered shoulder-plates', 'tiered-shoulders'),
+    ('devaloka-ganesha', 'Devaloka', 'Ganesha', 'rare', 'Medic', 'Nature', 'moving what is in the way', 'saffron silk with a snake worn as a belt', 'broken-tusk'),
+    ('devaloka-hanuman', 'Devaloka', 'Hanuman', 'rare', 'Bruiser', 'Physical', 'over the top of the problem', 'simple loincloth and a heavy gold armlet', 'armlet-tail'),
+    ('devaloka-indra', 'Devaloka', 'Indra', 'rare', 'Sniper', 'Lightning', 'the thunderbolt thrown at what was singled out', 'gold scale over storm-blue silk', 'spiked-diadem'),
+    ('empyrean-lucifer', 'Empyrean', 'Lucifer', 'legendary', 'Caster', 'Fire', 'the brightest mid-fall', 'white and gold vestments scorching at the hem', 'charring-wings'),
+    ('empyrean-michael', 'Empyrean', 'Michael', 'epic', 'Bruiser', 'Light', 'sent when the discussion is over', 'plain gold-chased plate without ornament', 'ring-halo'),
+    ('empyrean-azrael', 'Empyrean', 'Azrael', 'epic', 'Sniper', 'Shadow', 'names the hour and waits', 'dark layered robes with a scribe cord', 'deep-hood'),
+    ('empyrean-gabriel', 'Empyrean', 'Gabriel', 'epic', 'Caster', 'Light', 'the voice that tells you', 'white and gold with a horn slung at the back', 'raised-chin-horn'),
+    ('empyrean-raphael', 'Empyrean', 'Raphael', 'rare', 'Medic', 'Nature', 'walked a boy across a country', 'pilgrim cloak over plain robes', 'staff-strap'),
+    ('empyrean-uriel', 'Empyrean', 'Uriel', 'rare', 'Caster', 'Fire', 'the flame at the gate', 'simple robes with a scorched hem', 'flame-circlet'),
+    ('empyrean-metatron', 'Empyrean', 'Metatron', 'rare', 'Controller', 'Magic', 'keeps the record and decides what it says', 'scribal robes covered in fine script', 'wire-spectacles'),
+    ('transylvania-dracula', 'Transylvania', 'Dracula', 'legendary', 'Caster', 'Shadow', 'old courteous and uninterested in consent', 'black evening dress under an oxblood-lined cloak', 'standing-collar'),
+    ('transylvania-monster', 'Transylvania', "Frankenstein's Monster", 'epic', 'Tank', 'Physical', 'articulate grieving and enormous', 'ill-fitting stolen clothes too small at the wrists', 'throat-sutures'),
+    ('transylvania-carmilla', 'Transylvania', 'Carmilla', 'epic', 'Controller', 'Shadow', 'arrives as a guest', 'ivory nightgown and a dark travelling cloak', 'unbound-hair'),
+    ('transylvania-hyde', 'Transylvania', 'Mr. Hyde', 'epic', 'Bruiser', 'Physical', 'what was already in the house', 'good clothes hanging far too large', 'oversized-coat'),
+    ('transylvania-van-helsing', 'Transylvania', 'Van Helsing', 'rare', 'Sniper', 'Light', 'an old academic with tools', 'heavy travelling coat and spectacles', 'implement-bandolier'),
+    ('transylvania-invisible-man', 'Transylvania', 'The Invisible Man', 'rare', 'Sniper', 'Magic', 'cannot be looked at', 'long overcoat with collar up, head fully wound', 'goggles-bandages'),
+    ('transylvania-dorian-gray', 'Transylvania', 'Dorian Gray', 'rare', 'Tank', 'Magic', 'immaculate and running out of canvas', 'perfect evening dress with a buttonhole flower', 'buttonhole'),
+    ('tortuga-blackbeard', 'Tortuga', 'Blackbeard', 'legendary', 'Caster', 'Fire', 'reputation did the work', 'wide hat, heavy coat, crossed bandoliers', 'lit-fuse-beard'),
+    ('tortuga-davy-jones', 'Tortuga', 'Davy Jones', 'epic', 'Controller', 'Shadow', 'the place captains end up', 'waterlogged naval coat with barnacle crust', 'barnacle-crust'),
+    ('tortuga-kraken', 'Tortuga', 'The Kraken', 'epic', 'Tank', 'Nature', 'comes up under the keel', 'rising mass with suckered limbs at the waterline', 'single-eye'),
+    ('tortuga-anne-bonny', 'Tortuga', 'Anne Bonny', 'epic', 'Bruiser', 'Physical', 'still standing when the crew went below', "man's coat cut down and belted", 'cut-down-coat'),
+    ('tortuga-captain-kidd', 'Tortuga', 'Captain Kidd', 'rare', 'Sniper', 'Physical', 'a privateer hanged as a pirate', 'sober merchant coat', 'rolled-chart'),
+    ('tortuga-calico-jack', 'Tortuga', 'Calico Jack', 'rare', 'Controller', 'Physical', 'remembered for the flag', 'loose bright striped calico shirt', 'striped-calico'),
+    ('tortuga-flying-dutchman', 'Tortuga', 'The Flying Dutchman', 'rare', 'Caster', 'Shadow', 'condemned to sail', 'sea-rotted captain uniform', 'fraying-contour'),
 ]
 
 

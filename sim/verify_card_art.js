@@ -33,22 +33,27 @@ function ok(cond, msg) {
 global.window = { EOL: {} };
 const EOL = global.window.EOL;
 
-const files = [
-  'data/_schema.js',
-  'data/roles.js',
-  'data/olympus.js',
-  'data/asgard.js',
-  'data/egypt.js',
-  'data/yokai.js',
-  'data/celtic.js',
-  'data/aztec.js',
-  'data/slavic.js',
-  'data/mesopotamia.js',
-  'data/vedic.js',
-];
-for (const f of files) {
-  const p = path.join(ROOT, f);
-  if (fs.existsSync(p)) eval(fs.readFileSync(p, 'utf8'));
+/* THE FILE LIST IS DISCOVERED, NOT HARD-CODED (2026-08-17).
+   -------------------------------------------------------------
+   This list used to be written by hand and named six files that have
+   never existed in the repo - asgard, egypt, yokai, celtic, aztec,
+   slavic, mesopotamia, vedic - apparently a plan for factions that
+   were never built. Because the loader skips anything missing, the
+   suite silently loaded ONE faction (Olympus) and cheerfully reported
+   "38/38 passed" while validating 6 cards out of 112.
+
+   A hard-coded list that fails open is worse than no list: it reports
+   success for work it never looked at. Read the directory instead, so
+   a new faction file is covered the moment it lands. */
+const SKIP = new Set(['_schema.js', 'roles.js', 'lore.js', 'battlefields.js', 'draft-ai.js', 'campaign-ch1.js']);
+eval(fs.readFileSync(path.join(ROOT, 'data/_schema.js'), 'utf8'));
+eval(fs.readFileSync(path.join(ROOT, 'data/roles.js'), 'utf8'));
+const factionFiles = fs
+  .readdirSync(path.join(ROOT, 'data'))
+  .filter((f) => f.endsWith('.js') && !SKIP.has(f))
+  .sort();
+for (const f of factionFiles) {
+  eval(fs.readFileSync(path.join(ROOT, 'data', f), 'utf8'));
 }
 
 /* EOL.factions is an ARRAY of faction objects, each with .id and .cards */
@@ -60,6 +65,12 @@ for (const f of factions) {
 
 console.log('verify_card_art');
 ok(allCards.length > 0, 'loaded at least one card (got ' + allCards.length + ')');
+/* Guard the discovery itself: if the loader ever regresses to seeing one
+   faction again, say so loudly instead of passing. */
+ok(
+  factions.length >= 16,
+  'every faction file was loaded (' + factions.length + ' factions, ' + allCards.length + ' cards)'
+);
 
 /* ---- 1. every declared art path resolves to a file on disk ---- */
 let withArt = 0;
@@ -124,6 +135,60 @@ for (const { faction, card } of allCards) {
   ok(
     card.art.startsWith('assets/legends/'),
     'art lives under assets/legends/ for ' + faction + '/' + card.name
+  );
+}
+
+/* ---- 6. EVERY legend has an art brief, and the brief agrees ----
+   docs/ART-SPEC.md is the source of truth for what an artist draws, and
+   a brief whose rarity/role/element has drifted from the card is worse
+   than no brief - it produces art tuned to the wrong rarity tier and
+   the wrong rim-light colour.
+
+   An earlier revision of the spec claimed `tools/art_prompts.py` was
+   "checked against the live roster". No such file and no such check
+   existed. This is that check. */
+{
+  const spec = fs.readFileSync(path.join(ROOT, 'docs/ART-SPEC.md'), 'utf8');
+  const briefs = {};
+  const re = /\*\*(.+?)\*\*\s*`([^`]+)`/g;
+  let m;
+  while ((m = re.exec(spec))) briefs[m[1].trim()] = m[2].trim();
+
+  const missing = [];
+  const drift = [];
+  for (const { card } of allCards) {
+    const b = briefs[card.name];
+    if (!b) {
+      missing.push(card.name);
+      continue;
+    }
+    const want = card.rarity + ' / ' + card.role + ' / ' + card.element;
+    if (b !== want) drift.push(card.name + ': spec says "' + b + '", card is "' + want + '"');
+  }
+  ok(
+    missing.length === 0,
+    'every legend has an art brief' + (missing.length ? ' (missing: ' + missing.slice(0, 6).join(', ') + ')' : '')
+  );
+  ok(
+    drift.length === 0,
+    'no brief has drifted from its card' + (drift.length ? ' (' + drift.slice(0, 4).join(' | ') + ')' : '')
+  );
+}
+
+/* ---- 7. cards without art are a SUPPORTED state, not a bug ----
+   The render sites branch on truthiness and fall back to the icon
+   glyph, which is how a faction can land before its art does. Assert
+   the fallback is intact so "art: null" never becomes an empty box. */
+{
+  const noArt = allCards.filter((e) => !e.card.art);
+  const noIcon = noArt.filter((e) => !e.card.icon);
+  ok(
+    noIcon.length === 0,
+    'every legend without art still has an icon glyph' +
+      (noIcon.length ? ' (' + noIcon.map((e) => e.card.name).join(', ') + ')' : '')
+  );
+  console.log(
+    '  note  ' + noArt.length + ' of ' + allCards.length + ' legends are icon-only (art outstanding)'
   );
 }
 

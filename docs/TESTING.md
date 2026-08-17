@@ -31,6 +31,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
 | Puzzle generation / solve length / difficulty  | `node sim/verify_puzzle_tempo.js`                 | ~9min  |
 | New factions / Chapter II legends              | `node sim/verify_chapter2.js`                     | <1s    |
+| Card art paths / art-spec briefs               | `node sim/verify_card_art.js`                     | <1s    |
 | Card balance sweep (budgets, bands, dupes)     | `node sim/audit_factions.js`                      | <1s    |
 | Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |
 | Cloud saves, sign-in/sign-out, save collisions | `node sim/verify_save_ownership.js`               | <2s    |
@@ -249,6 +250,24 @@ Exercises the fresh, one-used, and exhausted two-attempt states against a
 small dependency-free DOM. It also audits migration 07's numbered primary
 key, 1–2 check constraint, concurrent-claim lock, and third-claim rejection,
 then verifies the solo/multiplayer carousel and Guild Battles placeholder.
+
+### `verify_card_art.js` - 270 assertions, <1s
+
+Every `art` path resolves to a real file, is relative, is a PNG and
+lives under `assets/legends/`. Also checks that **every legend has a
+brief in `docs/ART-SPEC.md`** and that the brief's
+`rarity / role / element` still matches the card - a drifted brief
+produces art at the wrong rarity tier with the wrong rim-light colour.
+
+> Its file list used to be hard-coded and named six faction files that
+> have never existed (`asgard`, `egypt`, `yokai`, `celtic`, `aztec`,
+> `slavic`, `mesopotamia`, `vedic`). The loader skips missing files, so
+> the suite validated **Olympus only** and reported "38/38 passed" while
+> ignoring 106 of 112 cards. It now reads `data/` from disk. A
+> hard-coded list that fails open is worse than no list.
+
+Cards with `art: null` are a supported state (they render their icon
+glyph); the suite reports how many are outstanding rather than failing.
 
 ### `verify_puzzle_tempo.js` - 40 assertions, ~9min
 
