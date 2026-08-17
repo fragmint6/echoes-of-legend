@@ -92,7 +92,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-eye-shield',
-      art: 'assets/legends/jotunheim-odin.png',
+      art: null,
     },
 
     {
