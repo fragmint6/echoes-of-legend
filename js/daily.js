@@ -68,7 +68,14 @@
 
   var TARGET_RATE = 0.3;
   var MAX_DAILY_ATTEMPTS = 2;
-  var SCOUT_ATTEMPTS = 5;
+  /* Raised from 5 with the winning-lines gate (2026-08-16). Narrowing
+     TEMPO_MIN to 2.4 means each scouting battle yields fewer usable
+     checkpoints, and the gate then rejects more of those; one seed in
+     eleven ran out of candidates entirely. Two extra scouts is the
+     cheapest fix because a scout that finds a certifiable board exits
+     immediately - this raises the CEILING on work, not the typical
+     cost. Median forge is unchanged at ~2 minutes. */
+  var SCOUT_ATTEMPTS = 7;
   var CANDIDATES_PER_SCOUT = 10;
   var PRELIM_TRIALS = 5;
   var FINAL_TRIALS = 10;
@@ -103,8 +110,54 @@
      rather than at the observed 4.0 cliff because the estimate ignores
      healing, shields regenerating and revives, all of which push the
      true figure up and never down. */
-  var TEMPO_MIN = 1.15;
+  /* TEMPO_MIN was 1.15 while the only requirement was "solvable in 3-5
+     rounds". Adding the 1-2 winning-lines requirement made the bottom of
+     that band worthless: sampling eight checkpoints across five RNG
+     seeds each showed tightness is a property of the BOARD, essentially
+     stable under reseeding, and it tracks tempo hard -
+
+       tempo 1.3 - 1.9  ->  3+ winning lines out of 3, every seed
+       tempo 2.6        ->  3+ winning lines, every seed
+       tempo 3.2 - 3.5  ->  0-1 winning lines, every seed
+
+     A light board is light for everyone: there is time and material
+     enough that any sensible opening converts. Those positions can never
+     satisfy the ruling, so scouting them is pure waste - and it was
+     expensive waste, because each one still paid for a playout per legal
+     move before being thrown away.
+
+     Raised to 2.4. The band is now the region where tight boards
+     actually occur, which is what made the stricter gate affordable
+     rather than a reliability regression. */
+  var TEMPO_MIN = 2.4;
   var TEMPO_MAX = 3.6;
+
+  /* ---- HOW MANY FIRST MOVES MAY WIN -------------------------------
+     Owner ruling 2026-08-16: "only like 1-2 possible lines that lead to
+     winning." Counted over every legal opening plus passing, against
+     the enemy's full depth-4 defence and the position's own deadline.
+
+     MAX_WINNING_LINES = 2, and there is an implicit minimum of 1 - a
+     board nothing wins from is not a puzzle, it is a lost position, and
+     the certified line guarantees at least one anyway. */
+  var MAX_WINNING_LINES = 2;
+
+  /* Where tight positions actually live, measured over 17 boards that
+     passed every other gate. Boards with 1-2 winning openings averaged
+     checkpoint strength 0.451 and tempo 3.05; boards with three or more
+     averaged 0.579 and 2.21. Both make intuitive sense: a comfortable
+     board forgives anything, and a slow board leaves time to recover
+     from a bad first move.
+
+     So the ranker now aims at the tight profile instead of at rough
+     parity. This does not GATE anything - the count does - it just
+     stops the forge spending its budget in the region where almost
+     nothing qualifies. */
+  var TIGHT_STRENGTH = 0.46;
+  /* 3.2, not the 3.0 first tried: the reseeding sample put the reliably
+     tight boards at 3.2-3.5, and the ceiling is 3.6, so this aims at the
+     top of the band without sitting on its edge. */
+  var TIGHT_TEMPO = 3.2;
   var CERTIFICATE_EXTRA_SEEDS = 12;
   var CERTIFICATE_CANDIDATES = 10;
   var FAST_DEPTH4_BUDGET = {
@@ -539,19 +592,38 @@
       if (steps % 3 === 0) await yieldControl(job);
     }
 
-    /* Health alone is not the verdict, but it is a useful queue: positions
-       near a slight player disadvantage are tested first. Round distance
-       is only a tie-break so the centre of the requested window wins.
+    /* ---- AIM AT THE TIGHT PROFILE, NOT AT PARITY -------------------
+       This used to sort toward strength 0.47 (rough parity) and tempo
+       2.4 (comfortably mid-band). Both targets were wrong for the thing
+       the forge is now required to produce.
 
-       TEMPO IS NOW PART OF THE QUEUE, not just the gate. Everything that
-       reaches this sort already fits the band, but within the band the
-       shape still matters: 2.4 is the middle of the range that produced
-       genuine 3-5 round solves, while a checkpoint sitting at 3.5 is one
-       unlucky heal away from being unwinnable in time and will burn its
-       whole trial budget failing. The weight (0.10) is deliberately
-       smaller than the strength term's natural spread, so tempo orders
-       positions of similar difficulty rather than overriding difficulty
-       altogether. */
+       Measured over 17 boards that passed every other gate, the ones
+       with only 1-2 winning openings looked distinctly different from
+       the ones with three or more:
+
+                        tight (1-2)    loose (3+)
+         strength          0.451         0.579
+         tempo             3.05          2.21
+
+       Both directions make sense. A comfortable board (high strength)
+       forgives any opening, and a slow board (low tempo) leaves enough
+       rounds to recover from a bad one. Tightness lives where the player
+       is slightly BEHIND and the clock is tight - which is also, not
+       coincidentally, where a puzzle is interesting.
+
+       So the ranker aims there now. It still GATES nothing: the actual
+       1-2 requirement is enforced by countWinningOpeningLines during
+       certification. This only decides what order to spend the trial
+       budget in, and pointing it at the region where ~12% of boards
+       qualify instead of ~2% is the difference between the forge
+       publishing in half a minute and grinding through every candidate
+       it has.
+
+       The tempo weight rises from 0.10 to 0.22 because tempo is now
+       carrying real signal about tightness rather than acting as a
+       tie-break between similar boards. It is still below the strength
+       term's natural spread, so it shapes the queue without dominating
+       it. */
     var rescue = candidates.reduce(function (best, candidate) {
       /* The rescue slot used to be "strongest player board", which after
          the tempo gate is actively the wrong pick: the strongest boards
@@ -561,12 +633,15 @@
          to fall back on. */
       return !best || candidate.tempo < best.tempo ? candidate : best;
     }, null);
+    function tightness(c) {
+      return (
+        Math.abs(c.strength - TIGHT_STRENGTH) +
+        Math.abs(c.round - 6.5) * 0.008 +
+        Math.abs(c.tempo - TIGHT_TEMPO) * 0.22
+      );
+    }
     candidates.sort(function (a, b) {
-      var da =
-        Math.abs(a.strength - 0.47) + Math.abs(a.round - 6.5) * 0.008 + Math.abs(a.tempo - 2.4) * 0.1;
-      var db =
-        Math.abs(b.strength - 0.47) + Math.abs(b.round - 6.5) * 0.008 + Math.abs(b.tempo - 2.4) * 0.1;
-      return da - db;
+      return tightness(a) - tightness(b);
     });
     /* Reserve one slot for the strongest player checkpoint in this scout.
        It is not preferred for calibration, but gives strict certification
@@ -655,22 +730,83 @@
 
      Worse, the metric measured the wrong property even when it worked. A
      puzzle is not "only one legal first move"; it is "you have to keep
-     playing well". The replacement (`naiveSolves`) asks that directly.
+     playing well". `naiveSolves` asks that second question directly.
 
-     Kept and exported because it is still a meaningful diagnostic, and
-     because deleting a function the harness asserts on would hide a
-     regression rather than fix one. It is no longer part of the
-     publication gate. */
+     ---- REINSTATED AS A GATE, 2026-08-16 (owner ruling) --------------
+     "I think puzzles are too easy right now, make it so that there are
+     only like 1-2 possible lines that lead to winning."
+
+     Measured on five published boards, the median position had SIX
+     winning openings and only one in five was inside the 1-2 target.
+     Several were worse than that - 17 of 18 legal moves winning, 19 of
+     19, 21 of 21. Those are not puzzles, they are positions that have
+     already been won, and `naiveSolves` did not catch them because the
+     no-lookahead player is bad at CHOOSING but still only makes one
+     move per turn; on a board where everything wins, its choice never
+     mattered.
+
+     So the two tests are complementary and BOTH now gate publication:
+
+       countWinningOpeningLines  - is the first move forced?
+       naiveSolves               - does the rest of the line need thought?
+
+     What actually changed since the version that rejected 9 of 9
+     candidates is not this function - it is that the forge now looks in
+     a different place for positions (see the scoring in scoutBattle).
+     Tight boards turned out to have a measurable profile: the player is
+     BEHIND (checkpoint strength ~0.45 against ~0.58 for loose ones) and
+     tempo is HIGHER (~3.0 against ~2.2). Searching there makes the 1-2
+     requirement satisfiable instead of impossible.
+
+     NO EARLY EXIT. The old version bailed at `> 2` to save rollouts,
+     which meant the certificate could only ever record "3" for a board
+     with twenty winning moves. The exact count is the difficulty signal
+     worth having in the metrics, and the loop is bounded by the number
+     of legal moves anyway. */
   function countWinningOpeningLines(source, seed, E, AI) {
     var moves = AI.candidates ? AI.candidates(source, 'player') : [];
     var deadline = solveDeadline(source.round);
     var winningMoves = 0;
-    for (var m = 0; m < moves.length; m++) {
-      var act = moves[m];
+    /* The denominator. Counts openings actually PLAYED, so a candidate
+       the engine rejects as illegal is not credited as a road not
+       taken. Reported alongside the count because "2 of 3" and "2 of
+       20" describe very different boards. */
+    var attempted = 0;
+
+    function playOut(B) {
+      var steps = 0;
+      while (!B.over && B.round <= deadline && steps++ < STEP_CAP) {
+        var side = E.advanceAction(B);
+        if (!side) {
+          if (!B.over) E.nextRound(B);
+          continue;
+        }
+        playAiAction(B, side, E, AI);
+      }
+      return B.winner === 'player' && B.round <= deadline;
+    }
+
+    function fresh() {
       var B = E.cloneBattle(source, rng32(seed));
       B.rng = rng32(seed);
       B.simulation = true;
       B.silent = true;
+      return B;
+    }
+
+    /* THE PASS PROBE RUNS FIRST. Doing nothing and still winning is the
+       loudest possible evidence that a board solves itself, and it is a
+       single playout. Front-loading it means the most obviously loose
+       positions - the 19-of-19 boards that motivated this gate - are
+       rejected after one rollout instead of twenty. */
+    var Bpass = fresh();
+    E.passTurn(Bpass, 'player');
+    attempted++;
+    if (playOut(Bpass)) winningMoves++;
+
+    for (var m = 0; m < moves.length; m++) {
+      var act = moves[m];
+      var B = fresh();
       var actor = B.uidMap ? B.uidMap[act.unit.uid] : null;
       if (!actor) {
         for (var ui = 0; ui < B.units.length; ui++) {
@@ -689,42 +825,34 @@
 
       var res = E.useAbility(B, actor, act.ability, chosen, act.choose);
       if (!res || !res.ok) continue;
+      attempted++;
 
-      var steps = 0;
-      while (!B.over && B.round <= deadline && steps++ < STEP_CAP) {
-        var side = E.advanceAction(B);
-        if (!side) {
-          if (!B.over) E.nextRound(B);
-          continue;
-        }
-        playAiAction(B, side, E, AI);
-      }
-      if (B.winner === 'player' && B.round <= deadline) {
+      if (playOut(B)) {
         winningMoves++;
-        if (winningMoves > 2) return winningMoves;
+        /* EARLY EXIT ON REJECTION ONLY. Once the count exceeds the
+           ceiling the position is discarded whatever the exact total is,
+           so the remaining playouts buy nothing. Crucially this cannot
+           cost accuracy where accuracy matters: a position that will be
+           ACCEPTED has, by definition, at most MAX_WINNING_LINES winners
+           and therefore never trips this branch - its certificate still
+           records an exact count.
+
+           Restoring this mattered for reliability, not elegance. Loose
+           boards are the common case and each was costing a full playout
+           per legal move (up to ~20) before being thrown away; one forge
+           seed hit a nine-minute timeout. The `over` flag tells the
+           caller the number is a lower bound. */
+        if (winningMoves > MAX_WINNING_LINES) {
+          return { winning: winningMoves, attempted: attempted, over: true };
+        }
       }
     }
-    var Bpass = E.cloneBattle(source, rng32(seed));
-    Bpass.rng = rng32(seed);
-    Bpass.simulation = true;
-    Bpass.silent = true;
-    E.passTurn(Bpass, 'player');
-    var passSteps = 0;
-    while (!Bpass.over && Bpass.round <= deadline && passSteps++ < STEP_CAP) {
-      var pside = E.advanceAction(Bpass);
-      if (!pside) {
-        if (!Bpass.over) E.nextRound(Bpass);
-        continue;
-      }
-      playAiAction(Bpass, pside, E, AI);
-    }
-    /* Passing on move one and still winning inside the deadline is the
-       clearest possible sign the board solves itself. It counts as a
-       winning line, which pushes the position toward the >2 rejection. */
-    if (Bpass.winner === 'player' && Bpass.round <= deadline) {
-      winningMoves++;
-    }
-    return winningMoves;
+
+    /* Returns a RECORD, not a bare count. The denominator is needed by
+       the certificate and by the harness, and threading it back through
+       a module-level variable would have made two concurrent forges
+       (the lab and a worker) quietly corrupt each other's metrics. */
+    return { winning: winningMoves, attempted: attempted, over: false };
   }
 
   /* ---- THE OBVIOUS-MOVE TEST ---------------------------------------
@@ -839,12 +967,27 @@
            candidate's rate away from the 30% target for the wrong
            reason. */
         if (report.won && report.solvedIn >= SOLVE_MIN) {
-          /* Enforce puzzle tightness: the position must NOT fall to a
-             player who simply takes the best-looking move every turn.
-             See naiveSolves() for why this replaced the opening-line
-             count. Evaluated only after a win is already certified, so
-             the expensive second playout runs at most once per record. */
+          /* TIGHTNESS, both halves. Ordered cheapest-first: naiveSolves
+             is one extra playout, while the opening count is one playout
+             PER legal move, so on a board that fails the cheap test the
+             expensive one never runs. */
           if (!naiveSolves(rec.candidate.state, seeds[s], E, AI)) {
+            var lineReport = countWinningOpeningLines(
+              rec.candidate.state,
+              seeds[s],
+              E,
+              AI
+            );
+            var winningLines = lineReport.winning;
+            /* The owner's number. >= 1 is guaranteed by `report.won`
+               having just used one of these very openings, but it is
+               asserted rather than assumed: if it were ever 0 the two
+               searches would be disagreeing and the certificate would be
+               a lie. */
+            if (winningLines < 1 || winningLines > MAX_WINNING_LINES) {
+              await yieldControl(job);
+              continue;
+            }
             rec.futureSeed = seeds[s] | 0;
             rec.certificate = {
               depth: 4,
@@ -855,6 +998,12 @@
               testedSeeds: s + 1,
               /* Recorded as proof the gate ran, not as a threshold. */
               naiveSolves: false,
+              /* THE difficulty number. Exact, not clamped at 3 - a board
+                 that squeaked in at 2 and one that had 2 of 20 legal
+                 moves win are very different, and only this tells them
+                 apart after the fact. */
+              winningLines: winningLines,
+              legalOpenings: lineReport.attempted,
               /* The proof carries its own length. `solvedIn` is the
                  headline number for the owner ruling and `solveBy` is
                  what battle.js enforces; publishing both means a stored
@@ -1701,10 +1850,14 @@
     _runContinuationReport: runContinuationReport,
     _tempo: tempo,
     _naiveSolves: naiveSolves,
+    _countWinningOpeningLines: countWinningOpeningLines,
     _solveDeadline: solveDeadline,
     _limits: {
       solveMin: SOLVE_MIN,
       solveMax: SOLVE_MAX,
+      maxWinningLines: MAX_WINNING_LINES,
+      tightStrength: TIGHT_STRENGTH,
+      tightTempo: TIGHT_TEMPO,
       tempoMin: TEMPO_MIN,
       tempoMax: TEMPO_MAX,
       roundMin: ROUND_MIN,

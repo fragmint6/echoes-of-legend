@@ -29,7 +29,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Shop codes / redemption SQL                    | `node sim/verify_code_redemption.js`              | <1s    |
 | Measurement / feedback                         | `node sim/verify_telemetry.js`                    | <1s    |
 | Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
-| Puzzle generation / solve length               | `node sim/verify_puzzle_tempo.js`                 | ~60s   |
+| Puzzle generation / solve length / difficulty  | `node sim/verify_puzzle_tempo.js`                 | ~9min  |
 | Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |
 | Cloud saves, sign-in/sign-out, save collisions | `node sim/verify_save_ownership.js`               | <2s    |
 | CrazyGames SDK / gameplay timing               | `node sim/verify_crazygames_sdk.js`               | <2s    |
@@ -248,7 +248,7 @@ small dependency-free DOM. It also audits migration 07's numbered primary
 key, 1–2 check constraint, concurrent-claim lock, and third-claim rejection,
 then verifies the solo/multiplayer carousel and Guild Battles placeholder.
 
-### `verify_puzzle_tempo.js` - 35 assertions, ~60s
+### `verify_puzzle_tempo.js` - 40 assertions, ~9min
 
 **The puzzle length contract** (owner ruling 2026-08-16: the intended
 solution is 3-5 rounds). Deliberately *behavioural* rather than
@@ -259,12 +259,19 @@ Checks that the declared window is 3-5; that tempo really does predict
 solve length (boards past the cliff are unwinnable in time, so the
 prefilter discards the unfinishable rather than the merely hard); that
 continuations stop at the deadline and a timed-out battle is never
-reported as a win; that the obvious-move gate is wired into
-certification; that `solveBy` survives the serialization round-trip
-*and* that a legacy payload without it still opens; that `js/battle.js`
-enforces the same number and the shared engine does not; and finally it
-runs the **real forge** end to end on two seeds and asserts the
-positions it produced are 3-5 rounds.
+reported as a win; that **both** tightness gates are wired into
+certification (`naiveSolves` and the 1-2 winning-lines count) and that
+the counter actually discriminates; that `solveBy` survives the
+serialization round-trip *and* that a legacy payload without it still
+opens; that the player is **not** held to a round limit and the HUD chip
+is gone from all three layers; and finally it runs the **real forge**
+end to end and asserts what it published is 3-5 rounds with 1-2 winning
+lines.
+
+It deliberately does **not** assert that a given seed publishes: the AI
+search is wall-clock bounded, so the forge is not deterministic under
+load. An unlucky seed prints a `note` and is retried in production with
+a fresh random seed.
 
 Run this after any change to `js/daily.js`, to `AI` search, or to
 anything that moves damage numbers - the tempo band is calibrated

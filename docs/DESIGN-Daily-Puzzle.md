@@ -12,6 +12,11 @@ want the intended solution to be 3-5 rounds and that's working."* The round limi
 HUD countdown chip are **removed** (§6). 3-5 rounds is a guarantee about the position the
 forge publishes, not a clock the player runs against.
 
+**Amended again (owner ruling):** *"I think puzzles are too easy right now, make it so that
+there are only like 1-2 possible lines that lead to winning."* The opening-line count is
+**reinstated as a gate** and the search was re-aimed at where tight positions actually live
+(§5.4).
+
 This document records the design of the puzzle *generator*. The attempt ledger, the
 two-attempt rule and the publication lease are described in `docs/supabase-migration-04.sql`
 and `docs/supabase-migration-07.sql`, and are unchanged by this revision.
@@ -143,6 +148,77 @@ Measured: 16 of 16 certified positions passed, and all 16 solved in 3–5 rounds
 opening-line counter is kept as a diagnostic and is exported, but no longer gates
 publication.
 
+### 5.4 Tightness, measured — the winning-lines gate
+
+Owner ruling: *"only like 1-2 possible lines that lead to winning."*
+
+Measured first, on five already-published boards:
+
+| | winning openings |
+|---|---|
+| Median | **6** |
+| Within the 1-2 target | **1 of 5** |
+| Worst cases | 17 of 18, 19 of 19, 21 of 21 legal moves |
+
+So the complaint was exactly right, and `naiveSolves` had not caught it. The two tests turn
+out to be complementary, and **both now gate publication**:
+
+| test | question |
+|---|---|
+| `countWinningOpeningLines` | is the **first move** forced? |
+| `naiveSolves` | does the **rest of the line** need thought? |
+
+`naiveSolves` misses loose boards because the no-lookahead player is bad at *choosing* but
+still makes only one move per turn — on a board where everything wins, its choice never
+mattered.
+
+**Why this works now when it rejected 9 of 9 candidates before (§5.1).** The gate did not
+change; where the forge *looks* did. Sampling 17 boards that passed every other test, tight
+positions had a distinct profile:
+
+| | tight (1-2 lines) | loose (3+) |
+|---|---|---|
+| checkpoint strength | **0.451** | 0.579 |
+| tempo | **3.05** | 2.21 |
+
+Both directions make sense: a comfortable board forgives any opening, and a slow board
+leaves rounds enough to recover from a bad one. Tightness lives where the player is slightly
+**behind** with a **tight clock** — which is also where a puzzle is interesting. The ranker
+now aims at `TIGHT_STRENGTH = 0.46` / `TIGHT_TEMPO = 3.2` (tempo weight raised 0.10 → 0.22,
+since it now carries real signal rather than acting as a tie-break).
+
+**`TEMPO_MIN` raised 1.15 → 2.4.** Re-running eight checkpoints across five RNG seeds each
+showed tightness is a property of the **board**, near-stable under reseeding, and that it
+tracks tempo hard:
+
+| tempo | winning lines, every seed |
+|---|---|
+| 1.3 – 1.9 | 3+ of 3 |
+| 2.6 | 3+ |
+| 3.2 – 3.5 | 0 – 1 |
+
+Light boards can never satisfy the ruling, and scouting them was expensive waste — each one
+still paid a playout per legal move before being discarded. Narrowing the band is what made
+the stricter gate affordable instead of a reliability regression.
+
+Two performance notes, both load-bearing rather than cosmetic:
+
+- The **pass probe runs first**. Doing nothing and still winning is the loudest evidence a
+  board solves itself, and it is one playout — so the 19-of-19 boards die after one rollout
+  instead of twenty.
+- **Early exit on rejection only.** Once the count exceeds the ceiling the position is
+  discarded regardless, so remaining playouts buy nothing. This cannot cost accuracy where
+  it matters: an *accepted* board has ≤ 2 winners by definition and never trips the branch,
+  so its certificate still records an exact count. An `over` flag marks a lower bound.
+
+`SCOUT_ATTEMPTS` 5 → 7, because a narrower band yields fewer usable checkpoints per battle.
+A scout that finds a certifiable board exits immediately, so this raises the ceiling on work
+rather than the typical cost.
+
+The certificate now records `winningLines` **and** `legalOpenings`, so "2 of 18" is
+auditable after the fact — a board that squeaked in at 2 of 3 and one where 2 of 20 moves win
+are very different puzzles.
+
 ### 5.3 The calibration band widened
 
 `0.2–0.4` → `0.2–0.8`.
@@ -202,15 +278,29 @@ eight rounds solved it.
 
 ## 7. Results
 
-Ten consecutive forges on unrelated seeds, run through the real publication path
-(`tools/generate_daily_puzzle.js`):
+Forges run through the real publication path (`tools/generate_daily_puzzle.js`):
 
-| | before | after |
-|---|---|---|
-| Positions published | fails / grindy | **10 / 10** |
-| Certified solution length | up to 17 rounds | **3–5 rounds, every one** |
-| Median forge time | >5 min (often failing) | **31 s** |
-| Failed the obvious-move test | n/a | **0** |
+| | before the rewrite | after §3-4 | after the §5.4 gate |
+|---|---|---|---|
+| Certified solution length | up to 17 rounds | **3-5 rounds** | **3-5 rounds** |
+| Winning openings (median) | not measured | **6** | **1-2, enforced** |
+| Within the 1-2 target | — | 1 of 5 | **11 of 11 published** |
+| Publication rate | fails / grindy | 10 / 10 | **10 of 11 seeds** |
+| Median forge time | >5 min | 31 s | ~2 min |
+
+Representative published boards after the gate: `1 of 9`, `2 of 13`, `1 of 2`, `2 of 18`,
+`1 of 6`, `2 of 12`.
+
+The one seed in eleven that fails to certify is **not** a lost day. The Web Worker draws a
+fresh random seed per attempt and the lease/poll loop retries, so an unlucky seed costs a
+retry. The forge is also not bit-deterministic across machines: the AI search is bounded by
+wall clock (`timeBudget`), so the same seed can publish on an idle box and miss on a loaded
+one. This is why the test suite asserts *properties of what was published* rather than
+"seed N must publish" — see §9.
+
+Forge time roughly quadrupled (31s → ~2min) and that is the deliberate trade: the tightness
+gate costs a playout per legal opening. Generation happens once a day in a background Web
+Worker, so two minutes there buys a materially harder puzzle for every player.
 
 ---
 
@@ -243,9 +333,15 @@ calibration.
 
 ## 9. Tests
 
-`sim/verify_puzzle_tempo.js` — 35 assertions, mostly **behavioural** rather than
+`sim/verify_puzzle_tempo.js` — 40 assertions, mostly **behavioural** rather than
 source-text, because a source-text assertion cannot tell a renamed constant from a removed
-rule. It plays real depth-4 battles (~60s).
+rule. It plays real depth-4 battles and runs the forge end to end (~9 min).
+
+**It does not assert "every seed publishes."** The AI search is wall-clock bounded, so the
+forge is not deterministic across machines or under load, and a per-seed must-publish check
+would be a flaky test dressed as a guarantee. It asserts instead the property that must hold
+unconditionally — anything *published* is 3-5 rounds **and** 1-2 winning lines — plus that at
+least one sampled seed got there. A seed that misses prints a `note`, not a failure.
 
 Sections: the declared contract · tempo actually predicts solve length · the deadline is
 enforced in the trial runner · the obvious-move gate is wired in · the deadline survives
