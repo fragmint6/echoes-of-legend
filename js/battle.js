@@ -1812,8 +1812,13 @@
     var hint = '';
     if (interactive && sel.ability) {
       var left = sel.needed - sel.chosen.length;
-      hint =
-        sel.needed === 0
+      hint = sel.pendingChoice
+        ? /* The cast is waiting on the player, not on the engine. Saying
+             "Resolving..." here was the visible half of the auto-fire bug:
+             it claimed the skill was already going off while the choice
+             buttons sat there unclicked. */
+          'Choose an option'
+        : sel.needed === 0
           ? 'Resolving...'
           : left > 0
             ? 'Select <b>' + left + '</b> target' + (left > 1 ? 's' : '')
@@ -1986,7 +1991,20 @@
       btn.addEventListener('click', function (ev) {
         ev.stopPropagation();
         sel.choose = parseInt(btn.dataset.choice, 10);
+        /* The click IS the decision. For a skill that needs no targets
+           (Qin Shi Huang: pick:'all' on a chosen row) this is the last
+           outstanding question, so answering it fires the cast - the
+           player would otherwise be left staring at a selected button
+           with no way to confirm it.
+
+           A skill that still needs targets just records the choice and
+           repaints, exactly as before: the preview updates to the newly
+           chosen row and the cast waits for the target clicks. */
+        var readyToFire = sel.pendingChoice && sel.chosen.length >= sel.needed;
+        sel.pendingChoice = false;
         paintDock();
+        paintSelection();
+        if (readyToFire) commit();
       });
     });
   }
@@ -2059,6 +2077,22 @@
     }
     sel = { unit: u, ability: ability, needed: E.pickCount(ability), chosen: [], choose: 0 };
 
+    /* AN UNMADE CHOICE IS AN UNFINISHED CAST (bug 2026-08-17).
+       -------------------------------------------------------------
+       `pickCount` answers "how many TARGETS must be clicked", and for
+       pick:'all' that is legitimately zero. The old code read zero as
+       "nothing left to decide" and fired instantly - which meant a
+       skill offering `spec.choose` never got the chance to be chosen.
+       Qin Shi Huang's row choice was drawn in the dock, but the cast
+       had already resolved on choice 0 (front row) before any button
+       could be clicked, so "choose a row" was a lie: it was always the
+       front.
+
+       Targets and choices are two different questions. A cast is ready
+       only when BOTH are answered, so a skill with a `choose` list now
+       waits for an explicit pick even when it needs no targets. */
+    sel.pendingChoice = !!(ability.spec && ability.spec.choose && ability.spec.choose.length > 1);
+
     // Robin Hood auto-locks his target
     var forced = E.forcedTarget(B, u, ability);
     if (forced && sel.needed === 1) {
@@ -2068,6 +2102,11 @@
     paintDock();
     paintSelection();
 
+    if (sel.pendingChoice) {
+      /* Wait for a .dk-choice click. That handler commits once the
+         player has actually decided. */
+      return;
+    }
     if (sel.needed === 0) {
       // no target needed - fire immediately
       commit();

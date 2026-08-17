@@ -179,6 +179,109 @@ window.EOL.legendLore = {
     'She gathered her husband out of the pieces the river gave back, and nobody has told her a thing is finished since. Isis returns the fallen to the field because she has done it before, under worse conditions.',
   'duat-nephthys':
     'The mourner at the edge of the lamplight, who was there for the gathering and asked for no part of the credit. Nephthys covers whoever is closest to the end - and the veil holds tightest when it is needed most.',
+
+  /* ================= CHAPTER II FACTIONS =================
+     Seven factions added 2026-08-17. Same house style: present
+     tense, no rules vocabulary, and the prose names its own
+     legend so a mis-pasted entry fails sim/verify_all.js. */
+  'jotunheim-odin':
+    'He traded an eye for the sight of how it ends, and the trade was worth it only if he can look at the ending without flinching. Odin has been rehearsing that steadiness for a very long age; the ravens bring him nothing now that he has not already grieved.',
+  'jotunheim-thor':
+    'The simplest thing on any field. Thor does not read the prophecy or argue with it - he finds whatever is largest and hits it, on the reasoning that a world about to end deserves at least one person still doing the obvious job well.',
+  'jotunheim-fenrir':
+    'The ribbon that holds him is soft as a cat\'s footfall and it has held for a thousand years, because the gods asked nicely and a hand was left in his mouth as the price. Fenrir is patient the way a held breath is patient. He is counting.',
+  'jotunheim-hel':
+    'Half her face is a woman and half is what is left afterwards, and she has never once found that remarkable. Hel keeps the ones nobody sings about, and she is unhurried, because everyone arrives eventually and she has room.',
+  'jotunheim-loki':
+    'He is not on anyone\'s side, including his own, and he is the only one honest about it. Loki\'s worst moment is always his last one - whatever he has been saving comes out when the room finally stops him, and the room is never ready.',
+  'jotunheim-freyja':
+    'She takes first pick of the slain, before the hall of the brave gets a look, and she chooses the ones nobody else would have carried home. Freyja\'s hall is not a reward. It is a place to put people down gently.',
+  'jotunheim-heimdall':
+    'He can hear grass growing and wool lengthening on a sheep, and he has not slept in an age of the world. Heimdall stands at the bridge because someone has to be awake when it starts, and he intends to be the one who says so first.',
+  'achaea-achilles':
+    'He was offered a long quiet life and turned it down for a short loud one, and the arithmetic still satisfies him. Achilles is best when something has finally hurt him - grief is the only fuel he has ever really trusted.',
+  'achaea-odysseus':
+    'Ten years to get home and he is still the only person in any room thinking three moves ahead. Odysseus does not fight what is in front of him; he arranges for it to be somewhere less convenient first, then walks through the gap.',
+  'achaea-perseus':
+    'A boy sent to fetch a monster\'s head as a joke, who came back with it. Perseus has been dangerous ever since he learned that the thing everyone fears can be carried in a bag if you are willing to look away at the right moment.',
+  'achaea-medea':
+    'She knows the herb that undoes death and she has used it on people who did not deserve it, which is a thing she thinks about. Medea will bring your friend back once. What that costs her is not written on the label.',
+  'achaea-atalanta':
+    'Raised by a bear, faster than every suitor, and first spear into the boar that half of Greece had failed to kill. Atalanta hunts what is still whole and still proud - wounded things bore her, and she has never pretended otherwise.',
+  'achaea-ajax':
+    'The biggest shield on the field, seven layers of oxhide, and a man who genuinely believes it is his job to stand where the arrows are going. Ajax is steady while he is standing. Everyone around him has learned to rely on that.',
+  'achaea-jason':
+    'He did not row the ship or kill the dragon or win the fleece alone - he got the right people onto one deck and kept them there. Jason\'s talent is the crew, and he would rather be remembered for the roster than the voyage.',
+  'gehenna-pride':
+    'The first refusal, and still the purest. Pride would rather burn on his own terms than be mended on anyone else\'s, and he means it so completely that help offered to him simply slides off and lands somewhere useless.',
+  'gehenna-wrath':
+    'There is a point in every argument where the words stop mattering, and Wrath lives just past it. He gets stronger the longer he goes and he stops guarding anything at all, which he considers a fair exchange.',
+  'gehenna-envy':
+    'He is never quite anyone, because being someone would mean giving up the option of being whoever is currently winning. Envy takes what looks best on you, wears it badly, and hates you slightly more for having had it first.',
+  'gehenna-greed':
+    'He does not spend. That is the whole of him. Greed simply arranges for a little more to arrive on his side of the table each time the table is set, and for a little less to arrive on yours, forever.',
+  'gehenna-gluttony':
+    'The hunger is not for food and never was - it is for the reassurance of taking something in. Gluttony feeds himself first, always, and has never once been embarrassed about it in front of people who needed feeding more.',
+  'gehenna-sloth':
+    'He is not lazy. He is unhurried in a way that is genuinely frightening, because it means he has decided nothing here is worth his hurry. Sloth does nothing today so that what he does tomorrow lands twice as hard.',
+  'gehenna-lust':
+    'Not desire - the wanting of being wanted. Lust turns whoever he touches into the centre of the room, and everything aimed at that room follows them there, which is exactly the fate they were asking for.',
+  'devaloka-shiva':
+    'He dances and the world keeps time to it, and when he stops the world stops too. Shiva is not cruel about this; destruction is simply the half of the job nobody volunteers for, and he has never asked to be relieved.',
+  'devaloka-vishnu':
+    'He has come down ten times wearing ten different lives, and each one was a whole existence lived properly, not a costume. Vishnu preserves things - patiently, repeatedly, and with the tiredness of someone who knows he will be back.',
+  'devaloka-kali':
+    'She is what happens when the protecting stops being polite. Kali wears the count of what she has ended and does not apologise for the necklace, because someone asked her to save them and she did.',
+  'devaloka-durga':
+    'Made from the combined fury of every god who had run out of ideas, riding a lion into a fight they had already lost. Durga does not retreat and has never learned how - the whole point of her is that the line holds.',
+  'devaloka-ganesha':
+    'He sits at the start of things, and whatever is in the way of the start, he moves. Ganesha writes down what is dictated to him even when he disagrees, then quietly removes the obstacle nobody else had noticed.',
+  'devaloka-hanuman':
+    'He forgot he could leap oceans until someone reminded him, which is the most useful thing anyone has ever said to him. Hanuman goes over the top of the problem and lands behind it, cheerfully, before anyone has agreed he can.',
+  'devaloka-indra':
+    'King of the gods on a good day and a cautionary tale on the rest, armed with a weapon made from a sage\'s own bones. Indra throws the thunderbolt at whatever has already been singled out, and rarely asks who did the singling.',
+  'empyrean-lucifer':
+    'He was the brightest of them and the argument he lost was about service, not about evil. Lucifer still pronounces sentence in the old formal way, and still pays for the privilege out of his own light every time he does it.',
+  'empyrean-michael':
+    'The one sent when the discussion is over. Michael carries a sword that was never meant for duels, only for endings, and he is unfailingly courteous right up until the moment he is not.',
+  'empyrean-azrael':
+    'He does not chase and he does not rush. Azrael writes a name and an hour, and the hour comes - whether he is still standing in the room when it arrives is a detail that has never once affected the outcome.',
+  'empyrean-gabriel':
+    'The voice that tells you what is coming, which is a mercy and also the opposite of one. Gabriel announces things, and announced things have a way of arriving sooner than the people who heard them expected.',
+  'empyrean-raphael':
+    'He walked a boy across a country under a false name to teach him how to cure his father, and never once broke character. Raphael undoes what has been set in motion; he is the reason a sentence is not always final.',
+  'empyrean-uriel':
+    'He holds the flame at the gate of the garden, and the flame is not a threat so much as a fact about the door. Uriel sets things alight and lets the burning do the arguing while everyone waits.',
+  'empyrean-metatron':
+    'He keeps the record, which means he decides what the record says. Metatron can close a mouth mid-sentence and has done it often enough that most of the host chooses its words carefully around him.',
+  'transylvania-dracula':
+    'Old, courteous, and entirely uninterested in your consent. Dracula takes a little from everyone in the room and wears it better than any of them did, which he considers the natural order rather than a theft.',
+  'transylvania-monster':
+    'He learned to speak by listening at a wall, learned to read from three books in a ditch, and asked only for one person in the world who would not scream. Frankenstein\'s Monster is enormous, articulate, and still waiting for an answer.',
+  'transylvania-carmilla':
+    'She arrives as a guest, stays as a friend, and leaves the household weaker in ways nobody can quite date. Carmilla is unhurried and genuinely affectionate, which is the part that makes her difficult to be angry about.',
+  'transylvania-hyde':
+    'The draught does not create him. It simply removes the argument against him. Mr. Hyde is what was already in the house with the door finally open, and he gets less careful about his own skin every time he is let out.',
+  'transylvania-van-helsing':
+    'An old academic with a bag of very specific tools and no patience whatsoever for the supernatural\'s sense of ceremony. Van Helsing undoes preparation - whatever ward you spent the evening arranging, he has a method for it.',
+  'transylvania-invisible-man':
+    'The formula worked, which was the tragedy. The Invisible Man cannot be looked at, cannot be found, and has discovered that a person nobody can see stops bothering to behave like one.',
+  'transylvania-dorian-gray':
+    'The picture in the attic takes the damage and the ruin and the years, and the man downstairs stays exactly as he was on the day he wished it. Dorian Gray is unmarked, immaculate, and quietly running out of canvas.',
+  'tortuga-blackbeard':
+    'He wove slow-burning cord into his beard and lit it before boarding, because a man who appears to be on fire rarely has to fight. Blackbeard\'s reputation did most of the work, and he maintained it personally.',
+  'tortuga-davy-jones':
+    'Not a captain - the place captains end up. Davy Jones keeps a locker at the bottom of everything, and what he files there does not get filed back out again, whatever is promised on the surface.',
+  'tortuga-kraken':
+    'It comes up under the keel and takes the whole line down with it, and no one has ever agreed on how big it is because no one has seen all of it at once. The Kraken drags everything within reach into the same water.',
+  'tortuga-anne-bonny':
+    'She dressed as she pleased, fought better than the men who objected, and was still standing when the rest of the crew had gone below to drink. Anne Bonny takes what her opponent brought and puts it to better use.',
+  'tortuga-captain-kidd':
+    'A privateer with a commission, hanged as a pirate, and remembered mostly for a hoard that may never have existed. Captain Kidd still marks his target first, and still expects the whole crew to be paid when it goes down.',
+  'tortuga-calico-jack':
+    'He is remembered for the flag more than the fighting, which is fair - the skull and crossed blades were his, and they emptied more decks than his cutlass ever did. Calico Jack raises the colours and lets the fear do the boarding.',
+  'tortuga-flying-dutchman':
+    'Condemned to sail and never make port, crewed by everyone the sea has already taken. The Flying Dutchman grows heavier and more dangerous with every name added to her roll, and she has never once been short of names.',
 };
 
 /* Attach to the roster. Written as a merge rather than a lookup so

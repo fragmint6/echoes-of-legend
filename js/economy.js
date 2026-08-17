@@ -318,13 +318,30 @@
     return added;
   }
 
-  /* what the shop may ever sell: everything except Huaxia (held for
-     Chapter 2). Deliberately NOT progression-gated - the Road's fog
-     protects its reveals in the LEDGER; the shop just sells cards. */
+  /* THE CHAPTER II SHELF. Huaxia was already held back for Chapter 2;
+     the seven factions added on 2026-08-17 are the rest of that
+     chapter's roster and are held on exactly the same terms. Shipping
+     them into the shop the moment they exist would spend the chapter's
+     whole reveal before its Road is built - and would also flood the
+     pack pool, halving the odds of pulling any specific older legend.
+
+     Deliberately NOT progression-gated: the Road's fog protects its
+     reveals in the LEDGER; the shop simply does not stock these yet.
+     One list, so unlocking the chapter is a one-line change. */
+  var CHAPTER_2 = [
+    'huaxia',
+    'jotunheim',
+    'achaea',
+    'gehenna',
+    'devaloka',
+    'empyrean',
+    'transylvania',
+    'tortuga',
+  ];
   function obtainableEntries() {
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if (f.id === 'huaxia') return;
+      if (CHAPTER_2.indexOf(f.id) >= 0) return;
       f.cards.forEach(function (c) {
         out.push({ card: c, faction: f });
       });

@@ -32,6 +32,18 @@ const FILES = [
   'data/roma.js',
   'data/takamagahara.js',
   'data/duat.js',
+  /* CHAPTER II FACTIONS (2026-08-17). Added here as well as to
+     index.html - this list is what the whole suite audits, so a new
+     faction file that is not in it passes every check VACUOUSLY. The
+     49 new legends were briefly invisible to the lore coverage
+     assertion for exactly that reason. */
+  'data/jotunheim.js',
+  'data/achaea.js',
+  'data/gehenna.js',
+  'data/devaloka.js',
+  'data/empyrean.js',
+  'data/transylvania.js',
+  'data/tortuga.js',
   'data/lore.js',
   'js/engine.js',
   'js/ai.js',
@@ -1389,11 +1401,37 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     );
   }
 
-  /* --- everyone else is still walled --- */
+  /* --- everyone else is still walled ---
+     PURE UTILITY IS EXEMPT, and always was: guidelines section
+     "The one rule", consequence 3 - "an ability that deals no damage
+     ... ignores Provoke, because there is no blow to intercept."
+
+     The filter did not encode that because until the Chapter II
+     factions there was no single-target enemy skill in the roster
+     with zero damage on it; every Controller carried at least a small
+     hit. Lust, Metatron, Carmilla and Davy Jones are the first four,
+     and the engine correctly lets them through the wall. Testing them
+     against the redirect asserted the opposite of the documented rule. */
+  const dealsDamage = (c) => {
+    let found = false;
+    const walk = (n) => {
+      if (!n || typeof n !== 'object' || found) return;
+      if (Array.isArray(n)) return n.forEach(walk);
+      if (n.k === 'dmg' || n.k === 'lifesteal') found = true;
+      ['effects', 'then', 'other', 'heads', 'tails', 'choose'].forEach((b) => n[b] && walk(n[b]));
+    };
+    walk(c.ability.spec && c.ability.spec.effects);
+    if (c.ability.spec && c.ability.spec.choose) walk(c.ability.spec.choose);
+    return found;
+  };
   ALL.filter((c) => {
     const t = c.ability.spec && c.ability.spec.target;
     return (
-      t && t.side === 'enemy' && c.role !== 'Sniper' && (t.pick === 'single' || t.pick === 'auto')
+      t &&
+      t.side === 'enemy' &&
+      c.role !== 'Sniper' &&
+      (t.pick === 'single' || t.pick === 'auto') &&
+      dealsDamage(c)
     );
   }).forEach((c) => {
     const B = setup(c.id, { taunt: 'camelot-king-arthur' });

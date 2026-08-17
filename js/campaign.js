@@ -165,7 +165,7 @@
     });
     var replacements = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if (f.id === 'huaxia' || f.id === 'duat') return;
+      if (excludedFromChapter1(f)) return;
       f.cards.forEach(function (c) {
         if (c.rarity !== 'legendary' && !used[c.id]) replacements.push({ card: c, faction: f });
       });
@@ -180,6 +180,29 @@
     });
   }
 
+  /* FACTIONS CHAPTER I NEVER DRAFTS.
+     Huaxia and Duat were already excluded - Huaxia is held for
+     Chapter 2 and Duat is the chapter's own reveal. The seven
+     factions added 2026-08-17 belong to Chapter 2 as well, so the
+     Road must not hand them out as draft filler: a Gate III pool
+     offering Lucifer would spoil a chapter that has not been written
+     yet, and would also drown the authored Chapter I rivals in
+     legends the difficulty was never tuned against. */
+  var NOT_IN_CHAPTER_1 = [
+    'huaxia',
+    'duat',
+    'jotunheim',
+    'achaea',
+    'gehenna',
+    'devaloka',
+    'empyrean',
+    'transylvania',
+    'tortuga',
+  ];
+  function excludedFromChapter1(f) {
+    return NOT_IN_CHAPTER_1.indexOf(f.id) >= 0;
+  }
+
   function buildPool(spec) {
     var featuredId = spec && spec.featured ? spec.featured : spec;
     if (spec && spec.cards && spec.cards.length) {
@@ -188,7 +211,7 @@
     }
     var byRole = {};
     (window.EOL.factions || []).forEach(function (f) {
-      if (f.id === 'huaxia' || f.id === 'duat') return;
+      if (excludedFromChapter1(f)) return;
       f.cards.forEach(function (c) {
         (byRole[c.role] = byRole[c.role] || []).push({ card: c, faction: f });
       });

@@ -30,6 +30,8 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Measurement / feedback                         | `node sim/verify_telemetry.js`                    | <1s    |
 | Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
 | Puzzle generation / solve length / difficulty  | `node sim/verify_puzzle_tempo.js`                 | ~9min  |
+| New factions / Chapter II legends              | `node sim/verify_chapter2.js`                     | <1s    |
+| Card balance sweep (budgets, bands, dupes)     | `node sim/audit_factions.js`                      | <1s    |
 | Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |
 | Cloud saves, sign-in/sign-out, save collisions | `node sim/verify_save_ownership.js`               | <2s    |
 | CrazyGames SDK / gameplay timing               | `node sim/verify_crazygames_sdk.js`               | <2s    |

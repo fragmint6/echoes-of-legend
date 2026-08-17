@@ -512,6 +512,18 @@
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
             raw += atkOf(unit) * (e.perBuff + upAdd(unit, ctx)) * bn * (ctx.scale || 1) * provokeM;
           }
+          /* TORTUGA (Flying Dutchman): scales with the caster's OWN
+             fallen allies - the crew he has lost. Counts corpses on his
+             side only, unlike Jotunheim's `fallenAtLeast` which reads
+             both. Capped for the usual reason. */
+          if (e.perFallenAlly) {
+            var fa = B.units.filter(function (x) {
+              return x.side === unit.side && !x.alive;
+            }).length;
+            if (e.perFallenAllyMax != null) fa = Math.min(fa, e.perFallenAllyMax);
+            raw +=
+              atkOf(unit) * (e.perFallenAlly + upAdd(unit, ctx)) * fa * (ctx.scale || 1) * provokeM;
+          }
           var outM = outgoingMult(B, unit, tgt);
           B._multTrail = null;
           /* dryRun: this is previewDamage - report, never consume. */
@@ -1631,6 +1643,26 @@
     if (cond.targetHasDebuff != null) {
       pass = list.length > 0 && hasDebuff(list[0]) === !!cond.targetHasDebuff;
     }
+    /* JOTUNHEIM: the fallen count, readable from a branch.
+       -------------------------------------------------------------
+       branchPasses() is a HAND-MAINTAINED subset of condMet(), and an
+       unknown key does not fail closed - it leaves `pass` at its
+       default of true. Odin's `fallenAtLeast: 3` therefore fired the
+       bonus arm from round one, and Shiva's `targetMarked` (a real
+       condMet key, but not one branchPasses knows) did the same.
+
+       Both were silent: the card did MORE than its text, which no
+       assertion was looking for. Delegating unknown keys to condMet
+       would be the deeper fix, but the two functions deliberately
+       differ - branchPasses reasons about a target LIST where condMet
+       reasons about one target - so the honest repair is to teach it
+       the keys the roster actually uses, and to have
+       sim/verify_chapter2.js prove each branch flips. */
+    if (cond.fallenAtLeast != null) pass = (B.deathSeq || 0) >= cond.fallenAtLeast;
+    if (cond.fallenBelow != null) pass = (B.deathSeq || 0) < cond.fallenBelow;
+    if (cond.targetMarked != null) {
+      pass = list.length > 0 && list[0].flags.marked > 0 === !!cond.targetMarked;
+    }
     if (cond.selfShielded) pass = src.shield > 0;
     if (cond.targetShielded != null) {
       pass = list.length > 0 && list[0].shield > 0 === !!cond.targetShielded;
@@ -1774,6 +1806,16 @@
     if (cond.targetTaunting != null) {
       if (!tgt || tgt.flags.taunt > 0 !== !!cond.targetTaunting) return false;
     }
+    /* ACHAEA: the caster's own HP. `targetHpBelow` reads the victim,
+       which is the wrong end for a passive that asks "am I hurt?" -
+       Achilles' rage triggers on HIS wound, not his attacker's. Reads
+       live HP because a passive has no pre-cast snapshot. */
+    if (cond.selfHpBelow != null) {
+      if (!ctx.self || ctx.self.hp / ctx.self.maxHp >= cond.selfHpBelow) return false;
+    }
+    if (cond.selfHpAbove != null) {
+      if (!ctx.self || ctx.self.hp / ctx.self.maxHp <= cond.selfHpAbove) return false;
+    }
     if (cond.selfShielded) {
       if (!ctx.self || ctx.self.shield <= 0) return false;
     }
@@ -1818,6 +1860,23 @@
     }
     if (cond.drainedEnergyAbove != null) {
       if ((ctx.drainedEnergy || 0) < cond.drainedEnergyAbove) return false;
+    }
+    /* JOTUNHEIM: how many legends have FALLEN so far, counting both
+       sides. `deathSeq` is the engine's existing monotonic death counter
+       (incremented in handleDeath) - this condition only reads it, so
+       Ragnarok needs no new state, no new status and nothing to
+       serialize. Deliberately counts BOTH teams: the Norse read the end
+       of the world approaching, not their own casualties, and a card
+       that only counted your own losses would reward losing. */
+    if (cond.fallenAtLeast != null) {
+      if ((B.deathSeq || 0) < cond.fallenAtLeast) return false;
+    }
+    /* The complement, so a static passive can express "while fewer than
+       N have fallen" without needing an `unless` keyword (Fenrir's
+       chains). Strictly below, so fallenBelow:3 and fallenAtLeast:3
+       partition the space with no overlap and no gap. */
+    if (cond.fallenBelow != null) {
+      if ((B.deathSeq || 0) >= cond.fallenBelow) return false;
     }
     return true;
   }
@@ -2992,6 +3051,17 @@
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
             raw += atkOf(src) * (e.perBuff + upAdd(src, ctx)) * bn * (ctx.scale || 1) * provokeM;
           }
+          /* TORTUGA (Flying Dutchman) - live counterpart of the same
+             term in previewDamage. Both sites must stay in step or the
+             preview lies about the number the player is about to deal. */
+          if (e.perFallenAlly) {
+            var fa2 = B.units.filter(function (x) {
+              return x.side === src.side && !x.alive;
+            }).length;
+            if (e.perFallenAllyMax != null) fa2 = Math.min(fa2, e.perFallenAllyMax);
+            raw +=
+              atkOf(src) * (e.perFallenAlly + upAdd(src, ctx)) * fa2 * (ctx.scale || 1) * provokeM;
+          }
           /* Only a SIGNATURE spends a Mark - ctx.signature rides in from
              useAbility (`!ability.basic`). This used to pass a flat true,
              so Basic attacks consumed Marks too: a Zeus mark you were
@@ -3053,6 +3123,16 @@
              own number. */
           if (e.perCleansed && ctx.cleansed && ctx.cleansed[t.uid])
             amt += t.maxHp * ((e.perCleansed + upPts(src, ctx)) / 100) * ctx.cleansed[t.uid];
+          /* JOTUNHEIM (Freyja): a slice of Max HP for every legend that
+             has fallen on either side. Same shape as perCleansed, and
+             CAPPED by perFallenMax for the same reason maxStacks exists -
+             an uncapped per-death scalar becomes a full heal in a long
+             game. */
+          if (e.perFallen) {
+            var fallenN = B.deathSeq || 0;
+            if (e.perFallenMax != null) fallenN = Math.min(fallenN, e.perFallenMax);
+            amt += t.maxHp * ((e.perFallen + upPts(src, ctx)) / 100) * fallenN;
+          }
           healUnit(B, src, t, amt * (ctx.scale || 1), {
             overflowShield: e.overflow === 'shield',
             signature: !!ctx.signature,
@@ -3727,6 +3807,16 @@
       case 'revive': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          /* THE LOCKER HOLDS. Davy Jones's condemnation refuses every
+             revive in the game - Isis, Medea, Osiris, Sun Wukong's
+             death-cheat. Checked here, at the single revive site, so no
+             future revive card can accidentally bypass it. */
+          if (t.flags && t.flags.noRevive) {
+            logMsg(B, 'debuff', t.name + ' cannot return - the Locker holds them.', {
+              uid: t.uid,
+            });
+            return;
+          }
           t.alive = true;
           t.hp = Math.round(t.maxHp * ((e.pctMaxHp + upPts(src, ctx)) / 100));
           /* Generic `wipe` rider: a legend who comes back should come back
@@ -3781,6 +3871,65 @@
             }
           }
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
+        });
+        break;
+      }
+
+      /* EMPYREAN: Gabriel accelerates every sealed fate on the board,
+         Raphael cancels the ones aimed at his ally. Both reach into the
+         SAME per-unit `pending` queue that `delayed` writes (Zeus's
+         thunderbolt, Abe no Seimei's shikigami, Azrael's hour), so they
+         work on any faction's delayed effects rather than only their
+         own - the cross-faction hand-off the guidelines ask for.
+
+         Neither is a new mechanic: they are queue maintenance on a
+         structure that already exists, already serializes and already
+         survives cloneBattle. */
+      case 'hastenDelayed': {
+        var hastenBy = e.turns || 1;
+        var hastened = 0;
+        B.units.forEach(function (u) {
+          (u.pending || []).forEach(function (p) {
+            if (p.turns > 1) {
+              p.turns = Math.max(1, p.turns - hastenBy);
+              hastened++;
+            }
+          });
+        });
+        if (hastened) {
+          logMsg(B, 'mark', 'What was sealed draws nearer - ' + hastened + ' fates hasten.', {});
+        }
+        break;
+      }
+
+      case 'cancelDelayed': {
+        var cancelled = 0;
+        list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          cancelled += (t.pending || []).length;
+          t.pending = [];
+        });
+        if (cancelled) {
+          logMsg(B, 'cleanse', 'A sealed fate is undone.', {});
+        }
+        break;
+      }
+
+      /* TORTUGA (Davy Jones): condemn a legend so that nothing can
+         bring them back. Not a new mechanic - the engine already has
+         two revive gates (`spiritSpared`, `deathCheated`); this is a
+         third, set by an ability instead of by a passive. Stored on the
+         unit so it survives serialization and cloneBattle like any
+         other flag. */
+      case 'noRevive': {
+        list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          t.flags.noRevive = 1;
+          logMsg(B, 'debuff', t.name + ' is claimed by the Locker.', {
+            uid: t.uid,
+            status: 'norevive',
+            signature: !!ctx.signature,
+          });
         });
         break;
       }
@@ -4575,6 +4724,30 @@
         applyEffects(B, u, [u], pick.effects, { immediate: true, fieldBuff: true });
       });
     }
+
+    /* GEHENNA (Greed): the `roundStart` passive trigger. Fires once per
+       legend per round rollover, AFTER the round's energy grant so a
+       tax lands on the topped-up pool rather than being overwritten by
+       it, and after field relics so it cannot be undone by them.
+
+       Deliberately placed inside nextRound rather than in battle.js:
+       energy is engine state, and a passive that only fired in the UI
+       layer would desync the AI's search and the mirror check. Round 1
+       never passes through nextRound, so a roundStart passive correctly
+       starts paying from round 2 - the same rule the energy grant
+       itself follows. */
+    boardOrder(B).forEach(function (u) {
+      var rp = passiveOf(u);
+      if (!hasTrig(rp, 'roundStart')) return;
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'roundStart',
+        round: B.round,
+      });
+      applyEffects(B, u, [u], rp.effects, { trigger: 'roundStart', immediate: true });
+    });
 
     logMsg(B, 'round', 'Round ' + B.round + ' - Energy restored to ' + e + '.', {});
     if (B.round === RAMP_FROM) {
