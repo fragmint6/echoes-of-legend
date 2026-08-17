@@ -1,7 +1,4 @@
 id,file,width,height,bytes,format,quality,filter,linear_light,sharpen
-achaea-achilles,achaea-achilles.png,64,88,14314,png,lossless,lanczos,True,15
-achaea-odysseus,achaea-odysseus.png,64,88,11020,png,lossless,lanczos,True,15
-achaea-perseus,achaea-perseus.png,64,88,12669,png,lossless,lanczos,True,15
 camelot-guinevere,camelot-guinevere.png,64,88,12055,png,lossless,lanczos,True,15
 camelot-king-arthur,camelot-king-arthur.png,64,88,12498,png,lossless,lanczos,True,15
 camelot-lancelot,camelot-lancelot.png,64,88,12289,png,lossless,lanczos,True,15
@@ -35,12 +32,7 @@ huaxia-nezha,huaxia-nezha.png,64,88,12772,png,lossless,lanczos,True,15
 huaxia-qin-shi-huang,huaxia-qin-shi-huang.png,64,88,13033,png,lossless,lanczos,True,15
 huaxia-sun-wukong,huaxia-sun-wukong.png,64,88,13065,png,lossless,lanczos,True,15
 huaxia-zhuge-liang,huaxia-zhuge-liang.png,64,88,12944,png,lossless,lanczos,True,15
-jotunheim-fenrir,jotunheim-fenrir.png,64,88,12899,png,lossless,lanczos,True,15
-jotunheim-freyja,jotunheim-freyja.png,64,88,13410,png,lossless,lanczos,True,15
-jotunheim-heimdall,jotunheim-heimdall.png,64,88,13276,png,lossless,lanczos,True,15
-jotunheim-hel,jotunheim-hel.png,64,88,12864,png,lossless,lanczos,True,15
-jotunheim-loki,jotunheim-loki.png,64,88,13553,png,lossless,lanczos,True,15
-jotunheim-odin,jotunheim-odin.png,64,88,14128,png,lossless,lanczos,True,15
+jotunheim-odin,jotunheim-odin.png,64,88,15031,png,lossless,lanczos,True,15
 olympus-apollo,olympus-apollo.png,64,88,13386,png,lossless,lanczos,True,15
 olympus-ares,olympus-ares.png,64,88,11561,png,lossless,lanczos,True,15
 olympus-athena,olympus-athena.png,64,88,12814,png,lossless,lanczos,True,15

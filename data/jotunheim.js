@@ -159,7 +159,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-wolf-howl',
-      art: 'assets/legends/jotunheim-fenrir.png',
+      art: null,
     },
 
     {
@@ -195,7 +195,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-death-skull',
-      art: 'assets/legends/jotunheim-hel.png',
+      art: null,
     },
 
     {
@@ -230,7 +230,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-venomous-snake',
-      art: 'assets/legends/jotunheim-loki.png',
+      art: null,
     },
 
     {
@@ -267,7 +267,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-feather-wing',
-      art: 'assets/legends/jotunheim-freyja.png',
+      art: null,
     },
 
     {
@@ -299,7 +299,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ringing-bell',
-      art: 'assets/legends/jotunheim-heimdall.png',
+      art: null,
     },
   ],
 });

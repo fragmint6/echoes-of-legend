@@ -8,6 +8,37 @@ Status: **v2.3 - full-ART environmental card illustrations**, dynamic
 role-driven action compositions, expanded to 112 legends (2026-08-17,
 rev 5).
 
+> **2026-08-17, rev 6 (THE STYLE IS PIXEL ART - READ THIS BEFORE
+> GENERATING).** A first pass at the Chapter II art was generated as
+> smooth painted fantasy illustration and had to be thrown away. At a
+> 512px upscale the shipped cards *look* painterly, so "detailed painted
+> digital fantasy art" seemed like the right prompt. It is not. Viewed
+> at 6x NEAREST - which is roughly how the card renders - the shipped
+> art has obvious chunky pixel structure: hard stair-stepped contours,
+> flat fills, visible dithering. The softness in an upscale is a
+> downscaling artefact, not the source style.
+>
+> The prompt block in section 3 already said all of this ("flat colour
+> fills, hard blocky shading with 3-5 tones per material, deliberate
+> dithering, crisp hard pixel edges, no anti-aliasing"). It was
+> overridden on the strength of a bad visual check. **Use section 3
+> verbatim.**
+>
+> Two failure modes when correcting it, both real:
+> - Leaning hard on "16-bit / SNES / sprite" pulls the generator into a
+>   tight bust close-up. Say THREE-QUARTER-LENGTH explicitly.
+> - Over-correcting to "wide shot, zoomed out" produces a small distant
+>   figure that reads as a game sprite, not a card. The target is a
+>   large commanding figure at 60-70% of frame width with the
+>   environment fully visible around it.
+>
+> A quick objective check, since eyeballing an upscale is what caused
+> this: measure the fraction of horizontally adjacent pixel pairs whose
+> summed RGB delta is <= 6 ("flat") and > 30 ("hard"). The shipped
+> roster runs flat 0.11-0.26 and hard 0.34-0.57. Smooth painted art
+> lands near flat 0.09 / hard 0.62 - too few flat runs, too many soft
+> mid-tone transitions dressed up as edges.
+
 > **2026-08-17, rev 5 (CHAPTER II).** Seven factions and 49 legends
 > added: Jotunheim, Achaea, Gehenna, Devaloka, Empyrean, Transylvania
 > and Tortuga. Palettes (section 2), environments (section 2) and briefs
@@ -58,7 +89,7 @@ rev 5).
 > `assets/legends/<id>.jpg`. The sigil-ring mask in CSS is deleted; the
 > image simply covers the card and the HUD scrims keep the text legible.
 
-- **roster: 112 legends; generated art present for 63, outstanding for 49**
+- **roster: 112 legends; generated art present for 64, outstanding for 48**
 - Six new Grimmwood legends were added in rev 3: Gingerbread Man, Evil Queen,
   Puss in Boots, Rapunzel, Goldilocks and Cinderella.
 - Rev 5 added seven Chapter II factions (49 legends), briefed but not yet

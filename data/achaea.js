@@ -87,7 +87,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-spear-head',
-      art: 'assets/legends/achaea-achilles.png',
+      art: null,
     },
 
     {
@@ -133,7 +133,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fast-ship',
-      art: 'assets/legends/achaea-odysseus.png',
+      art: null,
     },
 
     {
@@ -174,7 +174,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-monster-skull',
-      art: 'assets/legends/achaea-perseus.png',
+      art: null,
     },
 
     {
