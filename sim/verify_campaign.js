@@ -16,7 +16,7 @@
         recorded for the blessings retune (R8)
      E. dialogue coverage: a scene + epilogue + result lines +
         barks for all ten gates; every scene ends on battle:true
-     F. curated draft pools: 36 cards, 6 per role, the featured
+     F. curated draft pools: 36 cards, exactly 6 crowns, the featured
         faction complete, no Huaxia (Chapter 2) and no Duat (the
         boss reveal) in any Chapter 1 draft
      G. Gilgamesh: unbannable + pinned flags declared (R5), his kit
@@ -116,11 +116,15 @@ S.stages.forEach(function (st) {
     return 0.37;
   });
   ok(generated.length === 36, 'generated Draft tables still contain exactly 36 cards');
+  /* The FREE-DRAFT path (not the campaign's frozen tables). Equality,
+     matching the curated rule: every draft table in the game now carries
+     the same crown density, so the mode reads the same wherever it is
+     entered. Measured across several rng values before tightening. */
   ok(
     generated.filter(function (e) {
       return e.card.rarity === 'legendary';
-    }).length <= EOL.deckRules.DRAFT_MAX_LEGENDARIES,
-    'generated Draft tables obey the global four-Legendary cap'
+    }).length === EOL.deckRules.DRAFT_LEGENDARIES,
+    'generated Draft tables carry exactly ' + EOL.deckRules.DRAFT_LEGENDARIES + ' Legendaries'
   );
 })();
 
@@ -621,9 +625,14 @@ console.log('D. grant curriculum');
 S.stages.forEach(function (st) {
   var g = st.grants || {};
   ok(!g.cards, 'stage ' + st.id + ': no extra ordinary-card reward between coins and the gate prize');
+  /* `companion` added 2026-08-18d: the SECOND legend each epilogue
+     names. It is not an "extra ordinary-card reward" - the thing this
+     whitelist exists to forbid - it is the card the script already
+     promised, pinned into the Heroic slot that used to roll a random
+     epic. The gate still hands over exactly two cards. */
   ok(
     Object.keys(g).every(function (key) {
-      return ['coins', 'legendPack', 'choice'].indexOf(key) >= 0;
+      return ['coins', 'legendPack', 'companion', 'choice'].indexOf(key) >= 0;
     }),
     'stage ' + st.id + ': reward contains only coins and its Legendary/Exam prize'
   );
@@ -694,16 +703,46 @@ S.stages.forEach(function (st) {
   });
   ok(okIds, 'stage ' + st.id + ': every pool id resolves');
   /* Under the progression law the pool draws only from introduced
-     factions, so a strict 6-per-role is no longer possible (gate VI's
-     five factions hold exactly 5 snipers and 4 casters). The real
-     requirements: every role present, and enough breadth that both
-     drafters can build legal twelves. */
+     factions, so a strict 6-per-role is impossible.
+
+     THE FLOOR IS PER-STAGE, AND IT IS ARITHMETIC, NOT TASTE (2026-08-18d).
+     Gate VI can field five factions holding exactly 36 cards, and only
+     THREE of them are Casters - Zeus, the Evil Queen and Rumpelstiltskin
+     are every Caster that exists by then. So a 4-Caster floor at stage 6
+     is unsatisfiable, and the previous pool only "passed" it by
+     smuggling in Kami and Roma cards from factions the player had not
+     met. The floor is therefore the true minimum available, computed
+     from the introduced factions rather than asserted as a constant. */
+  /* Local copy: the canonical INTRO map lives inside the progression-law
+     IIFE further down and is not in scope here. Kept in sync by section
+     H, which fails loudly if the road's introduction order ever changes. */
+  var INTRO_ORDER = {
+    1: 'grimmwood',
+    2: 'camelot',
+    3: 'sherwood',
+    4: 'olympus',
+    6: 'yamato',
+    7: 'roma',
+    8: 'kami',
+    10: 'duat',
+  };
+  var introduced = {};
+  Object.keys(INTRO_ORDER).forEach(function (k) {
+    if (+k <= st.id) introduced[INTRO_ORDER[k]] = true;
+  });
+  var availableByRole = {};
+  EOL.factions.forEach(function (f) {
+    if (!introduced[f.id]) return;
+    f.cards.forEach(function (c) {
+      availableByRole[c.role] = (availableByRole[c.role] || 0) + 1;
+    });
+  });
   ok(
     Object.keys(roles).length === 6 &&
       Object.keys(roles).every(function (r) {
-        return roles[r] >= 4;
+        return roles[r] >= Math.min(4, availableByRole[r] || 0);
       }),
-    'stage ' + st.id + ': every role present in playable depth (4+)'
+    'stage ' + st.id + ': every role present at the deepest legal depth'
   );
   var featN = P.filter(function (id) {
     return dict[id] && dict[id].faction.id === fid;
@@ -721,9 +760,15 @@ S.stages.forEach(function (st) {
   var legendaryN = P.filter(function (id) {
     return dict[id] && dict[id].card.rarity === 'legendary';
   }).length;
+  /* EXACTLY six, not "at most" (owner ruling 2026-08-18d). Six is the
+     number that makes gate VI possible: its five legal factions hold
+     exactly 36 cards containing exactly six crowns, so any lower cap
+     forced the table to import cards from factions the player had not
+     met. An equality check also stops a future table drifting crown-light. */
   ok(
-    legendaryN <= EOL.deckRules.DRAFT_MAX_LEGENDARIES,
-    'stage ' + st.id + ': no more than 4 Legendaries on the 36-card table (' + legendaryN + ')'
+    legendaryN === EOL.deckRules.DRAFT_LEGENDARIES,
+    'stage ' + st.id + ': exactly ' + EOL.deckRules.DRAFT_LEGENDARIES +
+      ' Legendaries on the 36-card table (' + legendaryN + ')'
   );
   ok(!!st.persona, 'stage ' + st.id + ': draft persona set');
 });
@@ -732,9 +777,16 @@ console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
 /* Factions enter the Road one gate at a time - Grimmwood at I,
    Camelot II, Sherwood III, Olympus IV, Yamato VI, Roma VII,
    Kami VIII, Duat only at X. Rival decks and grants may not
-   jump that order. Curated Draft tables may preview non-Legendary cards
-   from the next road when a 36-distinct-card table cannot otherwise obey
-   the four-Legendary cap; future crowns must remain hidden. */
+   jump that order.
+
+   THE PREVIEW CLAUSE IS GONE (2026-08-18d). It used to let a curated
+   table show non-Legendary cards from a future road when 36 distinct
+   cards could not otherwise obey the crown cap. That clause was the
+   loophole the owner caught - gate VI was showing Kami and Roma cards
+   before either faction existed on the Road. The crown rule is now
+   exactly six, which makes every table fillable from introduced
+   factions alone, so NO card from an unintroduced faction may appear
+   in a curated pool for any reason. */
 (function () {
   var INTRO = {
     1: 'grimmwood',

@@ -178,7 +178,29 @@ window.EOL.deckRules = (function () {
      instead, so its live picks continue to use capBlocked() for the
      role law only. */
   var MAX_LEGENDARIES = 2;
-  var DRAFT_MAX_LEGENDARIES = 4;
+  /* DRAFT CROWNS: EXACTLY SIX, NOT "AT MOST FOUR" (owner ruling
+     2026-08-18d: "Make it so that drafts now have exactly 6 legendaries
+     always.")
+
+     WHY THE OLD CAP OF 4 HAD TO GO. Gate VI is the case that broke it.
+     A draft table is exactly 36 cards (POOL_SIZE in js/pool.js), and by
+     gate VI the progression law has introduced exactly five factions
+     holding exactly 36 cards - of which SIX are legendary. So the table
+     had to be all 36 legal cards, which meant 6 crowns, which the cap
+     forbade. The author's escape valve was to leak cards from factions
+     the player has not met yet (Roma and Kami appeared in gate VI),
+     which is the bug that started this.
+
+     Six is therefore not a loosening for its own sake: it is the number
+     that makes the gate arithmetically possible without breaking the
+     progression law, and it is now a FLOOR AND A CEILING rather than a
+     cap, so every table has the same crown density and the draft reads
+     the same at every gate.
+
+     The name keeps MAX_ for call-site compatibility; DRAFT_LEGENDARIES
+     is the honest reading. */
+  var DRAFT_MAX_LEGENDARIES = 6;
+  var DRAFT_LEGENDARIES = DRAFT_MAX_LEGENDARIES;
   var BANS = 2;
   var FIELD_SIZE = 6;
 
@@ -323,6 +345,7 @@ window.EOL.deckRules = (function () {
     MAX_PER_ROLE: MAX_PER_ROLE,
     MAX_LEGENDARIES: MAX_LEGENDARIES,
     DRAFT_MAX_LEGENDARIES: DRAFT_MAX_LEGENDARIES,
+    DRAFT_LEGENDARIES: DRAFT_LEGENDARIES,
     BANS: BANS,
     FIELD_SIZE: FIELD_SIZE,
     isLegal: isLegal,

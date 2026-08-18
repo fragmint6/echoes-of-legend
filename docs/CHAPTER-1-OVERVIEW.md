@@ -197,7 +197,11 @@ guardian gets exactly one knife hidden in the warmth.
 - **Signature line:** "A mark is a promise: I see you. I am coming.
   Prepare. Whether it becomes prophecy is the only part that belongs
   to you."
-- **Reward:** Zeus + Hercules + coin.
+- **Reward:** Zeus + **Poseidon** + coin. *(Was Hercules, who moved to
+  Hemithea on 2026-08-18 and can no longer be granted at an Olympus
+  gate. Poseidon replaced him in the faction and in the grant, and fits
+  the gate better: Hercules never touched a Mark, where Poseidon's whole
+  trick is that attacking him is what writes one.)*
 
 ### Gate V — The Warden of the Mid-Road *(first exam)*
 - **Format:** **Unabridged best-of-3** · **Fight card:** Colosseum /
@@ -230,7 +234,10 @@ guardian gets exactly one knife hidden in the warmth.
 - **Playstyle:** drafts from a curated pool (all six Yamato guaranteed)
   with a thief's eye: **steals the pieces your plan needs** and snipes
   energy payoffs. "Draft like someone is robbing you. Someone is."
-- **Reward:** Kaguya + Benkei + a blank lacquered tile + coin.
+- **Reward:** Abe no Seimei + **Miyamoto Musashi** + a blank lacquered
+  tile + coin. *(Was "Kaguya + Benkei", which matched neither the code
+  nor the roster: the gate's legendPack has always been Abe no Seimei,
+  and Kaguya moved to Kami. Musashi is the pinned companion.)*
 
 ### Gate VII — The Strategist
 - **Format:** **Draft** · **Board:** The Blood Battlefield (legends
@@ -244,8 +251,10 @@ guardian gets exactly one knife hidden in the warmth.
 - **Playstyle:** Roma pool; **counter-drafts your live picks** — "I
   will not be drafting cards. I will be drafting your habits." Values
   the cold strong card.
-- **Reward:** Julius Caesar + Brutus ("Caesar ends what he starts;
-  Brutus ends what Caesar starts") + a brass measuring pin + coin.
+- **Reward:** **Constantine the Great** + Brutus ("Constantine ends the
+  argument by declaring it settled; Brutus ends the man who declared
+  it") + a brass measuring pin + coin. *(The old line promised Caesar,
+  who this gate has never granted - its legendPack is Constantine.)*
 
 ### Gate VIII — The Chronicler
 - **Format:** **Draft** · **Board:** The Spirit World (a lethal blow
@@ -305,6 +314,56 @@ guardian gets exactly one knife hidden in the warmth.
   heaviest first.
 - **Reward:** Isis + Anubis ("not rewards — witnesses"), the largest
   coin purse, and the gate toward Uruk.
+
+---
+
+## 3.5 What a gate actually pays
+
+**Corrected 2026-08-18d after an owner report.** Two bugs, both real:
+
+1. **The epilogues named cards the code never granted.** Every gate
+   epilogue names *two* echoes - "King Arthur and Lancelot join your
+   echoes" - but the data carried a single `legendPack`. Gate IV was
+   worst: it promised Hercules for a whole turn after he moved to
+   Hemithea, so the named card could not be granted at that gate under
+   any difficulty.
+2. **Normal grants no cards at all.** This is *intended* (owner ruling)
+   - Normal is the coins-only tier - but the epilogues asserted delivery
+   flatly, which made every one of those lines false on the default
+   difficulty.
+
+The fix, in both directions:
+
+| | Normal | Heroic | Legend |
+|---|---|---|---|
+| Coin | full | double | Gate I only (300) |
+| Gate legend | — | — | `legendPack` |
+| Second named echo | — | **`companion`** | — |
+| Exams (V, IX) | — | choice x2 | choice x2 |
+
+`companion` is new. It replaces the **random epic** Heroic used to roll
+from the gate's faction, and it is pinned to the exact card the epilogue
+names, so the writing is true wherever cards are granted at all. The
+gate still hands over two cards - the randomness bought nothing, since
+nobody could plan around it.
+
+The epilogues were reworded so the rival **offers** rather than
+asserting arrival ("He sets King Arthur and Lancelot on the stone
+between you"), which is true at every tier: the cards land on Heroic and
+Legend, and on Normal the offer stands while the Road pays coin.
+
+The seven pairs, all verified against the roster by
+`sim/verify_fixtures.js` section D2:
+
+| Gate | Legend | Companion |
+|---|---|---|
+| II | King Arthur | Lancelot |
+| III | Robin Hood | Little John |
+| IV | Zeus | **Poseidon** |
+| VI | Abe no Seimei | **Miyamoto Musashi** |
+| VII | Constantine the Great | Brutus |
+| VIII | Amaterasu | Izanami |
+| X | Anubis | Isis |
 
 ---
 

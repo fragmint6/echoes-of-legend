@@ -84,6 +84,17 @@
   function stageLabel(stage) {
     return 'Stage ' + stage.id + ' - ' + stage.format;
   }
+  /* Look a card up in the live roster. Used by the companion reveal,
+     which has to print the card's REAL rarity rather than assume one. */
+  function cardById(id) {
+    var found = null;
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (c.id === id) found = c;
+      });
+    });
+    return found;
+  }
   function fieldById(id) {
     return (id && window.EOL.battlefieldById && window.EOL.battlefieldById(id)) || null;
   }
@@ -421,6 +432,25 @@
           rarities: ['common', 'rare'],
           label: 'Common/Rare',
         };
+      } else if (stage.grants && stage.grants.companion) {
+        /* THE SECOND NAMED LEGEND (owner ruling 2026-08-18d).
+           -------------------------------------------------------------
+           Every gate epilogue names TWO echoes - "King Arthur and
+           Lancelot join your echoes" - but the code only ever granted
+           the one legendPack, so the second name was a lie in the
+           script at gates II, III, IV, VI, VII, VIII and X.
+
+           Heroic used to roll a RANDOM epic from the gate's faction.
+           That is the slot the second name belongs in, so it is pinned
+           to the card the dialogue actually promises. The randomness
+           bought nothing - it was a lucky dip nobody could plan around -
+           and pinning it makes the writing true without inflating the
+           payout: the gate still hands over exactly two cards.
+
+           `companionOf` carries the real rarity because these are NOT
+           all epics (Lancelot is common, Brutus rare, Izanami common),
+           and the reveal ceremony prints the rarity it is given. */
+        reward.companion = stage.grants.companion;
       } else {
         reward.epicFaction = STAGE_FACTIONS[stage.id] || null;
       }
@@ -516,6 +546,10 @@
       if (reward.legendPack) {
         if (prog.grants.indexOf(reward.legendPack) < 0) prog.grants.push(reward.legendPack);
         prog.pendingLegend = stage.id;
+      }
+      if (reward.companion) {
+        if (prog.grants.indexOf(reward.companion) < 0) prog.grants.push(reward.companion);
+        prog.pendingEpic = { stage: stage.id, card: reward.companion };
       }
       if (reward.epicFaction) {
         var epicId = randomEpic(reward.epicFaction);
@@ -1955,6 +1989,7 @@
     /* The pack itself is the reveal. The result receipt confirms the
        reward category without naming the card before the wrapper opens. */
     if (reward.legendPack) parts.push('Legendary reward pack');
+    if (reward.companion) parts.push('a second echo');
     if (!parts.length) parts.push('Gate cleared · No coin reward');
     return difficulty.name + ' · ' + parts.join(' · ');
   }
@@ -2270,9 +2305,15 @@
       return;
     }
     if (!rewardTheaterReady(reofferPendingEpic)) return;
+    /* The companion cards are not all epics - Lancelot is common,
+       Brutus rare, Izanami common - so the ceremony reads the rarity
+       off the card instead of asserting one. A hard-coded 'epic' here
+       would print the wrong frame and the wrong colour for four of the
+       seven gates. */
+    var pendingCard = cardById(pending.card);
     var opened = window.EOL.shop.openCampaignReward(pending.card, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
-      rarity: 'epic',
+      rarity: pendingCard ? pendingCard.rarity : 'epic',
     });
     if (!opened) return;
     prog.pendingEpic = null;

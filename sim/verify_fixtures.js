@@ -208,15 +208,23 @@ console.log('C. Chapter I frozen draft pools');
     const crowns = ids.filter((i) => !introduced.has(FAC[i]) && CARD[i].rarity === 'legendary');
     ok(crowns.length === 0, label + ': no Legendary from a future faction' + (crowns.length ? ' (LEAK ' + crowns.join(', ') + ')' : ''));
 
-    /* Role depth. The pool audit in verify_campaign requires 4+ of each
-       of the six roles; restated here so a card move that quietly
-       drains a role fails in the fast suite too. */
+    /* Role depth, against the DEEPEST LEGAL DEPTH rather than a flat 4.
+       Gate VI can only field three Casters, because Zeus, the Evil Queen
+       and Rumpelstiltskin are every Caster that exists by then - a flat
+       4 there is unsatisfiable, and the old table only met it by
+       importing Kami and Roma cards the player had not met. Same fix as
+       verify_campaign section F. */
     const roles = {};
     ids.forEach((i) => (roles[CARD[i].role] = (roles[CARD[i].role] || 0) + 1));
-    const thin = Object.keys(roles).filter((r) => roles[r] < 4);
+    const avail = {};
+    window.EOL.factions.forEach((f) => {
+      if (!introduced.has(f.id)) return;
+      f.cards.forEach((c) => (avail[c.role] = (avail[c.role] || 0) + 1));
+    });
+    const thin = Object.keys(roles).filter((r) => roles[r] < Math.min(4, avail[r] || 0));
     ok(
       Object.keys(roles).length === 6 && thin.length === 0,
-      label + ': all six roles present at depth 4+ ' + JSON.stringify(roles)
+      label + ': all six roles present at the deepest legal depth ' + JSON.stringify(roles)
     );
   });
   ok(pools === 3, 'found all three curated draft pools (' + pools + ')');
@@ -253,6 +261,117 @@ console.log('D. Chapter I gated surfaces (enemy12 and grants)');
     ok(unknown.length === 0, 'gate ' + mk.stage + ': every fielded/granted id is real' + (unknown.length ? ' (' + unknown.join(', ') + ')' : ''));
     const leak = all.filter((i) => CARD[i] && !introduced.has(FAC[i]));
     ok(leak.length === 0, 'gate ' + mk.stage + ': fields and grants only introduced factions' + (leak.length ? ' (LEAK ' + leak.join(', ') + ')' : ''));
+  });
+}
+
+console.log('D2. the epilogue never names a card the gate does not grant');
+{
+  /* THE BUG THIS CATCHES, reported by the owner 2026-08-18d:
+     "some of the dialogue mentions you get cards that you don't
+     actually get".
+
+     Five epilogues named TWO legends each while the code granted one,
+     and gate IV named Hercules for a whole turn after he moved to
+     Hemithea and became ungrantable there. Nobody noticed because the
+     dialogue is prose and the grant is data, and no test read both.
+
+     The check is deliberately narrow: it only fires on a card NAME that
+     appears in an epilogue whose text also makes a giving gesture
+     ("Take", "offers", "join your echoes", "walk with you"). A rival is
+     still free to MENTION any legend - gate I discusses Cinderella
+     being banned - because discussing is not promising. */
+  /* This suite deliberately avoids loading the engine, but the campaign
+     story is plain data, so it can be required directly. */
+  if (!window.EOL.campaignCh1) require(path.join(ROOT, 'data/campaign-ch1.js'));
+  const STORY = window.EOL.campaignCh1;
+  const NAMES = [];
+  window.EOL.factions.forEach((f) =>
+    f.cards.forEach((c) => {
+      if (c.name.length > 3) NAMES.push({ name: c.name, id: c.id });
+    })
+  );
+  const GIVING = /Take |offers |offer |holds out|sets |slides |join your echoes|walk with you|are yours|go with you/i;
+  Object.keys(STORY.epilogues || {}).forEach((key) => {
+    const stage = (STORY.stages || []).filter((x) => x.id === +key)[0];
+    if (!stage) return;
+    const grants = stage.grants || {};
+    const given = [grants.legendPack, grants.companion].filter(Boolean);
+    const givenNames = given.map((id) => (window.EOL.factions.flatMap((f) => f.cards).filter((c) => c.id === id)[0] || {}).name);
+    const text = (STORY.epilogues[key] || []).map((l) => l.text || '').join(' ');
+    if (!GIVING.test(text)) return;
+    const promised = NAMES.filter((n) => text.indexOf(n.name) >= 0).map((n) => n.name);
+    const unfulfilled = promised.filter((n) => givenNames.indexOf(n) < 0);
+    ok(
+      unfulfilled.length === 0,
+      'gate ' + key + ': every legend named in a giving line is actually granted' +
+        (unfulfilled.length ? ' (promised but not granted: ' + unfulfilled.join(', ') + ')' : '')
+    );
+  });
+
+  /* And the reverse: a granted card must be a real card in a faction the
+     player has already met. Gate IV promised Hercules AFTER he changed
+     faction, which is exactly this failure. */
+  const BY_ID = {};
+  window.EOL.factions.forEach((f) => f.cards.forEach((c) => (BY_ID[c.id] = { card: c, faction: f.id })));
+  const INTRO = { 1: 'grimmwood', 2: 'camelot', 3: 'sherwood', 4: 'olympus', 6: 'yamato', 7: 'roma', 8: 'kami', 10: 'duat' };
+  (STORY.stages || []).forEach((stage) => {
+    const grants = stage.grants || {};
+    [grants.legendPack, grants.companion].filter(Boolean).forEach((id) => {
+      const entry = BY_ID[id];
+      ok(!!entry, 'gate ' + stage.id + ': granted card ' + id + ' exists in the roster');
+      if (!entry) return;
+      const met = {};
+      Object.keys(INTRO).forEach((k) => {
+        if (+k <= stage.id) met[INTRO[k]] = true;
+      });
+      ok(
+        !!met[entry.faction],
+        'gate ' + stage.id + ': grants ' + id + ' from a faction the player has met'
+      );
+    });
+  });
+}
+
+console.log('D3. curated draft tables obey the progression law and the crown rule');
+{
+  /* The owner's other report: "there are kami cards introduced in gate 6
+     even though the faction hasn't been introduced yet."
+
+     True, and the cause was arithmetic rather than carelessness: a table
+     is 36 seats, the five factions legal at gate VI hold exactly 36
+     cards, and six of those are crowns - which the old 4-crown cap
+     forbade. The only way to fill the table was to import cards from
+     factions the player had not met. The cap is now exactly six, so the
+     table can be legal; this asserts that it IS. */
+  if (!window.EOL.campaignCh1) require(path.join(ROOT, 'data/campaign-ch1.js'));
+  const STORY = window.EOL.campaignCh1;
+  const INTRO = { 1: 'grimmwood', 2: 'camelot', 3: 'sherwood', 4: 'olympus', 6: 'yamato', 7: 'roma', 8: 'kami', 10: 'duat' };
+  const BY_ID = {};
+  window.EOL.factions.forEach((f) => f.cards.forEach((c) => (BY_ID[c.id] = { card: c, faction: f.id })));
+  const CROWNS = (window.EOL.deckRules && window.EOL.deckRules.DRAFT_LEGENDARIES) || 6;
+  (STORY.stages || []).forEach((stage) => {
+    if (stage.mode !== 'draft' || !stage.pool || !stage.pool.cards) return;
+    const ids = stage.pool.cards;
+    const met = {};
+    Object.keys(INTRO).forEach((k) => {
+      if (+k <= stage.id) met[INTRO[k]] = true;
+    });
+    const foreign = ids.filter((id) => !BY_ID[id] || !met[BY_ID[id].faction]);
+    ok(
+      foreign.length === 0,
+      'gate ' + stage.id + ': draft table shows only factions the player has met' +
+        (foreign.length ? ' (leaked: ' + foreign.join(', ') + ')' : '')
+    );
+    const crowns = ids.filter((id) => BY_ID[id] && BY_ID[id].card.rarity === 'legendary');
+    ok(
+      crowns.length === CROWNS,
+      'gate ' + stage.id + ': table carries exactly ' + CROWNS + ' crowns (got ' + crowns.length + ')'
+    );
+    const featured = window.EOL.factions.filter((f) => f.id === stage.pool.featured)[0];
+    ok(
+      featured.cards.every((c) => ids.indexOf(c.id) >= 0),
+      'gate ' + stage.id + ': the featured faction appears complete'
+    );
   });
 }
 
