@@ -1,796 +1,692 @@
 # Echoes of Legend
-## Chapter Two: The Ledger of Uruk
+## Chapter Two: The Siege of Uruk
 
 *Campaign narrative draft — written to be delivered in scenes, rival
 encounters, battle barks, codex entries, and post-battle memories. It is
 prose first: the mechanics are the shape beneath the story, not the story
 itself.*
 
-*Continues directly from `LORE-Campaign-Chapter1.md`. Chapter One ended with
-the Wayfarer stepping through the gate behind Gilgamesh's throne toward a
-city of mud brick and bronze, carrying a sentence instead of a name:
-**THE STORY CONTINUES.** This is what was waiting.*
+*Continues from `LORE-Campaign-Chapter1.md`. Chapter One ended with the
+Wayfarer stepping through the gate behind Gilgamesh's throne toward a city of
+mud brick and bronze, carrying a sentence instead of a name.*
 
 ---
 
-## Prologue — The City That Was Not Empty
+## Prologue — Nine Days
 
-There is a particular silence that belongs to a city still being lived in.
+The horn went up while the Wayfarer was still on the ramp.
 
-It is not quiet. A living city is never quiet: it has looms and arguments and
-somebody's brother shouting up at a window. But underneath all of that runs a
-low continuous hum, the sound of several thousand people each assuming the
-others will still be there tomorrow.
+It was not a signal horn. Signal horns are short. This one went on and on,
+one held note from the top of the ziggurat, and every person in the street
+below stopped what they were carrying and began to run in the same direction
+without discussing it, the way people do in a city that has drilled for
+something.
 
-Uruk had the hum.
+Uruk was not empty. Uruk was *packed* — refugees in the doorways, animals in
+the squares, cook-fires burning where cook-fires should not be, and the smell
+of too many people in too little space in warm weather.
 
-That was the first wrong thing.
+A woman shoved past the Wayfarer carrying a child and a cooking pot, and did
+not apologise.
 
-The Wayfarer came down the ramp from the gate onto a street of packed earth
-still warm from a sun that had set some time ago, and the city hummed at them
-— cart wheels, a hammer, water going somewhere in a channel, the particular
-scrape of a broom that has been used past the point of usefulness. Lamps
-burned in windows. A dog that had never existed barked at a cat that had
-never existed either.
+"Blank," said the Recruiter, arriving at their shoulder with his satchel
+banging against his hip, "I believe we have walked into the middle of
+something."
 
-Behind the Wayfarer, the gate closed. It did not slam. It simply stopped
-being a gate and became a wall with a very good memory of having been one.
+The gate they had come through was gone. Not closed — *gone*, the wall smooth
+where it had been, as though the Road had made its delivery and withdrawn.
 
-The Wayfarer's twelve came down the ramp behind them, and one by one stopped
-making noise.
+At the top of the ramp a soldier in bronze scale was shouting numbers at
+somebody below, saw the twelve of them arrive out of a wall, and did not
+break stride.
 
-"Ah," said the Recruiter.
+"You fighters?"
 
-He had followed. Nobody had asked him to, and the Wayfarer noticed, later,
-that he never explained it.
+The Wayfarer looked at the girl in the red hood, the wolf in the shawl, the
+princess with the apple.
 
-"You feel it," he said. It was not a question. "Say it out loud. Saying a
-thing out loud is the whole trade, in my line of work."
+"Yes."
 
-The Wayfarer looked down the long street. Lamps. Voices. Smoke going up
-straight in the windless air.
+"Then you're on the east wall in an hour." He was already turning away. "Nine
+days. Tell your people. Nine days and it's over one way or the other."
 
-"There's nobody here."
+"Nine days until what?"
 
-"No," the Recruiter agreed. "There is nobody here at all."
+The soldier stopped. He was young, and he had the flat exhausted courtesy of
+someone who has answered a question forty times and understands that the
+forty-first person still deserves an answer.
 
-He set his satchel down in the middle of the road, and the vials on the strap
-chimed, and the chime came back off the walls a half-beat late, the way sound
-returns in a room with no furniture in it.
-
-"And yet it is not abandoned. Look at the doorways. Nothing is broken.
-Nothing is looted. There is bread in that stall and it is fresh." He tipped
-his monocle up. "A city does not empty politely. When people flee they take
-the wrong things and leave the doors open. This city was *edited*."
-
-The lamplight in the nearest window went out.
-
-Not blown out. It simply became a window that had never had a lamp in it, and
-the Wayfarer found, unsettlingly, that they could not quite recall what
-colour the light had been.
-
-"It is still going," the Recruiter said softly. "Right now. Under our feet."
+"Until the river finishes turning," he said, and pointed east, past the wall,
+where the horizon was the wrong colour. "Go and look. Everybody looks once."
 
 ---
 
-## Interlude — What the Ledger Said
+## Interlude — The Wrong Horizon
 
-The Recruiter opened his ledger on a low wall and turned it around so the
-Wayfarer could read.
+The Wayfarer went and looked.
 
-The page was the one they had seen at the Road's first bend, ten gates and a
-lifetime ago. Hundreds of names. Some crossed out in red. Some underlined in
-gold. And near the bottom, a line that had once been blank and now held a
-sentence.
+From the east wall, the plain ran flat and brown to the edge of sight, and at
+the edge of sight it stopped being a plain.
 
-But the page had changed.
+There was a line out there. It ran north to south further than the eye could
+follow, and on the near side of it was everything: grass, dust, a road, a
+broken cart, the ordinary furniture of a world. On the far side there was
+*nothing at all* — not darkness, not fog, not water. The far side of the line
+had no quality whatsoever. Looking at it made the eye slide off, the way a
+tongue slides off a tooth that is no longer there.
 
-Between the ruled lines, in the white space where nothing had ever been
-written, faint dry scratches had begun to appear. Not words. The *shape* of
-words, the way a page remembers a letter written on the sheet above it.
+And it was closer than it had been that morning. The soldiers had driven
+stakes to measure it. The nearest stake was already on the wrong side.
 
-"That is new," said the Recruiter, and for the first time since the Wayfarer
-had met him, he sounded old.
+"Ah," said the Recruiter, very quietly.
 
-"What is it?"
+"Is that the Quiet?"
 
-"It is the part I have been afraid of since Gate Eight." He touched one of
-the scratches and did not quite let his finger rest on it. "The Quiet does
-not only eat what is remembered, Blank. It eats the *space* where memory
-goes. A ledger is not paper. It is a promise that paper will hold.
+"That is the Quiet with its mind made up." He took his monocle off, which the
+Wayfarer had never seen him do. "At Gate Eight the Chronicler told you it
+removes the part that makes anyone care. That is what it does when it is
+*grazing*. This is what it does when it is hungry."
 
-"Someone is unmaking the promise."
+Out on the plain, a heron flew west, crossed the line going the wrong way,
+and did not come out the other side. It did not fall. It did not burn. There
+was simply a bird, and then the memory of having been about to see a bird,
+and then not even that.
+
+"Nine days," the Wayfarer said.
+
+"Nine days," the Recruiter agreed, "and then Uruk is a word that used to mean
+something."
 
 ---
 
-## XI — The Keeper of the Storehouse
+## XI — The Woman Who Signed Her Name
 
-*Uruk, the granary district. The rival: **Enheduanna the Archivist**, first
-named author in the world, keeper of a storehouse of clay.*
+*The scriptorium. The rival: **Enheduanna**, high priestess, first author in
+recorded history, currently in charge of the evacuation nobody has agreed to.*
 
-She was cataloguing when they found her, and she did not stop.
+She was arguing with three men about carts when they found her, and she won
+the argument by simply continuing to talk until the men left to go and find
+carts.
 
-A small woman in a fringed wool shawl, grey at the temples, seated on the
-floor of a storehouse whose shelves ran back further than the lamplight went.
-Tablets, thousands of them, stacked in the careful diagonal that keeps clay
-from sweating. She held one in her lap and copied it onto a blank, and set
-the blank on a growing pile, and reached for the next.
+"You are the ones from the wall," she said. Not a question. "Good. Sit. No —
+don't sit, there's no time, walk with me."
 
-"You are the continuation," she said, without looking up.
+She was small, grey at the temples, in a fringed wool shawl with clay dust
+worked permanently into the weave. She moved through the scriptorium like
+weather.
 
-"How do you know that?"
+"Nine days. Two thousand people. Four hundred carts if I strip every axle in
+the city, which I am doing, which is why those men are angry." She stopped at
+a shelf, pulled a tablet, looked at it, put it back. "The mathematics are not
+survivable and everyone knows it, so we have stopped discussing the
+mathematics and started discussing the carts. That is what leadership is,
+mostly."
 
-"Because you are the only thing in this city that I have not had to write
-down twice." She turned the tablet over, checked something, and made a mark.
-"Everything else, I lose. I copy a tablet at dawn and by evening the copy
-says less than the original did. So I copy it again. Then again."
+"You're the priestess."
 
-She set the stylus down at last.
+"I was the priestess. Then a usurper threw me out of my own temple and I
+wrote a poem about it so furious that the goddess personally reinstated me."
+She almost smiled. "That is the version they tell. Here is the version that
+matters: I wrote *my name at the bottom*. First person in the history of the
+world to do it. Not because I was proud. Because I was accusing someone, and
+an accusation without a signature is just a rumour."
 
-"I have been doing this for eleven days. I no longer remember what the first
-tablet was about. I only remember that it mattered enough to start."
+She pulled another tablet and this time kept it.
 
-The Wayfarer looked at the pile. It was enormous. It was also, they realised
-with a cold drop in the stomach, mostly blank.
+"That is why I am still here when gods are not. The Quiet takes what nobody
+is claiming. I have been *claiming* for four and a half thousand years,
+loudly, in writing, with my name on it."
 
-"Then why keep going?"
+She pushed the tablet into the Wayfarer's hands. It was a duty roster.
 
-Enheduanna smiled, and it was not a kind smile; it was the smile of a
-professional who has been asked an amateur question.
+"You are on it now. Congratulations. The east wall needs a company that can
+learn fast, and I am told your people came out of a wall, which suggests
+either divine favour or a structural problem, and at this point I will take
+either."
 
-"Because copying is not remembering. Copying is *insisting*." She rose,
-brushing clay dust from her knees. "You will find, Wayfarer, that the two
-look identical from outside and feel nothing alike from within. One is an
-act of memory. The other is an act of will.
+**The teaching.** Achaea — Odysseus, Ajax, Atalanta, Medea. Mortals, no gods
+among them, each of whom becomes something *more* partway through the fight.
+The chapter opens on the thesis that people are not fixed.
 
-"The Quiet can eat memory. It has not yet worked out how to eat spite."
-
-**The teaching.** She fights with the Achaeans — Odysseus, Ajax, Atalanta,
-Medea, a mortal company with no god among them — and her lesson is the
-chapter's opening thesis: *a legend who transforms mid-fight is a legend who
-was paying attention.* Her sixes always contain at least two who have not yet
-become what they will be.
-
-**Her line.** "I am not the greatest of them. I am the one who signed her
-name. That turned out to be the whole trick."
+**Her line.** "I am not the greatest of them. I am the one who signed. It
+turns out that was the whole trick."
 
 **Reward.** Odysseus and Atalanta. Coin.
 
 ---
 
-## XII — The Man Who Owed
+## XII — Eight Days: The Sortie
 
-*The counting-house on the canal. The rival: **the Debt-Keeper**, an echo who
-was a tax farmer, and is now something worse and more honest.*
+*Out past the wall, at night. The rival: **the Herald of the Ending**, a
+Norse echo who has come a very long way to watch this.*
 
-The counting-house was the only building in Uruk with its door standing open.
+The plan was to reach the grain silos before the line did.
 
-Inside, at a table too large for one man, sat something wearing a merchant's
-coat. Coins had been sewn into it in overlapping rows — not for show, the
-Wayfarer thought; for *weight*, the way a diver wears lead.
+Six silos, four hours, and a plain that was quietly getting smaller. The
+Wayfarer's company went out at dusk with empty carts and instructions not to
+be clever.
 
-"Sit," it said. "You are not being robbed. Everyone thinks that at first."
+They found him sitting on the third silo, boots swinging, eating somebody's
+apple.
 
-The Wayfarer did not sit.
+"Don't mind me," he called down. "Genuinely. I'm a spectator."
 
-"Suit yourself." The Debt-Keeper drew a ledger of his own across the table
-— smaller than the Recruiter's, and much fuller. "You want to know what took
-the city. I want something too. That is not a threat, it is simply the
-condition under which anything gets done."
+Frost-rimed, grey-cloaked, grinning: a man entirely comfortable in a place
+where nothing else was.
 
-"What do you want?"
+"You're in our way."
 
-"To be owed." He said it the way another man might admit to a taste for
-sweets. "It is all I have ever wanted. When I was alive I arranged for a
-province to owe me, and the province starved, and I did not consider that a
-failure of the arrangement. Down here I have refined it. I lend memory."
+"I'm on your silo. Different thing." He dropped down and landed easier than
+the height deserved. "Name's not important. Where I come from we've a word
+for what's happening out there and you lot don't, which is most of your
+problem."
 
-He tapped the ledger.
+"Ragnarök."
 
-"Every soul who came through Uruk before you came to me and borrowed a thing
-they had lost. A wife's face. The tune of something. The name of the street
-they grew up on. I gave it to them — genuinely, no trick, they had it back
-in full — and in exchange they owed me a *different* memory, of my choosing,
-payable later."
+"*Ragnarök*," he agreed, delighted. "The end of the world. Prophesied, dated,
+attended. We've been ready for it since before your city had a wall." He
+gestured east with the apple core. "And that thing out there is not it.
+That's the point I've come to make. Ragnarök is an *ending*. It has a shape.
+Wolves eat the sun, the sea comes up, everyone dies, and then — and this is
+the part your priests always skip — a field grows back and two people walk
+out of a wood.
 
-"And you collected."
+"That out there doesn't end anything. It just stops it. There's no field
+after. There's no *after* after."
 
-"I always collect." He looked up, and his eyes were an accountant's: patient,
-uncurious, absolutely reliable. "But here is the thing that has spoiled my
-retirement, Wayfarer. Lately the debts are being paid *before I call them
-in*. Something else is collecting in my name. And it is not taking what I
-booked. It is taking the whole account."
+He threw the core away into the dark.
 
-For the first time the coin-sewn coat looked heavy rather than armoured.
+"So I've a proposition. I'm going to fight you now, hard, and if you can't
+beat one bored Norseman on a good night then you've no business on that wall
+in eight days and I'll take the silos myself and drink what's in them." He
+rolled his shoulders. "And if you *can* — then I'll come stand with you at
+the end, because I have waited a very long age to see a proper ending, and I
+am not letting that thing cheat me out of it."
 
-"I am the greediest thing in this city," said the Debt-Keeper, "and something
-has out-taken me. Do you understand how badly that frightens me?"
-
-**The teaching.** He fields Gehenna — Greed, Envy, Pride, Wrath — and teaches
-the chapter's cruellest lesson: *power is available, and it is priced.*
-Every sin on his board is buying its strength with something, in the open, on
-the table, where you can read it.
-
-**His line.** "I never lied to a single one of them. That is what nobody
-believes. The terms were on the tablet. They simply wanted the thing more
-than they wanted to read."
-
-**Reward.** Greed and Envy. Coin.
-
----
-
-## XIII — The Wheel at the Edge of the Map
-
-*Beyond Uruk's east wall, where the road stops pretending to be a road.
-The rival: **the Turner**, a pilgrim who has walked the same circle for so
-long the circle has started walking her.*
-
-There was a woman walking a ring in the dust.
-
-The ring was perhaps forty paces across and worn a hand's depth into the
-ground. She walked it at the pace of someone with an appointment in a
-fortnight. When the Wayfarer stepped into her path she went around them, and
-kept going.
-
-"You can walk with me," she said. "You cannot stop me. Those are different
-requests and people always make the wrong one."
-
-The Wayfarer fell into step.
-
-"What are you doing?"
-
-"Creating. Preserving. Destroying." She counted them off without breaking
-stride. "Not metaphorically. This ring makes the world. That quarter there,
-where the dust is pale — things begin there. This quarter, under us now,
-things hold. Ahead, where it is dark, things end. Then it begins again,
-because a wheel that stops is just a hole."
-
-"That isn't how the world works."
-
-"It is *exactly* how the world works. You have simply never had to do it by
-hand." She glanced sideways. "Someone has to. The gods who used to are being
-eaten."
-
-The Wayfarer stopped walking. The Turner went on, and came round again, in
-her own time.
-
-"The Quiet is taking *gods*?"
-
-"The Quiet is taking whatever is being carried by the fewest people," she
-said. "Which, at the moment, is gods. There were nine on this wheel when I
-started. There are seven. I do not know which two are gone. That is how I
-know they are gone."
-
-She kept walking.
-
-"So I walk. Creation, preservation, destruction, creation. If I hold the
-pattern, the pattern holds the rest. It is not a heroic job. Heroic jobs
-finish."
-
-**The teaching.** She fields Devaloka — Shiva, Kali, Ganesha, Durga — and
-teaches the mark economy at scale: *set it up, then spend it.* Her board is
-the chapter's clearest demonstration that a payoff card is worthless without
-the card that feeds it.
-
-**Her line.** "You want to know if I am a god. I was. I am now a habit that a
-god used to have. Ask me again in a quarter turn; the answer changes."
-
-**Reward.** Ganesha and Kali. Coin.
-
----
-
-## XIV — The Sentence
-
-*The court that was not built, in the air above the ziggurat. The rival:
-**the Advocate**, who has come to read the verdict on Uruk.*
-
-The stair went up the side of the ziggurat, and then it went up past the
-side of the ziggurat, and the Wayfarer had climbed nine steps of nothing
-before they noticed and the noticing nearly cost them the tenth.
-
-At the top was a court with no walls, no roof, and no gallery. Only a floor
-of pale light and a figure standing at the far end of it holding a scroll it
-had not yet unrolled.
-
-"You are early," the Advocate said. "That is not a criticism. Almost nobody
-is."
-
-It was beautiful in the way a legal document is beautiful: nothing wasted,
-nothing warm. Its wings were folded so precisely they read as architecture.
-
-"Early for what?"
-
-"The reading." It lifted the scroll slightly. "Uruk has been found wanting.
-The finding is not mine and I did not argue it — I am not counsel for the
-defence, I am simply the one who reads. Sentence falls in three days. After
-that this city will not have been."
-
-"You're going to erase it."
-
-"No." The Advocate's composure flickered, very slightly — the first crack in
-anything the Wayfarer had met in this city. "That is what I came here
-believing. I have since read the file."
-
-It unrolled the scroll one turn. The Wayfarer saw, upside down, a page of
-faint dry scratches.
-
-"The sentence has already been carried out," said the Advocate. "Eleven days
-ago. Everything since has been the city continuing out of momentum, the way
-a wheel turns after the hand comes off. My office is three days late to its
-own execution, and something else signed the warrant."
-
-It rolled the scroll shut.
-
-"I do not know what has the authority to do that. I am, you understand, the
-authority. So either I have been forged" — and its voice was very level —
-"or I have been *replaced*, and nobody thought to tell the one who reads."
-
-**The teaching.** It fields Empyrean — Azrael, Michael, Gabriel, Raphael —
-and teaches the delayed effect: *the blow is announced before it lands, and
-both sides can act on that.* The chapter's most telegraphed and most lethal
-board, and the first that can be answered by cancelling rather than out-racing.
-
-**Its line.** "A verdict said aloud is a mercy. It gives you three days.
-Nobody has ever thanked me for the three days."
-
-**Reward.** Azrael and Raphael. Coin.
-
----
-
-## XV — The Harbour of Things Not Given Back
-
-*The wrong sea, reached through a door in a granary. The rival:
-**the Quartermaster**, who has been provisioning an expedition for eleven
-days and has never once put to sea.*
-
-There is no sea at Uruk. The river is a river; it goes to a sea eventually,
-the way all rivers do, but it takes its time and it does it somewhere else.
-
-The door in the back of the third granary opened onto a harbour at night.
-
-Ships rode at anchor. Lanterns swung. Somewhere out on the black water
-something enormous turned over and went back to sleep. On the quay, a figure
-in a salt-bleached coat was counting barrels and marking a slate, and had
-clearly been doing so for a very long time.
-
-"Forty-one," she said. "Forty-one and I'll want forty-four. You bringing
-some, or just bringing yourself?"
-
-"Where does this go?"
-
-"Out." The Quartermaster did not look up from the slate. "Out is the whole
-plan. Out is where the city went."
-
-The Wayfarer's stomach turned over slowly.
-
-"The people of Uruk are *here*?"
-
-"Some of 'em. Some of 'em got taken proper. But a good few paid passage." She
-finally straightened, and her face was weathered and entirely unrepentant.
-"You've met the Debt-Keeper by now, I'd wager. He lends. I *plunder*. There's
-a difference and it's not the one you think. He takes what you agreed to.
-I take what you've got and I put it on a ship, and the ship doesn't sink,
-and that's more than the Quiet was offering."
-
-"You stole their memories."
-
-"I *salvaged* them." Something hard came into the weathered face. "You want
-to talk theft, go find whatever's been eating this city from underneath.
-I've got four hundred souls' worth of somebody's grandmother in that hold,
-and every one of 'em would've been nothing by now if I'd left it where it
-lay. It's not right. I know it's not right. It's better than the alternative
-and I got tired of waiting for a third option."
-
-She turned back to her barrels.
-
-"Forty-one. You want to argue ethics, argue 'em while you count."
-
-**The teaching.** She fields Tortuga — Blackbeard, Anne Bonny, The Kraken,
-Davy Jones — and teaches theft as tempo: *do not remove the enemy's advantage,
-take it.* Her board punishes any six that spends its opening turn setting up.
-
-**Her line.** "Never met a soul who thanked me at the time. Met a few who
-came back later, mind. That's the job."
-
-**Reward.** Anne Bonny and Davy Jones. Coin.
-
----
-
-## XVI — The House on the Hill That Uruk Does Not Have
-
-*A stone manor in a district that was not there yesterday. The rival:
-**the Host**, who is a very good host, and who is not letting anyone leave.*
-
-The house should not have fit. The district it stood in was three streets
-wide and the house had a carriage drive.
-
-The Host met them at the door with a lamp and genuine pleasure.
-
-"You came. I'd almost stopped setting the place." He was courteous, pale,
-beautifully dressed a century out of date, and the Wayfarer could not
-afterwards recall what colour his eyes had been, only that the question felt
-rude. "Come in. The city is very cold tonight and it is going to get colder."
-
-Inside: fires lit, food laid, and perhaps thirty people seated at a long
-table, eating, talking, entirely at ease.
-
-The Wayfarer counted them twice and got a different number both times.
-
-"Your guests."
-
-"My guests," the Host agreed warmly. "Refugees, properly speaking. They came
-to my door as the thing came through their streets and I did what any decent
-man does — I took them in." He poured wine that the Wayfarer did not touch.
-"They are safe here. Nothing in this house has been forgotten in eleven days.
-Not one name, not one face. Ask them."
-
-The Wayfarer asked the nearest woman her name.
-
-She gave it. Then she gave it again, and again, and the third time she was
-still smiling but her hands had begun to shake, and the Wayfarer understood
-that she was not repeating it for them.
-
-"They pay for it," the Wayfarer said.
-
-"Of course they pay for it." The Host's warmth did not falter, and that was
-the horror of him. "I keep their memory intact. I take a little of what makes
-it *theirs*. It is a fair rate. It is a better rate than the Quiet offers,
-which is nothing for everything, and it is a better rate than that pirate
-woman offers, which is safekeeping in a hold they will never open." He
-smiled. "I am not the villain of this city, Wayfarer. I am its only working
-institution."
-
-He gestured to the table, the fire, the impossible warm room.
-
-"You may take any of them with you who can stand up and walk out. I will not
-stop them. I have never once stopped them."
-
-Not one of them stood up.
-
-**The teaching.** He fields Transylvania — Dracula, Carmilla, Dorian Gray,
-Frankenstein's Monster — and teaches conversion: *what is taken is not
-destroyed, it is moved onto the other side of the table.* His board grows
-directly from what yours brought.
-
-**His line.** "I have never taken anything that was not offered. That is not
-a defence. I am aware it is not a defence. I simply find it keeps being true."
-
-**Reward.** Carmilla and Dorian Gray. Coin.
-
----
-
-## XVII — The Wolf at the Bottom of the River
-
-*Under Uruk, in the flood channels. The rival: **the Herald of the Ending**,
-who is not causing any of this and is delighted about all of it.*
-
-The flood channels ran under the city like a second, more honest street plan.
-
-Down there the hum was louder. The Wayfarer had assumed it was water. It was
-not water. It had a rhythm, and the rhythm was chewing.
-
-The Herald was sitting with his back against the channel wall, boots in the
-current, entirely at ease.
-
-"Don't stop on my account," he said. "It's just getting good."
-
-He was frost-rimed and grey-cloaked and had the sort of face that is always
-halfway through a joke at someone else's expense.
-
-"You know what's doing this."
-
-"'Course I do." He grinned. "So do you, nearly. You're about four questions
-off. Want me to tell you? I won't, but I like to be asked."
-
-"Why are you here?"
-
-"Because it's *ending*," the Herald said, and for a moment the humour went
-out of his voice and something enormous and genuinely reverent came in.
-"Not this city. This city's a mouthful. I mean the whole arrangement — the
-Road, the gates, the ledger, the whole polite fiction that a story gets to
-last because somebody at a folding table wrote it down. It's coming apart.
-I have waited a very long age for it to come apart."
-
-"You want the Quiet to win?"
-
-"I want the *ending* to arrive." He stood, and shook water off his boots.
-"You lot have never understood us. My people aren't the ones who fear
-Ragnarok. We're the only ones who read the prophecy all the way to the last
-line and noticed there's a page after it. Everything ends. Fine. Good. What
-I cannot abide" — and he looked up the channel, toward the chewing — "is a
-thing that eats the ending. That thing doesn't finish stories. It stops them
-mid-sentence and eats the sentence. That's not an ending. That's just
-somebody clearing the table before dessert."
-
-He rolled his shoulders.
-
-"So. Fight me first. I'm not on your side, but I'm ahead of you, and you'll
-want to have beaten something before you meet what's down there."
-
-**The teaching.** He fields Jotunheim — Odin, Fenrir, Hel, Heimdall — and
-teaches the chapter's hardest structural lesson: *the board changes as it
-empties, and some cards are deliberately bad until it does.* The first rival
-whose deck is stronger in round eight than round two.
+**The teaching.** Jotunheim — Odin, Fenrir, Hel, Heimdall. A board that is
+*deliberately weak early and strongest once legends start falling*. The first
+rival whose deck gets better the longer you survive it.
 
 **His line.** "Everyone dies at the end of the world. That's what makes it
-the end of the world. It's not supposed to be a *tragedy*, it's supposed to
-be an *appointment*."
+the end of the world. It's an appointment, not a tragedy. What's out there
+isn't even rude enough to be a tragedy."
 
 **Reward.** Odin and Fenrir. Coin.
 
 ---
 
-## XVIII — The Sleeping Dragon
+## XIII — Seven Days: The Ships That Should Not Be There
 
-*The eastern road, where a wall stands that no one in Uruk built. The rival:
-**the Ninth Ledger-Keeper**, who has been holding a border for four thousand
-years against nothing at all.*
+*The river quay. The rival: **the Quartermaster**, who has arrived to
+evacuate the city at a price.*
 
-The wall ran north to south across country that had no reason for a wall.
+There is no sea at Uruk. The river goes to one eventually.
 
-It was enormous, and immaculate, and manned. Figures moved on the ramparts.
-Banners hung in red and gold. Somewhere behind it, a drum kept a slow count
-that had clearly not been interrupted in a very long time.
+On the seventh morning there were nine ships tied up at the quay that had not
+sailed up the river, because they were sea ships, and the river would not
+have carried them, and nobody had seen them arrive.
 
-The gate-captain came out to meet them alone. Old, upright, in scale armour
-polished past the point of vanity into something closer to prayer.
+A woman in a salt-bleached coat stood at the head of the gangplank with a
+slate, taking names.
 
-"State your business at the border of the Middle Kingdom."
+"Two thousand people, nine hulls," she said, when the Wayfarer reached the
+front of a queue that had already turned ugly twice. "That's four hundred
+short even if we stack 'em like grain. So there's a price, and before you
+start — the price is not coin. I've no use for coin where we're going."
 
-"There's no kingdom behind that wall," the Wayfarer said. "I've seen the map.
-There's nothing there."
+"What's the price?"
 
-"Correct." The captain did not blink. "There has been nothing there for
-approximately four thousand years. The wall's purpose is unchanged."
+"A memory apiece. My pick, not yours." She said it flatly, a woman quoting a
+rate she had quoted many times. "Off you comes a thing you'd rather keep. Onto
+my ship goes you and everyone you're carrying. That's the deal, it's the only
+deal, and I'll not be haggled at."
 
-"Then what are you guarding?"
+Behind her, in the hold, something glittered that was not cargo.
 
-"The *border*." He said it as though explaining to a child, without unkindness.
-"You have misunderstood what a wall is for. A wall does not protect a country.
-A wall states where a country was. Take down the wall and there was never
-anything on the other side of it. Leave the wall standing and there is a
-shape in the world, and the shape has a name, and one day somebody may walk
-up to it and ask the question you just asked."
+"That's theft."
 
-He looked past them at Uruk, low and lamplit on the plain.
+"That's *salvage*." Her jaw set. "You've seen the line. Nine days ago it was
+past the horizon. Everything it's crossed is gone — not dead, gone, never
+was. I take a piece off a person and I put it somewhere it can't be reached,
+and yes, I keep it, and yes, that's mine now, and I'll not pretend
+otherwise." She looked down the queue. "I've hulls to fill and a tide that
+isn't real to catch. You want to argue about whose memory it is, argue it
+with the thing out east. It doesn't take pieces. It takes the lot."
 
-"Your city is dying because nobody drew a line around it. I drew mine. I have
-held it against an enemy that never came, through a silence that has lasted
-longer than most religions, and I will tell you the thing nobody believes
-until they have done it themselves.
+**The teaching.** Tortuga — Blackbeard, Anne Bonny, The Kraken, Davy Jones.
+Theft as tempo: the enemy's advantage is not removed, it changes sides. Her
+board punishes any six that spends its opening turn on setup.
 
-"The silence *is* the enemy. It always was. I have been fighting it the entire
+**Her line.** "Nobody's ever thanked me at the time. A few came back later.
+That's the job."
+
+**Reward.** Anne Bonny and Davy Jones. Coin.
+
+---
+
+## XIV — Six Days: The House That Was Not There Yesterday
+
+*The refugee quarter. The rival: **the Host**, who has opened his doors.*
+
+Uruk had no hill. On the sixth morning it had a hill, and on the hill was a
+house with a carriage drive.
+
+By evening two hundred people had gone inside, because it was warm, and there
+was food, and the man at the door was kind.
+
+"You've come to tell me to stop," the Host said, before the Wayfarer had
+spoken. "Everyone sends someone eventually. Come in, look, and then tell me
+what the alternative is. That is all I ask. Look first."
+
+Inside: fires lit, tables laid, children asleep on benches instead of stone.
+Two hundred people who nine days ago had a life and six days ago had a cart
+and this morning had a doorway.
+
+"They're safe," the Wayfarer said.
+
+"They are safe." He was pale and courteous and beautifully out of date, and
+the Wayfarer could not later recall his eyes. "Nothing in this house has been
+touched by the line. It cannot come in. I do not entirely know why; I suspect
+I am simply older than it is, and it has learned to be polite to older
+things."
+
+"And what does it cost."
+
+"A little of what makes them *them*." No hesitation. "I take it slowly. A
+preference. A turn of phrase. The reason they love a particular song rather
+than the song itself. In a year the woman by the fire will still know her
+daughter's name and will no longer be able to tell you why she loved her, and
+she will not notice the difference, and she will be *alive*."
+
+He turned to face the Wayfarer directly.
+
+"You have seen the queue at the quay. That woman takes a memory and puts it
+in a box you will never open. I take a thinner slice and leave the person
+walking. And the thing to the east takes all of it, forever, without asking.
+Three offers. Mine is the best one on the table and I am *sick* of being
+called a monster by people who have not read the other two."
+
+**The teaching.** Transylvania — Dracula, Carmilla, Dorian Gray,
+Frankenstein's Monster. Conversion: what he takes off your side appears on
+his. His board grows out of yours.
+
+**His line.** "I have never taken anything that was not offered. I am aware
+that is not a defence. I find it keeps being true."
+
+**Reward.** Carmilla and Dorian Gray. Coin.
+
+---
+
+## XV — Five Days: What the Priests Were Doing
+
+*The temple undercroft. The rival: **the Turner**, who has been keeping the
+world running by hand.*
+
+The priests of Uruk had not been seen since the horn.
+
+The Wayfarer found them in the undercroft, sixty of them, walking a ring worn
+a hand's depth into the stone floor. They had been walking it in shifts for
+nine days. At the centre, a woman kept the count.
+
+"You will want to shout at us," she said, without stopping. "Everyone does.
+Sixty pairs of hands not on the wall. Walk with me and shout, it passes the
 time."
 
-**The teaching.** Huaxia, at last obtainable — Sun Wukong, Guan Yu, Zhuge
-Liang, Qin Shi Huang — and the chapter's mechanical capstone: *the counterplay
-faction*, the one that answers rather than initiates. He punishes whatever you
-have spent the previous seven gates learning to do.
+"There are two thousand people out there loading carts."
 
-**His line.** "Four thousand years is not devotion. Devotion gets tired.
-Four thousand years is *procedure*."
+"And if we stop walking, there will be nothing for the carts to roll on."
+
+She counted eleven more paces before she explained.
+
+"Creation. Preservation. Destruction. It is not a metaphor, it is a
+*rotation*, and it used to turn on its own because there were gods to turn
+it. There are fewer gods each week. So." A tilt of the head at the ring.
+"Sixty priests and a floor. We hold the pattern, the pattern holds the world,
+and the world stays the sort of place where a cart has somewhere to be."
+
+"For how long?"
+
+"Until we stop." She said it without drama. "Which will be when the line
+reaches the wall and the floor is no longer here. I am not being brave,
+Wayfarer, I am being *employed*. There is a difference and I would like it
+noted."
+
+**The teaching.** Devaloka — Shiva, Kali, Ganesha, Durga. The mark economy at
+scale: a payoff card is worthless without the card that feeds it. Her board
+is the clearest demonstration in the chapter that setup and spending are two
+different jobs.
+
+**Her line.** "Ask me if I am a god. I was. I am now a habit a god used to
+have. The habit still works. That is the interesting part."
+
+**Reward.** Ganesha and Kali. Coin.
+
+---
+
+## XVI — Four Days: The Court Convenes
+
+*Above the ziggurat, on a floor of light. The rival: **the Advocate**, who
+has arrived to determine whether Uruk is worth saving.*
+
+On the fourth day the sky over the ziggurat opened into a court.
+
+Not a vision. A *court*: a floor of pale light, a rail, and a figure standing
+at the far end with a scroll it had not yet unrolled. Half the city watched
+from the streets. Nobody could hear anything from down there, which did not
+stop anybody watching.
+
+"You are counsel," the Advocate said, as the Wayfarer came up the last stair
+that was not there.
+
+"I'm a soldier."
+
+"Today you are counsel. The position was vacant." It lifted the scroll.
+"There is a question before the court and it is not the one you expect. It is
+not *should Uruk be saved*. My office does not do rescues. The question is
+whether Uruk should be *recorded* — whether, when this is finished, there
+will have been a city here at all."
+
+"Then record it and go help."
+
+"You misunderstand the stakes and I would rather you did not." Its composure
+did not move, but something behind it did. "If I find for the city, the
+record stands: Uruk existed, two thousand people lived here, and something
+came out of the east and took it. A wound in the world, permanent, and every
+soul in it remembered as *lost*. If I find against, there is no wound —
+because there was never a city, and you cannot mourn a place that was not
+there.
+
+"One of those is kinder. It is not the one you are about to argue for."
+
+It unrolled the scroll a single turn.
+
+"So argue. You have until the line reaches the wall. I will hear you between
+now and then, and I warn you: I have read this file, and the file says these
+people are going to die whatever either of us decides."
+
+**The teaching.** Empyrean — Azrael, Michael, Gabriel, Raphael. Delayed
+effects: every blow is announced before it lands, and both sides can act on
+the announcement. The most telegraphed and most lethal board in the chapter,
+and the first that is answered by *cancelling* rather than out-racing.
+
+**Its line.** "A verdict said aloud is a mercy. It gives you the days
+between. Nobody has ever thanked me for the days between."
+
+**Reward.** Azrael and Raphael. Coin.
+
+---
+
+## XVII — Three Days: The Ledger of Debts
+
+*The counting-house, which is now the only building with food in it. The
+rival: **the Debt-Keeper**.*
+
+By the third day the granaries were empty and the counting-house was not.
+
+"I am not hoarding," said the man in the coin-sewn coat, over the noise of a
+crowd being kept back by six hired spears. "I am *lending*. There is a
+difference and it is the only difference I have ever cared about."
+
+"People are starving four streets away."
+
+"People are starving four streets away and I have grain, and I will give it
+to any one of them, today, freely, in exchange for a debt payable later." He
+spread his hands. "Nobody has to pay now. Nobody has to pay this year. I am
+the most generous man in Uruk on any measure you like except the one where
+you check what happens afterwards."
+
+"There is no afterwards. The line reaches the wall in three days."
+
+And the Debt-Keeper stopped.
+
+The Wayfarer watched a genuinely new thought arrive behind his eyes, and
+watched him not like it.
+
+"...Yes," he said slowly. "That has been troubling me. A debt requires a
+future in which to be collected. If there is no future, then everything I
+have been doing for nine days is —" He worked his jaw. "Charity. I have been
+doing *charity*, by accident, for nine days, and I did not notice."
+
+He looked at the crowd, and at the grain, and at his own ledger.
+
+"I want it on the record that I object to this."
+
+**The teaching.** Gehenna — Greed, Envy, Pride, Wrath. Power is available and
+it is priced, in the open, on the table. Every sin on the board is buying its
+strength with something you can read.
+
+**His line.** "I never lied to a single one of them. The terms were on the
+tablet. They simply wanted the thing more than they wanted to read."
+
+**Reward.** Greed and Envy. Coin.
+
+---
+
+## XVIII — Two Days: The Wall That Came
+
+*The east wall, at dawn. The ally who arrives: **the Ninth
+Ledger-Keeper**, and four thousand years of procedure.*
+
+On the second-to-last morning, there was a wall on the plain that had not
+been there at midnight.
+
+It ran north to south across the line's path, immaculate, manned, with
+banners in red and gold and a drum keeping a slow count behind it. It was not
+Uruk's wall. It was a very great deal better than Uruk's wall.
+
+The gate-captain rode in alone: old, upright, scale armour polished past
+vanity into something closer to prayer.
+
+"Who is in command here?"
+
+"Nobody," said the Wayfarer honestly.
+
+"Then I will be, provisionally, and we will sort out the paperwork
+afterwards." He dismounted. "My wall is four thousand years old and stands at
+a border of a country that no longer exists. I have held it against nothing
+for the entire time. This morning I found it had moved. It has never moved
+before. I take that as an instruction."
+
+"Your wall walked here?"
+
+"My wall *was needed* here. I do not pretend to understand the mechanism; I
+have been a soldier for four millennia and a philosopher for none of them."
+He looked east at the line, and for the first time something crossed his
+face. "Ah. So that is what I have been guarding against. All this time I
+assumed it was cavalry."
+
+He turned back and began, immediately, to give orders.
+
+"You have three hundred fighting people, a wall built for trade, and two
+days. That is not hopeless, it is merely *bad*, and bad is a category I have
+extensive experience of. But first you will fight me, and you will lose, and
+then I will show you why you lost — because everything you have learned in
+the last week is a way of *starting* something, and nobody in this city knows
+how to answer."
+
+**The teaching.** Huaxia, finally obtainable — Sun Wukong, Guan Yu, Zhuge
+Liang, Qin Shi Huang. The counterplay faction: the board that answers rather
+than initiates, and punishes every habit the previous seven gates taught.
+
+**His line.** "Four thousand years is not devotion. Devotion gets tired. Four
+thousand years is procedure."
 
 **Reward.** Guan Yu and Zhuge Liang. Coin.
 
 ---
 
-## XIX — The First Author
+## XIX — One Day: The Argument on the Wall
 
-*The scriptorium under the ziggurat. The rival: **Enheduanna again**, and
-this time she is not cataloguing.*
+*The east wall, the last night. The rival: **Enheduanna**, and the fight
+about who gets on the ships.*
 
-She was waiting in the dark at the bottom of the scriptorium stair, and the
-tablets around her were all blank.
+On the last night there were nine ships at the quay and room aboard for
+sixteen hundred people, and there were two thousand and forty in the city.
 
-"You have been to the wall," she said. "Then you know. Say it."
+Enheduanna had the list.
 
-"Somebody is writing this."
+"I have written four hundred and forty names on this tablet," she said. The
+wall was crowded; half the city's fighters were up there, and every one of
+them was listening. "These are the people who will not be going. I made the
+list myself, alone, and I will read it aloud, and then I will fight anyone
+who wants to change it, and then we will get on with the evacuation because
+the tide is at dawn."
 
-"Somebody is *un*-writing this, which is the same craft performed backwards
-and takes considerably more skill." She stood. In eleven days she had aged.
-"I have spent my whole death copying, Wayfarer, and it took a soldier at a
-wall to make me hear what I was doing. I have been holding a *shape*. Not the
-words. The words go. The shape stays, and the shape says: something was here,
-and it was worth eleven days of an old woman's spite.
+"You can't —"
 
-"Now. You are going to go down there and meet it. Before you do, I am going
-to make you prove you can hold a shape too, because if you cannot, you will
-walk into that room and come out having always been nobody."
+"I can and I have." Her voice went up and carried, the voice of a woman who
+had once out-argued a usurper and a goddess in the same poem. "Every one of
+you wants a fair method. There is no fair method. There is a *decided*
+method, decided by a named person who can be blamed, and that is the only
+mercy available at this hour. If it is unsigned, if it is a lottery or a
+scramble at the gangplank, then nobody did it, and a thing nobody did is a
+thing nobody can be forgiven for."
 
-She picked up a stylus, and for the first time she looked like the woman
-whose name is on the oldest signed poem in the world.
+She held the tablet up.
 
-"I signed my name to a hymn four and a half thousand years ago. Do you know
-why that was the important thing? Not the hymn. Anyone can write a hymn."
+"My name is at the bottom. It has always been at the bottom. That is what I
+am *for*."
 
-"Why, then?"
+And then, quieter, to the Wayfarer alone:
 
-"Because a signature is a *claim*." Her voice went hard and clear and filled
-the stair. "It says: this did not simply occur. Somebody did it, on purpose,
-and that somebody was me, and if you wish to take it you will have to take
-me with it.
+"My name is on the list too. Fourth from the end. Now fight me properly,
+because if you cannot take this tablet off me then you are not strong enough
+to be trusted with what I am about to ask you to do."
 
-"The Quiet cannot argue with a claim. It can only wait for the claimant to
-stop making it."
+**The teaching.** The chapter's exam. She fields the strongest six she can
+assemble from everything the Wayfarer has been taught — one card from each
+faction of the chapter — and she sideboards live, with no telegraph.
 
-She set the stylus down.
+**Her line.** "I would rather be hated by sixteen hundred people who are
+alive than fair to two thousand who are not."
 
-"So I have not stopped. Four and a half thousand years, and I have not
-stopped."
-
-**The teaching.** The gate before the throne, and the chapter's exam. She
-fields the strongest six she can build from *everything the Wayfarer has been
-taught* — one card from each faction of the chapter — and she does not
-telegraph. Sideboarding is live. This is the last completion window before
-the descent.
-
-**Her line.** "I am the only person in this city who has been fighting it
-correctly. I would very much like company."
-
-**Reward.** Enheduanna's own tablet — and the way down.
+**Reward.** Enheduanna, playable. The way to the wall.
 
 ---
 
-## XX — The Thing Beneath the Ledger
+## XX — The Last Day
 
-*The bottom. The rival: **THE SCRIVENER**.*
+*The east wall at dawn. The enemy: **THE LINE**.*
 
-The room under Uruk was a library, and every book in it was open, and every
-page in every book was blank.
+It arrived while the last ship was still loading.
 
-At a desk at the centre sat something with a pen.
+There was no army. That was the thing nobody had prepared for, because every
+person on that wall had spent nine days imagining an army. There was a
+horizon that was the wrong colour, and it came on at the pace of a walking
+man, and where it passed there had never been a plain.
 
-It was not large. That was the first surprise. It had the shape of a clerk —
-narrow shoulders, a stoop, the permanent slight squint of a person who has
-read in bad light for a very long time. It was writing. It did not stop
-writing when they came in.
+The stakes went. The broken cart went. The wall the Ninth Ledger-Keeper had
+brought went, and its drum stopped mid-count, and every soldier on it stopped
+having been a soldier.
 
-"Sit down," it said. "I am nearly at your line."
+What fought back was not a strategy.
 
-"You're the Quiet."
+It was the Herald of the Ending, planting himself in the open ground with
+frost coming off him, roaring at the horizon that it was *doing it wrong*.
 
-"No." The pen kept moving. "The Quiet is a *condition*, like damp. You cannot
-fight damp. People find that unsatisfying, so they invent a monster, and then
-they come down here and find me, and they are always disappointed."
+It was sixty priests in an undercroft walking faster.
 
-"Then what are you?"
+It was a house on a hill that would not go, with two hundred people inside it
+and a pale courteous man standing in his own doorway holding the door frame
+like a mast.
 
-"I am the one who does the paperwork."
+It was nine ships pulling for a sea that was not real, and a woman at the
+tiller of the last one refusing to cast off while there was still one hand on
+the quay.
 
-It set the pen down at last and looked up, and its eyes were the Recruiter's
-eyes, and the Wayfarer's stomach dropped through the floor.
+It was a man in a coin-sewn coat, at the gangplank, tearing pages out of his
+own ledger and handing grain to people who would never repay him, swearing
+continuously.
 
-"Ah," said the Scrivener, seeing the look. "Yes. I should explain that. I am
-not him. I am what his job becomes, if the job is done for long enough and
-nobody ever comes to relieve you."
+It was a court in the sky, and an Advocate that had not yet found for either
+side, unrolling its scroll and beginning — at last, far too late, and at the
+top of its voice — to *read the city into the record*, name by name, faster
+than the line could take them.
 
-It gestured at the blank library.
+And it was four hundred and forty people on a wall, who were on a list, who
+had known for one full day that they were on the list, and who were still
+there at dawn.
 
-"Do you know what Gilgamesh actually built? He will have told you it was a
-school. It is a *filing system*. Ten gates, ten questions, and at the end of
-it a determination: this story lasts, this story does not. He could not bear
-to make that determination himself — he loved one man and could not let him
-go, and he knew exactly how badly that had gone. So he built a Road that
-would make the determination for him, and he staffed it with volunteers, and
-he stood at the end of it looking noble.
+**How it ends.** The line does not stop. Nothing stops it; it is not a thing
+that can be beaten, and the chapter never pretends otherwise.
 
-"Somebody still has to do the striking out."
+It is *slowed*. Every legend on that wall is a claim staked in the ground —
+a name loudly held by somebody who refuses to stop holding it — and the line
+must take each one properly, one at a time, and taking things properly is the
+one thing it is bad at.
 
-It turned the book around. The page was the Recruiter's page. The names
-crossed out in red.
+It costs four hundred and forty people the length of a morning.
 
-"Every name he crosses out comes to me. I file it. Four thousand years of
-filing, Wayfarer, and here is what I have learned that he has not: *the
-crossing-out is the load-bearing part.* Memory is not a warehouse. It is a
-room with a door, and a room with a door has a capacity, and every story you
-insist on keeping forever is a story standing in the doorway of one that
-wants to come in.
+The ships get out.
 
-"Uruk was full. Uruk had been full for a thousand years, holding names nobody
-living had spoken since bronze was new. So I cleared it."
+**The boss.** THE LINE is a bespoke card, unbannable and pinned. It cannot be
+killed and its HP is not displayed. Its signature does not deal damage: it
+*unmakes* a legend — removed from the battle, and from the battle log, and
+from the tally, as though that legend had never been fielded. Every round it
+takes one more. The victory condition is not a kill. It is a **round count**:
+survive to the horn, because every round you last is another hundred people
+down the gangplank. The chapter's final battle is the only one in the game
+you win by still being there.
 
-"You erased a city."
+Its twelve is drawn from every faction the Wayfarer met — Uruk's own dead,
+fighting without names.
 
-"I *made room*." For the first time something moved behind the clerk's face,
-and it was not malice; it was exhaustion. "And I will tell you the part that
-will keep you awake. I was right to. The alternative is not a world where
-Uruk lives forever. The alternative is a world where nothing new is ever
-remembered again, because every space is occupied by something old and
-beloved and dead.
-
-"He built me to say no. Then he built a Road to make sure he never had to
-hear me do it."
-
-It picked the pen back up.
-
-"You are a continuation with no beginning. That is an incomplete record. I
-have been trying to close it for eleven days, and you keep walking into rooms
-and making friends, which is precisely the behaviour that makes a file
-impossible to shut."
-
-**The turn.** The Wayfarer does not win by destroying the Scrivener. There is
-nothing there to destroy; killing the clerk does not empty the room, it only
-leaves the paperwork undone and the door jammed open forever. The Wayfarer
-wins by doing the thing nobody in four thousand years has done.
-
-They take the pen.
-
-Not to strike out. To *sign*.
-
-Beneath the sentence that Gilgamesh's Road wrote in the Recruiter's ledger —
-THE STORY CONTINUES — the Wayfarer writes a name. Their own. Chosen, not
-given, and therefore not a chain.
-
-And having a name, they can be *entered*. And having been entered, they can
-be — one day, on some page, by some hand — properly and mercifully closed.
-
-The Scrivener reads the signature. Reads it twice.
-
-"You are volunteering to be finished."
-
-"I'm volunteering to be *finishable*," says the Wayfarer. "There's a
-difference. You've been doing this alone so long you stopped being able to
-see it."
-
-And the clerk — who has struck out four thousand years of names, and filed
-every one, and been thanked by nobody — puts down the pen and, very quietly,
-asks for help.
-
-**Playstyle.** A bespoke boss card, unbannable and pinned. Its signature
-does not deal damage: it *removes a legend from the record* — that legend
-comes back at the start of the next round with all buffs, marks and debuffs
-gone, as though it had never acted. A boss that undoes your setup rather
-than out-damaging it, punishing exactly the multi-turn combos the chapter
-spent eight gates teaching. Its twelve is drawn from every faction and its
-front line is the erased citizens of Uruk, fighting without names.
-
-**Reward.** The chapter's largest purse. Enheduanna, playable. And a name in
-the ledger, written in the player's own hand.
+**Reward.** The chapter's largest purse. And the horn.
 
 ---
 
-## Epilogue — The Room With A Door
+## Epilogue — The Sixteen Hundred
 
-The lamps came back on in Uruk one street at a time, and they came back
-*wrong* — fewer than there had been, and the city was smaller in the morning
-than it had been at dusk, and nobody who returned could say with confidence
-what had stood where the eastern quarter now held an empty square.
+The ships came down a river that had stopped being a river some hours before,
+and out onto a sea that had no business existing, and the people aboard them
+watched the place where Uruk had been until there was nothing to watch, and
+then for some time after that.
 
-That was the cost. It was not undone. The Scrivener had been right about the
-capacity of the room, and being right had not made it less of a wound.
+Behind them, there was no wound in the world. The Advocate had not finished
+reading. It had got through perhaps two thirds of the names before the floor
+of light went out from under it, and so two thirds of a city is in the record
+and one third is not, and there is no way to know which third, and the people
+on those ships will spend the rest of their deaths discovering the holes.
 
-But the square was *empty*, and an empty square is a space where something
-can be built.
+A woman will remember her sister's face and not her voice.
 
-At a folding table at the edge of the new quarter, two old clerks sat
-opposite one another with a ledger between them, arguing about procedure.
-They would be arguing about it for a long time. The Recruiter had views on
-mercy, and the Scrivener had four thousand years of filing, and somewhere in
-the overlap was the first honest answer either of them had reached alone.
+A man will know he had a brother.
 
-"You are leaving," the Recruiter said, without looking up.
+The Recruiter sat at the stern of the last ship with his ledger open on his
+knees and worked all night, writing down every name anybody could still say
+aloud, and the queue to reach him did not shorten until well past dawn.
 
-"There are other cities."
+The Wayfarer found him there in the grey light, still writing, hands shaking
+too badly to be legible.
 
-"There are." He turned a page. "Some of them are full."
+"Four hundred and forty," the Recruiter said, without looking up. "I have
+three hundred and ninety-one. I will get the rest. I will sit here until I
+get the rest."
 
-The Wayfarer went out through the eastern gate, past a wall that stated where
-a country had been, and did not look back at the city, because the city was
-still there, and would be tomorrow, and that was the entire point.
+"Some of them nobody can remember."
 
-Behind them, in a ledger thick enough to stop an arrow, on a line that had
-once been blank and then held a sentence, there was now a name.
+"Then I will write *a person was here and we could not keep their name*." His
+pen did not stop. "It is a poor entry. It is not nothing. A blank line is
+where somebody has not finished writing yet, Blank — you of all people know
+that."
 
-It was not underlined in gold.
+The Wayfarer looked back east, at the horizon, which was now merely a
+horizon.
 
-It was not crossed out in red.
+"It's still coming."
 
-It was simply written, in ordinary ink, in a hand that had chosen it — and
-beneath it, waiting, was the next blank line.
+"Of course it is still coming." The Recruiter turned a page. "It has been
+coming since before the Road. Gilgamesh built ten gates to teach echoes how
+to be carried, and it has taken me until this morning to understand that he
+was not building a school. He was building the only defence there is."
+
+"Which is what?"
+
+The old man finally stopped writing, and looked up, and his eyes were red.
+
+"Enough people who will not shut up about you."
+
+Ahead of the ships, low on the water, there was a coastline that nobody
+aboard recognised, and on it lights.
 
 Somewhere, in a world that had almost forgotten them, a page turned.
-
-And somewhere further out, past the wall and the harbour and the wheel in the
-dust, something very old and very hungry noticed that the paperwork in Uruk
-had started moving again — and turned, for the first time in four thousand
-years, to look directly at the Road.
