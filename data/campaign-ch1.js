@@ -69,7 +69,12 @@ window.EOL = window.EOL || {};
     unbannable: true,
     pinned: true,
     icon: 'ra-crown',
-    art: 'assets/rivals/gilgamesh.png',
+    /* ART PENDING (2026-08-18e). The rival portraits were deleted so the
+       owner can draw them. Gilgamesh is the one rival who is ALSO a
+       playable card, so he needs both a rival brief and a card brief -
+       see docs/ART-SPEC.md section 6. Null renders the icon glyph, which
+       is the documented fallback for an unarted card. */
+    art: null,
     ability: {
       type: 'Active',
       name: 'He Who Saw the Deep',
@@ -148,7 +153,7 @@ window.EOL = window.EOL || {};
       id: 1,
       key: 'the-recruiter',
       rival: 'The Recruiter',
-      portrait: 'assets/rivals/the-recruiter.png',
+      portrait: null,
       mode: 'classic',
       /* In-match teaching is event-driven and reader-paced: no automatic
          round chatter or stale backlog. The instruction remains manually
@@ -398,7 +403,7 @@ window.EOL = window.EOL || {};
       id: 2,
       key: 'the-oathkeeper',
       rival: 'The Oathkeeper',
-      portrait: 'assets/rivals/the-oathkeeper.png',
+      portrait: null,
       mode: 'classic',
       aiProfile: 'sentinel',
       /* His words answer battle events and stay until read; he no longer
@@ -490,7 +495,7 @@ window.EOL = window.EOL || {};
       id: 3,
       key: 'the-outlaw',
       rival: 'The Outlaw',
-      portrait: 'assets/rivals/the-outlaw.png',
+      portrait: null,
       mode: 'classic',
       aiProfile: 'hunter',
       format: 'Classic',
@@ -558,7 +563,7 @@ window.EOL = window.EOL || {};
       id: 4,
       key: 'the-anointed',
       rival: 'The Anointed',
-      portrait: 'assets/rivals/the-anointed.png',
+      portrait: null,
       mode: 'classic',
       aiProfile: 'anointed',
       format: 'Classic',
@@ -622,7 +627,7 @@ window.EOL = window.EOL || {};
       id: 5,
       key: 'the-warden-of-the-mid-road',
       rival: 'The Warden of the Mid-Road',
-      portrait: 'assets/rivals/the-warden-of-the-mid-road.png',
+      portrait: null,
       mode: 'set',
       aiProfile: 'warden',
       format: 'Unabridged - Three gates',
@@ -682,7 +687,7 @@ window.EOL = window.EOL || {};
       id: 6,
       key: 'the-trickster',
       rival: 'The Trickster',
-      portrait: 'assets/rivals/the-trickster.png',
+      portrait: null,
       mode: 'draft',
       aiProfile: 'trickster',
       format: 'Draft',
@@ -775,7 +780,7 @@ window.EOL = window.EOL || {};
       id: 7,
       key: 'the-strategist',
       rival: 'The Strategist',
-      portrait: 'assets/rivals/the-strategist.png',
+      portrait: null,
       mode: 'draft',
       aiProfile: 'strategist',
       format: 'Draft',
@@ -856,7 +861,7 @@ window.EOL = window.EOL || {};
       id: 8,
       key: 'the-chronicler',
       rival: 'The Chronicler',
-      portrait: 'assets/rivals/the-chronicler.png',
+      portrait: null,
       mode: 'draft',
       aiProfile: 'chronicler',
       format: 'Draft',
@@ -938,7 +943,7 @@ window.EOL = window.EOL || {};
       id: 9,
       key: 'the-last-guardian',
       rival: 'The Last Guardian',
-      portrait: 'assets/rivals/the-last-guardian.png',
+      portrait: null,
       mode: 'set',
       aiProfile: 'guardian',
       format: 'Unabridged - Three gates',
@@ -1007,7 +1012,7 @@ window.EOL = window.EOL || {};
       id: 10,
       key: 'gilgamesh',
       rival: 'Gilgamesh',
-      portrait: 'assets/rivals/gilgamesh.png',
+      portrait: null,
       mode: 'set',
       aiProfile: 'conqueror',
       format: 'Unabridged - Final judgment',

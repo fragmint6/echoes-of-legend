@@ -6,12 +6,23 @@ difficulty design, rewards, and what each rival teaches. Written
 narrative prose, which is the source of truth for anything that
 disagrees with this page).*
 
-> **Status: DESIGN ONLY.** Chapter One's overview was written *against
-> the shipped implementation*. This one is not. There is no
-> `data/campaign-ch2.js`, no stage recipes, no scripted lines, no rival
-> decks in code, and nothing here has been through `sim/campaign_soak.js`.
-> Every win-rate figure below is **authored intent**. Chapter One's
-> equivalents moved substantially during tuning and these will too.
+> **Status: IMPLEMENTED 2026-08-18e.** This page is no longer design-only.
+> `data/campaign-ch2.js` ships all ten bouts - twelves, authored sixes,
+> bans, boards, grants, pre-fight scenes and epilogues - the Chapter 2
+> plate opens the Road, and `sim/verify_chapter2_campaign.js` (287
+> assertions) holds the data to what this document says.
+>
+> **Two things are still true and still matter:**
+>
+> 1. **The win rates below are authored, not measured.** Nothing in this
+>    chapter has been through `sim/campaign_soak.js`. Chapter One's
+>    numbers moved substantially during tuning and these will too.
+> 2. **The boss's overrule is half-implemented.** The lore describes
+>    undoing an action *and replaying it as the official version*. What
+>    ships is the undo: The Redaction silences the target and strips its
+>    buffs, "as though it had never acted", and escalates in price. The
+>    replay half would need the engine to keep a rewindable action log,
+>    which it does not. See section 8.
 
 ---
 
@@ -535,10 +546,10 @@ question; see §8 of the lore doc.
 
 Tracked honestly, because none of this is built:
 
-- **No `data/campaign-ch2.js`.** No stage recipes, scripted lines, rival
-  twelves, or bespoke cards in code.
-- **Boards are unassigned.** Chapter One pins a board per gate; this
-  chapter has not picked any.
+- ~~No `data/campaign-ch2.js`.~~ **Done 2026-08-18e** - ten bouts, ten
+  twelves, both exams, the boss card, and every scene.
+- ~~Boards are unassigned.~~ **Done** - every bout pins a board and both
+  exams pin a three-board fight card, all drawn from the existing ten.
 - **Nothing is simmed.** Every WR above is authored. Chapter One's
   numbers moved substantially under `sim/campaign_soak.js`.
 - **The Redactor's "overrule" is unproven** — undoing and replaying an
@@ -555,4 +566,10 @@ Tracked honestly, because none of this is built:
   side-effect that motivates it: the packable pool went 35 -> 77 when the
   seven factions landed, roughly halving the odds of pulling any specific
   older legend for players who never asked for Chapter Two.
-- **Asmodeus has no card**, and neither do Sargon or the Concord officials.
+- **Asmodeus has a card** (`campaign-asmodeus`, unbannable and pinned,
+  like Gilgamesh). Sargon and the Concord officials still have none -
+  they are voices in the scenes, not fighters.
+- **All twenty rival portraits are missing on purpose** (2026-08-18e).
+  The art was deleted for the owner's own pass; `stage.portrait` is null
+  everywhere and the UI shows a hood glyph. Briefs for all twenty are in
+  `docs/ART-SPEC.md` section 6.

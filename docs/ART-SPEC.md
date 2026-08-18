@@ -59,6 +59,18 @@ rev 5).
 > after the first attempt came back landscape and too smoothly shaded to
 > pass the flat/hard test in section 4b.
 >
+> **2026-08-18, rev 10.** **All rival art deleted at the owner's
+> request** - `assets/rivals/` and `assets/rivals-src/` are gone, every
+> `stage.portrait` is null, and the UI falls back to a hood glyph in a
+> box of the same size so nothing reflows when the hand-drawn art lands.
+> New **section 6** briefs all twenty rivals (Chapter I's ten gates and
+> Chapter II's ten bouts) in the same format as the per-legend briefs,
+> including the two boss rivals that are also playable cards and
+> therefore need two images each. **No rival art was generated.** The
+> only image made this pass is the Chapter II chapter-plate backdrop
+> (`assets/chapter-2/cw-bg.png`), which follows
+> docs/BATTLEFIELD-ART-SPEC.md rather than this document.
+>
 > **2026-08-18, rev 9.** **Kaguya rebriefed for Kami** - the rev 8 entry
 > moved her file but kept a brief written for a war camp, so the spec now
 > describes the recall (moon disc as silhouette, sleeves dissolving into
@@ -1198,3 +1210,278 @@ contour - solid at the head, fraying to spray at the shoulders.
 `#a05cd8` haze. Rare: the fraying silhouette. **Exception to the opacity
 rule:** the FIGURE fades, the canvas does not - the backdrop behind him
 is fully painted and opaque.
+
+---
+
+## 6. Rival briefs (rev 10 - art outstanding, owner is drawing these)
+
+> **2026-08-18e.** Every rival portrait in `assets/rivals/` and every
+> source file in `assets/rivals-src/` was **deleted** at the owner's
+> request so they can be drawn by hand. `stage.portrait` is `null` for
+> all twenty bouts and the UI falls back to a hood glyph in the same box,
+> so nothing reflows when the art lands. **Do not generate these.** This
+> section is the brief the owner asked for, in the same shape as the
+> per-legend briefs above.
+
+### What a rival portrait is, and how it differs from a legend card
+
+A rival is **not** a collectible card, with two exceptions noted below.
+The differences are load-bearing:
+
+| | Legend card (section 5) | Rival portrait (this section) |
+| --- | --- | --- |
+| Shipped size | 64 x 88 PNG | **128 x 176 PNG** - rivals render larger (dialogue bust, ledger, bark) |
+| Source size | 640 x 880 | 640 x 880 - unchanged |
+| Where it appears | collection tile, battle tile | stage card, dialogue bust, ledger row, in-battle bark |
+| Rarity direction | drives detail budget | **none** - a rival has no rarity |
+| Faction palette | mandatory | **none** - a rival is a person, not a deck |
+
+Everything else from sections 2, 3 and 4 applies unchanged: three-quarter
+length, face readable in the upper third, one complete opaque
+environment, a 1-2px upper-left rim light only, hard pixel edges, no
+anti-aliasing, no text, no frame.
+
+**Two rivals are also cards.** Gilgamesh (`campaign-gilgamesh`) and
+Asmodeus (`campaign-asmodeus`) are bespoke boss legendaries that appear
+in a fielded six. They need **two** images each: the rival portrait at
+128 x 176 for the dialogue bust, and a legend card at 64 x 88 to the
+section 5 rules. The same illustration can serve both if it is composed
+to the tighter card crop first.
+
+**The colour column below is the rival's own accent** - the rim light and
+any small emissive detail. It is chosen per person, not per faction,
+because a rival's deck is a consequence of how they fight rather than a
+tribe they belong to.
+
+---
+
+### 6a. Chapter I - the ten gates
+
+The Road of Echoes. Every one of these is a guardian who reached a door
+and *chose to stay*, so none of them should read as a monster or a boss;
+they read as people who have been standing somewhere a very long time.
+
+**The Recruiter** `Gate I` `#7bb661`
+An old memory broker, warm and exacting and administrative - never
+wizardly, never comic. Lean, deeply lined, dark-skinned; short grey
+beard; salt-and-pepper locs tied back; a bronze monocle. Moss-green
+patched road coat over an oversized ledger satchel, small glass vials of
+collected memories on the strap. Signature: **the open ledger**, thick
+enough to stop an arrow, held the way a clerk holds one rather than the
+way a mage holds a tome. Environment: the lantern-hung thorn road at
+dusk, the same one on the chapter plate. Weary authority, no menace.
+
+**The Oathkeeper** `Gate II` `#c9b8a0`
+An aged veteran who promised forty-three people he would bring them home
+and returned with twelve. Weather-browned face, clouded left eye, torn
+ear, iron-grey stubble, old scars. Battered open-faced helm, repaired
+blue-and-off-white plate with visible mismatched patches, a frayed white
+oath sash, a deeply dented kite shield. Signature: **the sash and the
+mending** - he is caught repairing his own shield with iron wire, not
+brandishing it. Environment: the cliff walls of the Narrow Pass, nailed
+with shields bearing kept-too-late promises. A survivor carrying a cost,
+not a king.
+
+**The Outlaw** `Gate III` `#e3c567`
+A copper-haired young woman from a bookshop family whose *records* were
+burned before its books. Mustard riding coat, ink-blue scarf, leather
+gloves. Signature: **an antique blackpowder long rifle with a brass tube
+sight**, cleaned with a strip of blue cloth. Practical, amused,
+unsentimental. Environment: the Open Plains at low sun, one watchtree.
+Explicitly **no green hood, no bow, no Robin Hood silhouette** - she
+fields Sherwood, she is not of it.
+
+**The Anointed** `Gate IV` `#8be0ff`
+An elder priestess who learned that a warning can be a blade held
+politely. Bronze skin, shaved head, temple-blue face paint in a clean
+geometric band. Asymmetric beaten-gold sun disc at the shoulder, white
+prayer wraps, indigo mantle. Signature: **a bronze astrolabe**, turned
+slightly toward herself. Her marks read as quiet geometric promise-lights
+**below the face**, never crossing it. Environment: the Mana Spring's
+terraced pools. Certainty that has learned to doubt professionally.
+
+**The Warden of the Mid-Road** `Gate V` `#b18cd9`
+A road adjudicator who stays where the three exams meet. Burn scar across
+a shaved temple, single silver hoop. Black-slate plate over an ivory
+surveyor's wrap, burgundy mantle. Signature: **a huge iron gate-key and a
+knotted measuring cord**; a low staff carries an unlit signal lantern.
+Environment: three stone toll arches, a table with four cups poured for
+three people. She is the living law of the arches, not a generic armoured
+sentinel.
+
+**The Trickster** `Gate VI` `#9b8bd0`
+A young woman written as background in her first story, who learned to
+deal herself into other ones. Bright alert eyes, short black hair tipped
+plum, gold hoops. Vermilion gambler's jacket with teal lining. Signature:
+**blank lacquered tiles** at her wrist and dealt across black stone -
+faces unmarked, because the line was never printed. Environment: the
+Energy Void, full of half-existing shapes. Sharp and mischievous, never
+cute, never childish.
+
+**The Strategist** `Gate VII` `#7b4dc0`
+An old planner who saved a city by choosing which villages burned first.
+Bald crown, long silver side-hair, narrow grey beard, a bronze
+architect's lens over one eye. Charcoal scholar's robe, Tyrian-purple
+mantle, measuring pins at the breast. Signature: **the wax board of
+violet lines**, some ending in small circles and some in ash. Environment:
+the Blood Battlefield at dusk, seen from a command rise. **No laurel, no
+cuirass, no emperor silhouette** - he is an advisor, and the distinction
+is the character.
+
+**The Chronicler** `Gate VIII` `#6fd3e8`
+A gaunt, ash-pale archivist, severe and exhausted - never ethereal,
+never regal. Shaved sides, short white hair, ink-dark fingers to the
+knuckle, a broken vermilion spectacle chain. Charcoal and shrine-white
+robes. Signature: **blank pages and violet ink low in frame**, one page
+turned toward the viewer and empty. Environment: the wall-less Spirit
+World library, black desk, shelves receding into nothing.
+
+**The Last Guardian** `Gate IX` `#6fd3e8`
+A dark-skinned woman who gave up her name to cut the Quiet's thread to
+her world. **She never speaks**, so the portrait carries everything: a
+squared ivory-and-charcoal gate helmet with a raised narrow visor and a
+lightning-blue crack across the brow, framing clear tired eyes. Jade,
+ivory and charcoal gate plate. Signature: **a wooden key taller than her
+shoulder**, carried across the back. Environment: the last door, held
+shut. Stillness, not aggression.
+
+**Gilgamesh** `Gate X` `#d4a017` *(also a card - see the two-image note)*
+The legend-king of walled Uruk, standing *beside* the throne rather than
+on it, tired of ceremonies he invented. Broad and grave; thick curled
+dark hair; a bead-weighted curled beard; a woven royal headband. Fringed
+wool robe, lapis bead belt, bronze arm rings. Signature: **an old bronze
+sword carried low**, and the bead-weighted beard. Environment: mud-brick
+Uruk and temple towers under a cold star band. **Avoid medieval crowns,
+paladin armour and living lion companions** - this is Bronze Age
+Mesopotamia, not high fantasy.
+
+---
+
+### 6b. Chapter II - the ten bouts
+
+The Concord. Chapter I's rivals are guardians who stayed; Chapter II's
+are **professionals at work during a busy week**. They should read as
+people with jobs and schedules - a bookmaker, a herald, an auditor - not
+as mystics. Costume leans civic and contemporary-to-the-city: coats,
+sashes of office, working clothes, ledgers. The city is temporary, so
+canvas, scaffold and rope belong in the backdrops.
+
+**The Understudy** `Bout XI` `#d8b26a`
+A fixer's fighter, paid to lose the opening bout convincingly, doing it
+properly anyway. Young, wiry, unbothered; cropped practical hair; a
+fighter's flattened knuckles. Plain sparring leathers with the previous
+owner's insignia unpicked, leaving a visible ghost of stitching.
+Signature: **the unpicked badge** - a patch of cloth cleaner than what
+surrounds it. Environment: the Concord's opening arena, half its banners
+still going up. Loose, warming up, entirely at ease.
+
+**The Bookmaker** `Bout XII` `#b03a2e`
+The Concord's bookmaker, and formerly a tax farmer for an empire that no
+longer exists. Middle-aged, heavy-set, immaculate, chalk dust on the
+cuffs. A good coat gone shiny at the elbows over an imperial-cut tunic
+two centuries out of fashion. Signature: **the price board** - a slate
+of chalked odds beside him, and the chalk still in his hand.
+Environment: his table on the avenue, which nobody has ever asked him to
+move. He is the most comfortable person in the picture.
+
+**The Herald** `Bout XIII` `#f2e6c2`
+The Canon's sword-bearer: honest, unimaginative, wholly sincere, and
+incurious in a way that is the whole character. Broad, clean-shaven,
+correct posture, a face that has never been asked a difficult question.
+Bleached ivory tabard with a single worked-gold seal, formal
+sword-bearer's harness. Signature: **the folded charge sheet** held in
+the off hand, already read aloud. Environment: the Concord floor under
+cold vault light. No swagger - he is on duty.
+
+**The Collector** `Bout XIV` `#8e2f45`
+The keeper of the vault under the city, and genuinely the reason half the
+dead still exist. Older, sharp-eyed, dust in her hair, reading glasses
+pushed up. Oxblood velvet coat over a working apron with a dozen small
+pockets, tarnished silver clasps. Signature: **the accession tags** -
+dozens of small numbered tags on cords at her belt, one for each thing
+she has saved. Environment: the vault, gaslit, shelves receding into
+fog. Protective rather than sinister.
+
+**The Hero of the Bridge** `Bout XV` `#c9a227` *(the exam)*
+**Not a person - an entry.** The Canon's official version of Sargon: the
+speech, the banner, the last stand. Heroic in the most generic possible
+way, and that is the point. Idealised jaw, unscarred skin, armour with no
+dents, a cloak caught in a wind that is not blowing on anything else in
+the frame. Signature: **the tidiness** - he is the only figure in either
+chapter with no wear, no damage and no asymmetry, and he should look
+subtly wrong for it. Environment: a bridge rendered like an illustration
+in a book, edges slightly too clean, forty absent figures implied by
+empty space behind him.
+
+**The Undertaker** `Bout XVI` `#7fb4d4`
+A man who buried a world once, properly, and has never forgiven the
+Concord for what it does instead. Tall, gaunt, grey; a long face; hands
+that have done the work. Frost-rimed dark coat, wolf-pelt collar, a
+spade's worn haft across the back. Signature: **the pelt and the spade**
+together - grave-digger and mourner in one silhouette. Environment: the
+Blood Battlefield's edge at last light, one field beyond it already
+growing back. Patient, not menacing; he is waiting for something to
+finish.
+
+**The Mason** `Bout XVII` `#e8a33d`
+She built the retaining wall the Concord floor sits on, one course at a
+time, eleven centuries ago, and has brought the same proposal to every
+Concord since. Broad shoulders, forearms of someone who lifts stone,
+grey hair bound in a working scarf, mortar permanently under the nails.
+Saffron work-tunic, leather apron, a plumb-line at the hip. Signature:
+**the plumb-line and a single dressed stone** set beside her, level and
+true. Environment: the Ancient Ruins, with her own wall visible and still
+standing. Unhurried certainty.
+
+**The Wrecker** `Bout XVIII` `#2f6f6a`
+A coastal wrecker who takes off what floats before the sea gets it, and
+has never in her life considered that stealing. Weather-cured skin,
+salt-stiff hair, a broken nose set badly. Verdigris-brass buttoned coat
+over salt-bleached canvas, a coil of rope over the shoulder. Signature:
+**the Canon itself under one arm**, four pounds of book carried like
+salvage. Environment: the Open Plains at night, the arena lights distant
+behind her. Cheerful, unbothered, completely unrepentant.
+
+**The Auditor** `Bout XIX` `#d9a521` *(the exam)*
+The last standing office of a dissolved empire: four thousand mornings in
+a room nobody enters. Elderly, spare, immaculate; a face composed by
+routine rather than feeling. Imperial scale-pattern robe kept in perfect
+repair but two hundred years out of date, an office seal on a cord.
+Signature: **the chalked hours on the door frame behind him**, still
+kept. Environment: his office - one desk, one lamp, shelves of unopened
+provenance ledgers. He has been ready for four centuries.
+
+**Asmodeus, the Redactor** `Bout XX` `#c9a227` *(also a card - two images)*
+A king of an older hierarchy, from when his kind kept courts and the
+courts kept records. He did not come to rule the Concord; he came because
+it was the only institution left that still filed things properly. Broad,
+composed, unhurried; a voice you can see in the posture. Dark formal
+robes of an archivist's office worn over something much older and
+grander, worked gold at the collar. Signature: **the reading stand and
+the redaction** - one hand resting on an open ruling with lines struck
+through in black. Environment: the Concord floor with the whole city
+watching, or his archive behind it. **He is not a demon caricature**: no
+horns as spectacle, no fire, no leer. The most frightening thing about
+him is that he is reasonable.
+
+---
+
+### 6c. Delivery
+
+| Step | Notes |
+| --- | --- |
+| Draw at 640 x 880 | same source size as the legend cards |
+| Crop | centre, to the card aspect; nothing essential in the outer 10% |
+| Ship | **128 x 176** lossless PNG to `assets/rivals/<key>.png` |
+| Key | the stage `key` in the campaign data - e.g. `the-oathkeeper`, `asmodeus-the-redactor` |
+| Wire | set `portrait: 'assets/rivals/<key>.png'` on the stage; `null` keeps the hood glyph |
+| Manifest | regenerate `assets/rivals/MANIFEST.csv` from disk, one row per file |
+
+The two boss cards additionally ship a **64 x 88** legend card to
+`assets/legends/campaign-gilgamesh.png` and
+`assets/legends/campaign-asmodeus.png`, and set `art:` on the boss card
+in the campaign data.
+
+`sim/verify_fixtures.js` checks that every wired path exists on disk, so
+a half-finished art pass fails the build rather than shipping a broken
+image.

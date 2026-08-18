@@ -29415,3 +29415,46 @@ body[data-gfx='low'] .cd-card {
   color: var(--txt-faint);
   font-weight: 600;
 }
+
+/* ==========================================================================
+   RIVAL PORTRAIT PLACEHOLDERS (2026-08-18e)
+   --------------------------------------------------------------------------
+   The rival art was deleted so the owner can draw it. Everywhere a rival
+   face used to render, the markup now emits a hood glyph in the same box
+   instead of an <img> with a dead src. These rules only style the empty
+   state - when the art returns, the <img> paths come back and none of this
+   applies.
+
+   The boxes keep their exact former dimensions so nothing reflows when the
+   real portraits land: a placeholder that changes the layout would make the
+   art pass look like a regression.
+   ========================================================================== */
+.sc-portrait-empty {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(30, 20, 22, 0.55), rgba(12, 8, 18, 0.9));
+}
+.sc-portrait-empty i {
+  font-size: 28px;
+  color: rgba(226, 228, 242, 0.32);
+}
+/* Ledger detail: the <span> stands in for .lg-portrait's <img> box. */
+span.lg-portrait {
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+span.lg-portrait i {
+  font-size: 30px;
+  color: rgba(226, 228, 242, 0.32);
+}
+.nav-guide-face-empty {
+  display: grid;
+  place-items: center;
+}
+.nav-guide-face-empty i {
+  font-size: 26px;
+  color: rgba(255, 205, 130, 0.45);
+}

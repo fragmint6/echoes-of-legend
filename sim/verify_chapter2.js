@@ -669,8 +669,26 @@ console.log('J. the overview agrees with the lore');
      overview says it was written against the shipped implementation;
      this one was NOT, and a reader who assumes otherwise will treat
      authored win-rates as measured ones. */
-  ok(/Status: DESIGN ONLY/.test(over), 'the overview flags itself as design-only, not written against code');
-  ok(/authored intent/i.test(over), 'the overview says its win-rates are authored, not measured');
+  /* INVERTED 2026-08-18e. The overview used to carry a DESIGN ONLY
+     header because no code existed; data/campaign-ch2.js now ships, so
+     asserting "design only" would keep a lie in the doc. What must
+     SURVIVE the change is the honesty about tuning: the chapter is
+     implemented but unsimmed, and a reader must not mistake authored
+     win-rates for measured ones. That half is asserted harder now,
+     because it is the part that is easy to quietly drop once the
+     "design only" banner goes away. */
+  ok(
+    /Status: IMPLEMENTED/.test(over),
+    'the overview reports the chapter as implemented, matching data/campaign-ch2.js'
+  );
+  ok(
+    fs.existsSync(path.join(ROOT, 'data/campaign-ch2.js')),
+    'the implementation the overview claims actually exists'
+  );
+  ok(
+    /authored, not measured/i.test(over) && /campaign_soak/.test(over),
+    'the overview still says its win-rates are authored and names the soak that would measure them'
+  );
 }
 
 console.log('');
