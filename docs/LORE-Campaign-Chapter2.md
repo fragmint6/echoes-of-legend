@@ -110,7 +110,7 @@ person, a trade and a reason.
 
 ---
 
-### XI — LEDA, WHO IS PAID TO LOSE
+### XI — THE UNDERSTUDY
 
 **Day one · the opening bout**
 
@@ -138,7 +138,7 @@ years to take the petition seriously.
 
 ---
 
-### XII — THE BOOKMAKER
+### XII — THE PRICE-SETTER
 
 **Day two · the fixer**
 
@@ -165,7 +165,7 @@ the back of the tablet, and I stopped considering that my failing."
 
 ---
 
-### XIII — THE SWORD-BEARER
+### XIII — THE HERALDED BLOW
 
 **Day three · the incumbent's second**
 
@@ -193,7 +193,7 @@ told me. Only one of those instructions I intend to keep."
 
 ---
 
-### XIV — THE KEEPER OF THE VAULT
+### XIV — THE COLLECTOR
 
 **Day four · the archive**
 
@@ -250,7 +250,7 @@ The Wayfarer does not.
 
 ---
 
-### XVI — THE MOURNER
+### XVI — THE LAST STAND
 
 **Day five · the abolitionist**
 
@@ -275,7 +275,7 @@ will not let them off it. Ask yourself who the Canon is serving now."
 
 ---
 
-### XVII — THE PILGRIM
+### XVII — THE LONG GAME
 
 **Day six · the reformer**
 
@@ -301,7 +301,7 @@ has been polite about it."
 
 ---
 
-### XVIII — THE SALVAGER
+### XVIII — THE TAKER
 
 **Day seven, at night · the theft**
 
@@ -328,7 +328,7 @@ weighs four pounds. I've carried heavier by accident."
 
 ---
 
-### XIX — THE AUDITOR
+### XIX — THE ANSWER
 
 **The morning of the final · unscheduled**
 
@@ -365,7 +365,7 @@ thousand years is procedure."
 
 ---
 
-## 3. XX — THE FINAL: THE HERALD OF THE COURT
+## 3. XX — THE FINAL: THE REVISION
 
 **The Concord floor · everyone watching**
 
@@ -393,6 +393,88 @@ reflect that you were never permitted them."
 
 ---
 
+---
+
+## 3.5 Difficulty — no freebies
+
+**Owner ruling.** Chapter One opened at ~95% and ramped to Gilgamesh at
+~20-30%. Chapter Two does not do that. The player arrives with a finished
+collection, eight chapters of habits and a full understanding of the loop;
+an opening bout they cannot lose is a waste of everyone's week.
+
+**The floor for every ordinary bout is *a bit below Gilgamesh*.** The two
+elites and the final are *at* him.
+
+| | Chapter I | Chapter II |
+|---|---|---|
+| Opening stage | ~95% | **~45%** |
+| Ordinary stages | 90% → 55% | **40-45%, flat** |
+| Elites | 40% (IX) | **~30%** |
+| Boss | 20-30% (X) | **~25%** |
+
+| Bout | Target player WR | Notes |
+|---|---|---|
+| XI The Understudy | ~45% | the easiest fight in the chapter is still a real fight |
+| XII The Price-Setter | ~42% | |
+| XIII The Heralded Blow | ~42% | |
+| XIV The Collector | ~40% | |
+| **XVI The Last Stand** | **~30%** | **elite** |
+| XVII The Long Game | ~40% | |
+| XVIII The Taker | ~42% | |
+| **XIX The Answer** | **~30%** | **elite** — Huaxia, bans nothing |
+| **XX The Revision** | **~25%** | **boss** — at Gilgamesh |
+
+XV is the record scene and has no bout.
+
+### How the difficulty is produced
+
+This chapter inherits Chapter One's **five laws**, and L2 is the one that
+matters here: *difficulty comes from decks, never from the AI.* Search depth
+is measured non-monotonic (a deeper enemy made the player win *more*) and
+turn order is worth ~0-10pp. Both stay banned. So:
+
+1. **Fielded-six power.** The primary dial, as in Chapter One. Every rival
+   in this chapter fields near the top of their authored twelve.
+2. **Adaptive fielding from bout one.** Chapter One scripted the sixes for
+   stages 1-4 because a first-ever fight that opens with a ban phase teaches
+   nothing. Nobody here is learning the loop, so **every rival sideboards
+   live** from their twelve. No scripted sixes anywhere in the chapter.
+3. **Bans that hurt from bout one.** Chapter One's early gates banned
+   gently. Here the opening bout already takes your two most expensive
+   cards, and the bans are aimed at the answer rather than at a role.
+4. **Terrain built against you.** Symmetric per L1, but each rival's twelve
+   is built for its pinned board and yours may not be.
+
+### The elites
+
+Two, both at ~30%, and they are elites for opposite reasons.
+
+**XVI The Last Stand** is the *attrition* elite: the only deck in the game
+that gets stronger as the board empties, so the usual plan — trade evenly,
+win on remainder — is precisely the losing line. Healers banned, so you
+cannot stall past it either.
+
+**XIX The Answer** is the *mastery* elite and the harder of the two. He bans
+nothing, which is the flex: he does not need to take your best cards because
+his whole board is built to punish whatever you do with them. Every habit the
+previous seven bouts taught you has a counter on his side of the table. He is
+also the Huaxia unlock, so the hardest ordinary fight in the chapter is the
+one that pays out the withheld faction.
+
+### One honesty note
+
+These are **bot-vs-bot targets at the collection floor**, the same vocabulary
+Chapter One's curve table uses, and they are *authored intent, not measured
+results*. Chapter One's numbers were tuned with `sim/campaign_soak.js` over
+hundreds of games per stage and moved substantially during tuning. Nothing in
+this chapter has been simmed, because none of it is built yet. Treat every
+figure above as the target to tune toward, and expect it to move.
+
+The maintenance duty from Chapter One applies double: nine authored matchups
+against a 112-card roster is a standing balance liability, and every card
+patch is a potential campaign regression. The campaign soak belongs on the
+balance-patch checklist.
+
 ## 4. The ending
 
 You win, you hold the Canon for a century, and you have to use it in front of
@@ -404,7 +486,7 @@ buried too, and somebody four hundred years from now files their twelfth
 petition.
 
 **2. Publish the audit.** The holders' credibility burns, the Canon is proven
-fallible, and the argument goes back to the street. The Mourner gets his
+fallible, and the argument goes back to the street. The Last Stand gets his
 bonfire. The forty stay unnamed, because nobody is keeping records any more.
 
 **3. Both, then give it away.** Correct the line, publish the audit, and
@@ -417,7 +499,7 @@ could ever have bought it is a Canon-holder giving up the Canon on his first
 morning.
 
 The Wayfarer holds it for a day and a half — the shortest tenure in the
-history of the Concord. The Auditor files the paperwork and, for the first
+history of the Concord. The Answer files the paperwork and, for the first
 time in four thousand years, has a successor to train.
 
 **The cost.** The corrected entry is not the heroic one. It has the
@@ -442,7 +524,7 @@ out loud, and somebody else's hands to file it.
 The Wayfarer leaves with twelve legends, a coin purse, and no more claim to a
 name than they arrived with.
 
-The Auditor stops them at the gate and hands over a blank tablet, which is
+The Answer stops them at the gate and hands over a blank tablet, which is
 either a formality or a joke, and with him it is impossible to tell.
 
 "Petition form," he says. "For when you want your own line looked at."
@@ -466,15 +548,15 @@ implementation note: which deck each rival fields, and why it suits them.
 
 | Rival | Fields | Why it fits the person |
 |---|---|---|
-| Leda | Achaea | mortals with no god; everyone becomes more mid-fight |
-| The Bookmaker | Gehenna | appetites that buy power on visible terms |
-| The Sword-Bearer | Empyrean | announces every blow a round early |
-| The Keeper | Transylvania | takes rather than destroys |
-| The Mourner | Jotunheim | strongest once the board starts emptying |
-| The Pilgrim | Devaloka | setup and payoff as two separate jobs |
-| The Salvager | Tortuga | steals advantages rather than removing them |
-| The Auditor | **Huaxia** | answers instead of initiating |
-| The Herald | bespoke boss + Empyrean court | edits the record mid-fight |
+| The Understudy | Achaea | mortals with no god; everyone becomes more mid-fight |
+| The Price-Setter | Gehenna | appetites that buy power on visible terms |
+| The Heralded Blow | Empyrean | announces every blow a round early |
+| The Collector | Transylvania | takes rather than destroys |
+| The Last Stand | Jotunheim | strongest once the board starts emptying |
+| The Long Game | Devaloka | setup and payoff as two separate jobs |
+| The Taker | Tortuga | steals advantages rather than removing them |
+| The Answer | **Huaxia** | answers instead of initiating |
+| The Revision | bespoke boss + Empyrean court | edits the record mid-fight |
 
 ### Huaxia is properly introduced
 
@@ -482,7 +564,7 @@ An earlier draft mentioned Huaxia once, in passing, as a dissolved house —
 which was a waste of the faction the whole roster has been holding back since
 Chapter One.
 
-The Auditor now **is** that empire's last living institution, and the chapter
+The Answer now **is** that empire's last living institution, and the chapter
 says so out loud: an empire fell, its armies and its emperors and its poets
 are gone, and what survived was **one clerk who kept the hours**. That is
 both a real joke about bureaucracy and the most Huaxia sentence available —
@@ -512,4 +594,10 @@ the image.
   truth is worse than the lie.
 - **Two bad endings are reachable and tempting**, so the good one is a choice.
 - **The boss mechanic is the theme** — a card that edits your history.
-- **Huaxia is the reveal**, not a footnote.
+- **Huaxia is the reveal**, not a footnote — and the elite that pays it
+  out is the hardest ordinary fight in the chapter.
+- **Every name is the playstyle.** The Collector takes and keeps, The
+  Last Stand is strongest when losing, The Answer counters, The Long
+  Game needs two cards to kill anything. Chapter One's law: the
+  Oathkeeper teaches walls, the Outlaw teaches focus fire.
+- **No freebies.** The opening bout sits at ~45%, not ~95%.
