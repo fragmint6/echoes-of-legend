@@ -155,7 +155,7 @@ const COST = (function () {
       'data/yamato.js',
       'data/huaxia.js',
       'data/roma.js',
-      'data/takamagahara.js',
+      'data/kami.js',
       'data/duat.js',
     ].forEach((f) => {
       // eslint-disable-next-line no-new-func
@@ -195,7 +195,7 @@ w(
 w(`**Generated:** ${A.meta.date}`);
 w(
   `**Roster:** ${Object.keys(A.legendInfo).length} legends across ${new Set(Object.keys(A.legendInfo).map((i) => info(i).faction)).size} factions ` +
-    `- this run introduces **Takamagahara** (6 legends, marked 🆕 throughout).`
+    `- this run introduces **Kami** (6 legends, marked 🆕 throughout).`
 );
 w('');
 w(
@@ -578,7 +578,7 @@ if (BL) {
       ['roma-cicero', 'damage +25% per debuff on target (max 4)'],
       ['sherwood-friar-tuck', 'damage +22% per debuff (max 4)'],
       ['grimmwood-pied-piper', 'damage +20% per debuff (max 4)'],
-      ['takamagahara-inari', 'NEW: +30% per enemy buff, then strips them all'],
+      ['kami-inari', 'NEW: +30% per enemy buff, then strips them all'],
       ['camelot-guinevere', 'ATK rider single-target → team-wide'],
       ['olympus-apollo', 'crit rider single-target → team-wide'],
     ];
@@ -2193,22 +2193,22 @@ w('');
   w('### Card-by-card');
   w('');
   const note = {
-    'takamagahara-amaterasu':
+    'kami-amaterasu':
       'Rebuilt after the first draft proved exploitable (self-Untargetable made her ' +
       'unkillable as a lone survivor). Now a fragile 70%/105% AoE that must survive in the open.',
-    'takamagahara-tsukuyomi':
+    'kami-tsukuyomi':
       'Debuff detonator - 90% base, 150% into an already-debuffed target. His ceiling ' +
       'depends entirely on whether the team supplies dirty targets.',
-    'takamagahara-izanami':
+    'kami-izanami':
       'Passive-only: no active cast, so her whole output is the Disrupt basic plus ' +
       'the ally-death payout. Watch for low agency.',
-    'takamagahara-inari':
+    'kami-inari':
       'Net Energy-positive enabler (25 EN cost, 12/18 refund). The riskiest number in ' +
       'the faction - opened deliberately below the draft value.',
-    'takamagahara-izanagi':
+    'kami-izanagi':
       "The roster's only full-strip cleanse, and the designated counter to Grimmwood " +
       'and to Cicero/Tsukuyomi debuff decks.',
-    'takamagahara-susanoo':
+    'kami-susanoo':
       'Standing counter gated on being Shielded (engine rule shared with Guan Yu), ' +
       'plus a bodyguard reflex when an ally drops below 35%.',
   };
@@ -2226,8 +2226,8 @@ w('');
   w('### Nerfs applied this pass');
   w('');
   {
-    const ama = 'takamagahara-amaterasu',
-      sus = 'takamagahara-susanoo';
+    const ama = 'kami-amaterasu',
+      sus = 'kami-susanoo';
     w(
       table(
         ['Card', 'Change', 'Result'],
@@ -2624,7 +2624,7 @@ w(
     '`ra-helmet` (neither original existed in RPG Awesome); Brutus, Constantine, Abe no Seimei and the ' +
     'Huaxia faction icon moved off duplicates. The roster is now 0 invalid, 0 duplicate icons.'
 );
-w('5. `index.html` / `sim/sim.js` - load `data/takamagahara.js`.');
+w('5. `index.html` / `sim/sim.js` - load `data/kami.js`.');
 w('');
 w(
   '**Verification.** `sim/verify_all.js` (1,331 assertions), `sim/verify_fields.js` (111) and ' +

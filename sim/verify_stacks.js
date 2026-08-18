@@ -29,12 +29,16 @@ global.performance = { now: () => Date.now() };
   'data/roles.js',
   'data/camelot.js',
   'data/olympus.js',
+  /* Hercules moved to Hemithea 2026-08-18 (owner ruling); this suite
+     uses him as a fixture, so the file has to be loaded or CARD[] has a
+     hole and every board built from it throws. */
+  'data/hemithea.js',
   'data/sherwood.js',
   'data/grimmwood.js',
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
   'data/battlefields.js',
   'js/engine.js',
@@ -62,7 +66,7 @@ const mine = [
   'sherwood-will-scarlet',
 ].map(ent);
 const foes = [
-  'olympus-hercules',
+  'hemithea-hercules',
   'camelot-mordred',
   'huaxia-mulan',
   'olympus-medusa',
@@ -147,7 +151,7 @@ console.log('\n  --- roster-wide stack caps ---');
   t(capped.length >= 8, 'found the capped-stack cards to check (' + capped.length + ')');
 
   const FOES = [
-    'olympus-hercules',
+    'hemithea-hercules',
     'camelot-mordred',
     'huaxia-mulan',
     'olympus-medusa',

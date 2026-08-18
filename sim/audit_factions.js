@@ -54,10 +54,10 @@ const QUIET = ARGV.includes('--quiet');
 /* The seven factions added in this pass. Kept as a list rather than a
    flag on the faction so the audit needs no cooperation from data. */
 const NEW_FACTIONS = [
-  'jotunheim',
-  'achaea',
-  'gehenna',
-  'devaloka',
+  'asgard',
+  'hemithea',
+  'pandemonium',
+  'devas',
   'empyrean',
   'transylvania',
   'tortuga',
@@ -84,7 +84,7 @@ const DATA = [
   'data/sherwood.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
 ];
 /* New faction files are optional so the audit runs before they exist. */

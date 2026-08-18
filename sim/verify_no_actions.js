@@ -19,7 +19,7 @@ global.performance = { now: () => Date.now() };
 [
   'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
   'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
-  'data/roma.js', 'data/takamagahara.js', 'data/battlefields.js',
+  'data/roma.js', 'data/kami.js', 'data/battlefields.js',
   'js/engine.js', 'js/ai.js',
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 const EOL = window.EOL, E = EOL.engine;

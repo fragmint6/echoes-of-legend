@@ -196,7 +196,7 @@ beat skippable, every beat collectible.
 | 5 | **Unabridged** | 18 | fight card: Colosseum / Narrow Pass / Open Plains | **Sets + deck construction** - the first real build | The Warden of the Mid-Road | **choice of 2** + coin (larger) |
 | 6 | **Draft** | curated pool (own 20) | The Energy Void | Draft fundamentals; energy economy | The Trickster | 2× Yamato + coin |
 | 7 | Draft | curated pool (own 22) | The Blood Battlefield | Counter-drafting; kill engines | The Strategist | 2× Roma + coin |
-| 8 | Draft | curated pool (own 24) | The Spirit World | Burn, cleanse and Silence - attrition and answers | The Chronicler | 2× Takamagahara + coin |
+| 8 | Draft | curated pool (own 24) | The Spirit World | Burn, cleanse and Silence - attrition and answers | The Chronicler | 2× Kami + coin |
 | 9 | **Unabridged** | 26 | fight card: Energy Void / Blood Battlefield / Spirit World | Cross-faction synergy; full set mastery | The Last Guardian | **choice of 2** + coin (larger) |
 | 10 | **Unabridged** | 28 | fight card: The Legend's Trial / The Ancient Ruins / The Mirror Realm | Judgement, thresholds, closing a won game | **Gilgamesh** | 2× Duat + coin |
 
@@ -212,7 +212,7 @@ beat skippable, every beat collectible.
 - The "Player brings (pool N)" column is gone. It described a granted pool
   that R4 removed. What replaced it is a **floor**, which is a weaker but
   *true* guarantee.
-- **Stage 8 no longer claims to teach revive.** Takamagahara contains
+- **Stage 8 no longer claims to teach revive.** Kami contains
   **zero** revive effects (audited - §7.3). It is the burn / cleanse /
   Silence faction. Revive appears exactly once in the whole Chapter 1
   roster: `duat-isis`, at stage 10.
@@ -234,7 +234,7 @@ replay the ground the player has already walked:
 - Stages 6-8 introduce three more, each matched to its draft lesson:
   the Energy Void makes Yamato's economy bite, the Blood Battlefield pays
   Roma's kill engine, the Spirit World is a wall that only attrition
-  (Takamagahara) gets through.
+  (Kami) gets through.
 - **Stage 9's fight card is exactly those three.**
 - **Stage 10 uses the three boards never yet seen** - the last three
   truths - and no exam follows, because Gilgamesh *is* the exam.
@@ -444,7 +444,7 @@ read your last war.
 > *opening* pick weights from the stage-6 deck, then let the live signal
 > take over.
 
-**Stage 8 - The Chronicler** (Draft, Takamagahara). A historian of dead
+**Stage 8 - The Chronicler** (Draft, Kami). A historian of dead
 legends who drafts the curve, hoards answers, and writes down everyone who
 disappoints them. Burns you out and cleanses himself clean.
 
@@ -731,7 +731,7 @@ card data on 2026-08-05 (counts = cards carrying the effect):
 | olympus | 6 | **3** | . | . | . | . | 1 | . | . | 1 | 1 | . |
 | yamato | 6 | . | . | 1 | . | . | . | 1 | 1 | . | 1 | 1 |
 | roma | 6 | . | . | 1 | . | . | . | 2 | . | . | 1 | . |
-| takamagahara | 6 | . | **0** | 1 | . | 1 | 1 | 3 | 3 | 2 | 1 | 2 |
+| kami | 6 | . | **0** | 1 | . | 1 | 1 | 3 | 3 | 2 | 1 | 2 |
 | duat | 6 | . | **1** | . | . | . | . | . | 1 | 1 | 3 | 2 |
 | *huaxia (ch2)* | 9 | 4 | 1 | . | 1 | 1 | 2 | 3 | 1 | 1 | 1 | 1 |
 
@@ -741,7 +741,7 @@ Four findings that changed this document:
    held for Chapter 2, so **Olympus cannot be swapped out of stage 4** -
    despite being the weakest faction. §4's balance flag is now a
    constraint, not a preference.
-2. **Takamagahara has no revive.** Rev 2's stage-8 lesson was wrong and is
+2. **Kami has no revive.** Rev 2's stage-8 lesson was wrong and is
    corrected in §2.
 3. **Revive appears once in the entire chapter** (`duat-isis`) and
    **`untargetable` appears zero times** (Huaxia only). Chapter 1 cannot
@@ -765,7 +765,7 @@ see D1 (§8.0).
 | **5** exam | **choice of 2**, filtered to taught factions | - | Completes one faction to 4. The deckbuilding lesson, and later the blessing tutorial. Must not offer Huaxia. |
 | **6** Yamato | `minamoto-no-yoshitsune` Bruiser, gainEnergy `(0.44)` | `tomoe-gozen` Sniper, stealEnergy `(-0.48)` | Generation plus denial: the Energy Void board as a two-card package. *Power alternative if the floor needs propping: `benkei` `(1.90)`.* |
 | **7** Roma | `julius-caesar` Bruiser, kill-chain `(-0.95)` | `brutus` Sniper, executes highest-ATK `(0.12)` | *"If this defeats the target, immediately strike the lowest HP surviving enemy…"* - the kill engine as a card, and Brutus chains off the same idea. **Not Cicero** `(-1.78)`, the roster's worst card and a miserable reward. |
-| **8** Takamagahara | `amaterasu` Caster, dmg+burn+cleanse+heal `(0.32)` | `izanami` Controller, burn engine `(0.83)` | The burn the Chronicler just used on you, *and* the answer to it, in one grant. |
+| **8** Kami | `amaterasu` Caster, dmg+burn+cleanse+heal `(0.32)` | `izanami` Controller, burn engine `(0.83)` | The burn the Chronicler just used on you, *and* the answer to it, in one grant. |
 | **9** exam | **choice of 2**, filtered to taught factions | - | Second completion window, before the boss. |
 | **10** Duat | `isis` Medic, revive + cleanse `(?)` | `anubis` Sniper, gainEnergy `(?)` | The chapter's only revive, granted by the scales at the end of the road. Anubis for role diversity, and because the judge of the dead is the right escort. Both unrated - D1. |
 
@@ -1280,7 +1280,7 @@ lore-heavy; lore-only rewards.
   grants become **one named card + currency**, curve targets become a
   **band**.
 - **Keyword audit of all 9 factions** drove four corrections: Mark exists
-  only in Olympus + Huaxia (so stage 4 is unswappable); Takamagahara has
+  only in Olympus + Huaxia (so stage 4 is unswappable); Kami has
   **no revive** (stage 8's lesson was wrong); revive appears once in the
   chapter (`duat-isis`) and `untargetable` zero times; the Grimmwood
   starter already covers the stage 1-5 vocabulary except Mark - which is

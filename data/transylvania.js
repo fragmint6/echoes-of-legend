@@ -185,7 +185,7 @@ window.EOL.registerFaction({
            price: he pays 12% of his current HP per drink and the note
            bounds it at three.
 
-           Deliberately NOT a Gehenna Sin card even though it rhymes
+           Deliberately NOT a Pandemonium Sin card even though it rhymes
            with one: Hyde pays HP for a single hit, where Wrath pays DEF
            for a lasting buff. */
         /* `selfDamagePctHp` was invented - there is no self-damage

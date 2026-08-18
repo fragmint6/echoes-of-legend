@@ -272,7 +272,7 @@ window.EOL.registerFaction({
         cost: 45,
         /* CAPPED AT +60%. First draft scaled with no ceiling, which in
            a losing game is a Caster hitting for 300%+. `perFallenAlly`
-           counts the caster's OWN dead - distinct from Jotunheim's
+           counts the caster's OWN dead - distinct from Asgard's
            `fallenAtLeast`, which reads both sides - so this is a
            comeback card rather than a snowball: it is worth nothing
            while you are winning. */

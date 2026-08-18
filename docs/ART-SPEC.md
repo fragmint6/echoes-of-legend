@@ -5,7 +5,7 @@ Legend. One entry per legend, written so any artist or generator produces a
 piece that sits in the same world as the other 62.
 
 Status: **v2.3 - full-ART environmental card illustrations**, dynamic
-role-driven action compositions, expanded to 112 legends (2026-08-17,
+role-driven action compositions, expanded to 113 legends (2026-08-18,
 rev 5).
 
 > **2026-08-17, rev 6 (THE STYLE IS PIXEL ART - READ THIS BEFORE
@@ -50,8 +50,17 @@ rev 5).
 > painted art lands near flat 0.09 / hard 0.62 - too few flat runs, too
 > many soft mid-tone transitions dressed up as edges.
 
+> **2026-08-18, rev 7.** Five factions renamed by owner ruling -
+> Takamagahara -> **Kami**, Gehenna -> **Pandemonium**, Devaloka ->
+> **Devas**, Jotunheim -> **Asgard**, Achaea -> **Hemithea**. Every colour
+> row, environment row and per-legend brief below uses the new names, and
+> the art files were renamed to match (`kami-amaterasu.png` etc). Hercules
+> moved from Olympus to Hemithea and **Poseidon** was authored to replace
+> him as Olympus' Tank - he is the first new brief since rev 5 and the only
+> card whose art was generated in this pass. Roster 112 -> 113.
+>
 > **2026-08-17, rev 5 (CHAPTER II).** Seven factions and 49 legends
-> added: Jotunheim, Achaea, Gehenna, Devaloka, Empyrean, Transylvania
+> added: Asgard, Hemithea, Pandemonium, Devas, Empyrean, Transylvania
 > and Tortuga. Palettes and environments (section 2) and briefs
 > (section 5b) are written for all of them. **No art is generated yet** -
 > every new card ships `art: null` and renders its RPG Awesome icon
@@ -107,7 +116,8 @@ rev 5).
 > `assets/legends/<id>.jpg`. The sigil-ring mask in CSS is deleted; the
 > image simply covers the card and the HUD scrims keep the text legible.
 
-- **roster: 112 legends; generated art present for the original 63, outstanding for all 49 Chapter II legends**
+- **roster: 113 legends; art present for all 113** (the 49 Chapter II
+  portraits were delivered by the owner 2026-08-17; Poseidon added 2026-08-18)
 - Six new Grimmwood legends were added in rev 3: Gingerbread Man, Evil Queen,
   Puss in Boots, Rapunzel, Goldilocks and Cinderella.
 - Rev 5 added seven Chapter II factions (49 legends), briefed but not yet
@@ -218,12 +228,12 @@ faction still reads as both.
 | Yamato | `#e05a4a` | `#f0c05a` | Lacquered armour, silk cord, crimson and gold. Disciplined. |
 | Huaxia | `#b03a2e` | `#d9a521` | Scale armour, imperial silk, jade and bronze. Grand, martial. |
 | Roma | `#7b4dc0` | `#d4af37` | Burnished bronze, tyrian purple, laurel. Imperial, severe. |
-| Takamagahara | `#e8e3d3` | `#c4392f` | Bleached silk, shrine white, vermilion accents. Ethereal, remote. |
+| Kami | `#e8e3d3` | `#c4392f` | Bleached silk, shrine white, vermilion accents. Ethereal, remote. |
 | Duat | `#c9a227` | `#1f4e79` | Gold leaf, lapis inlay, linen wrap. Solemn, funerary. |
-| Jotunheim | `#7fb4d4` | `#3d5a80` | Frost-rimed iron, wolf pelt, blue-white glacier light. Fatalistic, vast. |
-| Achaea | `#d8b26a` | `#8c3b2e` | Sun-bleached bronze, oxblood cloak, salt-worn leather. Mortal, weathered. |
-| Gehenna | `#c2402a` | `#2b1418` | Scorched brass, charred silk, ember-lit obsidian. Opulent and ruined. |
-| Devaloka | `#e8a33d` | `#7b3fa0` | Temple gold, saffron and violet silk, sandalwood ash. Radiant, ornate. |
+| Asgard | `#7fb4d4` | `#3d5a80` | Frost-rimed iron, wolf pelt, blue-white glacier light. Fatalistic, vast. |
+| Hemithea | `#d8b26a` | `#8c3b2e` | Sun-bleached bronze, oxblood cloak, salt-worn leather. Mortal, weathered. |
+| Pandemonium | `#c2402a` | `#2b1418` | Scorched brass, charred silk, ember-lit obsidian. Opulent and ruined. |
+| Devas | `#e8a33d` | `#7b3fa0` | Temple gold, saffron and violet silk, sandalwood ash. Radiant, ornate. |
 | Empyrean | `#f2e6c2` | `#c9a227` | Bleached ivory, worked gold, unblemished linen. Austere, absolute. |
 | Transylvania | `#8e2f45` | `#241019` | Oxblood velvet, tarnished silver, damp stone. Gaslit, decaying. |
 | Tortuga | `#2f6f6a` | `#1a2a33` | Salt-bleached canvas, verdigris brass, waterlogged oak. Weathered, piratical. |
@@ -246,12 +256,12 @@ rendered with broader pixel clusters than the legend in front of it.
 | Yamato | War camp on a misty battlefield, tattered crimson banners, distant mountains |
 | Huaxia | Palace battlements above drifting clouds, red and gold war banners, distant jade peaks |
 | Roma | Roman forum at golden hour, marble columns, cypress trees, raised eagle standard |
-| Takamagahara | Sea of clouds high above the world, great vermilion torii gate, drifting shrine streamers, sunrise |
+| Kami | Sea of clouds high above the world, great vermilion torii gate, drifting shrine streamers, sunrise |
 | Duat | Desert night, temple pylons and obelisks under a band of cold stars, drifting sand |
-| Jotunheim | Frozen fjord under a low aurora, black glacial cliffs, the roots of a vast dead tree, drifting snow |
-| Achaea | Storm-grey Aegean coast, beached war galleys, distant burning citadel on the headland |
-| Gehenna | A burning valley at dusk, terraced ruins and slag, low ash cloud, embers rising from fissures |
-| Devaloka | Cloud-wreathed temple terraces at dawn, carved gopuram towers, lotus pools, drifting incense |
+| Asgard | Frozen fjord under a low aurora, black glacial cliffs, the roots of a vast dead tree, drifting snow |
+| Hemithea | Storm-grey Aegean coast, beached war galleys, distant burning citadel on the headland |
+| Pandemonium | A burning valley at dusk, terraced ruins and slag, low ash cloud, embers rising from fissures |
+| Devas | Cloud-wreathed temple terraces at dawn, carved gopuram towers, lotus pools, drifting incense |
 | Empyrean | A vault of pale cloud and light, colossal unadorned gold architecture, no horizon detail |
 | Transylvania | Gaslit cobbled street below a mountain castle, wet stone, fog, a single lit window |
 | Tortuga | Moonlit harbour, wrecked and anchored hulls, a swinging lantern on a dark quay, low sea mist |
@@ -389,12 +399,16 @@ chiton; the aegis at her shoulder bearing a small gorgon boss. Signature: the
 raised helm crest, a clean arc against the background. Soft `#ffd977` halo
 behind the helm, an owl's eye-shine implied in the shadow at her shoulder.
 
-**Hercules** `epic / Tank / Physical`
-Strongman demigod. Enormous shoulders and neck, jaw set, short dark curls and
-a beard. Wears the Nemean lion pelt as a hood, the beast's upper jaw over his
-brow and paws knotted at his chest. Bare, scarred torso. Signature: the lion
-hood - the silhouette must read as man-inside-lion. Dusty `#d8894f` impact
-motes near the shoulders. Epic: heavy detail in the pelt fur and scarring.
+**Poseidon** `epic / Tank / Magic`
+Sea god, and the faction's wall. Powerfully built, mature, heavy grey-white
+storm-tossed beard and wet hair, weathered sun-darkened skin, pale sea-green
+eyes. Deep-sea bronze cuirass crusted with verdigris and barnacle; aegean
+blue-green cloth over one shoulder in heavy folds; a dull coral and pale gold
+circlet. Braced immovably, trident angled steeply across the frame.
+Signature: dried salt rime and pale barnacle crust caked along the forearms
+and cuirass rim - he has just risen out of the water. Violet-blue `#6fd3e8`
+rim light. Epic: rich material detail, restrained energy.
+*(Added 2026-08-18 with the card, which replaced Hercules as Olympus' Tank.)*
 
 **Apollo** `rare / Medic / Light`
 Sun god, healer and archer. Youthful, unlined, serene. Golden curls under a
@@ -683,7 +697,7 @@ full imperial splendour.
 
 ---
 
-### Takamagahara - The plain of high heaven keeps its own counsel `#e8e3d3` / `#c4392f`
+### Kami - The plain of high heaven keeps its own counsel `#e8e3d3` / `#c4392f`
 
 **Amaterasu** `legendary / Caster / Light` - Sun goddess. Face almost too
 bright to look at, serene, eyes closed or nearly. White and vermilion
@@ -770,7 +784,7 @@ Two standing notes that apply to every brief below:
   drowned-sailor Davy Jones, not Disney's** - no tentacle face. Those
   designs are protected; the source texts are not.
 
-### Jotunheim - The wolf is loose, and we are glad `#7fb4d4` / `#3d5a80`
+### Asgard - The wolf is loose, and we are glad `#7fb4d4` / `#3d5a80`
 
 **Odin** `legendary / Caster / Lightning` - The one-eyed Allfather,
 unleashing. Gaunt weathered face, iron-grey beard in frost-stiff braids,
@@ -819,7 +833,25 @@ scale over a heavy blue cloak, a horn slung at the hip. Signature: the
 gold teeth and the unblinking stare. `#ffd977` rim. Rare: the cloak clasp
 is the one worked detail.
 
-### Achaea - Mortals, and worth more for it `#d8b26a` / `#8c3b2e`
+### Hemithea - Mortals, and worth more for it `#d8b26a` / `#8c3b2e`
+
+**Hercules** `epic / Tank / Physical` - *(moved here from Olympus
+2026-08-18; the brief and the shipped art are unchanged, only the faction
+and the filename - `hemithea-hercules.png`. He is a mortal who earned his
+myth, which is this faction's whole thesis.)* Strongman demigod. Enormous
+shoulders and neck, jaw set, short dark curls and a beard. Wears the Nemean
+lion pelt as a hood, the beast's upper jaw over his brow and paws knotted at
+his chest. Bare, scarred torso. Signature: the lion hood - the silhouette
+must read as man-inside-lion. Dusty `#d8894f` impact motes near the
+shoulders. Epic: heavy detail in the pelt fur and scarring.
+
+**Note on environment.** His shipped portrait carries the *Olympus* backdrop
+(marble colonnade, aegean sea), not Hemithea's storm-grey coast with beached
+galleys. Section 4 test 5 (alignment) therefore fails for this one card
+against its new faction. Left as-is deliberately: regenerating a shipped
+portrait to fix a backdrop is a bigger change than the move, and the two
+environments are close enough that it reads as the same sea. Flagged so the
+next art pass can decide.
 
 **Achilles** `legendary / Bruiser / Physical` - The short loud life,
 mid-lunge. Young, beautiful, furious; dark curls bound with a leather
@@ -862,7 +894,7 @@ tired, a leader's face. Sea-stained cloak, a rope-worked belt. Signature:
 a length of the Argo's own rigging worn coiled across the chest.
 `#5fd48a` rim. Rare: the coiled rigging.
 
-### Gehenna - Everything you want, and the bill `#c2402a` / `#2b1418`
+### Pandemonium - Everything you want, and the bill `#c2402a` / `#2b1418`
 
 **Pride** `legendary / Caster / Light` - The first refusal. Beautiful,
 cold, chin lifted; the only clean thing in the valley. Immaculate white
@@ -903,7 +935,7 @@ Beautiful and entirely aware of it, head turned toward the viewer.
 Draped silks in ember tones. Signature: a fine chain worn at the throat
 and wrists, slack, clearly ornamental. `#ff4dd5` rim. Rare: the chain.
 
-### Devaloka - The wheel turns, and the gods turn with it `#e8a33d` / `#7b3fa0`
+### Devas - The wheel turns, and the gods turn with it `#e8a33d` / `#7b3fa0`
 
 **Shiva** `legendary / Bruiser / Shadow` - The dance that keeps time.
 Ash-pale skin, matted ascetic's hair piled and bound, a crescent moon at

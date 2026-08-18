@@ -1,10 +1,10 @@
-/* Faction: Jotunheim - Ragnarok (the fallen count)
+/* Faction: Asgard - Ragnarok (the fallen count)
    -------------------------------------------------------------
    WHAT THIS FACTION IS ABOUT
 
    The end is prophesied, and they are the only ones who profit from
    it arriving. Where Roma is paid when the ENEMY dies and
-   Takamagahara is paid when its OWN side breaks, Jotunheim is paid
+   Kami is paid when its OWN side breaks, Asgard is paid
    for the corpse count itself - both sides, no distinction. The Norse
    are not counting their casualties. They are reading the world
    ending.
@@ -30,7 +30,7 @@
      Freyja     scales smoothly with the count rather than at a
                 cliff, so the faction is not all-or-nothing.
      Thor       is the one unconditional card - the reason a
-                Jotunheim draft is not helpless before round four.
+                Asgard draft is not helpless before round four.
 
    THE HONEST COST: three of these seven are below curve for the
    first half of a fight. That is the identity. A player who cannot
@@ -38,8 +38,8 @@
 
    CROSS-FACTION
    -------------------------------------------------------------
-     - Roma's kill engine and Takamagahara's self-sacrifice both
-       ACCELERATE the count. Jotunheim + Roma is the intended
+     - Roma's kill engine and Kami's self-sacrifice both
+       ACCELERATE the count. Asgard + Roma is the intended
        degenerate-looking pair that is actually fair, because Roma
        has to spend its own tempo to get there.
      - Hel's anti-heal is the counter to Medic-heavy drafts that
@@ -48,14 +48,14 @@
        and Grimmwood (debuff stacking).
    ============================================================= */
 window.EOL.registerFaction({
-  id: 'jotunheim',
-  name: 'Jotunheim',
+  id: 'asgard',
+  name: 'Asgard',
   icon: 'ra-frost-emblem',
   tagline: 'The wolf is loose, and we are glad.',
   colors: { primary: '#7fb4d4', secondary: '#3d5a80', glow: '#bfe6ff' },
   cards: [
     {
-      id: 'jotunheim-odin',
+      id: 'asgard-odin',
       name: 'Odin',
       rarity: 'legendary',
       role: 'Caster',
@@ -92,11 +92,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-eye-shield',
-      art: 'assets/legends/jotunheim-odin.png',
+      art: 'assets/legends/asgard-odin.png',
     },
 
     {
-      id: 'jotunheim-thor',
+      id: 'asgard-thor',
       name: 'Thor',
       rarity: 'epic',
       role: 'Bruiser',
@@ -119,11 +119,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-lightning-storm',
-      art: 'assets/legends/jotunheim-thor.png',
+      art: 'assets/legends/asgard-thor.png',
     },
 
     {
-      id: 'jotunheim-fenrir',
+      id: 'asgard-fenrir',
       name: 'Fenrir',
       rarity: 'epic',
       role: 'Bruiser',
@@ -159,11 +159,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-wolf-howl',
-      art: 'assets/legends/jotunheim-fenrir.png',
+      art: 'assets/legends/asgard-fenrir.png',
     },
 
     {
-      id: 'jotunheim-hel',
+      id: 'asgard-hel',
       name: 'Hel',
       rarity: 'epic',
       role: 'Controller',
@@ -195,11 +195,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-death-skull',
-      art: 'assets/legends/jotunheim-hel.png',
+      art: 'assets/legends/asgard-hel.png',
     },
 
     {
-      id: 'jotunheim-loki',
+      id: 'asgard-loki',
       name: 'Loki',
       rarity: 'rare',
       role: 'Controller',
@@ -210,7 +210,7 @@ window.EOL.registerFaction({
         name: 'Bound Trickster',
         cost: null,
         /* REWRITTEN. The first draft was "Silence 1, drain Energy" -
-           byte-identical to Achaea's Odysseus, which is a violation of
+           byte-identical to Hemithea's Odysseus, which is a violation of
            the Skill Uniqueness rule and was spotted immediately.
 
            This version is the only card in the roster whose entire
@@ -230,11 +230,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-venomous-snake',
-      art: 'assets/legends/jotunheim-loki.png',
+      art: 'assets/legends/asgard-loki.png',
     },
 
     {
-      id: 'jotunheim-freyja',
+      id: 'asgard-freyja',
       name: 'Freyja',
       rarity: 'rare',
       role: 'Medic',
@@ -267,11 +267,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-feather-wing',
-      art: 'assets/legends/jotunheim-freyja.png',
+      art: 'assets/legends/asgard-freyja.png',
     },
 
     {
-      id: 'jotunheim-heimdall',
+      id: 'asgard-heimdall',
       name: 'Heimdall',
       rarity: 'rare',
       role: 'Tank',
@@ -299,7 +299,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ringing-bell',
-      art: 'assets/legends/jotunheim-heimdall.png',
+      art: 'assets/legends/asgard-heimdall.png',
     },
   ],
 });

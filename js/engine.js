@@ -514,7 +514,7 @@
           }
           /* TORTUGA (Flying Dutchman): scales with the caster's OWN
              fallen allies - the crew he has lost. Counts corpses on his
-             side only, unlike Jotunheim's `fallenAtLeast` which reads
+             side only, unlike Asgard's `fallenAtLeast` which reads
              both. Capped for the usual reason. */
           if (e.perFallenAlly) {
             var fa = B.units.filter(function (x) {
@@ -2094,6 +2094,43 @@
       healUnit(B, tgt, tgt, tgt.maxHp * (tgt.flags.tauntHeal / 100));
     }
 
+    /* Poseidon's Lord of the Shoreline. The attacker is Marked for
+       having attacked the provoking tank.
+
+       WHY IT IS GATED ON `src.alive` AND A LIVE ENEMY: dealDamage also
+       runs for counter-strikes and reflected damage, where `src` can be
+       the dying unit that just swung. Marking a corpse is invisible but
+       it pollutes the marked-count that Zeus and Athena read.
+
+       WHY IT DOES NOT RE-MARK: the mark case in applyEffects treats an
+       already-marked target as a no-op, so this matches it rather than
+       silently refreshing - Marks have no duration and re-marking is
+       meaningless.
+
+       WHY IT IS HERE AND NOT IN A PASSIVE TRIGGER: `selfAttacked` fires
+       for the unit being attacked, which is the tank, and the effect
+       needs to land on the ATTACKER. Doing it inline keeps it in the
+       same place as the damage that earned it. */
+    if (tgt.flags.taunt > 0 && tgt.flags.tauntMark && src && src.alive && src.side !== tgt.side) {
+      if (!src.flags.marked) {
+        src.flags.marked = 1;
+        logMsg(B, 'mark', src.name + ' is marked.', {
+          uid: src.uid,
+          status: 'marked',
+          signature: true,
+        });
+        emit(B, {
+          t: 'statusApply',
+          status: 'marked',
+          src: tgt.uid,
+          tgt: src.uid,
+          turns: null,
+          signature: true,
+          round: B.round,
+        });
+      }
+    }
+
     /* Guan Yu: whether the target was Shielded at the moment the attack
        landed (before the shield could absorb it). */
     var hadShield = tgt.shield > 0;
@@ -2495,6 +2532,7 @@
     u.flags.taunt = 0;
     u.flags.tauntHeal = null;
     u.flags.tauntShield = null;
+    u.flags.tauntMark = null;
     u.flags.counterTurns = 0;
     u.flags.counterPow = 0;
     u.flags.counterPowMarked = 0;
@@ -3280,6 +3318,16 @@
           // Hansel & Gretel: heal each time they're struck while provoking
           if (e.healOnHit) {
             t.flags.tauntHeal = e.healOnHit + upPts(src, ctx);
+          }
+          /* Poseidon: Mark whoever attacks him while the Provoke stands.
+             Stored as a FLAG rather than resolved here because the
+             attackers are not known at cast time - the whole point of
+             the card is that the enemy chooses who walks into it. Read
+             in dealDamage next to the tauntHeal rider, which is the
+             other "something happens when this taunting unit is hit"
+             hook, so the two stay adjacent and get found together. */
+          if (e.markAttacker) {
+            t.flags.tauntMark = 1;
           }
           logMsg(B, 'buff', t.name + ' taunts the enemy.', {
             uid: t.uid,
@@ -4540,10 +4588,25 @@
           delete u.flags.counterSrc;
         }
       });
+      /* STALE RIDER SWEEP. The riders below are all gated on
+         `flags.taunt > 0` at read time, so a leftover flag cannot
+         change a damage number - but it CAN outlive its Provoke when
+         the Provoke ends by a path other than this countdown (a
+         cleanse, a death-and-revive, anything that zeroes the flag
+         directly). Clearing them here means "no Provoke" and "no
+         Provoke riders" are always the same state, so a future reader
+         that forgets the taunt>0 guard cannot resurrect a dead rider.
+         Found by the Poseidon regression test, which zeroed the taunt
+         directly and then asserted the rider was gone. */
+      if (!(u.flags.taunt > 0)) {
+        u.flags.tauntHeal = null;
+        u.flags.tauntMark = null;
+      }
       if (u.flags.taunt > 0) {
         u.flags.taunt -= 1;
         // Hercules: a shield forms as the taunt drops
         if (u.flags.taunt <= 0) u.flags.tauntHeal = null;
+        if (u.flags.taunt <= 0) u.flags.tauntMark = null;
         if (u.flags.taunt <= 0 && u.flags.tauntShield) {
           var shieldPct = u.flags.tauntShield;
           /* Expiry riders belong to the living unit that armed them.

@@ -3768,6 +3768,10 @@
 
 
     <!-- Card data: one file per faction -->
+    <!-- Runs BEFORE economy/deck/upgrades, which each read their own
+         localStorage key on first call. Rewrites saved card ids for the
+         2026-08-18 faction renames; see js/id-migration.js. -->
+    <script src="js/id-migration.js"></script>
     <script src="js/text.js"></script>
     <script src="data/_schema.js"></script>
     <script src="data/roles.js"></script>
@@ -3779,12 +3783,12 @@
     <script src="data/sherwood.js"></script>
     <script src="data/huaxia.js"></script>
     <script src="data/roma.js"></script>
-    <script src="data/takamagahara.js"></script>
+    <script src="data/kami.js"></script>
     <script src="data/duat.js"></script>
-    <script src="data/jotunheim.js"></script>
-    <script src="data/achaea.js"></script>
-    <script src="data/gehenna.js"></script>
-    <script src="data/devaloka.js"></script>
+    <script src="data/asgard.js"></script>
+    <script src="data/hemithea.js"></script>
+    <script src="data/pandemonium.js"></script>
+    <script src="data/devas.js"></script>
     <script src="data/empyrean.js"></script>
     <script src="data/transylvania.js"></script>
     <script src="data/tortuga.js"></script>

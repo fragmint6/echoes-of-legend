@@ -60,7 +60,7 @@
     4: 'olympus',
     6: 'yamato',
     7: 'roma',
-    8: 'takamagahara',
+    8: 'kami',
     10: 'duat',
   };
   var ELITE_STAGES = { 5: true, 9: true };
@@ -191,10 +191,10 @@
   var NOT_IN_CHAPTER_1 = [
     'huaxia',
     'duat',
-    'jotunheim',
-    'achaea',
-    'gehenna',
-    'devaloka',
+    'asgard',
+    'hemithea',
+    'pandemonium',
+    'devas',
     'empyrean',
     'transylvania',
     'tortuga',

@@ -50,12 +50,12 @@ global.performance = { now: () => Date.now() };
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
-  'data/jotunheim.js',
-  'data/achaea.js',
-  'data/gehenna.js',
-  'data/devaloka.js',
+  'data/asgard.js',
+  'data/hemithea.js',
+  'data/pandemonium.js',
+  'data/devas.js',
   'data/empyrean.js',
   'data/transylvania.js',
   'data/tortuga.js',
@@ -68,10 +68,10 @@ const E = EOL.engine;
 const AP = E.applyEffectsPublic;
 
 const NEW = [
-  'jotunheim',
-  'achaea',
-  'gehenna',
-  'devaloka',
+  'asgard',
+  'hemithea',
+  'pandemonium',
+  'devas',
   'empyrean',
   'transylvania',
   'tortuga',
@@ -110,7 +110,14 @@ const FILLER = [g('camelot-king-arthur'), g('olympus-zeus'), g('roma-brutus')];
 console.log('A. structure');
 NEW.forEach((id) => {
   const f = EOL.factions.find((x) => x.id === id);
-  ok(!!f && f.cards.length === 7, id + ' registers 7 legends');
+  /* CHANGED 2026-08-18: Hemithea has EIGHT, not seven. Hercules moved
+     here from Olympus (owner ruling) because he is a mortal who earned
+     his myth, which is this faction's whole thesis. The other six new
+     factions still hold at seven, so the expectation is per-faction
+     rather than a flat 7 - a blanket number would have quietly hidden
+     the move, which is the opposite of what this suite is for. */
+  const want = id === 'hemithea' ? 8 : 7;
+  ok(!!f && f.cards.length === want, id + ' registers ' + want + ' legends');
 });
 {
   const missing = ALL.filter((e) => NEW.includes(e.faction.id) && !e.card.lore);
@@ -124,16 +131,16 @@ NEW.forEach((id) => {
   ok(bad.length === 0, 'each new faction carries exactly one legendary' + (bad.length ? ' (' + bad + ')' : ''));
 }
 
-console.log('B. the fallen count (Jotunheim)');
+console.log('B. the fallen count (Asgard)');
 {
   /* Fenrir is the load-bearing case: he is deliberately BAD until the
      third death, which is a real cost paid up front. If the condition
      silently stopped working he would just be a strong Bruiser, and
      nothing else in the suite would notice. */
   function fenrirDamage(deaths) {
-    const B = battle([g('jotunheim-fenrir'), g('jotunheim-odin'), g('jotunheim-freyja'), ...FILLER]);
+    const B = battle([g('asgard-fenrir'), g('asgard-odin'), g('asgard-freyja'), ...FILLER]);
     B.deathSeq = deaths;
-    const fen = B.units.find((u) => u.card.id === 'jotunheim-fenrir');
+    const fen = B.units.find((u) => u.card.id === 'asgard-fenrir');
     const tgt = B.units.find((u) => u.side === 'enemy' && u.slot === 0);
     const hp0 = tgt.hp;
     E.useAbility(B, fen, E.roleAbility(fen), [tgt]);
@@ -155,9 +162,9 @@ console.log('B. the fallen count (Jotunheim)');
      BOTH directions so a future refactor of branchPasses cannot quietly
      re-open it. */
   function odinDamage(deaths) {
-    const B = battle([g('jotunheim-odin'), g('jotunheim-thor'), g('jotunheim-hel'), ...FILLER]);
+    const B = battle([g('asgard-odin'), g('asgard-thor'), g('asgard-hel'), ...FILLER]);
     B.deathSeq = deaths;
-    const odin = B.units.find((u) => u.card.id === 'jotunheim-odin');
+    const odin = B.units.find((u) => u.card.id === 'asgard-odin');
     const before = B.units.filter((u) => u.side === 'enemy').map((u) => u.hp);
     E.useAbility(B, odin, odin.card.ability, []);
     const after = B.units.filter((u) => u.side === 'enemy').map((u) => u.hp);
@@ -173,8 +180,8 @@ console.log('B. the fallen count (Jotunheim)');
 
   /* Freyja scales smoothly rather than at a cliff, and the cap holds -
      an uncapped per-death heal is a full heal by round eight. */
-  const B = battle([g('jotunheim-freyja'), ...FILLER, g('jotunheim-hel'), g('jotunheim-thor')]);
-  const fr = B.units.find((u) => u.card.id === 'jotunheim-freyja');
+  const B = battle([g('asgard-freyja'), ...FILLER, g('asgard-hel'), g('asgard-thor')]);
+  const fr = B.units.find((u) => u.card.id === 'asgard-freyja');
   const ally = B.units.find((u) => u.side === 'player' && u.uid !== fr.uid);
   const heal = (deaths) => {
     ally.hp = 1000;
@@ -195,10 +202,10 @@ console.log('B. the fallen count (Jotunheim)');
   ok(h9 === h4, 'and the cap HOLDS past 4 fallen - no runaway heal');
 }
 
-console.log('C. Marks - Devaloka supplies and consumes');
+console.log('C. Marks - Devas supplies and consumes');
 {
-  const B = battle([g('devaloka-kali'), g('devaloka-shiva'), g('devaloka-indra'), ...FILLER]);
-  const kali = B.units.find((u) => u.card.id === 'devaloka-kali');
+  const B = battle([g('devas-kali'), g('devas-shiva'), g('devas-indra'), ...FILLER]);
+  const kali = B.units.find((u) => u.card.id === 'devas-kali');
   const foes = B.units.filter((u) => u.side === 'enemy');
   E.useAbility(B, kali, kali.card.ability, [foes[0], foes[1]]);
   const marked = B.units.filter((u) => u.side === 'enemy' && u.flags.marked > 0).length;
@@ -207,8 +214,8 @@ console.log('C. Marks - Devaloka supplies and consumes');
   /* Shiva's payoff must actually read the mark - the whole faction's
      internal chain is Kali -> Shiva/Indra. */
   function shivaDamage(markTarget) {
-    const B2 = battle([g('devaloka-shiva'), ...FILLER, g('devaloka-kali'), g('devaloka-vishnu')]);
-    const sh = B2.units.find((u) => u.card.id === 'devaloka-shiva');
+    const B2 = battle([g('devas-shiva'), ...FILLER, g('devas-kali'), g('devas-vishnu')]);
+    const sh = B2.units.find((u) => u.card.id === 'devas-shiva');
     const t = B2.units.find((u) => u.side === 'enemy' && u.slot === 0);
     if (markTarget) t.flags.marked = 1;
     const hp0 = t.hp;
@@ -222,7 +229,7 @@ console.log('C. Marks - Devaloka supplies and consumes');
 
 console.log('D. the Locker (Tortuga) beats every revive');
 {
-  const B = battle([g('tortuga-davy-jones'), g('duat-isis'), ...FILLER, g('achaea-medea')]);
+  const B = battle([g('tortuga-davy-jones'), g('duat-isis'), ...FILLER, g('hemithea-medea')]);
   const dj = B.units.find((u) => u.card.id === 'tortuga-davy-jones');
   const victim = B.units.find((u) => u.side === 'enemy');
   E.useAbility(B, dj, dj.card.ability, [victim]);
@@ -261,9 +268,9 @@ console.log('E. delayed effects (Empyrean)');
   ok(friend.pending.length === 0, 'Raphael cancels a pending effect aimed at an ally');
 }
 
-console.log('F. Greed taxes the enemy pool, not his own (Gehenna)');
+console.log('F. Greed taxes the enemy pool, not his own (Pandemonium)');
 {
-  const B = E.createBattle([g('gehenna-greed'), ...FILLER, g('gehenna-wrath'), g('gehenna-pride')], FOES, {
+  const B = E.createBattle([g('pandemonium-greed'), ...FILLER, g('pandemonium-wrath'), g('pandemonium-pride')], FOES, {
     roleAware: false,
     rng: () => 0.5,
     oddFirst: 'player',
@@ -275,7 +282,7 @@ console.log('F. Greed taxes the enemy pool, not his own (Gehenna)');
   const e0 = B.energy.enemy;
   E.nextRound(B);
   /* The first draft used `loseEnergy`, which always debits the CASTER's
-     pool regardless of `to:` - Gehenna silently taxed itself. The swing
+     pool regardless of `to:` - Pandemonium silently taxed itself. The swing
      must favour the Greed side. */
   ok(
     B.energy.player - B.energy.enemy > p0 - e0,
@@ -313,13 +320,17 @@ console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
   const packable = econ.packableEntries();
   const isNew = (e) => NEW.includes(e.faction.id);
 
+  /* 50, not 49: Hercules moved into Hemithea from Olympus, so the seven
+     Chapter II factions now hold 50 cards between them. He was already
+     obtainable as an Olympus card, so nothing became newly buyable - the
+     card simply counts on this side of the line now. */
   ok(
-    obtainable.filter(isNew).length === 49,
-    'all 49 Chapter II legends are obtainable (' + obtainable.filter(isNew).length + ')'
+    obtainable.filter(isNew).length === 50,
+    'all 50 Chapter II legends are obtainable (' + obtainable.filter(isNew).length + ')'
   );
   ok(
-    packable.filter(isNew).length === 42,
-    'exactly 42 are packable - 49 minus one legendary each (' +
+    packable.filter(isNew).length === 43,
+    'exactly 43 are packable - 50 minus one legendary each (' +
       packable.filter(isNew).length +
       ')'
   );
@@ -456,14 +467,34 @@ console.log('I. rival names are trades, not manoeuvres');
      first pass shipped with all three disagreeing. */
   ok(/## 2\. The ten people in the way/.test(lore), 'section 2 is titled for ten people, not nine');
   ok(
-    /\| \*\*XV The Hero of the Bridge\*\* \| \*\*~35%\*\* \| \*\*exam\*\*/.test(lore),
+    /\| \*\*XV The Hero of the Bridge\*\* \| \*\*~35%\*\* \| \*\*elite \/ first exam\*\*/.test(lore),
     'XV carries a win-rate target in the difficulty table like every other bout'
   );
   ok(!/no bout/i.test(lore), 'no bout in the chapter is described as having no bout');
-  /* Chapter One examines twice (V, IX). Chapter II examines once and says
-     why in prose - an unexplained deviation from the parent chapter's
-     shape is the kind of thing that reads as an oversight later. */
-  ok(/Why one exam and not two/.test(lore), 'the single-exam deviation from Chapter One is justified in prose');
+  /* INVERTED 2026-08-18. This used to assert the OPPOSITE - that the doc
+     justified examining ONCE where Chapter One examines twice. That was
+     built on a wrong reading of Chapter One (I had assumed its boss and
+     opener introduced nothing, making the slot math impossible), and the
+     owner corrected it: "there's 2 elites and the rest of the 8 gates all
+     introduce one". Chapter Two now examines twice, at XV and XIX, and the
+     two exams ARE the two elites. The assertion is inverted rather than
+     deleted so the history of the ruling stays visible in the suite. */
+  ok(
+    /Two exams, at the same beats as Chapter One/.test(lore),
+    'the chapter examines twice, at the same beats as Chapter One'
+  );
+  ok(
+    /### The elites, which are the exams/.test(lore),
+    'the doc states outright that the elites and the exams are the same two bouts'
+  );
+  /* The structural laws that were measured out of campaign-ch1.js. If a
+     future edit drifts the chapter back to "the boss introduces nothing",
+     these fail. */
+  ok(/## 0\.3 The shape, taken from Chapter One/.test(lore), 'the measured Chapter One shape has its own section');
+  ok(
+    /\| X \| \*\*Gilgamesh — boss\*\* \| legendPack Anubis \| \*\*Duat\*\* \|/.test(lore),
+    'the doc records that Chapter One\'s BOSS introduces a faction'
+  );
 
   /* Chapter One's law, restated as a test: rivals are people, never
      "houses". Scoped to the STORY BODY (section 1 through section 5)
@@ -532,15 +563,15 @@ console.log('J. the overview agrees with the lore');
 
   /* Each faction's one legendary must be credited to the same bout in
      both files. This is the pairing that was already got wrong once this
-     session (Fenrir vs Odin as Jotunheim's legendary), so it gets a
+     session (Fenrir vs Odin as Asgard's legendary), so it gets a
      test rather than a careful read. */
   const LEGEND = {
-    achaea: 'Achilles',
-    gehenna: 'Pride',
+    hemithea: 'Achilles',
+    pandemonium: 'Pride',
     empyrean: 'Lucifer',
     transylvania: 'Dracula',
-    jotunheim: 'Odin',
-    devaloka: 'Shiva',
+    asgard: 'Odin',
+    devas: 'Shiva',
     tortuga: 'Blackbeard'
   };
   Object.keys(LEGEND).forEach((fid) => {
@@ -555,6 +586,61 @@ console.log('J. the overview agrees with the lore');
       'the overview bolds ' + LEGEND[fid] + ' as a centrepiece'
     );
   });
+
+  /* THE UNLOCK MAP, asserted in both docs.
+
+     This is the thing that actually drifted on 2026-08-18: the chapter
+     was restructured so the two elites introduce nothing and the boss
+     hands over the last faction, and three separate tables had to move
+     together (lore section 6, lore section 6b, overview section 7). Two
+     of them did and one did not, and only the win-rate cross-check
+     caught it - by luck, because that test happened to cover a bout
+     whose number also changed.
+
+     So: pin the mapping itself. Each faction must be credited to its
+     bout in BOTH files, and the two exams must be credited to neither. */
+  const UNLOCK = {
+    XI: 'Hemithea',
+    XII: 'Huaxia',
+    XIII: 'Empyrean',
+    XIV: 'Transylvania',
+    XVI: 'Asgard',
+    XVII: 'Devas',
+    XVIII: 'Tortuga',
+    XX: 'Pandemonium'
+  };
+  const unlockRow = (src, num) =>
+    src.split('\n').filter((l) => l.trim().startsWith('|') && new RegExp('\\b' + num + '\\b').test(l));
+  Object.keys(UNLOCK).forEach((num) => {
+    const want = UNLOCK[num];
+    const inLore = unlockRow(lore, num).some((l) => l.indexOf(want) !== -1);
+    const inOver = unlockRow(over, num).some((l) => l.indexOf(want) !== -1);
+    ok(inLore && inOver, 'bout ' + num + ' unlocks ' + want + ' in both docs');
+  });
+  ok(Object.keys(UNLOCK).length === 8, 'exactly eight factions are introduced, as in Chapter One');
+
+  /* The exams must introduce nothing. Asserted as the ABSENCE of any
+     faction name on their rows, which is what "unlocks nothing" means in
+     a table - a row that merely omits the column would pass a weaker
+     test while still reading as an unlock in the prose above it. */
+  const FACTIONS = ['Hemithea', 'Huaxia', 'Empyrean', 'Transylvania', 'Asgard', 'Devas', 'Tortuga', 'Pandemonium'];
+  ['XV', 'XIX'].forEach((num) => {
+    const rows = unlockRow(over, num).concat(unlockRow(lore, num));
+    const unlockish = rows.filter((l) => /nlock|— \|/.test(l));
+    const leaks = unlockish.filter((l) =>
+      FACTIONS.some((f) => new RegExp(f + '\\s*\\|').test(l))
+    );
+    ok(leaks.length === 0, 'exam ' + num + ' introduces no faction in either doc');
+  });
+
+  /* Asmodeus: the boss has a name AND a title, and the title alone must
+     never be the only thing the docs call him - that was the owner's
+     complaint about the rival names generally. */
+  ok(/Asmodeus/.test(lore) && /Asmodeus/.test(over), 'the boss is named Asmodeus in both docs');
+  ok(
+    /"The Redactor" is a title, not a name|The title is not the name/.test(lore + over),
+    'the docs say outright that the Redactor is a title'
+  );
 
   /* The overview must keep its own honesty header. Chapter One's
      overview says it was written against the shipped implementation;

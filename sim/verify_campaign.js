@@ -31,7 +31,7 @@
 global.window = { EOL: {} };
 require('../data/_schema.js');
 require('../data/roles.js');
-['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'takamagahara', 'yamato'].forEach(
+['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'kami', 'yamato'].forEach(
   function (f) {
     require('../data/' + f + '.js');
   }
@@ -731,7 +731,7 @@ S.stages.forEach(function (st) {
 console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
 /* Factions enter the Road one gate at a time - Grimmwood at I,
    Camelot II, Sherwood III, Olympus IV, Yamato VI, Roma VII,
-   Takamagahara VIII, Duat only at X. Rival decks and grants may not
+   Kami VIII, Duat only at X. Rival decks and grants may not
    jump that order. Curated Draft tables may preview non-Legendary cards
    from the next road when a 36-distinct-card table cannot otherwise obey
    the four-Legendary cap; future crowns must remain hidden. */
@@ -743,7 +743,7 @@ console.log('H. THE PROGRESSION LAW (owner ruling 2026-08-10)');
     4: 'olympus',
     6: 'yamato',
     7: 'roma',
-    8: 'takamagahara',
+    8: 'kami',
     10: 'duat',
   };
   var facOf = {};

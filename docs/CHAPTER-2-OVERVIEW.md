@@ -40,7 +40,9 @@ One carried fact, stated once and never leaned on:
 | Antagonist | grief with teeth | **an institution, and the decent people inside it** |
 | The Wayfarer is | a blank being tested | a **nobody who files paperwork** |
 | Stages | ten gates, I–X | ten bouts, XI–XX |
-| Exams | two (V, IX) | one (XV) |
+| Factions introduced | **8** | **8** |
+| Exams (introduce nothing) | two (V, IX) | **two (XV, XIX)** |
+| Boss introduces a faction | yes — Duat | **yes — Pandemonium** |
 
 ---
 
@@ -157,27 +159,30 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
   after.
 - **Lesson.** Do not evaluate her board on turn one. The legends you
   ignored are the ones that kill you.
-- **Bans** your two most expensive cards. **Unlocks** Achaea.
+- **Bans** your two most expensive cards. **Unlocks** Hemithea.
 - **Reward.** Odysseus + Atalanta, coin, and the first person in four
   hundred years to take the petition seriously.
 
 ### XII — THE BOOKMAKER · *day two, the fixer*
 - **Who.** The Concord's bookmaker, running the betting openly from a
   table nobody has asked him to move, chalking every price where the
-  crowd can read it. A tax farmer in life. Being owed is the only form of
-  being needed he has ever managed.
+  crowd can read it. A tax farmer for **an empire that no longer
+  exists** — the same one the Auditor served. Being owed is the only form
+  of being needed he has ever managed.
 - **Why.** He offers to *fund* the petition — filing costs, witnesses,
   the whole week — for a debt payable later, terms unspecified.
   **Accepting is available**, wins the easiest run, and is one of the two
   bad endings.
-- **Gimmick — everything has a price tag.** Seven appetites, each buying
-  its power with a stated, visible cost. **Pride** casts the largest
-  sweep in the chapter and cannot be healed for two rounds after.
-- **Lesson.** Every one of those costs is *information*. A board that has
-  told you what each card is spending is a board you can plan around — if
-  you read it, which is his whole point about bettors.
-- **Bans** your cheapest card. **Unlocks** Gehenna.
-- **Reward.** Greed + Envy, coin.
+- **Gimmick — he takes the other side of your bet.** A bookmaker never
+  picks a winner; he prices what *you* do. Nothing on his board opens,
+  everything covers: **Zhuge Liang** drains the energy paying for your
+  combo, **Guan Yu** counter-hits the wall you provoke, **Sun Wukong**
+  goes over the front line you hide behind.
+- **Lesson**, and it lands early: **the first player to commit is the one
+  being priced.** A turn spent doing nothing is often worth more than a
+  turn spent doing something — which no Chapter One gate teaches.
+- **Bans** your cheapest card. **Unlocks Huaxia**.
+- **Reward.** Guan Yu + Zhuge Liang, coin.
 
 ### XIII — THE HERALD · *day three, the incumbent's second*
 - **Who.** The Canon's holders don't fight their own early bouts; they
@@ -266,7 +271,7 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
   the losing line.** Every exchange you win makes his board stronger.
   Close before the third death or refuse the trade entirely.
 - **Bans** your healers, so you cannot outlast the ramp. **Unlocks**
-  Jotunheim.
+  Asgard.
 - **Reward.** Odin + Fenrir, coin, **and the objection the ending has to
   answer**.
 
@@ -287,7 +292,7 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
 - **Lesson.** **Kill the setup, not the threat.** Every instinct says
   answer the scariest card; against her that is exactly wrong.
 - **Bans** your finishers, so you cannot skip the lesson with a bigger
-  hammer than she has a combo. **Unlocks** Devaloka.
+  hammer than she has a combo. **Unlocks** Devas.
 - **Reward.** Ganesha + Kali, coin.
 
 ### XVIII — THE WRECKER · *day seven at night, the theft*
@@ -323,22 +328,35 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
   first audit in four hundred years thrown out on procedure."*
 - **What the audit finds.** §3, beat 6 — the burial, and the explanation
   for the herald's refusal.
-- **Gimmick — he does not start anything.** The entire twelve is built to
-  *answer*, with a reply to each of the eight things the chapter has
-  taught you. Provoke a wall and **Guan Yu** counter-hits; commit a combo
-  and **Zhuge Liang** drains the energy paying for it; hide behind a
-  front line and **Sun Wukong** goes over it.
-- **Lesson**, and it is the exam's harder sibling: **you cannot win this
-  on a plan.** Every plan has a counter on his side, so the fight is
-  decided by which of your habits you are willing to abandon.
+- **Gimmick — he audits you with your own week.** The chapter's **second
+  exam**, so like Chapter One's Last Guardian he introduces **no new
+  faction**: he fields an authored spread drawn from the seven decks you
+  have already been handed, each one aimed back at the habit it taught
+  you. The Herald's schedule, the Collector's theft, the Undertaker's
+  ramp, the Mason's two-card kill — all of it, on his side, in one twelve.
+- **Lesson.** **You cannot win this on a plan.** Every answer you learned
+  is now the thing being answered. Chapter One's Warden asked whether you
+  could change *between games*; the Auditor asks whether you can change
+  *between rounds*.
 - **Bans nothing** — the only rival in the week who doesn't. *"Bring your
-  best. I have been bored for four thousand years."* **Unlocks Huaxia**,
-  the withheld faction.
-- **Reward.** Guan Yu + Zhuge Liang, coin, **and standing to be heard**.
+  best. I have been bored for four thousand years."* **Unlocks nothing** —
+  it is an exam.
+- **Reward.** **Choice of two** echoes from any faction taught so far, the
+  chapter's largest ordinary purse, **and standing to be heard**.
 
-### XX — THE REDACTOR · *the Concord floor, everyone watching* · **BOSS**
-- **Who.** The voice that has read every ruling for four hundred years —
-  and, quieter, the hand that decided which lines were read at all.
+### XX — ASMODEUS, THE REDACTOR · *the Concord floor* · **BOSS**
+- **The title is not the name.** "The Redactor" is the office that
+  decides which lines of a ruling are read aloud; the man holding it is
+  **Asmodeus** — used the way Chapter One uses Gilgamesh, a named figure
+  out of real myth who has held one job so long that the job and the
+  person no longer separate.
+- **Who.** A king of the older hierarchy, from when his kind kept courts
+  and the courts kept records. He outlived the hierarchy, the courts and
+  everyone who could confirm any of it. He did not come to the Concord to
+  rule it — he came because it was the only institution left that still
+  filed things properly, and four centuries later he runs its archive and
+  calls that retirement. The voice that has read every ruling for four
+  hundred years, and, quieter, the hand that chose which lines were read.
 - **Why he is hard: he is not a hypocrite.** He knew for two centuries.
   He suppressed it. He will say why to your face: an institution that
   admits fallibility stops being obeyed, an unobeyed Canon means the
@@ -352,10 +370,18 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
   your legends is declared to have acted differently, its last action
   undone and replayed as the *official version*, his choice. The
   chapter's theme as a mechanic.
+- **Gimmick — every edit is paid for, in public.** He fields the sins:
+  power bought at a stated, visible cost, which is exactly what four
+  hundred years of tidy history has been. **Pride** anchors the twelve —
+  the largest sweep in the chapter, and he cannot be healed for two
+  rounds after casting it.
+- **Lesson.** The chapter's thesis as a mechanic: **the costs are written
+  down, and reading them is the whole fight.** He has never hidden a
+  price in his life; he relies on nobody turning the tablet over.
 - **Bans** your two strongest cards — *"the record will reflect that you
   were never permitted them."*
-- His twelve is the court plus four hundred years of legends whose
-  entries were also quietly wrong.
+- **Unlocks Pandemonium** — the last deck in the game, handed over by the
+  hardest fight in it, exactly as Gilgamesh hands over Duat.
 
 ---
 
@@ -372,12 +398,12 @@ bout they cannot lose wastes the week.
 | XII The Bookmaker | ~42% | |
 | XIII The Herald | ~42% | |
 | XIV The Collector | ~40% | |
-| **XV The Hero of the Bridge** | **~35%** | **exam** — best-of-3, no faction unlock |
-| **XVI The Undertaker** | **~30%** | **elite** |
+| **XV The Hero of the Bridge** | **~35%** | **elite / first exam** — best-of-3, unlocks nothing |
+| XVI The Undertaker | ~40% | |
 | XVII The Mason | ~40% | |
 | XVIII The Wrecker | ~42% | |
-| **XIX The Auditor** | **~30%** | **elite** — Huaxia, bans nothing |
-| **XX The Redactor** | **~25%** | **boss** — at Gilgamesh |
+| **XIX The Auditor** | **~30%** | **elite / second exam** — unlocks nothing, bans nothing |
+| **XX Asmodeus, the Redactor** | **~25%** | **boss** — at Gilgamesh, hands over Pandemonium |
 
 ### How the difficulty is produced
 
@@ -398,13 +424,17 @@ worth ~0-10pp. Both stay banned.
 
 ### Two elites, opposite reasons
 
-- **XVI** is the *attrition* elite: the only deck that gets stronger as
-  the board empties, so the usual plan (trade evenly, win on remainder)
-  is precisely the losing line. Healers banned, so you cannot stall.
-- **XIX** is the *mastery* elite and the harder of the two. Banning
-  nothing is the flex — he does not need your best cards gone because his
-  board punishes whatever you do with them. He is also the Huaxia unlock,
-  so the hardest ordinary fight pays out the withheld faction.
+**The two elites are the two exams**, and neither introduces a faction —
+Chapter One's arrangement exactly (the Warden at V, the Last Guardian at
+IX). An exam tests what you already own, so both pay **choice of two**
+instead of a new deck.
+
+- **XV The Hero of the Bridge** is the *discipline* exam: the Canon's
+  version of Sargon, an authored 3/3/3/3 across the four decks taught so
+  far, and the only board in the chapter with no exploitable seam.
+- **XIX The Auditor** is the *mastery* exam and the harder of the two.
+  Banning nothing is the flex — his board is built out of the seven decks
+  you were handed, each aimed back at the habit it taught you.
 
 ### Why one exam, not two
 
@@ -412,6 +442,13 @@ Chapter One examines at V and IX because it is *teaching the game* and
 has to check twice. Nobody here is learning the loop, so the chapter
 checks once at the midpoint on the four decks taught by then — and the
 second check is bout XIX, an exam wearing an elite's difficulty.
+
+**Corrected 2026-08-18.** An earlier draft of this page claimed Chapter
+Two examines *once*. That was built on a misreading of Chapter One — I
+had assumed its boss and opener introduced nothing, which made the slot
+arithmetic impossible. `data/campaign-ch1.js` says otherwise: eight of
+its ten gates grant a faction, including Gilgamesh, and the only two that
+do not are the exams. Chapter Two now matches.
 
 ---
 
@@ -459,16 +496,19 @@ Wrecker's theft (XVIII).
 
 | Bout | Fields | Unlocks | Legendary |
 |---|---|---|---|
-| XI The Understudy | Achaea | Achaea | **Achilles** |
-| XII The Bookmaker | Gehenna | Gehenna | **Pride** |
+| XI The Understudy | Hemithea | Hemithea | **Achilles** |
+| XII The Bookmaker | Huaxia | Huaxia | **Sun Wukong** |
 | XIII The Herald | Empyrean | Empyrean | **Lucifer** |
 | XIV The Collector | Transylvania | Transylvania | **Dracula** |
-| XV Hero of the Bridge | the four taught decks, 3/3/3/3 | — (exam) | — |
-| XVI The Undertaker | Jotunheim | Jotunheim | **Odin** |
-| XVII The Mason | Devaloka | Devaloka | **Shiva** |
+| **XV Hero of the Bridge** *(exam)* | the four taught decks, 3/3/3/3 | **— nothing** | — |
+| XVI The Undertaker | Asgard | Asgard | **Odin** |
+| XVII The Mason | Devas | Devas | **Shiva** |
 | XVIII The Wrecker | Tortuga | Tortuga | **Blackbeard** |
-| XIX The Auditor | Huaxia | **Huaxia** | **Sun Wukong** |
-| XX The Redactor | bespoke boss + the court | — | (bespoke) |
+| **XIX The Auditor** *(exam)* | the seven taught decks | **— nothing** | — |
+| XX Asmodeus, the Redactor | Pandemonium + bespoke boss | **Pandemonium** | **Pride** |
+
+**Eight factions across ten bouts**, the two exams introducing nothing —
+Chapter One's shape exactly.
 
 **One legendary per faction**, matching the roster law — asserted by
 `sim/verify_chapter2.js`.
@@ -481,9 +521,12 @@ the Road. So each faction's legendary is the campaign reward for the
 bout that introduces it: you can buy your way toward Sherwood, but Robin
 Hood comes from beating the Outlaw.
 
-**Huaxia is the exception** and stays entirely unbuyable, because the
-story spends it as the reveal at XIX. Selling it beforehand would spend
-that reveal for coins.
+**Which faction stays unbuyable is now an open question.** Huaxia was
+withheld because it was this chapter's reveal; it is now introduced early,
+at XII. The argument for withholding has moved to **Pandemonium**, the
+boss payout — but the owner has asked to discuss a **per-chapter shop**
+instead of a single withhold list, so `js/economy.js` is unchanged this
+pass. See §8.
 
 ---
 
@@ -502,5 +545,13 @@ Tracked honestly, because none of this is built:
 - **Sargon, the Concord officials and the rivals have no cards.**
 - **XV's "no exploitable seam" is a design claim, not a measurement.** A
   deck with no hook is harder to author than one with a hook.
-- **Balance is paper-only.** 49 cards tuned against each other and never
+- **Balance is paper-only.** 50 cards tuned against each other and never
   played.
+- **The shop model is undecided.** Open question, raised by the owner
+  2026-08-18: one global pool with a withhold list, versus a Chapter One
+  shop and a Chapter Two shop. Three candidate shapes are written up in
+  §8 of `LORE-Campaign-Chapter2.md`; none is implemented. Note the live
+  side-effect that motivates it: the packable pool went 35 -> 77 when the
+  seven factions landed, roughly halving the odds of pulling any specific
+  older legend for players who never asked for Chapter Two.
+- **Asmodeus has no card**, and neither do Sargon or the Concord officials.

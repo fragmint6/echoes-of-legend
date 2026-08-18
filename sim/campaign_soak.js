@@ -40,7 +40,7 @@ require('../data/roles.js');
   'olympus',
   'roma',
   'sherwood',
-  'takamagahara',
+  'kami',
   'yamato',
 ].forEach(function (f) {
   require('../data/' + f + '.js');

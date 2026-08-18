@@ -13,12 +13,16 @@ global.performance = { now: () => Date.now() };
   'data/roles.js',
   'data/camelot.js',
   'data/olympus.js',
+  /* Hercules moved to Hemithea 2026-08-18 (owner ruling); this suite
+     uses him as a fixture, so the file has to be loaded or CARD[] has a
+     hole and every board built from it throws. */
+  'data/hemithea.js',
   'data/sherwood.js',
   'data/grimmwood.js',
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/battlefields.js',
   'js/engine.js',
   'js/ai.js',
@@ -46,7 +50,7 @@ const ok = (c, m) => {
 };
 const sec = (t) => console.log('\n\x1b[1m' + t + '\x1b[0m');
 
-const FRONT = ['camelot-king-arthur', 'olympus-hercules', 'sherwood-guy-of-gisborne'];
+const FRONT = ['camelot-king-arthur', 'hemithea-hercules', 'sherwood-guy-of-gisborne'];
 const BACK = ['sherwood-robin-hood', 'camelot-merlin', 'olympus-apollo'];
 const SIX = FRONT.concat(BACK);
 const FOES = [

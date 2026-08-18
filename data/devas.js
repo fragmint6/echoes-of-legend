@@ -1,4 +1,4 @@
-/* Faction: Devaloka - Marks and the cleansing hand
+/* Faction: Devas - Marks and the cleansing hand
    -------------------------------------------------------------
    WHAT THIS FACTION IS ABOUT
 
@@ -12,7 +12,7 @@
    state, new UI, a new serialized field and a new mirror-determinism
    surface - a new FEATURE, which the owner had explicitly ruled out.
    The wheel is gone. What remains is the same pantheon expressed in
-   the vocabulary the game already has, which is also how Takamagahara
+   the vocabulary the game already has, which is also how Kami
    and Duat were built.
 
    WHY MARKS, WHEN OLYMPUS AND HUAXIA ALREADY MARK
@@ -20,7 +20,7 @@
    Deliberately the same lane, because the guidelines require factions
    to feed each other rather than sit in silos - 81% of all Marks in
    the shipped game get consumed, so mark SUPPLY is the scarce half.
-   Devaloka is built as the consumer side: Shiva is the single hardest
+   Devas is built as the consumer side: Shiva is the single hardest
    mark-payoff in the game, and Indra converts a wide mark spread into
    AoE. Drafted next to Olympus or Huaxia they get better; drafted
    alone Kali has to feed them herself, which she can, slowly.
@@ -33,20 +33,20 @@
    CROSS-FACTION
    -------------------------------------------------------------
      - Zeus, Qin Shi Huang and Kali all supply marks Shiva/Indra spend.
-     - Ganesha's team cleanse is the answer to Grimmwood and Gehenna
+     - Ganesha's team cleanse is the answer to Grimmwood and Pandemonium
        debuff stacking, and to Hel's anti-heal.
      - Hanuman ignores Provoke, which is the counter to Camelot walls,
        the Kraken and Frankenstein's Monster.
    ============================================================= */
 window.EOL.registerFaction({
-  id: 'devaloka',
-  name: 'Devaloka',
+  id: 'devas',
+  name: 'Devas',
   icon: 'ra-lightning-trio',
   tagline: 'The wheel turns, and the gods turn with it.',
   colors: { primary: '#e8a33d', secondary: '#7b3fa0', glow: '#ffd98a' },
   cards: [
     {
-      id: 'devaloka-shiva',
+      id: 'devas-shiva',
       name: 'Shiva',
       rarity: 'legendary',
       role: 'Bruiser',
@@ -89,11 +89,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fire-ring',
-      art: 'assets/legends/devaloka-shiva.png',
+      art: 'assets/legends/devas-shiva.png',
     },
 
     {
-      id: 'devaloka-vishnu',
+      id: 'devas-vishnu',
       name: 'Vishnu',
       rarity: 'epic',
       role: 'Medic',
@@ -119,11 +119,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sunbeams',
-      art: 'assets/legends/devaloka-vishnu.png',
+      art: 'assets/legends/devas-vishnu.png',
     },
 
     {
-      id: 'devaloka-kali',
+      id: 'devas-kali',
       name: 'Kali',
       rarity: 'epic',
       role: 'Caster',
@@ -149,11 +149,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-skull',
-      art: 'assets/legends/devaloka-kali.png',
+      art: 'assets/legends/devas-kali.png',
     },
 
     {
-      id: 'devaloka-durga',
+      id: 'devas-durga',
       name: 'Durga',
       rarity: 'epic',
       role: 'Tank',
@@ -167,7 +167,7 @@ window.EOL.registerFaction({
            Heimdall reduces his own damage taken, Frankenstein grows per
            hit, the Kraken provokes everyone. Durga is the only one who
            shields the WHOLE TEAM while stepping forward, which is what
-           makes her the natural partner for Gehenna's Wrath (who sheds
+           makes her the natural partner for Pandemonium's Wrath (who sheds
            DEF) and for a backline of Casters. */
         text: 'Provoke for 1 round and grant <b>every ally</b> a <b>15% Max HP Shield</b>.',
         note: null,
@@ -180,11 +180,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-flaming-trident',
-      art: 'assets/legends/devaloka-durga.png',
+      art: 'assets/legends/devas-durga.png',
     },
 
     {
-      id: 'devaloka-ganesha',
+      id: 'devas-ganesha',
       name: 'Ganesha',
       rarity: 'rare',
       role: 'Medic',
@@ -216,11 +216,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-trefoil-lily',
-      art: 'assets/legends/devaloka-ganesha.png',
+      art: 'assets/legends/devas-ganesha.png',
     },
 
     {
-      id: 'devaloka-hanuman',
+      id: 'devas-hanuman',
       name: 'Hanuman',
       rarity: 'rare',
       role: 'Bruiser',
@@ -244,11 +244,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-boot-stomp',
-      art: 'assets/legends/devaloka-hanuman.png',
+      art: 'assets/legends/devas-hanuman.png',
     },
 
     {
-      id: 'devaloka-indra',
+      id: 'devas-indra',
       name: 'Indra',
       rarity: 'rare',
       role: 'Sniper',
@@ -274,7 +274,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-focused-lightning',
-      art: 'assets/legends/devaloka-indra.png',
+      art: 'assets/legends/devas-indra.png',
     },
   ],
 });

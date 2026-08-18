@@ -35,8 +35,8 @@
 
    LUCIFER IS THE BRIDGE CARD
    -------------------------------------------------------------
-   Mechanically Empyrean (a delayed sweep), but his cost is a Gehenna
-   Sin: he pays HP to cast. He is the single best Gehenna partner in
+   Mechanically Empyrean (a delayed sweep), but his cost is a Pandemonium
+   Sin: he pays HP to cast. He is the single best Pandemonium partner in
    the game, which is the hand-off pattern the guidelines ask for -
    the Morning Star is an archangel on the wrong side of a war, not a
    separate species.
@@ -74,7 +74,7 @@ window.EOL.registerFaction({
            correct, because Zeus needs marks and Lucifer needs only
            patience.
 
-           THE FALL IS THE COST, and it is a Gehenna Sin wearing
+           THE FALL IS THE COST, and it is a Pandemonium Sin wearing
            Empyrean colours - he refuses aid for two rounds, exactly as
            Pride does. That is deliberate: Lucifer is the hand-off
            between the two factions, and sharing a cost is a cleaner

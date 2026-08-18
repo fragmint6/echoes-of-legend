@@ -63,7 +63,7 @@ no store icons, no raw screenshots — per the cover restrictions.
 > blow is struck.
 >
 > Nine mythologies to build from — Olympus, Camelot, Duat, Yamato,
-> Huaxia, Roma, Sherwood, Takamagahara and the fairy-tale dark of
+> Huaxia, Roma, Sherwood, Kami and the fairy-tale dark of
 > Grimmwood. Sixty-three legends in all, from Zeus and King Arthur to
 > Sun Wukong, Anubis and the Big Bad Wolf.
 >

@@ -55,8 +55,8 @@ window.EOL.legendLore = {
     'Judgement first, thunder second. Zeus marks what has displeased him and lets the sky remember the verdict; by the time the bolt falls, the sentence is a formality that everyone present has already read.',
   'olympus-athena':
     'She has read the battle before it is fought and found it wanting. Athena wins by making the enemy expensive to be - every spell they cast tells her something, and everything she learns costs them the next one.',
-  'olympus-hercules':
-    'Twelve impossible labours, and the twelfth one is not being angry about the other eleven. Hercules plants himself between his people and the worst of it because that is the only work he has ever been given that he actually chose.',
+  'olympus-poseidon':
+    'The sea does not defend a coastline so much as decide where it is. Poseidon plants his trident and the fight rearranges itself around him - and everyone who swings at him has, without noticing, agreed to be found.',
   'olympus-apollo':
     'Light heals and light reveals, and he has never been able to do one without the other. Apollo mends his allies in the same breath that he shows them exactly which enemy is about to matter most.',
   'olympus-medusa':
@@ -152,18 +152,18 @@ window.EOL.legendLore = {
   'roma-constantine-the-great':
     'He saw the sign, and made an empire change its gods to match. Constantine leads with light across the whole front rank, and a victory under that banner lifts every soldier who witnessed it.',
 
-  /* ---------------- Takamagahara - the plain of high heaven ---------------- */
-  'takamagahara-amaterasu':
+  /* ---------------- Kami - the plain of high heaven ---------------- */
+  'kami-amaterasu':
     'She hid in a cave once and the world learned exactly what her absence was worth. Amaterasu burns the field entire, and where her light finishes something, her people are made whole in the same moment.',
-  'takamagahara-tsukuyomi':
+  'kami-tsukuyomi':
     'He killed a goddess over table manners and has not spoken to his sister since. Tsukuyomi\u2019s reproach falls in silence - two enemies quieted at once, and the guilty ones quieted hardest.',
-  'takamagahara-izanami':
+  'kami-izanami':
     'A thousand a day, she promised, and she has never once been late. Izanami is nourished by loss: every ally who falls sharpens her and weakens everything still standing opposite.',
-  'takamagahara-inari':
+  'kami-inari':
     'Foxes, rice and very careful accounting. Inari collects on suffering already inflicted - the more the enemy is carrying, the richer her return, and the offering always comes back to her people as fuel.',
-  'takamagahara-izanagi':
+  'kami-izanagi':
     'He went into the land of the dead for his wife and came back needing to wash. Izanagi\u2019s purification is total: whatever clings to an ally is simply no longer part of them, and the river gives back more than it takes.',
-  'takamagahara-susanoo':
+  'kami-susanoo':
     'Thrown out of heaven for being a storm indoors, and redeemed by killing something worse. Susanoo answers every blow struck at him with lightning, and steps in front of anyone about to go under.',
 
   /* ---------------- Duat - the scales do not blink ---------------- */
@@ -184,61 +184,63 @@ window.EOL.legendLore = {
      Seven factions added 2026-08-17. Same house style: present
      tense, no rules vocabulary, and the prose names its own
      legend so a mis-pasted entry fails sim/verify_all.js. */
-  'jotunheim-odin':
+  'asgard-odin':
     'He traded an eye for the sight of how it ends, and the trade was worth it only if he can look at the ending without flinching. Odin has been rehearsing that steadiness for a very long age; the ravens bring him nothing now that he has not already grieved.',
-  'jotunheim-thor':
+  'asgard-thor':
     'The simplest thing on any field. Thor does not read the prophecy or argue with it - he finds whatever is largest and hits it, on the reasoning that a world about to end deserves at least one person still doing the obvious job well.',
-  'jotunheim-fenrir':
+  'asgard-fenrir':
     'The ribbon that holds him is soft as a cat\'s footfall and it has held for a thousand years, because the gods asked nicely and a hand was left in his mouth as the price. Fenrir is patient the way a held breath is patient. He is counting.',
-  'jotunheim-hel':
+  'asgard-hel':
     'Half her face is a woman and half is what is left afterwards, and she has never once found that remarkable. Hel keeps the ones nobody sings about, and she is unhurried, because everyone arrives eventually and she has room.',
-  'jotunheim-loki':
+  'asgard-loki':
     'He is not on anyone\'s side, including his own, and he is the only one honest about it. Loki\'s worst moment is always his last one - whatever he has been saving comes out when the room finally stops him, and the room is never ready.',
-  'jotunheim-freyja':
+  'asgard-freyja':
     'She takes first pick of the slain, before the hall of the brave gets a look, and she chooses the ones nobody else would have carried home. Freyja\'s hall is not a reward. It is a place to put people down gently.',
-  'jotunheim-heimdall':
+  'asgard-heimdall':
     'He can hear grass growing and wool lengthening on a sheep, and he has not slept in an age of the world. Heimdall stands at the bridge because someone has to be awake when it starts, and he intends to be the one who says so first.',
-  'achaea-achilles':
+  'hemithea-achilles':
     'He was offered a long quiet life and turned it down for a short loud one, and the arithmetic still satisfies him. Achilles is best when something has finally hurt him - grief is the only fuel he has ever really trusted.',
-  'achaea-odysseus':
+  'hemithea-odysseus':
     'Ten years to get home and he is still the only person in any room thinking three moves ahead. Odysseus does not fight what is in front of him; he arranges for it to be somewhere less convenient first, then walks through the gap.',
-  'achaea-perseus':
+  'hemithea-perseus':
     'A boy sent to fetch a monster\'s head as a joke, who came back with it. Perseus has been dangerous ever since he learned that the thing everyone fears can be carried in a bag if you are willing to look away at the right moment.',
-  'achaea-medea':
+  'hemithea-medea':
     'She knows the herb that undoes death and she has used it on people who did not deserve it, which is a thing she thinks about. Medea will bring your friend back once. What that costs her is not written on the label.',
-  'achaea-atalanta':
+  'hemithea-atalanta':
     'Raised by a bear, faster than every suitor, and first spear into the boar that half of Greece had failed to kill. Atalanta hunts what is still whole and still proud - wounded things bore her, and she has never pretended otherwise.',
-  'achaea-ajax':
+  'hemithea-ajax':
     'The biggest shield on the field, seven layers of oxhide, and a man who genuinely believes it is his job to stand where the arrows are going. Ajax is steady while he is standing. Everyone around him has learned to rely on that.',
-  'achaea-jason':
+  'hemithea-hercules':
+    'Twelve impossible labours, and the twelfth one is not being angry about the other eleven. Hercules plants himself between his people and the worst of it because that is the only work he has ever been given that he actually chose.',
+  'hemithea-jason':
     'He did not row the ship or kill the dragon or win the fleece alone - he got the right people onto one deck and kept them there. Jason\'s talent is the crew, and he would rather be remembered for the roster than the voyage.',
-  'gehenna-pride':
+  'pandemonium-pride':
     'The first refusal, and still the purest. Pride would rather burn on his own terms than be mended on anyone else\'s, and he means it so completely that help offered to him simply slides off and lands somewhere useless.',
-  'gehenna-wrath':
+  'pandemonium-wrath':
     'There is a point in every argument where the words stop mattering, and Wrath lives just past it. He gets stronger the longer he goes and he stops guarding anything at all, which he considers a fair exchange.',
-  'gehenna-envy':
+  'pandemonium-envy':
     'He is never quite anyone, because being someone would mean giving up the option of being whoever is currently winning. Envy takes what looks best on you, wears it badly, and hates you slightly more for having had it first.',
-  'gehenna-greed':
+  'pandemonium-greed':
     'He does not spend. That is the whole of him. Greed simply arranges for a little more to arrive on his side of the table each time the table is set, and for a little less to arrive on yours, forever.',
-  'gehenna-gluttony':
+  'pandemonium-gluttony':
     'The hunger is not for food and never was - it is for the reassurance of taking something in. Gluttony feeds himself first, always, and has never once been embarrassed about it in front of people who needed feeding more.',
-  'gehenna-sloth':
+  'pandemonium-sloth':
     'He is not lazy. He is unhurried in a way that is genuinely frightening, because it means he has decided nothing here is worth his hurry. Sloth does nothing today so that what he does tomorrow lands twice as hard.',
-  'gehenna-lust':
+  'pandemonium-lust':
     'Not desire - the wanting of being wanted. Lust turns whoever he touches into the centre of the room, and everything aimed at that room follows them there, which is exactly the fate they were asking for.',
-  'devaloka-shiva':
+  'devas-shiva':
     'He dances and the world keeps time to it, and when he stops the world stops too. Shiva is not cruel about this; destruction is simply the half of the job nobody volunteers for, and he has never asked to be relieved.',
-  'devaloka-vishnu':
+  'devas-vishnu':
     'He has come down ten times wearing ten different lives, and each one was a whole existence lived properly, not a costume. Vishnu preserves things - patiently, repeatedly, and with the tiredness of someone who knows he will be back.',
-  'devaloka-kali':
+  'devas-kali':
     'She is what happens when the protecting stops being polite. Kali wears the count of what she has ended and does not apologise for the necklace, because someone asked her to save them and she did.',
-  'devaloka-durga':
+  'devas-durga':
     'Made from the combined fury of every god who had run out of ideas, riding a lion into a fight they had already lost. Durga does not retreat and has never learned how - the whole point of her is that the line holds.',
-  'devaloka-ganesha':
+  'devas-ganesha':
     'He sits at the start of things, and whatever is in the way of the start, he moves. Ganesha writes down what is dictated to him even when he disagrees, then quietly removes the obstacle nobody else had noticed.',
-  'devaloka-hanuman':
+  'devas-hanuman':
     'He forgot he could leap oceans until someone reminded him, which is the most useful thing anyone has ever said to him. Hanuman goes over the top of the problem and lands behind it, cheerfully, before anyone has agreed he can.',
-  'devaloka-indra':
+  'devas-indra':
     'King of the gods on a good day and a cautionary tale on the rest, armed with a weapon made from a sage\'s own bones. Indra throws the thunderbolt at whatever has already been singled out, and rarely asks who did the singling.',
   'empyrean-lucifer':
     'He was the brightest of them and the argument he lost was about service, not about evil. Lucifer still pronounces sentence in the old formal way, and still pays for the privilege out of his own light every time he does it.',

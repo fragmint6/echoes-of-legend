@@ -669,7 +669,7 @@ Somewhere very far away, something noticed it had been named.
 
 The Chronicler tore the page free, but it was too late. The words had already been read.
 
-They gave the Wayfarer two Takamagahara echoes.
+They gave the Wayfarer two Kami echoes.
 
 “Go to the Last Guardian,” they said. “Do not ask her for your name. Ask her what she gave up to keep hers.”
 

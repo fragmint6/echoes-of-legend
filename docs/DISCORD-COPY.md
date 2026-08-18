@@ -24,7 +24,7 @@ A browser-based tactical card battler. Six legends a side, drawn from world folk
 - Fight it out in energy-gated rounds until one side is wiped
 
 **The roster**
-63 legends across 9 factions. Camelot, Olympus, Sherwood, Grimmwood, Yamato, Huaxia, Roma, Takamagahara and Duat. King Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus, Izanagi, Ma'at and 54 more.
+63 legends across 9 factions. Camelot, Olympus, Sherwood, Grimmwood, Yamato, Huaxia, Roma, Kami and Duat. King Arthur, Zeus, Robin Hood, Red Riding Hood, Susanoo, Nezha, Spartacus, Izanagi, Ma'at and 54 more.
 
 Every legend has one **Signature Skill** that is theirs alone, plus a **Basic Skill** from their role. Six roles: Tank, Bruiser, Sniper, Caster, Controller and Medic. Skills cost Energy, Energy grows each round, so round 1 and round 6 are different games.
 

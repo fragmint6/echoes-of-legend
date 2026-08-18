@@ -1,7 +1,7 @@
-/* Faction: Takamagahara - the Divine Cycle (death, purification, return)
+/* Faction: Kami - the Divine Cycle (death, purification, return)
    -------------------------------------------------------------
    The Plain of High Heaven. Where Roma is paid when the ENEMY dies and
-   Grimmwood stacks debuffs onto them, Takamagahara is the faction built
+   Grimmwood stacks debuffs onto them, Kami is the faction built
    around its OWN side breaking and being made whole again: legends are
    purified, cursed, avenged and restored.
 
@@ -25,14 +25,14 @@
    2 Controllers, 1 Medic and 1 Tank - and no Bruiser or Sniper.
    ============================================================= */
 window.EOL.registerFaction({
-  id: 'takamagahara',
-  name: 'Takamagahara',
+  id: 'kami',
+  name: 'Kami',
   icon: 'ra-metal-gate',
   tagline: 'The plain of high heaven keeps its own counsel.',
   colors: { primary: '#e8e3d3', secondary: '#c4392f', glow: '#fff3c4' },
   cards: [
     {
-      id: 'takamagahara-amaterasu',
+      id: 'kami-amaterasu',
       name: 'Amaterasu',
       rarity: 'legendary',
       role: 'Caster',
@@ -98,10 +98,10 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sun',
-      art: 'assets/legends/takamagahara-amaterasu.png',
+      art: 'assets/legends/kami-amaterasu.png',
     },
     {
-      id: 'takamagahara-tsukuyomi',
+      id: 'kami-tsukuyomi',
       name: 'Tsukuyomi',
       rarity: 'rare',
       role: 'Caster',
@@ -138,10 +138,10 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-mirror',
-      art: 'assets/legends/takamagahara-tsukuyomi.png',
+      art: 'assets/legends/kami-tsukuyomi.png',
     },
     {
-      id: 'takamagahara-izanami',
+      id: 'kami-izanami',
       name: 'Izanami',
       rarity: 'common',
       role: 'Controller',
@@ -171,10 +171,10 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-tombstone',
-      art: 'assets/legends/takamagahara-izanami.png',
+      art: 'assets/legends/kami-izanami.png',
     },
     {
-      id: 'takamagahara-inari',
+      id: 'kami-inari',
       name: 'Inari',
       rarity: 'epic',
       role: 'Controller',
@@ -203,10 +203,10 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fox',
-      art: 'assets/legends/takamagahara-inari.png',
+      art: 'assets/legends/kami-inari.png',
     },
     {
-      id: 'takamagahara-izanagi',
+      id: 'kami-izanagi',
       name: 'Izanagi',
       rarity: 'epic',
       role: 'Medic',
@@ -245,10 +245,10 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-water-drop',
-      art: 'assets/legends/takamagahara-izanagi.png',
+      art: 'assets/legends/kami-izanagi.png',
     },
     {
-      id: 'takamagahara-susanoo',
+      id: 'kami-susanoo',
       name: 'Susanoo',
       rarity: 'rare',
       role: 'Tank',
@@ -309,7 +309,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-trident',
-      art: 'assets/legends/takamagahara-susanoo.png',
+      art: 'assets/legends/kami-susanoo.png',
     },
   ],
 });

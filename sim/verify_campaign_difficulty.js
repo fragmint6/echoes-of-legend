@@ -29,7 +29,7 @@ window.EOL = {};
 
 require('../data/_schema.js');
 require('../data/roles.js');
-['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'takamagahara', 'yamato'].forEach(
+['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'kami', 'yamato'].forEach(
   (id) => require('../data/' + id + '.js')
 );
 require('../data/battlefields.js');
@@ -98,7 +98,7 @@ const introduced = {
   4: 'olympus',
   6: 'yamato',
   7: 'roma',
-  8: 'takamagahara',
+  8: 'kami',
   10: 'duat',
 };
 ok(
@@ -121,7 +121,7 @@ ok(
   heroicNine.factions.length === 7 &&
     heroicNine.factions.includes('yamato') &&
     heroicNine.factions.includes('roma') &&
-    heroicNine.factions.includes('takamagahara'),
+    heroicNine.factions.includes('kami'),
   'Heroic Last Guardian includes every faction introduced before Gate IX'
 );
 

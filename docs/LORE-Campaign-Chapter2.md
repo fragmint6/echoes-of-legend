@@ -6,6 +6,18 @@ encounters, battle barks, codex entries, and post-battle memories. It is
 prose first: the mechanics are the shape beneath the story, not the story
 itself.*
 
+*Revised 2026-08-18 (c) — **the structure now matches Chapter One's, measured
+rather than assumed.** Owner: "Look at how chapter 1 is done, there's 2 elites
+and the rest of the 8 gates all introduce one." Correct, and my previous count
+was wrong: I had assumed Chapter One's boss and opener introduced nothing. In
+fact `data/campaign-ch1.js` grants a `legendPack` at II, III, IV, VI, VII, VIII
+and **X (Gilgamesh -> Duat)**; the only two gates that introduce nothing are
+the **exams at V and IX**, and Gate I is empty only because Grimmwood is the
+starter deck. So Chapter One introduces **eight factions across ten gates**.
+Chapter Two now does exactly the same: the two elites ARE the two exams, they
+unlock nothing, and the other eight bouts each hand over one faction —
+including the boss. See §0.3.*
+
 *Revised 2026-08-18 (b) — **XV is now a bout, not a cutscene.** Owner:
 "Aren't there supposed to be 10 gates?" Correct, and the draft had nine:
 XV was written as a read-the-record scene with no fight, which quietly made
@@ -123,6 +135,40 @@ for a living, which is more frightening.
 
 ---
 
+## 0.3 The shape, taken from Chapter One
+
+**Measured, not remembered.** The table below is read out of
+`data/campaign-ch1.js`, because the first draft of this chapter was built on
+a guess about Chapter One and the guess was wrong in a way that changed the
+whole structure.
+
+| Gate | Rival | Grant | Introduces |
+|---|---|---|---|
+| I | Recruiter | coins only | — *(Grimmwood is the starter deck)* |
+| II | Oathkeeper | legendPack Arthur | Camelot |
+| III | Outlaw | legendPack Robin Hood | Sherwood |
+| IV | Anointed | legendPack Zeus | Olympus |
+| **V** | **Warden — exam** | **choice x2** | **none** |
+| VI | Trickster | legendPack Abe no Seimei | Yamato |
+| VII | Strategist | legendPack Constantine | Roma |
+| VIII | Chronicler | legendPack Amaterasu | Kami |
+| **IX** | **Last Guardian — exam** | **choice x2** | **none** |
+| X | **Gilgamesh — boss** | legendPack Anubis | **Duat** |
+
+Three laws fall out of it, and Chapter Two follows all three:
+
+1. **Exactly two bouts introduce nothing, and they are the exams.** Not the
+   boss, not the opener.
+2. **The boss introduces a faction.** Duat arrives *with* Gilgamesh — the
+   hardest fight in the chapter hands over the deck you have never seen.
+3. **Eight factions across ten gates.**
+
+Chapter Two therefore introduces its eight — Hemithea, Transylvania,
+Empyrean, Devas, Asgard, Tortuga, Huaxia, Pandemonium — at every bout except
+the two elites, which are its exams.
+
+---
+
 ## 1. The premise
 
 Every hundred years, in a city that exists for one week and is dismantled
@@ -167,9 +213,10 @@ stories.
 
 ## 2. The ten people in the way
 
-**Ten bouts, XI through XX**, matching Chapter One's ten gates: seven
-scheduled, one exam, and the two that are not on the schedule at all. Each
-is a person, a trade and a reason.
+**Ten bouts, XI through XX**, matching Chapter One's ten gates exactly:
+**eight introduce a faction, and the two elites — XV and XIX — introduce
+nothing, because they are this chapter's exams.** Each rival is a person, a
+trade and a reason.
 
 ---
 
@@ -214,8 +261,10 @@ years to take the petition seriously.
 
 **Who he is.** The Concord's bookmaker. He runs the betting openly, from a
 table nobody has ever asked him to move, and he chalks every price where the
-crowd can read it. He was a tax farmer in life. Being owed is the only form
-of being needed he has ever managed.
+crowd can read it. He was a tax farmer for an empire that no longer exists —
+he outlived it, kept the ledgers, and privately regards the Concord as a
+smaller and less competent operation than the one he used to audit. Being
+owed is the only form of being needed he has ever managed.
 
 **Why he fights you.** He offers to *fund* the twelfth petition — pay the
 filing costs, buy the witnesses, hand you the week — in exchange for a debt
@@ -225,23 +274,25 @@ price you would call it a purchase."
 Accepting is available. It wins the chapter's easiest run and one of its two
 bad endings.
 
-**The gimmick: everything on the table has a price tag.** He fields seven
-appetites, and each one buys its power with a stated, visible cost — ATK for
-DEF, healing for damage, an action skipped now for a bigger one later.
-**Pride** anchors it: the largest sweep in the chapter, and he cannot be
-healed for two rounds after casting it.
+**The gimmick: he takes the other side of your bet.** A bookmaker does not
+pick a winner — he prices whatever *you* do and profits from the difference,
+and his board is built the same way. Nothing on it opens; everything on it
+covers. Commit a combo and **Zhuge Liang** drains the energy that pays for
+it; provoke a wall and **Guan Yu** counter-hits; hide behind a front line and
+**Sun Wukong** goes over it. He fields an empire's court and plays it like a
+ledger: every one of your actions has a matching entry on his side.
 
-The lesson: **every one of those costs is information.** A board where the
-enemy has told you exactly what each card is spending is a board you can
-plan around, if you bother to read it — which is his entire point about
-bettors.
+The lesson, and it is the earliest hard one in the chapter: **the first
+player to commit is the one being priced.** Against him a turn spent doing
+nothing is often worth more than a turn spent doing something, which is not a
+lesson any Chapter One gate teaches.
 
 **Bans your cheapest card** — he sets prices.
 
 **Line.** "I have never lied to a bettor. I have simply noticed nobody reads
 the back of the tablet, and I stopped considering that my failing."
 
-**Reward.** Greed + Envy. Coin.
+**Reward.** Guan Yu + Zhuge Liang. Coin.
 
 ---
 
@@ -384,7 +435,9 @@ three — the record adjusting to what you have shown it.
 It sounds better when there are two of us saying it."
 
 **Reward.** **Choice of two** echoes from the four decks taught so far, a
-larger purse — and the record, notarised, admissible.
+larger purse — and the record, notarised, admissible. **No new faction:** XV
+is the first of the chapter's two exams, and exams unlock nothing, exactly as
+at Chapter One's Warden and Last Guardian.
 
 **Afterwards.** Sargon does not thank the Wayfarer. He says the forty names
 out loud, in order, for the first time since the bridge, and it takes some
@@ -506,15 +559,21 @@ weighs four pounds. I've carried heavier by accident."
 
 ---
 
-### XIX — THE AUDITOR
+### XIX — THE AUDITOR  *(the second exam)*
 
 **The morning of the final · unscheduled**
 
-**Who he is.** A functionary of an empire that no longer exists. When it
-dissolved, its bureaucracy left exactly one office standing: an auditor with
-the standing to examine the Canon's provenance, and no petitioner in four
-hundred years to ask him to. He has kept the office. He has kept the *hours*.
-Four thousand mornings in a room nobody enters.
+**Who he is.** A functionary of an empire that no longer exists — **the same
+empire the Bookmaker farmed taxes for**, and the two of them have not spoken
+in four hundred years. When it dissolved, its bureaucracy left exactly one
+office standing: an auditor with the standing to examine the Canon's
+provenance, and no petitioner in four hundred years to ask him to. He has
+kept the office. He has kept the *hours*. Four thousand mornings in a room
+nobody enters.
+
+The Bookmaker took the empire's methods to the betting table and got rich.
+The Auditor kept its procedures and got nothing. Neither of them thinks the
+other made the wrong choice, which is worse than a grudge.
 
 **Why he fights you.** Because somebody finally files. And because a petition
 granted without proof of competence gets overturned within a century, so he
@@ -531,15 +590,19 @@ whole claim to hold it rests on.
 The sword-bearer's refusal on day three makes sense now. He was never told
 why. He declined to win anyway.
 
-**The gimmick: he does not start anything.** His entire twelve is built to
-*answer* — counters, punishes, walls, reversals — and it has a reply to each
-of the eight things the chapter has taught you. Provoke a wall and **Guan
-Yu** counter-hits; commit a combo and **Zhuge Liang** drains the energy that
-pays for it; hide behind a front line and **Sun Wukong** goes over it.
+**The gimmick: he audits you with your own week.** This is the chapter's
+second exam, so like Chapter One's Last Guardian he introduces **no new
+faction** — he fields an authored spread drawn from the decks you have
+already been handed, and every one of them is pointed back at the habit that
+deck taught you. The Herald's schedule, the Collector's theft, the
+Undertaker's ramp, the Mason's two-card kill: all of it, on his side of the
+table, in one twelve.
 
-The lesson is the exam: **you cannot win this on a plan.** Every plan has a
-counter on his side of the table, so the fight is decided by which of your
-habits you are willing to abandon.
+The lesson is the examination itself: **you cannot win this on a plan.** Each
+answer you learned is now the thing being answered, so the fight is decided
+by which of your habits you are willing to abandon. Chapter One's Warden
+asked whether you could change *between games*; the Auditor asks whether you
+can change *between rounds*.
 
 **Bans nothing** — the only rival in the week who does not. "Bring your
 best. I have been bored for four thousand years."
@@ -547,18 +610,32 @@ best. I have been bored for four thousand years."
 **Line.** "Four thousand years is not devotion. Devotion gets tired. Four
 thousand years is procedure."
 
-**Reward.** Guan Yu + Zhuge Liang. Coin. And standing to be heard.
+**Reward.** **Choice of two** echoes from any faction taught so far, the
+chapter's largest ordinary purse — and standing to be heard. No new deck: an
+audit does not hand you anything you did not already own.
 
 ---
 
-## 3. XX — THE FINAL: THE REDACTOR
+## 3. XX — THE FINAL: ASMODEUS, THE REDACTOR
 
 **The Concord floor · everyone watching**
 
-The Canon's holders send the voice that has read every ruling for four
-hundred years — and, quieter, the hand that decided which lines were read at
-all. If anyone can make a cover-up sound like continuity, it is the mouth
-that announced them all.
+**"The Redactor" is a title, not a name** — the office that decides which
+lines of a ruling are read aloud. The man holding it is **Asmodeus**, and the
+chapter uses him the way Chapter One uses Gilgamesh: the boss is a named
+figure out of real myth who has been doing this job so long that the job and
+the person are no longer separable.
+
+He has read every ruling for four hundred years, and, quieter, chosen which
+lines were read at all. If anyone can make a cover-up sound like continuity,
+it is the mouth that announced them all.
+
+**Who he is.** A king of the older hierarchy, from back when his kind kept
+courts and the courts kept records. He has outlived the hierarchy, the
+courts and everyone who could confirm any of it, and he did not come to the
+Concord to rule it — he came because it was the only institution left that
+still filed things properly. Four centuries later he runs its archive and
+regards the arrangement as a retirement.
 
 **He is not a hypocrite**, which is what makes him hard. He knew about the
 error for two centuries. He suppressed it. He will say why to your face: an
@@ -568,15 +645,29 @@ means the knives come back to the street, and he *watched* that century.
 > "You want one line. I am protecting a hundred years of peace from one line.
 > Tell me which of us is being selfish, and be honest about the answer."
 
+**The gimmick: every edit is paid for, in public.** Asmodeus fields the sins,
+and they are the chapter's closing argument about the Canon itself — power
+bought at a stated, visible cost, which is exactly what four hundred years of
+tidy history has been. **Pride** anchors the twelve: the largest sweep in the
+chapter, and he cannot be healed for two rounds after casting it. Every card
+beside him buys its power the same way — ATK for DEF, healing for damage, an
+action skipped now for a bigger one later.
+
+The lesson is the chapter's thesis arriving as a mechanic: **the costs are
+written down, and reading them is the whole fight.** He has never hidden a
+price in his life. He simply relies on nobody turning the tablet over.
+
 **Playstyle.** A bespoke boss card, unbannable and pinned. His signature deals
 no damage — it **overrules**: one of your legends is declared to have acted
 differently, its last action undone and replayed as the *official version*,
 his choice. A boss that edits your history mid-fight, which is the chapter's
 theme expressed as a mechanic.
 
-His twelve is the court plus four hundred years of legends whose entries were
-also quietly wrong. **Bans your two strongest cards** — "the record will
-reflect that you were never permitted them."
+**Bans your two strongest cards** — "the record will reflect that you were
+never permitted them."
+
+**Reward.** Pandemonium — the last deck in the game, handed over by the
+hardest fight in it, exactly as Gilgamesh hands over Duat.
 
 ---
 
@@ -592,13 +683,21 @@ an opening bout they cannot lose is a waste of everyone's week.
 **The floor for every ordinary bout is *a bit below Gilgamesh*.** The two
 elites and the final are *at* him.
 
+**The two elites are the two exams** (owner ruling 2026-08-18), which is
+Chapter One's arrangement exactly: its hardest non-boss fights are the Warden
+at V and the Last Guardian at IX, and neither hands over a faction. An exam
+tests what you already own, so paying it out in a new deck would be the wrong
+reward for the thing being measured — both give **choice of two** instead.
+
 | | Chapter I | Chapter II |
 |---|---|---|
 | Stages | **ten gates, I-X** | **ten bouts, XI-XX** |
+| Factions introduced | **8** | **8** |
+| Bouts introducing nothing | **2 — the exams (V, IX)** | **2 — the exams (XV, XIX)** |
+| Boss introduces a faction | **yes — Duat** | **yes — Pandemonium** |
 | Opening stage | ~95% | **~45%** |
 | Ordinary stages | 90% → 55% | **40-45%, flat** |
-| Exams | 2 (V, IX) | **1 (XV)** |
-| Elites | 40% (IX) | **~30%** |
+| Elites | 40% (IX) | **~30-35%** |
 | Boss | 20-30% (X) | **~25%** |
 
 | Bout | Target player WR | Notes |
@@ -607,18 +706,17 @@ elites and the final are *at* him.
 | XII The Bookmaker | ~42% | |
 | XIII The Herald | ~42% | |
 | XIV The Collector | ~40% | |
-| **XV The Hero of the Bridge** | **~35%** | **exam** — best-of-3, no faction unlock |
-| **XVI The Undertaker** | **~30%** | **elite** |
+| **XV The Hero of the Bridge** | **~35%** | **elite / first exam** — best-of-3, unlocks nothing |
+| XVI The Undertaker | ~40% | |
 | XVII The Mason | ~40% | |
 | XVIII The Wrecker | ~42% | |
-| **XIX The Auditor** | **~30%** | **elite** — Huaxia, bans nothing |
-| **XX The Redactor** | **~25%** | **boss** — at Gilgamesh |
+| **XIX The Auditor** | **~30%** | **elite / second exam** — unlocks nothing, bans nothing |
+| **XX Asmodeus, the Redactor** | **~25%** | **boss** — at Gilgamesh, hands over Pandemonium |
 
-**Why one exam and not two.** Chapter One examines at V and IX because it is
-*teaching the game* and has to check twice. Nobody here is learning the loop,
-so the chapter checks once, at the midpoint, on the four decks it has taught
-by then — and the second check is simply bout XIX, which is an exam wearing
-an elite's difficulty and does the same job without a third best-of-three.
+**Two exams, at the same beats as Chapter One.** V and IX there; XV and XIX
+here. The first examines the four decks taught by the midpoint; the second
+examines everything, on the morning of the final. Both are best-of-three,
+both pay **choice of two**, and neither hands over a faction.
 
 ### How the difficulty is produced
 
@@ -639,21 +737,27 @@ turn order is worth ~0-10pp. Both stay banned. So:
 4. **Terrain built against you.** Symmetric per L1, but each rival's twelve
    is built for its pinned board and yours may not be.
 
-### The elites
+### The elites, which are the exams
 
-Two, both at ~30%, and they are elites for opposite reasons.
+Two, and they are elites for opposite reasons. **Neither introduces a
+faction** — that is what makes them exams rather than bouts, and it is
+Chapter One's rule, not a deviation from it.
 
-**XVI The Undertaker** is the *attrition* elite: the only deck in the game
-that gets stronger as the board empties, so the usual plan — trade evenly,
-win on remainder — is precisely the losing line. Healers banned, so you
-cannot stall past it either.
+**XV The Hero of the Bridge** is the *discipline* exam. The Canon's version
+of Sargon fields an authored 3/3/3/3 across the four decks taught so far,
+and it is the only board in the chapter with no exploitable seam: nothing
+overstated, nothing ragged, no gimmick to punish. It examines whether you can
+win a fair fight against your own tools.
 
-**XIX The Auditor** is the *mastery* elite and the harder of the two. He bans
+**XIX The Auditor** is the *mastery* exam and the harder of the two. He bans
 nothing, which is the flex: he does not need to take your best cards because
-his whole board is built to punish whatever you do with them. Every habit the
-previous eight bouts taught you has a counter on his side of the table. He is
-also the Huaxia unlock, so the hardest ordinary fight in the chapter is the
-one that pays out the withheld faction.
+his board is built out of the seven decks you were handed, each one pointed
+back at the habit it taught you. Every answer you learned is now the thing
+being answered.
+
+Between them sits the reason the chapter can afford two elites in five bouts:
+they are scheduled either side of the Undertaker, the Mason and the Wrecker,
+so the run reads hard-easy-easy-easy-hard rather than a ramp.
 
 ### One honesty note
 
@@ -742,16 +846,16 @@ implementation note: which deck each rival fields, and why it suits them.
 
 | Rival | Fields | Why it fits the person |
 |---|---|---|
-| The Understudy | Achaea | mortals with no god; everyone becomes more mid-fight |
-| The Bookmaker | Gehenna | appetites that buy power on visible terms |
+| The Understudy | Hemithea | mortals with no god; everyone becomes more mid-fight |
+| The Bookmaker | **Huaxia** | a bookmaker never picks a side — he takes the other side of yours |
 | The Herald | Empyrean | announces every blow a round early |
 | The Collector | Transylvania | takes rather than destroys |
-| The Hero of the Bridge | *the four taught decks, 3/3/3/3* | the exam fields what you were taught, not something new |
-| The Undertaker | Jotunheim | strongest once the board starts emptying |
-| The Mason | Devaloka | setup and payoff as two separate jobs |
+| The Hero of the Bridge *(exam)* | *the four taught decks, 3/3/3/3* | an exam fields what you were taught, not something new |
+| The Undertaker | Asgard | strongest once the board starts emptying |
+| The Mason | Devas | setup and payoff as two separate jobs |
 | The Wrecker | Tortuga | steals advantages rather than removing them |
-| The Auditor | **Huaxia** | answers instead of initiating |
-| The Redactor | bespoke boss + Empyrean court | edits the record mid-fight |
+| The Auditor *(exam)* | *the seven taught decks* | the audit is your own week, handed back to you |
+| Asmodeus, the Redactor | **Pandemonium** + bespoke boss card | every edit to the record was paid for |
 
 ### Each rival's gimmick is the faction they introduce
 
@@ -766,14 +870,16 @@ faction:
 
 | Bout | The gimmick | Proved by | Unlocks |
 |---|---|---|---|
-| XI The Understudy | nothing is finished at turn one; legends ascend mid-fight | **Achilles** | Achaea |
-| XII The Bookmaker | every card buys power with a visible cost | **Pride** | Gehenna |
+| XI The Understudy | nothing is finished at turn one; legends ascend mid-fight | **Achilles** | Hemithea |
+| XII The Bookmaker | he never opens — every card answers what you just did | **Sun Wukong** | Huaxia |
 | XIII The Herald | damage is scheduled a round early, in the open | **Lucifer** | Empyrean |
 | XIV The Collector | what she strips off you reappears on her | **Dracula** | Transylvania |
-| XVI The Undertaker | the deck improves as the board empties | **Odin** | Jotunheim |
-| XVII The Mason | nothing kills without a second card first | **Shiva** | Devaloka |
+| **XV Hero of the Bridge** | *(exam — no gimmick, and that is the test)* | — | **nothing** |
+| XVI The Undertaker | the deck improves as the board empties | **Odin** | Asgard |
+| XVII The Mason | nothing kills without a second card first | **Shiva** | Devas |
 | XVIII The Wrecker | advantages change sides rather than vanishing | **Blackbeard** | Tortuga |
-| XIX The Auditor | answers everything, initiates nothing | **Sun Wukong** | Huaxia |
+| **XIX The Auditor** | *(exam — your own seven decks, aimed back)* | — | **nothing** |
+| XX Asmodeus, the Redactor | every card buys its power at a stated, visible price | **Pride** | Pandemonium |
 
 Each one also teaches the counter to itself, which is what makes them
 lessons rather than gimmicks: cancel the schedule, kill the enabler, refuse
@@ -793,29 +899,37 @@ from the Road. So each faction's legendary stays the campaign reward for the
 bout that introduces it, which is exactly the Chapter One shape: you can buy
 your way toward Sherwood, but Robin Hood comes from beating the Outlaw.
 
-**Huaxia is the one exception** and remains entirely unbuyable, because the
-story spends it as the reveal at XIX. Selling it beforehand would spend that
-reveal for coins.
+**Which faction stays unbuyable is an open question.** Huaxia has been
+withheld from the shop since Chapter One on the grounds that it was this
+chapter's reveal. It is now introduced at **XII**, early, by the Bookmaker —
+so the argument for withholding it has moved to **Pandemonium**, which is now
+the last deck in the game and the boss's payout. The owner has asked to
+discuss a **per-chapter shop** rather than a single withhold list, so nothing
+is changed in `js/economy.js` this pass; see §8.
 
-### Huaxia is properly introduced
+### Huaxia belongs to the two men who outlived its empire
 
 An earlier draft mentioned Huaxia once, in passing, as a dissolved house —
 which was a waste of the faction the whole roster has been holding back since
-Chapter One.
+Chapter One. It now belongs to **two** characters, and the pairing is the
+point.
 
-The Auditor now **is** that empire's last living institution, and the chapter
-says so out loud: an empire fell, its armies and its emperors and its poets
-are gone, and what survived was **one clerk who kept the hours**. That is
-both a real joke about bureaucracy and the most Huaxia sentence available —
-the tradition whose mechanical identity is *answering* rather than starting,
-represented by the one office nobody bothered to abolish.
+An empire fell. Its armies, its emperors and its poets are gone. What
+survived was a **tax farmer** and an **auditor** — the two least romantic
+offices it had — and they took opposite lessons from the same collapse. The
+Bookmaker took the empire's methods to the betting table and got rich. The
+Auditor kept its procedures and got nothing. Neither thinks the other chose
+wrongly, which is worse than a grudge.
 
-He gets the chapter's biggest reveal, he is the only rival who bans nothing,
-and unlocking his deck is the reward for the reveal rather than a footnote.
+The Bookmaker **fields** it, at bout XII, because a bookmaker's job is
+structurally identical to Huaxia's mechanical identity: he never opens a
+position, he prices yours and takes the other side. His six is Sun Wukong,
+Guan Yu, Zhuge Liang and Qin Shi Huang — an empire's worth of legends run
+like a ledger by the man who used to collect its taxes.
 
-His six is Sun Wukong, Guan Yu, Zhuge Liang and Qin Shi Huang — an empire's
-worth of legends fielded by its last surviving functionary, which is exactly
-the image.
+The Auditor does **not** field it, because he is an exam, and an exam fields
+what you were taught. The faction he came from is already in your collection
+by the time you meet him — which is the quieter version of the same joke.
 
 ---
 
@@ -829,15 +943,20 @@ the image.
   them, and the last beat of the chapter.
 - **The antagonist is an institution** with motives, internal disagreement,
   and a defence that is genuinely good.
-- **Ten bouts, XI-XX**, the same count as Chapter One's ten gates — and
-  the same shape: openers, an exam at the midpoint, elites, a boss.
+- **Ten bouts, XI-XX, and the same SHAPE as Chapter One** — measured out of
+  `data/campaign-ch1.js`, not remembered: eight factions introduced, two
+  bouts that introduce nothing and they are the exams, and a boss that hands
+  over the last deck.
 - **The turn at XV inverts the premise:** he was telling the truth, and the
   truth is worse than the lie — and it is a *bout*, because the chapter's
   biggest story beat should not be the one stage you sit and watch.
 - **Two bad endings are reachable and tempting**, so the good one is a choice.
 - **The boss mechanic is the theme** — a card that edits your history.
-- **Huaxia is the reveal**, not a footnote — and the elite that pays it
-  out is the hardest ordinary fight in the chapter.
+- **Huaxia belongs to two rivals**, a tax farmer and an auditor, who are the
+  only survivors of the same dead empire and cannot agree what it meant.
+- **The boss hands over the last deck**, exactly as Gilgamesh hands over
+  Duat — and Pandemonium's "power at a stated price" is the chapter's
+  closing argument about the Canon itself.
 - **Every name is a trade, and the trade is the playstyle.** The
   Bookmaker prices things, the Undertaker finishes things, the Mason
   builds in two stages, the Auditor checks rather than acts, the
@@ -846,7 +965,48 @@ the image.
   are *people you could describe to a stranger in three words*.
 - **No freebies.** The opening bout sits at ~45%, not ~95%.
 - **Every rival demonstrates the faction they hand over**, legendary
-  first, exactly as the Outlaw sells Sherwood with Robin Hood.
+  first, exactly as the Outlaw sells Sherwood with Robin Hood — and the two
+  that hand over nothing are the two that are testing you.
 - **One legendary each, and only the legendary is campaign-locked** —
   the other 42 cards are in packs, so a player can build toward a
   faction and still has to earn its crown.
+
+---
+
+## 8. Open questions
+
+**The shop needs a decision before any of this ships.** Raised by the owner
+2026-08-18: *"maybe make a chapter 1 shop and chapter 2 shop?"*
+
+The current model is a single global pool with one withhold list
+(`var WITHHELD = ['huaxia']` in `js/economy.js`). It was adequate when there
+was one chapter and one faction being held back. It is now doing a job it was
+never designed for, and this chapter breaks it in three places:
+
+1. **Huaxia's withholding no longer has a reason.** It was withheld because
+   it was Chapter Two's reveal. It is now introduced at bout XII, early, by
+   the Bookmaker. Nothing is being protected by keeping it unbuyable.
+2. **Pandemonium has inherited that job** — last deck, boss payout — but
+   withholding it means holding back a faction whose seven cards are already
+   written, arted and wired.
+3. **The pool doubled and nobody was told.** Packs went from 35 to 77
+   packable cards when the seven new factions landed, which roughly halved
+   the odds of pulling any specific older legend. A Chapter One player who
+   has not touched Chapter Two paid for that.
+
+Three shapes are worth considering, and this doc deliberately does not pick
+one:
+
+- **Per-chapter shops.** Two storefronts, each selling only the factions its
+  chapter has introduced. Solves (3) outright — a Chapter One player's odds
+  never move — and makes withholding a property of *where you are* rather
+  than a hardcoded list. Costs: a second shop UI, and a rule for what happens
+  to a player who is halfway through both.
+- **One shop, chapter-gated inventory.** A single storefront that reveals a
+  faction's cards once its chapter is reached. Cheaper to build; keeps one
+  pool, so (3) remains true for anyone who has unlocked both.
+- **One shop, unchanged, and accept the dilution.** Honest and free. The odds
+  argument is real but small if pack pricing is retuned.
+
+Whichever is chosen, **the Crown Law is unaffected**: legendaries are never
+sold, so the eight campaign legendaries stay campaign-only regardless.

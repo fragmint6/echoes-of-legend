@@ -67,7 +67,7 @@ const SCRIPTS = [
   'data/sherwood.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
   'data/battlefields.js',
   'data/draft-ai.js',

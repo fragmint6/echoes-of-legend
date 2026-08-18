@@ -73,29 +73,74 @@ window.EOL.registerFaction({
       art: 'assets/legends/olympus-athena.png',
     },
     {
-      id: 'olympus-hercules',
-      name: 'Hercules',
+      id: 'olympus-poseidon',
+      name: 'Poseidon',
       rarity: 'epic',
       role: 'Tank',
-      element: 'Physical',
-      stats: { hp: 7210, atk: 1030, def: 30 },
+      element: 'Magic',
+      stats: { hp: 7300, atk: 1020, def: 31 },
       ability: {
         type: 'Active',
-        name: 'Twelve Labors',
+        name: 'Lord of the Shoreline',
         cost: 50,
-        text: 'Immediately gain <b>25% DEF</b>, <b>20% ATK</b> and Provoke for 2 rounds, then gain a <b>15% Max HP Shield</b> when the Provoke ends.',
+        /* WHY POSEIDON EXISTS, AND WHY HE IS NOT HERCULES REPAINTED
+           -------------------------------------------------------------
+           Hercules moved to Hemithea (owner ruling 2026-08-18) because
+           he is a mortal who earned his myth, which is that faction's
+           entire thesis. Olympus lost its only Tank in the trade, so
+           this card is not a like-for-like replacement - it is the wall
+           Olympus should always have had.
+
+           Hercules never touched a Mark. He was a generically good
+           Tank who happened to live in the Mark faction: DEF up, ATK
+           up, Provoke, shield on expiry. Drop him into Camelot and
+           nothing about him reads wrong. That is a failure of faction
+           legibility (guideline check 4), and it is why the swap is an
+           improvement rather than a cost.
+
+           Poseidon is a Tank whose PROTECTION IS A MARK. He provokes,
+           and the enemies who are forced to come at him are marked for
+           doing it. So the faction's payoff cards - Zeus at 130% on
+           marked targets, Athena's 0.9 damage multiplier against marked
+           attackers, Guan Yu's 120% counter into a marked attacker -
+           all get fed by the act of tanking itself.
+
+           THE COMBO IT CREATES (guideline check 1): Poseidon provokes
+           on round one, which hands Zeus a board of pre-marked targets
+           for round two. Before this card the Mark supply was Apollo
+           (one target, highest ATK) and Zeus marking his own targets on
+           cast. A Tank that marks the WHOLE enemy line while making
+           them attack him is the missing setup half.
+
+           WHY THE MARK IS ON PROVOKE AND NOT ON CAST: marking every
+           enemy for free would be a Controller's job at a Tank's stat
+           line. Tying it to Provoke means the enemy has agency - they
+           are marked because they are being forced to attack, which is
+           exactly the trade the guidelines ask for ("a cost the
+           OPPONENT can press"). An enemy that kills Poseidon fast eats
+           less of it.
+
+           WHY `Magic` AND NOT `Physical`: Hercules was the roster's
+           Physical Tank slot in Olympus, and Physical is the single
+           most crowded element at 29 cards. The sea is not a fist.
+
+           STATS: 7300/1020/31 sits inside the Tank band (HP 6860-7560,
+           ATK 980-1080, DEF 28-31) and deliberately just above
+           Hercules' 7210/1030/30 on the two defensive axes and just
+           below on ATK - he is more wall and less brawler, which is
+           what "Tanks trade damage for presence" asks for. */
+        text: 'Provoke for 2 rounds and gain a <b>18% Max HP Shield</b>. While Poseidon is Provoking, every enemy that attacks him is <b>Marked</b>.',
         note: null,
         spec: {
           target: { side: 'self' },
           effects: [
-            { k: 'stat', stat: 'def', amt: 25, turns: 2, to: 'self' },
-            { k: 'stat', stat: 'atk', amt: 20, turns: 2, to: 'self' },
-            { k: 'taunt', turns: 2, to: 'self', shieldOnEnd: 15 },
+            { k: 'taunt', turns: 2, to: 'self', markAttacker: true },
+            { k: 'shield', pctMaxHp: 18, to: 'self' },
           ],
         },
       },
-      icon: 'ra-muscle-fat',
-      art: 'assets/legends/olympus-hercules.png',
+      icon: 'ra-harpoon-trident',
+      art: 'assets/legends/olympus-poseidon.png',
     },
     {
       id: 'olympus-apollo',

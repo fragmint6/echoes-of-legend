@@ -40,7 +40,7 @@ global.CustomEvent = function (n, o) {
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
   'data/battlefields.js',
   'js/engine.js',

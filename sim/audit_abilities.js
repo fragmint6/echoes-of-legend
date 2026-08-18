@@ -29,7 +29,7 @@ global.performance = { now: () => Date.now() };
 [
   'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
   'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
-  'data/roma.js', 'data/takamagahara.js', 'data/duat.js', 'js/engine.js', 'js/ai.js',
+  'data/roma.js', 'data/kami.js', 'data/duat.js', 'js/engine.js', 'js/ai.js',
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 const EOL = window.EOL, E = EOL.engine;
 
@@ -46,7 +46,7 @@ function ok(cond, msg) {
 }
 function section(t) { console.log('\n\x1b[1m' + t + '\x1b[0m'); }
 
-const CLEAN_FOES = ['olympus-hercules', 'camelot-mordred', 'huaxia-mulan',
+const CLEAN_FOES = ['hemithea-hercules', 'camelot-mordred', 'huaxia-mulan',
   'olympus-medusa', 'grimmwood-pied-piper', 'sherwood-will-scarlet'];
 const FILL = ['camelot-guinevere', 'sherwood-little-john', 'grimmwood-snow-white',
   'olympus-apollo', 'yamato-momotaro'];

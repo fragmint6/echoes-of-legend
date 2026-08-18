@@ -13,12 +13,16 @@ global.performance = { now: () => Date.now() };
   'data/roles.js',
   'data/camelot.js',
   'data/olympus.js',
+  /* Hercules moved to Hemithea 2026-08-18 (owner ruling); this suite
+     uses him as a fixture, so the file has to be loaded or CARD[] has a
+     hole and every board built from it throws. */
+  'data/hemithea.js',
   'data/sherwood.js',
   'data/grimmwood.js',
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/battlefields.js',
   'data/draft-ai.js',
   'js/engine.js',
@@ -55,7 +59,7 @@ const FILL = [
   'yamato-momotaro',
 ];
 const CLEAN = [
-  'olympus-hercules',
+  'hemithea-hercules',
   'camelot-mordred',
   'huaxia-mulan',
   'olympus-medusa',
@@ -175,8 +179,8 @@ sec('C. Per-stack damage conversion');
    ============================================================= */
 sec('D. Debuff scaling (Inari) & buff consumption');
 {
-  const B = board(['takamagahara-inari', ...FILL]);
-  const ina = U(B, 'takamagahara-inari');
+  const B = board(['kami-inari', ...FILL]);
+  const ina = U(B, 'kami-inari');
   const foe = B.units.find((u) => u.side === 'enemy');
   foe.buffs.push({ stat: 'atk', amt: -20, turns: 2, tag: null });
   foe.buffs.push({ stat: 'def', amt: -15, turns: 2, tag: null });
@@ -196,8 +200,8 @@ sec('D. Debuff scaling (Inari) & buff consumption');
 }
 {
   /* a clean target: no debuffs, base ability still works */
-  const B = board(['takamagahara-inari', ...FILL]);
-  const ina = U(B, 'takamagahara-inari');
+  const B = board(['kami-inari', ...FILL]);
+  const ina = U(B, 'kami-inari');
   const foe = B.units.find((u) => u.side === 'enemy');
   const base = E.atkOf(ina) * 0.75 * (1 - E.defOf(foe) / 100);
   const hp0 = foe.hp;
@@ -210,8 +214,8 @@ sec('D. Debuff scaling (Inari) & buff consumption');
 }
 {
   /* consumeBuffs engine keyword verification */
-  const B = board(['takamagahara-inari', ...FILL]);
-  const ina = U(B, 'takamagahara-inari');
+  const B = board(['kami-inari', ...FILL]);
+  const ina = U(B, 'kami-inari');
   const foe = B.units.find((u) => u.side === 'enemy');
   foe.buffs.push({ stat: 'atk', amt: 20, turns: 2, tag: null });
   foe.buffs.push({ stat: 'atk', amt: -25, turns: 2, tag: null });
@@ -368,8 +372,8 @@ sec('G. AI valuation');
   );
 }
 {
-  const B = board(['takamagahara-inari', ...FILL]);
-  const ina = U(B, 'takamagahara-inari');
+  const B = board(['kami-inari', ...FILL]);
+  const ina = U(B, 'kami-inari');
   const plain = B.units.filter((u) => u.side === 'enemy')[0];
   const buffed = B.units.filter((u) => u.side === 'enemy')[1];
   buffed.buffs.push({ stat: 'atk', amt: 25, turns: 2, tag: null });

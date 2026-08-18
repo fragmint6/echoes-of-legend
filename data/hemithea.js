@@ -1,8 +1,8 @@
-/* Faction: Achaea - Ascension (the mortals who earn their myth)
+/* Faction: Hemithea - Ascension (the mortals who earn their myth)
    -------------------------------------------------------------
    WHAT THIS FACTION IS ABOUT
 
-   Olympus is gods. Achaea is the people the gods bet on. Every card
+   Olympus is gods. Hemithea is the people the gods bet on. Every card
    here starts as an ordinary body and becomes something else exactly
    once, when a condition the FIGHT produces is met - not a timer, not
    a resource, not a choice.
@@ -35,19 +35,19 @@
    Ascension conditions are satisfied by OTHER factions' normal play,
    which is the whole point:
      - Roma's kill engine turns Perseus on early.
-     - Takamagahara and Jotunheim produce the ally death Medea needs.
+     - Kami and Asgard produce the ally death Medea needs.
      - Any Grimmwood debuff or Camelot Exposed makes Atalanta's
        above-70% window easier to hit before the enemy heals.
    ============================================================= */
 window.EOL.registerFaction({
-  id: 'achaea',
-  name: 'Achaea',
+  id: 'hemithea',
+  name: 'Hemithea',
   icon: 'ra-podium',
   tagline: 'Mortals, and worth more for it.',
   colors: { primary: '#d8b26a', secondary: '#8c3b2e', glow: '#ffe6a8' },
   cards: [
     {
-      id: 'achaea-achilles',
+      id: 'hemithea-achilles',
       name: 'Achilles',
       rarity: 'legendary',
       role: 'Bruiser',
@@ -87,11 +87,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-spear-head',
-      art: 'assets/legends/achaea-achilles.png',
+      art: 'assets/legends/hemithea-achilles.png',
     },
 
     {
-      id: 'achaea-odysseus',
+      id: 'hemithea-odysseus',
       name: 'Odysseus',
       rarity: 'epic',
       role: 'Controller',
@@ -102,7 +102,7 @@ window.EOL.registerFaction({
         name: 'Man of Twists and Turns',
         cost: 35,
         /* REWRITTEN. The first draft was "Silence 1 for 1 round, drain
-           Energy" - the exact effect signature of Jotunheim's Loki, and
+           Energy" - the exact effect signature of Asgard's Loki, and
            the collision the owner spotted. It was also the fourth
            energy-drain and the third Silence in a single release.
 
@@ -133,11 +133,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fast-ship',
-      art: 'assets/legends/achaea-odysseus.png',
+      art: 'assets/legends/hemithea-odysseus.png',
     },
 
     {
-      id: 'achaea-perseus',
+      id: 'hemithea-perseus',
       name: 'Perseus',
       rarity: 'epic',
       role: 'Sniper',
@@ -174,11 +174,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-monster-skull',
-      art: 'assets/legends/achaea-perseus.png',
+      art: 'assets/legends/hemithea-perseus.png',
     },
 
     {
-      id: 'achaea-medea',
+      id: 'hemithea-medea',
       name: 'Medea',
       rarity: 'epic',
       role: 'Medic',
@@ -213,11 +213,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-bubbling-potion',
-      art: 'assets/legends/achaea-medea.png',
+      art: 'assets/legends/hemithea-medea.png',
     },
 
     {
-      id: 'achaea-atalanta',
+      id: 'hemithea-atalanta',
       name: 'Atalanta',
       rarity: 'rare',
       role: 'Sniper',
@@ -257,11 +257,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-barbed-arrow',
-      art: 'assets/legends/achaea-atalanta.png',
+      art: 'assets/legends/hemithea-atalanta.png',
     },
 
     {
-      id: 'achaea-ajax',
+      id: 'hemithea-ajax',
       name: 'Ajax',
       rarity: 'rare',
       role: 'Tank',
@@ -285,11 +285,58 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-zebra-shield',
-      art: 'assets/legends/achaea-ajax.png',
+      art: 'assets/legends/hemithea-ajax.png',
     },
 
     {
-      id: 'achaea-jason',
+      id: 'hemithea-hercules',
+      name: 'Hercules',
+      rarity: 'epic',
+      role: 'Tank',
+      element: 'Physical',
+      stats: { hp: 7210, atk: 1030, def: 30 },
+      ability: {
+        type: 'Active',
+        /* MOVED FROM OLYMPUS 2026-08-18 (owner ruling). Hercules is a
+           mortal who earned his place among gods, which is the literal
+           thesis of this faction - "the people the gods bet on". He sat
+           in Olympus for the obvious reason (Greek) rather than the
+           right one (divine), and his kit never touched a Mark, so
+           Olympus lost nothing mechanical when he left; see Poseidon in
+           data/olympus.js for the replacement and the reasoning.
+
+           THE CARD IS UNCHANGED - same id suffix, same stats, same
+           ability, same art file (renamed). Only the faction prefix
+           moved. This is deliberate: re-tuning him in the same commit
+           as the move would make any later balance regression
+           impossible to attribute to one or the other.
+
+           WHAT DOES CHANGE IS HIS COMPANY. In Olympus he was the only
+           Tank. Here he is the SECOND Tank beside Ajax, and the two
+           read as opposites rather than duplicates: Ajax is a passive
+           aura that is on while he is healthy (above 50%), Hercules is
+           an active that he spends a turn arming. A Hemithea draft can
+           now run a real front line, which the faction wanted - every
+           other card here is a mortal who needs time to ascend, and
+           time is what a wall buys. */
+        name: 'Twelve Labors',
+        cost: 50,
+        text: 'Immediately gain <b>25% DEF</b>, <b>20% ATK</b> and Provoke for 2 rounds, then gain a <b>15% Max HP Shield</b> when the Provoke ends.',
+        note: null,
+        spec: {
+          target: { side: 'self' },
+          effects: [
+            { k: 'stat', stat: 'def', amt: 25, turns: 2, to: 'self' },
+            { k: 'stat', stat: 'atk', amt: 20, turns: 2, to: 'self' },
+            { k: 'taunt', turns: 2, to: 'self', shieldOnEnd: 15 },
+          ],
+        },
+      },
+      icon: 'ra-muscle-fat',
+      art: 'assets/legends/hemithea-hercules.png',
+    },
+    {
+      id: 'hemithea-jason',
       name: 'Jason',
       rarity: 'rare',
       role: 'Medic',
@@ -322,7 +369,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ocean-emblem',
-      art: 'assets/legends/achaea-jason.png',
+      art: 'assets/legends/hemithea-jason.png',
     },
   ],
 });

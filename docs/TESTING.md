@@ -31,6 +31,7 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
 | Puzzle generation / solve length / difficulty  | `node sim/verify_puzzle_tempo.js`                 | ~9min  |
 | New factions / Chapter II legends + lore docs  | `node sim/verify_chapter2.js`                     | <1s    |
+| Renaming a faction or moving a card between them| `node sim/verify_id_migration.js`                 | <1s    |
 | Card balance sweep (budgets, bands, dupes)     | `node sim/audit_factions.js`                      | <1s    |
 | Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |
 | Cloud saves, sign-in/sign-out, save collisions | `node sim/verify_save_ownership.js`               | <2s    |
@@ -331,7 +332,7 @@ thrown away.
 It was frozen in time: it deliberately loaded only a **7-faction
 subset** and asserted `7 factions total` / `45 legends total`. You have
 **9 factions and (now) 63 legends**. It passed only because it never
-loaded `takamagahara.js` or `duat.js` - so it would have kept showing a green
+loaded `kami.js` or `duat.js` - so it would have kept showing a green
 tick no matter what broke in the two newest factions. A test that
 cannot fail is worse than no test.
 

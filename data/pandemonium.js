@@ -1,10 +1,10 @@
-/* Faction: Gehenna - Sin (the price is the point)
+/* Faction: Pandemonium - Sin (the price is the point)
    -------------------------------------------------------------
    WHAT THIS FACTION IS ABOUT
 
    Seven sins, seven legends, and every one of them buys power with
    something real. Where Camelot pays Energy for Shields and Roma
-   pays nothing at all (it is paid FOR kills), Gehenna's currency is
+   pays nothing at all (it is paid FOR kills), Pandemonium's currency is
    its own well-being: HP, defence, healing, actions.
 
    THE COST IS NEVER A COSTUME. The guidelines warn against
@@ -35,7 +35,7 @@
    and Sloth's banked double-cast. Wrath's shed DEF wants Camelot
    Shields or Heimdall in front of him. Nothing here heals the team,
    deliberately - Gluttony heals only himself and Pride refuses help
-   entirely, so a mono-Gehenna draft is missing a Medic on purpose.
+   entirely, so a mono-Pandemonium draft is missing a Medic on purpose.
 
    CROSS-FACTION
    -------------------------------------------------------------
@@ -46,14 +46,14 @@
        card that punishes autopilot drafting.
    ============================================================= */
 window.EOL.registerFaction({
-  id: 'gehenna',
-  name: 'Gehenna',
+  id: 'pandemonium',
+  name: 'Pandemonium',
   icon: 'ra-burning-meteor',
   tagline: 'Everything you want, and the bill.',
   colors: { primary: '#c2402a', secondary: '#2b1418', glow: '#ff7a4d' },
   cards: [
     {
-      id: 'gehenna-pride',
+      id: 'pandemonium-pride',
       name: 'Pride',
       rarity: 'legendary',
       role: 'Caster',
@@ -93,11 +93,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crown-of-thorns',
-      art: 'assets/legends/gehenna-pride.png',
+      art: 'assets/legends/pandemonium-pride.png',
     },
 
     {
-      id: 'gehenna-wrath',
+      id: 'pandemonium-wrath',
       name: 'Wrath',
       rarity: 'epic',
       role: 'Bruiser',
@@ -140,11 +140,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-muscle-up',
-      art: 'assets/legends/gehenna-wrath.png',
+      art: 'assets/legends/pandemonium-wrath.png',
     },
 
     {
-      id: 'gehenna-envy',
+      id: 'pandemonium-envy',
       name: 'Envy',
       rarity: 'epic',
       role: 'Caster',
@@ -183,11 +183,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-burning-eye',
-      art: 'assets/legends/gehenna-envy.png',
+      art: 'assets/legends/pandemonium-envy.png',
     },
 
     {
-      id: 'gehenna-greed',
+      id: 'pandemonium-greed',
       name: 'Greed',
       rarity: 'epic',
       role: 'Controller',
@@ -215,7 +215,7 @@ window.EOL.registerFaction({
             { k: 'gainEnergy', amt: 5 },
             /* `drainEnergy`, not `loseEnergy`: loseEnergy always debits
                the CASTER's pool and ignores `to:`, so the first draft
-               silently taxed Gehenna itself. drainEnergy is the
+               silently taxed Pandemonium itself. drainEnergy is the
                enemy-pool effect (Zhuge Liang uses it). Verified by
                stepping two rounds and reading both pools. */
             { k: 'drainEnergy', amt: 5 },
@@ -238,11 +238,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-mining-diamonds',
-      art: 'assets/legends/gehenna-greed.png',
+      art: 'assets/legends/pandemonium-greed.png',
     },
 
     {
-      id: 'gehenna-gluttony',
+      id: 'pandemonium-gluttony',
       name: 'Gluttony',
       rarity: 'rare',
       role: 'Bruiser',
@@ -268,11 +268,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-meat-hook',
-      art: 'assets/legends/gehenna-gluttony.png',
+      art: 'assets/legends/pandemonium-gluttony.png',
     },
 
     {
-      id: 'gehenna-sloth',
+      id: 'pandemonium-sloth',
       name: 'Sloth',
       rarity: 'rare',
       role: 'Tank',
@@ -300,11 +300,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-hourglass',
-      art: 'assets/legends/gehenna-sloth.png',
+      art: 'assets/legends/pandemonium-sloth.png',
     },
 
     {
-      id: 'gehenna-lust',
+      id: 'pandemonium-lust',
       name: 'Lust',
       rarity: 'rare',
       role: 'Controller',
@@ -334,7 +334,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-heartburn',
-      art: 'assets/legends/gehenna-lust.png',
+      art: 'assets/legends/pandemonium-lust.png',
     },
   ],
 });

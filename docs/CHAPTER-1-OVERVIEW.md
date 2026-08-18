@@ -257,7 +257,7 @@ guardian gets exactly one knife hidden in the warmth.
   that is the Wayfarer's page ("Every life leaves clutter. You have
   none."). They name the Quiet, and they have seen a page like yours
   exactly once before — a guardian, before she became the Last.
-- **Playstyle:** Takamagahara pool; drafts the curve and **hoards
+- **Playstyle:** Kami pool; drafts the curve and **hoards
   answers** — burn, cleanse, Silence, cost-denial. "If you are worth
   the shelf space, prove it against the full catalogue."
 - **Reward:** Amaterasu + Izanami (the dawn and the dusk — the burn
@@ -273,7 +273,7 @@ guardian gets exactly one knife hidden in the warmth.
   speaks** — the Recruiter translates her signs, and her in-battle
   "dialogue" is pure stage direction. She gave up her name to cut the
   Quiet's thread to her world.
-- **Playstyle:** an authored 4/4/4 wall (Yamato/Roma/Takamagahara) —
+- **Playstyle:** an authored 4/4/4 wall (Yamato/Roma/Kami) —
   four tanks deep with two executioners behind it. Bans your hardest
   hitters. No taunts, no warnings; the gate does not negotiate.
 - **Reward:** **choice of 2** from any taught faction + larger coin —
@@ -345,7 +345,7 @@ not enter the fight.
 
 **The progression law (owner ruling 2026-08-10).** Factions enter the
 Road one gate at a time — Grimmwood at I, Camelot II, Sherwood III,
-Olympus IV, Yamato VI, Roma VII, Takamagahara VIII, Duat only at X —
+Olympus IV, Yamato VI, Roma VII, Kami VIII, Duat only at X —
 and a gate may not field, pool, or grant a card from a faction the
 player has not been shown. Every rival twelve is fixed and built to
 *express its owner's habit*: the Oathkeeper fields three walls and
