@@ -298,7 +298,7 @@ console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
   /* OWNER RULING 2026-08-18: the seven factions' commons, rares and epics
      are buyable; their one legendary each is not, because the Crown Law
      keeps every legendary in the game out of packs. Huaxia stays wholly
-     unbuyable because Chapter II spends it as the reveal at bout XIX.
+     unbuyable because Chapter II spends it as the reveal at gate XIX.
 
      Asserted behaviourally against the real economy rather than by
      grepping js/economy.js, because the thing that matters is what the
@@ -355,7 +355,7 @@ console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
   );
   ok(
     obtainable.filter((e) => e.faction.id === 'huaxia').length === 0,
-    'Huaxia is still withheld entirely - it is the bout XIX reveal'
+    'Huaxia is still withheld entirely - it is the gate XIX reveal'
   );
 
   /* One legendary per faction is the roster law AND the reason exactly 7
@@ -434,12 +434,12 @@ console.log('I. rival names are trades, not manoeuvres');
   const lore = fs.readFileSync(path.join(ROOT, 'docs/LORE-Campaign-Chapter2.md'), 'utf8');
   const lines = lore.split('\n');
 
-  /* The ten bouts, keyed by numeral so a reordered doc still matches.
+  /* The ten gates, keyed by numeral so a reordered doc still matches.
 
      CORRECTED 2026-08-18 (owner: "Aren't there supposed to be 10 gates?").
      This map used to have nine entries with a hole at XV, because XV was
      written as a cutscene - which quietly made Chapter II a nine-stage
-     chapter against Chapter One's ten gates. XV is now a bout (the exam),
+     chapter against Chapter One's ten gates. XV is now a gate (the exam),
      so the map is contiguous XI..XX and the count is asserted below. */
   const RIVALS = {
     XI: 'THE UNDERSTUDY',
@@ -454,14 +454,14 @@ console.log('I. rival names are trades, not manoeuvres');
     XX: 'THE REDACTOR'
   };
   /* The count is its own assertion because the failure mode is a MISSING
-     bout, and a loop over a short map passes happily while being short. */
-  ok(Object.keys(RIVALS).length === 10, 'Chapter II has ten bouts, matching Chapter One\'s ten gates');
+     gate, and a loop over a short map passes happily while being short. */
+  ok(Object.keys(RIVALS).length === 10, 'Chapter II has ten gates, matching Chapter One\'s ten gates');
   Object.keys(RIVALS).forEach((num) => {
     const want = RIVALS[num];
     const found = lines.some(
       (l) => /^#{2,3} /.test(l) && new RegExp('\\b' + num + '\\b').test(l) && l.indexOf(want) !== -1
     );
-    ok(found, 'bout ' + num + ' is headed ' + want);
+    ok(found, 'gate ' + num + ' is headed ' + want);
   });
 
   /* The retired names. Each maps to the count of occurrences that are
@@ -491,9 +491,9 @@ console.log('I. rival names are trades, not manoeuvres');
   ok(/## 2\. The ten people in the way/.test(lore), 'section 2 is titled for ten people, not nine');
   ok(
     /\| \*\*XV The Hero of the Bridge\*\* \| \*\*~35%\*\* \| \*\*elite \/ first exam\*\*/.test(lore),
-    'XV carries a win-rate target in the difficulty table like every other bout'
+    'XV carries a win-rate target in the difficulty table like every other gate'
   );
-  ok(!/no bout/i.test(lore), 'no bout in the chapter is described as having no bout');
+  ok(!/no gate/i.test(lore), 'no gate in the chapter is described as having no gate');
   /* INVERTED 2026-08-18. This used to assert the OPPOSITE - that the doc
      justified examining ONCE where Chapter One examines twice. That was
      built on a wrong reading of Chapter One (I had assumed its boss and
@@ -508,7 +508,7 @@ console.log('I. rival names are trades, not manoeuvres');
   );
   ok(
     /### The elites, which are the exams/.test(lore),
-    'the doc states outright that the elites and the exams are the same two bouts'
+    'the doc states outright that the elites and the exams are the same two gates'
   );
   /* The structural laws that were measured out of campaign-ch1.js. If a
      future edit drifts the chapter back to "the boss introduces nothing",
@@ -578,13 +578,13 @@ console.log('J. the overview agrees with the lore');
   }
   const a = wrTable(lore);
   const b = wrTable(over);
-  ok(Object.keys(a).length === 10, 'the lore difficulty table has all ten bouts (' + Object.keys(a).length + ')');
-  ok(Object.keys(b).length === 10, 'the overview difficulty table has all ten bouts (' + Object.keys(b).length + ')');
+  ok(Object.keys(a).length === 10, 'the lore difficulty table has all ten gates (' + Object.keys(a).length + ')');
+  ok(Object.keys(b).length === 10, 'the overview difficulty table has all ten gates (' + Object.keys(b).length + ')');
   Object.keys(a).forEach((num) => {
-    ok(a[num] === b[num], 'bout ' + num + ' targets ~' + a[num] + '% in both docs');
+    ok(a[num] === b[num], 'gate ' + num + ' targets ~' + a[num] + '% in both docs');
   });
 
-  /* Each faction's one legendary must be credited to the same bout in
+  /* Each faction's one legendary must be credited to the same gate in
      both files. This is the pairing that was already got wrong once this
      session (Fenrir vs Odin as Asgard's legendary), so it gets a
      test rather than a careful read. */
@@ -617,11 +617,11 @@ console.log('J. the overview agrees with the lore');
      hands over the last faction, and three separate tables had to move
      together (lore section 6, lore section 6b, overview section 7). Two
      of them did and one did not, and only the win-rate cross-check
-     caught it - by luck, because that test happened to cover a bout
+     caught it - by luck, because that test happened to cover a gate
      whose number also changed.
 
      So: pin the mapping itself. Each faction must be credited to its
-     bout in BOTH files, and the two exams must be credited to neither. */
+     gate in BOTH files, and the two exams must be credited to neither. */
   const UNLOCK = {
     XI: 'Hemithea',
     XII: 'Huaxia',
@@ -638,7 +638,7 @@ console.log('J. the overview agrees with the lore');
     const want = UNLOCK[num];
     const inLore = unlockRow(lore, num).some((l) => l.indexOf(want) !== -1);
     const inOver = unlockRow(over, num).some((l) => l.indexOf(want) !== -1);
-    ok(inLore && inOver, 'bout ' + num + ' unlocks ' + want + ' in both docs');
+    ok(inLore && inOver, 'gate ' + num + ' unlocks ' + want + ' in both docs');
   });
   ok(Object.keys(UNLOCK).length === 8, 'exactly eight factions are introduced, as in Chapter One');
 

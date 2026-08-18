@@ -64,7 +64,7 @@ rev 5).
 > `stage.portrait` is null, and the UI falls back to a hood glyph in a
 > box of the same size so nothing reflows when the hand-drawn art lands.
 > New **section 6** briefs all twenty rivals (Chapter I's ten gates and
-> Chapter II's ten bouts) in the same format as the per-legend briefs,
+> Chapter II's ten gates) in the same format as the per-legend briefs,
 > including the two boss rivals that are also playable cards and
 > therefore need two images each. **No rival art was generated.** The
 > only image made this pass is the Chapter II chapter-plate backdrop
@@ -1218,7 +1218,7 @@ is fully painted and opaque.
 > **2026-08-18e.** Every rival portrait in `assets/rivals/` and every
 > source file in `assets/rivals-src/` was **deleted** at the owner's
 > request so they can be drawn by hand. `stage.portrait` is `null` for
-> all twenty bouts and the UI falls back to a hood glyph in the same box,
+> all twenty gates and the UI falls back to a hood glyph in the same box,
 > so nothing reflows when the art lands. **Do not generate these.** This
 > section is the brief the owner asked for, in the same shape as the
 > per-legend briefs above.
@@ -1357,7 +1357,7 @@ Mesopotamia, not high fantasy.
 
 ---
 
-### 6b. Chapter II - the ten bouts
+### 6b. Chapter II - the ten gates
 
 The Concord. Chapter I's rivals are guardians who stayed; Chapter II's
 are **professionals at work during a busy week**. They should read as
@@ -1366,8 +1366,8 @@ as mystics. Costume leans civic and contemporary-to-the-city: coats,
 sashes of office, working clothes, ledgers. The city is temporary, so
 canvas, scaffold and rope belong in the backdrops.
 
-**The Understudy** `Bout XI` `#d8b26a`
-A fixer's fighter, paid to lose the opening bout convincingly, doing it
+**The Understudy** `Gate XI` `#d8b26a`
+A fixer's fighter, paid to lose the opening gate convincingly, doing it
 properly anyway. Young, wiry, unbothered; cropped practical hair; a
 fighter's flattened knuckles. Plain sparring leathers with the previous
 owner's insignia unpicked, leaving a visible ghost of stitching.
@@ -1375,7 +1375,7 @@ Signature: **the unpicked badge** - a patch of cloth cleaner than what
 surrounds it. Environment: the Concord's opening arena, half its banners
 still going up. Loose, warming up, entirely at ease.
 
-**The Bookmaker** `Bout XII` `#b03a2e`
+**The Bookmaker** `Gate XII` `#b03a2e`
 The Concord's bookmaker, and formerly a tax farmer for an empire that no
 longer exists. Middle-aged, heavy-set, immaculate, chalk dust on the
 cuffs. A good coat gone shiny at the elbows over an imperial-cut tunic
@@ -1384,7 +1384,7 @@ of chalked odds beside him, and the chalk still in his hand.
 Environment: his table on the avenue, which nobody has ever asked him to
 move. He is the most comfortable person in the picture.
 
-**The Herald** `Bout XIII` `#f2e6c2`
+**The Herald** `Gate XIII` `#f2e6c2`
 The Canon's sword-bearer: honest, unimaginative, wholly sincere, and
 incurious in a way that is the whole character. Broad, clean-shaven,
 correct posture, a face that has never been asked a difficult question.
@@ -1393,7 +1393,7 @@ sword-bearer's harness. Signature: **the folded charge sheet** held in
 the off hand, already read aloud. Environment: the Concord floor under
 cold vault light. No swagger - he is on duty.
 
-**The Collector** `Bout XIV` `#8e2f45`
+**The Collector** `Gate XIV` `#8e2f45`
 The keeper of the vault under the city, and genuinely the reason half the
 dead still exist. Older, sharp-eyed, dust in her hair, reading glasses
 pushed up. Oxblood velvet coat over a working apron with a dozen small
@@ -1402,7 +1402,7 @@ dozens of small numbered tags on cords at her belt, one for each thing
 she has saved. Environment: the vault, gaslit, shelves receding into
 fog. Protective rather than sinister.
 
-**The Hero of the Bridge** `Bout XV` `#c9a227` *(the exam)*
+**The Hero of the Bridge** `Gate XV` `#c9a227` *(the exam)*
 **Not a person - an entry.** The Canon's official version of Sargon: the
 speech, the banner, the last stand. Heroic in the most generic possible
 way, and that is the point. Idealised jaw, unscarred skin, armour with no
@@ -1413,7 +1413,7 @@ subtly wrong for it. Environment: a bridge rendered like an illustration
 in a book, edges slightly too clean, forty absent figures implied by
 empty space behind him.
 
-**The Undertaker** `Bout XVI` `#7fb4d4`
+**The Undertaker** `Gate XVI` `#7fb4d4`
 A man who buried a world once, properly, and has never forgiven the
 Concord for what it does instead. Tall, gaunt, grey; a long face; hands
 that have done the work. Frost-rimed dark coat, wolf-pelt collar, a
@@ -1423,7 +1423,7 @@ Blood Battlefield's edge at last light, one field beyond it already
 growing back. Patient, not menacing; he is waiting for something to
 finish.
 
-**The Mason** `Bout XVII` `#e8a33d`
+**The Mason** `Gate XVII` `#e8a33d`
 She built the retaining wall the Concord floor sits on, one course at a
 time, eleven centuries ago, and has brought the same proposal to every
 Concord since. Broad shoulders, forearms of someone who lifts stone,
@@ -1433,7 +1433,7 @@ Saffron work-tunic, leather apron, a plumb-line at the hip. Signature:
 true. Environment: the Ancient Ruins, with her own wall visible and still
 standing. Unhurried certainty.
 
-**The Wrecker** `Bout XVIII` `#2f6f6a`
+**The Wrecker** `Gate XVIII` `#2f6f6a`
 A coastal wrecker who takes off what floats before the sea gets it, and
 has never in her life considered that stealing. Weather-cured skin,
 salt-stiff hair, a broken nose set badly. Verdigris-brass buttoned coat
@@ -1442,7 +1442,7 @@ over salt-bleached canvas, a coil of rope over the shoulder. Signature:
 salvage. Environment: the Open Plains at night, the arena lights distant
 behind her. Cheerful, unbothered, completely unrepentant.
 
-**The Auditor** `Bout XIX` `#d9a521` *(the exam)*
+**The Auditor** `Gate XIX` `#d9a521` *(the exam)*
 The last standing office of a dissolved empire: four thousand mornings in
 a room nobody enters. Elderly, spare, immaculate; a face composed by
 routine rather than feeling. Imperial scale-pattern robe kept in perfect
@@ -1451,7 +1451,7 @@ Signature: **the chalked hours on the door frame behind him**, still
 kept. Environment: his office - one desk, one lamp, shelves of unopened
 provenance ledgers. He has been ready for four centuries.
 
-**Asmodeus, the Redactor** `Bout XX` `#c9a227` *(also a card - two images)*
+**Asmodeus, the Redactor** `Gate XX` `#c9a227` *(also a card - two images)*
 A king of an older hierarchy, from when his kind kept courts and the
 courts kept records. He did not come to rule the Concord; he came because
 it was the only institution left that still filed things properly. Broad,

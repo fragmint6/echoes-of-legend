@@ -15,10 +15,10 @@ and **X (Gilgamesh -> Duat)**; the only two gates that introduce nothing are
 the **exams at V and IX**, and Gate I is empty only because Grimmwood is the
 starter deck. So Chapter One introduces **eight factions across ten gates**.
 Chapter Two now does exactly the same: the two elites ARE the two exams, they
-unlock nothing, and the other eight bouts each hand over one faction —
+unlock nothing, and the other eight gates each hand over one faction —
 including the boss. See §0.3.*
 
-*Revised 2026-08-18 (b) — **XV is now a bout, not a cutscene.** Owner:
+*Revised 2026-08-18 (b) — **XV is now a gate, not a cutscene.** Owner:
 "Aren't there supposed to be 10 gates?" Correct, and the draft had nine:
 XV was written as a read-the-record scene with no fight, which quietly made
 Chapter Two a nine-stage chapter against Chapter One's ten gates. It is now
@@ -157,14 +157,14 @@ whole structure.
 
 Three laws fall out of it, and Chapter Two follows all three:
 
-1. **Exactly two bouts introduce nothing, and they are the exams.** Not the
+1. **Exactly two gates introduce nothing, and they are the exams.** Not the
    boss, not the opener.
 2. **The boss introduces a faction.** Duat arrives *with* Gilgamesh — the
    hardest fight in the chapter hands over the deck you have never seen.
 3. **Eight factions across ten gates.**
 
 Chapter Two therefore introduces its eight — Hemithea, Transylvania,
-Genesis, Devas, Asgard, Tortuga, Huaxia, Pandemonium — at every bout except
+Genesis, Devas, Asgard, Tortuga, Huaxia, Pandemonium — at every gate except
 the two elites, which are its exams.
 
 ---
@@ -200,7 +200,7 @@ other entries are wrong.
 
 He is also going **thin** — what happens to an Echo whose true story nobody
 carries. Within the year there will be a hero in the Canon and nobody behind
-it. And a petitioner must fight his own bout, and he can no longer lift a
+it. And a petitioner must fight his own gate, and he can no longer lift a
 sword.
 
 So he goes looking for someone whose entire nature is carrying other people's
@@ -213,7 +213,7 @@ stories.
 
 ## 2. The ten people in the way
 
-**Ten bouts, XI through XX**, matching Chapter One's ten gates exactly:
+**Ten gates, XI through XX**, matching Chapter One's ten gates exactly:
 **eight introduce a faction, and the two elites — XV and XIX — introduce
 nothing, because they are this chapter's exams.** Each rival is a person, a
 trade and a reason.
@@ -222,10 +222,10 @@ trade and a reason.
 
 ### XI — THE UNDERSTUDY
 
-**Day one · the opening bout**
+**Day one · the opening gate**
 
 **Who she is.** A fixer's fighter. She has no patron and no purse, so she
-takes money to lose the opening bout convincingly — a soft start for whoever
+takes money to lose the opening gate convincingly — a soft start for whoever
 is paying that year. It is honest work, she is very good at it, and she has
 done it at three Concords.
 
@@ -300,7 +300,7 @@ the back of the tablet, and I stopped considering that my failing."
 
 **Day three · the incumbent's second**
 
-**Who he is.** The Canon's holders do not fight their own early bouts. They
+**Who he is.** The Canon's holders do not fight their own early gates. They
 send their herald — the man who walks out first and reads what is about to
 happen to the crowd, then does it. An honest, unimaginative, wholly sincere man who
 believes the last four hundred years of rulings have been fair, and who has
@@ -311,7 +311,7 @@ one does.
 quickly. He was given no reason. He did not ask for one — and that
 incuriosity is the entire character.
 
-**The seam.** Mid-bout, one of his own officials hands him a ruling that
+**The seam.** Mid-gate, one of his own officials hands him a ruling that
 would win it. He refuses it. He offers no explanation, fights on, and loses.
 
 **The gimmick: he tells you exactly what is coming, and it still lands.**
@@ -414,7 +414,7 @@ stranger beats a lie about him out of the air, which is the closest thing to
 mercy anyone has offered him in four centuries.
 
 **The gimmick: there is nothing to exploit.** This is the exam, so it is the
-one bout in the chapter with no trick in it. Every card the entry fields is
+one gate in the chapter with no trick in it. Every card the entry fields is
 *tidied* — no seam, no cost, no tell, no wind-up, nothing overstated and
 nothing left ragged. The four habits the week has taught you (do not judge
 turn one, read the price, cancel the schedule, commit late) all still apply
@@ -678,9 +678,9 @@ hardest fight in it, exactly as Gilgamesh hands over Duat.
 **Owner ruling.** Chapter One opened at ~95% and ramped to Gilgamesh at
 ~20-30%. Chapter Two does not do that. The player arrives with a finished
 collection, eight chapters of habits and a full understanding of the loop;
-an opening bout they cannot lose is a waste of everyone's week.
+an opening gate they cannot lose is a waste of everyone's week.
 
-**The floor for every ordinary bout is *a bit below Gilgamesh*.** The two
+**The floor for every ordinary gate is *a bit below Gilgamesh*.** The two
 elites and the final are *at* him.
 
 **The two elites are the two exams** (owner ruling 2026-08-18), which is
@@ -691,16 +691,16 @@ reward for the thing being measured — both give **choice of two** instead.
 
 | | Chapter I | Chapter II |
 |---|---|---|
-| Stages | **ten gates, I-X** | **ten bouts, XI-XX** |
+| Stages | **ten gates, I-X** | **ten gates, XI-XX** |
 | Factions introduced | **8** | **8** |
-| Bouts introducing nothing | **2 — the exams (V, IX)** | **2 — the exams (XV, XIX)** |
+| Gates introducing nothing | **2 — the exams (V, IX)** | **2 — the exams (XV, XIX)** |
 | Boss introduces a faction | **yes — Duat** | **yes — Pandemonium** |
 | Opening stage | ~95% | **~45%** |
 | Ordinary stages | 90% → 55% | **40-45%, flat** |
 | Elites | 40% (IX) | **~30-35%** |
 | Boss | 20-30% (X) | **~25%** |
 
-| Bout | Target player WR | Notes |
+| Gate | Target player WR | Notes |
 |---|---|---|
 | XI The Understudy | ~45% | the easiest fight in the chapter is still a real fight |
 | XII The Bookmaker | ~42% | |
@@ -727,12 +727,12 @@ turn order is worth ~0-10pp. Both stay banned. So:
 
 1. **Fielded-six power.** The primary dial, as in Chapter One. Every rival
    in this chapter fields near the top of their authored twelve.
-2. **Adaptive fielding from bout one.** Chapter One scripted the sixes for
+2. **Adaptive fielding from gate one.** Chapter One scripted the sixes for
    stages 1-4 because a first-ever fight that opens with a ban phase teaches
    nothing. Nobody here is learning the loop, so **every rival sideboards
    live** from their twelve. No scripted sixes anywhere in the chapter.
-3. **Bans that hurt from bout one.** Chapter One's early gates banned
-   gently. Here the opening bout already takes your two most expensive
+3. **Bans that hurt from gate one.** Chapter One's early gates banned
+   gently. Here the opening gate already takes your two most expensive
    cards, and the bans are aimed at the answer rather than at a role.
 4. **Terrain built against you.** Symmetric per L1, but each rival's twelve
    is built for its pinned board and yours may not be.
@@ -740,7 +740,7 @@ turn order is worth ~0-10pp. Both stay banned. So:
 ### The elites, which are the exams
 
 Two, and they are elites for opposite reasons. **Neither introduces a
-faction** — that is what makes them exams rather than bouts, and it is
+faction** — that is what makes them exams rather than gates, and it is
 Chapter One's rule, not a deviation from it.
 
 **XV The Hero of the Bridge** is the *discipline* exam. The Canon's version
@@ -755,7 +755,7 @@ his board is built out of the seven decks you were handed, each one pointed
 back at the habit it taught you. Every answer you learned is now the thing
 being answered.
 
-Between them sits the reason the chapter can afford two elites in five bouts:
+Between them sits the reason the chapter can afford two elites in five gates:
 they are scheduled either side of the Undertaker, the Mason and the Wrecker,
 so the run reads hard-easy-easy-easy-hard rather than a ramp.
 
@@ -864,11 +864,11 @@ is the gate that hands you Robin Hood. The rival is not merely *holding* a
 faction, she is a **demonstration of why that faction is worth drafting**,
 and her legendary is the centrepiece of the demonstration.
 
-Every bout here follows it. The gimmick is the faction's mechanical identity,
+Every gate here follows it. The gimmick is the faction's mechanical identity,
 the faction's one legendary is the card that proves it, and the reward is the
 faction:
 
-| Bout | The gimmick | Proved by | Unlocks |
+| Gate | The gimmick | Proved by | Unlocks |
 |---|---|---|---|
 | XI The Understudy | nothing is finished at turn one; legends ascend mid-fight | **Achilles** | Hemithea |
 | XII The Bookmaker | he never opens — every card answers what you just did | **Sun Wukong** | Huaxia |
@@ -926,7 +926,7 @@ Bookmaker took the empire's methods to the betting table and got rich. The
 Auditor kept its procedures and got nothing. Neither thinks the other chose
 wrongly, which is worse than a grudge.
 
-The Bookmaker **fields** it, at bout XII, because a bookmaker's job is
+The Bookmaker **fields** it, at gate XII, because a bookmaker's job is
 structurally identical to Huaxia's mechanical identity: he never opens a
 position, he prices yours and takes the other side. His six is Sun Wukong,
 Guan Yu, Zhuge Liang and Qin Shi Huang — an empire's worth of legends run
@@ -948,12 +948,12 @@ by the time you meet him — which is the quieter version of the same joke.
   them, and the last beat of the chapter.
 - **The antagonist is an institution** with motives, internal disagreement,
   and a defence that is genuinely good.
-- **Ten bouts, XI-XX, and the same SHAPE as Chapter One** — measured out of
+- **Ten gates, XI-XX, and the same SHAPE as Chapter One** — measured out of
   `data/campaign-ch1.js`, not remembered: eight factions introduced, two
-  bouts that introduce nothing and they are the exams, and a boss that hands
+  gates that introduce nothing and they are the exams, and a boss that hands
   over the last deck.
 - **The turn at XV inverts the premise:** he was telling the truth, and the
-  truth is worse than the lie — and it is a *bout*, because the chapter's
+  truth is worse than the lie — and it is a *gate*, because the chapter's
   biggest story beat should not be the one stage you sit and watch.
 - **Two bad endings are reachable and tempting**, so the good one is a choice.
 - **The boss mechanic is the theme** — a card that edits your history.
@@ -968,7 +968,7 @@ by the time you meet him — which is the quieter version of the same joke.
   Redactor removes lines from a record. Chapter One's law: the
   Oathkeeper teaches walls, the Outlaw teaches focus fire — and both
   are *people you could describe to a stranger in three words*.
-- **No freebies.** The opening bout sits at ~45%, not ~95%.
+- **No freebies.** The opening gate sits at ~45%, not ~95%.
 - **Every rival demonstrates the faction they hand over**, legendary
   first, exactly as the Outlaw sells Sherwood with Robin Hood — and the two
   that hand over nothing are the two that are testing you.
@@ -989,7 +989,7 @@ was one chapter and one faction being held back. It is now doing a job it was
 never designed for, and this chapter breaks it in three places:
 
 1. **Huaxia's withholding no longer has a reason.** It was withheld because
-   it was Chapter Two's reveal. It is now introduced at bout XII, early, by
+   it was Chapter Two's reveal. It is now introduced at gate XII, early, by
    the Bookmaker. Nothing is being protected by keeping it unbuyable.
 2. **Pandemonium has inherited that job** — last deck, boss payout — but
    withholding it means holding back a faction whose seven cards are already

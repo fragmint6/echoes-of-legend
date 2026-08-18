@@ -7,7 +7,7 @@
    the implementation, and js/campaign.js is only the glue.
 
    SHAPE, MEASURED FROM CHAPTER I (see CHAPTER-2-OVERVIEW section 3.5):
-     - ten bouts, numbered XI..XX so the Road reads as one continuous
+     - ten gates, numbered XI..XX so the Road reads as one continuous
        journey rather than restarting at 1;
      - EIGHT of them introduce a faction, including the boss;
      - exactly TWO introduce nothing, and they are the exams (XV, XIX),
@@ -15,19 +15,19 @@
        (its exams are V and IX, and Gilgamesh hands over Duat), not a
        deviation from it.
 
-   THE PROGRESSION LAW STILL HOLDS. A bout may only field factions the
+   THE PROGRESSION LAW STILL HOLDS. A gate may only field factions the
    player has already been handed. Chapter II starts from the full
    Chapter I shelf - the player arrives with a finished collection - and
-   adds one faction per introducing bout. sim/verify_chapter2_campaign.js
+   adds one faction per introducing gate. sim/verify_chapter2_campaign.js
    proves every twelve against that rule, so a future card move cannot
-   quietly leak Pandemonium into bout XI.
+   quietly leak Pandemonium into gate XI.
 
    DIFFICULTY: no freebies (owner ruling). Chapter I opened at ~95% and
    ramped; this chapter opens at ~45% and never rises above it. Nobody
    here is learning the loop, so:
      - every rival sideboards live from their twelve (no scripted sixes
        beyond the authored opening six);
-     - the bans bite from bout one;
+     - the bans bite from gate one;
      - the two elites ARE the two exams.
 
    THE TWELVES ARE GENERATED, THEN AUDITED. Each was built by a script
@@ -128,7 +128,7 @@ window.EOL = window.EOL || {};
       format: 'Classic',
       terrain: 'The Colosseum',
       field: 'colosseum',
-      line: 'A fixer\'s fighter, paid to lose the opening bout convincingly - and doing it properly anyway. Nothing on her board is finished yet: every mortal she fields becomes something else the moment the fight gives it a reason.',
+      line: 'A fixer\'s fighter, paid to lose the opening gate convincingly - and doing it properly anyway. Nothing on her board is finished yet: every mortal she fields becomes something else the moment the fight gives it a reason.',
       lock: 'Enter the Concord',
       enemy12: [
         'hemithea-achilles',
@@ -526,7 +526,7 @@ window.EOL = window.EOL || {};
   ];
 
   /* ---------------------------------------------------------
-     DIALOGUE. Pre-fight scenes keyed by bout id, then epilogues.
+     DIALOGUE. Pre-fight scenes keyed by gate id, then epilogues.
      Same contract as Chapter I: `final: true` closes the scene, and
      `battle: true` turns the Next button into Fight.
 
@@ -681,7 +681,7 @@ window.EOL = window.EOL || {};
     13: [
       {
         speaker: 'The Herald',
-        text: 'Mid-bout an official pressed a ruling into his hand that would have ended it. He refused it, gave no reason, and lost. He offers the appointed hour and the healer. "Do not thank me. I do not yet know what I did."',
+        text: 'Mid-gate an official pressed a ruling into his hand that would have ended it. He refused it, gave no reason, and lost. He offers the appointed hour and the healer. "Do not thank me. I do not yet know what I did."',
         final: true,
       },
     ],
@@ -767,7 +767,7 @@ window.EOL = window.EOL || {};
     },
     {
       speaker: 'Sargon',
-      text: 'A mercenary captain with no relation to the king of the same name - and that is the joke of his entire afterlife - is going thin. Within the year there will be a hero in the Canon and nobody left behind it. A petitioner must fight his own bout, and he can no longer lift a sword.',
+      text: 'A mercenary captain with no relation to the king of the same name - and that is the joke of his entire afterlife - is going thin. Within the year there will be a hero in the Canon and nobody left behind it. A petitioner must fight his own gate, and he can no longer lift a sword.',
     },
     {
       speaker: 'Sargon',
@@ -786,6 +786,16 @@ window.EOL = window.EOL || {};
     starterDeck: null,
     bossFaction: BOSS_FACTION,
     bossCard: ASMODEUS,
+    /* Chapter II's ledger is a different object owned by a different
+       person: the Concord keeps a REGISTER of scheduled gates, and the
+       one man who still reads it is the Auditor at gate XIX. Its empty
+       page is his voice, not the Recruiter's. */
+    ledger: {
+      title: 'The Concord Register',
+      icon: 'ri-file-list-3-line',
+      aria: 'Open the Concord Register',
+      empty: 'Not yet scheduled. The register is kept in order, and order is the only thing it is kept in.',
+    },
     stages: STAGES,
     dialogues: DIALOGUES,
     epilogues: EPILOGUES,

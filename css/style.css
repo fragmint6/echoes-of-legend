@@ -22375,11 +22375,22 @@ body[data-gfx='low'] .mb-spores {
    is VERTICAL (art above text) where a mode card is a text block, so it
    reads as a chapter plate and not a fourth game mode.
    ====================================================================== */
+/* A ROW, NOT A COLUMN (owner ruling 2026-08-18f).
+   This was a single-column grid from when there was exactly one
+   chapter, so the second plate stacked underneath the first. Chapters
+   are peers on a shelf, so they sit side by side and the rail grows
+   with the roster via auto-fit.
+
+   `minmax(0, 340px)` keeps the original plate width as the CEILING, so
+   two chapters look the same size they always did rather than
+   stretching to fill; auto-fit then wraps to a column on a phone, where
+   two 340px plates cannot sit together. */
 .chapter-rail {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 340px);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
   justify-content: center;
+  align-items: start;
   width: 100%;
   margin: clamp(16px, calc(var(--vh1) * 6), 54px) auto 14px;
 }
@@ -22641,6 +22652,21 @@ body[data-view='chapter'] .bg-grid {
   background: url('../assets/chapter-1/cw-bg.png') center center / cover no-repeat;
   z-index: 1;
 }
+/* The Road's backdrop follows the chapter. One element, two images -
+   swapping the background-image avoids a second full-bleed layer and
+   the browser keeps both cached after the first visit. */
+body[data-chapter='2'] .cw-bg {
+  background-image: url('../assets/chapter-2/cw-bg.png');
+}
+/* Chapter II's vignette is warmer and lifts a little off the arena, so
+   the glowing arches are not crushed by a cold frame built for a
+   forest. */
+body[data-chapter='2'] .cw-vignette {
+  background:
+    radial-gradient(ellipse 70% 68% at 50% 46%, transparent 34%, rgba(6, 4, 3, 0.78) 100%),
+    linear-gradient(to top, rgba(8, 5, 4, 0.62) 0%, transparent 46%),
+    linear-gradient(to bottom, rgba(22, 16, 12, 0.3) 0%, transparent 40%);
+}
 
 /* subtle dark frame around the edges -- doesn't compete with lantern glow */
 .cw-vignette {
@@ -22826,14 +22852,232 @@ body[data-view='chapter'] .bg-grid {
 .cw-motes.mid i:nth-child(14){left:41%;--dx:-20px;--o:0.28;animation-duration:33s;animation-delay:-14s;}
 .cw-motes.mid i:nth-child(15){left:51%;--dx:18px;--o:0.26;animation-duration:37s;animation-delay:-5s;}
 
+/* ======================================================================
+   CHAPTER II ATMOSPHERE - THE CONCORD
+   ----------------------------------------------------------------------
+   Deliberately NOT Chapter I's weather. That one is a forest at night:
+   gold glints falling, blue wisps wandering, pale dust. This is a city
+   in the middle of a tournament week, so:
+
+     c2-leaves   loose PARCHMENT - the petition slips coming off the
+                 lines. Bigger than a mote, rectangular rather than
+                 round, and it TUMBLES on two axes as it falls, which
+                 reads as paper rather than as a spark.
+     c2-embers   arena braziers, rising UPWARD. Chapter I has no upward
+                 motion at all, so this is the fastest way to tell the
+                 two screens apart at a glance.
+     c2-ash      fine grey fall, dimmer and slower than the parchment -
+                 the background layer that keeps the air from looking
+                 empty between the louder particles.
+     c2-glow     a slow breathing amber wash over the arena arches.
+     c2-haze     warm low haze, where Chapter I's is cold blue.
+
+   Only one chapter's particles are ever in play; the switch is
+   body[data-chapter] set by js/campaign.js. Everything is
+   pointer-events:none and sits under the UI.
+   ====================================================================== */
+
+/* Both particle sets are in the DOM; the chapter decides which runs. */
+body[data-chapter='2'] .cw-glints,
+body[data-chapter='2'] .cw-wisps,
+body[data-chapter='2'] .cw-motes,
+body[data-chapter='2'] .cw-haze {
+  display: none;
+}
+.c2-haze,
+.c2-glow,
+.c2-leaves,
+.c2-embers,
+.c2-ash {
+  display: none;
+}
+body[data-chapter='2'] .c2-haze,
+body[data-chapter='2'] .c2-glow,
+body[data-chapter='2'] .c2-leaves,
+body[data-chapter='2'] .c2-embers,
+body[data-chapter='2'] .c2-ash {
+  display: block;
+}
+
+/* Warm low haze over the avenue - the counterpart to cw-haze's cold
+   blue mist, drifting the other way so the two never look shared. */
+.c2-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 14% at 50% 52%, rgba(214, 178, 118, 0.09), transparent 70%),
+    radial-gradient(ellipse 86% 12% at 50% 72%, rgba(198, 162, 108, 0.10), transparent 64%),
+    radial-gradient(ellipse 96% 16% at 50% 88%, rgba(150, 140, 130, 0.13), transparent 68%);
+  animation: c2-haze-drift 34s ease-in-out infinite alternate;
+}
+@keyframes c2-haze-drift {
+  from { transform: translateX(1.8%) translateY(0); }
+  to   { transform: translateX(-1.8%) translateY(-0.6%); }
+}
+
+/* The arena breathing. A single wide amber ellipse centred on the
+   amphitheatre, pulsing slowly like a crowd noticing something. */
+.c2-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 34% 26% at 50% 46%,
+    rgba(255, 186, 92, 0.16),
+    rgba(255, 170, 70, 0.06) 45%,
+    transparent 72%
+  );
+  animation: c2-glow-breathe 9s ease-in-out infinite alternate;
+}
+@keyframes c2-glow-breathe {
+  from { opacity: 0.55; transform: scale(0.98); }
+  to   { opacity: 1;    transform: scale(1.04); }
+}
+
+/* ---- PARCHMENT: petition slips off the lines. Rectangular, tumbling
+       on two axes, slower and heavier than a spark. ---- */
+.c2-leaves {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.c2-leaves i {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 9px;
+  background: linear-gradient(160deg, #efe4c8 0%, #d9c9a4 55%, #b9a781 100%);
+  box-shadow: 0 0 4px rgba(238, 226, 194, 0.35);
+  opacity: 0;
+  animation: c2-leaf-fall linear infinite;
+}
+@keyframes c2-leaf-fall {
+  0%   { opacity: 0; transform: translate3d(0,0,0) rotate(0deg) scaleX(1); }
+  9%   { opacity: var(--o, 0.75); }
+  35%  { transform: translate3d(calc(var(--dx, 30px) * 0.4), calc(var(--vh1) * 34), 0) rotate(140deg) scaleX(-0.6); }
+  68%  { transform: translate3d(calc(var(--dx, 30px) * 0.9), calc(var(--vh1) * 70), 0) rotate(300deg) scaleX(0.85); }
+  88%  { opacity: var(--o, 0.75); }
+  100% { opacity: 0; transform: translate3d(var(--dx, 30px), calc(var(--vh1) * 112), 0) rotate(var(--rot, 460deg)) scaleX(-1); }
+}
+.c2-leaves i:nth-child(1)  { left:5%;  --dx:34px;  --o:0.8;  --rot:430deg; animation-duration:19s; animation-delay:-2s; }
+.c2-leaves i:nth-child(2)  { left:12%; --dx:-28px; --o:0.62; --rot:520deg; animation-duration:24s; animation-delay:-11s; }
+.c2-leaves i:nth-child(3)  { left:20%; --dx:40px;  --o:0.74; --rot:380deg; animation-duration:21s; animation-delay:-6s; }
+.c2-leaves i:nth-child(4)  { left:27%; --dx:-22px; --o:0.55; --rot:600deg; animation-duration:27s; animation-delay:-17s; }
+.c2-leaves i:nth-child(5)  { left:35%; --dx:30px;  --o:0.78; --rot:460deg; animation-duration:18s; animation-delay:-9s; }
+.c2-leaves i:nth-child(6)  { left:43%; --dx:-36px; --o:0.6;  --rot:340deg; animation-duration:25s; animation-delay:-3s; }
+.c2-leaves i:nth-child(7)  { left:51%; --dx:26px;  --o:0.7;  --rot:500deg; animation-duration:22s; animation-delay:-14s; }
+.c2-leaves i:nth-child(8)  { left:58%; --dx:-32px; --o:0.66; --rot:420deg; animation-duration:20s; animation-delay:-7s; }
+.c2-leaves i:nth-child(9)  { left:66%; --dx:38px;  --o:0.58; --rot:560deg; animation-duration:26s; animation-delay:-20s; }
+.c2-leaves i:nth-child(10) { left:73%; --dx:-24px; --o:0.76; --rot:400deg; animation-duration:17s; animation-delay:-5s; }
+.c2-leaves i:nth-child(11) { left:81%; --dx:32px;  --o:0.64; --rot:480deg; animation-duration:23s; animation-delay:-12s; }
+.c2-leaves i:nth-child(12) { left:88%; --dx:-30px; --o:0.72; --rot:360deg; animation-duration:19s; animation-delay:-16s; }
+.c2-leaves i:nth-child(13) { left:94%; --dx:22px;  --o:0.56; --rot:540deg; animation-duration:28s; animation-delay:-8s; }
+.c2-leaves i:nth-child(14) { left:16%; --dx:-38px; --o:0.68; --rot:440deg; animation-duration:21s; animation-delay:-23s; }
+
+/* ---- EMBERS: brazier sparks RISING. The signature motion - Chapter I
+       never moves anything upward, so this alone identifies the
+       screen. Each drifts sideways as it climbs and burns out. ---- */
+.c2-embers {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+.c2-embers i {
+  position: absolute;
+  bottom: -8px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffc46a;
+  box-shadow: 0 0 7px rgba(255, 176, 82, 0.95), 0 0 15px rgba(226, 118, 40, 0.6);
+  opacity: 0;
+  animation: c2-ember-rise ease-out infinite;
+}
+@keyframes c2-ember-rise {
+  0%   { opacity: 0;   transform: translate3d(0,0,0) scale(0.7); }
+  12%  { opacity: var(--o, 0.85); transform: translate3d(calc(var(--dx, 18px) * 0.15), calc(var(--vh1) * -12), 0) scale(1); }
+  60%  { opacity: calc(var(--o, 0.85) * 0.75); transform: translate3d(calc(var(--dx, 18px) * 0.7), calc(var(--vh1) * -48), 0) scale(0.9); }
+  100% { opacity: 0;   transform: translate3d(var(--dx, 18px), calc(var(--vh1) * -86), 0) scale(0.35); }
+}
+.c2-embers i:nth-child(1)  { left:31%; --dx:16px;  --o:0.9;  animation-duration:11s; animation-delay:-1s; }
+.c2-embers i:nth-child(2)  { left:35%; --dx:-12px; --o:0.7;  animation-duration:14s; animation-delay:-5s; }
+.c2-embers i:nth-child(3)  { left:39%; --dx:20px;  --o:0.82; animation-duration:9s;  animation-delay:-8s; }
+.c2-embers i:nth-child(4)  { left:43%; --dx:-16px; --o:0.6;  animation-duration:16s; animation-delay:-3s; }
+.c2-embers i:nth-child(5)  { left:47%; --dx:14px;  --o:0.88; animation-duration:12s; animation-delay:-10s; }
+.c2-embers i:nth-child(6)  { left:51%; --dx:-18px; --o:0.72; animation-duration:10s; animation-delay:-6s; }
+.c2-embers i:nth-child(7)  { left:55%; --dx:22px;  --o:0.78; animation-duration:15s; animation-delay:-13s; }
+.c2-embers i:nth-child(8)  { left:59%; --dx:-14px; --o:0.65; animation-duration:13s; animation-delay:-2s; }
+.c2-embers i:nth-child(9)  { left:63%; --dx:18px;  --o:0.85; animation-duration:11s; animation-delay:-9s; }
+.c2-embers i:nth-child(10) { left:67%; --dx:-20px; --o:0.68; animation-duration:17s; animation-delay:-4s; }
+.c2-embers i:nth-child(11) { left:8%;  --dx:24px;  --o:0.55; animation-duration:18s; animation-delay:-7s; }
+.c2-embers i:nth-child(12) { left:14%; --dx:-16px; --o:0.6;  animation-duration:15s; animation-delay:-12s; }
+.c2-embers i:nth-child(13) { left:22%; --dx:18px;  --o:0.5;  animation-duration:20s; animation-delay:-15s; }
+.c2-embers i:nth-child(14) { left:76%; --dx:-22px; --o:0.58; animation-duration:16s; animation-delay:-11s; }
+.c2-embers i:nth-child(15) { left:84%; --dx:14px;  --o:0.52; animation-duration:19s; animation-delay:-6s; }
+.c2-embers i:nth-child(16) { left:91%; --dx:-18px; --o:0.62; animation-duration:14s; animation-delay:-17s; }
+.c2-embers i:nth-child(17) { left:45%; --dx:-8px;  --o:0.95; animation-duration:8s;  animation-delay:-14s; }
+.c2-embers i:nth-child(18) { left:53%; --dx:10px;  --o:0.92; animation-duration:9s;  animation-delay:-18s; }
+
+/* ---- ASH: the quiet layer. Fine, grey, slow, so the air between the
+       parchment and the embers is never empty. ---- */
+.c2-ash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.c2-ash i {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(206, 198, 186, 0.7);
+  box-shadow: 0 0 4px rgba(188, 180, 168, 0.45);
+  opacity: 0;
+  animation: c2-ash-drift linear infinite;
+}
+@keyframes c2-ash-drift {
+  0%   { opacity: 0; transform: translate3d(0,0,0); }
+  12%  { opacity: var(--o, 0.3); }
+  86%  { opacity: var(--o, 0.3); }
+  100% { opacity: 0; transform: translate3d(var(--dx, 16px), calc(var(--vh1) * 116), 0); }
+}
+.c2-ash i:nth-child(1)  { left:3%;  --dx:14px;  --o:0.3;  animation-duration:44s; animation-delay:-6s; }
+.c2-ash i:nth-child(2)  { left:10%; --dx:-12px; --o:0.24; animation-duration:52s; animation-delay:-19s; }
+.c2-ash i:nth-child(3)  { left:17%; --dx:18px;  --o:0.33; animation-duration:47s; animation-delay:-31s; }
+.c2-ash i:nth-child(4)  { left:24%; --dx:-10px; --o:0.27; animation-duration:55s; animation-delay:-9s; }
+.c2-ash i:nth-child(5)  { left:31%; --dx:16px;  --o:0.3;  animation-duration:41s; animation-delay:-24s; }
+.c2-ash i:nth-child(6)  { left:38%; --dx:-14px; --o:0.22; animation-duration:50s; animation-delay:-36s; }
+.c2-ash i:nth-child(7)  { left:45%; --dx:12px;  --o:0.32; animation-duration:46s; animation-delay:-13s; }
+.c2-ash i:nth-child(8)  { left:52%; --dx:-16px; --o:0.26; animation-duration:54s; animation-delay:-28s; }
+.c2-ash i:nth-child(9)  { left:59%; --dx:20px;  --o:0.29; animation-duration:43s; animation-delay:-4s; }
+.c2-ash i:nth-child(10) { left:66%; --dx:-12px; --o:0.34; animation-duration:57s; animation-delay:-41s; }
+.c2-ash i:nth-child(11) { left:73%; --dx:14px;  --o:0.25; animation-duration:45s; animation-delay:-16s; }
+.c2-ash i:nth-child(12) { left:80%; --dx:-18px; --o:0.31; animation-duration:49s; animation-delay:-26s; }
+.c2-ash i:nth-child(13) { left:87%; --dx:10px;  --o:0.23; animation-duration:53s; animation-delay:-38s; }
+.c2-ash i:nth-child(14) { left:93%; --dx:-14px; --o:0.3;  animation-duration:42s; animation-delay:-11s; }
+.c2-ash i:nth-child(15) { left:97%; --dx:16px;  --o:0.27; animation-duration:48s; animation-delay:-21s; }
+.c2-ash i:nth-child(16) { left:7%;  --dx:-8px;  --o:0.28; animation-duration:56s; animation-delay:-33s; }
+
 /* Low graphics / reduced motion: chapter particles drop. */
 body[data-gfx='low'] .cw-glints,
 body[data-gfx='low'] .cw-wisps,
-body[data-gfx='low'] .cw-motes {
+body[data-gfx='low'] .cw-motes,
+body[data-gfx='low'] .c2-leaves,
+body[data-gfx='low'] .c2-embers,
+body[data-gfx='low'] .c2-ash,
+body[data-gfx='low'] .c2-glow {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cw-glints, .cw-wisps, .cw-motes { display: none; }
+  .cw-glints, .cw-wisps, .cw-motes,
+  .c2-leaves, .c2-embers, .c2-ash, .c2-glow { display: none; }
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -23132,6 +23376,19 @@ body[data-gfx='low'] .cw-motes {
 }
 
 /* ---------------- the horizontal chapter gates ---------------- */
+/* THE HIDDEN ATTRIBUTE MUST WIN (2026-08-18f).
+   `display:flex` here outranks the browser's default `[hidden]` rule,
+   which is `display:none` at user-agent specificity. With two chapters
+   in the page that meant BOTH stage lists rendered, stacked - Chapter
+   I's ten gates followed by Chapter II's ten - so the Road looked like
+   it had ignored the chapter you picked. The plate and the JS were
+   correct all along; the list simply refused to hide.
+
+   Author-level [hidden] restores the intent. Same fix already applied
+   to several other components further down this file. */
+.stage-list[hidden] {
+  display: none !important;
+}
 .stage-list {
   display: flex;
   flex-direction: column;

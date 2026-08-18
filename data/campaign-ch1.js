@@ -1620,6 +1620,17 @@ window.EOL = window.EOL || {};
       ledger:
         'One more thing, Blank - THE LEDGER, the quill by the chapter name. My pages on every guardian ahead: how they ban, what ground they hold, what I would bring against them. Read before you knock on strange gates.',
     },
+    /* THE LEDGER'S IDENTITY IS PER CHAPTER (owner ruling 2026-08-18f).
+       It used to be hardcoded in index.html as "The Recruiter's
+       Ledger", which is right here and wrong in Chapter II, where the
+       Recruiter does not exist. Each chapter now names its own keeper
+       and the header reads from this. */
+    ledger: {
+      title: "The Recruiter's Ledger",
+      icon: 'ri-file-list-3-line',
+      aria: "Open the Recruiter's Ledger",
+      empty: 'The Road has not taken you there. The ledger keeps its pages in order, Blank.',
+    },
     /* Back-compat aliases (older callers referenced these names). */
     recruiterDialogue: DIALOGUES[1],
     epilogue: EPILOGUES[1],

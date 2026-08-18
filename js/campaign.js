@@ -32,7 +32,7 @@
 
      WHY A SEPARATE PROGRESS KEY PER CHAPTER, and not one blob: a player
      part-way through Chapter I who opens Chapter II must not have their
-     Road reset, and clearing bout XI must not mark gate I complete. The
+     Road reset, and clearing gate XI must not mark gate I complete. The
      keys are independent saves; the WALLET and the COLLECTION are
      global and shared, which is correct - coins and cards belong to the
      player, progress belongs to the chapter.
@@ -148,7 +148,7 @@
   function two(n) {
     return n < 10 ? '0' + n : String(n);
   }
-  /* Extended to XX for Chapter II, whose bouts are numbered XI..XX so
+  /* Extended to XX for Chapter II, whose gates are numbered XI..XX so
      the Road reads as one continuous journey. Index 0 stays empty so
      ROMAN[stage.id] works directly. */
   var ROMAN = [
@@ -496,7 +496,7 @@
   function normalCoinReward(stage) {
     if (stage.grants && typeof stage.grants.coins === 'number') return stage.grants.coins;
     /* The boss pays the big purse. Chapter-relative: gate X in Chapter
-       I, bout XX in Chapter II. */
+       I, gate XX in Chapter II. */
     if (stage.id === chapter().lastStage) return 300;
     return eliteStages()[stage.id] ? 200 : 100;
   }
@@ -2717,7 +2717,10 @@
         '<h3>Gate ' +
         ROMAN[stage.id] +
         '</h3>' +
-        '<p>The Road has not taken you there. The ledger keeps its pages in order, Blank.</p></div>';
+        '<p>' +
+        ((storyOf().ledger || {}).empty ||
+          'The Road has not taken you there. The ledger keeps its pages in order, Blank.') +
+        '</p></div>';
       return;
     }
     var broke = prog.tellsBroken.indexOf(stage.id) >= 0;
@@ -3006,6 +3009,11 @@
      wiring
      --------------------------------------------------------- */
   function mount() {
+    /* Paint the chapter skin at boot, not only on a chapter switch.
+       Without this the body carries no data-chapter until the player
+       changes chapters, so Chapter I would start with no explicit
+       chapter state and the CSS selectors would rely on the default. */
+    paintChapterChrome();
     renderStageCopy();
     bindStageClicks();
 
@@ -3185,6 +3193,12 @@
       CARD_DICT = null;
       cardDict();
     }
+    /* The Road's score is per chapter - Chapter I walks, Chapter II is
+       a city mid-tournament. Told before the repaint so the music turns
+       over with the view rather than a beat behind it. */
+    if (window.EOL.audio && window.EOL.audio.setCampaignChapter) {
+      window.EOL.audio.setCampaignChapter(activeChapterId);
+    }
     paintChapterChrome();
     renderStageCopy();
     bindStageClicks();
@@ -3199,6 +3213,14 @@
   function paintChapterChrome() {
     var story = storyOf();
     var ch = chapter();
+    /* One attribute drives the whole Road's skin: backdrop image,
+       vignette warmth, and which particle system runs. CSS owns the
+       rest, so there is no per-frame JS cost to the atmosphere. */
+    try {
+      document.body.dataset.chapter = String(ch.id);
+    } catch (e) {
+      /* no body (headless) - nothing to paint */
+    }
     setText($('chapter-overline'), ch.label);
     setText($('chapter-title'), story.title || '');
     setText($('chapter-subtitle'), story.subtitle || '');
@@ -3206,12 +3228,25 @@
     for (var i = 0; i < lists.length; i++) {
       lists[i].hidden = parseInt(lists[i].getAttribute('data-chapter-stages'), 10) !== ch.id;
     }
+    /* The ledger is a different book in each chapter - the Recruiter's
+       in Chapter I, the Concord's register in Chapter II - so its
+       heading and the button's aria label follow the chapter rather
+       than sitting hardcoded in index.html. */
+    var led = story.ledger || {};
+    var ledTitle = $('ledger-title');
+    if (ledTitle) {
+      ledTitle.innerHTML =
+        '<i class="' + (led.icon || 'ri-file-list-3-line') + '"></i> ' + (led.title || 'The Ledger');
+    }
+    var ledBtn = $('btn-ledger');
+    if (ledBtn && led.aria) ledBtn.setAttribute('aria-label', led.aria);
+
     var foot = $('chapter-footer');
     if (foot) {
       setText(
         foot,
         ch.id === 2
-          ? 'One week \u00b7 ten bouts \u00b7 the authority to say what happened'
+          ? 'One week \u00b7 ten gates \u00b7 the authority to say what happened'
           : 'One unfinished story \u00b7 ten guardians \u00b7 a gate toward Uruk'
       );
     }

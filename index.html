@@ -300,6 +300,33 @@
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
         <i></i><i></i><i></i><i></i><i></i>
       </span>
+
+      <!-- ============ CHAPTER II ATMOSPHERE ============
+           A different place needs different weather. Chapter I is a
+           forest at night: gold brass-tag glints, blue will-o'-wisps,
+           pale dust. The Concord is a CITY MID-TOURNAMENT, so its
+           particles are things a city sheds - loose PARCHMENT tumbling
+           end over end off the petition lines, EMBERS rising from the
+           arena braziers (up, not down - the one motion Chapter I never
+           uses), and a slow ARENA GLOW that breathes as the crowd does.
+
+           Both sets live in the page at once and are switched by
+           body[data-chapter] from js/campaign.js, so neither chapter
+           pays for the other's DOM churn. -->
+      <span class="c2-haze"></span>
+      <span class="c2-glow"></span>
+      <span class="c2-leaves">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+      </span>
+      <span class="c2-embers">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="c2-ash">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
     </div>
 
     <!-- ==================== HOME / DASHBOARD ==================== -->
@@ -2524,11 +2551,11 @@
             <span class="ch-kicker">Chapter 2</span>
             <span class="ch-name">The Hundred-Year Truce</span>
             <span class="ch-desc">
-              A city that exists for one week decides who owns a story once it lasts. Ten bouts, and
+              A city that exists for one week decides who owns a story once it lasts. Ten gates, and
               a dead mercenary whose name was never his.
             </span>
             <span class="ch-meta">
-              <span class="ch-chip"><i class="ri-flag-line"></i>10 bouts</span>
+              <span class="ch-chip"><i class="ri-flag-line"></i>10 gates</span>
             </span>
             <span class="ch-cta"
               >Open chapter <i class="ri-arrow-right-line" aria-hidden="true"></i
@@ -2987,17 +3014,17 @@
         </button>
       </div>
 
-      <div class="stage-list" data-chapter-stages="2" aria-label="The ten bouts of Chapter 2" hidden>
-        <!-- Bout XI -->
+      <div class="stage-list" data-chapter-stages="2" aria-label="The ten gates of Chapter 2" hidden>
+        <!-- Gate XI -->
         <button
           class="stage-card is-first"
           id="chapter-stage-11"
           type="button"
           data-campaign-stage="11"
-          aria-label="Bout XI: The Understudy"
+          aria-label="Gate XI: The Understudy"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XI</span>
+            <span class="sc-gate-badge">Gate XI</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Understudy">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3015,7 +3042,7 @@
           </div>
           <div class="sc-expand">
             <div class="sc-lore">
-              <p class="sc-desc">A fixer&rsquo;s fighter, paid to lose the opening bout convincingly - and doing it properly anyway. Nothing on her board is finished yet: every mortal she fields becomes something else the moment the fight gives it a reason.</p>
+              <p class="sc-desc">A fixer&rsquo;s fighter, paid to lose the opening gate convincingly - and doing it properly anyway. Nothing on her board is finished yet: every mortal she fields becomes something else the moment the fight gives it a reason.</p>
               <div class="sc-prompt">
                 <i class="ri-chat-3-line"></i> Click to speak with The Understudy
               </div>
@@ -3023,16 +3050,16 @@
           </div>
         </button>
 
-        <!-- Bout XII -->
+        <!-- Gate XII -->
         <button
           class="stage-card"
           id="chapter-stage-12"
           type="button"
           data-campaign-stage="12"
-          aria-label="Bout XII: The Bookmaker"
+          aria-label="Gate XII: The Bookmaker"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XII</span>
+            <span class="sc-gate-badge">Gate XII</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Bookmaker">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3058,16 +3085,16 @@
           </div>
         </button>
 
-        <!-- Bout XIII -->
+        <!-- Gate XIII -->
         <button
           class="stage-card"
           id="chapter-stage-13"
           type="button"
           data-campaign-stage="13"
-          aria-label="Bout XIII: The Herald"
+          aria-label="Gate XIII: The Herald"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XIII</span>
+            <span class="sc-gate-badge">Gate XIII</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Herald">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3093,16 +3120,16 @@
           </div>
         </button>
 
-        <!-- Bout XIV -->
+        <!-- Gate XIV -->
         <button
           class="stage-card"
           id="chapter-stage-14"
           type="button"
           data-campaign-stage="14"
-          aria-label="Bout XIV: The Collector"
+          aria-label="Gate XIV: The Collector"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XIV</span>
+            <span class="sc-gate-badge">Gate XIV</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Collector">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3128,16 +3155,16 @@
           </div>
         </button>
 
-        <!-- Bout XV -->
+        <!-- Gate XV -->
         <button
           class="stage-card"
           id="chapter-stage-15"
           type="button"
           data-campaign-stage="15"
-          aria-label="Bout XV: The Hero of the Bridge"
+          aria-label="Gate XV: The Hero of the Bridge"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XV</span>
+            <span class="sc-gate-badge">Gate XV</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Hero of the Bridge">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3163,16 +3190,16 @@
           </div>
         </button>
 
-        <!-- Bout XVI -->
+        <!-- Gate XVI -->
         <button
           class="stage-card"
           id="chapter-stage-16"
           type="button"
           data-campaign-stage="16"
-          aria-label="Bout XVI: The Undertaker"
+          aria-label="Gate XVI: The Undertaker"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XVI</span>
+            <span class="sc-gate-badge">Gate XVI</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Undertaker">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3198,16 +3225,16 @@
           </div>
         </button>
 
-        <!-- Bout XVII -->
+        <!-- Gate XVII -->
         <button
           class="stage-card"
           id="chapter-stage-17"
           type="button"
           data-campaign-stage="17"
-          aria-label="Bout XVII: The Mason"
+          aria-label="Gate XVII: The Mason"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XVII</span>
+            <span class="sc-gate-badge">Gate XVII</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Mason">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3233,16 +3260,16 @@
           </div>
         </button>
 
-        <!-- Bout XVIII -->
+        <!-- Gate XVIII -->
         <button
           class="stage-card"
           id="chapter-stage-18"
           type="button"
           data-campaign-stage="18"
-          aria-label="Bout XVIII: The Wrecker"
+          aria-label="Gate XVIII: The Wrecker"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XVIII</span>
+            <span class="sc-gate-badge">Gate XVIII</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Wrecker">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3268,16 +3295,16 @@
           </div>
         </button>
 
-        <!-- Bout XIX -->
+        <!-- Gate XIX -->
         <button
           class="stage-card"
           id="chapter-stage-19"
           type="button"
           data-campaign-stage="19"
-          aria-label="Bout XIX: The Auditor"
+          aria-label="Gate XIX: The Auditor"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XIX</span>
+            <span class="sc-gate-badge">Gate XIX</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Auditor">
                 <i data-icon-domain="game" class="ra ra-hood"></i>
@@ -3303,16 +3330,16 @@
           </div>
         </button>
 
-        <!-- Bout XX -->
+        <!-- Gate XX -->
         <button
           class="stage-card"
           id="chapter-stage-20"
           type="button"
           data-campaign-stage="20"
-          aria-label="Bout XX: Asmodeus, the Redactor"
+          aria-label="Gate XX: Asmodeus, the Redactor"
         >
           <div class="sc-main">
-            <span class="sc-gate-badge">Bout XX</span>
+            <span class="sc-gate-badge">Gate XX</span>
             <div class="sc-avatar">
               <span class="sc-portrait sc-portrait-empty" role="img" aria-label="Asmodeus, the Redactor">
                 <i data-icon-domain="game" class="ra ra-hood"></i>

@@ -18,7 +18,15 @@ Status: **all 10 regenerated at 2560x1440 PNG** (2026-08-08 unification pass).
 > to 16:9 and NEAREST-upscaled to 2560x1440, 1.88 MB - inside the
 > 1.7-2.5 MB band below.
 >
-> Measured against the Chapter I plate before shipping: flat runs 0.611
+> **Replaced 2026-08-18f** with a far more detailed version at the
+> owner's request: the amphitheatre now glows from within, the scaffolds
+> and pavilions layer into five depth planes, the flagstones are cracked
+> and puddled, and loose parchment drifts in the air. Measured against
+> the first attempt: hard edges 0.120 -> 0.277 (more than twice the
+> detail density) and mean luminance 0.386 -> 0.277 (darker, so the
+> stage cards stay the brightest thing on screen). 2.2 MB.
+>
+> The first attempt's numbers, kept for the record: flat runs 0.611
 > vs 0.659, hard edges 0.225 vs 0.163, mean luminance 0.385 vs 0.336,
 > centre-band brightness within 0.03. Close enough on every axis that
 > the two plates sit side by side without one looking like a different

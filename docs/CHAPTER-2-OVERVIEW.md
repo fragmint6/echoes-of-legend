@@ -1,13 +1,22 @@
 # Chapter II — The Hundred-Year Truce: Complete Overview
 
-*The chapter bible: premise, the ten bouts, the plot beats in order,
+*The chapter bible: premise, the ten gates, the plot beats in order,
 difficulty design, rewards, and what each rival teaches. Written
 2026-08-18. Companion doc: `LORE-Campaign-Chapter2.md` (the full
 narrative prose, which is the source of truth for anything that
 disagrees with this page).*
 
+> **Vocabulary (owner ruling 2026-08-18f): they are GATES.** For one turn
+> this chapter called its stages by a boxing term, on the reasoning that
+> the Concord is a tournament. That is gone. In the game, in the data
+> and in these docs the Road has **gates**, chapter to chapter, and the
+> numbering simply continues: Gate XI through Gate XX.
+> `sim/verify_chapter2_campaign.js` section K greps the shipped data,
+> the page and these documents for the retired word and fails the build
+> if it returns - which is also why this note does not spell it.
+
 > **Status: IMPLEMENTED 2026-08-18e.** This page is no longer design-only.
-> `data/campaign-ch2.js` ships all ten bouts - twelves, authored sixes,
+> `data/campaign-ch2.js` ships all ten gates - twelves, authored sixes,
 > bans, boards, grants, pre-fight scenes and epilogues - the Chapter 2
 > plate opens the Road, and `sim/verify_chapter2_campaign.js` (287
 > assertions) holds the data to what this document says.
@@ -50,7 +59,7 @@ One carried fact, stated once and never leaned on:
 | Tone | elegiac, quiet, sad | loud, political, funny, then not |
 | Antagonist | grief with teeth | **an institution, and the decent people inside it** |
 | The Wayfarer is | a blank being tested | a **nobody who files paperwork** |
-| Stages | ten gates, I–X | ten bouts, XI–XX |
+| Stages | ten gates, I–X | ten gates, XI–XX |
 | Factions introduced | **8** | **8** |
 | Exams (introduce nothing) | two (V, IX) | **two (XV, XIX)** |
 | Boss introduces a faction | yes — Duat | **yes — Pandemonium** |
@@ -85,7 +94,7 @@ open how many other entries are wrong.
 
 He is also going **thin** — what happens to an Echo whose true story
 nobody carries. Within the year there will be a hero in the Canon and
-nobody behind it. A petitioner must fight his own bout, and he can no
+nobody behind it. A petitioner must fight his own gate, and he can no
 longer lift a sword.
 
 So he goes looking for someone whose entire nature is carrying other
@@ -103,10 +112,10 @@ The chapter runs as one week in one city. Beats, not stages:
 1. **Arrival (before XI).** The Wayfarer files the twelfth petition with
    no name, no patron and no standing. It is accepted because nobody can
    find a rule saying it cannot be.
-2. **Days one to four (XI–XIV).** Four bouts, four opponents with four
+2. **Days one to four (XI–XIV).** Four gates, four opponents with four
    different reasons to be in the way — none of whom is a villain. The
    only crack appears at **XIII**, where the incumbent's own herald is
-   handed a ruling that would win his bout and *refuses it*, without
+   handed a ruling that would win his gate and *refuses it*, without
    explanation. Nobody understands why yet.
 3. **XIV pays out the record.** The Collector's vault holds the original,
    unedited account of Sargon's war. Beating her is how you get it.
@@ -128,8 +137,8 @@ The chapter runs as one week in one city. Beats, not stages:
 
    He withdraws the petition. He is entitled to. The Wayfarer takes it
    over — which, by Concord procedure, means fighting **the version of
-   him that is in the book**. See bout XV.
-5. **Days five to seven (XVI–XVIII).** Three bouts that are really three
+   him that is in the book**. See gate XV.
+5. **Days five to seven (XVI–XVIII).** Three gates that are really three
    arguments about what you should do with the truth you now have:
    burn the institution (XVI), reform it on a schedule (XVII), or steal
    it outright (XVIII). Two of them are reachable **bad endings**.
@@ -146,7 +155,7 @@ The chapter runs as one week in one city. Beats, not stages:
 
 ---
 
-## 4. The Ten Bouts
+## 4. The Ten Gates
 
 Every rival is **a person with a trade**, not a faction — Chapter One's
 law. What they field is a consequence of how they fight. The lore never
@@ -156,9 +165,9 @@ note that maps them.
 Every rival also **demonstrates the faction they hand over**, legendary
 first, exactly as the Outlaw sells Sherwood with Robin Hood.
 
-### XI — THE UNDERSTUDY · *day one, the opening bout*
+### XI — THE UNDERSTUDY · *day one, the opening gate*
 - **Who.** A fixer's fighter with no patron and no purse, who takes money
-  to lose the opening bout convincingly. Honest work; she is very good at
+  to lose the opening gate convincingly. Honest work; she is very good at
   it; she has done it at three Concords.
 - **Why she fights properly anyway.** She has read all eleven petitions —
   the only person alive or dead who has. She thinks he is right, and she
@@ -196,14 +205,14 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
 - **Reward.** Guan Yu + Zhuge Liang, coin.
 
 ### XIII — THE HERALD · *day three, the incumbent's second*
-- **Who.** The Canon's holders don't fight their own early bouts; they
+- **Who.** The Canon's holders don't fight their own early gates; they
   send the man who walks out first and reads what is about to happen,
   then does it. Honest, unimaginative, wholly sincere. He believes four
   hundred years of rulings have been fair and has never checked, because
   it has never occurred to him that checking is a thing one does.
 - **Why.** Instructed to make the petition go away quickly. Given no
   reason. **Did not ask** — and that incuriosity is the entire character.
-- **The seam.** Mid-bout an official hands him a ruling that would win
+- **The seam.** Mid-gate an official hands him a ruling that would win
   it. He refuses, offers no explanation, fights on, and loses. This is
   the chapter's first crack and it is not explained until XIX.
 - **Gimmick — he tells you exactly what is coming and it still lands.**
@@ -245,7 +254,7 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
   the speech, the banner, the last stand, forty men who are not named
   because the entry does not name them. It is a very good fighter,
   because it was written to be. The real Sargon watches from the rail.
-- **Gimmick — there is nothing to exploit.** The one bout with no trick
+- **Gimmick — there is nothing to exploit.** The one gate with no trick
   in it, because it is the exam. Every card is *tidied*: no seam, no
   cost, no tell, nothing overstated and nothing left ragged. All four
   habits the week has taught you apply and **none of them wins alone**,
@@ -401,9 +410,9 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
 **Owner ruling: no freebies.** Chapter One opened at ~95% and ramped to
 Gilgamesh at ~20-30%. Chapter Two does not. The player arrives with a
 finished collection and a full understanding of the loop; an opening
-bout they cannot lose wastes the week.
+gate they cannot lose wastes the week.
 
-| Bout | Target player WR | Notes |
+| Gate | Target player WR | Notes |
 |---|---|---|
 | XI The Understudy | ~45% | the easiest fight is still a real fight |
 | XII The Bookmaker | ~42% | |
@@ -425,11 +434,11 @@ worth ~0-10pp. Both stay banned.
 
 1. **Fielded-six power** — the primary dial. Every rival fields near the
    top of their authored twelve.
-2. **Adaptive fielding from bout one.** Chapter One scripted sixes for
+2. **Adaptive fielding from gate one.** Chapter One scripted sixes for
    stages 1-4 because a first-ever fight opening with a ban phase teaches
    nothing. Nobody here is learning the loop, so **every rival
    sideboards live**. No scripted sixes anywhere.
-3. **Bans that hurt from bout one.** Aimed at the answer, not at a role.
+3. **Bans that hurt from gate one.** Aimed at the answer, not at a role.
 4. **Terrain built against you.** Symmetric per L1, but each rival's
    twelve is built for its pinned board and yours may not be.
 
@@ -452,7 +461,7 @@ instead of a new deck.
 Chapter One examines at V and IX because it is *teaching the game* and
 has to check twice. Nobody here is learning the loop, so the chapter
 checks once at the midpoint on the four decks taught by then — and the
-second check is bout XIX, an exam wearing an elite's difficulty.
+second check is gate XIX, an exam wearing an elite's difficulty.
 
 **Corrected 2026-08-18.** An earlier draft of this page claimed Chapter
 Two examines *once*. That was built on a misreading of Chapter One — I
@@ -505,7 +514,7 @@ Wrecker's theft (XVIII).
 
 ## 7. Rewards and where the cards come from
 
-| Bout | Fields | Unlocks | Legendary |
+| Gate | Fields | Unlocks | Legendary |
 |---|---|---|---|
 | XI The Understudy | Hemithea | Hemithea | **Achilles** |
 | XII The Bookmaker | Huaxia | Huaxia | **Sun Wukong** |
@@ -518,7 +527,7 @@ Wrecker's theft (XVIII).
 | **XIX The Auditor** *(exam)* | the seven taught decks | **— nothing** | — |
 | XX Asmodeus, the Redactor | Pandemonium + bespoke boss | **Pandemonium** | **Pride** |
 
-**Eight factions across ten bouts**, the two exams introducing nothing —
+**Eight factions across ten gates**, the two exams introducing nothing —
 Chapter One's shape exactly.
 
 **One legendary per faction**, matching the roster law — asserted by
@@ -529,7 +538,7 @@ epics from all seven new factions are buyable like any other card and
 count toward the collection total. The **legendaries are not**, because
 the Crown Law says legendaries are never sold anywhere — they come from
 the Road. So each faction's legendary is the campaign reward for the
-bout that introduces it: you can buy your way toward Sherwood, but Robin
+gate that introduces it: you can buy your way toward Sherwood, but Robin
 Hood comes from beating the Outlaw.
 
 **The whole chapter is withheld from the shop** (owner ruling, 2026-08-18b:
@@ -542,13 +551,46 @@ question; see §8 of the lore doc.
 
 ---
 
+## 7.5 The Road's presentation
+
+Everything below is switched by a single `body[data-chapter]` attribute
+that `js/campaign.js` sets in `paintChapterChrome()`. There is no
+per-frame JavaScript in any of it; CSS owns the atmosphere.
+
+| | Chapter I - The Road of Echoes | Chapter II - The Concord |
+| --- | --- | --- |
+| Backdrop | `assets/chapter-1/cw-bg.png` — lantern-hung thorn road | `assets/chapter-2/cw-bg.png` — tournament city, glowing amphitheatre |
+| Haze | cold blue mist, drifts left | warm amber haze, drifts right |
+| Particles | gold brass-tag glints **falling**, blue will-o'-wisps wandering, pale dust | parchment slips **tumbling**, brazier embers **rising**, fine grey ash |
+| Signature motion | everything falls | **embers rise** — the fastest way to tell the screens apart |
+| Extra layer | — | slow amber "arena breathing" glow over the arches |
+| Vignette | cold, tight | warmer, lifted off the arena so the arches are not crushed |
+| Ledger | The Recruiter's Ledger | **The Concord Register** |
+| Score | `road` — A minor, 74bpm, bells and space | `road2` — **D dorian, 88bpm**, processional pulse and a struck-metal filing ostinato |
+
+**Why D dorian for the score.** The raised sixth is the whole difference
+between mournful and expectant. Chapter I is a person walking alone and
+natural minor suits it; the Concord is loud, political and funny before
+it is sad, and every attempt in plain D minor dragged it back toward
+Chapter I's grief. The form is a week in forty bars: arrival among
+half-built stands, the crowd filling in, a hush in the archive under the
+street, the schedule pressing, the floor at full noise, then a stripped
+reprise as the pavilions come down.
+
+The ostinato is deliberately metallic and on the offbeat — tablets being
+struck and filed, which is what the Concord actually does all week. It
+drops out entirely in the archive section, leaving a drone and one bell:
+the only place in the chapter where somebody is alone with a record.
+
+---
+
 ## 8. Open work
 
 Tracked honestly, because none of this is built:
 
-- ~~No `data/campaign-ch2.js`.~~ **Done 2026-08-18e** - ten bouts, ten
+- ~~No `data/campaign-ch2.js`.~~ **Done 2026-08-18e** - ten gates, ten
   twelves, both exams, the boss card, and every scene.
-- ~~Boards are unassigned.~~ **Done** - every bout pins a board and both
+- ~~Boards are unassigned.~~ **Done** - every gate pins a board and both
   exams pin a three-board fight card, all drawn from the existing ten.
 - **Nothing is simmed.** Every WR above is authored. Chapter One's
   numbers moved substantially under `sim/campaign_soak.js`.
@@ -569,6 +611,13 @@ Tracked honestly, because none of this is built:
 - **Asmodeus has a card** (`campaign-asmodeus`, unbannable and pinned,
   like Gilgamesh). Sargon and the Concord officials still have none -
   they are voices in the scenes, not fighters.
+- **The Road's presentation is per chapter** (2026-08-18f): its own
+  backdrop (`assets/chapter-2/cw-bg.png`), its own particle weather
+  (drifting parchment, rising embers, slow ash - against Chapter I's
+  falling glints, wisps and dust), its own ledger (**The Concord
+  Register**, not the Recruiter's), and its own score (`road2`, D dorian
+  at 88bpm against Chapter I's A minor at 74). All switched by
+  `body[data-chapter]` from one `setChapter()` call.
 - **All twenty rival portraits are missing on purpose** (2026-08-18e).
   The art was deleted for the owner's own pass; `stage.portrait` is null
   everywhere and the UI shows a hood glyph. Briefs for all twenty are in

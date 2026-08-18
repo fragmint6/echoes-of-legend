@@ -45,6 +45,10 @@
   var desiredScene = 'menu';
   var currentTrack = null;
   var trackGain = null;
+  /* Which campaign chapter the Road view is showing. Only the music
+     cares; it defaults to 1 so a caller that never sets it behaves
+     exactly as before. */
+  var campaignChapter = 1;
   var musicTimer = null;
   var musicScheduler = null;
   var musicToken = 0;
@@ -1283,6 +1287,16 @@
        complete form near 120 seconds rather than stretching one tiny loop. */
     menu: { tempo: 82, steps: 16, key: 'D minor', phraseBars: 40 },
     road: { tempo: 74, steps: 16, key: 'A minor', phraseBars: 36 },
+    /* CHAPTER II's Road (2026-08-18f). A different place needs a
+       different score: Chapter I's `road` is a lonely walk in A minor
+       at 74bpm, all bells and space. The Concord is a CITY DURING A
+       BUSY WEEK - crowds, scaffolding, a schedule - so this is quicker
+       (88), in D dorian rather than natural minor (the raised sixth
+       keeps it civic and expectant instead of mournful), and built on a
+       steady processional pulse with a struck-metal ostinato standing
+       in for the record-keeping. Forty bars lands it near 109 seconds,
+       in the same two-minute envelope as every other track. */
+    road2: { tempo: 88, steps: 16, key: 'D dorian', phraseBars: 40 },
     prep: { tempo: 102, steps: 16, key: 'D minor', phraseBars: 52 },
     /* Match variants keep one key/progression while changing pace, register,
        pulse and voicing to suit bright, dark and neutral battlefields. */
@@ -1301,7 +1315,10 @@
     }
     /* `campaign` is the chapter-select menu and stays on the continuous
        main theme. Only `road` means the actual Road of Echoes map. */
-    if (scene === 'road') return 'road';
+    /* Which Road you are standing on decides the score. campaignChapter
+       is set by js/campaign.js whenever the chapter changes, so the
+       theme follows the plate the player opened. */
+    if (scene === 'road') return campaignChapter === 2 ? 'road2' : 'road';
     if (scene === 'prep') return 'prep';
     /* Shop, Play, Collection, Decks, Rulebook and every overlay all keep
        the main theme. Returning between them must not restart its phrase. */
@@ -1852,6 +1869,143 @@
       return;
     }
 
+    if (name === 'road2') {
+      /* CHAPTER II - THE CONCORD. Forty bars / ~109 seconds.
+         -----------------------------------------------------------
+         Chapter I's Road is a person walking alone; this is a city
+         that exists for one week and knows it. The form is a week:
+         arrival among half-built stands (0-7), the crowd filling in
+         (8-15), a hush in the archive under the street (16-19), the
+         schedule pressing on (20-27), the floor itself at full noise
+         (28-35), and a stripped reprise as the pavilions come down
+         (36-39) that hands cleanly back to bar one.
+
+         D DORIAN, not D minor. The raised sixth (B natural) is the
+         whole difference between mournful and expectant - this chapter
+         is loud, political and funny before it is sad, and a natural
+         minor sixth kept dragging it toward Chapter I's grief.
+
+         The ostinato is deliberately METALLIC and on the offbeat: it
+         is the sound of tablets being struck and filed, which is what
+         the Concord actually does all week. It drops out entirely in
+         the archive section, where the only thing left is the low
+         drone and a single bell - the one place in the chapter where
+         somebody is alone with a record. */
+      var c2Chords = [
+        [50, 57, 62], // Dm
+        [55, 62, 66], // Gmaj  <- the dorian sixth, the civic colour
+        [48, 55, 60], // C
+        [53, 60, 65], // F
+      ];
+      var c2Chord = c2Chords[chordIndex];
+
+      var c2Arrive = [74, null, null, 76, null, 77, null, null, 74, null, 72, null, null, 71, null, null];
+      var c2Crowd = [77, null, 79, null, 81, null, 79, null, 77, null, 76, null, 74, null, 76, null];
+      var c2Archive = [62, null, null, null, 65, null, null, null, 60, null, null, null, 62, null, null, null];
+      var c2Press = [74, 76, 77, null, 79, 77, 76, null, 74, 76, 79, null, 77, null, 74, null];
+      var c2Floor = [81, null, 83, 84, null, 83, 81, null, 79, null, 81, 83, null, 81, 79, null];
+      var c2Strike = [69, null, null, 71, null, null, 74, null, 71, null, null, 69, null, 67, null, null];
+
+      var c2Part = [c2Arrive, c2Arrive, c2Crowd, c2Arrive];
+      if (phraseBar >= 8 && phraseBar < 16) c2Part = [c2Crowd, c2Arrive, c2Crowd, c2Press];
+      else if (phraseBar >= 16 && phraseBar < 20) c2Part = [c2Archive, c2Archive, c2Strike, c2Archive];
+      else if (phraseBar >= 20 && phraseBar < 28) c2Part = [c2Press, c2Crowd, c2Press, c2Floor];
+      else if (phraseBar >= 28 && phraseBar < 36) c2Part = [c2Floor, c2Press, c2Floor, c2Crowd];
+      else if (phraseBar >= 36) c2Part = [c2Strike, c2Arrive, c2Strike, c2Arrive];
+      var c2Lead = c2Part[phraseBar % 4];
+
+      var c2Quiet = phraseBar >= 16 && phraseBar < 20;
+      var c2Busy = (phraseBar >= 8 && phraseBar < 16) || (phraseBar >= 20 && phraseBar < 28);
+      var c2Peak = phraseBar >= 28 && phraseBar < 36;
+      var c2Strike36 = phraseBar >= 36;
+
+      /* The pad: wide and low in the archive, brighter and tighter on
+         the floor. */
+      if (s === 0)
+        chord(c2Chord, t, stepDur * 15.6, c2Peak ? 0.016 : c2Quiet ? 0.0095 : 0.013, {
+          dest: dest,
+          wet: c2Quiet ? 0.72 : 0.5,
+          filter: c2Peak ? 2200 : c2Quiet ? 980 : 1500,
+          attack: c2Quiet ? 1.2 : 0.55,
+          release: c2Quiet ? 2.8 : 1.9,
+        });
+
+      /* The drone under the whole city. */
+      if (s === 0 || (!c2Quiet && s === 8))
+        musicNote(
+          c2Chord[0] - 12,
+          t,
+          stepDur * (c2Quiet ? 14.8 : 6.2),
+          c2Peak ? 0.031 : c2Quiet ? 0.022 : 0.027,
+          'sine',
+          dest,
+          -0.18,
+          0.28,
+          540
+        );
+
+      /* THE FILING OSTINATO - struck metal on the offbeat, absent in
+         the archive. This is the signature the chapter is recognised
+         by, the way Chapter I is recognised by its bells. */
+      if (!c2Quiet && s % 2 === 1)
+        musicNote(
+          c2Chord[1] + 12,
+          t,
+          stepDur * 0.62,
+          c2Peak ? 0.0085 : c2Busy ? 0.0072 : 0.0055,
+          'square',
+          dest,
+          0.26,
+          0.34,
+          c2Peak ? 3400 : 2600
+        );
+
+      /* The lead. */
+      if (c2Lead[s] != null)
+        musicNote(
+          c2Lead[s],
+          t,
+          stepDur * (c2Quiet ? 3.4 : c2Peak ? 2.0 : 2.3),
+          c2Peak ? 0.022 : c2Quiet ? 0.015 : 0.019,
+          c2Peak ? 'triangle' : 'sine',
+          dest,
+          0.1,
+          c2Quiet ? 0.74 : 0.54,
+          5200
+        );
+
+      /* A crowd counter-line once the stands fill. */
+      if (c2Busy || c2Peak) {
+        var c2Counter = [null, 62, null, null, 65, null, null, 67, null, null, 65, null, 62, null, null, 60];
+        if (c2Counter[s] != null)
+          musicNote(c2Counter[s] + 12, t, stepDur * 1.6, 0.0062, 'sine', dest, -0.22, 0.44, 3000);
+      }
+
+      /* The floor's answering brass-ish stab, peak only. */
+      if (c2Peak && (s === 0 || s === 8))
+        chord([c2Chord[1] + 12, c2Chord[2] + 12], t, stepDur * 6.8, 0.0068, {
+          dest: dest,
+          wet: 0.6,
+          filter: 4200,
+          attack: 0.42,
+          release: 1.7,
+        });
+
+      /* PROCESSIONAL PULSE. Chapter I's road drum is a footstep; this
+         is a crowd, so it carries a backbeat rather than a lone tap. */
+      if (!c2Quiet) {
+        if (s === 0) roadDrum(t, c2Peak ? 0.04 : 0.033, dest, true);
+        if (s === 8) roadDrum(t, c2Peak ? 0.032 : 0.026, dest, false);
+        if ((c2Busy || c2Peak) && (s === 4 || s === 12))
+          roadDrum(t, c2Peak ? 0.024 : 0.019, dest, false);
+        if (c2Peak && s === 14) roadDrum(t, 0.017, dest, false);
+      } else if (s === 0) {
+        roadDrum(t, 0.016, dest, false);
+      }
+      if (c2Strike36 && s === 10) roadDrum(t, 0.015, dest, false);
+      return;
+    }
+
     if (name === 'prep') {
       /* Fifty-two bars / ~122 seconds. The planning theme surveys the board,
          assembles, tightens, breathes, rebuilds and finally reaches a full
@@ -2264,6 +2418,18 @@
     startTrack(trackForScene(desiredScene));
   }
 
+  /* Tell the score which chapter's Road is open. If the Road is already
+     playing, swap the track immediately so the change is audible at the
+     moment the plate opens rather than at the next scene change. */
+  function setCampaignChapter(id) {
+    id = parseInt(id, 10) === 2 ? 2 : 1;
+    if (campaignChapter === id) return;
+    campaignChapter = id;
+    if (desiredScene === 'road' && unlocked && !muted() && prefs.music > 0) {
+      startTrack(trackForScene('road'));
+    }
+  }
+
   function setBattlefield(field) {
     battleField = field || 'colosseum';
     if (desiredScene === 'battle' && unlocked) startTrack(trackForScene('battle'));
@@ -2559,6 +2725,7 @@
     pack: pack,
     scene: scene,
     setBattlefield: setBattlefield,
+    setCampaignChapter: setCampaignChapter,
     result: result,
     duck: duck,
     getPrefs: getPrefs,
