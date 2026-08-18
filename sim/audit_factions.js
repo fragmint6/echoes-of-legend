@@ -58,7 +58,7 @@ const NEW_FACTIONS = [
   'hemithea',
   'pandemonium',
   'devas',
-  'empyrean',
+  'genesis',
   'transylvania',
   'tortuga',
 ];

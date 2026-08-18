@@ -3923,7 +3923,7 @@
         break;
       }
 
-      /* EMPYREAN: Gabriel accelerates every sealed fate on the board,
+      /* GENESIS: Gabriel accelerates every sealed fate on the board,
          Raphael cancels the ones aimed at his ally. Both reach into the
          SAME per-unit `pending` queue that `delayed` writes (Zeus's
          thunderbolt, Abe no Seimei's shikigami, Azrael's hour), so they

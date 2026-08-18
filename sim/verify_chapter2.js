@@ -56,7 +56,7 @@ global.performance = { now: () => Date.now() };
   'data/hemithea.js',
   'data/pandemonium.js',
   'data/devas.js',
-  'data/empyrean.js',
+  'data/genesis.js',
   'data/transylvania.js',
   'data/tortuga.js',
   'data/lore.js',
@@ -72,7 +72,7 @@ const NEW = [
   'hemithea',
   'pandemonium',
   'devas',
-  'empyrean',
+  'genesis',
   'transylvania',
   'tortuga',
 ];
@@ -116,7 +116,10 @@ NEW.forEach((id) => {
      factions still hold at seven, so the expectation is per-faction
      rather than a flat 7 - a blanket number would have quietly hidden
      the move, which is the opposite of what this suite is for. */
-  const want = id === 'hemithea' ? 8 : 7;
+  /* Per-faction, because two of them have grown: Hemithea took
+     Hercules from Olympus, Genesis gained Adam. A flat 7 would hide
+     the next such move. */
+  const want = id === 'hemithea' || id === 'genesis' ? 8 : 7;
   ok(!!f && f.cards.length === want, id + ' registers ' + want + ' legends');
 });
 {
@@ -245,23 +248,23 @@ console.log('D. the Locker (Tortuga) beats every revive');
   ok(other.alive === true, 'and an ordinary legend still revives normally');
 }
 
-console.log('E. delayed effects (Empyrean)');
+console.log('E. delayed effects (Genesis)');
 {
-  const B = battle([g('empyrean-azrael'), g('empyrean-gabriel'), g('empyrean-raphael'), ...FILLER]);
-  const az = B.units.find((u) => u.card.id === 'empyrean-azrael');
+  const B = battle([g('genesis-azrael'), g('genesis-gabriel'), g('genesis-raphael'), ...FILLER]);
+  const az = B.units.find((u) => u.card.id === 'genesis-azrael');
   const tgt = B.units.find((u) => u.side === 'enemy' && u.slot === 0);
   E.useAbility(B, az, az.card.ability, [tgt]);
   ok(tgt.pending.length === 1, 'Azrael seals a delayed strike');
   const before = tgt.pending[0].turns;
 
-  const gab = B.units.find((u) => u.card.id === 'empyrean-gabriel');
+  const gab = B.units.find((u) => u.card.id === 'genesis-gabriel');
   E.useAbility(B, gab, gab.card.ability, []);
   ok(tgt.pending[0].turns === before - 1, 'Gabriel pulls it one round closer (' + before + ' -> ' + tgt.pending[0].turns + ')');
 
   /* Raphael is the counterplay that keeps the faction fair. He clears
      pending effects from an ALLY, so put one on our own side first. */
-  const B2 = battle([g('empyrean-raphael'), ...FILLER, g('empyrean-uriel'), g('empyrean-michael')]);
-  const raph = B2.units.find((u) => u.card.id === 'empyrean-raphael');
+  const B2 = battle([g('genesis-raphael'), ...FILLER, g('genesis-uriel'), g('genesis-michael')]);
+  const raph = B2.units.find((u) => u.card.id === 'genesis-raphael');
   const friend = B2.units.find((u) => u.side === 'player' && u.uid !== raph.uid);
   friend.pending.push({ turns: 2, srcUid: raph.uid, effects: [{ k: 'dmg', power: 2 }], scale: 1 });
   E.useAbility(B2, raph, raph.card.ability, [friend]);
@@ -320,17 +323,29 @@ console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
   const packable = econ.packableEntries();
   const isNew = (e) => NEW.includes(e.faction.id);
 
-  /* 50, not 49: Hercules moved into Hemithea from Olympus, so the seven
-     Chapter II factions now hold 50 cards between them. He was already
-     obtainable as an Olympus card, so nothing became newly buyable - the
-     card simply counts on this side of the line now. */
+  /* INVERTED 2026-08-18b (owner ruling: "keep the shop as is with the
+     pack pool containing just chapter 1 cards").
+
+     This block used to assert that all fifty Chapter II cards WERE
+     obtainable and forty-three of them packable. That was the state
+     between the two rulings. The shop is now closed to the whole
+     chapter again, so the correct assertion is the opposite one, and it
+     is written as zero-or-nothing rather than deleted so the flip stays
+     legible to whoever reads this next.
+
+     WHY THE REVERT: releasing them took the packable pool from 35 to 80
+     cards and roughly halved the odds of pulling any specific Chapter I
+     legend - for players who cannot play Chapter II, because it does
+     not exist in code yet. */
   ok(
-    obtainable.filter(isNew).length === 50,
-    'all 50 Chapter II legends are obtainable (' + obtainable.filter(isNew).length + ')'
+    obtainable.filter(isNew).length === 0,
+    'no Chapter II card is obtainable while the chapter is unplayable (' +
+      obtainable.filter(isNew).length +
+      ')'
   );
   ok(
-    packable.filter(isNew).length === 43,
-    'exactly 43 are packable - 50 minus one legendary each (' +
+    packable.filter(isNew).length === 0,
+    'no Chapter II card is packable either (' +
       packable.filter(isNew).length +
       ')'
   );
@@ -364,22 +379,30 @@ console.log('H. the Chapter II shelf is closed');
      are one-line changes that are easy to lose. */
   const econSrc = fs.readFileSync(path.join(ROOT, 'js/economy.js'), 'utf8');
   const camp = fs.readFileSync(path.join(ROOT, 'js/campaign.js'), 'utf8');
-  /* SUPERSEDED 2026-08-18. This used to assert the shop withheld all seven
-     factions. The owner has since ruled that only the LEGENDARIES are held
-     back - the other 42 cards belong in packs - so the seven ids are
-     deliberately no longer on the withhold list, and section G above tests
-     the real behaviour against the live economy.
+  /* RESTORED 2026-08-18b, after one turn in the opposite state.
 
-     What survives is the part that is still true: Huaxia alone is withheld
-     wholly, because Chapter II spends it as the reveal at bout XIX. */
+     The history, since this assertion has now flipped twice:
+       1. originally: all eight Chapter II factions withheld;
+       2. 2026-08-18a: released, on the reasoning that only legendaries
+          needed holding back - this test was rewritten to assert their
+          ABSENCE from the list;
+       3. 2026-08-18b (owner): "keep the shop as is with the pack pool
+          containing just chapter 1 cards" - so they are withheld again
+          and this asserts their PRESENCE once more.
+
+     Kept as an explicit per-faction loop rather than a regex on the
+     whole literal, because the failure that matters is one faction
+     quietly falling off the list, and a whole-literal match would also
+     fail for harmless reformatting. */
+  ok(/var WITHHELD = \[/.test(econSrc), 'the shop still has a single withhold list');
   ok(
-    /var WITHHELD = \['huaxia'\]/.test(econSrc),
-    'the shop withholds Huaxia and nothing else'
+    new RegExp("WITHHELD[^\\]]*'huaxia'").test(econSrc),
+    'Huaxia is withheld - it is a story reveal as well as a Chapter II card'
   );
   NEW.forEach((id) => {
     ok(
-      !new RegExp("WITHHELD[^;]*'" + id + "'").test(econSrc),
-      id + ' is no longer withheld from the shop'
+      new RegExp("WITHHELD[^\\]]*'" + id + "'").test(econSrc),
+      id + ' is withheld from the shop while Chapter II is unplayable'
     );
   });
   ok(/NOT_IN_CHAPTER_1/.test(camp), 'the campaign has a single Chapter I exclusion list');
@@ -568,7 +591,7 @@ console.log('J. the overview agrees with the lore');
   const LEGEND = {
     hemithea: 'Achilles',
     pandemonium: 'Pride',
-    empyrean: 'Lucifer',
+    genesis: 'Lucifer',
     transylvania: 'Dracula',
     asgard: 'Odin',
     devas: 'Shiva',
@@ -602,7 +625,7 @@ console.log('J. the overview agrees with the lore');
   const UNLOCK = {
     XI: 'Hemithea',
     XII: 'Huaxia',
-    XIII: 'Empyrean',
+    XIII: 'Genesis',
     XIV: 'Transylvania',
     XVI: 'Asgard',
     XVII: 'Devas',
@@ -623,7 +646,7 @@ console.log('J. the overview agrees with the lore');
      faction name on their rows, which is what "unlocks nothing" means in
      a table - a row that merely omits the column would pass a weaker
      test while still reading as an unlock in the prose above it. */
-  const FACTIONS = ['Hemithea', 'Huaxia', 'Empyrean', 'Transylvania', 'Asgard', 'Devas', 'Tortuga', 'Pandemonium'];
+  const FACTIONS = ['Hemithea', 'Huaxia', 'Genesis', 'Transylvania', 'Asgard', 'Devas', 'Tortuga', 'Pandemonium'];
   ['XV', 'XIX'].forEach((num) => {
     const rows = unlockRow(over, num).concat(unlockRow(lore, num));
     const unlockish = rows.filter((l) => /nlock|— \|/.test(l));

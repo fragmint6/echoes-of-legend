@@ -75,7 +75,9 @@ window.EOL.legendLore = {
     'He does not curse you. He reads the omen already written over you and simply declines to look away until it comes true. What Seimei seals arrives at the end of the round, punctual as weather.',
   'yamato-momotaro':
     'Born from a peach, raised on millet dumplings, followed to the demon island by everything he ever shared them with. Momotaro\u2019s strength was never his own - it is the dog, the monkey, the pheasant, and the habit of feeding people first.',
-  'yamato-kaguya':
+  'yamato-miyamoto-musashi':
+    'Sixty-one duels and not one of them a second exchange. Musashi reads a stranger the way other men read weather, and by the time the blade moves he has already decided which of the two of them is going home - so he prefers them whole, unhurried, and certain they will win.',
+  'kami-kaguya':
     'The moon has already sent for her, and she is not going quietly. Kaguya reflects the brilliance of those around her back at the field, borrowing their light because her own is on loan and she knows the term.',
 
   /* ---------------- Grimmwood - every tale has teeth ---------------- */
@@ -242,19 +244,21 @@ window.EOL.legendLore = {
     'He forgot he could leap oceans until someone reminded him, which is the most useful thing anyone has ever said to him. Hanuman goes over the top of the problem and lands behind it, cheerfully, before anyone has agreed he can.',
   'devas-indra':
     'King of the gods on a good day and a cautionary tale on the rest, armed with a weapon made from a sage\'s own bones. Indra throws the thunderbolt at whatever has already been singled out, and rarely asks who did the singling.',
-  'empyrean-lucifer':
+  'genesis-lucifer':
     'He was the brightest of them and the argument he lost was about service, not about evil. Lucifer still pronounces sentence in the old formal way, and still pays for the privilege out of his own light every time he does it.',
-  'empyrean-michael':
+  'genesis-michael':
     'The one sent when the discussion is over. Michael carries a sword that was never meant for duels, only for endings, and he is unfailingly courteous right up until the moment he is not.',
-  'empyrean-azrael':
+  'genesis-azrael':
     'He does not chase and he does not rush. Azrael writes a name and an hour, and the hour comes - whether he is still standing in the room when it arrives is a detail that has never once affected the outcome.',
-  'empyrean-gabriel':
+  'genesis-gabriel':
     'The voice that tells you what is coming, which is a mercy and also the opposite of one. Gabriel announces things, and announced things have a way of arriving sooner than the people who heard them expected.',
-  'empyrean-raphael':
+  'genesis-raphael':
     'He walked a boy across a country under a false name to teach him how to cure his father, and never once broke character. Raphael undoes what has been set in motion; he is the reason a sentence is not always final.',
-  'empyrean-uriel':
+  'genesis-adam':
+    'The first body, and the first sentence passed on one. Adam stands in front of the others because he has already been told exactly what it costs and exactly when it arrives - and the whole point of him is that the species outlives the arithmetic.',
+  'genesis-uriel':
     'He holds the flame at the gate of the garden, and the flame is not a threat so much as a fact about the door. Uriel sets things alight and lets the burning do the arguing while everyone waits.',
-  'empyrean-metatron':
+  'genesis-metatron':
     'He keeps the record, which means he decides what the record says. Metatron can close a mouth mid-sentence and has done it often enough that most of the host chooses its words carefully around him.',
   'transylvania-dracula':
     'Old, courteous, and entirely uninterested in your consent. Dracula takes a little from everyone in the room and wears it better than any of them did, which he considers the natural order rather than a theft.',

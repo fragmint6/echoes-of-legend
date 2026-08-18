@@ -1,8 +1,8 @@
-/* Faction: Empyrean - the announced verdict
+/* Faction: Genesis - the announced verdict
    -------------------------------------------------------------
    WHAT THIS FACTION IS ABOUT
 
-   Judgement that arrives on a schedule. Empyrean's damage is mostly
+   Judgement that arrives on a schedule. Genesis's damage is mostly
    DELAYED: it is declared now, the enemy can see it coming, and it
    lands in two rounds. That is the whole identity, and it is built
    entirely on `delayed`, the effect kind Zeus and Abe no Seimei
@@ -35,7 +35,7 @@
 
    LUCIFER IS THE BRIDGE CARD
    -------------------------------------------------------------
-   Mechanically Empyrean (a delayed sweep), but his cost is a Pandemonium
+   Mechanically Genesis (a delayed sweep), but his cost is a Pandemonium
    Sin: he pays HP to cast. He is the single best Pandemonium partner in
    the game, which is the hand-off pattern the guidelines ask for -
    the Morning Star is an archangel on the wrong side of a war, not a
@@ -50,14 +50,14 @@
        protects a slow line the way Cicero protects a fast one.
    ============================================================= */
 window.EOL.registerFaction({
-  id: 'empyrean',
-  name: 'Empyrean',
+  id: 'genesis',
+  name: 'Genesis',
   icon: 'ra-aware',
   tagline: 'The sentence was passed before you arrived.',
   colors: { primary: '#f2e6c2', secondary: '#c9a227', glow: '#fff8dc' },
   cards: [
     {
-      id: 'empyrean-lucifer',
+      id: 'genesis-lucifer',
       name: 'Lucifer',
       rarity: 'legendary',
       role: 'Caster',
@@ -75,7 +75,7 @@ window.EOL.registerFaction({
            patience.
 
            THE FALL IS THE COST, and it is a Pandemonium Sin wearing
-           Empyrean colours - he refuses aid for two rounds, exactly as
+           Genesis colours - he refuses aid for two rounds, exactly as
            Pride does. That is deliberate: Lucifer is the hand-off
            between the two factions, and sharing a cost is a cleaner
            bridge than sharing a keyword. */
@@ -102,11 +102,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-falling',
-      art: 'assets/legends/empyrean-lucifer.png',
+      art: 'assets/legends/genesis-lucifer.png',
     },
 
     {
-      id: 'empyrean-michael',
+      id: 'genesis-michael',
       name: 'Michael',
       rarity: 'epic',
       role: 'Bruiser',
@@ -138,11 +138,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-relic-blade',
-      art: 'assets/legends/empyrean-michael.png',
+      art: 'assets/legends/genesis-michael.png',
     },
 
     {
-      id: 'empyrean-azrael',
+      id: 'genesis-azrael',
       name: 'Azrael',
       rarity: 'epic',
       role: 'Sniper',
@@ -173,11 +173,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-scythe',
-      art: 'assets/legends/empyrean-azrael.png',
+      art: 'assets/legends/genesis-azrael.png',
     },
 
     {
-      id: 'empyrean-gabriel',
+      id: 'genesis-gabriel',
       name: 'Gabriel',
       rarity: 'epic',
       role: 'Caster',
@@ -207,11 +207,98 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ocarina',
-      art: 'assets/legends/empyrean-gabriel.png',
+      art: 'assets/legends/genesis-gabriel.png',
     },
 
     {
-      id: 'empyrean-raphael',
+      id: 'genesis-adam',
+      name: 'Adam',
+      rarity: 'epic',
+      role: 'Tank',
+      element: 'Nature',
+      stats: { hp: 7450, atk: 1000, def: 30 },
+      ability: {
+        type: 'Active',
+        name: 'The Dust He Was Made From',
+        cost: 50,
+        /* WHY ADAM, AND WHY A TANK
+           -------------------------------------------------------------
+           Added 2026-08-18 with the Empyrean -> Genesis rebrand. The
+           rename is what makes him obvious: "Empyrean" is the highest
+           heaven and admits only angels, but GENESIS is the book, and
+           the book's first man belongs in it more than any archangel
+           does.
+
+           He fills the faction's only structural hole. Genesis shipped
+           with three Casters, one Bruiser, one Sniper, one Medic, one
+           Controller and NO TANK - so a mono-Genesis draft had nothing
+           to stand in front, which is a real problem for a faction whose
+           whole plan is surviving two rounds while a delayed hit cooks.
+
+           THE KIT IS THE FACTION'S CLOCK, POINTED AT HIMSELF.
+           Every other Genesis card schedules damage for the ENEMY. Adam
+           schedules it for himself and gets paid to survive it: he takes
+           the sentence now, and if he is still standing when it lands,
+           the whole team is healed. That is the Fall as a mechanic -
+           the penalty is real, it arrives on a timer, and outliving it
+           is the entire point of the species.
+
+           WHY IT IS NOT JUST A SHIELD. A Tank that presses a button and
+           gets tougher is the most crowded design in the roster (see
+           Sloth, Heimdall, Frankenstein's Monster, Durga). Adam instead
+           makes a BET with a visible clock on it, and the enemy can
+           interact with the bet: kill him inside two rounds and the heal
+           never happens, and they have spent the two rounds hitting a
+           7450 HP wall to do it - which is exactly what a Tank wants.
+
+           WHY THE COST IS "CANNOT BE HEALED" AND NOT A CHUNK OF HP:
+           the engine has no self-damage-by-percentage effect, and adding
+           one for a single card is how a vocabulary rots. healMod -100 is
+           already the roster's way of saying "this power is borrowed" -
+           Pride pays it, Lucifer pays it - and on a TANK it bites harder
+           than on either of them, because the Tank is the card the Medic
+           was going to spend the turn on.
+
+           CROSS-FACTION, and this is the good part: Gabriel HASTENS
+           pending effects, so he pulls Adam's payout a round closer.
+           Raphael CANCELS a pending effect on an ally - so a Raphael on
+           your own side can wipe Adam's debt before it resolves, which
+           costs you the heal. The faction's two support pieces both
+           already read this card and neither needed changing. */
+        text: 'Provoke for 2 rounds and gain <b>20% DEF</b>. Adam <b>cannot be healed</b> for 2 rounds; when they end, if he is still standing, all allies are healed for <b>18% Max HP</b>.',
+        note: null,
+        spec: {
+          target: { side: 'self' },
+          effects: [
+            { k: 'taunt', turns: 2, to: 'self' },
+            { k: 'stat', stat: 'def', amt: 20, turns: 2, to: 'self' },
+            /* THE COST. `healMod: -100` is how Pandemonium's Pride and
+               Genesis's own Lucifer already pay for a big effect: for two
+               rounds Adam cannot be healed at all. It is a real cost the
+               OPPONENT can press (focus him while the Medic cannot answer)
+               and it needs no new engine support.
+
+               An earlier draft of this card spent a flat slice of Max HP
+               instead. That effect does not exist - no card in the roster
+               pays HP, and `dmg` has no self-percentage form - so it would
+               have been a silent no-op printed on the card. Rejected in
+               favour of the vocabulary that is actually implemented. */
+            { k: 'healMod', pct: -100, turns: 2, to: 'self' },
+            {
+              k: 'delayed',
+              turns: 2,
+              tag: 'genesis-adam',
+              to: 'self',
+              effects: [{ k: 'heal', pctMaxHp: 18, to: 'allies' }],
+            },
+          ],
+        },
+      },
+      icon: 'ra-acorn',
+      art: 'assets/legends/genesis-adam.png',
+    },
+    {
+      id: 'genesis-raphael',
       name: 'Raphael',
       rarity: 'rare',
       role: 'Medic',
@@ -223,7 +310,7 @@ window.EOL.registerFaction({
         cost: 40,
         /* THE COUNTERPLAY, and the card that keeps the faction honest.
            Every delayed effect in the game becomes answerable, including
-           Azrael's and Lucifer's - so an Empyrean mirror is a genuine
+           Azrael's and Lucifer's - so an Genesis mirror is a genuine
            duel rather than a race. 28% single-target heal sits between
            Guinevere's 22% and Izanagi's 30%. */
         text: 'Heal one ally for <b>28% Max HP</b>, cleanse <b>all</b> of their debuffs, and cancel any <b>pending effect</b> aimed at them.',
@@ -238,11 +325,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-medical-pack',
-      art: 'assets/legends/empyrean-raphael.png',
+      art: 'assets/legends/genesis-raphael.png',
     },
 
     {
-      id: 'empyrean-uriel',
+      id: 'genesis-uriel',
       name: 'Uriel',
       rarity: 'rare',
       role: 'Caster',
@@ -267,11 +354,11 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fire-shield',
-      art: 'assets/legends/empyrean-uriel.png',
+      art: 'assets/legends/genesis-uriel.png',
     },
 
     {
-      id: 'empyrean-metatron',
+      id: 'genesis-metatron',
       name: 'Metatron',
       rarity: 'rare',
       role: 'Controller',
@@ -298,7 +385,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-quill-ink',
-      art: 'assets/legends/empyrean-metatron.png',
+      art: 'assets/legends/genesis-metatron.png',
     },
   ],
 });

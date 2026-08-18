@@ -5,7 +5,7 @@ Legend. One entry per legend, written so any artist or generator produces a
 piece that sits in the same world as the other 62.
 
 Status: **v2.3 - full-ART environmental card illustrations**, dynamic
-role-driven action compositions, expanded to 113 legends (2026-08-18,
+role-driven action compositions, expanded to 115 legends (2026-08-18,
 rev 5).
 
 > **2026-08-17, rev 6 (THE STYLE IS PIXEL ART - READ THIS BEFORE
@@ -50,6 +50,15 @@ rev 5).
 > painted art lands near flat 0.09 / hard 0.62 - too few flat runs, too
 > many soft mid-tone transitions dressed up as edges.
 
+> **2026-08-18, rev 8.** Empyrean renamed **Genesis** (files, palette row,
+> environment row and briefs); **Adam** authored as its Tank, the role the
+> faction shipped without. **Kaguya moved from Yamato to Kami** - she is a
+> being on loan from the moon, not a member of a human war camp - and
+> **Miyamoto Musashi** authored to take her slot in Yamato. Roster 113 ->
+> 115. Both new portraits generated this pass; both were regenerated once
+> after the first attempt came back landscape and too smoothly shaded to
+> pass the flat/hard test in section 4b.
+>
 > **2026-08-18, rev 7.** Five factions renamed by owner ruling -
 > Takamagahara -> **Kami**, Gehenna -> **Pandemonium**, Devaloka ->
 > **Devas**, Jotunheim -> **Asgard**, Achaea -> **Hemithea**. Every colour
@@ -60,7 +69,7 @@ rev 5).
 > card whose art was generated in this pass. Roster 112 -> 113.
 >
 > **2026-08-17, rev 5 (CHAPTER II).** Seven factions and 49 legends
-> added: Asgard, Hemithea, Pandemonium, Devas, Empyrean, Transylvania
+> added: Asgard, Hemithea, Pandemonium, Devas, Genesis, Transylvania
 > and Tortuga. Palettes and environments (section 2) and briefs
 > (section 5b) are written for all of them. **No art is generated yet** -
 > every new card ships `art: null` and renders its RPG Awesome icon
@@ -116,7 +125,7 @@ rev 5).
 > `assets/legends/<id>.jpg`. The sigil-ring mask in CSS is deleted; the
 > image simply covers the card and the HUD scrims keep the text legible.
 
-- **roster: 113 legends; art present for all 113** (the 49 Chapter II
+- **roster: 115 legends; art present for all 115** (the 49 Chapter II
   portraits were delivered by the owner 2026-08-17; Poseidon added 2026-08-18)
 - Six new Grimmwood legends were added in rev 3: Gingerbread Man, Evil Queen,
   Puss in Boots, Rapunzel, Goldilocks and Cinderella.
@@ -234,7 +243,7 @@ faction still reads as both.
 | Hemithea | `#d8b26a` | `#8c3b2e` | Sun-bleached bronze, oxblood cloak, salt-worn leather. Mortal, weathered. |
 | Pandemonium | `#c2402a` | `#2b1418` | Scorched brass, charred silk, ember-lit obsidian. Opulent and ruined. |
 | Devas | `#e8a33d` | `#7b3fa0` | Temple gold, saffron and violet silk, sandalwood ash. Radiant, ornate. |
-| Empyrean | `#f2e6c2` | `#c9a227` | Bleached ivory, worked gold, unblemished linen. Austere, absolute. |
+| Genesis | `#f2e6c2` | `#c9a227` | Bleached ivory, worked gold, unblemished linen. Austere, absolute. |
 | Transylvania | `#8e2f45` | `#241019` | Oxblood velvet, tarnished silver, damp stone. Gaslit, decaying. |
 | Tortuga | `#2f6f6a` | `#1a2a33` | Salt-bleached canvas, verdigris brass, waterlogged oak. Weathered, piratical. |
 
@@ -262,7 +271,7 @@ rendered with broader pixel clusters than the legend in front of it.
 | Hemithea | Storm-grey Aegean coast, beached war galleys, distant burning citadel on the headland |
 | Pandemonium | A burning valley at dusk, terraced ruins and slag, low ash cloud, embers rising from fissures |
 | Devas | Cloud-wreathed temple terraces at dawn, carved gopuram towers, lotus pools, drifting incense |
-| Empyrean | A vault of pale cloud and light, colossal unadorned gold architecture, no horizon detail |
+| Genesis | A vault of pale cloud and light, colossal unadorned gold architecture, no horizon detail |
 | Transylvania | Gaslit cobbled street below a mountain castle, wet stone, fog, a single lit window |
 | Tortuga | Moonlit harbour, wrecked and anchored hulls, a swinging lantern on a dark quay, low sea mist |
 
@@ -608,10 +617,15 @@ grinning with total confidence. Simple armour over a peach-pink haori,
 hachimaki headband. Signature: a war banner over the shoulder, plus a pheasant
 feather. `#d8894f` dust. Epic: banner detail and animal companions implied.
 
-**Kaguya** `epic / Caster / Magic` - Moon princess. Ethereal, pale to the
-point of translucency, impossibly long black hair drifting as if underwater.
-Twelve-layered junihitoe in white and silver. Signature: a full moon disc
-behind her head. `#9b7bff` motes rising. Epic: layered silk, weightless hair.
+**Miyamoto Musashi** `epic / Sniper / Physical` - The two-sword duellist,
+*(added 2026-08-18 when Kaguya moved to Kami)*. Lean weathered ronin in his
+thirties, unkempt shoulder-length black hair tied roughly back, stubbled jaw,
+a hard flat stare. Travel-worn dark indigo kimono with the sleeves pushed
+back, faded persimmon sash, and pointedly **no armour** - cloth where every
+other Yamato legend wears iron. Both blades drawn: the katana low and level,
+the wakizashi raised at the shoulder. Signature: the two-sword guard held in
+complete stillness, the instant before the cut. Steel-white rim. Epic: worn
+cloth folds and rope-wrapped hilts.
 
 ---
 
@@ -698,6 +712,18 @@ full imperial splendour.
 ---
 
 ### Kami - The plain of high heaven keeps its own counsel `#e8e3d3` / `#c4392f`
+
+**Kaguya** `epic / Caster / Magic` - Moon princess *(moved here from Yamato
+2026-08-18; brief and shipped art unchanged, filename now
+`kami-kaguya.png`)*. Ethereal, pale to the point of translucency, impossibly
+long black hair drifting as if underwater. Twelve-layered junihitoe in white
+and silver. Signature: a full moon disc behind her head. `#9b7bff` motes
+rising. Epic: layered silk, weightless hair.
+
+*Environment note: her shipped portrait carries Yamato's misty war camp, not
+Kami's sea of clouds and vermilion torii. Section 4 test 5 (alignment) fails
+for this one card against its new faction - same situation as Hercules in
+Hemithea. Left deliberately; flagged for the next art pass.*
 
 **Amaterasu** `legendary / Caster / Light` - Sun goddess. Face almost too
 bright to look at, serene, eyes closed or nearly. White and vermilion
@@ -975,7 +1001,18 @@ was singled out. Regal, slightly imperious, a short curled beard. Gold
 scale over storm-blue silk. Signature: a diadem of small gold spikes.
 `#63d7ff` arcs. Rare: the diadem.
 
-### Empyrean - The sentence was passed before you arrived `#f2e6c2` / `#c9a227`
+### Genesis - The sentence was passed before you arrived `#f2e6c2` / `#c9a227`
+
+**Adam** `epic / Tank / Nature` - The first man, standing as a wall *(added
+2026-08-18 with the rebrand)*. Powerfully built, dark-haired, bearded,
+ageless rather than old, deeply weathered sun-browned skin and sorrowful
+steady eyes. **No armour and no crown** - an undyed roughspun wrap knotted at
+the waist, coarse linen over one shoulder, a plain rope belt, in a faction
+where everyone else wears worked gold. Braced immovably, one forearm raised
+across the body as a guard. Signature: dry cracked earth and pale clay dust
+caked over his hands, forearms and shoulders, as though he were shaped from
+dirt and never quite finished drying. Leaf-green rim. Epic: the dust and the
+cloth, rendered heavier than the gold behind him.
 
 **Lucifer** `legendary / Caster / Fire` - The brightest, mid-fall.
 Beautiful, composed, entirely unrepentant; the face of someone who lost

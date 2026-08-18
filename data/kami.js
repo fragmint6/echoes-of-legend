@@ -248,6 +248,45 @@ window.EOL.registerFaction({
       art: 'assets/legends/kami-izanagi.png',
     },
     {
+      id: 'kami-kaguya',
+      name: 'Kaguya',
+      rarity: 'epic',
+      role: 'Caster',
+      element: 'Magic',
+      stats: { hp: 4740, atk: 1905, def: 15 },
+      ability: {
+        type: 'Active',
+        /* MOVED FROM YAMATO 2026-08-18 (owner ruling), and buffed 70 -> 85%.
+
+           WHY SHE BELONGS HERE. Yamato is the human war-camp - samurai,
+           warrior monks, a general, a boy raised on millet dumplings.
+           Kaguya is not a person from that camp: she is a being from the
+           MOON who is on loan to the earth and is being recalled. Kami is
+           the faction of divine beings and the cycle they turn (death,
+           purification, return), and "on loan, with a term" is that cycle
+           stated from the other side. Abe no Seimei stays in Yamato
+           because a court diviner is a job a human holds; Kaguya is not.
+
+           WHY THE BUFF. At 70% a copy was strictly worse than the card it
+           copied, so the honest play was almost always to field the
+           original instead - she read as a tax on your own board. 85%
+           keeps the copy a discount rather than a downgrade: her value is
+           now the SECOND cast of an ally's best Active in a round, which
+           is a real reason to draft her rather than a consolation.
+
+           WHY NOT 100%: a free duplicate of any Active in the game is not
+           a card, it is a rules exception - and it would make the strongest
+           legendary in the player's twelve strictly better by existing. */
+        name: 'Moon Reflection',
+        cost: 45,
+        text: 'Copy a random allied Active Skill at <b>85% effectiveness</b>.',
+        note: null,
+        spec: { target: { side: 'auto' }, effects: [{ k: 'copyAllyActive', scale: 0.85 }] },
+      },
+      icon: 'ra-moon-sun',
+      art: 'assets/legends/kami-kaguya.png',
+    },
+    {
       id: 'kami-susanoo',
       name: 'Susanoo',
       rarity: 'rare',

@@ -41,7 +41,7 @@ const FILES = [
   'data/hemithea.js',
   'data/pandemonium.js',
   'data/devas.js',
-  'data/empyrean.js',
+  'data/genesis.js',
   'data/transylvania.js',
   'data/tortuga.js',
   'data/lore.js',
@@ -908,7 +908,7 @@ const PROBES = {
     ok(f.hp < hp1, 'Abe: prophecy strikes at end of round');
     ok(f.flags.exposed > 0, 'Abe: prophecy applies Exposed');
   },
-  'yamato-kaguya': (B, u) => {
+  'kami-kaguya': (B, u) => {
     const before = JSON.stringify(B.units.map((x) => x.hp + '|' + x.shield + '|' + x.buffs.length));
     cast(B, u.card.id, []);
     const after = JSON.stringify(B.units.map((x) => x.hp + '|' + x.shield + '|' + x.buffs.length));
@@ -1233,6 +1233,121 @@ section('B8b. Poseidon - Lord of the Shoreline (Mark-on-Provoke)');
   ok(!pos.flags.tauntMark, 'the Mark rider expires with the Provoke, not after it');
 }
 
+section('B8c. Musashi and Adam (added 2026-08-18)');
+{
+  /* MUSASHI - the duellist branch.
+     Both arms are compared against EACH OTHER on the SAME target, with
+     only the target's HP changed. Asserting "the card dealt damage"
+     would have passed while the card was broken: the first draft used
+     `targetHpAbove: 80`, but the engine compares a RATIO (hp/maxHp), so
+     the condition could never be true and the bonus arm never fired.
+     A ratio test catches that; a "did something happen" test does not.
+
+     It also shipped with `pick: 1`, which pickCount() does not know -
+     it returns 0 for anything that is not 'single'/'two', so the target
+     list resolved EMPTY and the whole skill was a no-op that still
+     reported ok:true. Both bugs were found here, not by reading. */
+  const mk = () =>
+    board(
+      ['yamato-miyamoto-musashi', 'camelot-guinevere', 'olympus-apollo'],
+      ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+    );
+  function hit(pct) {
+    const B = mk();
+    const m = U(B, 'yamato-miyamoto-musashi');
+    const t = U(B, 'camelot-mordred');
+    t.hp = Math.floor(t.maxHp * pct);
+    const before = t.hp;
+    E.useAbility(B, m, m.card.ability, [t]);
+    return {
+      dmg: before - t.hp,
+      mult: (before - t.hp) / (E.atkOf(m) * (1 - E.defOf(t) / 100)),
+      crit: m.buffs.filter((b) => b.stat === 'crit').length,
+    };
+  }
+  const full = hit(1.0);
+  const edge = hit(0.85);
+  const under = hit(0.79);
+  ok(full.dmg > 0, 'Musashi actually deals damage (pick must be a form pickCount knows)');
+  ok(near(full.mult, 2.0, 0.02), 'Musashi hits an untouched target for 200% ATK (got ' + full.mult.toFixed(2) + ')');
+  ok(near(under.mult, 1.5, 0.02), 'Musashi hits a wounded target for 150% ATK (got ' + under.mult.toFixed(2) + ')');
+  ok(near(edge.mult, 2.0, 0.02), 'the threshold is 80% Max HP, so 85% still takes the bonus arm');
+  ok(full.crit === 1 && under.crit === 0, 'the Crit buff rides the bonus arm only');
+  ok(full.dmg > under.dmg, 'the opening cut beats the follow-up - the card is an ANTI-execute');
+}
+{
+  /* ADAM - the bet with a clock on it. */
+  const B = board(
+    ['genesis-adam', 'camelot-guinevere', 'olympus-apollo'],
+    ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+  );
+  const a = U(B, 'genesis-adam');
+  E.useAbility(B, a, a.card.ability, []);
+  ok(a.flags.taunt === 2, 'Adam provokes for 2 rounds');
+  ok(a.buffs.some((b) => b.stat === 'def' && b.amt === 20), 'Adam gains 20% DEF');
+  ok(a.pending.length === 1, 'Adam schedules exactly one payout');
+
+  /* The cost must be REAL - healMod -100 has to actually refuse a heal,
+     or the card is strictly upside. */
+  a.hp = Math.floor(a.maxHp * 0.5);
+  const beforeHeal = a.hp;
+  E.applyEffectsPublic(B, U(B, 'camelot-guinevere'), [a], [{ k: 'heal', pctMaxHp: 30, to: 'targets' }], {});
+  ok(a.hp === beforeHeal, 'Adam cannot be healed while the sentence stands');
+
+  const allies = [U(B, 'camelot-guinevere'), U(B, 'olympus-apollo')];
+  allies.forEach((x) => (x.hp = Math.floor(x.maxHp * 0.4)));
+  const pre = allies.map((x) => x.hp);
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(
+    allies.every((x, i) => x.hp > pre[i]),
+    'surviving the 2 rounds heals the whole team'
+  );
+  ok(a.pending.length === 0, 'the payout is consumed, not left pending');
+}
+{
+  /* ...and the enemy's counterplay: kill him and the heal never lands.
+     Without this the card is a delayed team-heal with no risk. */
+  const B = board(
+    ['genesis-adam', 'camelot-guinevere', 'olympus-apollo'],
+    ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+  );
+  const a = U(B, 'genesis-adam');
+  E.useAbility(B, a, a.card.ability, []);
+  const allies = [U(B, 'camelot-guinevere'), U(B, 'olympus-apollo')];
+  allies.forEach((x) => (x.hp = Math.floor(x.maxHp * 0.4)));
+  const pre = allies.map((x) => x.hp);
+  a.alive = false;
+  a.hp = 0;
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(
+    allies.every((x, i) => x.hp === pre[i]),
+    'killing Adam inside the window cancels the heal - the bet is losable'
+  );
+}
+{
+  /* KAGUYA - the 70 -> 85% buff, measured rather than read off the text.
+     Kaguya + exactly ONE ally makes the random copy deterministic. */
+  const B = board(
+    ['kami-kaguya', 'yamato-tomoe-gozen'],
+    ['camelot-mordred', 'huaxia-mulan']
+  );
+  const k = U(B, 'kami-kaguya');
+  const foes = foesOf(B);
+  const before = foes.map((f) => f.hp);
+  E.useAbility(B, k, k.card.ability, []);
+  const dealt = foes.reduce((sum, f, i) => sum + (before[i] - f.hp), 0);
+  /* Tomoe's 145%, cast off KAGUYA's ATK, scaled by 0.85. */
+  const expect = E.atkOf(k) * 1.45 * 0.85 * (1 - E.defOf(foes[0]) / 100);
+  ok(near(dealt, expect, 0.03), 'Kaguya copies at 85%, not 70% (got ' + Math.round(dealt) + ' vs ' + Math.round(expect) + ')');
+  ok(
+    CARD['kami-kaguya'].ability.spec.effects[0].scale === 0.85,
+    'the copy scale in the data is 0.85'
+  );
+  ok(/85% effectiveness/.test(CARD['kami-kaguya'].ability.text), 'the card text says 85%');
+}
+
 section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
 {
   const SNIPER_SIGS = ALL.filter(
@@ -1248,7 +1363,7 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     'hemithea-hercules',
     'huaxia-guan-yu',
     'camelot-merlin',
-    'yamato-kaguya',
+    'kami-kaguya',
     'olympus-apollo',
   ];
   const mates = [
@@ -1299,8 +1414,8 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
       return hp0 - v.hp;
     };
     ['yamato-tomoe-gozen', 'huaxia-nezha'].forEach((id) => {
-      const clean = shoot(id, 'yamato-kaguya', null);
-      const taxed = shoot(id, 'yamato-kaguya', 'camelot-king-arthur');
+      const clean = shoot(id, 'kami-kaguya', null);
+      const taxed = shoot(id, 'kami-kaguya', 'camelot-king-arthur');
       ok(
         near(taxed / clean, 0.7, 0.02),
         CARD[id].name + ' pays the 0.7x Provoke tax (' + clean + ' -> ' + taxed + ')'
@@ -1433,13 +1548,13 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
      Apollo's "Mark the highest ATK enemy" bypassed the target picker
      entirely and marked a legend who could not legally be targeted. */
   {
-    const B = setup('olympus-apollo', { untarg: 'yamato-kaguya' });
+    const B = setup('olympus-apollo', { untarg: 'kami-kaguya' });
     E.useAbility(B, U(B, 'olympus-apollo'), CARD['olympus-apollo'].ability, [
       U(B, 'grimmwood-snow-white'),
     ]);
     const marked = B.units.filter((u) => u.side === 'enemy' && u.flags.marked);
     ok(
-      !marked.some((u) => u.card.id === 'yamato-kaguya'),
+      !marked.some((u) => u.card.id === 'kami-kaguya'),
       'Apollo\u2019s Mark rider skips an Untargetable enemy'
     );
     ok(

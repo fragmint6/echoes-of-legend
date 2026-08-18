@@ -202,7 +202,7 @@ first, exactly as the Outlaw sells Sherwood with Robin Hood.
 - **Lesson**, and nobody expects it: **you beat this by cancelling, not
   by racing.** Out-damaging a scheduled hit loses; removing the caster or
   clearing the pending effect means you never take it.
-- **Bans** your fastest card. **Unlocks** Empyrean.
+- **Bans** your fastest card. **Unlocks** Genesis.
 - **Reward.** Azrael + Raphael, coin, and a question that cannot be
   un-asked.
 
@@ -498,7 +498,7 @@ Wrecker's theft (XVIII).
 |---|---|---|---|
 | XI The Understudy | Hemithea | Hemithea | **Achilles** |
 | XII The Bookmaker | Huaxia | Huaxia | **Sun Wukong** |
-| XIII The Herald | Empyrean | Empyrean | **Lucifer** |
+| XIII The Herald | Genesis | Genesis | **Lucifer** |
 | XIV The Collector | Transylvania | Transylvania | **Dracula** |
 | **XV Hero of the Bridge** *(exam)* | the four taught decks, 3/3/3/3 | **— nothing** | — |
 | XVI The Undertaker | Asgard | Asgard | **Odin** |
@@ -521,12 +521,13 @@ the Road. So each faction's legendary is the campaign reward for the
 bout that introduces it: you can buy your way toward Sherwood, but Robin
 Hood comes from beating the Outlaw.
 
-**Which faction stays unbuyable is now an open question.** Huaxia was
-withheld because it was this chapter's reveal; it is now introduced early,
-at XII. The argument for withholding has moved to **Pandemonium**, the
-boss payout — but the owner has asked to discuss a **per-chapter shop**
-instead of a single withhold list, so `js/economy.js` is unchanged this
-pass. See §8.
+**The whole chapter is withheld from the shop** (owner ruling, 2026-08-18b:
+*"keep the shop as is with the pack pool containing just chapter 1 cards"*).
+Releasing these cards for one turn took the packable pool from 35 to 80 and
+roughly halved the odds of pulling any given Chapter One legend, for players
+who cannot play this chapter yet. `WITHHELD` now lists all eight faction ids
+and packable is back to 36. The per-chapter shop remains the open design
+question; see §8 of the lore doc.
 
 ---
 

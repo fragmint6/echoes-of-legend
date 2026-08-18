@@ -68,7 +68,7 @@ window.EOL.registerFaction({
 
            Burn on all six is the widest Burn application in the game,
            which is exactly what a fuse-covered pirate should be, and it
-           pairs with Empyrean's waiting game and Duat's execute line. */
+           pairs with Genesis's waiting game and Duat's execute line. */
         text: 'Deal <b>55% ATK Fire Damage</b> to all enemies and <b>Burn</b> the <b>2</b> lowest HP among them for 2 rounds.',
         note: null,
         spec: {

@@ -56,7 +56,11 @@
   'use strict';
   window.EOL = window.EOL || {};
 
-  var DONE_KEY = 'eol.idmap.2026-08-18';
+  /* BUMPED for the second wave of renames. A player who booted between the
+     two rulings already has DONE_KEY = '1' for the first key, so reusing it
+     would skip empyrean->genesis and yamato-kaguya->kami-kaguya entirely and
+     silently eat those cards. A new key re-runs the whole (idempotent) map. */
+  var DONE_KEY = 'eol.idmap.2026-08-18b';
 
   /* old faction id -> new faction id. Card ids are `<faction>-<slug>`
      and only the PREFIX changes, so a prefix swap is sufficient and
@@ -68,6 +72,10 @@
     devaloka: 'devas',
     jotunheim: 'asgard',
     achaea: 'hemithea',
+    /* Added 2026-08-18b. Empyrean -> Genesis: "Empyrean" is the highest
+       heaven and admits only angels, but the faction now also holds Adam,
+       and Genesis is the book he comes from. */
+    empyrean: 'genesis',
   };
 
   /* Cards that changed FACTION, not just faction name. These need a
@@ -76,6 +84,11 @@
      earned his myth belongs with the mortals. */
   var CARD_MOVES = {
     'olympus-hercules': 'hemithea-hercules',
+    /* Added 2026-08-18b. Kaguya is a being on loan from the moon, not a
+       member of a human war camp, so she left Yamato for Kami. Same
+       reasoning as Hercules: the slug moved house, so a prefix swap is
+       not enough and the full id has to be mapped. */
+    'yamato-kaguya': 'kami-kaguya',
   };
 
   function mapId(id) {

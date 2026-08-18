@@ -164,7 +164,7 @@ Three laws fall out of it, and Chapter Two follows all three:
 3. **Eight factions across ten gates.**
 
 Chapter Two therefore introduces its eight — Hemithea, Transylvania,
-Empyrean, Devas, Asgard, Tortuga, Huaxia, Pandemonium — at every bout except
+Genesis, Devas, Asgard, Tortuga, Huaxia, Pandemonium — at every bout except
 the two elites, which are its exams.
 
 ---
@@ -848,7 +848,7 @@ implementation note: which deck each rival fields, and why it suits them.
 |---|---|---|
 | The Understudy | Hemithea | mortals with no god; everyone becomes more mid-fight |
 | The Bookmaker | **Huaxia** | a bookmaker never picks a side — he takes the other side of yours |
-| The Herald | Empyrean | announces every blow a round early |
+| The Herald | Genesis | announces every blow a round early |
 | The Collector | Transylvania | takes rather than destroys |
 | The Hero of the Bridge *(exam)* | *the four taught decks, 3/3/3/3* | an exam fields what you were taught, not something new |
 | The Undertaker | Asgard | strongest once the board starts emptying |
@@ -872,7 +872,7 @@ faction:
 |---|---|---|---|
 | XI The Understudy | nothing is finished at turn one; legends ascend mid-fight | **Achilles** | Hemithea |
 | XII The Bookmaker | he never opens — every card answers what you just did | **Sun Wukong** | Huaxia |
-| XIII The Herald | damage is scheduled a round early, in the open | **Lucifer** | Empyrean |
+| XIII The Herald | damage is scheduled a round early, in the open | **Lucifer** | Genesis |
 | XIV The Collector | what she strips off you reappears on her | **Dracula** | Transylvania |
 | **XV Hero of the Bridge** | *(exam — no gimmick, and that is the test)* | — | **nothing** |
 | XVI The Undertaker | the deck improves as the board empties | **Odin** | Asgard |
@@ -891,21 +891,26 @@ the even trade, commit late.
 Confirmed across all seven: Odin, Achilles, Pride, Shiva, Lucifer, Dracula,
 Blackbeard. Nothing to change — `sim/verify_chapter2.js` already asserts it.
 
-**The other 42 are in packs.** As of 2026-08-18 the seven factions' commons,
-rares and epics are buyable from the shop like any other card, and they count
-toward the collection total. The seven **legendaries are not**, because the
-Crown Law says legendaries are never sold anywhere in the game — they come
-from the Road. So each faction's legendary stays the campaign reward for the
-bout that introduces it, which is exactly the Chapter One shape: you can buy
-your way toward Sherwood, but Robin Hood comes from beating the Outlaw.
+**None of them are in packs, and that is the current ruling.** For one turn
+on 2026-08-18 the non-legendaries were released into the shop; that has been
+reverted. Owner: *"keep the shop as is with the pack pool containing just
+chapter 1 cards."*
 
-**Which faction stays unbuyable is an open question.** Huaxia has been
-withheld from the shop since Chapter One on the grounds that it was this
-chapter's reveal. It is now introduced at **XII**, early, by the Bookmaker —
-so the argument for withholding it has moved to **Pandemonium**, which is now
-the last deck in the game and the boss's payout. The owner has asked to
-discuss a **per-chapter shop** rather than a single withhold list, so nothing
-is changed in `js/economy.js` this pass; see §8.
+The measured reason is the good one. Releasing them took the packable pool
+from **35 to 80 cards**, which roughly halved the odds of pulling any
+specific Chapter One legend — for players who cannot play Chapter Two,
+because it does not exist in code. A chapter that is still a design document
+should not be taxing a live economy.
+
+So the shelf is closed to the whole chapter: `WITHHELD` in `js/economy.js`
+lists all eight faction ids, packable is back to **36 Chapter One cards**,
+and a faction leaves that list when its chapter is *playable*, not when its
+cards happen to exist. The Crown Law is unaffected either way — legendaries
+are never sold, so the eight campaign legendaries were always going to come
+from the Road.
+
+**The per-chapter shop is still the open question**, not this revert; see
+§8.
 
 ### Huaxia belongs to the two men who outlived its empire
 
@@ -967,9 +972,9 @@ by the time you meet him — which is the quieter version of the same joke.
 - **Every rival demonstrates the faction they hand over**, legendary
   first, exactly as the Outlaw sells Sherwood with Robin Hood — and the two
   that hand over nothing are the two that are testing you.
-- **One legendary each, and only the legendary is campaign-locked** —
-  the other 42 cards are in packs, so a player can build toward a
-  faction and still has to earn its crown.
+- **One legendary each**, and for now the whole chapter is campaign-only:
+  the shop stocks Chapter One until Chapter Two is playable, so building
+  toward one of these factions means walking its Road.
 
 ---
 

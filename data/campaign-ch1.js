@@ -705,7 +705,26 @@ window.EOL = window.EOL || {};
           'yamato-benkei',
           'yamato-abe-no-seimei',
           'yamato-momotaro',
-          'yamato-kaguya',
+          /* MUSASHI joined Yamato on 2026-08-18 and this table must hold
+             the featured faction COMPLETE, so he is here by law.
+
+             KAGUYA stays even though she is now a Kami card. The
+             progression law lets a curated table preview NON-LEGENDARY
+             cards from the next road, and this table already previews
+             kami-tsukuyomi on exactly that clause - so an epic Kami
+             Caster is legal here for the same reason. Keeping her also
+             keeps the Caster count at 4, the floor the pool audit
+             enforces: Yamato's only Caster left with her, the four
+             introduced factions have no spare Caster, and the one
+             remaining candidate (grimmwood-evil-queen) is a legendary
+             that would break the four-Legendary cap.
+
+             What gave way instead is a CONTROLLER. The table carried
+             eight, two more than any other role, and Morgan le Fay is
+             the one whose job (expose the favourite) is already covered
+             here by Medusa and Merlin. */
+          'yamato-miyamoto-musashi',
+          'kami-kaguya',
           'grimmwood-hansel-gretel',
           'roma-cicero',
           'grimmwood-big-bad-wolf',
@@ -721,7 +740,6 @@ window.EOL = window.EOL || {};
           'camelot-king-arthur',
           'camelot-merlin',
           'camelot-lancelot',
-          'camelot-morgan-le-fay',
           'camelot-guinevere',
           'camelot-mordred',
           'sherwood-guy-of-gisborne',
@@ -800,7 +818,7 @@ window.EOL = window.EOL || {};
           'olympus-zeus',
           'kami-tsukuyomi',
           'camelot-merlin',
-          'yamato-kaguya',
+          'kami-kaguya',
           'grimmwood-rapunzel',
           'roma-cicero',
           'olympus-medusa',
@@ -878,7 +896,7 @@ window.EOL = window.EOL || {};
           'grimmwood-evil-queen',
           'olympus-zeus',
           'grimmwood-rapunzel',
-          'yamato-kaguya',
+          'kami-kaguya',
           'kami-izanami',
           'kami-inari',
           'roma-cicero',

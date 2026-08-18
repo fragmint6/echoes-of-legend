@@ -116,6 +116,39 @@ console.log('A. the five faction renames, across every save shape');
   );
 }
 
+console.log('A2. the second wave of renames (2026-08-18b)');
+{
+  const store = {
+    'eol.owned.v1': J(['empyrean-lucifer', 'empyrean-raphael', 'yamato-kaguya', 'yamato-benkei']),
+    'eol.decks.v1': J([{ id: 1, name: 'a', ids: ['empyrean-azrael', 'yamato-kaguya'] }]),
+    'eol.upgrades.v2': J({ v: 2, cards: { 'yamato-kaguya': { dupes: 4, boosts: ['atk', 'atk'] } } }),
+  };
+  freshEnv(store);
+  const owned = P(store['eol.owned.v1']);
+  ok(owned.includes('genesis-lucifer'), 'empyrean -> genesis (owned)');
+  ok(owned.includes('kami-kaguya'), 'yamato-kaguya -> kami-kaguya (a card that changed faction)');
+  ok(owned.includes('yamato-benkei'), 'the rest of Yamato is untouched');
+  ok(P(store['eol.decks.v1'])[0].ids.join() === 'genesis-azrael,kami-kaguya', 'both land in saved decks');
+  ok(
+    P(store['eol.upgrades.v2']).cards['kami-kaguya'].dupes === 4,
+    "Kaguya's dupes survive the faction change"
+  );
+}
+
+console.log('A3. a player who migrated BEFORE the second wave still gets it');
+{
+  /* The bug this guards: reusing the old DONE_KEY would short-circuit the
+     boot for anyone who played between the two rulings, so their Empyrean
+     and Kaguya cards would never be remapped and would silently vanish. */
+  const store = {
+    'eol.idmap.2026-08-18': '1',
+    'eol.owned.v1': J(['empyrean-gabriel', 'yamato-kaguya']),
+  };
+  freshEnv(store);
+  const owned = P(store['eol.owned.v1']);
+  ok(owned.includes('genesis-gabriel') && owned.includes('kami-kaguya'), 'the old guard key does not block the new renames');
+}
+
 console.log('B. Hercules changed faction, not just faction name');
 {
   const store = {
@@ -174,7 +207,7 @@ console.log('D. idempotence and safety');
 
   /* Running with the guard cleared must ALSO be safe - the new ids
      match no old prefix, so there is nothing left to rewrite. */
-  delete store['eol.idmap.2026-08-18'];
+  delete store['eol.idmap.2026-08-18b'];
   freshEnv(store);
   ok(store['eol.owned.v1'] === once, 'even a forced re-run cannot double-migrate');
 
@@ -194,11 +227,11 @@ console.log('E. a cloud restore re-arms the migration');
   /* cloud.restore() writes the vault over localStorage and reloads, so
      old ids can arrive on a device that already set DONE_KEY. The boot
      must force the rewrite when the restore marker is present. */
-  const store = { 'eol.idmap.2026-08-18': '1', 'eol.owned.v1': J(['takamagahara-inari']) };
+  const store = { 'eol.idmap.2026-08-18b': '1', 'eol.owned.v1': J(['takamagahara-inari']) };
   freshEnv(store, {}); // no marker: guard holds, nothing happens
   ok(P(store['eol.owned.v1'])[0] === 'takamagahara-inari', 'without the marker the guard short-circuits');
 
-  const store2 = { 'eol.idmap.2026-08-18': '1', 'eol.owned.v1': J(['takamagahara-inari']) };
+  const store2 = { 'eol.idmap.2026-08-18b': '1', 'eol.owned.v1': J(['takamagahara-inari']) };
   const sess = { 'eol.cloud.restored': '1' };
   freshEnv(store2, sess);
   ok(P(store2['eol.owned.v1'])[0] === 'kami-inari', 'a cloud-restore boot migrates despite the guard');
