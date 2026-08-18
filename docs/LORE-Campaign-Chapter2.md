@@ -1,406 +1,459 @@
 # Echoes of Legend
-## Chapter Two: The Siege of Uruk
+## Chapter Two: The Hundred-Year Truce
 
 *Campaign narrative draft — written to be delivered in scenes, rival
 encounters, battle barks, codex entries, and post-battle memories. It is
 prose first: the mechanics are the shape beneath the story, not the story
 itself.*
 
-*Continues from `LORE-Campaign-Chapter1.md`.*
+---
+
+## 0. This chapter stands alone
+
+**Chapter Two is not a sequel.** It shares the game's premise — legends
+persist as Echoes, and they fight — and nothing else. No Road, no gates, no
+Recruiter, no Quiet, no Gilgamesh, no Wayfarer. A player who has never
+touched Chapter One loses nothing, and a player who finished it is not owed
+a callback.
+
+Different frame, deliberately:
+
+| | Chapter One | Chapter Two |
+|---|---|---|
+| Shape | a pilgrimage — ten gates, forward, alone | a **tournament** in one city over one week |
+| Stakes | will my story be remembered | who gets to **own** a story |
+| Protagonist | a blank, seeking a name | a **champion with a name and a bad reputation** |
+| Tone | elegiac, quiet, sad | loud, political, funny, then not funny |
+| Antagonist | grief with teeth | **the people running the event** |
+
+Chapter One asked *does my story deserve to last*. Chapter Two asks something
+nastier: **your story lasted. Somebody else is telling it. What do you do?**
 
 ---
 
-## 0. The pitch, in one paragraph
+## 1. The premise
 
-Chapter One ended with a reveal that was never paid off: **the Quiet is
-Gilgamesh's grief for Enkidu, grown teeth.** He appealed death, was refused,
-asked *what if nothing were ever forgotten*, and the answer got out. Chapter
-Two is the bill arriving. The Quiet has come home to the city that made it,
-and it is not weather — it is **looking for Enkidu**, in the only place he was
-ever really kept, and it will take Uruk apart room by room until it finds
-him. The Wayfarer has nine days, a city of two thousand, and one enormous
-problem: **the thing they must beat is a dead man's memory, and the only way
-to end it is to let him go** — which means persuading eight people who have
-each built their afterlife on refusing to let go of somebody.
+Every hundred years the seven great houses of the afterlife hold **the
+Concord** — a tournament to settle the only thing the dead can still
+disagree about: *whose version is true*.
 
-Every rival is a different flavour of that refusal. That is the chapter.
+Because stories drift. The living retell them, and each retelling edits.
+Ninety-nine years ago the houses agreed to stop fighting about it in the
+streets and start fighting about it in an arena. One week, seven houses, one
+ruling. Whoever wins the Concord holds **the Canon** for a century: the right
+to say how every contested legend is remembered.
 
----
+It has worked. That is the problem.
 
-## 1. Why the enemy is not weather
+**You are Sargon** — no relation to the king, and that is the joke; you are
+the *other* Sargon, a mercenary captain who died badly in a war nobody
+records, and whose name got attached to someone else's victories by a
+careless scribe four hundred years ago.
 
-The line on the plain is the *symptom*. Underneath, the chapter has a
-villain with a want, and the want is sympathetic and specific:
+You are famous for things you did not do.
 
-**ENKIDU IS GONE, AND THE THING THAT MISSES HIM IS STILL LOOKING.**
+The Canon says you are a hero. You were not. You know exactly what you were,
+and for four hundred years you have watched crowds cheer a version of you
+that would have despised the real one. You have entered the Concord eleven
+times to have it corrected. You have lost eleven times, because the houses
+find your case *embarrassing* — nobody wants to open the question of how many
+other entries are wrong.
 
-- It moves toward Uruk because Uruk is where Enkidu was known. Memory is
-  its food and also its search.
-- It eats the city **in the order Enkidu would have walked it** — the wild
-  country first, then the gates, then the tavern, then the wall where the two
-  of them used to sit. This is how the defenders work out what it wants,
-  around day five, and it is the moment the chapter turns from a disaster
-  film into a story.
-- It cannot be killed, reasoned with, or outrun. It can be **given what it
-  came for**, and nobody wants to pay that, because paying it means the last
-  person who remembers Enkidu properly has to stop.
-
-That last person is not Gilgamesh. He tried and failed for four thousand
-years. It is his rival-turned-brother's *other* survivor: **Shamhat**, who
-found Enkidu wild in the grass and taught him to be a person, and who has
-been quietly running a tavern at the edge of Uruk ever since, telling anyone
-who sits down exactly who he was.
-
-She is the reason the Quiet can find the city. She is also the only person
-in the world who can end it. She knows both of those things when you meet
-her on day nine, and she keeps pouring drinks.
+This is your twelfth. It is also the first Concord in a century where the
+Canon is genuinely up for grabs, because the house that has held it for four
+hundred years has just done something unforgivable.
 
 ---
 
-## 2. The eight rivals
+## 2. What the houses actually want
 
-Each one: a wound, a refusal, a mechanic, a ban, a reward.
+The seven houses are the seven new factions. Each has a **claim** it wants
+written into the Canon, and each claim is reasonable, and they cannot all
+be true.
 
----
+| House | Wants written into the Canon |
+|---|---|
+| **Empyrean** | that judgement is *impartial* — they have held the Canon 400 years and want their tenure ratified |
+| **Devaloka** | that nothing is ever settled; the Canon should **expire yearly**, not centennially |
+| **Achaea** | that mortals count — that a legend needs no god's permission to be true |
+| **Gehenna** | that every version is for sale, and pretending otherwise is the only real sin |
+| **Jotunheim** | that the Concord should be **abolished**; stories should be allowed to end |
+| **Transylvania** | that a story belongs to whoever kept it, not whoever lived it |
+| **Tortuga** | that the Canon is loot and they intend to take it |
 
-### XI — ENHEDUANNA, THE SIGNATURE *(day nine)*
-
-**The wound.** A usurper threw her out of her own temple. She wrote a poem so
-furious the goddess reinstated her — and she put her *name at the bottom*,
-the first person in history to do it, because an accusation without a
-signature is only a rumour.
-
-**Her refusal.** She will not let a single name go unclaimed. Nine days of
-evacuation and she is personally writing every soul onto a tablet, by hand,
-because a list somebody signed is a list somebody can be blamed for.
-
-**Why she fights you.** She does not trust twelve armed strangers who came out
-of a wall. She wants to see what you do when you are losing.
-
-**Playstyle.** Achaea — Odysseus, Ajax, Atalanta, Medea. Mortals, no gods.
-Every one of them *becomes* something partway through the fight, which is the
-lesson: a legend is not a fixed quantity. **She bans your two highest-cost
-cards** — "you will not be buying your way out of this week."
-
-**Line.** "I am not the greatest of them. I am the one who signed."
-
-**Reward.** Odysseus + Atalanta. Coin.
+You want one line changed. One.
 
 ---
 
-### XII — THE HERALD, WHO CAME TO WATCH *(day eight)*
+## 3. The week
 
-**The wound.** He has spent an age waiting for Ragnarök: a *proper* ending,
-prophesied, dated, with a field growing back afterwards and two people
-walking out of a wood. He has been robbed of it. What is coming out of the
-east is not an ending, it is a **cancellation** — and it will take his
-apocalypse along with everyone else's.
-
-**His refusal.** He will not let the world end wrongly. He would rather die on
-schedule than be deleted early.
-
-**Why he fights you.** He is sitting on the grain silo you were sent to empty,
-and he will not move for people who cannot beat him. "If you can't take one
-bored Norseman on a good night, you've no business on that wall."
-
-**Playstyle.** Jotunheim — Odin, Fenrir, Hel, Heimdall. Deliberately weak in
-the opening rounds and strongest once legends start dying; the first deck in
-the game that *improves* as the board empties. **Bans your healers** — "no
-one is getting patched up at the end of the world."
-
-**Line.** "Everyone dies at the end of the world. That is what makes it the
-end of the world. It is an appointment, not a tragedy."
-
-**Reward.** Odin + Fenrir. Coin. And he keeps his word: he is on the wall on
-the last day.
+Seven days, seven bouts, plus the two that are not on the schedule.
 
 ---
 
-### XIII — THE QUARTERMASTER, NINE HULLS *(day seven)*
+### XI — THE OPENING BOUT: MEDEA, WHO IS PAID TO LOSE
 
-**The wound.** She drowned with a full hold and an empty conscience, and she
-has been salvaging ever since. She has never once been thanked at the time.
+**House:** Achaea · **Day one**
 
-**Her refusal.** She will not leave cargo on a sinking thing. Not grain, not
-people, not memories. Everything gets loaded or she does not sail.
+She is the warm-up act. Everyone knows it, including her.
 
-**Why she fights you.** Two thousand people, sixteen hundred berths, and you
-are at the front of the queue trying to negotiate the fare. The fare is one
-memory, her pick. She has stopped explaining herself to people in queues.
+**Her situation.** Achaea cannot afford a real campaign, so they sell their
+early bouts — Medea takes money from whichever house wants a soft opening and
+loses convincingly. It is honest work. She is very good at it.
 
-**Playstyle.** Tortuga — Blackbeard, Anne Bonny, The Kraken, Davy Jones. Theft
-as tempo: your buffs do not get removed, they change sides. **Bans your
-buff-heavy support** — she takes the good stuff first.
+**Why she fights you properly anyway.** Because you are the other Sargon, and
+she has read your eleven petitions, and she is the first person in four
+hundred years to say out loud that she thinks you are right. "I have been
+paid to lose this. I have not been paid to *insult* you."
 
-**Line.** "You want to argue whose memory it is, argue it with the thing out
-east. It doesn't take pieces. It takes the lot."
+**Playstyle.** Achaea — Odysseus, Ajax, Atalanta, Medea. Nobody on her board
+is finished when the fight starts; each becomes something better partway
+through. **Bans your two most expensive cards.**
 
-**Reward.** Anne Bonny + Davy Jones. Coin. And nine hulls, which is the only
-reason anybody survives this chapter.
+**Line.** "Everyone here is bought. The trick is knowing what you were sold
+for. I was sold for eleven silver and a fair opinion of you, and I intend to
+deliver both."
 
----
-
-### XIV — THE HOST, WHO OPENED HIS DOORS *(day six)*
-
-**The wound.** He has outlived everyone he ever loved, one at a time, for
-centuries, and he has learned to take a small piece of each person so that
-he never has to.
-
-**His refusal.** He will not lose another one. Two hundred people are in his
-house and the line cannot come in, and every day he takes a thin slice of
-what makes them *them* — a preference, a turn of phrase, the reason they
-loved a song rather than the song.
-
-**Why he fights you.** You came to make him stop, and he genuinely wants you
-to look at the room first. Warm fires, food, children asleep on benches
-rather than stone. Then tell him the alternative.
-
-**Playstyle.** Transylvania — Dracula, Carmilla, Dorian Gray, Frankenstein's
-Monster. Conversion: what he strips off your board appears on his. He grows
-out of you. **Bans your cleansers**, so what he takes stays taken.
-
-**Line.** "Three offers are on the table. The pirate boxes it, I shave it, the
-line takes all of it. Mine is the best one and I am sick of being called a
-monster by people who have not read the other two."
-
-**Reward.** Carmilla + Dorian Gray. Coin.
+**Reward.** Odysseus + Atalanta. Coin. And your first ally.
 
 ---
 
-### XV — THE TURNER, WHO KEEPS THE WHEEL *(day five)*
+### XII — THE FIXER: THE DEBT-KEEPER
 
-**The wound.** She used to be a god. There are fewer gods each week now, and
-she has watched two vanish from her own rotation without being able to
-recall which two.
+**House:** Gehenna · **Day two**
 
-**Her refusal.** She will not let the world stop turning while she still has
-legs. Sixty priests, a ring worn a hand's depth into an undercroft floor,
-walking in shifts for nine days: creation, preservation, destruction,
-creation.
+He runs the book on the Concord and he is not hiding it.
 
-**Why she fights you.** You came down to drag sixty pairs of hands up to the
-wall, and she needs you to understand that if the wheel stops there is
-nothing for the carts to roll on.
+**His situation.** Gehenna's claim is that everything is for sale. He proves
+it annually by buying results, openly, and daring anyone to object — because
+objecting means admitting the Canon can be bought, which is exactly his
+claim.
 
-**THIS IS THE TURN OF THE CHAPTER.** She is the one who has noticed the
-pattern — the line is not advancing on a front, it is advancing on a
-*route*. Wild country, then the gates, then the tavern district, then the
-old wall. She does not know what the route means. She sends you to the one
-person who will.
+**Why he fights you.** He offers to buy your twelfth petition. Not to bury it
+— to *fund* it. He will hand you the Canon if you agree to owe him, and he
+will not say what the debt is for. "That is the point of a debt. If you knew
+the price you would call it a purchase."
 
-**Playstyle.** Devaloka — Shiva, Kali, Ganesha, Durga. Setup and payoff as two
-separate jobs; the clearest mark-economy board in the game. **Bans your
-finishers**, so you have to build the kill rather than find it.
+You can take the deal. Taking it wins you the chapter's easiest run and one
+of its two bad endings.
 
-**Line.** "Ask me if I am a god. I was. I am now a habit a god used to have.
-The habit still works. That is the interesting part."
+**Playstyle.** Gehenna — Greed, Envy, Pride, Wrath. Every card visibly buys
+its strength with something. **Bans your cheapest card** — he sets prices.
 
-**Reward.** Ganesha + Kali. Coin. And the route.
-
----
-
-### XVI — THE ADVOCATE, WHO CONVENES *(day four)*
-
-**The wound.** It has read every file and never once been allowed to argue
-one. It reads verdicts. That is the entire job.
-
-**Its refusal.** It will not enter an unfinished record. The question before
-its court is not whether Uruk should be *saved* — its office does not do
-rescues — but whether Uruk should be **recorded**. Find for the city and there
-is a permanent wound in the world: two thousand people, remembered as lost.
-Find against and there is no wound, because there was never a city, and you
-cannot mourn what was not there.
-
-**Why he fights you.** It appoints you counsel, because the position was
-vacant, and the argument is conducted with legends instead of words.
-
-**Playstyle.** Empyrean — Azrael, Michael, Gabriel, Raphael. Everything is
-announced before it lands: the most telegraphed and most lethal board in the
-chapter, and the first that is beaten by *cancelling* rather than out-racing.
-**Bans your fastest card** — "the court will not be rushed."
-
-**Line.** "A verdict said aloud is a mercy. It gives you the days between.
-Nobody has ever thanked me for the days between."
-
-**Reward.** Azrael + Raphael. Coin. And a finding — which stays undelivered
-until the epilogue, and matters enormously there.
-
----
-
-### XVII — THE DEBT-KEEPER, WHO OBJECTS *(day three)*
-
-**The wound.** He was owed, once, by a whole province, and the province
-starved, and he did not consider that a failure of the arrangement. Being
-owed is the only form of being needed he has ever managed.
-
-**His refusal.** He will not give anything away. He *lends* — grain, freely,
-today, to anyone, against a debt payable later.
-
-**The joke, and it is a real one.** On day three you point out that the line
-arrives in three days and there is no *later*. He stops. You watch a genuinely
-new thought arrive behind his eyes: he has been doing charity, by accident,
-for nine days, and he is furious about it. He fights you to prove he is still
-the man he was, loses, and spends the last day at the gangplank tearing pages
-out of his own ledger and swearing continuously.
-
-**Playstyle.** Gehenna — Greed, Envy, Pride, Wrath. Power on open terms, each
-sin visibly buying its strength with something. **Bans your cheapest card** —
-everything here has a price, and he sets it.
-
-**Line.** "I never lied to a single one of them. The terms were on the tablet.
-They simply wanted the thing more than they wanted to read."
+**Line.** "I have never lied to a bettor. I simply notice that nobody reads
+the back of the tablet, and I have stopped considering that my failing."
 
 **Reward.** Greed + Envy. Coin.
 
 ---
 
-### XVIII — THE NINTH LEDGER-KEEPER, WHOSE WALL WALKED *(day two)*
+### XIII — THE INCUMBENT'S SECOND: MICHAEL
 
-**The wound.** He has held a border for four thousand years against nothing
-at all, for a country that no longer exists, and has never once been
-relieved.
+**House:** Empyrean · **Day three**
 
-**His refusal.** He will not abandon a post. Not for four millennia, not for
-an empty map, not for this.
+The Canon-holders do not fight their own early bouts. They send Michael.
 
-**Why he fights you.** On the second-to-last morning his wall is *on the
-plain outside Uruk*, having moved for the first time in four thousand years.
-He does not understand the mechanism. He takes it as an instruction. He also
-takes command, provisionally, and informs you that you will fight him first
-and lose — "because everything you have learned this week is a way of
-*starting* something, and nobody in this city knows how to answer."
+**His situation.** He believes, entirely sincerely, that Empyrean's four
+hundred years have been fair. He has never audited them. It has not occurred
+to him that he should.
+
+**Why he fights you.** You have entered twelve times. He has been instructed
+to make the twelfth quick, and he has been given no reason, and he does not
+ask for one — and that incuriosity is the whole character.
+
+**The seam.** Mid-bout he does something that costs him the advantage: he
+refuses a ruling from his own officials that would have won it. He does not
+explain. He fights on and loses.
+
+**Playstyle.** Empyrean — Michael, Gabriel, Raphael, Azrael. Everything
+announced a round before it lands; beaten by cancelling, not out-racing.
+**Bans your fastest card** — the court will not be rushed.
+
+**Line.** "I am told you are a liar. I am also told not to ask who told me.
+One of those instructions I intend to keep."
+
+**Reward.** Azrael + Raphael. Coin. And a question you cannot un-ask.
+
+---
+
+### XIV — THE ARCHIVIST: CARMILLA
+
+**House:** Transylvania · **Day four**
+
+Transylvania keeps the archive. Everyone's archive. That is their claim: a
+story belongs to whoever *kept* it.
+
+**Her situation.** She is genuinely the reason half the roster still exists.
+Houses that collapsed, legends nobody living has named in a thousand years —
+Carmilla has them, catalogued, intact, and she is not giving them back.
+
+**Why she fights you.** You need the original record of your own war to prove
+the Canon wrong. She has it. She will not lend it, sell it, or copy it,
+because everything she has was saved by refusing exactly those three requests
+from more sympathetic people than you.
+
+**Playstyle.** Transylvania — Dracula, Carmilla, Dorian Gray, Frankenstein's
+Monster. What she strips off your board appears on hers. **Bans your
+cleansers.**
+
+**Line.** "Nine houses have burned since I started keeping. Every one of them
+asked me to be reasonable first."
+
+**Reward.** Carmilla + Dorian Gray. Coin. And the record — which turns out to
+say something you did not expect.
+
+---
+
+### XV — THE TURN: WHAT THE RECORD SAYS
+
+**No bout. The chapter's hinge.**
+
+The original record of your war is intact, unedited, four hundred years old.
+
+You read it.
+
+**You did do it.**
+
+Not the version the Canon tells — no speeches, no last stand, no banner. But
+the load-bearing fact is true: you held a bridge for two days with forty
+people and you did not run, and eleven hundred civilians got over that river
+because of it, and you died on the second afternoon in a way that was neither
+noble nor quick.
+
+The Canon did not invent your heroism. It **cleaned it up**. It removed the
+forty names, the vomiting, the man you had to threaten to keep in line, the
+fact that you held the bridge because you had miscalculated the retreat and
+were too proud to admit it in front of your own sergeant.
+
+Four hundred years of insisting you were nobody, and the truth is you were
+somebody — just not somebody you can stand.
+
+**And the eleven petitions look different now.** You were not correcting the
+record. You were refusing a compliment, for four centuries, because accepting
+it would have meant accepting the forty names you got killed.
+
+---
+
+### XVI — THE ABOLITIONIST: THE HERALD
+
+**House:** Jotunheim · **Day five**
+
+He wants the Concord destroyed, and he thinks you are the man to do it.
+
+**His situation.** Jotunheim's claim: stories should be allowed to *end*. The
+Canon keeps legends propped up past their natural death, endlessly retold,
+endlessly edited, never permitted to finish. He finds the whole institution
+obscene.
+
+**Why he fights you.** He has read the record too. He thinks you should burn
+the Canon rather than fix your line in it, and he will not back a man who
+wants a *correction* when the honest answer is a bonfire.
+
+"You want your forty names written in the book. I want the book shut. One of
+those is mercy and the other is bookkeeping, and you have spent four hundred
+years confusing them."
+
+**Playstyle.** Jotunheim — Odin, Fenrir, Hel, Heimdall. Weak early, strongest
+once legends start falling: the only deck that improves as the board empties.
+**Bans your healers.**
+
+**Line.** "Every one of your forty is still standing on that bridge because
+you will not let them off it. Who is the Canon serving now?"
+
+**Reward.** Odin + Fenrir. Coin.
+
+---
+
+### XVII — THE REFORMER: THE TURNER
+
+**House:** Devaloka · **Day six**
+
+She wants the Canon to expire every year, and she is losing, and she knows
+exactly why.
+
+**Her situation.** Yearly revision is obviously fairer and completely
+unworkable — six houses would spend every year campaigning and none of them
+would ever govern. She has proposed it at eleven Concords. It has never once
+reached a vote.
+
+**Why she fights you.** She will trade. Her house's support for your petition,
+in exchange for your support for annual revision — a policy you think is
+ruinous. This is the chapter's cleanest bad bargain: the ally you need is
+pushing the reform you believe would wreck the thing you are trying to fix.
+
+**Playstyle.** Devaloka — Shiva, Kali, Ganesha, Durga. Setup and payoff as
+two distinct jobs. **Bans your finishers** — you have to build the kill.
+
+**Line.** "You want one line changed. I want the whole book rewritten every
+spring. We are the same complaint at different volumes, and only one of us
+has been polite about it."
+
+**Reward.** Ganesha + Kali. Coin.
+
+---
+
+### XVIII — THE THEFT: THE QUARTERMASTER
+
+**House:** Tortuga · **Day seven, at night**
+
+On the last night before the final, Tortuga steals the Canon.
+
+**Their situation.** Their claim was always the honest one: the Canon is loot,
+and the only reason nobody has taken it is that everyone agreed not to. They
+have stopped agreeing.
+
+**Why she fights you.** Not over the theft. You catch her on the quay and she
+offers you the book — genuinely, no trick — because a stolen Canon is worth
+nothing to a house nobody will trade with, and she has worked out that its
+value was never the object. She wants you to take it and *use* it before the
+houses vote.
+
+Which would give you your line, your correction, your four hundred years — by
+theft, before any ruling, with the whole institution watching.
+
+The second bad ending is right here and it is very tempting.
+
+**Playstyle.** Tortuga — Blackbeard, Anne Bonny, The Kraken, Davy Jones.
+Theft as tempo: your advantages change sides. **Bans your buff support.**
+
+**Line.** "Everyone in this city calls it *the Canon* like it's a mountain.
+It weighs four pounds. I've carried heavier by accident."
+
+**Reward.** Anne Bonny + Davy Jones. Coin. And a decision.
+
+---
+
+### XIX — THE AUDIT: THE NINTH LEDGER-KEEPER
+
+**House:** unaffiliated · **The morning of the final**
+
+He is not in the Concord. He is the auditor, and nobody has called for an
+audit in four hundred years, and he has been in the building the entire time.
+
+**His situation.** Huaxia's old bureaucracy left one official behind when its
+house dissolved: a clerk with the standing to examine the Canon's provenance,
+and no petitioner. He has kept the office. He has kept the *hours*. Four
+thousand mornings of sitting in a room nobody enters.
+
+**Why he fights you.** Because you finally file. And because a petition
+granted without proof of competence is a petition that will be overturned in
+a century, so he tests you himself before he opens the book. "I will not have
+my first audit in four hundred years thrown out on procedure."
+
+**What the audit finds.** Empyrean did not forge your entry. A scribe did,
+four hundred years ago, carelessly — exactly as you always said. But Empyrean
+*found the error two hundred years ago*, and buried it, because correcting it
+would have meant admitting the Canon contains errors, and their entire claim
+to hold it rests on impartiality.
+
+Michael's refusal on day three makes sense now. He was not told why. He
+declined to win anyway.
 
 **Playstyle.** Huaxia, finally obtainable — Sun Wukong, Guan Yu, Zhuge Liang,
-Qin Shi Huang. The counterplay faction: the deck that answers instead of
-initiating, and punishes every habit the previous seven gates built.
-**Bans nothing.** He wants your best. "Bring it. I have been bored for four
-thousand years."
+Qin Shi Huang. The counterplay deck: answers rather than initiates, punishes
+every habit the previous seven bouts taught. **Bans nothing.** "Bring your
+best. I have been bored for four hundred years."
 
-**Line.** "Four thousand years is not devotion. Devotion gets tired. Four
-thousand years is procedure."
+**Line.** "Four hundred years is not devotion. Devotion gets tired. Four
+hundred years is procedure."
 
-**Reward.** Guan Yu + Zhuge Liang. Coin.
-
----
-
-### XIX — SHAMHAT, WHO TAUGHT HIM TO BE A PERSON *(day one)*
-
-**The wound.** She found a wild man in the long grass who did not know what
-bread was, and she taught him — words, food, clothes, the whole business of
-being a person. Then he went to Uruk, and met a king, and became a story that
-does not have her in it. Everyone remembers Enkidu. Almost nobody remembers
-who made him.
-
-**Her refusal — and it is the biggest in the chapter.** She has kept him. Four
-thousand years of a tavern at the edge of the city, telling every single
-person who sits down exactly who he was: how he laughed, what he was afraid
-of, the daft thing he said about doors. She is the last full record of Enkidu
-in existence.
-
-**Which is why the line is coming here.** The Quiet is Gilgamesh's grief, and
-it has been searching for four thousand years, and it can smell him in her
-tavern. She has known this since day nine. She kept pouring.
-
-**Why she fights you.** Because you have worked it out, and you have come to
-ask her to stop — to let him fade, so the thing that misses him has nothing
-left to follow. And she will not hand that over to a stranger who has not
-proven they understand what is being asked.
-
-"You want me to forget him so a monster can rest. Fine. Fair. Probably right.
-But you'll not get him cheap, and you'll not get him from someone who thinks
-this is a *clever solution*. Pick up your sword."
-
-**Playstyle.** The chapter's exam: her six is one legend from every faction
-you have met, sideboarded live, no telegraph. She fights like someone who has
-listened to four thousand years of soldiers' stories in a tavern and
-remembered all of them.
-
-**Line.** "Everybody who comes in here asks about the king. I have been
-waiting four thousand years for one of you to ask about *him*."
-
-**Reward.** Shamhat, playable. And her answer.
+**Reward.** Guan Yu + Zhuge Liang. Coin. And standing.
 
 ---
 
-## 3. XX — THE LAST DAY
+## 4. XX — THE FINAL: GABRIEL, WHO READS THE VERDICT
 
-**What arrives.** Not an army — a horizon, walking. It takes the stakes, the
-broken cart, the wall the Ninth Ledger-Keeper brought, and every soldier on
-it stops having been a soldier.
+**House:** Empyrean · **The Concord floor, all seven houses watching**
 
-**What fights back** is everybody's refusal at once, and this is the payoff of
-all eight gates:
+Empyrean sends Gabriel, because Gabriel reads the rulings and has read every
+ruling for four hundred years, and if anyone can make a cover-up sound like
+continuity it is the voice that has always announced them.
 
-- the Herald in the open ground, roaring at the horizon that it is doing it
-  *wrong*
-- sixty priests underground, walking faster
-- a house on a hill that will not go, with a pale man holding his own
-  doorframe like a mast
-- nine hulls pulling for a sea that is not there, the Quartermaster refusing
-  to cast off while one hand is still on the quay
-- the Debt-Keeper at the gangplank, giving grain away and hating it
-- a court in the sky, the Advocate at last **finding for the city** and
-  reading Uruk into the record name by name, out loud, faster than the line
-  can take them
+**He is not a hypocrite.** That is what makes him hard. He knew about the
+error for two hundred years and he suppressed it, and he will tell you to
+your face exactly why: an institution that admits it is fallible stops being
+obeyed, and an unobeyed Canon means seven houses settling versions in the
+street again, and he has *seen* what that was like.
 
-**The boss.** THE LINE cannot be killed, has no displayed HP, and unmakes one
-legend per round — gone from the battle, the log and the tally, as though
-never fielded. You do not beat it. **You survive a round count**, and every
-round is another hundred people down the gangplank. The only fight in the
-game won by still being there.
+"You want one line. I am protecting four hundred years of peace from one
+line. Tell me which of us is being selfish and be honest about your answer."
 
-**The ending.** At the top of the wall Shamhat tells the story of Enkidu one
-last time, properly, to the thing that has been looking for him — the whole
-of him, the laugh and the fear and the daft thing about doors — and then she
-stops. Deliberately. Mid-sentence.
+**Playstyle.** A bespoke boss card, unbannable and pinned. His signature does
+not deal damage: it **overrules** — one of your legends is declared to have
+acted differently, and its last action is undone and replayed as the *Canon
+version*, chosen by him. A boss that edits your history mid-fight, which is
+the chapter's whole theme expressed as a mechanic. His twelve is Empyrean's
+court plus the four hundred years of legends whose entries were also quietly
+wrong.
 
-And the Quiet, which has been searching for four thousand years, finally
-finds what it came for, and discovers that what it wanted was never the
-memory. It was the ending. Somebody to say *he is gone* out loud and mean it.
-
-It goes quiet. Not defeated — **finished**. The line stops fifty paces from
-the wall and simply stops being.
-
-**The cost.** Uruk is two thirds gone; the Advocate did not get through all
-the names, and nobody knows which third is missing. Shamhat does not
-remember Enkidu any more. She kept the tavern, and she can no longer say why.
+**Bans your two strongest cards** — "the record will reflect that you were
+never permitted them."
 
 ---
 
-## 4. Epilogue — What Gilgamesh Owes
+## 5. The ending, and the choice that decides it
 
-The Recruiter works all night at the stern of the last ship writing down
-every name anybody can still say aloud, and the queue does not shorten until
-past dawn.
+You win the bout. The Canon is yours for a century. Then you have to use it,
+in front of every house, and there are three doors:
 
-And on the shore behind them, at the edge of a city that is two thirds a
-hole, a broad-shouldered man with a carefully curled beard stands looking at
-the place where the line stopped.
+**1. Correct your line.** Take what you came for. Four hundred years of
+petitions vindicated, your forty named at last. And the Canon survives with
+its authority intact, because a Canon that corrects one entry has proven it
+can be trusted — which means Empyrean's suppression worked, and the next
+scribe's error will also be buried, and somebody in four hundred years will
+be filing their twelfth petition.
 
-He came too late. He always does.
+**2. Publish the audit.** Burn Empyrean's credibility, prove the Canon is
+fallible, and watch the houses go back to settling versions in the street.
+The Herald gets his bonfire. Your forty stay unnamed, because nobody is
+keeping records any more.
 
-"Four thousand years," Gilgamesh says, to nobody. "And it only ever wanted
-someone to say it."
+**3. The third door — the one the chapter is built for.** Correct the line,
+publish the audit, and then **abolish the century**: rule that the Canon
+passes not every hundred years but whenever a petition is *proven*, by audit,
+by anyone. No holder, no tenure, no incumbent with four centuries to protect.
+The Turner's reform, at a workable interval, purchased with the one thing
+that could ever have bought it — a Canon-holder voluntarily giving up the
+Canon on his first morning.
 
-Ahead of the ships, low on the water, there is a coastline nobody recognises,
-and on it, lights.
+You hold it for a day and a half. It is the shortest tenure in the history
+of the Concord. The Ninth Ledger-Keeper files the paperwork and, for the
+first time in four hundred years, has a successor to train.
 
-Somewhere, in a world that had almost forgotten them, a page turns.
+**The cost.** The corrected entry is not the heroic one. It has the
+miscalculation in it, and the threatened sergeant, and the vomiting, and the
+forty names. Crowds do not cheer it. Within thirty years nobody performs your
+story at all — it is not *performable* any more.
+
+You are forgotten inside a century.
+
+The forty are not. Their names are in the book, forty separate entries, each
+one true and dull and permanent, and no scribe can clean them up because the
+audit that made them is attached.
+
+That was always the trade. You just needed four hundred years to be able to
+say it out loud.
 
 ---
 
-## 5. Why this works as a chapter
+## 6. Why this works as a chapter
 
-- **The villain has a want**, and it is the unpaid bill from Chapter One's
-  final reveal. It is not weather.
-- **The clock is a countdown**, one day per gate, so the structure is legible
-  before the player reads a word of lore.
-- **Every rival is one refusal**, and the boss is beaten by the one thing none
-  of them will do. The gates are not eight interviews; they are eight
-  arguments for the position the finale has to overturn.
-- **The turn lands at gate XV** (the route), the reveal at **XIX** (Shamhat),
-  and the price is paid on-screen at **XX**.
-- **Huaxia unlocks at XVIII**, which is what it has been held back for since
-  Chapter One.
-- **The cost is not refunded.** Two thirds of a city, and the woman who saved
-  everyone cannot remember why she owns a tavern.
+- **It stands alone.** Shares the game's premise, nothing else. No Road, no
+  Quiet, no Wayfarer, no Gilgamesh. Play it first if you like.
+- **The antagonist is an institution**, not a monster or a weather system —
+  it has motives, officials who disagree with each other, and a defence that
+  is genuinely good.
+- **The protagonist has a name and a flaw**, which is the opposite of Chapter
+  One's blank. Sargon's problem is not that he is forgotten; it is that he is
+  remembered *wrongly and flatteringly*, and correcting it costs him the only
+  thing he has.
+- **The turn at XV inverts the premise** — he was telling the truth, and the
+  truth is worse than the lie he was fighting.
+- **Two bad endings are reachable and tempting** (Gehenna's debt on day two,
+  Tortuga's theft on day seven), so the good one is a choice rather than a
+  corridor.
+- **The boss mechanic is the theme**: a card that edits your history
+  mid-fight.
+- **Huaxia unlocks at XIX**, as the auditor nobody called.
+- **The tone is different** — political, funny in places, with a cost that is
+  personal rather than apocalyptic.
