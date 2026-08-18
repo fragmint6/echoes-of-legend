@@ -87,7 +87,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-spear-head',
-      art: null,
+      art: 'assets/legends/achaea-achilles.png',
     },
 
     {
@@ -133,7 +133,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fast-ship',
-      art: null,
+      art: 'assets/legends/achaea-odysseus.png',
     },
 
     {
@@ -174,7 +174,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-monster-skull',
-      art: null,
+      art: 'assets/legends/achaea-perseus.png',
     },
 
     {
@@ -213,7 +213,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-bubbling-potion',
-      art: null,
+      art: 'assets/legends/achaea-medea.png',
     },
 
     {
@@ -257,7 +257,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-barbed-arrow',
-      art: null,
+      art: 'assets/legends/achaea-atalanta.png',
     },
 
     {
@@ -285,7 +285,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-zebra-shield',
-      art: null,
+      art: 'assets/legends/achaea-ajax.png',
     },
 
     {
@@ -322,7 +322,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ocean-emblem',
-      art: null,
+      art: 'assets/legends/achaea-jason.png',
     },
   ],
 });

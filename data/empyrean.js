@@ -102,7 +102,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-falling',
-      art: null,
+      art: 'assets/legends/empyrean-lucifer.png',
     },
 
     {
@@ -138,7 +138,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-relic-blade',
-      art: null,
+      art: 'assets/legends/empyrean-michael.png',
     },
 
     {
@@ -173,7 +173,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-scythe',
-      art: null,
+      art: 'assets/legends/empyrean-azrael.png',
     },
 
     {
@@ -207,7 +207,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ocarina',
-      art: null,
+      art: 'assets/legends/empyrean-gabriel.png',
     },
 
     {
@@ -238,7 +238,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-medical-pack',
-      art: null,
+      art: 'assets/legends/empyrean-raphael.png',
     },
 
     {
@@ -267,7 +267,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fire-shield',
-      art: null,
+      art: 'assets/legends/empyrean-uriel.png',
     },
 
     {
@@ -298,7 +298,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-quill-ink',
-      art: null,
+      art: 'assets/legends/empyrean-metatron.png',
     },
   ],
 });

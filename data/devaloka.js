@@ -89,7 +89,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-fire-ring',
-      art: null,
+      art: 'assets/legends/devaloka-shiva.png',
     },
 
     {
@@ -119,7 +119,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-sunbeams',
-      art: null,
+      art: 'assets/legends/devaloka-vishnu.png',
     },
 
     {
@@ -149,7 +149,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-skull',
-      art: null,
+      art: 'assets/legends/devaloka-kali.png',
     },
 
     {
@@ -180,7 +180,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-flaming-trident',
-      art: null,
+      art: 'assets/legends/devaloka-durga.png',
     },
 
     {
@@ -216,7 +216,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-trefoil-lily',
-      art: null,
+      art: 'assets/legends/devaloka-ganesha.png',
     },
 
     {
@@ -244,7 +244,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-boot-stomp',
-      art: null,
+      art: 'assets/legends/devaloka-hanuman.png',
     },
 
     {
@@ -274,7 +274,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-focused-lightning',
-      art: null,
+      art: 'assets/legends/devaloka-indra.png',
     },
   ],
 });

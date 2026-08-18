@@ -80,7 +80,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-lit-candelabra',
-      art: null,
+      art: 'assets/legends/tortuga-blackbeard.png',
     },
 
     {
@@ -119,7 +119,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-anchor',
-      art: null,
+      art: 'assets/legends/tortuga-davy-jones.png',
     },
 
     {
@@ -154,7 +154,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-octopus',
-      art: null,
+      art: 'assets/legends/tortuga-kraken.png',
     },
 
     {
@@ -199,7 +199,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crossed-sabres',
-      art: null,
+      art: 'assets/legends/tortuga-anne-bonny.png',
     },
 
     {
@@ -229,7 +229,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-compass',
-      art: null,
+      art: 'assets/legends/tortuga-captain-kidd.png',
     },
 
     {
@@ -256,7 +256,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crossed-bones',
-      art: null,
+      art: 'assets/legends/tortuga-calico-jack.png',
     },
 
     {
@@ -292,7 +292,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-ship-emblem',
-      art: null,
+      art: 'assets/legends/tortuga-flying-dutchman.png',
     },
   ],
 });

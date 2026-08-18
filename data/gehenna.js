@@ -93,7 +93,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-crown-of-thorns',
-      art: null,
+      art: 'assets/legends/gehenna-pride.png',
     },
 
     {
@@ -140,7 +140,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-muscle-up',
-      art: null,
+      art: 'assets/legends/gehenna-wrath.png',
     },
 
     {
@@ -183,7 +183,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-burning-eye',
-      art: null,
+      art: 'assets/legends/gehenna-envy.png',
     },
 
     {
@@ -238,7 +238,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-mining-diamonds',
-      art: null,
+      art: 'assets/legends/gehenna-greed.png',
     },
 
     {
@@ -268,7 +268,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-meat-hook',
-      art: null,
+      art: 'assets/legends/gehenna-gluttony.png',
     },
 
     {
@@ -300,7 +300,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-hourglass',
-      art: null,
+      art: 'assets/legends/gehenna-sloth.png',
     },
 
     {
@@ -334,7 +334,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-heartburn',
-      art: null,
+      art: 'assets/legends/gehenna-lust.png',
     },
   ],
 });

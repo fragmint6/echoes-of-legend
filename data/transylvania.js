@@ -95,7 +95,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-batwings',
-      art: null,
+      art: 'assets/legends/transylvania-dracula.png',
     },
 
     {
@@ -135,7 +135,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-brain-freeze',
-      art: null,
+      art: 'assets/legends/transylvania-monster.png',
     },
 
     {
@@ -165,7 +165,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-broken-heart',
-      art: null,
+      art: 'assets/legends/transylvania-carmilla.png',
     },
 
     {
@@ -214,7 +214,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-round-bottom-flask',
-      art: null,
+      art: 'assets/legends/transylvania-hyde.png',
     },
 
     {
@@ -252,7 +252,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-bone-knife',
-      art: null,
+      art: 'assets/legends/transylvania-van-helsing.png',
     },
 
     {
@@ -282,7 +282,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-uncertainty',
-      art: null,
+      art: 'assets/legends/transylvania-invisible-man.png',
     },
 
     {
@@ -326,7 +326,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-kaleidoscope',
-      art: null,
+      art: 'assets/legends/transylvania-dorian-gray.png',
     },
   ],
 });
