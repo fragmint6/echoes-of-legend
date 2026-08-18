@@ -123,11 +123,18 @@ done it at three Concords.
 petitions. She is the only person alive or dead who has. She thinks he is
 right, and she was paid for a loss, not for an insult.
 
-**Playstyle.** Fields a company of mortals with no god among them — Odysseus,
-Ajax, Atalanta, Medea. Nobody on her board is finished when the fight starts;
-each becomes something more partway through, which is exactly her argument
-about people. **Bans your two most expensive cards** — "no shortcuts on day
-one."
+**The gimmick: nothing on her board is finished yet.** She fields mortals
+with no god among them, and every one of them *ascends* mid-fight — a
+permanent, one-time upgrade that fires when the fight gives it a reason.
+**Achilles** is the centrepiece and the argument: he is an ordinary Bruiser
+until something hurts him, and permanently better afterwards. Her whole
+thesis is that a person is not a fixed quantity, and her deck is that
+sentence.
+
+The lesson she teaches: **do not evaluate her board on turn one.** The
+legends you chose to ignore are the ones that will kill you.
+
+**Bans your two most expensive cards** — "no shortcuts on day one."
 
 **Line.** "Everyone here is bought. The trick is knowing what for. I went for
 eleven silver and a fair opinion of a dead mercenary, and I intend to deliver
@@ -154,9 +161,18 @@ price you would call it a purchase."
 Accepting is available. It wins the chapter's easiest run and one of its two
 bad endings.
 
-**Playstyle.** Fields seven appetites, each visibly buying its strength with
-something it gives up in the open. **Bans your cheapest card** — he sets
-prices.
+**The gimmick: everything on the table has a price tag.** He fields seven
+appetites, and each one buys its power with a stated, visible cost — ATK for
+DEF, healing for damage, an action skipped now for a bigger one later.
+**Pride** anchors it: the largest sweep in the chapter, and he cannot be
+healed for two rounds after casting it.
+
+The lesson: **every one of those costs is information.** A board where the
+enemy has told you exactly what each card is spending is a board you can
+plan around, if you bother to read it — which is his entire point about
+bettors.
+
+**Bans your cheapest card** — he sets prices.
 
 **Line.** "I have never lied to a bettor. I have simply noticed nobody reads
 the back of the tablet, and I stopped considering that my failing."
@@ -182,9 +198,18 @@ incuriosity is the entire character.
 **The seam.** Mid-bout, one of his own officials hands him a ruling that
 would win it. He refuses it. He offers no explanation, fights on, and loses.
 
-**Playstyle.** Fields a court that announces every blow a full round before it
-lands — beaten by cancelling, not by out-racing. **Bans your fastest card**
-— "the court will not be hurried."
+**The gimmick: he tells you exactly what is coming, and it still lands.**
+His court deals almost nothing on the turn it acts; the damage is *scheduled*
+a round or two out, in the open, where you can see it. **Lucifer** is the
+headline — a board-wide sentence pronounced two rounds early, at a cost paid
+out of his own ability to be healed.
+
+The lesson, and it is the one nobody expects: **you beat this by cancelling,
+not by racing.** A player who tries to out-damage a scheduled hit loses to
+it; a player who removes the caster or clears the pending effect never takes
+it at all.
+
+**Bans your fastest card** — "the court will not be hurried."
 
 **Line.** "I am told the petitioner is a liar. I am also told not to ask who
 told me. Only one of those instructions I intend to keep."
@@ -208,8 +233,17 @@ She will not lend it, sell it or copy it, because everything she has was
 saved by refusing exactly those three requests from more sympathetic people
 than a nameless Echo with a petition.
 
-**Playstyle.** Fields a company that does not destroy what it takes — every
-buff stripped off your board reappears on hers. **Bans your cleansers.**
+**The gimmick: she does not remove your advantages, she keeps them.**
+Every buff, shield and stat swing her board strips off you *reappears on her
+side of the table* — which is the mechanical version of her entire argument
+about who owns a thing. **Dracula** is the centrepiece: he drains ATK off
+your whole team and wears it.
+
+The lesson: **against her, setup is a liability.** The player who opens with
+a big buff turn is handing her the fight, and the counter is to commit late
+or commit to something she cannot carry.
+
+**Bans your cleansers**, so what she takes stays taken.
 
 **Line.** "Nine of them have burned since I started keeping. Every one asked
 me to be reasonable first."
@@ -264,9 +298,20 @@ argue the whole institution should be dismantled.
 answer is a bonfire, not a correction, and he will not back a petitioner
 asking for one tidy line in a book that should not exist.
 
-**Playstyle.** Fields a company that is weak while everyone is standing and
-strongest once legends start falling — the only deck in the tournament that
-improves as the board empties. **Bans your healers.**
+**The gimmick: his deck gets better as the board empties.** Every card he
+fields reads the number of legends that have fallen — *on either side* — and
+scales off it. He is deliberately below curve while the board is full.
+**Odin** is the centrepiece and the clearest statement of it: his sweep is
+ordinary until three legends have fallen, and then it is not. Fenrir behind
+him is the same idea taken to its extreme — chained to half damage until the
+third death, then permanently off the leash.
+
+The lesson, and it is the nastiest reframe in the chapter: **trading evenly
+is the losing line.** Every exchange you win makes his board stronger. You
+have to either close it out before the third death or refuse the trade
+entirely.
+
+**Bans your healers**, so you cannot simply outlast the ramp.
 
 **Line.** "Every one of his forty is still stood on that bridge because he
 will not let them off it. Ask yourself who the Canon is serving now."
@@ -289,9 +334,17 @@ your petition, in exchange for your public backing of annual revision — a
 policy you think would wreck the thing you are trying to fix. The cleanest
 bad bargain of the week.
 
-**Playstyle.** Fields a board where setup and payoff are two separate jobs;
-nothing on it kills anything without a second card first. **Bans your
-finishers** — you must *build* the kill, not find it.
+**The gimmick: nothing on her board kills anything by itself.** Her deck is
+strictly two-part — one card marks, another spends the mark — and neither
+half is worth a turn alone. **Shiva** is the payoff: ordinary damage against
+an unmarked target, and the biggest hit in her twelve against a marked one.
+
+The lesson: **kill the setup, not the threat.** Every player's instinct is to
+answer the scariest card on the board, and against her that is exactly
+wrong — the enabler is the one that has to die.
+
+**Bans your finishers**, so you cannot skip the lesson by simply having a
+bigger hammer than she has a combo.
 
 **Line.** "You want one line changed. I want the whole book rewritten every
 spring. We are the same complaint at different volumes, and only one of us
@@ -318,8 +371,16 @@ you to use it before the ruling.
 Which would win the correction by theft, before any vote, in front of
 everyone. The second bad ending, and the more tempting one.
 
-**Playstyle.** Fields a crew that takes rather than breaks — your advantages
-change sides instead of vanishing. **Bans your buff support.**
+**The gimmick: she steals tempo rather than removing it.** Buffs, energy,
+shields, a revive you were counting on — none of it is destroyed, all of it
+changes hands. **Blackbeard** headlines: a board-wide burn that is worth more
+the more of your team is already committed.
+
+The lesson: **the opening turn you spend preparing is the one she profits
+from.** She is the direct counter to every habit the Long Game just taught
+you, which is why she is scheduled the night after.
+
+**Bans your buff support**, so the theft cannot be replaced.
 
 **Line.** "Everyone in this city says *the Canon* like it's a mountain. It
 weighs four pounds. I've carried heavier by accident."
@@ -353,10 +414,18 @@ whole claim to hold it rests on.
 The sword-bearer's refusal on day three makes sense now. He was never told
 why. He declined to win anyway.
 
-**Playstyle.** Fields the counterplay court — a board that answers instead of
-initiating, and punishes every habit the previous seven bouts taught you.
-**Bans nothing.** "Bring your best. I have been bored for four thousand
-years."
+**The gimmick: he does not start anything.** His entire twelve is built to
+*answer* — counters, punishes, walls, reversals — and it has a reply to each
+of the seven things the chapter has taught you. Provoke a wall and **Guan
+Yu** counter-hits; commit a combo and **Zhuge Liang** drains the energy that
+pays for it; hide behind a front line and **Sun Wukong** goes over it.
+
+The lesson is the exam: **you cannot win this on a plan.** Every plan has a
+counter on his side of the table, so the fight is decided by which of your
+habits you are willing to abandon.
+
+**Bans nothing** — the only rival in the week who does not. "Bring your
+best. I have been bored for four thousand years."
 
 **Line.** "Four thousand years is not devotion. Devotion gets tired. Four
 thousand years is procedure."
@@ -558,6 +627,50 @@ implementation note: which deck each rival fields, and why it suits them.
 | The Answer | **Huaxia** | answers instead of initiating |
 | The Revision | bespoke boss + Empyrean court | edits the record mid-fight |
 
+### Each rival's gimmick is the faction they introduce
+
+Chapter One's pattern, stated plainly: the Outlaw likes snipers because she
+is the gate that hands you Robin Hood. The rival is not merely *holding* a
+faction, she is a **demonstration of why that faction is worth drafting**,
+and her legendary is the centrepiece of the demonstration.
+
+Every bout here follows it. The gimmick is the faction's mechanical identity,
+the faction's one legendary is the card that proves it, and the reward is the
+faction:
+
+| Bout | The gimmick | Proved by | Unlocks |
+|---|---|---|---|
+| XI The Understudy | nothing is finished at turn one; legends ascend mid-fight | **Achilles** | Achaea |
+| XII The Price-Setter | every card buys power with a visible cost | **Pride** | Gehenna |
+| XIII The Heralded Blow | damage is scheduled a round early, in the open | **Lucifer** | Empyrean |
+| XIV The Collector | what she strips off you reappears on her | **Dracula** | Transylvania |
+| XVI The Last Stand | the deck improves as the board empties | **Odin** | Jotunheim |
+| XVII The Long Game | nothing kills without a second card first | **Shiva** | Devaloka |
+| XVIII The Taker | advantages change sides rather than vanishing | **Blackbeard** | Tortuga |
+| XIX The Answer | answers everything, initiates nothing | **Sun Wukong** | Huaxia |
+
+Each one also teaches the counter to itself, which is what makes them
+lessons rather than gimmicks: cancel the schedule, kill the enabler, refuse
+the even trade, commit late.
+
+### Rarity and where the cards come from
+
+**One legendary per faction**, matching the roster law of one per six slots.
+Confirmed across all seven: Odin, Achilles, Pride, Shiva, Lucifer, Dracula,
+Blackbeard. Nothing to change — `sim/verify_chapter2.js` already asserts it.
+
+**The other 42 are in packs.** As of 2026-08-18 the seven factions' commons,
+rares and epics are buyable from the shop like any other card, and they count
+toward the collection total. The seven **legendaries are not**, because the
+Crown Law says legendaries are never sold anywhere in the game — they come
+from the Road. So each faction's legendary stays the campaign reward for the
+bout that introduces it, which is exactly the Chapter One shape: you can buy
+your way toward Sherwood, but Robin Hood comes from beating the Outlaw.
+
+**Huaxia is the one exception** and remains entirely unbuyable, because the
+story spends it as the reveal at XIX. Selling it beforehand would spend that
+reveal for coins.
+
 ### Huaxia is properly introduced
 
 An earlier draft mentioned Huaxia once, in passing, as a dissolved house —
@@ -601,3 +714,8 @@ the image.
   Game needs two cards to kill anything. Chapter One's law: the
   Oathkeeper teaches walls, the Outlaw teaches focus fire.
 - **No freebies.** The opening bout sits at ~45%, not ~95%.
+- **Every rival demonstrates the faction they hand over**, legendary
+  first, exactly as the Outlaw sells Sherwood with Robin Hood.
+- **One legendary each, and only the legendary is campaign-locked** —
+  the other 42 cards are in packs, so a player can build toward a
+  faction and still has to earn its crown.

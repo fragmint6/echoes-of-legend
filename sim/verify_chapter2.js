@@ -283,17 +283,93 @@ console.log('F. Greed taxes the enemy pool, not his own (Gehenna)');
   );
 }
 
-console.log('G. the Chapter II shelf is closed');
+console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
+{
+  /* OWNER RULING 2026-08-18: the seven factions' commons, rares and epics
+     are buyable; their one legendary each is not, because the Crown Law
+     keeps every legendary in the game out of packs. Huaxia stays wholly
+     unbuyable because Chapter II spends it as the reveal at bout XIX.
+
+     Asserted behaviourally against the real economy rather than by
+     grepping js/economy.js, because the thing that matters is what the
+     shop actually offers. */
+  global.localStorage = {
+    _d: {},
+    getItem(k) { return this._d[k] || null; },
+    setItem(k, v) { this._d[k] = String(v); },
+    removeItem(k) { delete this._d[k]; },
+  };
+  const priorDoc = global.document;
+  global.document = {
+    body: { dataset: {} },
+    getElementById() { return null; },
+    addEventListener() {},
+    dispatchEvent() {},
+  };
+  eval(fs.readFileSync(path.join(ROOT, 'js/economy.js'), 'utf8'));
+  const econ = window.EOL.econ;
+
+  const obtainable = econ.obtainableEntries();
+  const packable = econ.packableEntries();
+  const isNew = (e) => NEW.includes(e.faction.id);
+
+  ok(
+    obtainable.filter(isNew).length === 49,
+    'all 49 Chapter II legends are obtainable (' + obtainable.filter(isNew).length + ')'
+  );
+  ok(
+    packable.filter(isNew).length === 42,
+    'exactly 42 are packable - 49 minus one legendary each (' +
+      packable.filter(isNew).length +
+      ')'
+  );
+  ok(
+    packable.filter((e) => e.card.rarity === 'legendary').length === 0,
+    'no legendary is packable anywhere in the game (the Crown Law)'
+  );
+  ok(
+    obtainable.filter((e) => e.faction.id === 'huaxia').length === 0,
+    'Huaxia is still withheld entirely - it is the bout XIX reveal'
+  );
+
+  /* One legendary per faction is the roster law AND the reason exactly 7
+     cards are held back. If a faction ever gained a second, the pack count
+     would silently drop to 41 and nobody would notice. */
+  NEW.forEach((id) => {
+    const f = EOL.factions.find((x) => x.id === id);
+    const legs = f.cards.filter((c) => c.rarity === 'legendary');
+    ok(legs.length === 1, id + ' has exactly one legendary (' + legs.map((c) => c.name) + ')');
+  });
+
+  global.document = priorDoc;
+}
+
+console.log('H. the Chapter II shelf is closed');
 {
   /* These factions belong to a chapter whose Road does not exist yet.
      Selling them now spends the reveal and floods the pack pool; the
      campaign drafting them spoils it AND breaks the tuning of authored
      Chapter I rivals. Both exclusions are asserted here because both
      are one-line changes that are easy to lose. */
-  const econ = fs.readFileSync(path.join(ROOT, 'js/economy.js'), 'utf8');
+  const econSrc = fs.readFileSync(path.join(ROOT, 'js/economy.js'), 'utf8');
   const camp = fs.readFileSync(path.join(ROOT, 'js/campaign.js'), 'utf8');
+  /* SUPERSEDED 2026-08-18. This used to assert the shop withheld all seven
+     factions. The owner has since ruled that only the LEGENDARIES are held
+     back - the other 42 cards belong in packs - so the seven ids are
+     deliberately no longer on the withhold list, and section G above tests
+     the real behaviour against the live economy.
+
+     What survives is the part that is still true: Huaxia alone is withheld
+     wholly, because Chapter II spends it as the reveal at bout XIX. */
+  ok(
+    /var WITHHELD = \['huaxia'\]/.test(econSrc),
+    'the shop withholds Huaxia and nothing else'
+  );
   NEW.forEach((id) => {
-    ok(new RegExp("'" + id + "'").test(econ), 'the shop withholds ' + id);
+    ok(
+      !new RegExp("WITHHELD[^;]*'" + id + "'").test(econSrc),
+      id + ' is no longer withheld from the shop'
+    );
   });
   ok(/NOT_IN_CHAPTER_1/.test(camp), 'the campaign has a single Chapter I exclusion list');
   NEW.forEach((id) => {

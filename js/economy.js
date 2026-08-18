@@ -328,20 +328,30 @@
      Deliberately NOT progression-gated: the Road's fog protects its
      reveals in the LEDGER; the shop simply does not stock these yet.
      One list, so unlocking the chapter is a one-line change. */
-  var CHAPTER_2 = [
-    'huaxia',
-    'jotunheim',
-    'achaea',
-    'gehenna',
-    'devaloka',
-    'empyrean',
-    'transylvania',
-    'tortuga',
-  ];
+  /* THE WITHHELD SHELF (owner ruling 2026-08-18).
+     -------------------------------------------------------------
+     Huaxia alone stays out of the shop entirely. It is the faction
+     Chapter II's story withholds and then pays out as its own reveal
+     (the auditor at bout XIX), so selling it beforehand spends the
+     reveal for coins.
+
+     The seven Chapter II factions used to sit on this list too. They
+     no longer do: their commons, rares and epics are now buyable, and
+     only their LEGENDARY is withheld - which needs no special case
+     here, because packableEntries() already refuses every legendary in
+     the game under the Crown Law. So the seven legendaries (Odin,
+     Achilles, Pride, Shiva, Lucifer, Dracula, Blackbeard) remain
+     campaign-only for exactly the same reason Zeus and King Arthur
+     are, and the other 42 cards enter the pool.
+
+     `obtainableEntries` is the "what may ever be sold" list AND the
+     denominator of the collection counter, so moving a faction onto it
+     also makes those cards count toward "N / M legends collected". */
+  var WITHHELD = ['huaxia'];
   function obtainableEntries() {
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if (CHAPTER_2.indexOf(f.id) >= 0) return;
+      if (WITHHELD.indexOf(f.id) >= 0) return;
       f.cards.forEach(function (c) {
         out.push({ card: c, faction: f });
       });
