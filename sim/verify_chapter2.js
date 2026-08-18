@@ -475,6 +475,95 @@ console.log('I. rival names are trades, not manoeuvres');
   ok(!/\bhouses?\b/i.test(body), 'the Chapter II story body never says "house"');
 }
 
+console.log('J. the overview agrees with the lore');
+{
+  /* CHAPTER-2-OVERVIEW.md is a SECOND copy of the same facts - names,
+     win-rate targets, unlocks, legendaries - written for a different
+     reader. Two copies of anything drift, and the drift is silent
+     because both files are prose that nobody diffs. Chapter One has the
+     same pair of docs and the same exposure.
+
+     This section pins only the facts that exist in BOTH files, which is
+     the subset that can actually disagree. It deliberately does not
+     check wording: the overview is allowed to be terser, and a test
+     that demands identical sentences just gets deleted the first time
+     someone edits one of them. */
+  const lore = fs.readFileSync(path.join(ROOT, 'docs/LORE-Campaign-Chapter2.md'), 'utf8');
+  const over = fs.readFileSync(path.join(ROOT, 'docs/CHAPTER-2-OVERVIEW.md'), 'utf8');
+
+  const RIVALS = {
+    XI: 'The Understudy',
+    XII: 'The Bookmaker',
+    XIII: 'The Herald',
+    XIV: 'The Collector',
+    XV: 'The Hero of the Bridge',
+    XVI: 'The Undertaker',
+    XVII: 'The Mason',
+    XVIII: 'The Wrecker',
+    XIX: 'The Auditor',
+    XX: 'The Redactor'
+  };
+  Object.keys(RIVALS).forEach((num) => {
+    ok(
+      over.toUpperCase().indexOf(RIVALS[num].toUpperCase()) !== -1,
+      'the overview names ' + RIVALS[num]
+    );
+  });
+
+  /* The win-rate rows. Pulled out of BOTH difficulty tables by numeral
+     and compared, rather than hard-coded here - so retuning the chapter
+     means editing two docs and zero tests, but forgetting one of the two
+     docs still fails. */
+  function wrTable(src) {
+    const out = {};
+    src.split('\n').forEach((l) => {
+      const m = l.match(/^\|\s*\*{0,2}(X[IVX]*)\s+[^|]*\|\s*\*{0,2}~(\d+)%/);
+      if (m) out[m[1]] = m[2];
+    });
+    return out;
+  }
+  const a = wrTable(lore);
+  const b = wrTable(over);
+  ok(Object.keys(a).length === 10, 'the lore difficulty table has all ten bouts (' + Object.keys(a).length + ')');
+  ok(Object.keys(b).length === 10, 'the overview difficulty table has all ten bouts (' + Object.keys(b).length + ')');
+  Object.keys(a).forEach((num) => {
+    ok(a[num] === b[num], 'bout ' + num + ' targets ~' + a[num] + '% in both docs');
+  });
+
+  /* Each faction's one legendary must be credited to the same bout in
+     both files. This is the pairing that was already got wrong once this
+     session (Fenrir vs Odin as Jotunheim's legendary), so it gets a
+     test rather than a careful read. */
+  const LEGEND = {
+    achaea: 'Achilles',
+    gehenna: 'Pride',
+    empyrean: 'Lucifer',
+    transylvania: 'Dracula',
+    jotunheim: 'Odin',
+    devaloka: 'Shiva',
+    tortuga: 'Blackbeard'
+  };
+  Object.keys(LEGEND).forEach((fid) => {
+    const f = EOL.factions.find((x) => x.id === fid);
+    const legs = f.cards.filter((c) => c.rarity === 'legendary');
+    ok(
+      legs.length === 1 && legs[0].name === LEGEND[fid],
+      fid + "'s legendary is " + LEGEND[fid] + ' in the data, the lore and the overview'
+    );
+    ok(
+      new RegExp('\\*\\*' + LEGEND[fid] + '\\*\\*').test(over),
+      'the overview bolds ' + LEGEND[fid] + ' as a centrepiece'
+    );
+  });
+
+  /* The overview must keep its own honesty header. Chapter One's
+     overview says it was written against the shipped implementation;
+     this one was NOT, and a reader who assumes otherwise will treat
+     authored win-rates as measured ones. */
+  ok(/Status: DESIGN ONLY/.test(over), 'the overview flags itself as design-only, not written against code');
+  ok(/authored intent/i.test(over), 'the overview says its win-rates are authored, not measured');
+}
+
 console.log('');
 console.log(pass + ' pass, ' + fail + ' fail');
 process.exit(fail ? 1 : 0);
