@@ -400,19 +400,28 @@ console.log('I. rival names are trades, not manoeuvres');
   const lore = fs.readFileSync(path.join(ROOT, 'docs/LORE-Campaign-Chapter2.md'), 'utf8');
   const lines = lore.split('\n');
 
-  /* The nine bouts, keyed by numeral so a reordered doc still matches.
-     XV is the record scene and has no rival, hence the gap. */
+  /* The ten bouts, keyed by numeral so a reordered doc still matches.
+
+     CORRECTED 2026-08-18 (owner: "Aren't there supposed to be 10 gates?").
+     This map used to have nine entries with a hole at XV, because XV was
+     written as a cutscene - which quietly made Chapter II a nine-stage
+     chapter against Chapter One's ten gates. XV is now a bout (the exam),
+     so the map is contiguous XI..XX and the count is asserted below. */
   const RIVALS = {
     XI: 'THE UNDERSTUDY',
     XII: 'THE BOOKMAKER',
     XIII: 'THE HERALD',
     XIV: 'THE COLLECTOR',
+    XV: 'THE HERO OF THE BRIDGE',
     XVI: 'THE UNDERTAKER',
     XVII: 'THE MASON',
     XVIII: 'THE WRECKER',
     XIX: 'THE AUDITOR',
     XX: 'THE REDACTOR'
   };
+  /* The count is its own assertion because the failure mode is a MISSING
+     bout, and a loop over a short map passes happily while being short. */
+  ok(Object.keys(RIVALS).length === 10, 'Chapter II has ten bouts, matching Chapter One\'s ten gates');
   Object.keys(RIVALS).forEach((num) => {
     const want = RIVALS[num];
     const found = lines.some(
@@ -440,6 +449,21 @@ console.log('I. rival names are trades, not manoeuvres');
      next editor free to swing it back. */
   ok(/Revised 2026-08-18 - rivals renamed|Revised 2026-08-18 . rivals renamed/.test(lore), 'the rename carries a dated revision note');
   ok(/## 0\.2 How rivals are named/.test(lore), 'the naming law has its own section');
+
+  /* The stage count, asserted against the PROSE as well as the map above,
+     because the two can drift apart: renaming a heading is a different
+     edit from fixing the section title and the difficulty table, and the
+     first pass shipped with all three disagreeing. */
+  ok(/## 2\. The ten people in the way/.test(lore), 'section 2 is titled for ten people, not nine');
+  ok(
+    /\| \*\*XV The Hero of the Bridge\*\* \| \*\*~35%\*\* \| \*\*exam\*\*/.test(lore),
+    'XV carries a win-rate target in the difficulty table like every other bout'
+  );
+  ok(!/no bout/i.test(lore), 'no bout in the chapter is described as having no bout');
+  /* Chapter One examines twice (V, IX). Chapter II examines once and says
+     why in prose - an unexplained deviation from the parent chapter's
+     shape is the kind of thing that reads as an oversight later. */
+  ok(/Why one exam and not two/.test(lore), 'the single-exam deviation from Chapter One is justified in prose');
 
   /* Chapter One's law, restated as a test: rivals are people, never
      "houses". Scoped to the STORY BODY (section 1 through section 5)

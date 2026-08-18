@@ -6,6 +6,14 @@ encounters, battle barks, codex entries, and post-battle memories. It is
 prose first: the mechanics are the shape beneath the story, not the story
 itself.*
 
+*Revised 2026-08-18 (b) — **XV is now a bout, not a cutscene.** Owner:
+"Aren't there supposed to be 10 gates?" Correct, and the draft had nine:
+XV was written as a read-the-record scene with no fight, which quietly made
+Chapter Two a nine-stage chapter against Chapter One's ten gates. It is now
+**the exam** — you fight the Canon's version of Sargon for the right to take
+over his abandoned petition — which fixes the count and puts the chapter's
+biggest story beat inside a match instead of beside one. See §3.5.*
+
 *Revised 2026-08-18 — rivals renamed. Owner ruling: "These rivals don't
 sound like actual names but like things like what is the long game bruh."
 Correct, and the diagnosis is in §0.2: five of the nine were named after
@@ -157,10 +165,11 @@ stories.
 
 ---
 
-## 2. The nine people in the way
+## 2. The ten people in the way
 
-Seven scheduled bouts, plus the two that are not on the schedule. Each is a
-person, a trade and a reason.
+**Ten bouts, XI through XX**, matching Chapter One's ten gates: seven
+scheduled, one exam, and the two that are not on the schedule at all. Each
+is a person, a trade and a reason.
 
 ---
 
@@ -308,12 +317,13 @@ me to be reasonable first."
 
 ---
 
-### XV — THE TURN: WHAT THE RECORD SAYS
+### XV — THE HERO OF THE BRIDGE  *(the exam)*
 
-**No bout. The hinge of the chapter.**
+**Day four, that night · the turn**
 
-The account is intact, unedited, four hundred years old. The Wayfarer reads
-it aloud to Sargon, because he can no longer hold a tablet steady.
+**The record first.** The account is intact, unedited, four hundred years
+old. The Wayfarer reads it aloud to Sargon, because he can no longer hold a
+tablet steady.
 
 **He did it.**
 
@@ -336,7 +346,51 @@ accepting it meant accepting the forty men his pride killed.
 
 He tells the Wayfarer to withdraw.
 
-The Wayfarer does not.
+**And he can.** A petition belongs to its petitioner; he has held this one
+for four hundred years and he may strike it in a sentence. He goes to do
+exactly that.
+
+**Who you fight.** The Concord has one procedure for a petition its
+petitioner abandons: a claimant may take it over, and to take it over the
+claimant must defeat **the version of the petitioner that is in the book.**
+Not the man. The entry. The Canon's Sargon walks out onto the floor — the
+speech, the banner, the last stand, forty men who are not named because the
+entry does not name them — and it is a very good fighter, because it was
+written to be.
+
+The real Sargon watches from the rail, being asked to sit still while a
+stranger beats a lie about him out of the air, which is the closest thing to
+mercy anyone has offered him in four centuries.
+
+**The gimmick: there is nothing to exploit.** This is the exam, so it is the
+one bout in the chapter with no trick in it. Every card the entry fields is
+*tidied* — no seam, no cost, no tell, no wind-up, nothing overstated and
+nothing left ragged. The four habits the week has taught you (do not judge
+turn one, read the price, cancel the schedule, commit late) all still apply
+and **none of them wins on its own**, because there is no exaggeration here
+to punish. It is an authored 3/3/3/3 across the four decks you have already
+been taught, fielded adaptively, over three games on ground you have already
+walked.
+
+The lesson is Chapter One's Warden lesson, restated: **not whether you can
+win once, but whether you can change between games.** The entry sideboards.
+So must you.
+
+**Bans nothing in game one**, then bans your winning card in games two and
+three — the record adjusting to what you have shown it.
+
+**Line.** *(the entry, in Sargon's voice, which is the cruelty of it)*
+"They crossed behind me and I did not look back once. Say it with me.
+It sounds better when there are two of us saying it."
+
+**Reward.** **Choice of two** echoes from the four decks taught so far, a
+larger purse — and the record, notarised, admissible.
+
+**Afterwards.** Sargon does not thank the Wayfarer. He says the forty names
+out loud, in order, for the first time since the bridge, and it takes some
+minutes, and he gets two of them wrong and has to check.
+
+The Wayfarer does not withdraw.
 
 ---
 
@@ -479,7 +533,7 @@ why. He declined to win anyway.
 
 **The gimmick: he does not start anything.** His entire twelve is built to
 *answer* — counters, punishes, walls, reversals — and it has a reply to each
-of the seven things the chapter has taught you. Provoke a wall and **Guan
+of the eight things the chapter has taught you. Provoke a wall and **Guan
 Yu** counter-hits; commit a combo and **Zhuge Liang** drains the energy that
 pays for it; hide behind a front line and **Sun Wukong** goes over it.
 
@@ -540,8 +594,10 @@ elites and the final are *at* him.
 
 | | Chapter I | Chapter II |
 |---|---|---|
+| Stages | **ten gates, I-X** | **ten bouts, XI-XX** |
 | Opening stage | ~95% | **~45%** |
 | Ordinary stages | 90% → 55% | **40-45%, flat** |
+| Exams | 2 (V, IX) | **1 (XV)** |
 | Elites | 40% (IX) | **~30%** |
 | Boss | 20-30% (X) | **~25%** |
 
@@ -551,13 +607,18 @@ elites and the final are *at* him.
 | XII The Bookmaker | ~42% | |
 | XIII The Herald | ~42% | |
 | XIV The Collector | ~40% | |
+| **XV The Hero of the Bridge** | **~35%** | **exam** — best-of-3, no faction unlock |
 | **XVI The Undertaker** | **~30%** | **elite** |
 | XVII The Mason | ~40% | |
 | XVIII The Wrecker | ~42% | |
 | **XIX The Auditor** | **~30%** | **elite** — Huaxia, bans nothing |
 | **XX The Redactor** | **~25%** | **boss** — at Gilgamesh |
 
-XV is the record scene and has no bout.
+**Why one exam and not two.** Chapter One examines at V and IX because it is
+*teaching the game* and has to check twice. Nobody here is learning the loop,
+so the chapter checks once, at the midpoint, on the four decks it has taught
+by then — and the second check is simply bout XIX, which is an exam wearing
+an elite's difficulty and does the same job without a third best-of-three.
 
 ### How the difficulty is produced
 
@@ -590,7 +651,7 @@ cannot stall past it either.
 **XIX The Auditor** is the *mastery* elite and the harder of the two. He bans
 nothing, which is the flex: he does not need to take your best cards because
 his whole board is built to punish whatever you do with them. Every habit the
-previous seven bouts taught you has a counter on his side of the table. He is
+previous eight bouts taught you has a counter on his side of the table. He is
 also the Huaxia unlock, so the hardest ordinary fight in the chapter is the
 one that pays out the withheld faction.
 
@@ -603,7 +664,7 @@ hundreds of games per stage and moved substantially during tuning. Nothing in
 this chapter has been simmed, because none of it is built yet. Treat every
 figure above as the target to tune toward, and expect it to move.
 
-The maintenance duty from Chapter One applies double: nine authored matchups
+The maintenance duty from Chapter One applies double: ten authored matchups
 against a 112-card roster is a standing balance liability, and every card
 patch is a potential campaign regression. The campaign soak belongs on the
 balance-patch checklist.
@@ -685,6 +746,7 @@ implementation note: which deck each rival fields, and why it suits them.
 | The Bookmaker | Gehenna | appetites that buy power on visible terms |
 | The Herald | Empyrean | announces every blow a round early |
 | The Collector | Transylvania | takes rather than destroys |
+| The Hero of the Bridge | *the four taught decks, 3/3/3/3* | the exam fields what you were taught, not something new |
 | The Undertaker | Jotunheim | strongest once the board starts emptying |
 | The Mason | Devaloka | setup and payoff as two separate jobs |
 | The Wrecker | Tortuga | steals advantages rather than removing them |
@@ -767,8 +829,11 @@ the image.
   them, and the last beat of the chapter.
 - **The antagonist is an institution** with motives, internal disagreement,
   and a defence that is genuinely good.
+- **Ten bouts, XI-XX**, the same count as Chapter One's ten gates — and
+  the same shape: openers, an exam at the midpoint, elites, a boss.
 - **The turn at XV inverts the premise:** he was telling the truth, and the
-  truth is worse than the lie.
+  truth is worse than the lie — and it is a *bout*, because the chapter's
+  biggest story beat should not be the one stage you sit and watch.
 - **Two bad endings are reachable and tempting**, so the good one is a choice.
 - **The boss mechanic is the theme** — a card that edits your history.
 - **Huaxia is the reveal**, not a footnote — and the elite that pays it
