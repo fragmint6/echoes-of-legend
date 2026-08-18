@@ -29,7 +29,12 @@ global.performance = { now: () => Date.now() };
 [
   'data/_schema.js', 'data/roles.js', 'data/camelot.js', 'data/olympus.js',
   'data/sherwood.js', 'data/grimmwood.js', 'data/yamato.js', 'data/huaxia.js',
-  'data/roma.js', 'data/kami.js', 'data/duat.js', 'js/engine.js', 'js/ai.js',
+  'data/roma.js', 'data/kami.js', 'data/duat.js',
+  /* Hercules moved Olympus -> Hemithea on 2026-08-18 and this file uses
+     him in CLEAN_FOES, so the faction has to be loaded or CARD[] has a
+     hole and every board built from it throws on `.faction`. */
+  'data/hemithea.js',
+  'js/engine.js', 'js/ai.js',
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 const EOL = window.EOL, E = EOL.engine;
 

@@ -278,7 +278,19 @@ window.EOL.registerFaction({
            a card, it is a rules exception - and it would make the strongest
            legendary in the player's twelve strictly better by existing. */
         name: 'Moon Reflection',
-        cost: 45,
+        /* 45 -> 35 (owner ruling 2026-08-18c). The copy is deliberately
+           worth LESS than the skill it copies (85%), so pricing it at a
+           full-skill cost meant the honest play was usually to spend the
+           45 on the original instead - the discount on the effect was
+           cancelled by the lack of a discount on the price. At 35 she is
+           the cheap SECOND cast of an ally's best Active in a round,
+           which is the role the card was moved to Kami to play.
+
+           Why not lower: 35 is already the cheapest Active on any epic
+           Caster in the roster, and Moon Reflection can copy a 50-cost
+           skill. Below 35 she would be strictly better than casting the
+           original even when you hold the original. */
+        cost: 35,
         text: 'Copy a random allied Active Skill at <b>85% effectiveness</b>.',
         note: null,
         spec: { target: { side: 'auto' }, effects: [{ k: 'copyAllyActive', scale: 0.85 }] },

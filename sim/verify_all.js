@@ -1346,6 +1346,33 @@ section('B8c. Musashi and Adam (added 2026-08-18)');
     'the copy scale in the data is 0.85'
   );
   ok(/85% effectiveness/.test(CARD['kami-kaguya'].ability.text), 'the card text says 85%');
+
+  /* COST, 45 -> 35 (owner ruling 2026-08-18c). Asserted because the whole
+     point of the card is that the copy is CHEAPER than the original it
+     copies - at 45 the discount on the effect (85%) was cancelled by the
+     absence of a discount on the price, so spending the energy on the
+     real skill was almost always correct.
+
+     The second assertion is the one that would catch a bad future tune:
+     Moon Reflection must stay strictly cheaper than the median Active it
+     can copy, or the card has no reason to be drafted. */
+  ok(CARD['kami-kaguya'].ability.cost === 35, 'Moon Reflection costs 35 Energy');
+  {
+    const costs = ALL.filter(
+      (c) => c.ability.type === 'Active' && c.ability.spec && typeof c.ability.cost === 'number'
+    )
+      .map((c) => c.ability.cost)
+      .sort((a, b) => a - b);
+    const median = costs[Math.floor(costs.length / 2)];
+    ok(
+      CARD['kami-kaguya'].ability.cost < median,
+      'Moon Reflection is cheaper than the median Active it copies (' +
+        CARD['kami-kaguya'].ability.cost +
+        ' < ' +
+        median +
+        ')'
+    );
+  }
 }
 
 section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');

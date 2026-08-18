@@ -59,6 +59,14 @@ rev 5).
 > after the first attempt came back landscape and too smoothly shaded to
 > pass the flat/hard test in section 4b.
 >
+> **2026-08-18, rev 9.** **Kaguya rebriefed for Kami** - the rev 8 entry
+> moved her file but kept a brief written for a war camp, so the spec now
+> describes the recall (moon disc as silhouette, sleeves dissolving into
+> rising motes, Kami's sea of clouds). Brief only: the shipped PNG is still
+> the old Yamato portrait and is flagged as mismatched until regenerated.
+> Her Energy cost also dropped 45 -> 35, which is a data change, not an art
+> one.
+>
 > **2026-08-18, rev 7.** Five factions renamed by owner ruling -
 > Takamagahara -> **Kami**, Gehenna -> **Pandemonium**, Devaloka ->
 > **Devas**, Jotunheim -> **Asgard**, Achaea -> **Hemithea**. Every colour
@@ -713,17 +721,50 @@ full imperial splendour.
 
 ### Kami - The plain of high heaven keeps its own counsel `#e8e3d3` / `#c4392f`
 
-**Kaguya** `epic / Caster / Magic` - Moon princess *(moved here from Yamato
-2026-08-18; brief and shipped art unchanged, filename now
-`kami-kaguya.png`)*. Ethereal, pale to the point of translucency, impossibly
-long black hair drifting as if underwater. Twelve-layered junihitoe in white
-and silver. Signature: a full moon disc behind her head. `#9b7bff` motes
-rising. Epic: layered silk, weightless hair.
+**Kaguya** `epic / Caster / Magic` - **REBRIEFED 2026-08-18c for Kami.** The
+old brief was written for Yamato and survived her move unchanged, which left
+the shipped portrait standing in a misty war camp - a human army's backdrop
+for the one legend in the game who is not human and is about to leave. This
+replaces it outright.
 
-*Environment note: her shipped portrait carries Yamato's misty war camp, not
-Kami's sea of clouds and vermilion torii. Section 4 test 5 (alignment) fails
-for this one card against its new faction - same situation as Hercules in
-Hemithea. Left deliberately; flagged for the next art pass.*
+*The recall, caught the moment before it lands.* A moon princess of
+impossible stillness in a faction of divine cycles, and the only Kami legend
+whose story is an ENDING rather than a turning. Face serene and very slightly
+turned upward, already listening to something the viewer cannot hear.
+Skin pale past porcelain to faint translucency - the light behind her edges
+should read as coming *through* her at the shoulders and sleeve-hems, not
+around her. Impossibly long black hair lifting and drifting as though the
+air were water.
+
+Twelve-layered junihitoe in white, bone and silver, each layer's hem a
+visible band at the cuff and collar so the twelve reads as twelve. No
+weapon, no ornament of rank, nothing borrowed from a war camp.
+
+**Signature (the thing that must survive the silhouette test):** a full moon
+disc directly behind her head, clean-edged and complete, so her outline is a
+figure inside a ring. Nothing else in the faction is circular.
+
+**Defining feature:** the sleeves and the lowest hair-ends dissolving into
+`#9b7bff` motes that rise rather than fall - she is already going, and the
+picture is the last moment she is entirely here.
+
+Costume palette from bleached silk, shrine white and vermilion accents,
+built on `#e8e3d3` and `#c4392f`, with a crisp 1-2 pixel `#9b7bff` magic rim
+along the upper-left contour.
+
+Environment: **Kami's** sea of clouds high above the world, great vermilion
+torii, drifting shrine streamers, sunrise - not Yamato's battlefield. The
+moon disc is the one bright shape permitted behind the head, and it is the
+exception the faction's "no bright shapes behind the head" rule is written
+around, because it IS her silhouette.
+
+Epic: layered silk with visible per-layer hems, weightless hair, restrained
+mote count - the dissolve should read as deliberate, not as an effect.
+
+*Status: brief only. The shipped `kami-kaguya.png` is still the old Yamato
+portrait and does NOT match this text; it fails section 4 test 5 against
+Kami until it is regenerated. No art was generated this pass (owner asked
+for the spec).*
 
 **Amaterasu** `legendary / Caster / Light` - Sun goddess. Face almost too
 bright to look at, serene, eyes closed or nearly. White and vermilion
