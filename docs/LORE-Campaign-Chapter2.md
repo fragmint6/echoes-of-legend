@@ -6,6 +6,15 @@ encounters, battle barks, codex entries, and post-battle memories. It is
 prose first: the mechanics are the shape beneath the story, not the story
 itself.*
 
+*Revised 2026-08-18 — rivals renamed. Owner ruling: "These rivals don't
+sound like actual names but like things like what is the long game bruh."
+Correct, and the diagnosis is in §0.2: five of the nine were named after
+**events or tactics** (The Long Game, The Last Stand, The Heralded Blow,
+The Price-Setter, The Revision) where every Chapter One rival is named
+after **a person's trade or standing** (the Outlaw, the Chronicler, the
+Warden, the Strategist). Renamed to agent nouns; playstyle still readable
+off the name.*
+
 ---
 
 ## 0. How this relates to Chapter One
@@ -58,6 +67,51 @@ every character completely.
 | Tone | elegiac, quiet, sad | loud, political, funny, then not |
 | Antagonist | grief with teeth | **an institution, and the decent people inside it** |
 | The Wayfarer is | a blank being tested | a **nobody who files paperwork** |
+
+---
+
+## 0.2 How rivals are named
+
+**A rival's name is a job, not a manoeuvre.**
+
+The first pass of this chapter failed that. Half the roster was named for
+the thing that happens in the fight rather than for the person having it:
+*The Long Game*, *The Last Stand*, *The Heralded Blow*, *The Price-Setter*,
+*The Revision*. Read as a list they are tactics, or chapter titles, or
+sports commentary — not people you are about to meet.
+
+Chapter One never slips: the **Recruiter**, the **Oathkeeper**, the
+**Outlaw**, the **Anointed**, the **Warden**, the **Trickster**, the
+**Strategist**, the **Chronicler**, the **Last Guardian**. Every one is an
+*agent noun* — somebody who does a thing for a living or a calling. The
+playstyle is still legible (an Outlaw shoots the big name, a Strategist
+counter-drafts) but you meet a **person** first and learn their habit
+second.
+
+The rename, and what each one keeps:
+
+| Was | Is | The trade | Still says the playstyle |
+|---|---|---|---|
+| The Understudy | **The Understudy** | a paid stand-in | an understudy is someone not finished becoming the part |
+| The Price-Setter | **The Bookmaker** | he runs the betting | a bookmaker's whole job is publishing the price |
+| The Heralded Blow | **The Herald** | he announces the court's rulings | a herald says what is coming before it arrives |
+| The Collector | **The Collector** | she keeps the vault | a collector takes and *keeps* |
+| The Last Stand | **The Undertaker** | he buries worlds | an undertaker is at his best once things start dying |
+| The Long Game | **The Mason** | eleven centuries of the same proposal | a mason lays the course before the course above it |
+| The Taker | **The Wrecker** | she salvages what others abandon | a wrecker takes the cargo, it doesn't sink with the ship |
+| The Answer | **The Auditor** | the last office of a dead empire | an auditor never initiates; he *checks what you did* |
+| The Revision | **The Redactor** | he reads out the rulings | a redactor removes lines from a record — the boss mechanic exactly |
+
+Two survived unchanged because they were already trades: the Understudy
+and the Collector.
+
+**The Undertaker and the Redactor are the two that improved most.** "The
+Last Stand" was the *name of his fight*; "The Undertaker" is the man who
+buried a world, thinks the Concord's crime is refusing to let anything
+finish, and fields the only deck that improves as the board empties — the
+job, the grievance and the gimmick in one word. "The Revision" was the
+mechanic wearing a hat; "The Redactor" is a person who does that mechanic
+for a living, which is more frightening.
 
 ---
 
@@ -145,13 +199,14 @@ years to take the petition seriously.
 
 ---
 
-### XII — THE PRICE-SETTER
+### XII — THE BOOKMAKER
 
 **Day two · the fixer**
 
-**Who he is.** He runs the betting on the Concord, openly, from a table
-nobody has ever asked him to move. He was a tax farmer in life. Being owed is
-the only form of being needed he has ever managed.
+**Who he is.** The Concord's bookmaker. He runs the betting openly, from a
+table nobody has ever asked him to move, and he chalks every price where the
+crowd can read it. He was a tax farmer in life. Being owed is the only form
+of being needed he has ever managed.
 
 **Why he fights you.** He offers to *fund* the twelfth petition — pay the
 filing costs, buy the witnesses, hand you the week — in exchange for a debt
@@ -181,12 +236,13 @@ the back of the tablet, and I stopped considering that my failing."
 
 ---
 
-### XIII — THE HERALDED BLOW
+### XIII — THE HERALD
 
 **Day three · the incumbent's second**
 
 **Who he is.** The Canon's holders do not fight their own early bouts. They
-send their sword-bearer: an honest, unimaginative, wholly sincere man who
+send their herald — the man who walks out first and reads what is about to
+happen to the crowd, then does it. An honest, unimaginative, wholly sincere man who
 believes the last four hundred years of rulings have been fair, and who has
 never checked, because it has never occurred to him that checking is a thing
 one does.
@@ -284,11 +340,12 @@ The Wayfarer does not.
 
 ---
 
-### XVI — THE LAST STAND
+### XVI — THE UNDERTAKER
 
 **Day five · the abolitionist**
 
-**Who he is.** He buried a world once — a proper ending, prophesied and
+**Who he is.** An undertaker, and he means it as a profession rather than a
+figure of speech: he buried a world once — a proper ending, prophesied and
 attended, with a field growing back afterwards. He has never forgiven the
 Concord for what it does instead: legends propped up past their natural
 death, retold, re-edited, revised, never permitted to *finish*. He is here to
@@ -320,11 +377,14 @@ will not let them off it. Ask yourself who the Canon is serving now."
 
 ---
 
-### XVII — THE LONG GAME
+### XVII — THE MASON
 
 **Day six · the reformer**
 
-**Who she is.** She has come to every Concord for eleven centuries with the
+**Who she is.** A mason, from back when that was the whole of her — she
+built the retaining wall the Concord's own floor sits on, one course at a
+time, and she has never once seen the point of laying a stone before the bed
+under it is true. She has come to every Concord for eleven centuries with the
 same proposal: the Canon should expire *yearly*, not once a century. It is
 obviously fairer and completely unworkable — everyone would campaign every
 year and nobody would ever govern — and it has never once reached a vote.
@@ -354,11 +414,14 @@ has been polite about it."
 
 ---
 
-### XVIII — THE TAKER
+### XVIII — THE WRECKER
 
 **Day seven, at night · the theft**
 
-**Who she is.** A wrecker. Her position has always been the honest one: the
+**Who she is.** A wrecker, in the trade sense: she works the coast where
+things go down and takes off what floats before the sea gets it, and she has
+never in her life considered that stealing. Her position has always been the
+honest one: the
 Canon is loot, and the only reason nobody has taken it in a hundred years is
 that everyone agreed not to. On the last night before the final, she stops
 agreeing.
@@ -377,8 +440,8 @@ changes hands. **Blackbeard** headlines: a board-wide burn that is worth more
 the more of your team is already committed.
 
 The lesson: **the opening turn you spend preparing is the one she profits
-from.** She is the direct counter to every habit the Long Game just taught
-you, which is why she is scheduled the night after.
+from.** She is the direct counter to every habit the Mason just taught you,
+which is why she is scheduled the night after.
 
 **Bans your buff support**, so the theft cannot be replaced.
 
@@ -389,7 +452,7 @@ weighs four pounds. I've carried heavier by accident."
 
 ---
 
-### XIX — THE ANSWER
+### XIX — THE AUDITOR
 
 **The morning of the final · unscheduled**
 
@@ -434,13 +497,14 @@ thousand years is procedure."
 
 ---
 
-## 3. XX — THE FINAL: THE REVISION
+## 3. XX — THE FINAL: THE REDACTOR
 
 **The Concord floor · everyone watching**
 
 The Canon's holders send the voice that has read every ruling for four
-hundred years. If anyone can make a cover-up sound like continuity, it is the
-mouth that announced them all.
+hundred years — and, quieter, the hand that decided which lines were read at
+all. If anyone can make a cover-up sound like continuity, it is the mouth
+that announced them all.
 
 **He is not a hypocrite**, which is what makes him hard. He knew about the
 error for two centuries. He suppressed it. He will say why to your face: an
@@ -484,14 +548,14 @@ elites and the final are *at* him.
 | Bout | Target player WR | Notes |
 |---|---|---|
 | XI The Understudy | ~45% | the easiest fight in the chapter is still a real fight |
-| XII The Price-Setter | ~42% | |
-| XIII The Heralded Blow | ~42% | |
+| XII The Bookmaker | ~42% | |
+| XIII The Herald | ~42% | |
 | XIV The Collector | ~40% | |
-| **XVI The Last Stand** | **~30%** | **elite** |
-| XVII The Long Game | ~40% | |
-| XVIII The Taker | ~42% | |
-| **XIX The Answer** | **~30%** | **elite** — Huaxia, bans nothing |
-| **XX The Revision** | **~25%** | **boss** — at Gilgamesh |
+| **XVI The Undertaker** | **~30%** | **elite** |
+| XVII The Mason | ~40% | |
+| XVIII The Wrecker | ~42% | |
+| **XIX The Auditor** | **~30%** | **elite** — Huaxia, bans nothing |
+| **XX The Redactor** | **~25%** | **boss** — at Gilgamesh |
 
 XV is the record scene and has no bout.
 
@@ -518,12 +582,12 @@ turn order is worth ~0-10pp. Both stay banned. So:
 
 Two, both at ~30%, and they are elites for opposite reasons.
 
-**XVI The Last Stand** is the *attrition* elite: the only deck in the game
+**XVI The Undertaker** is the *attrition* elite: the only deck in the game
 that gets stronger as the board empties, so the usual plan — trade evenly,
 win on remainder — is precisely the losing line. Healers banned, so you
 cannot stall past it either.
 
-**XIX The Answer** is the *mastery* elite and the harder of the two. He bans
+**XIX The Auditor** is the *mastery* elite and the harder of the two. He bans
 nothing, which is the flex: he does not need to take your best cards because
 his whole board is built to punish whatever you do with them. Every habit the
 previous seven bouts taught you has a counter on his side of the table. He is
@@ -555,7 +619,7 @@ buried too, and somebody four hundred years from now files their twelfth
 petition.
 
 **2. Publish the audit.** The holders' credibility burns, the Canon is proven
-fallible, and the argument goes back to the street. The Last Stand gets his
+fallible, and the argument goes back to the street. The Undertaker gets his
 bonfire. The forty stay unnamed, because nobody is keeping records any more.
 
 **3. Both, then give it away.** Correct the line, publish the audit, and
@@ -568,7 +632,7 @@ could ever have bought it is a Canon-holder giving up the Canon on his first
 morning.
 
 The Wayfarer holds it for a day and a half — the shortest tenure in the
-history of the Concord. The Answer files the paperwork and, for the first
+history of the Concord. The Auditor files the paperwork and, for the first
 time in four thousand years, has a successor to train.
 
 **The cost.** The corrected entry is not the heroic one. It has the
@@ -593,7 +657,7 @@ out loud, and somebody else's hands to file it.
 The Wayfarer leaves with twelve legends, a coin purse, and no more claim to a
 name than they arrived with.
 
-The Answer stops them at the gate and hands over a blank tablet, which is
+The Auditor stops them at the gate and hands over a blank tablet, which is
 either a formality or a joke, and with him it is impossible to tell.
 
 "Petition form," he says. "For when you want your own line looked at."
@@ -618,14 +682,14 @@ implementation note: which deck each rival fields, and why it suits them.
 | Rival | Fields | Why it fits the person |
 |---|---|---|
 | The Understudy | Achaea | mortals with no god; everyone becomes more mid-fight |
-| The Price-Setter | Gehenna | appetites that buy power on visible terms |
-| The Heralded Blow | Empyrean | announces every blow a round early |
+| The Bookmaker | Gehenna | appetites that buy power on visible terms |
+| The Herald | Empyrean | announces every blow a round early |
 | The Collector | Transylvania | takes rather than destroys |
-| The Last Stand | Jotunheim | strongest once the board starts emptying |
-| The Long Game | Devaloka | setup and payoff as two separate jobs |
-| The Taker | Tortuga | steals advantages rather than removing them |
-| The Answer | **Huaxia** | answers instead of initiating |
-| The Revision | bespoke boss + Empyrean court | edits the record mid-fight |
+| The Undertaker | Jotunheim | strongest once the board starts emptying |
+| The Mason | Devaloka | setup and payoff as two separate jobs |
+| The Wrecker | Tortuga | steals advantages rather than removing them |
+| The Auditor | **Huaxia** | answers instead of initiating |
+| The Redactor | bespoke boss + Empyrean court | edits the record mid-fight |
 
 ### Each rival's gimmick is the faction they introduce
 
@@ -641,13 +705,13 @@ faction:
 | Bout | The gimmick | Proved by | Unlocks |
 |---|---|---|---|
 | XI The Understudy | nothing is finished at turn one; legends ascend mid-fight | **Achilles** | Achaea |
-| XII The Price-Setter | every card buys power with a visible cost | **Pride** | Gehenna |
-| XIII The Heralded Blow | damage is scheduled a round early, in the open | **Lucifer** | Empyrean |
+| XII The Bookmaker | every card buys power with a visible cost | **Pride** | Gehenna |
+| XIII The Herald | damage is scheduled a round early, in the open | **Lucifer** | Empyrean |
 | XIV The Collector | what she strips off you reappears on her | **Dracula** | Transylvania |
-| XVI The Last Stand | the deck improves as the board empties | **Odin** | Jotunheim |
-| XVII The Long Game | nothing kills without a second card first | **Shiva** | Devaloka |
-| XVIII The Taker | advantages change sides rather than vanishing | **Blackbeard** | Tortuga |
-| XIX The Answer | answers everything, initiates nothing | **Sun Wukong** | Huaxia |
+| XVI The Undertaker | the deck improves as the board empties | **Odin** | Jotunheim |
+| XVII The Mason | nothing kills without a second card first | **Shiva** | Devaloka |
+| XVIII The Wrecker | advantages change sides rather than vanishing | **Blackbeard** | Tortuga |
+| XIX The Auditor | answers everything, initiates nothing | **Sun Wukong** | Huaxia |
 
 Each one also teaches the counter to itself, which is what makes them
 lessons rather than gimmicks: cancel the schedule, kill the enabler, refuse
@@ -677,7 +741,7 @@ An earlier draft mentioned Huaxia once, in passing, as a dissolved house —
 which was a waste of the faction the whole roster has been holding back since
 Chapter One.
 
-The Answer now **is** that empire's last living institution, and the chapter
+The Auditor now **is** that empire's last living institution, and the chapter
 says so out loud: an empire fell, its armies and its emperors and its poets
 are gone, and what survived was **one clerk who kept the hours**. That is
 both a real joke about bureaucracy and the most Huaxia sentence available —
@@ -709,10 +773,12 @@ the image.
 - **The boss mechanic is the theme** — a card that edits your history.
 - **Huaxia is the reveal**, not a footnote — and the elite that pays it
   out is the hardest ordinary fight in the chapter.
-- **Every name is the playstyle.** The Collector takes and keeps, The
-  Last Stand is strongest when losing, The Answer counters, The Long
-  Game needs two cards to kill anything. Chapter One's law: the
-  Oathkeeper teaches walls, the Outlaw teaches focus fire.
+- **Every name is a trade, and the trade is the playstyle.** The
+  Bookmaker prices things, the Undertaker finishes things, the Mason
+  builds in two stages, the Auditor checks rather than acts, the
+  Redactor removes lines from a record. Chapter One's law: the
+  Oathkeeper teaches walls, the Outlaw teaches focus fire — and both
+  are *people you could describe to a stranger in three words*.
 - **No freebies.** The opening bout sits at ~45%, not ~95%.
 - **Every rival demonstrates the faction they hand over**, legendary
   first, exactly as the Outlaw sells Sherwood with Robin Hood.

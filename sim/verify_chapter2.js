@@ -377,6 +377,80 @@ console.log('H. the Chapter II shelf is closed');
   });
 }
 
+console.log('I. rival names are trades, not manoeuvres');
+{
+  /* Owner ruling 2026-08-18: "These rivals don't sound like actual names
+     but like things like what is the long game bruh." The first pass named
+     five of nine rivals after the EVENT in the fight (The Long Game, The
+     Last Stand, The Heralded Blow, The Price-Setter, The Revision) where
+     every Chapter One rival is an AGENT NOUN - somebody's trade or standing
+     (the Outlaw, the Chronicler, the Warden, the Strategist).
+
+     This section is a lint, not a taste test. It cannot judge whether a
+     name is good; it CAN catch the specific regression that happened,
+     which is a retired event-name creeping back into the body of the doc
+     when someone edits a rival section and copies an old paragraph. The
+     rejected names are allowed to appear exactly where they are being
+     discussed as rejected - the revision note at the top and the rename
+     table in section 0.2 - and nowhere else.
+
+     Why check headings separately: a rename done with sed on the prose
+     will happily miss the '### XVI - ...' line if the casing differs, and
+     the heading is the one place a player-facing name is unambiguous. */
+  const lore = fs.readFileSync(path.join(ROOT, 'docs/LORE-Campaign-Chapter2.md'), 'utf8');
+  const lines = lore.split('\n');
+
+  /* The nine bouts, keyed by numeral so a reordered doc still matches.
+     XV is the record scene and has no rival, hence the gap. */
+  const RIVALS = {
+    XI: 'THE UNDERSTUDY',
+    XII: 'THE BOOKMAKER',
+    XIII: 'THE HERALD',
+    XIV: 'THE COLLECTOR',
+    XVI: 'THE UNDERTAKER',
+    XVII: 'THE MASON',
+    XVIII: 'THE WRECKER',
+    XIX: 'THE AUDITOR',
+    XX: 'THE REDACTOR'
+  };
+  Object.keys(RIVALS).forEach((num) => {
+    const want = RIVALS[num];
+    const found = lines.some(
+      (l) => /^#{2,3} /.test(l) && new RegExp('\\b' + num + '\\b').test(l) && l.indexOf(want) !== -1
+    );
+    ok(found, 'bout ' + num + ' is headed ' + want);
+  });
+
+  /* The retired names. Each maps to the count of occurrences that are
+     legitimate - i.e. inside the revision note or the rename table. If a
+     count goes UP, an old name has leaked back into the prose. */
+  const RETIRED = ['The Long Game', 'The Last Stand', 'The Heralded Blow', 'The Price-Setter', 'The Revision', 'The Taker', 'The Answer'];
+  const discussionZone = lore.slice(0, lore.indexOf('## 1. The premise'));
+  RETIRED.forEach((name) => {
+    const total = lore.split(name).length - 1;
+    const inZone = discussionZone.split(name).length - 1;
+    ok(
+      total === inZone,
+      "'" + name + "' appears only where it is named as rejected (" + total + ' occurrences, all in the changelog/rename table)'
+    );
+  });
+
+  /* The rename must stay EXPLAINED, not just done. Chapter One's docs
+     carry their owner rulings inline; a silent rename would leave the
+     next editor free to swing it back. */
+  ok(/Revised 2026-08-18 - rivals renamed|Revised 2026-08-18 . rivals renamed/.test(lore), 'the rename carries a dated revision note');
+  ok(/## 0\.2 How rivals are named/.test(lore), 'the naming law has its own section');
+
+  /* Chapter One's law, restated as a test: rivals are people, never
+     "houses". Scoped to the STORY BODY (section 1 through section 5)
+     rather than the whole file, because the meta sections deliberately
+     quote the word while explaining why it was thrown out - an unscoped
+     match fails on its own changelog, which is the sort of test that gets
+     deleted rather than fixed. */
+  const body = lore.slice(lore.indexOf('## 1. The premise'), lore.indexOf('## 6. Where the cards come in'));
+  ok(!/\bhouses?\b/i.test(body), 'the Chapter II story body never says "house"');
+}
+
 console.log('');
 console.log(pass + ' pass, ' + fail + ' fail');
 process.exit(fail ? 1 : 0);
