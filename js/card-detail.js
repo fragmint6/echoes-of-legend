@@ -915,12 +915,9 @@
     if (lvl) {
       var id = lvl.dataset.upLevel;
       var before = up.levelOf(id);
-      /* NO DEFAULT BOOST (owner ruling 2026-08-16). The level lands
-         unassigned and the player picks - a stat quietly chosen on
-         their behalf is a decision taken away, and the old default
-         ("more of whatever you already had") was wrong every time
-         somebody wanted to diversify. */
-      var r = up.levelUp(id);
+      /* New levels start on ATK so the upgrade has an immediate, visible
+         result. Every per-level button remains freely reassignable. */
+      var r = up.levelUp(id, 'atk');
       if (r.ok) {
         /* THE CEREMONY. Played first, then the panel is patched in
            place - a full re-render here is what made the dialog

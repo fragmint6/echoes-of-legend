@@ -301,35 +301,18 @@
   }
 
   /* ---------------- pack contents (pure) ---------------- */
-  /* THE SHELF NEVER DEAD-ENDS (see docs/DESIGN-Card-Upgrades.md).
-     Packs used to draw only from cards you did not own, so a complete
-     collection turned the shop off entirely and left coins with no
-     sink at all. Once nothing unowned is left, packs pay DUPLICATES
-     from the same non-legendary universe instead - which is exactly
-     the material the upgrade system runs on.
-
-     The Crown Law is untouched: this pool is still built from
-     obtainable, non-legendary cards, so no wrapper can ever contain a
-     crown. Legendary duplicates come from crafting, never a pack. */
-  function duplicateAwarePool() {
-    var econ = window.EOL.econ;
-    var fresh = econ.packableEntries();
-    if (fresh.length) return fresh;
-    return econ.obtainableEntries().filter(function (e) {
-      return e.card.rarity !== 'legendary';
-    });
-  }
-
-  /* Pools are built from the PACKABLE roster only - unowned AND below
-     legendary (the Crown Law). `entries` is injectable for tests, and
-     the legendary filter applies even then: no injected pool can put
-     a crown in a wrapper. */
-  function poolByRarity(entries) {
+  /* Pools are built from the universe of the pack being opened. `entries`
+     remains injectable for deterministic tests; without it, the scoped
+     duplicate-aware pool above is used. Keeping one pool function is
+     important: an older unscoped duplicateAwarePool declaration here used
+     to shadow the chapter-aware implementation and let Chapter II cards
+     leak into an Echoes Pack. */
+  function poolByRarity(entries, pack) {
     var pools = { common: [], rare: [], epic: [] };
     var list =
       entries ||
       (window.EOL.econ
-        ? duplicateAwarePool()
+        ? duplicateAwarePool(pack)
         : (function () {
             var out = [];
             (window.EOL.factions || []).forEach(function (f) {
@@ -364,7 +347,7 @@
   function rollPack(rng, pack, entries) {
     rng = rng || Math.random;
     pack = pack || PACKS.echo;
-    var pools = poolByRarity(entries);
+    var pools = poolByRarity(entries, pack);
     function pickFrom(rarity) {
       var order =
         rarity === 'common' ? ['common', 'rare', 'epic'] : [rarity, 'epic', 'rare', 'common'];
@@ -1608,11 +1591,11 @@
         /* THE UPGRADE BUTTON first: level the card up in place. */
         var upBtn = e.target.closest ? e.target.closest('[data-echo-up]') : null;
         if (upBtn) {
-          var upr = U.levelUp(upBtn.dataset.echoUp);
+          var upr = U.levelUp(upBtn.dataset.echoUp, 'atk');
           if (upr.ok) {
             if (window.EOL.ui.toast)
               window.EOL.ui.toast(
-                'Leveled to ' + upr.lv + ' - assign the stat in the Collection',
+                'Leveled to ' + upr.lv + ' with an ATK boost',
                 'ri-arrow-up-double-line'
               );
             if (window.EOL.audio) window.EOL.audio.ui('levelup');

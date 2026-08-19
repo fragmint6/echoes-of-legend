@@ -1227,30 +1227,29 @@ sec('S11. Every legend gains something from an upgrade');
   );
 }
 
-sec('S11b. A new level starts with NO boost chosen');
+sec('S11b. A new level defaults to an ATK boost');
 {
   U._reset();
   EOL.econ._reset();
   /* on the SIX board, so the engine assertions below can find it */
   const id = 'duat-anubis';
   U.addDuplicate(id, 9);
-  U.levelUp(id);                       // no stat argument
+  U.levelUp(id);                       // omitted stat uses the visible default
   ok(U.levelOf(id) === 1, 'the level is bought');
-  ok(U.boostsOf(id)[0] === null, 'and its boost is unassigned');
-  ok(U.boostCounts(id).atk === 0, 'an unassigned level moves no stat');
+  ok(U.boostsOf(id)[0] === 'atk', 'and ATK is selected by default');
+  ok(U.boostCounts(id).atk === 1, 'the level records one ATK boost');
   const card = CARD[id].card;
-  ok(U.statsFor(id, card).atk === card.stats.atk, 'so the stats have not changed');
-  /* ...but the LEVEL still pays the flat skill bonus. */
-  ok(near(U.powerAdd(U.levelOf(id)), 0.02, 1e-9), 'the skill bonus is paid by the LEVEL, not the boost');
-  /* and the engine must not demote the card for the null */
+  ok(U.statsFor(id, card).atk > card.stats.atk, 'so ATK increases immediately');
+  /* The LEVEL also pays the flat skill bonus. */
+  ok(near(U.powerAdd(U.levelOf(id)), 0.02, 1e-9), 'the skill bonus is paid by the level');
   const B = E.createBattle(mine(), foes(), { upgrades: U.payloadFor([id]) });
   const u = unitOf(B, id);
   ok(u.upLevel === 1, 'the engine still sees a level-1 card');
-  ok(u.baseAtk === card.stats.atk, 'with no stat moved');
+  ok(u.baseAtk > card.stats.atk, 'with the ATK boost applied');
 
   U.setBoost(id, 1, 'hp');
-  ok(U.boostsOf(id)[0] === 'hp', 'picking assigns that level');
-  ok(U.statsFor(id, card).hp > card.stats.hp, 'and the stat moves then');
+  ok(U.boostsOf(id)[0] === 'hp', 'the default remains freely reassignable');
+  ok(U.statsFor(id, card).hp > card.stats.hp, 'and the new stat moves');
 }
 
 sec('S11c. The dialog patches in place instead of re-rendering');
@@ -1263,8 +1262,8 @@ sec('S11c. The dialog patches in place instead of re-rendering');
   ok(/rowHost\.appendChild/.test(quiet), 'a new level APPENDS one row');
   ok(/btn\.innerHTML/.test(quiet) && /note\.innerHTML/.test(quiet), 'the button and note are patched');
   ok(!/render\(/.test(quiet), 'and it never calls the full render');
-  /* levelUp must not pass a default stat */
-  ok(/up\.levelUp\(id\)/.test(detail), 'levelling asks for no default boost');
+  /* The dialog states the same default as the upgrade model. */
+  ok(/up\.levelUp\(id, 'atk'\)/.test(detail), 'levelling visibly selects ATK by default');
 }
 
 sec('S11d. The dialog keeps the "was N" line honest');

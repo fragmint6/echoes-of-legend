@@ -403,15 +403,11 @@
     return { ok: true, cost: cost, dupes: r.dupes };
   }
 
-  /* SPEND banked duplicates on the next level. Explicit rather than
-     automatic: the stat choice should be deliberate. */
-  /* SPEND banked duplicates on the next level. Explicit rather than
-     automatic: the boost choice should be deliberate, and it is now
-     made PER LEVEL - the new stat is appended, leaving the earlier
-     levels' choices alone. */
-  /* `stat` is OPTIONAL. Omit it and the new level lands unassigned -
-     the player picks afterwards, which is the default the UI uses so
-     no boost is silently chosen on their behalf. */
+  /* SPEND banked duplicates on the next level. Boosts are recorded per
+     level, leaving earlier choices alone. `stat` is optional: ATK is the
+     visible default for every new level;
+     callers may still pass HP or DEF explicitly, and the player can freely
+     reassign any level afterwards outside battle. */
   function levelUp(id, stat) {
     var r = rec(id);
     if (r.boosts.length >= MAX_LEVEL) return { ok: false, reason: 'maxed' };
@@ -425,7 +421,7 @@
       if (!econ.spend(COIN_COST)) return { ok: false, reason: 'coins', coins: COIN_COST };
     }
     r.dupes -= cost;
-    r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : null);
+    r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : 'atk');
     save();
     return {
       ok: true,

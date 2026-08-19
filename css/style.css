@@ -31196,3 +31196,39 @@ span.lg-portrait i {
     transform: none;
   }
 }
+
+/* ========================================================================
+   SHOP LAYERING + EMPTY-STATE CORRECTIONS (2026-08-19c)
+   ======================================================================== */
+/* The dossier's entire stacking context must outrank the wallet, tabs and
+   masthead controls it overlaps when opening upward. A large z-index on the
+   dossier alone cannot escape an isolated parent stacking context. */
+#spanel-packs {
+  z-index: 10000;
+  isolation: isolate;
+}
+.product:has(.product-pack:hover) {
+  z-index: 10001;
+}
+.product-info {
+  z-index: 10002;
+}
+
+/* Remove every remnant of the old per-product plaque. Earlier theme rules
+   add a shadow and an inset ::before frame after the base product reset. */
+.product {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.product::before {
+  content: none;
+  display: none;
+}
+
+/* display:grid on .echo-empty otherwise beats the user-agent [hidden] rule. */
+.echo-empty[hidden] {
+  display: none !important;
+}
