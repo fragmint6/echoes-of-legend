@@ -375,6 +375,23 @@ window.EOL.draftAI = (function () {
         return (e.pctMaxHp || e.shieldPctMaxHp || 0) * hp2a * 1.0;
       case 'revive':
         return 200 + (e.pctMaxHp || 30) * 2;
+      /* CHAPTER II effect kinds. Priced against `revive` (200) as the
+         reference for board-swinging utility.
+
+         noRevive is the direct counter to a revive, so it is worth a
+         good fraction of one - more in a field with Isis, Medea, Osiris
+         and Sun Wukong in it, but the draft AI cannot see the enemy's
+         list, so a flat conservative number is honest.
+
+         cancelDelayed and hastenDelayed are tempo on somebody else's
+         effect: valuable, but worth nothing at all if no delayed effect
+         is on the board, so both are priced well below a revive. */
+      case 'noRevive':
+        return 120;
+      case 'cancelDelayed':
+        return 90;
+      case 'hastenDelayed':
+        return 70 * (e.turns || 1);
       case 'lifesteal':
         return (e.pct || 30) * 0.9;
       case 'stat': {

@@ -61,7 +61,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     'grimmwood-cinderella',
   ];
   const E6 = [
-    'olympus-hercules',
+    'hemithea-hercules',
     'huaxia-guan-yu',
     'camelot-mordred',
     'olympus-medusa',

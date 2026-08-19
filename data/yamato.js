@@ -162,6 +162,79 @@ window.EOL.registerFaction({
       art: 'assets/legends/yamato-abe-no-seimei.png',
     },
     {
+      id: 'yamato-miyamoto-musashi',
+      name: 'Miyamoto Musashi',
+      rarity: 'epic',
+      role: 'Sniper',
+      element: 'Physical',
+      stats: { hp: 4500, atk: 1880, def: 13 },
+      ability: {
+        type: 'Active',
+        name: 'Two Heavens as One',
+        cost: 45,
+        /* WHY THIS CARD, AND WHY A SNIPER
+           -------------------------------------------------------------
+           Added 2026-08-18 when Kaguya moved to Kami, which left Yamato
+           at five cards and with no Caster. The owner ruled he need not
+           be a Caster, so he is not: a swordsman who duels is the
+           clearest Sniper in myth, and Yamato's only other Sniper is
+           Tomoe Gozen, whose kit is Energy theft rather than a duel.
+
+           THE DUEL, AS A MECHANIC. Musashi's real distinction is that he
+           won sixty-one duels and wrote that the point is to finish the
+           opponent in a single exchange. So: he hits ONE enemy hard, and
+           he hits HARDER the healthier they are - the opposite of every
+           execute in the game. An execute rewards you for finishing what
+           somebody else started; Musashi rewards you for starting.
+
+             full HP or near it  ->  the opening cut, 200%
+             already wounded     ->  ordinary, 150%
+
+           WHY THAT IS NOT ATALANTA. Hemithea's Atalanta also pays out at
+           full HP (165 -> 195%), but she takes a Crit buff with it and
+           her threshold is exactly 100%. Musashi's is 80%, which is a
+           different decision at the table: Atalanta wants an untouched
+           board, Musashi wants a target nobody has chipped yet, and 80%
+           means the enemy Medic healing someone back over the line
+           re-arms him. Both are Snipers-who-open, and they are drafted
+           for different boards.
+
+           WHY THE SELF-BUFF IS ON THE BONUS ARM ONLY. A flat rider would
+           make him strictly better than his own text; tying the +10%
+           Crit to the clean opening means the card is a decision, not a
+           number - take the duel early and you are rewarded twice, take
+           it late and it is a plain Sniper hit.
+
+           BRANCH SAFETY: `targetHpAbove` is a key branchPasses() already
+           knows, and the threshold is a RATIO (0.8), not a percentage.
+           The engine compares `hp / maxHp` against it, so a value of 80
+           can never be true - the first draft of this card shipped that
+           and silently always took the weaker arm, which the test below
+           caught by comparing the two arms' damage instead of just
+           asserting the card dealt something. Using an unknown key would silently leave pass = true
+           and make the bonus arm unconditional - the exact bug that hit
+           Odin and Shiva. sim/verify_all.js proves both arms below. */
+        text: 'Deal <b>150% ATK Damage</b> to one enemy. If the target is <b>above 80% HP</b>, instead deal <b>200% ATK Damage</b> and gain <b>10% Crit Chance</b> for 2 rounds.',
+        note: null,
+        spec: {
+          target: { side: 'enemy', pick: 'single' },
+          effects: [
+            {
+              k: 'branch',
+              cond: { targetHpAbove: 0.8 },
+              then: [
+                { k: 'dmg', power: 2.0, element: 'Physical' },
+                { k: 'stat', stat: 'crit', amt: 10, turns: 2, to: 'self' },
+              ],
+              other: [{ k: 'dmg', power: 1.5, element: 'Physical' }],
+            },
+          ],
+        },
+      },
+      icon: 'ra-spinning-sword',
+      art: 'assets/legends/yamato-miyamoto-musashi.png',
+    },
+    {
       id: 'yamato-momotaro',
       name: 'Momotaro',
       rarity: 'epic',
@@ -193,24 +266,6 @@ window.EOL.registerFaction({
       },
       icon: 'ra-round-shield',
       art: 'assets/legends/yamato-momotaro.png',
-    },
-    {
-      id: 'yamato-kaguya',
-      name: 'Kaguya',
-      rarity: 'epic',
-      role: 'Caster',
-      element: 'Magic',
-      stats: { hp: 4740, atk: 1905, def: 15 },
-      ability: {
-        type: 'Active',
-        name: 'Moon Reflection',
-        cost: 45,
-        text: 'Copy a random allied Active Skill at <b>70% effectiveness</b>.',
-        note: null,
-        spec: { target: { side: 'auto' }, effects: [{ k: 'copyAllyActive', scale: 0.7 }] },
-      },
-      icon: 'ra-moon-sun',
-      art: 'assets/legends/yamato-kaguya.png',
     },
   ],
 });

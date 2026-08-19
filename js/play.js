@@ -5177,9 +5177,22 @@
         if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
         else window.EOL.ui.show('play');
       });
+    /* Chapter plates. Each one tells js/campaign.js which chapter it is
+       before the Road paints, so the stage list, header and progress key
+       all switch together. Without setChapter() the Road would open on
+       whatever chapter was last active. */
     var ch1 = $('chapter-1');
     if (ch1)
       ch1.addEventListener('click', function () {
+        if (window.EOL.campaign && window.EOL.campaign.setChapter)
+          window.EOL.campaign.setChapter(1);
+        window.EOL.ui.show('chapter');
+      });
+    var ch2 = $('chapter-2');
+    if (ch2)
+      ch2.addEventListener('click', function () {
+        if (window.EOL.campaign && window.EOL.campaign.setChapter)
+          window.EOL.campaign.setChapter(2);
         window.EOL.ui.show('chapter');
       });
     var chback = $('btn-chapter-back');

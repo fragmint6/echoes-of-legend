@@ -4,21 +4,121 @@ The authoritative brief for every legend card illustration in Echoes of
 Legend. One entry per legend, written so any artist or generator produces a
 piece that sits in the same world as the other 62.
 
-Status: **v2.2 - full-ART environmental card illustrations**, dynamic
-role-driven action compositions, expanded to 63 legends (2026-08-05,
-rev 3).
+Status: **v2.3 - full-ART environmental card illustrations**, dynamic
+role-driven action compositions, expanded to 115 legends (2026-08-18,
+rev 5).
 
-> **2026-08-05, rev 4 (SHIPPING FORMAT).** What actually ships in the
+> **2026-08-17, rev 6 (THE STYLE IS PIXEL ART - READ THIS BEFORE
+> GENERATING).** A first pass at the Chapter II art was generated as
+> smooth painted fantasy illustration, was wrong, and was reverted
+> along with everything else in that pass. The finding is kept here
+> because it is the single easiest way to get this job wrong.
+>
+> At a 512px upscale the shipped cards *look* painterly, so "detailed
+> painted digital fantasy art" seems like the right prompt. It is not.
+> Viewed at 6x NEAREST - roughly how the card actually renders - the
+> shipped art has obvious chunky pixel structure: hard stair-stepped
+> contours, flat fills, visible dithering. The softness in an upscale
+> is a downscaling artefact, not the source style.
+>
+> The prompt block in section 3 already said all of this ("flat colour
+> fills, hard blocky shading with 3-5 tones per material, deliberate
+> dithering, crisp hard pixel edges, no anti-aliasing"). It was
+> overridden on the strength of a bad visual check. **Use section 3
+> verbatim.**
+>
+> Two further failure modes, both hit for real while correcting it:
+> - Leaning hard on "16-bit / SNES / sprite" pulls the generator into a
+>   tight bust close-up. Say THREE-QUARTER-LENGTH explicitly.
+> - Over-correcting to "wide shot, zoomed out" produces a small distant
+>   figure that reads as a game sprite, not a card. The target is a
+>   large commanding figure at 60-70% of frame width with the
+>   environment fully visible around it.
+>
+> DO NOT JUDGE THE RESULT BY EYE ON AN UPSCALE - that is what caused
+> the failure. Measure it. Take the fraction of horizontally adjacent
+> pixel pairs whose summed RGB delta is <= 6 ("flat") and > 30
+> ("hard"):
+>
+> ```python
+> a = np.asarray(Image.open(f).convert('RGB'), dtype=int)
+> d = np.abs(a[:, 1:] - a[:, :-1]).sum(-1)
+> flat, hard = (d <= 6).mean(), (d > 30).mean()
+> ```
+>
+> The shipped roster runs **flat 0.11-0.26, hard 0.34-0.57**. Smooth
+> painted art lands near flat 0.09 / hard 0.62 - too few flat runs, too
+> many soft mid-tone transitions dressed up as edges.
+
+> **2026-08-18, rev 8.** Empyrean renamed **Genesis** (files, palette row,
+> environment row and briefs); **Adam** authored as its Tank, the role the
+> faction shipped without. **Kaguya moved from Yamato to Kami** - she is a
+> being on loan from the moon, not a member of a human war camp - and
+> **Miyamoto Musashi** authored to take her slot in Yamato. Roster 113 ->
+> 115. Both new portraits generated this pass; both were regenerated once
+> after the first attempt came back landscape and too smoothly shaded to
+> pass the flat/hard test in section 4b.
+>
+> **2026-08-18, rev 10.** **All rival art deleted at the owner's
+> request** - `assets/rivals/` and `assets/rivals-src/` are gone, every
+> `stage.portrait` is null, and the UI falls back to a hood glyph in a
+> box of the same size so nothing reflows when the hand-drawn art lands.
+> New **section 6** briefs all twenty rivals (Chapter I's ten gates and
+> Chapter II's ten gates) in the same format as the per-legend briefs,
+> including the two boss rivals that are also playable cards and
+> therefore need two images each. **No rival art was generated.** The
+> only image made this pass is the Chapter II chapter-plate backdrop
+> (`assets/chapter-2/cw-bg.png`), which follows
+> docs/BATTLEFIELD-ART-SPEC.md rather than this document.
+>
+> **2026-08-18, rev 9.** **Kaguya rebriefed for Kami** - the rev 8 entry
+> moved her file but kept a brief written for a war camp, so the spec now
+> describes the recall (moon disc as silhouette, sleeves dissolving into
+> rising motes, Kami's sea of clouds). Brief only: the shipped PNG is still
+> the old Yamato portrait and is flagged as mismatched until regenerated.
+> Her Energy cost also dropped 45 -> 35, which is a data change, not an art
+> one.
+>
+> **2026-08-18, rev 7.** Five factions renamed by owner ruling -
+> Takamagahara -> **Kami**, Gehenna -> **Pandemonium**, Devaloka ->
+> **Devas**, Jotunheim -> **Asgard**, Achaea -> **Hemithea**. Every colour
+> row, environment row and per-legend brief below uses the new names, and
+> the art files were renamed to match (`kami-amaterasu.png` etc). Hercules
+> moved from Olympus to Hemithea and **Poseidon** was authored to replace
+> him as Olympus' Tank - he is the first new brief since rev 5 and the only
+> card whose art was generated in this pass. Roster 112 -> 113.
+>
+> **2026-08-17, rev 5 (CHAPTER II).** Seven factions and 49 legends
+> added: Asgard, Hemithea, Pandemonium, Devas, Genesis, Transylvania
+> and Tortuga. Palettes and environments (section 2) and briefs
+> (section 5b) are written for all of them. **No art is generated yet** -
+> every new card ships `art: null` and renders its RPG Awesome icon
+> glyph, which is a supported state (see section 4b, "cards without
+> `art` keep their icon glyph, so factions can land one at a time").
+> Nothing in the game is broken while the art is outstanding.
+>
+> Two of the new factions are drawn from **public-domain literature
+> rather than myth**, and that constrains the art as much as the naming
+> did - see the Transylvania and Tortuga notes in section 5.
+
+> **2026-08-05, rev 4 (SHIPPING FORMAT).** *Corrected 2026-08-17: this
+> revision says 128 x 176 and so does every row of MANIFEST.csv, but
+> every file actually on disk measures **64 x 88** and weighs ~10.7-14.1
+> KB against the manifest's recorded ~47-51 KB. Match the FILES, not
+> these numbers - the files are what the game loads.*
+>
+> What actually ships in the
 > repo is NOT the 640 x 880 JPEG described below: each legend is a
-> **128 x 176 lossless PNG at `assets/legends/<id>.png`**, downscaled
+> **lossless PNG at `assets/legends/<id>.png`**, downscaled
 > from the full-art source with a lanczos filter, linear-light
 > correction and a sharpen pass (15) - every file is tracked in
 > `assets/legends/MANIFEST.csv` (id, size, bytes, filter, sharpen).
 > Card data points at the PNG: `art: 'assets/legends/<id>.png'`. All
 > composition, lighting and silhouette rules below still govern the
 > source art; treat "save JPEG q85 to `<id>.jpg`" below as "generate
-> the source, then produce the 128 x 176 PNG game build". All 63
-> legends have generated art present - none are icon-only.
+> the source, then produce the PNG game build". All 63 original
+> legends have generated art present; the 49 Chapter II legends are
+> icon-only.
 
 > **2026-08-03, rev 2 (v2.1).** Static bust shots made every card read
 > alike. Cards are now **full art**: each legend is caught mid-motion doing
@@ -45,11 +145,16 @@ rev 3).
 > `assets/legends/<id>.jpg`. The sigil-ring mask in CSS is deleted; the
 > image simply covers the card and the HUD scrims keep the text legible.
 
-- **roster: 63 legends; generated art present for all 63**
+- **roster: 115 legends; art present for all 115** (the 49 Chapter II
+  portraits were delivered by the owner 2026-08-17; Poseidon added 2026-08-18)
 - Six new Grimmwood legends were added in rev 3: Gingerbread Man, Evil Queen,
   Puss in Boots, Rapunzel, Goldilocks and Cinderella.
+- Rev 5 added seven Chapter II factions (49 legends), briefed but not yet
+  illustrated.
 
-**Known outstanding:** none.
+**Known outstanding:** art for the 49 Chapter II legends (all seven new
+factions). They are fully briefed in section 5b and carry `art: null`
+until generated, which renders the icon glyph instead.
 
 ---
 
@@ -152,8 +257,15 @@ faction still reads as both.
 | Yamato | `#e05a4a` | `#f0c05a` | Lacquered armour, silk cord, crimson and gold. Disciplined. |
 | Huaxia | `#b03a2e` | `#d9a521` | Scale armour, imperial silk, jade and bronze. Grand, martial. |
 | Roma | `#7b4dc0` | `#d4af37` | Burnished bronze, tyrian purple, laurel. Imperial, severe. |
-| Takamagahara | `#e8e3d3` | `#c4392f` | Bleached silk, shrine white, vermilion accents. Ethereal, remote. |
+| Kami | `#e8e3d3` | `#c4392f` | Bleached silk, shrine white, vermilion accents. Ethereal, remote. |
 | Duat | `#c9a227` | `#1f4e79` | Gold leaf, lapis inlay, linen wrap. Solemn, funerary. |
+| Asgard | `#7fb4d4` | `#3d5a80` | Frost-rimed iron, wolf pelt, blue-white glacier light. Fatalistic, vast. |
+| Hemithea | `#d8b26a` | `#8c3b2e` | Sun-bleached bronze, oxblood cloak, salt-worn leather. Mortal, weathered. |
+| Pandemonium | `#c2402a` | `#2b1418` | Scorched brass, charred silk, ember-lit obsidian. Opulent and ruined. |
+| Devas | `#e8a33d` | `#7b3fa0` | Temple gold, saffron and violet silk, sandalwood ash. Radiant, ornate. |
+| Genesis | `#f2e6c2` | `#c9a227` | Bleached ivory, worked gold, unblemished linen. Austere, absolute. |
+| Transylvania | `#8e2f45` | `#241019` | Oxblood velvet, tarnished silver, damp stone. Gaslit, decaying. |
+| Tortuga | `#2f6f6a` | `#1a2a33` | Salt-bleached canvas, verdigris brass, waterlogged oak. Weathered, piratical. |
 
 ---
 
@@ -173,8 +285,15 @@ rendered with broader pixel clusters than the legend in front of it.
 | Yamato | War camp on a misty battlefield, tattered crimson banners, distant mountains |
 | Huaxia | Palace battlements above drifting clouds, red and gold war banners, distant jade peaks |
 | Roma | Roman forum at golden hour, marble columns, cypress trees, raised eagle standard |
-| Takamagahara | Sea of clouds high above the world, great vermilion torii gate, drifting shrine streamers, sunrise |
+| Kami | Sea of clouds high above the world, great vermilion torii gate, drifting shrine streamers, sunrise |
 | Duat | Desert night, temple pylons and obelisks under a band of cold stars, drifting sand |
+| Asgard | Frozen fjord under a low aurora, black glacial cliffs, the roots of a vast dead tree, drifting snow |
+| Hemithea | Storm-grey Aegean coast, beached war galleys, distant burning citadel on the headland |
+| Pandemonium | A burning valley at dusk, terraced ruins and slag, low ash cloud, embers rising from fissures |
+| Devas | Cloud-wreathed temple terraces at dawn, carved gopuram towers, lotus pools, drifting incense |
+| Genesis | A vault of pale cloud and light, colossal unadorned gold architecture, no horizon detail |
+| Transylvania | Gaslit cobbled street below a mountain castle, wet stone, fog, a single lit window |
+| Tortuga | Moonlit harbour, wrecked and anchored hulls, a swinging lantern on a dark quay, low sea mist |
 
 ---
 
@@ -281,8 +400,16 @@ feature.
 The "defining feature" is always something **worn or physical**: headgear,
 hair, a facial feature, a collar, armour. Where an older draft named a held
 object (Excalibur, a lyre, a quarterstaff) it has been replaced by the
-equivalent worn detail. `tools/art_prompts.py` is the machine-readable
-source of truth and is checked against the live roster.
+equivalent worn detail.
+
+> An earlier revision claimed `tools/art_prompts.py` was "the
+> machine-readable source of truth and is checked against the live
+> roster". **That file does not exist and no such check runs.** THIS
+> DOCUMENT is the source of truth; the roster is the thing it must
+> agree with. If a brief's `rarity / role / element` drifts from the
+> card, the art gets made at the wrong rarity tier with the wrong
+> rim-light colour - so the tags below were generated from the live
+> card data rather than typed by hand.
 
 ### Olympus - Thunder sits the throne of heaven `#d8b64c` / `#6fd3e8`
 
@@ -301,12 +428,16 @@ chiton; the aegis at her shoulder bearing a small gorgon boss. Signature: the
 raised helm crest, a clean arc against the background. Soft `#ffd977` halo
 behind the helm, an owl's eye-shine implied in the shadow at her shoulder.
 
-**Hercules** `epic / Tank / Physical`
-Strongman demigod. Enormous shoulders and neck, jaw set, short dark curls and
-a beard. Wears the Nemean lion pelt as a hood, the beast's upper jaw over his
-brow and paws knotted at his chest. Bare, scarred torso. Signature: the lion
-hood - the silhouette must read as man-inside-lion. Dusty `#d8894f` impact
-motes near the shoulders. Epic: heavy detail in the pelt fur and scarring.
+**Poseidon** `epic / Tank / Magic`
+Sea god, and the faction's wall. Powerfully built, mature, heavy grey-white
+storm-tossed beard and wet hair, weathered sun-darkened skin, pale sea-green
+eyes. Deep-sea bronze cuirass crusted with verdigris and barnacle; aegean
+blue-green cloth over one shoulder in heavy folds; a dull coral and pale gold
+circlet. Braced immovably, trident angled steeply across the frame.
+Signature: dried salt rime and pale barnacle crust caked along the forearms
+and cuirass rim - he has just risen out of the water. Violet-blue `#6fd3e8`
+rim light. Epic: rich material detail, restrained energy.
+*(Added 2026-08-18 with the card, which replaced Hercules as Olympus' Tank.)*
 
 **Apollo** `rare / Medic / Light`
 Sun god, healer and archer. Youthful, unlined, serene. Golden curls under a
@@ -449,10 +580,10 @@ severe face, black pointed crown, high collar and black-violet brocade gown.
 Signature: the crown and violet mirror-like facets orbiting her spellwork;
 `#a05cd8` shadow ribbons. Legendary: maximum worked fabric and crown detail.
 
-**Puss in Boots** `rare / Sniper / Physical` - Anthropomorphic cat marksman.
+**Puss in Boots** `rare / Sniper / Nature` - Anthropomorphic cat marksman.
 Dark fur, wide-brimmed feathered hat, green-violet coat, leather belt and tall
 boots. Signature: the hat-and-boots silhouette; one compact crossbow low at
-the edge. `#d8894f` physical glint. Rare: one distinctive costume feature.
+the edge. `#5fd48a` Nature rim light. Rare: one distinctive costume feature.
 
 **Rapunzel** `epic / Caster / Magic` - Tower princess with living golden hair.
 Violet and damp-green storybook gown, tower collar and an impossibly long
@@ -506,20 +637,25 @@ grinning with total confidence. Simple armour over a peach-pink haori,
 hachimaki headband. Signature: a war banner over the shoulder, plus a pheasant
 feather. `#d8894f` dust. Epic: banner detail and animal companions implied.
 
-**Kaguya** `epic / Caster / Magic` - Moon princess. Ethereal, pale to the
-point of translucency, impossibly long black hair drifting as if underwater.
-Twelve-layered junihitoe in white and silver. Signature: a full moon disc
-behind her head. `#9b7bff` motes rising. Epic: layered silk, weightless hair.
+**Miyamoto Musashi** `epic / Sniper / Physical` - The two-sword duellist,
+*(added 2026-08-18 when Kaguya moved to Kami)*. Lean weathered ronin in his
+thirties, unkempt shoulder-length black hair tied roughly back, stubbled jaw,
+a hard flat stare. Travel-worn dark indigo kimono with the sleeves pushed
+back, faded persimmon sash, and pointedly **no armour** - cloth where every
+other Yamato legend wears iron. Both blades drawn: the katana low and level,
+the wakizashi raised at the shoulder. Signature: the two-sword guard held in
+complete stillness, the instant before the cut. Steel-white rim. Epic: worn
+cloth folds and rope-wrapped hilts.
 
 ---
 
 ### Huaxia - Empires rise where the dragon sleeps `#b03a2e` / `#d9a521`
 
-**Qin Shi Huang** `legendary / Caster / Magic` - First Emperor. Severe,
+**Qin Shi Huang** `epic / Caster / Magic` - First Emperor. Severe,
 absolute, thin beard, eyes that do not move. Black and gold imperial robes,
 a mianguan crown with hanging bead strings across the brow. Signature: the
 bead curtain of the crown. `#9b7bff` glyphs forming a wall-like lattice
-behind. Legendary: dense imperial ornament.
+behind. Epic: dense imperial ornament.
 
 **Lu Bu** `rare / Bruiser / Physical` - Peerless warrior. Arrogant,
 handsome, heavy brow. Red and gold scale armour, a headdress with long
@@ -595,7 +731,52 @@ full imperial splendour.
 
 ---
 
-### Takamagahara - The plain of high heaven keeps its own counsel `#e8e3d3` / `#c4392f`
+### Kami - The plain of high heaven keeps its own counsel `#e8e3d3` / `#c4392f`
+
+**Kaguya** `epic / Caster / Magic` - **REBRIEFED 2026-08-18c for Kami.** The
+old brief was written for Yamato and survived her move unchanged, which left
+the shipped portrait standing in a misty war camp - a human army's backdrop
+for the one legend in the game who is not human and is about to leave. This
+replaces it outright.
+
+*The recall, caught the moment before it lands.* A moon princess of
+impossible stillness in a faction of divine cycles, and the only Kami legend
+whose story is an ENDING rather than a turning. Face serene and very slightly
+turned upward, already listening to something the viewer cannot hear.
+Skin pale past porcelain to faint translucency - the light behind her edges
+should read as coming *through* her at the shoulders and sleeve-hems, not
+around her. Impossibly long black hair lifting and drifting as though the
+air were water.
+
+Twelve-layered junihitoe in white, bone and silver, each layer's hem a
+visible band at the cuff and collar so the twelve reads as twelve. No
+weapon, no ornament of rank, nothing borrowed from a war camp.
+
+**Signature (the thing that must survive the silhouette test):** a full moon
+disc directly behind her head, clean-edged and complete, so her outline is a
+figure inside a ring. Nothing else in the faction is circular.
+
+**Defining feature:** the sleeves and the lowest hair-ends dissolving into
+`#9b7bff` motes that rise rather than fall - she is already going, and the
+picture is the last moment she is entirely here.
+
+Costume palette from bleached silk, shrine white and vermilion accents,
+built on `#e8e3d3` and `#c4392f`, with a crisp 1-2 pixel `#9b7bff` magic rim
+along the upper-left contour.
+
+Environment: **Kami's** sea of clouds high above the world, great vermilion
+torii, drifting shrine streamers, sunrise - not Yamato's battlefield. The
+moon disc is the one bright shape permitted behind the head, and it is the
+exception the faction's "no bright shapes behind the head" rule is written
+around, because it IS her silhouette.
+
+Epic: layered silk with visible per-layer hems, weightless hair, restrained
+mote count - the dissolve should read as deliberate, not as an effect.
+
+*Status: brief only. The shipped `kami-kaguya.png` is still the old Yamato
+portrait and does NOT match this text; it fails section 4 test 5 against
+Kami until it is regenerated. No art was generated this pass (owner asked
+for the spec).*
 
 **Amaterasu** `legendary / Caster / Light` - Sun goddess. Face almost too
 bright to look at, serene, eyes closed or nearly. White and vermilion
@@ -659,3 +840,648 @@ feathering.
 quiet grief. Simple dark linen, a modest gold collar. Signature: dark wings
 folded close around the shoulders like a shawl. `#a05cd8` haze. Common:
 restrained, minimal gold.
+
+---
+
+## 5b. Chapter II briefs (rev 5 - art outstanding)
+
+Same format and same hard constraints as section 5. These 49 legends are
+briefed but **not yet generated**; each ships `art: null` and renders its
+icon glyph until the art lands.
+
+Two standing notes that apply to every brief below:
+
+- **The defining feature is worn or physical, never a held object.** A
+  pirate's cutlass, an angel's sword and a god's thunderbolt may all
+  appear on the figure under the v2.1 rules, but the *signature* line
+  names something that survives the silhouette test on its own.
+- **Two factions are literary, not mythological.** Transylvania is drawn
+  from novels published 1818-1897 and Tortuga from real 18th-century
+  people and sailors' folklore. The art must follow the same rule the
+  card names did: **Shelley's creature, not Universal's** - articulate,
+  gaunt, stitched, no flat head and no neck bolts - and **the folkloric
+  drowned-sailor Davy Jones, not Disney's** - no tentacle face. Those
+  designs are protected; the source texts are not.
+
+### Asgard - The wolf is loose, and we are glad `#7fb4d4` / `#3d5a80`
+
+**Odin** `legendary / Caster / Lightning` - The one-eyed Allfather,
+unleashing. Gaunt weathered face, iron-grey beard in frost-stiff braids,
+a plain leather patch over the right socket and a pale unblinking left
+eye. Wide-brimmed traveller's hat shadowing the brow, wolf-pelt mantle
+over frost-rimed ringmail, a raven-feather collar. Signature: the eye
+patch and hat brim together - the silhouette must read as one-eyed
+wanderer, not king. `#63d7ff` arcs crawling across the pelt. Legendary:
+deep layered furs, worked silver knotwork, an unmistakable outline.
+
+**Thor** `epic / Bruiser / Lightning` - Red-bearded thunder, mid-swing.
+Broad open face, wind-burnt cheeks, plaited copper-red beard. Iron-banded
+leather over bare arms, a heavy studded belt. Signature: the belt and the
+braided beard. `#63d7ff` sheeting off his shoulders as the hammer comes
+round. Epic: worked iron bands, thick braid detail.
+
+**Fenrir** `epic / Bruiser / Physical` - The bound wolf straining. A
+towering wolf-headed figure, jaws parted, ears flat. The ribbon Gleipnir
+- deceptively thin, silk-fine, glowing faintly - wound at the throat and
+forelimbs, biting into the fur. Signature: the thin bright binding
+against the mass of dark pelt. `#ff4d4d` rim. Epic: individually shaped
+fur clusters, the binding rendered as a single clean line.
+
+**Hel** `epic / Controller / Shadow` - Half-living queen of the quiet
+dead. One side of the face is a composed young woman, the other is
+blue-black and hollowed; she is entirely at ease with it. High collar of
+raven feathers, grave-linen and dark furs. Signature: the vertical divide
+of the face, absolutely clean down the centre. `#a05cd8` haze pooling at
+the dead side. Epic: heavy fur and feather work.
+
+**Loki** `rare / Controller / Shadow` - The bound trickster, unrepentant.
+Sharp narrow face, half a grin, green eyes too bright. Scarred lips.
+Ragged finery, a knotted serpent-scale collar. Signature: the stitched
+scarring at the mouth. `#a05cd8` haze. Rare: one distinctive feature -
+the scarred grin.
+
+**Freyja** `rare / Medic / Light` - She takes first pick of the slain.
+Calm, unhurried, pale hair loose over a falcon-feather cloak clasped at
+the throat. Amber and gold torc. Signature: the falcon-feather cloak
+gathered at the shoulders. `#ffd977` bloom. Rare: the cloak is the one
+elaborate thing.
+
+**Heimdall** `rare / Tank / Light` - The watchman, braced. Wide-eyed
+alertness, close-cropped pale beard, gold-flecked irises. Frost-rimed
+scale over a heavy blue cloak, a horn slung at the hip. Signature: the
+gold teeth and the unblinking stare. `#ffd977` rim. Rare: the cloak clasp
+is the one worked detail.
+
+### Hemithea - Mortals, and worth more for it `#d8b26a` / `#8c3b2e`
+
+**Hercules** `epic / Tank / Physical` - *(moved here from Olympus
+2026-08-18; the brief and the shipped art are unchanged, only the faction
+and the filename - `hemithea-hercules.png`. He is a mortal who earned his
+myth, which is this faction's whole thesis.)* Strongman demigod. Enormous
+shoulders and neck, jaw set, short dark curls and a beard. Wears the Nemean
+lion pelt as a hood, the beast's upper jaw over his brow and paws knotted at
+his chest. Bare, scarred torso. Signature: the lion hood - the silhouette
+must read as man-inside-lion. Dusty `#d8894f` impact motes near the
+shoulders. Epic: heavy detail in the pelt fur and scarring.
+
+**Note on environment.** His shipped portrait carries the *Olympus* backdrop
+(marble colonnade, aegean sea), not Hemithea's storm-grey coast with beached
+galleys. Section 4 test 5 (alignment) therefore fails for this one card
+against its new faction. Left as-is deliberately: regenerating a shipped
+portrait to fix a backdrop is a bigger change than the move, and the two
+environments are close enough that it reads as the same sea. Flagged so the
+next art pass can decide.
+
+**Achilles** `legendary / Bruiser / Physical` - The short loud life,
+mid-lunge. Young, beautiful, furious; dark curls bound with a leather
+cord. Bronze cuirass moulded to the torso, oxblood cloak snapping behind,
+greaves. Signature: the exposed unarmoured right heel, deliberately
+visible at the lower edge of the frame. `#ff4d4d` rim. Legendary: the
+finest worked bronze in the faction, layered and battle-scored.
+
+**Odysseus** `epic / Controller / Physical` - Thinking three moves ahead.
+Older, salt-weathered, a close beard going grey; the only calm face on
+the field. Plain travelling leathers over a sailor's tunic, a conical
+felt cap. Signature: the felt cap - the one man on the beach not wearing
+a helm. `#ff4d4d` rim. Epic: worn detail everywhere, nothing new.
+
+**Perseus** `epic / Sniper / Light` - The boy who came back. Lean, young,
+level-eyed. Winged sandals, a curved harpe blade at the hip, a satchel
+whose mouth is deliberately dark and closed. Signature: the small
+feathered wings at the ankles. `#ffd977` rim. Epic: fine feather and
+strap work.
+
+**Medea** `epic / Medic / Shadow` - The herb that undoes death. Dark
+intent eyes, black hair bound back severely, a colchian robe of deep
+green and gold. Signature: a collar of small stoppered vials, each catching
+a different light. `#a05cd8` haze at the fingertips. Epic: many
+individually shaped vials.
+
+**Atalanta** `rare / Sniper / Nature` - First spear into the boar. Lean
+runner's build, hair cropped short and practical, a single boar-tusk
+ornament at the throat. Hide hunting gear. Signature: the boar tusk.
+`#5fd48a` rim. Rare: the tusk is the one distinguishing feature.
+
+**Ajax** `rare / Tank / Physical` - Standing where the arrows are. Huge,
+slow-blinking, plainly built. The famous sevenfold shield strapped at the
+forearm, its seven oxhide layers visible in cross-section at the rim.
+Signature: the layered shield edge. `#ff4d4d` rim. Rare: the shield is
+the whole costume.
+
+**Jason** `rare / Medic / Nature` - The captain, not the voyage. Open,
+tired, a leader's face. Sea-stained cloak, a rope-worked belt. Signature:
+a length of the Argo's own rigging worn coiled across the chest.
+`#5fd48a` rim. Rare: the coiled rigging.
+
+### Pandemonium - Everything you want, and the bill `#c2402a` / `#2b1418`
+
+**Pride** `legendary / Caster / Light` - The first refusal. Beautiful,
+cold, chin lifted; the only clean thing in the valley. Immaculate white
+and gold, unburnt. Signature: a crown of thorned gold grown into the brow
+- worn, not placed. `#ffd977` rim. Legendary: flawless tailoring amid
+ruin, the most elaborate costume in the faction.
+
+**Wrath** `epic / Bruiser / Fire` - Past the point words matter.
+Blood-flushed face, teeth bared, eyes bloodshot. Armour half-shed and
+hanging - he has been discarding it as he goes. Signature: the shed
+straps and dangling plates. `#ff7a4d` heat shimmer. Epic: detailed
+ruined armour.
+
+**Envy** `epic / Caster / Shadow` - Never quite anyone. A face that seems
+borrowed, features slightly mismatched, eyes fixed off-frame at someone
+else. Clothing that apes finery without fitting. Signature: the
+ill-fitting stolen finery. `#a05cd8` haze. Epic: rich fabrics, badly
+worn.
+
+**Greed** `epic / Controller / Magic` - He does not spend. Narrow, dry,
+long-fingered; a miser's stoop. Coin-scale mail - actual coins pierced
+and sewn into overlapping rows. Signature: the coin mail. `#ff4dd5` rim.
+Epic: hundreds of individually shaped coins.
+
+**Gluttony** `rare / Bruiser / Physical` - Feeding himself first.
+Enormous, soft-faced, mid-chew and unembarrassed. A bib-like leather
+apron, greasy. Signature: the apron. `#ff4d4d` rim. Rare: one feature,
+plainly rendered.
+
+**Sloth** `rare / Tank / Shadow` - Unhurried in a frightening way.
+Half-lidded eyes, utterly still, seated even in motion. Heavy layered
+robes gone to dust, cobwebbed at the shoulders. Signature: the cobwebs
+- nothing has moved here in a long time. `#a05cd8` haze. Rare: the
+webbing is the one detail.
+
+**Lust** `rare / Controller / Magic` - The wanting of being wanted.
+Beautiful and entirely aware of it, head turned toward the viewer.
+Draped silks in ember tones. Signature: a fine chain worn at the throat
+and wrists, slack, clearly ornamental. `#ff4dd5` rim. Rare: the chain.
+
+### Devas - The wheel turns, and the gods turn with it `#e8a33d` / `#7b3fa0`
+
+**Shiva** `legendary / Bruiser / Shadow` - The dance that keeps time.
+Ash-pale skin, matted ascetic's hair piled and bound, a crescent moon at
+the crown, third eye closed on the brow. Tiger-skin at the waist, serpent
+at the throat, rudraksha beads. Signature: the closed third eye and the
+crescent. `#a05cd8` rim. Legendary: maximum ornament - beads, ash, coiled
+serpent, worked gold.
+
+**Vishnu** `epic / Medic / Light` - Patient across ten lives. Serene
+blue-skinned face, calm to the point of stillness. Yellow silk, a tall
+jewelled crown, a garland of forest flowers. Signature: the tall crown.
+`#ffd977` bloom. Epic: intricate crown and garland work.
+
+**Kali** `epic / Caster / Shadow` - When protecting stops being polite.
+Black-skinned, wide-eyed, tongue out - not comic, appalling. Wild
+unbound hair. Signature: the garland of small skulls at the throat, each
+distinctly shaped. `#a05cd8` haze. Epic: many individual skulls.
+
+**Durga** `epic / Tank / Fire` - The line holds. Composed, many-armed
+implied by layered shoulder-plates rather than literal duplication -
+**no second copy of the figure**. Crimson and gold silk over scale.
+Signature: the tiered shoulder-plates reading as a fan of arms in
+silhouette. `#ff7a4d` rim. Epic: heavy layered goldwork.
+
+**Ganesha** `rare / Medic / Nature` - Moving what is in the way.
+Elephant-headed, one tusk broken short, small kind eyes. Saffron silk, a
+snake worn as a belt. Signature: the broken tusk. `#5fd48a` rim. Rare:
+the tusk is the distinguishing feature.
+
+**Hanuman** `rare / Bruiser / Physical` - Over the top of the problem.
+Monkey-featured, bright-eyed, mid-leap with the frame low. Simple
+loincloth, a heavy gold armlet. Signature: the armlet and the long tail
+curling out of frame. `#ff4d4d` rim. Rare: the armlet.
+
+**Indra** `rare / Sniper / Lightning` - The thunderbolt, thrown at what
+was singled out. Regal, slightly imperious, a short curled beard. Gold
+scale over storm-blue silk. Signature: a diadem of small gold spikes.
+`#63d7ff` arcs. Rare: the diadem.
+
+### Genesis - The sentence was passed before you arrived `#f2e6c2` / `#c9a227`
+
+**Adam** `epic / Tank / Nature` - The first man, standing as a wall *(added
+2026-08-18 with the rebrand)*. Powerfully built, dark-haired, bearded,
+ageless rather than old, deeply weathered sun-browned skin and sorrowful
+steady eyes. **No armour and no crown** - an undyed roughspun wrap knotted at
+the waist, coarse linen over one shoulder, a plain rope belt, in a faction
+where everyone else wears worked gold. Braced immovably, one forearm raised
+across the body as a guard. Signature: dry cracked earth and pale clay dust
+caked over his hands, forearms and shoulders, as though he were shaped from
+dirt and never quite finished drying. Leaf-green rim. Epic: the dust and the
+cloth, rendered heavier than the gold behind him.
+
+**Lucifer** `legendary / Caster / Fire` - The brightest, mid-fall.
+Beautiful, composed, entirely unrepentant; the face of someone who lost
+an argument and still believes he was right. White and gold vestments
+scorching at the hem, wings still white at the shoulder and charring
+toward the tips. Signature: the wings caught mid-transition, clean at the
+root and burnt at the edge. `#ff7a4d` rim. Legendary: the most elaborate
+costume in the faction, ruined at the edges.
+
+**Michael** `epic / Bruiser / Light` - Sent when the discussion is over.
+Severe, unlined, absolutely certain. Plain gold-chased plate, no
+ornament beyond function. Signature: the plain unadorned helm-halo, a
+thin ring of beaten gold. `#ffd977` rim. Epic: finely worked but
+deliberately austere plate.
+
+**Azrael** `epic / Sniper / Shadow` - Names the hour and waits. Hooded,
+face mostly shadow, only a level gaze visible. Dark layered robes, a
+scribe's cord at the waist. Signature: the deep hood with the single
+readable line of the eyes. `#a05cd8` haze. Epic: heavy layered fabric.
+
+**Gabriel** `epic / Caster / Light` - The voice that tells you.
+Youthful, open-mouthed mid-announcement, head slightly raised. White and
+gold, a horn slung at the back. Signature: the raised chin and the horn's
+curve behind the shoulder. `#ffd977` bloom. Epic: rich vestment detail.
+
+**Raphael** `rare / Medic / Nature` - Walked a boy across a country under
+a false name. Warm, unremarkable, travel-worn - deliberately the least
+angelic of the seven. Pilgrim's cloak over plain robes. Signature: the
+traveller's staff-strap worn across the chest. `#5fd48a` rim. Rare: the
+strap.
+
+**Uriel** `rare / Caster / Fire` - The flame at the gate. Stern, dark,
+eyes reflecting fire. Simple robes, a scorched hem. Signature: a band of
+small flames burning steadily at the crown, worn like a circlet.
+`#ff7a4d` rim. Rare: the flame circlet.
+
+**Metatron** `rare / Controller / Magic` - Keeps the record, decides what
+it says. Ageless, ink-stained fingers, spectacles of thin gold wire.
+Scribal robes covered in fine written script. Signature: the wire
+spectacles. `#ff4dd5` rim. Rare: the spectacles.
+
+### Transylvania - What is taken is never given back `#8e2f45` / `#241019`
+
+> **Public domain only.** Every figure here is from a novel published
+> 1818-1897. Do not reference the Universal Pictures designs - no
+> flat-topped green monster, no neck bolts, no wolf-man, no bandaged
+> mummy. Those are protected studio designs; Shelley, Stoker, Stevenson,
+> Wells, Le Fanu and Wilde are not.
+
+**Dracula** `legendary / Caster / Shadow` - Old, courteous, uninterested
+in consent. Aristocratic, high forehead, white hair swept back, heavy
+brows, thin cruel mouth. Black evening dress under an oxblood-lined
+cloak, high collar. Signature: the standing collar framing the head.
+`#a05cd8` haze. Legendary: immaculate period tailoring, the richest
+costume in the faction.
+
+**Frankenstein's Monster** `epic / Tank / Physical` - Articulate, grieving,
+enormous. **Shelley's creature:** yellowed translucent skin over visible
+musculature, lank black hair, watery pale eyes, lips thin and dark - a
+tall gaunt figure, not a square-headed brute. Ill-fitting stolen clothes,
+too small at the wrists. Signature: the black surgical sutures at the
+throat and wrists. `#ff4d4d` rim. Epic: detailed suturing and layered
+mismatched cloth.
+
+**Carmilla** `epic / Controller / Shadow` - Arrives as a guest. Young,
+languid, genuinely affectionate; heavy-lidded green eyes. Ivory
+nightgown and a dark travelling cloak. Signature: the loose unbound hair
+falling forward over one shoulder. `#a05cd8` haze. Epic: fine lace and
+period fabric detail.
+
+**Mr. Hyde** `epic / Bruiser / Physical` - What was already in the house.
+Smaller than expected, hunched, wrong in a way nobody can name; a
+delighted grin. Jekyll's good clothes hanging far too large on him.
+Signature: the oversized ill-fitting coat and cuffs. `#ff4d4d` rim.
+Epic: rich tailoring worn badly.
+
+**Van Helsing** `rare / Sniper / Light` - An old academic with tools.
+Elderly, spectacled, entirely unimpressed. Heavy travelling coat.
+Signature: a bandolier of small implements worn across the chest - no
+single one identifiable. `#ffd977` rim. Rare: the bandolier.
+
+**The Invisible Man** `rare / Sniper / Magic` - Cannot be looked at.
+Head entirely wound in bandages, dark round goggles, a scarf; the face
+is a construction, not a face. Long overcoat, collar up. Signature: the
+goggles over bandages. `#ff4dd5` rim. Rare: the wrapping is the whole
+design. **Exception to the face rule:** the goggles ARE his readable
+"eyes" - keep them large, clean and catching light.
+
+**Dorian Gray** `rare / Tank / Magic` - Immaculate, running out of
+canvas. Flawless young face, bored, beautiful. Perfect evening dress, a
+buttonhole flower. Signature: the buttonhole - the only spot of living
+colour on him. `#ff4dd5` rim. Rare: the flower.
+
+### Tortuga - Take what you can. Give nothing back `#2f6f6a` / `#1a2a33`
+
+> **Real people and folklore, not the films.** Blackbeard, Anne Bonny,
+> Calico Jack and Captain Kidd are historical. Davy Jones, the Kraken and
+> the Flying Dutchman are 18th-century sailors' folklore. Do not
+> reference the Disney designs - **Davy Jones has a human face, no
+> tentacles.**
+
+**Blackbeard** `legendary / Caster / Fire` - Reputation did the work.
+Enormous black beard braided and tied with ribbon, slow-burning cannon
+fuse woven into it and lit, smoke wreathing his head. Wide hat, heavy
+coat, crossed bandoliers. Signature: the lit fuses in the beard.
+`#ff7a4d` embers. Legendary: the most elaborate silhouette in the
+faction - hat, beard, smoke and bandoliers together.
+
+**Davy Jones** `epic / Controller / Shadow` - Not a captain, the place
+captains end up. A drowned man's face - **human**, bloated, grey-green,
+patient. Waterlogged naval coat, barnacle crust at the shoulders,
+seaweed. Signature: the barnacle crust. `#a05cd8` haze. Epic: detailed
+encrustation and rotted braid.
+
+**The Kraken** `epic / Tank / Nature` - Comes up under the keel. A
+towering mass rising from the water, one great eye readable in the upper
+third of the frame where a face would be. Suckered limbs breaking the
+surface at the lower edge. Signature: the single enormous eye.
+`#5fd48a` rim. Epic: detailed sucker and skin texture. **Composition
+note:** the eye takes the "face" position; everything else falls away
+into the water.
+
+**Anne Bonny** `epic / Bruiser / Physical` - Still standing when the crew
+went below. Red hair loose, jaw set, sunburnt. Man's coat cut down and
+belted, open shirt. Signature: the cut-down coat, plainly re-tailored.
+`#ff4d4d` rim. Epic: worked buttons and layered stolen cloth.
+
+**Captain Kidd** `rare / Sniper / Physical` - A privateer hanged as a
+pirate. Respectable, greying, faintly aggrieved - he still thinks the
+commission was valid. Sober merchant's coat. Signature: a rolled chart
+tucked permanently under the arm. `#ff4d4d` rim. Rare: the chart.
+
+**Calico Jack** `rare / Controller / Physical` - Remembered for the flag.
+Loose calico shirt in bright striped cotton - the reason for the name.
+Signature: the striped calico. `#ff4d4d` rim. Rare: the shirt is the
+whole costume.
+
+**The Flying Dutchman** `rare / Caster / Shadow` - Condemned to sail.
+A captain's figure half-transparent at the edges, sea-rotted uniform,
+hollow eyes with a distant light in them. Signature: the dissolving
+contour - solid at the head, fraying to spray at the shoulders.
+`#a05cd8` haze. Rare: the fraying silhouette. **Exception to the opacity
+rule:** the FIGURE fades, the canvas does not - the backdrop behind him
+is fully painted and opaque.
+
+---
+
+## 6. Rival briefs (rev 10 - art outstanding, owner is drawing these)
+
+> **2026-08-18e.** Every rival portrait in `assets/rivals/` and every
+> source file in `assets/rivals-src/` was **deleted** at the owner's
+> request so they can be drawn by hand. `stage.portrait` is `null` for
+> all twenty gates and the UI falls back to a hood glyph in the same box,
+> so nothing reflows when the art lands. **Do not generate these.** This
+> section is the brief the owner asked for, in the same shape as the
+> per-legend briefs above.
+
+### What a rival portrait is, and how it differs from a legend card
+
+A rival is **not** a collectible card, with two exceptions noted below.
+The differences are load-bearing:
+
+| | Legend card (section 5) | Rival portrait (this section) |
+| --- | --- | --- |
+| Shipped size | 64 x 88 PNG | **128 x 176 PNG** - rivals render larger (dialogue bust, ledger, bark) |
+| Source size | 640 x 880 | 640 x 880 - unchanged |
+| Where it appears | collection tile, battle tile | stage card, dialogue bust, ledger row, in-battle bark |
+| Rarity direction | drives detail budget | **none** - a rival has no rarity |
+| Faction palette | mandatory | **none** - a rival is a person, not a deck |
+
+Everything else from sections 2, 3 and 4 applies unchanged: three-quarter
+length, face readable in the upper third, one complete opaque
+environment, a 1-2px upper-left rim light only, hard pixel edges, no
+anti-aliasing, no text, no frame.
+
+**Two rivals are also cards.** Gilgamesh (`campaign-gilgamesh`) and
+Asmodeus (`campaign-asmodeus`) are bespoke boss legendaries that appear
+in a fielded six. They need **two** images each: the rival portrait at
+128 x 176 for the dialogue bust, and a legend card at 64 x 88 to the
+section 5 rules. The same illustration can serve both if it is composed
+to the tighter card crop first.
+
+**The colour column below is the rival's own accent** - the rim light and
+any small emissive detail. It is chosen per person, not per faction,
+because a rival's deck is a consequence of how they fight rather than a
+tribe they belong to.
+
+---
+
+### 6a. Chapter I - the ten gates
+
+The Road of Echoes. Every one of these is a guardian who reached a door
+and *chose to stay*, so none of them should read as a monster or a boss;
+they read as people who have been standing somewhere a very long time.
+
+**The Recruiter** `Gate I` `#7bb661`
+An old memory broker, warm and exacting and administrative - never
+wizardly, never comic. Lean, deeply lined, dark-skinned; short grey
+beard; salt-and-pepper locs tied back; a bronze monocle. Moss-green
+patched road coat over an oversized ledger satchel, small glass vials of
+collected memories on the strap. Signature: **the open ledger**, thick
+enough to stop an arrow, held the way a clerk holds one rather than the
+way a mage holds a tome. Environment: the lantern-hung thorn road at
+dusk, the same one on the chapter plate. Weary authority, no menace.
+
+**The Oathkeeper** `Gate II` `#c9b8a0`
+An aged veteran who promised forty-three people he would bring them home
+and returned with twelve. Weather-browned face, clouded left eye, torn
+ear, iron-grey stubble, old scars. Battered open-faced helm, repaired
+blue-and-off-white plate with visible mismatched patches, a frayed white
+oath sash, a deeply dented kite shield. Signature: **the sash and the
+mending** - he is caught repairing his own shield with iron wire, not
+brandishing it. Environment: the cliff walls of the Narrow Pass, nailed
+with shields bearing kept-too-late promises. A survivor carrying a cost,
+not a king.
+
+**The Outlaw** `Gate III` `#e3c567`
+A copper-haired young woman from a bookshop family whose *records* were
+burned before its books. Mustard riding coat, ink-blue scarf, leather
+gloves. Signature: **an antique blackpowder long rifle with a brass tube
+sight**, cleaned with a strip of blue cloth. Practical, amused,
+unsentimental. Environment: the Open Plains at low sun, one watchtree.
+Explicitly **no green hood, no bow, no Robin Hood silhouette** - she
+fields Sherwood, she is not of it.
+
+**The Anointed** `Gate IV` `#8be0ff`
+An elder priestess who learned that a warning can be a blade held
+politely. Bronze skin, shaved head, temple-blue face paint in a clean
+geometric band. Asymmetric beaten-gold sun disc at the shoulder, white
+prayer wraps, indigo mantle. Signature: **a bronze astrolabe**, turned
+slightly toward herself. Her marks read as quiet geometric promise-lights
+**below the face**, never crossing it. Environment: the Mana Spring's
+terraced pools. Certainty that has learned to doubt professionally.
+
+**The Warden of the Mid-Road** `Gate V` `#b18cd9`
+A road adjudicator who stays where the three exams meet. Burn scar across
+a shaved temple, single silver hoop. Black-slate plate over an ivory
+surveyor's wrap, burgundy mantle. Signature: **a huge iron gate-key and a
+knotted measuring cord**; a low staff carries an unlit signal lantern.
+Environment: three stone toll arches, a table with four cups poured for
+three people. She is the living law of the arches, not a generic armoured
+sentinel.
+
+**The Trickster** `Gate VI` `#9b8bd0`
+A young woman written as background in her first story, who learned to
+deal herself into other ones. Bright alert eyes, short black hair tipped
+plum, gold hoops. Vermilion gambler's jacket with teal lining. Signature:
+**blank lacquered tiles** at her wrist and dealt across black stone -
+faces unmarked, because the line was never printed. Environment: the
+Energy Void, full of half-existing shapes. Sharp and mischievous, never
+cute, never childish.
+
+**The Strategist** `Gate VII` `#7b4dc0`
+An old planner who saved a city by choosing which villages burned first.
+Bald crown, long silver side-hair, narrow grey beard, a bronze
+architect's lens over one eye. Charcoal scholar's robe, Tyrian-purple
+mantle, measuring pins at the breast. Signature: **the wax board of
+violet lines**, some ending in small circles and some in ash. Environment:
+the Blood Battlefield at dusk, seen from a command rise. **No laurel, no
+cuirass, no emperor silhouette** - he is an advisor, and the distinction
+is the character.
+
+**The Chronicler** `Gate VIII` `#6fd3e8`
+A gaunt, ash-pale archivist, severe and exhausted - never ethereal,
+never regal. Shaved sides, short white hair, ink-dark fingers to the
+knuckle, a broken vermilion spectacle chain. Charcoal and shrine-white
+robes. Signature: **blank pages and violet ink low in frame**, one page
+turned toward the viewer and empty. Environment: the wall-less Spirit
+World library, black desk, shelves receding into nothing.
+
+**The Last Guardian** `Gate IX` `#6fd3e8`
+A dark-skinned woman who gave up her name to cut the Quiet's thread to
+her world. **She never speaks**, so the portrait carries everything: a
+squared ivory-and-charcoal gate helmet with a raised narrow visor and a
+lightning-blue crack across the brow, framing clear tired eyes. Jade,
+ivory and charcoal gate plate. Signature: **a wooden key taller than her
+shoulder**, carried across the back. Environment: the last door, held
+shut. Stillness, not aggression.
+
+**Gilgamesh** `Gate X` `#d4a017` *(also a card - see the two-image note)*
+The legend-king of walled Uruk, standing *beside* the throne rather than
+on it, tired of ceremonies he invented. Broad and grave; thick curled
+dark hair; a bead-weighted curled beard; a woven royal headband. Fringed
+wool robe, lapis bead belt, bronze arm rings. Signature: **an old bronze
+sword carried low**, and the bead-weighted beard. Environment: mud-brick
+Uruk and temple towers under a cold star band. **Avoid medieval crowns,
+paladin armour and living lion companions** - this is Bronze Age
+Mesopotamia, not high fantasy.
+
+---
+
+### 6b. Chapter II - the ten gates
+
+The Concord. Chapter I's rivals are guardians who stayed; Chapter II's
+are **professionals at work during a busy week**. They should read as
+people with jobs and schedules - a bookmaker, a herald, an auditor - not
+as mystics. Costume leans civic and contemporary-to-the-city: coats,
+sashes of office, working clothes, ledgers. The city is temporary, so
+canvas, scaffold and rope belong in the backdrops.
+
+**The Understudy** `Gate XI` `#d8b26a`
+A fixer's fighter, paid to lose the opening gate convincingly, doing it
+properly anyway. Young, wiry, unbothered; cropped practical hair; a
+fighter's flattened knuckles. Plain sparring leathers with the previous
+owner's insignia unpicked, leaving a visible ghost of stitching.
+Signature: **the unpicked badge** - a patch of cloth cleaner than what
+surrounds it. Environment: the Concord's opening arena, half its banners
+still going up. Loose, warming up, entirely at ease.
+
+**The Bookmaker** `Gate XII` `#b03a2e`
+The Concord's bookmaker, and formerly a tax farmer for an empire that no
+longer exists. Middle-aged, heavy-set, immaculate, chalk dust on the
+cuffs. A good coat gone shiny at the elbows over an imperial-cut tunic
+two centuries out of fashion. Signature: **the price board** - a slate
+of chalked odds beside him, and the chalk still in his hand.
+Environment: his table on the avenue, which nobody has ever asked him to
+move. He is the most comfortable person in the picture.
+
+**The Herald** `Gate XIII` `#f2e6c2`
+The Canon's sword-bearer: honest, unimaginative, wholly sincere, and
+incurious in a way that is the whole character. Broad, clean-shaven,
+correct posture, a face that has never been asked a difficult question.
+Bleached ivory tabard with a single worked-gold seal, formal
+sword-bearer's harness. Signature: **the folded charge sheet** held in
+the off hand, already read aloud. Environment: the Concord floor under
+cold vault light. No swagger - he is on duty.
+
+**The Collector** `Gate XIV` `#8e2f45`
+The keeper of the vault under the city, and genuinely the reason half the
+dead still exist. Older, sharp-eyed, dust in her hair, reading glasses
+pushed up. Oxblood velvet coat over a working apron with a dozen small
+pockets, tarnished silver clasps. Signature: **the accession tags** -
+dozens of small numbered tags on cords at her belt, one for each thing
+she has saved. Environment: the vault, gaslit, shelves receding into
+fog. Protective rather than sinister.
+
+**The Hero of the Bridge** `Gate XV` `#c9a227` *(the exam)*
+**Not a person - an entry.** The Canon's official version of Sargon: the
+speech, the banner, the last stand. Heroic in the most generic possible
+way, and that is the point. Idealised jaw, unscarred skin, armour with no
+dents, a cloak caught in a wind that is not blowing on anything else in
+the frame. Signature: **the tidiness** - he is the only figure in either
+chapter with no wear, no damage and no asymmetry, and he should look
+subtly wrong for it. Environment: a bridge rendered like an illustration
+in a book, edges slightly too clean, forty absent figures implied by
+empty space behind him.
+
+**The Undertaker** `Gate XVI` `#7fb4d4`
+A man who buried a world once, properly, and has never forgiven the
+Concord for what it does instead. Tall, gaunt, grey; a long face; hands
+that have done the work. Frost-rimed dark coat, wolf-pelt collar, a
+spade's worn haft across the back. Signature: **the pelt and the spade**
+together - grave-digger and mourner in one silhouette. Environment: the
+Blood Battlefield's edge at last light, one field beyond it already
+growing back. Patient, not menacing; he is waiting for something to
+finish.
+
+**The Mason** `Gate XVII` `#e8a33d`
+She built the retaining wall the Concord floor sits on, one course at a
+time, eleven centuries ago, and has brought the same proposal to every
+Concord since. Broad shoulders, forearms of someone who lifts stone,
+grey hair bound in a working scarf, mortar permanently under the nails.
+Saffron work-tunic, leather apron, a plumb-line at the hip. Signature:
+**the plumb-line and a single dressed stone** set beside her, level and
+true. Environment: the Ancient Ruins, with her own wall visible and still
+standing. Unhurried certainty.
+
+**The Wrecker** `Gate XVIII` `#2f6f6a`
+A coastal wrecker who takes off what floats before the sea gets it, and
+has never in her life considered that stealing. Weather-cured skin,
+salt-stiff hair, a broken nose set badly. Verdigris-brass buttoned coat
+over salt-bleached canvas, a coil of rope over the shoulder. Signature:
+**the Canon itself under one arm**, four pounds of book carried like
+salvage. Environment: the Open Plains at night, the arena lights distant
+behind her. Cheerful, unbothered, completely unrepentant.
+
+**The Auditor** `Gate XIX` `#d9a521` *(the exam)*
+The last standing office of a dissolved empire: four thousand mornings in
+a room nobody enters. Elderly, spare, immaculate; a face composed by
+routine rather than feeling. Imperial scale-pattern robe kept in perfect
+repair but two hundred years out of date, an office seal on a cord.
+Signature: **the chalked hours on the door frame behind him**, still
+kept. Environment: his office - one desk, one lamp, shelves of unopened
+provenance ledgers. He has been ready for four centuries.
+
+**Asmodeus, the Redactor** `Gate XX` `#c9a227` *(also a card - two images)*
+A king of an older hierarchy, from when his kind kept courts and the
+courts kept records. He did not come to rule the Concord; he came because
+it was the only institution left that still filed things properly. Broad,
+composed, unhurried; a voice you can see in the posture. Dark formal
+robes of an archivist's office worn over something much older and
+grander, worked gold at the collar. Signature: **the reading stand and
+the redaction** - one hand resting on an open ruling with lines struck
+through in black. Environment: the Concord floor with the whole city
+watching, or his archive behind it. **He is not a demon caricature**: no
+horns as spectacle, no fire, no leer. The most frightening thing about
+him is that he is reasonable.
+
+---
+
+### 6c. Delivery
+
+| Step | Notes |
+| --- | --- |
+| Draw at 640 x 880 | same source size as the legend cards |
+| Crop | centre, to the card aspect; nothing essential in the outer 10% |
+| Ship | **128 x 176** lossless PNG to `assets/rivals/<key>.png` |
+| Key | the stage `key` in the campaign data - e.g. `the-oathkeeper`, `asmodeus-the-redactor` |
+| Wire | set `portrait: 'assets/rivals/<key>.png'` on the stage; `null` keeps the hood glyph |
+| Manifest | regenerate `assets/rivals/MANIFEST.csv` from disk, one row per file |
+
+The two boss cards additionally ship a **64 x 88** legend card to
+`assets/legends/campaign-gilgamesh.png` and
+`assets/legends/campaign-asmodeus.png`, and set `art:` on the boss card
+in the campaign data.
+
+`sim/verify_fixtures.js` checks that every wired path exists on disk, so
+a half-finished art pass fails the build rather than shipping a broken
+image.

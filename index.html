@@ -300,6 +300,33 @@
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
         <i></i><i></i><i></i><i></i><i></i>
       </span>
+
+      <!-- ============ CHAPTER II ATMOSPHERE ============
+           A different place needs different weather. Chapter I is a
+           forest at night: gold brass-tag glints, blue will-o'-wisps,
+           pale dust. The Concord is a CITY MID-TOURNAMENT, so its
+           particles are things a city sheds - loose PARCHMENT tumbling
+           end over end off the petition lines, EMBERS rising from the
+           arena braziers (up, not down - the one motion Chapter I never
+           uses), and a slow ARENA GLOW that breathes as the crowd does.
+
+           Both sets live in the page at once and are switched by
+           body[data-chapter] from js/campaign.js, so neither chapter
+           pays for the other's DOM churn. -->
+      <span class="c2-haze"></span>
+      <span class="c2-glow"></span>
+      <span class="c2-leaves">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+      </span>
+      <span class="c2-embers">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="c2-ash">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
     </div>
 
     <!-- ==================== HOME / DASHBOARD ==================== -->
@@ -385,47 +412,66 @@
       </a>
       <!-- ==================== QUEST BOARD ====================
            Floating panel on the RIGHT of the menu, opposite the
-           Discord/tutorial stack on the left. Three dailies and three
+           Discord/tutorial stack on the left. Three dailies and ten
            weeklies, reset at 7:00 AM Eastern - the Daily Puzzle's own
            boundary, because two definitions of "day" in one game is a
            bug factory.
 
-           Collapsible, and it auto-collapses under 1100px because
-           .home is overflow:hidden and the centred 700px .home-inner
-           starts competing for room there. The collapsed tab keeps a
-           badge, so a folded board still says there is loot waiting.
+           NOT CLOSABLE (owner ruling 2026-08-16). There is no close
+           button and no collapse: a board you can dismiss is a board
+           a returning player never sees again, which is the whole
+           reason it exists.
 
-           NO QUEST COUNTS MATCHES, WINS OR LOSSES - match pay rewards
-           a loss and a forfeit takes the same path, so a "play N
-           matches" quest would be a forfeit-farm button. Objectives
-           count things that only accumulate inside a real fight.
+           ACCOUNT-GATED (owner ruling 2026-08-16). Signed out, the
+           panel shows #qb-lock instead of objectives and every
+           mutating call in js/quests.js refuses. Narrow layouts do not hide it - the menu
+           reserves room for it (body[data-qb='reserve']) and below
+           980px the home view scrolls and the board stacks under the
+           buttons. See js/quest-board.js.
+
+           Weeklies are deliberately multi-day and deliberately varied:
+           play N of a mode, cast one legend's signature N times, use a
+           role's basic N times, deal N of an element, fight on N
+           battlefields. Coin values are not hand-written - each
+           objective declares how much a single battle produces and the
+           reward is effort x the tier rate, so a longer quest pays
+           proportionally more.
+
+           A quest that counts BATTLES only counts a QUALIFYING one
+           (not forfeited, 3+ rounds, 3+ of your own actions) - match
+           pay rewards a loss and a forfeit takes the same path, so
+           without that gate it would be a forfeit-farm button.
            See docs/DESIGN-Quests.md. -->
-      <aside class="quest-board" id="quest-board" data-collapsed="false" aria-label="Quests">
-        <button
-          type="button"
-          class="qb-tab"
-          id="qb-tab"
-          aria-expanded="true"
-          aria-controls="qb-body"
-          title="Quests"
-        >
-          <i class="ri-scroll-line" aria-hidden="true"></i>
-          <span class="qb-tab-txt">Quests</span>
-          <span class="qb-badge" id="qb-badge" hidden>0</span>
-        </button>
+      <aside class="quest-board" id="quest-board" aria-label="Quests">
         <div class="qb-body" id="qb-body">
           <header class="qb-head">
             <h2 class="qb-title"><i class="ri-scroll-line" aria-hidden="true"></i> Quests</h2>
-            <button type="button" class="qb-close" id="qb-close" aria-label="Collapse quest board">
-              <i class="ri-close-line" aria-hidden="true"></i>
-            </button>
           </header>
-          <div class="qb-tabs" role="tablist">
+          <!-- SIGNED OUT: quests need a durable account (see
+               docs/DESIGN-Quests.md §1.2). Explain and offer the way
+               in, rather than dangling objectives nobody may claim.
+               Progress is hidden here, never wiped. -->
+          <div class="qb-lock" id="qb-lock" hidden>
+            <i class="ri-lock-2-line" aria-hidden="true"></i>
+            <p class="qb-lock-title">Sign in for quests</p>
+            <p class="qb-lock-sub">
+              Daily and weekly quests track progress across days and pay coins, so they need
+              an account to belong to.
+            </p>
+            <button type="button" class="qb-lock-btn" data-qb-signin>
+              <i class="ri-login-box-line" aria-hidden="true"></i> Sign in
+            </button>
+          </div>
+          <div class="qb-tabs" id="qb-tabs" role="tablist">
             <button class="qb-seg sel" id="qb-seg-daily" role="tab" aria-selected="true">
-              Daily <span class="qb-seg-timer" id="qb-timer-daily"></span>
+              <span class="qb-seg-name">Daily</span>
+              <span class="qb-seg-count" id="qb-count-daily">0/3</span>
+              <span class="qb-seg-timer" id="qb-timer-daily"></span>
             </button>
             <button class="qb-seg" id="qb-seg-weekly" role="tab" aria-selected="false">
-              Weekly <span class="qb-seg-timer" id="qb-timer-weekly"></span>
+              <span class="qb-seg-name">Weekly</span>
+              <span class="qb-seg-count" id="qb-count-weekly">0/10</span>
+              <span class="qb-seg-timer" id="qb-timer-weekly"></span>
             </button>
           </div>
           <div class="qb-list" id="qb-list"></div>
@@ -1059,6 +1105,21 @@
         </button>
         <span class="shop-progress" id="shop-progress"></span>
       </div>
+      <!-- Packs / Echo Shop. The shard spend used to sit inside the
+           collection's upgrade panel, which meant the second currency
+           had no shopfront of its own and you could only find it one
+           card at a time. It is a shop, so it lives in the Shop. -->
+      <div class="shop-tabs" role="tablist">
+        <span class="shop-thumb" aria-hidden="true"></span>
+        <button class="shop-tab sel" id="stab-packs" role="tab" aria-selected="true">
+          <i class="ri-gift-line" aria-hidden="true"></i><span>Packs</span>
+        </button>
+        <button class="shop-tab" id="stab-echo" role="tab" aria-selected="false">
+          <i class="ri-sparkling-2-line" aria-hidden="true"></i><span>Echo Shop</span>
+        </button>
+      </div>
+
+      <div class="shop-panel" id="spanel-packs">
       <div class="shop-body shop-shelf">
         <article class="product">
           <div class="product-pack pk-host" data-pack="trio">
@@ -1113,6 +1174,48 @@
             <button class="btn btn-primary buy-pack" data-pack="crown"></button>
           </div>
         </article>
+      </div>
+      </div>
+
+      <!-- THE ECHO SHOP: spend Echo Shards on duplicates of legends you
+           already own. Never on legends you do not - crafting is an
+           upgrade currency, not a collection shortcut, so packs stay
+           the only way to widen a collection. -->
+      <div class="shop-panel" id="spanel-echo" hidden>
+        <!-- THE COUNTER. A shard balance big enough to be the subject
+             of the screen, with the two things it can become stated
+             plainly beside it. -->
+        <div class="echo-counter">
+          <div class="echo-counter-main">
+            <span class="echo-counter-lbl">Echo Shards</span>
+            <strong class="echo-counter-val" id="echo-balance">0</strong>
+            <span class="echo-counter-sub" id="echo-afford"></span>
+          </div>
+          <p class="echo-counter-note">
+            Every duplicate you open melts into shards. Shards buy another copy of a legend
+            you already own &mdash; copies are what raise its level.
+            <b>Packs stay the only way to find a legend you do not have.</b>
+          </p>
+        </div>
+
+        <div class="echo-tools">
+          <div class="search-wrap echo-search-wrap">
+            <i class="ri-search-line" aria-hidden="true"></i>
+            <input type="text" id="echo-search" placeholder="Search your legends..." />
+          </div>
+          <div class="echo-seg" role="group" aria-label="Filter">
+            <button type="button" class="echo-seg-btn sel" data-echo-filter="ready">
+              Ready to level
+            </button>
+            <button type="button" class="echo-seg-btn" data-echo-filter="upgradable">
+              Upgradable
+            </button>
+            <button type="button" class="echo-seg-btn" data-echo-filter="all">All</button>
+          </div>
+        </div>
+
+        <div class="echo-grid" id="echo-grid"></div>
+        <div class="echo-empty" id="echo-empty" hidden></div>
       </div>
 
       <!-- cinematic pack opening -->
@@ -2034,6 +2137,27 @@
     </div>
 
     <!-- classic: pick one of your saved decks -->
+    <!-- ==================== CARD DETAIL ====================
+         One legend, in full: portrait, lore, exact numbers (base and
+         upgraded), the whole Signature Skill, and the upgrade
+         controls.
+
+         The upgrade controls used to live inside the card's HOVER
+         overlay, which made reading a card and modifying it the same
+         gesture - you had to hold a hover steady to press a button.
+         Hover now shows STATE only (level top-left, boosts
+         top-right); anything you can CHANGE lives here.
+         See js/card-detail.js. -->
+    <div class="cd-modal" id="card-detail" hidden>
+      <div class="cd-scrim" id="cd-scrim"></div>
+      <div class="cd-card" id="cd-card" role="dialog" aria-modal="true" aria-labelledby="cd-body">
+        <button type="button" class="cd-close" id="cd-close" aria-label="Close">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+        <div class="cd-body" id="cd-body"></div>
+      </div>
+    </div>
+
     <div class="deck-modal" id="deck-modal" aria-hidden="true">
       <div class="dm-card">
         <h3 class="dm-title">Choose your deck</h3>
@@ -2407,6 +2531,37 @@
             ></span>
           </span>
         </button>
+
+        <button
+          class="chapter-card has-cover"
+          id="chapter-2"
+          type="button"
+          aria-label="Open Chapter 2: The Hundred-Year Truce"
+        >
+          <span class="ch-art" aria-hidden="true">
+            <img
+              class="ch-cover-img"
+              src="assets/chapter-2/cw-bg.png"
+              alt="The Hundred-Year Truce"
+              draggable="false"
+            />
+            <span class="ch-cover-vignette"></span>
+          </span>
+          <span class="ch-body">
+            <span class="ch-kicker">Chapter 2</span>
+            <span class="ch-name">The Hundred-Year Truce</span>
+            <span class="ch-desc">
+              A city that exists for one week decides who owns a story once it lasts. Ten gates, and
+              a dead mercenary whose name was never his.
+            </span>
+            <span class="ch-meta">
+              <span class="ch-chip"><i class="ri-flag-line"></i>10 gates</span>
+            </span>
+            <span class="ch-cta"
+              >Open chapter <i class="ri-arrow-right-line" aria-hidden="true"></i
+            ></span>
+          </span>
+        </button>
       </div>
 
       <footer>Echoes of Legend - Prototype</footer>
@@ -2428,10 +2583,12 @@
           <span class="mast-emblem chapter-emblem" aria-hidden="true"
             ><i class="ri-road-map-line"></i
           ></span>
-          <p class="chapter-overline">Chapter 1</p>
+          <p class="chapter-overline" id="chapter-overline">Chapter 1</p>
           <h2 class="col-title" id="chapter-title">The Road of Echoes</h2>
           <span class="mast-rule" aria-hidden="true"></span>
-          <p class="col-sub">An unfinished story walks between memory and the Quiet</p>
+          <p class="col-sub" id="chapter-subtitle">
+            An unfinished story walks between memory and the Quiet
+          </p>
         </div>
         </div>
         <!-- THE LEDGER: the Recruiter's index of rivals and legends.
@@ -2459,7 +2616,7 @@
         </div>
       </section>
 
-      <div class="stage-list" aria-label="The ten gates of Chapter 1">
+      <div class="stage-list" data-chapter-stages="1" aria-label="The ten gates of Chapter 1">
         <!-- Stage 1 -->
         <button
           class="stage-card is-first"
@@ -2471,12 +2628,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate I</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-recruiter.png"
-                alt="The Recruiter"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Recruiter">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 1 &middot; Classic</span>
@@ -2514,12 +2668,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate II</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-oathkeeper.png"
-                alt="The Oathkeeper"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Oathkeeper">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 2 &middot; Classic</span>
@@ -2557,12 +2708,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate III</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-outlaw.png"
-                alt="The Outlaw"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Outlaw">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 3 &middot; Classic</span>
@@ -2599,12 +2747,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate IV</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-anointed.png"
-                alt="The Anointed"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Anointed">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 4 &middot; Classic</span>
@@ -2641,12 +2786,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate V</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-warden-of-the-mid-road.png"
-                alt="The Warden"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Warden">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 5 &middot; Unabridged</span>
@@ -2685,12 +2827,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate VI</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-trickster.png"
-                alt="The Trickster"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Trickster">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 6 &middot; Draft</span>
@@ -2727,12 +2866,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate VII</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-strategist.png"
-                alt="The Strategist"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Strategist">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 7 &middot; Draft</span>
@@ -2769,12 +2905,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate VIII</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-chronicler.png"
-                alt="The Chronicler"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Chronicler">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 8 &middot; Draft</span>
@@ -2810,12 +2943,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate IX</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/the-last-guardian.png"
-                alt="The Last Guardian"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Last Guardian">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 9 &middot; Unabridged</span>
@@ -2854,12 +2984,9 @@
           <div class="sc-main">
             <span class="sc-gate-badge">Gate X</span>
             <div class="sc-avatar">
-              <img
-                class="sc-portrait"
-                src="assets/rivals/gilgamesh.png"
-                alt="Gilgamesh"
-                draggable="false"
-              />
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="Gilgamesh">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
             </div>
             <div class="sc-info">
               <span class="sc-kicker">Stage 10 &middot; Unabridged &middot; Final Judgment</span>
@@ -2887,7 +3014,359 @@
         </button>
       </div>
 
-      <footer>One unfinished story &middot; ten guardians &middot; a gate toward Uruk</footer>
+      <div class="stage-list" data-chapter-stages="2" aria-label="The ten gates of Chapter 2" hidden>
+        <!-- Gate XI -->
+        <button
+          class="stage-card is-first"
+          id="chapter-stage-11"
+          type="button"
+          data-campaign-stage="11"
+          aria-label="Gate XI: The Understudy"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XI</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Understudy">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 11 &middot; Classic</span>
+              <h3 class="sc-name">The Understudy</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Colosseum</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">A fixer&rsquo;s fighter, paid to lose the opening gate convincingly - and doing it properly anyway. Nothing on her board is finished yet: every mortal she fields becomes something else the moment the fight gives it a reason.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Understudy
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XII -->
+        <button
+          class="stage-card"
+          id="chapter-stage-12"
+          type="button"
+          data-campaign-stage="12"
+          aria-label="Gate XII: The Bookmaker"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XII</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Bookmaker">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 12 &middot; Classic</span>
+              <h3 class="sc-name">The Bookmaker</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Colosseum</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">The Concord&rsquo;s bookmaker chalks every price where the crowd can read it. He never opens a position - he prices yours and takes the other side, and an empire&rsquo;s court answers each thing you do.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Bookmaker
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XIII -->
+        <button
+          class="stage-card"
+          id="chapter-stage-13"
+          type="button"
+          data-campaign-stage="13"
+          aria-label="Gate XIII: The Herald"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XIII</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Herald">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 13 &middot; Classic</span>
+              <h3 class="sc-name">The Herald</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Mana Spring</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">The Canon&rsquo;s sword-bearer walks out first and reads what is about to happen, then does it. His court deals almost nothing on the turn it acts - the damage is scheduled, in the open, two rounds out.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Herald
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XIV -->
+        <button
+          class="stage-card"
+          id="chapter-stage-14"
+          type="button"
+          data-campaign-stage="14"
+          aria-label="Gate XIV: The Collector"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XIV</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Collector">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 14 &middot; Classic</span>
+              <h3 class="sc-name">The Collector</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Spirit World</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">She keeps things - not her things, everyone&rsquo;s. Nine collapsed traditions sit catalogued in her vault. She does not remove your advantages; she keeps them, and they reappear on her side of the table.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Collector
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XV -->
+        <button
+          class="stage-card"
+          id="chapter-stage-15"
+          type="button"
+          data-campaign-stage="15"
+          aria-label="Gate XV: The Hero of the Bridge"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XV</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Hero of the Bridge">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 15 &middot; Unabridged best-of-3 - the first exam</span>
+              <h3 class="sc-name">The Hero of the Bridge</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> Ground already walked</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">Sargon withdraws the petition, and Concord procedure is clear: a claimant takes over an abandoned petition by defeating the version of the petitioner that is in the book. The entry has no seam. Nothing on it is overstated, and nothing is ragged.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Hero of the Bridge
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XVI -->
+        <button
+          class="stage-card"
+          id="chapter-stage-16"
+          type="button"
+          data-campaign-stage="16"
+          aria-label="Gate XVI: The Undertaker"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XVI</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Undertaker">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 16 &middot; Classic - elite</span>
+              <h3 class="sc-name">The Undertaker</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Blood Battlefield</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">He buried a world once, properly, with a field growing back afterwards - and he has never forgiven the Concord for propping legends up past their natural death. His deck is below curve while the board is full, and it improves with every legend that falls.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Undertaker
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XVII -->
+        <button
+          class="stage-card"
+          id="chapter-stage-17"
+          type="button"
+          data-campaign-stage="17"
+          aria-label="Gate XVII: The Mason"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XVII</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Mason">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 17 &middot; Classic</span>
+              <h3 class="sc-name">The Mason</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Ancient Ruins</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">She built the retaining wall the Concord floor sits on, one course at a time, and has never seen the point of laying a stone before the bed under it is true. Nothing on her board kills anything by itself.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Mason
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XVIII -->
+        <button
+          class="stage-card"
+          id="chapter-stage-18"
+          type="button"
+          data-campaign-stage="18"
+          aria-label="Gate XVIII: The Wrecker"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XVIII</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Wrecker">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 18 &middot; Classic</span>
+              <h3 class="sc-name">The Wrecker</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Open Plains</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">A wrecker in the trade sense: she works the coast where things go down and takes off what floats before the sea gets it. Nothing she does is destroyed - buffs, energy, shields, a revive you were counting on, all of it changes hands.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Wrecker
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XIX -->
+        <button
+          class="stage-card"
+          id="chapter-stage-19"
+          type="button"
+          data-campaign-stage="19"
+          aria-label="Gate XIX: The Auditor"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XIX</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="The Auditor">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 19 &middot; Unabridged best-of-3 - the second exam</span>
+              <h3 class="sc-name">The Auditor</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> Ground already walked</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">Four thousand mornings in a room nobody enters, and today somebody finally files. He does not start anything: his twelve is built out of the seven decks you were handed, each one aimed back at the habit it taught you.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with The Auditor
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Gate XX -->
+        <button
+          class="stage-card"
+          id="chapter-stage-20"
+          type="button"
+          data-campaign-stage="20"
+          aria-label="Gate XX: Asmodeus, the Redactor"
+        >
+          <div class="sc-main">
+            <span class="sc-gate-badge">Gate XX</span>
+            <div class="sc-avatar">
+              <span class="sc-portrait sc-portrait-empty" role="img" aria-label="Asmodeus, the Redactor">
+                <i data-icon-domain="game" class="ra ra-hood"></i>
+              </span>
+            </div>
+            <div class="sc-info">
+              <span class="sc-kicker">Stage 20 &middot; Unabridged best-of-3 - the final</span>
+              <h3 class="sc-name">Asmodeus, the Redactor</h3>
+              <span class="sc-meta"><i class="ri-landscape-line"></i> The Concord floor</span>
+            </div>
+            <div class="sc-status">
+              <span class="sc-state-badge"><i class="ri-lock-2-fill"></i> Locked</span>
+              <i class="ri-arrow-down-s-line sc-chevron" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="sc-expand">
+            <div class="sc-lore">
+              <p class="sc-desc">The voice that has read every ruling for four hundred years, and the hand that chose which lines were read at all. He fields the sins, and every one of them buys its power at a stated, visible price - which is what four hundred years of tidy history has been.</p>
+              <div class="sc-prompt">
+                <i class="ri-chat-3-line"></i> Click to speak with Asmodeus, the Redactor
+              </div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <footer id="chapter-footer">One unfinished story &middot; ten guardians &middot; a gate toward Uruk</footer>
     </section>
 
     <!-- ==================== CHAPTER 1 DIALOGUE ====================
@@ -2915,13 +3394,11 @@
           <i class="ri-close-line"></i>
         </button>
         <div class="chapter-dialogue-bust" aria-hidden="true">
-          <img
-            id="chapter-dialogue-portrait"
-            src="assets/rivals/the-recruiter.png"
-            alt=""
-            draggable="false"
-          />
-          <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph" hidden
+          <!-- Rival art deleted 2026-08-18e for the owner's own pass.
+               The bust starts EMPTY with the glyph visible; js/campaign.js
+               swaps them per line and already handles a null portrait. -->
+          <img id="chapter-dialogue-portrait" alt="" draggable="false" hidden />
+          <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph"
             ><i data-icon-domain="game" class="ra ra-hood"></i
           ></span>
         </div>
@@ -3028,12 +3505,9 @@
          every other button lives in js/campaign.js (guideClickTrap),
          not in this element. -->
     <div class="nav-guide" id="nav-guide" hidden role="status" aria-live="polite">
-      <img
-        class="nav-guide-face"
-        src="assets/rivals/the-recruiter.png"
-        alt=""
-        draggable="false"
-      />
+      <span class="nav-guide-face nav-guide-face-empty" aria-hidden="true"
+        ><i data-icon-domain="game" class="ra ra-hood"></i
+      ></span>
       <div class="nav-guide-body">
         <span class="nav-guide-name">The Recruiter</span>
         <p class="nav-guide-text" id="nav-guide-text"></p>
@@ -3051,13 +3525,7 @@
          beat is up - reading first, acting second. -->
     <div class="tutor-shield" id="tutor-shield" hidden></div>
     <div class="tutor" id="tutor" hidden role="status" aria-live="polite">
-      <img
-        class="tutor-face"
-        id="tutor-face"
-        src="assets/rivals/the-recruiter.png"
-        alt=""
-        draggable="false"
-      />
+      <img class="tutor-face" id="tutor-face" alt="" draggable="false" hidden />
       <div class="tutor-body">
         <span class="tutor-name" id="tutor-name">The Recruiter</span>
         <p class="tutor-text" id="tutor-text"></p>
@@ -3441,10 +3909,6 @@
             <ul class="bfp-rules" id="bfp-rules"></ul>
           </div>
         </div>
-        <div class="puzzle-chip" id="puzzle-chip" hidden>
-          <i class="ri-calendar-check-line" aria-hidden="true"></i>
-          <span>Daily Puzzle</span>
-        </div>
         <!-- ================= BATTLEFIELD SCENE =================
              One scene system, re-skinned per battlefield by
              .board[data-field] in css/style.css. The old generic
@@ -3535,7 +3999,9 @@
            happened, stays until the player acts or dismisses it, and is
            replaced by the next relevant observation instead of queuing. -->
       <div class="rival-bark" id="rival-bark" role="status" aria-live="polite" hidden>
-        <img class="rival-bark-face" id="rival-bark-face" src="" alt="" draggable="false" />
+        <!-- No src by default: rival art is being redrawn, and js/campaign.js
+             unhides this only when a portrait actually exists. -->
+        <img class="rival-bark-face" id="rival-bark-face" alt="" draggable="false" hidden />
         <div class="rival-bark-body">
           <span class="rival-bark-name" id="rival-bark-name"></span>
           <p class="rival-bark-text" id="rival-bark-text"></p>
@@ -3675,6 +4141,10 @@
 
 
     <!-- Card data: one file per faction -->
+    <!-- Runs BEFORE economy/deck/upgrades, which each read their own
+         localStorage key on first call. Rewrites saved card ids for the
+         2026-08-18 faction renames; see js/id-migration.js. -->
+    <script src="js/id-migration.js"></script>
     <script src="js/text.js"></script>
     <script src="data/_schema.js"></script>
     <script src="data/roles.js"></script>
@@ -3686,10 +4156,21 @@
     <script src="data/sherwood.js"></script>
     <script src="data/huaxia.js"></script>
     <script src="data/roma.js"></script>
-    <script src="data/takamagahara.js"></script>
+    <script src="data/kami.js"></script>
     <script src="data/duat.js"></script>
+    <script src="data/asgard.js"></script>
+    <script src="data/hemithea.js"></script>
+    <script src="data/pandemonium.js"></script>
+    <script src="data/devas.js"></script>
+    <script src="data/genesis.js"></script>
+    <script src="data/transylvania.js"></script>
+    <script src="data/tortuga.js"></script>
     <script src="data/battlefields.js"></script>
+    <!-- Legend prose. AFTER the faction files: it attaches onto the
+         cards they registered. -->
+    <script src="data/lore.js"></script>
     <script src="data/campaign-ch1.js"></script>
+    <script src="data/campaign-ch2.js"></script>
     <script src="data/draft-ai.js"></script>
 
     <!-- Original procedural score + role/element sound language. Loaded
@@ -3699,6 +4180,7 @@
     <script src="js/upgrades.js"></script>
     <script src="js/quests.js"></script>
     <script src="js/quest-board.js"></script>
+    <script src="js/card-detail.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/battle.js"></script>

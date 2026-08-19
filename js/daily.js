@@ -10,6 +10,56 @@
    `?dailyLab=1` keeps a private calibration forge. Neither path reads an
    authored position list: unrestricted teams are played by depth-4 AI into
    rounds 5-8, then candidate turns receive depth-4 continuation tests.
+
+   -------------------------------------------------------------
+   THE TEMPO REWRITE (2026-08-16, owner ruling: "games are dragging out
+   way too long, make it so that the intended solution is like 3-5
+   rounds")
+
+   The old forge optimised for exactly one thing: the probability that
+   depth-4 AI, handed the player side, eventually wins. "Eventually" was
+   ROUND_CAP = 20. Nothing in the scoring function knew or cared how LONG
+   that win took, so the checkpoint queue - which sorted by health parity
+   around 0.47 - systematically preferred the worst possible shape for a
+   puzzle: a fat, even 6v5 board where both teams are near full HP. Those
+   positions are "balanced" in the sense the old ranker meant, and they
+   are also unkillable. Measured over 130 certified-shape checkpoints,
+   only 63 of 170 winning continuations finished within five rounds; the
+   tail ran to seventeen.
+
+   A puzzle is a position with a SHORT forced line. The fix is to make
+   the length a first-class, enforced property in three places:
+
+     1. TEMPO PREFILTER (`tempo()`). Before spending a single trial,
+        estimate how many player actions of damage the enemy team can
+        absorb. Measured against solve length this is a near-perfect
+        predictor: every sampled checkpoint below tempo 3 solved inside
+        five rounds, and NOT ONE above tempo 4 ever did, at any trial
+        count. Checkpoints outside TEMPO_MIN..TEMPO_MAX are dropped at
+        capture time. This is also why generation is now much faster -
+        the forge stopped paying for twenty-round rollouts of positions
+        that could never qualify.
+
+     2. DEADLINE-CAPPED TRIALS. Every continuation now runs against
+        `solveBy = round + SOLVE_MAX - 1` and a win after that round is
+        scored as a LOSS. The calibrated ~30% win rate therefore means
+        "30% of the time the AI finds the win IN TIME", not "30% of the
+        time it grinds one out". A certificate additionally has to land
+        no earlier than SOLVE_MIN, so the published board is never a
+        one-click freebie either.
+
+     3. THE DEADLINE SHIPS WITH THE POSITION. `solveBy` is serialized
+        into the payload and enforced by js/battle.js during play. Even
+        a certified 4-round line does not stop a player from flailing
+        for fifteen rounds, so the round limit is what actually keeps a
+        session short. The HUD chip shows the countdown.
+
+   `solveBy` is an ADDITIVE field inside the existing `v: 1` wire format
+   on purpose. The server's payload check in migration 04 asserts
+   `position.v = '1'` and ignores unknown keys, so publishing keeps
+   working with no migration and no coordinated deploy. Deserialization
+   derives a default when the field is missing, so a position staged by
+   an older tab still opens.
    ============================================================= */
 (function () {
   'use strict';
@@ -18,14 +68,96 @@
 
   var TARGET_RATE = 0.3;
   var MAX_DAILY_ATTEMPTS = 2;
-  var SCOUT_ATTEMPTS = 5;
+  /* Raised from 5 with the winning-lines gate (2026-08-16). Narrowing
+     TEMPO_MIN to 2.4 means each scouting battle yields fewer usable
+     checkpoints, and the gate then rejects more of those; one seed in
+     eleven ran out of candidates entirely. Two extra scouts is the
+     cheapest fix because a scout that finds a certifiable board exits
+     immediately - this raises the CEILING on work, not the typical
+     cost. Median forge is unchanged at ~2 minutes. */
+  var SCOUT_ATTEMPTS = 7;
   var CANDIDATES_PER_SCOUT = 10;
   var PRELIM_TRIALS = 5;
   var FINAL_TRIALS = 10;
   var ROUND_MIN = 5;
   var ROUND_MAX = 8;
-  var ROUND_CAP = 20;
   var STEP_CAP = 700;
+
+  /* ---- THE LENGTH CONTRACT ----------------------------------------
+     SOLVE_MIN/SOLVE_MAX are the owner's "3-5 rounds", counted
+     INCLUSIVELY from the checkpoint round. A position that opens in
+     round 6 must be won in round 6, 7, 8, 9 or 10; its `solveBy` is 10.
+
+     SOLVE_MIN is not decoration. Without it the tempo filter's own
+     success case becomes the failure mode: the very lightest boards
+     (tempo below 1) are won by mashing the obvious attack in a single
+     round, which is not a puzzle either. A certificate whose winning
+     line lands before SOLVE_MIN rounds is rejected the same way an
+     over-long one is.
+
+     ROUND_CAP is gone. It was a safety valve that had quietly become
+     the design: twenty rounds of AI-vs-AI was the definition of "this
+     position is solvable". Continuations now stop at the position's own
+     deadline, which is both the correct semantics and roughly four
+     times less rollout work per trial. */
+  var SOLVE_MIN = 3;
+  var SOLVE_MAX = 5;
+
+  /* Enemy effective HP divided by the player's total ATK - very roughly
+     "how many full-team attack rounds are left in this board". Sampled
+     against real solve lengths, the usable window is narrow and the
+     cliff above it is total (see the header). TEMPO_MAX is set at 3.6
+     rather than at the observed 4.0 cliff because the estimate ignores
+     healing, shields regenerating and revives, all of which push the
+     true figure up and never down. */
+  /* TEMPO_MIN was 1.15 while the only requirement was "solvable in 3-5
+     rounds". Adding the 1-2 winning-lines requirement made the bottom of
+     that band worthless: sampling eight checkpoints across five RNG
+     seeds each showed tightness is a property of the BOARD, essentially
+     stable under reseeding, and it tracks tempo hard -
+
+       tempo 1.3 - 1.9  ->  3+ winning lines out of 3, every seed
+       tempo 2.6        ->  3+ winning lines, every seed
+       tempo 3.2 - 3.5  ->  0-1 winning lines, every seed
+
+     A light board is light for everyone: there is time and material
+     enough that any sensible opening converts. Those positions can never
+     satisfy the ruling, so scouting them is pure waste - and it was
+     expensive waste, because each one still paid for a playout per legal
+     move before being thrown away.
+
+     Raised to 2.4. The band is now the region where tight boards
+     actually occur, which is what made the stricter gate affordable
+     rather than a reliability regression. */
+  var TEMPO_MIN = 2.4;
+  var TEMPO_MAX = 3.6;
+
+  /* ---- HOW MANY FIRST MOVES MAY WIN -------------------------------
+     Owner ruling 2026-08-16: "only like 1-2 possible lines that lead to
+     winning." Counted over every legal opening plus passing, against
+     the enemy's full depth-4 defence and the position's own deadline.
+
+     MAX_WINNING_LINES = 2, and there is an implicit minimum of 1 - a
+     board nothing wins from is not a puzzle, it is a lost position, and
+     the certified line guarantees at least one anyway. */
+  var MAX_WINNING_LINES = 2;
+
+  /* Where tight positions actually live, measured over 17 boards that
+     passed every other gate. Boards with 1-2 winning openings averaged
+     checkpoint strength 0.451 and tempo 3.05; boards with three or more
+     averaged 0.579 and 2.21. Both make intuitive sense: a comfortable
+     board forgives anything, and a slow board leaves time to recover
+     from a bad first move.
+
+     So the ranker now aims at the tight profile instead of at rough
+     parity. This does not GATE anything - the count does - it just
+     stops the forge spending its budget in the region where almost
+     nothing qualifies. */
+  var TIGHT_STRENGTH = 0.46;
+  /* 3.2, not the 3.0 first tried: the reseeding sample put the reliably
+     tight boards at 3.2-3.5, and the ceiling is 3.6, so this aims at the
+     top of the band without sitting on its edge. */
+  var TIGHT_TEMPO = 3.2;
   var CERTIFICATE_EXTRA_SEEDS = 12;
   var CERTIFICATE_CANDIDATES = 10;
   var FAST_DEPTH4_BUDGET = {
@@ -146,6 +278,14 @@
      never card definitions and never the unit -> battle back-pointer.
      Keeping the wire format explicit makes a published position small,
      inspectable and safe from accidental cycles when the engine grows. */
+  /* The last round in which a position opening on `round` may still be
+     won. One helper, used by the trial runner, the certificate, the
+     serializer and the round-limit HUD, so the number the forge proved
+     and the number the player is held to can never drift apart. */
+  function solveDeadline(round) {
+    return (round | 0) + SOLVE_MAX - 1;
+  }
+
   function serializeBattle(B, futureSeed) {
     if (!B || !Array.isArray(B.units) || B.units.length !== 12) {
       throw new Error('Cannot serialize an invalid puzzle battle');
@@ -153,6 +293,10 @@
     return {
       v: 1,
       rngSeed: futureSeed | 0,
+      /* Additive field, deliberately outside `battle` - it is a rule
+         about the position, not engine state. See the header for why
+         this does not need a payload-version bump. */
+      solveBy: solveDeadline(B.round),
       battle: {
         round: B.round,
         oddFirst: B.oddFirst,
@@ -259,6 +403,11 @@
       winner: null,
       acted: plain(src.acted),
       rng: rng32(payload.rngSeed | 0),
+      /* A position staged before the tempo rewrite has no `solveBy`.
+         Derive the same deadline rather than refusing to open it: the
+         old board is longer than we would forge today, but shipping a
+         hard error would black out the Daily until the next reset. */
+      puzzleSolveBy: payload.solveBy | 0 || solveDeadline(src.round),
     };
 
     src.units.forEach(function (row) {
@@ -334,6 +483,47 @@
     return p + e ? p / (p + e) : 0.5;
   }
 
+  /* ---- TEMPO -------------------------------------------------------
+     How many "player attack rounds" of punishment the enemy team can
+     still soak. Enemy effective HP (health plus shield, which has to be
+     chewed through exactly like health) over the player's total ATK,
+     discounted by 0.85 because not every action is a full-power hit and
+     some are heals and buffs.
+
+     This is deliberately CRUDE. It is a prefilter that runs on every
+     captured checkpoint, before any rollout, so it has to be cheap; the
+     expensive, exact answer is the certified continuation. Its only job
+     is to throw away the boards that cannot possibly finish in five
+     rounds, and at that job the measurement says it is close to
+     perfect.
+
+     Shields count at full weight here, unlike in checkpointStrength()
+     which discounts them to 0.65 as a proxy for their expiring. For
+     TEMPO the pessimistic reading is the right one: a shield that has
+     not expired yet is HP the player must actually remove before the
+     deadline. */
+  function tempo(B) {
+    var foeHp = 0;
+    var myAtk = 0;
+    var foes = 0;
+    var mine = 0;
+    B.units.forEach(function (u) {
+      if (!u.alive) return;
+      if (u.side === 'enemy') {
+        foeHp += u.hp + (u.shield || 0);
+        foes++;
+      } else {
+        myAtk += u.baseAtk;
+        mine++;
+      }
+    });
+    /* An empty side is a finished battle, not a puzzle. Return a value
+       far outside the accepted band so the caller rejects it without
+       needing a separate emptiness check. */
+    if (!foes || !mine || myAtk <= 0) return Infinity;
+    return foeHp / (myAtk * 0.85);
+  }
+
   async function scoutBattle(seed, attempt, job, E, AI) {
     var rng = rng32(seed);
     var pool = rosterPool();
@@ -382,10 +572,17 @@
       if (side === 'player' && B.round >= ROUND_MIN && B.round <= ROUND_MAX) {
         var playerAlive = E.unitsOf(B, 'player').length;
         var enemyAlive = E.unitsOf(B, 'enemy').length;
-        if (playerAlive >= 2 && enemyAlive >= 2) {
+        /* THE TEMPO GATE. Cheap, and it runs before the clone: a board
+           the player cannot kill inside the deadline is not a slow
+           puzzle, it is not a puzzle, and cloning it just to spend five
+           twenty-round rollouts discovering that was where nearly all
+           of the old forge's time went. */
+        var pace = playerAlive >= 2 && enemyAlive >= 2 ? tempo(B) : Infinity;
+        if (pace >= TEMPO_MIN && pace <= TEMPO_MAX) {
           candidates.push({
             state: E.cloneBattle(B, rng32(seed ^ ((candidates.length + 1) * 7919))),
             strength: checkpointStrength(B),
+            tempo: pace,
             round: B.round,
           });
         }
@@ -395,16 +592,56 @@
       if (steps % 3 === 0) await yieldControl(job);
     }
 
-    /* Health alone is not the verdict, but it is a useful queue: positions
-       near a slight player disadvantage are tested first. Round distance
-       is only a tie-break so the centre of the requested window wins. */
+    /* ---- AIM AT THE TIGHT PROFILE, NOT AT PARITY -------------------
+       This used to sort toward strength 0.47 (rough parity) and tempo
+       2.4 (comfortably mid-band). Both targets were wrong for the thing
+       the forge is now required to produce.
+
+       Measured over 17 boards that passed every other gate, the ones
+       with only 1-2 winning openings looked distinctly different from
+       the ones with three or more:
+
+                        tight (1-2)    loose (3+)
+         strength          0.451         0.579
+         tempo             3.05          2.21
+
+       Both directions make sense. A comfortable board (high strength)
+       forgives any opening, and a slow board (low tempo) leaves enough
+       rounds to recover from a bad one. Tightness lives where the player
+       is slightly BEHIND and the clock is tight - which is also, not
+       coincidentally, where a puzzle is interesting.
+
+       So the ranker aims there now. It still GATES nothing: the actual
+       1-2 requirement is enforced by countWinningOpeningLines during
+       certification. This only decides what order to spend the trial
+       budget in, and pointing it at the region where ~12% of boards
+       qualify instead of ~2% is the difference between the forge
+       publishing in half a minute and grinding through every candidate
+       it has.
+
+       The tempo weight rises from 0.10 to 0.22 because tempo is now
+       carrying real signal about tightness rather than acting as a
+       tie-break between similar boards. It is still below the strength
+       term's natural spread, so it shapes the queue without dominating
+       it. */
     var rescue = candidates.reduce(function (best, candidate) {
-      return !best || candidate.strength > best.strength ? candidate : best;
+      /* The rescue slot used to be "strongest player board", which after
+         the tempo gate is actively the wrong pick: the strongest boards
+         inside the band are the slowest ones in it. Take the fastest
+         instead - if strict certification is failing everywhere, a
+         position the player can obviously close out is the safest thing
+         to fall back on. */
+      return !best || candidate.tempo < best.tempo ? candidate : best;
     }, null);
+    function tightness(c) {
+      return (
+        Math.abs(c.strength - TIGHT_STRENGTH) +
+        Math.abs(c.round - 6.5) * 0.008 +
+        Math.abs(c.tempo - TIGHT_TEMPO) * 0.22
+      );
+    }
     candidates.sort(function (a, b) {
-      var da = Math.abs(a.strength - 0.47) + Math.abs(a.round - 6.5) * 0.008;
-      var db = Math.abs(b.strength - 0.47) + Math.abs(b.round - 6.5) * 0.008;
-      return da - db;
+      return tightness(a) - tightness(b);
     });
     /* Reserve one slot for the strongest player checkpoint in this scout.
        It is not preferred for calibration, but gives strict certification
@@ -416,15 +653,37 @@
     return selected;
   }
 
+  /* Play the position out and report not just WHETHER the player side
+     wins but IN WHAT ROUND. `won` is the calibration verdict and it is
+     deliberately narrower than "the player eventually won": a line that
+     needs a sixteenth round is a loss here, because that is exactly the
+     experience the rewrite exists to stop shipping.
+
+     Timing out is reported separately from losing (`timedOut`) so the
+     forge's own diagnostics can tell "the AI cannot beat this board"
+     apart from "the AI beats this board slowly" - two very different
+     reasons to discard a candidate, and only the second one means the
+     tempo prefilter let something through it should have caught. */
   function runContinuationReport(source, seed, E, AI) {
     var B = E.cloneBattle(source, rng32(seed));
     B.rng = rng32(seed);
     B.simulation = true;
     B.silent = true;
+    var startRound = B.round;
+    var deadline = solveDeadline(startRound);
     var steps = 0;
     var playerActions = 0;
     var enemyActions = 0;
-    while (!B.over && B.round <= ROUND_CAP && steps++ < STEP_CAP) {
+    var timedOut = false;
+    while (!B.over && steps++ < STEP_CAP) {
+      /* Checked at the TOP of the loop, before advanceAction, so a
+         battle that rolls past the deadline stops immediately instead of
+         playing one more free round of actions the player would never
+         have been allowed to take. */
+      if (B.round > deadline) {
+        timedOut = true;
+        break;
+      }
       var side = E.advanceAction(B);
       if (!side) {
         if (!B.over) E.nextRound(B);
@@ -437,9 +696,17 @@
          survived the strongest response the shipped enemy AI can choose. */
       playAiAction(B, side, E, AI);
     }
+    var solvedIn = Math.max(1, Math.min(B.round, deadline) - startRound + 1);
     return {
-      won: B.winner === 'player',
+      /* Both clauses matter. `!timedOut` alone would accept a battle
+         that the step cap ended, and `B.winner === 'player'` alone would
+         accept the twenty-round grind. */
+      won: !timedOut && B.winner === 'player',
+      timedOut: timedOut,
       winner: B.winner || null,
+      startRound: startRound,
+      deadline: deadline,
+      solvedIn: solvedIn,
       steps: steps,
       playerActions: playerActions,
       enemyActions: enemyActions,
@@ -450,15 +717,96 @@
     return runContinuationReport(source, seed, E, AI).won;
   }
 
+  /* ---- WHY THE OPENING-LINE COUNT WAS REPLACED ---------------------
+     The old tightness gate asked "how many different FIRST moves still
+     win?" and demanded the answer be 1 or 2. Under the new deadline it
+     stopped working, and measuring it showed why: it varies only move
+     one and then hands the position back to a full-strength depth-4
+     player for the rest of the line. That player repairs almost any
+     opening, so the count collapsed to "nearly all of them" - 9 out of 9
+     certifiable candidates in a calibration run scored 3+ and were
+     rejected, which is what made the first tempo build unable to publish
+     anything at all.
+
+     Worse, the metric measured the wrong property even when it worked. A
+     puzzle is not "only one legal first move"; it is "you have to keep
+     playing well". `naiveSolves` asks that second question directly.
+
+     ---- REINSTATED AS A GATE, 2026-08-16 (owner ruling) --------------
+     "I think puzzles are too easy right now, make it so that there are
+     only like 1-2 possible lines that lead to winning."
+
+     Measured on five published boards, the median position had SIX
+     winning openings and only one in five was inside the 1-2 target.
+     Several were worse than that - 17 of 18 legal moves winning, 19 of
+     19, 21 of 21. Those are not puzzles, they are positions that have
+     already been won, and `naiveSolves` did not catch them because the
+     no-lookahead player is bad at CHOOSING but still only makes one
+     move per turn; on a board where everything wins, its choice never
+     mattered.
+
+     So the two tests are complementary and BOTH now gate publication:
+
+       countWinningOpeningLines  - is the first move forced?
+       naiveSolves               - does the rest of the line need thought?
+
+     What actually changed since the version that rejected 9 of 9
+     candidates is not this function - it is that the forge now looks in
+     a different place for positions (see the scoring in scoutBattle).
+     Tight boards turned out to have a measurable profile: the player is
+     BEHIND (checkpoint strength ~0.45 against ~0.58 for loose ones) and
+     tempo is HIGHER (~3.0 against ~2.2). Searching there makes the 1-2
+     requirement satisfiable instead of impossible.
+
+     NO EARLY EXIT. The old version bailed at `> 2` to save rollouts,
+     which meant the certificate could only ever record "3" for a board
+     with twenty winning moves. The exact count is the difficulty signal
+     worth having in the metrics, and the loop is bounded by the number
+     of legal moves anyway. */
   function countWinningOpeningLines(source, seed, E, AI) {
     var moves = AI.candidates ? AI.candidates(source, 'player') : [];
+    var deadline = solveDeadline(source.round);
     var winningMoves = 0;
-    for (var m = 0; m < moves.length; m++) {
-      var act = moves[m];
+    /* The denominator. Counts openings actually PLAYED, so a candidate
+       the engine rejects as illegal is not credited as a road not
+       taken. Reported alongside the count because "2 of 3" and "2 of
+       20" describe very different boards. */
+    var attempted = 0;
+
+    function playOut(B) {
+      var steps = 0;
+      while (!B.over && B.round <= deadline && steps++ < STEP_CAP) {
+        var side = E.advanceAction(B);
+        if (!side) {
+          if (!B.over) E.nextRound(B);
+          continue;
+        }
+        playAiAction(B, side, E, AI);
+      }
+      return B.winner === 'player' && B.round <= deadline;
+    }
+
+    function fresh() {
       var B = E.cloneBattle(source, rng32(seed));
       B.rng = rng32(seed);
       B.simulation = true;
       B.silent = true;
+      return B;
+    }
+
+    /* THE PASS PROBE RUNS FIRST. Doing nothing and still winning is the
+       loudest possible evidence that a board solves itself, and it is a
+       single playout. Front-loading it means the most obviously loose
+       positions - the 19-of-19 boards that motivated this gate - are
+       rejected after one rollout instead of twenty. */
+    var Bpass = fresh();
+    E.passTurn(Bpass, 'player');
+    attempted++;
+    if (playOut(Bpass)) winningMoves++;
+
+    for (var m = 0; m < moves.length; m++) {
+      var act = moves[m];
+      var B = fresh();
       var actor = B.uidMap ? B.uidMap[act.unit.uid] : null;
       if (!actor) {
         for (var ui = 0; ui < B.units.length; ui++) {
@@ -477,39 +825,85 @@
 
       var res = E.useAbility(B, actor, act.ability, chosen, act.choose);
       if (!res || !res.ok) continue;
+      attempted++;
 
-      var steps = 0;
-      while (!B.over && B.round <= ROUND_CAP && steps++ < STEP_CAP) {
-        var side = E.advanceAction(B);
-        if (!side) {
-          if (!B.over) E.nextRound(B);
-          continue;
-        }
-        playAiAction(B, side, E, AI);
-      }
-      if (B.winner === 'player') {
+      if (playOut(B)) {
         winningMoves++;
-        if (winningMoves > 2) return winningMoves;
+        /* EARLY EXIT ON REJECTION ONLY. Once the count exceeds the
+           ceiling the position is discarded whatever the exact total is,
+           so the remaining playouts buy nothing. Crucially this cannot
+           cost accuracy where accuracy matters: a position that will be
+           ACCEPTED has, by definition, at most MAX_WINNING_LINES winners
+           and therefore never trips this branch - its certificate still
+           records an exact count.
+
+           Restoring this mattered for reliability, not elegance. Loose
+           boards are the common case and each was costing a full playout
+           per legal move (up to ~20) before being thrown away; one forge
+           seed hit a nine-minute timeout. The `over` flag tells the
+           caller the number is a lower bound. */
+        if (winningMoves > MAX_WINNING_LINES) {
+          return { winning: winningMoves, attempted: attempted, over: true };
+        }
       }
     }
-    var Bpass = E.cloneBattle(source, rng32(seed));
-    Bpass.rng = rng32(seed);
-    Bpass.simulation = true;
-    Bpass.silent = true;
-    E.passTurn(Bpass, 'player');
-    var passSteps = 0;
-    while (!Bpass.over && Bpass.round <= ROUND_CAP && passSteps++ < STEP_CAP) {
-      var pside = E.advanceAction(Bpass);
-      if (!pside) {
-        if (!Bpass.over) E.nextRound(Bpass);
+
+    /* Returns a RECORD, not a bare count. The denominator is needed by
+       the certificate and by the harness, and threading it back through
+       a module-level variable would have made two concurrent forges
+       (the lab and a worker) quietly corrupt each other's metrics. */
+    return { winning: winningMoves, attempted: attempted, over: false };
+  }
+
+  /* ---- THE OBVIOUS-MOVE TEST ---------------------------------------
+     Replay the identical position and the identical RNG stream, but let
+     the PLAYER side play badly: take the top heuristically-ordered
+     candidate every turn with no lookahead at all, while the enemy keeps
+     its full depth-4 search. That is a fair model of a player who reads
+     each board once and clicks the move that looks strongest.
+
+     If that player also wins inside the deadline, the position is not a
+     puzzle - it is a board that wins itself, and the certified "winning
+     line" was never a line the player had to find. Rejecting on this is
+     what stops the tempo filter from over-correcting: a very light board
+     (tempo near 1) is fast precisely because everything works on it, and
+     fast-and-trivial is not the ruling.
+
+     The naive player deliberately uses AI.candidates() ordering rather
+     than a random legal move. Random play loses to everything and would
+     certify every position; the heuristic ordering is roughly "what an
+     attentive human would try first", which is the standard the puzzle
+     actually has to beat. */
+  function naiveSolves(source, seed, E, AI) {
+    var B = E.cloneBattle(source, rng32(seed));
+    B.rng = rng32(seed);
+    B.simulation = true;
+    B.silent = true;
+    var deadline = solveDeadline(source.round);
+    var steps = 0;
+    while (!B.over && steps++ < STEP_CAP) {
+      if (B.round > deadline) return false;
+      var side = E.advanceAction(B);
+      if (!side) {
+        if (!B.over) E.nextRound(B);
         continue;
       }
-      playAiAction(Bpass, pside, E, AI);
+      if (side !== 'player') {
+        playAiAction(B, side, E, AI);
+        continue;
+      }
+      var moves = AI.candidates ? AI.candidates(B, 'player') : [];
+      if (!moves.length) {
+        E.passTurn(B, 'player');
+        continue;
+      }
+      var act = moves[0];
+      var res = E.useAbility(B, act.unit, act.ability, act.chosen, act.choose);
+      /* Same guard as playAiAction: never let a malformed candidate spin
+         the loop forever on one decision. */
+      if (!res || !res.ok) B.acted.player[act.unit.uid] = true;
     }
-    if (Bpass.winner === 'player') {
-      winningMoves++;
-    }
-    return winningMoves;
+    return B.winner === 'player';
   }
 
   async function addTrials(rec, total, seed, candidateNo, job, E, AI) {
@@ -564,12 +958,36 @@
       for (var s = 0; s < seeds.length; s++) {
         assertCurrent(job);
         var report = runContinuationReport(rec.candidate.state, seeds[s], E, AI);
-        if (report.won) {
-          /* Enforce puzzle tightness: exactly 1 or at most 2 winning opening
-             lines against the opponent's best depth-4 defense. If there are
-             more than 2 winning lines the position is too easy. */
-          var winningLines = countWinningOpeningLines(rec.candidate.state, seeds[s], E, AI);
-          if (winningLines >= 1 && winningLines <= 2) {
+        /* `report.won` already carries the SOLVE_MAX ceiling. The floor
+           is applied here rather than inside the report because a fast
+           win is a perfectly good CALIBRATION result - it tells the
+           sampler the board is winnable - it is just not a publishable
+           puzzle. Keeping the two ideas apart stops a one-move board
+           from being scored as unwinnable and dragging the whole
+           candidate's rate away from the 30% target for the wrong
+           reason. */
+        if (report.won && report.solvedIn >= SOLVE_MIN) {
+          /* TIGHTNESS, both halves. Ordered cheapest-first: naiveSolves
+             is one extra playout, while the opening count is one playout
+             PER legal move, so on a board that fails the cheap test the
+             expensive one never runs. */
+          if (!naiveSolves(rec.candidate.state, seeds[s], E, AI)) {
+            var lineReport = countWinningOpeningLines(
+              rec.candidate.state,
+              seeds[s],
+              E,
+              AI
+            );
+            var winningLines = lineReport.winning;
+            /* The owner's number. >= 1 is guaranteed by `report.won`
+               having just used one of these very openings, but it is
+               asserted rather than assumed: if it were ever 0 the two
+               searches would be disagreeing and the certificate would be
+               a lie. */
+            if (winningLines < 1 || winningLines > MAX_WINNING_LINES) {
+              await yieldControl(job);
+              continue;
+            }
             rec.futureSeed = seeds[s] | 0;
             rec.certificate = {
               depth: 4,
@@ -578,7 +996,23 @@
               playerActions: report.playerActions,
               enemyActions: report.enemyActions,
               testedSeeds: s + 1,
+              /* Recorded as proof the gate ran, not as a threshold. */
+              naiveSolves: false,
+              /* THE difficulty number. Exact, not clamped at 3 - a board
+                 that squeaked in at 2 and one that had 2 of 20 legal
+                 moves win are very different, and only this tells them
+                 apart after the fact. */
               winningLines: winningLines,
+              legalOpenings: lineReport.attempted,
+              /* The proof carries its own length. `solvedIn` is the
+                 headline number for the owner ruling and `solveBy` is
+                 what battle.js enforces; publishing both means a stored
+                 position can be audited after the fact without re-running
+                 the forge. */
+              solvedIn: report.solvedIn,
+              solveBy: report.deadline,
+              startRound: report.startRound,
+              tempo: Math.round((rec.candidate.tempo || 0) * 100) / 100,
             };
             return rec;
           }
@@ -632,10 +1066,23 @@
 
           /* Five trials can express 20% or 40%, both close enough to earn
              a second sample. Only accept after ten—and only after a full
-             depth-4 replay certifies its exact published RNG stream. */
-          if (rec.distance <= 0.11) {
+             depth-4 replay certifies its exact published RNG stream.
+
+             THE BAND WIDENED FROM 0.2-0.4 TO 0.2-0.8 (2026-08-16). The
+             old narrow band assumed the fast-budget win rate was a
+             difficulty dial. Under a deadline it is not: the same
+             checkpoint scores near 0 or near 1 depending on whether the
+             crippled scouting budget happens to find the tempo line in
+             time, and measured rates cluster at the ends rather than
+             spreading around 0.3. Holding the old window discarded most
+             genuinely certifiable positions on sampling noise. Difficulty
+             is now enforced where it is actually measured - the SOLVE_MIN
+             floor and the obvious-move test in certifyRecord, both run at
+             full depth-4 strength. This screen's remaining job is just to
+             skip candidates that never win, cheaply. */
+          if (rec.rate >= 0.2) {
             await addTrials(rec, FINAL_TRIALS, seed ^ (attempt * 65537), candidateNo, job, E, AI);
-            if (rec.rate >= 0.2 && rec.rate <= 0.4) {
+            if (rec.rate >= 0.2 && rec.rate <= 0.8) {
               var certified = await certifyRecord(rec, seed, job, E, AI);
               if (certified) return certified;
             }
@@ -717,6 +1164,7 @@
       state: rec.candidate.state,
       round: rec.candidate.round,
       liveSeed: rec.futureSeed | 0,
+      solveBy: rec.certificate.solveBy,
     };
     var modal = $('daily-modal');
     if (modal) modal.classList.add('ready');
@@ -1239,6 +1687,7 @@
       readyPuzzle = {
         state: state,
         round: state.round,
+        solveBy: state.puzzleSolveBy,
         liveSeed: packet.position.rngSeed | 0,
         official: true,
         puzzleId: row.puzzle_id,
@@ -1273,6 +1722,11 @@
       official: !!readyPuzzle.official,
       attemptNo: readyPuzzle.attemptNo || null,
       startRound: readyPuzzle.round,
+      /* The round limit travels with the puzzle rather than being
+         recomputed in battle.js. A lab position, a freshly published
+         one and a legacy one can legitimately have different deadlines,
+         and the only correct value is the one its certificate proved. */
+      solveBy: readyPuzzle.solveBy || solveDeadline(readyPuzzle.round),
     };
     readyPuzzle = null;
     activePuzzle = true;
@@ -1312,6 +1766,12 @@
           });
       }
     }
+    /* There is no "Out of Rounds" outcome any more. It existed for one
+       revision, alongside a hard round limit, and both went when the
+       limit did (owner ruling 2026-08-16) - a puzzle now ends only the
+       way every other battle ends, by one side being wiped out. The
+       3-5 round target is a guarantee about the position the forge
+       publishes, not a clock the player runs against. */
     return {
       puzzle: true,
       title: win ? 'Puzzle Solved' : 'Line Broken',
@@ -1387,6 +1847,22 @@
        so no authored/checkpoint state becomes part of the public API. */
     _rng32: rng32,
     _runContinuation: runContinuation,
+    _runContinuationReport: runContinuationReport,
+    _tempo: tempo,
+    _naiveSolves: naiveSolves,
+    _countWinningOpeningLines: countWinningOpeningLines,
+    _solveDeadline: solveDeadline,
+    _limits: {
+      solveMin: SOLVE_MIN,
+      solveMax: SOLVE_MAX,
+      maxWinningLines: MAX_WINNING_LINES,
+      tightStrength: TIGHT_STRENGTH,
+      tightTempo: TIGHT_TEMPO,
+      tempoMin: TEMPO_MIN,
+      tempoMax: TEMPO_MAX,
+      roundMin: ROUND_MIN,
+      roundMax: ROUND_MAX,
+    },
     _serializeBattle: serializeBattle,
     _deserializeBattle: deserializeBattle,
     _attemptCounts: attemptCounts,

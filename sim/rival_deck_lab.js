@@ -210,7 +210,7 @@ const INTRODUCED = {
   4: 'olympus',
   6: 'yamato',
   7: 'roma',
-  8: 'takamagahara',
+  8: 'kami',
   10: 'duat',
 };
 function factionsAt(gate) {

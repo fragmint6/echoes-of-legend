@@ -35,7 +35,7 @@
 global.window = { EOL: {} };
 require('../data/_schema.js');
 require('../data/roles.js');
-['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'takamagahara', 'yamato'].forEach(
+['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'kami', 'yamato'].forEach(
   function (f) {
     require('../data/' + f + '.js');
   }

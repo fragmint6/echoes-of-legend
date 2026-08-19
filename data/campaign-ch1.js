@@ -69,7 +69,12 @@ window.EOL = window.EOL || {};
     unbannable: true,
     pinned: true,
     icon: 'ra-crown',
-    art: 'assets/rivals/gilgamesh.png',
+    /* ART PENDING (2026-08-18e). The rival portraits were deleted so the
+       owner can draw them. Gilgamesh is the one rival who is ALSO a
+       playable card, so he needs both a rival brief and a card brief -
+       see docs/ART-SPEC.md section 6. Null renders the icon glyph, which
+       is the documented fallback for an unarted card. */
+    art: null,
     ability: {
       type: 'Active',
       name: 'He Who Saw the Deep',
@@ -148,7 +153,7 @@ window.EOL = window.EOL || {};
       id: 1,
       key: 'the-recruiter',
       rival: 'The Recruiter',
-      portrait: 'assets/rivals/the-recruiter.png',
+      portrait: null,
       mode: 'classic',
       /* In-match teaching is event-driven and reader-paced: no automatic
          round chatter or stale backlog. The instruction remains manually
@@ -398,7 +403,7 @@ window.EOL = window.EOL || {};
       id: 2,
       key: 'the-oathkeeper',
       rival: 'The Oathkeeper',
-      portrait: 'assets/rivals/the-oathkeeper.png',
+      portrait: null,
       mode: 'classic',
       aiProfile: 'sentinel',
       /* His words answer battle events and stay until read; he no longer
@@ -473,7 +478,7 @@ window.EOL = window.EOL || {};
         ban: 'My counsel stands in silver, Blank - the two I would strike from his twelve. But it is not me fighting. Refuse freely; the Road grades results, not obedience.',
         six: 'In silver again: the six I would field against him. Rearrange it, replace it, ignore it - your hand, your gate. This is the last one I walk beside you.',
       },
-      grants: { legendPack: 'camelot-king-arthur', coins: 100 },
+      grants: { legendPack: 'camelot-king-arthur', companion: 'camelot-lancelot', coins: 100 },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
@@ -490,7 +495,7 @@ window.EOL = window.EOL || {};
       id: 3,
       key: 'the-outlaw',
       rival: 'The Outlaw',
-      portrait: 'assets/rivals/the-outlaw.png',
+      portrait: null,
       mode: 'classic',
       aiProfile: 'hunter',
       format: 'Classic',
@@ -540,7 +545,7 @@ window.EOL = window.EOL || {};
       banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
       banTellBroken:
         'Correction entered: today she let a Tank stand. You will remember this match. So, now, will the ledger.',
-      grants: { legendPack: 'sherwood-robin-hood', coins: 100 },
+      grants: { legendPack: 'sherwood-robin-hood', companion: 'sherwood-little-john', coins: 100 },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
       barks: {
@@ -558,7 +563,7 @@ window.EOL = window.EOL || {};
       id: 4,
       key: 'the-anointed',
       rival: 'The Anointed',
-      portrait: 'assets/rivals/the-anointed.png',
+      portrait: null,
       mode: 'classic',
       aiProfile: 'anointed',
       format: 'Classic',
@@ -577,7 +582,7 @@ window.EOL = window.EOL || {};
            making a second independent kill line. The bench carries another marker, two
            walls/healers and three finishers, under the one-crown law. */
         'olympus-zeus',
-        'olympus-hercules',
+        'olympus-poseidon',
         'olympus-ares',
         'olympus-apollo',
         'camelot-morgan-le-fay',
@@ -604,7 +609,7 @@ window.EOL = window.EOL || {};
         'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
       banTellBroken:
         'The ledger stands corrected: your healer went unstruck. Mercy, or a mistake - it records both the same way.',
-      grants: { legendPack: 'olympus-zeus', coins: 100 },
+      grants: { legendPack: 'olympus-zeus', companion: 'olympus-poseidon', coins: 100 },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
       barks: {
@@ -622,7 +627,7 @@ window.EOL = window.EOL || {};
       id: 5,
       key: 'the-warden-of-the-mid-road',
       rival: 'The Warden of the Mid-Road',
-      portrait: 'assets/rivals/the-warden-of-the-mid-road.png',
+      portrait: null,
       mode: 'set',
       aiProfile: 'warden',
       format: 'Unabridged - Three gates',
@@ -682,7 +687,7 @@ window.EOL = window.EOL || {};
       id: 6,
       key: 'the-trickster',
       rival: 'The Trickster',
-      portrait: 'assets/rivals/the-trickster.png',
+      portrait: null,
       mode: 'draft',
       aiProfile: 'trickster',
       format: 'Draft',
@@ -694,26 +699,36 @@ window.EOL = window.EOL || {};
       personaJitter: 0.25,
       pool: {
         featured: 'yamato',
-        /* FROZEN POOL (owner ruling 2026-08-09): the 36 cards of every
-           draft gate are fixed, authored data - 6 per role, the whole
-           featured faction guaranteed, no Huaxia (Chapter 2) and no
-           Duat (the boss reveal). This is the Trickster's table:
-           energy payoffs and steal-bait on purpose. */
+        /* FROZEN POOL - REAUTHORED 2026-08-18d.
+           The whole legal universe, because that is what it has to be.
+           By gate VI the progression law has introduced exactly five
+           factions holding exactly 36 cards, and a draft table is
+           exactly 36 seats - so this pool IS those five factions, with
+           nothing chosen and nothing spare.
+
+           WHAT WAS WRONG BEFORE: it previewed kami-kaguya,
+           kami-tsukuyomi and roma-cicero, three cards from factions the
+           player has not met (Roma arrives at VII, Kami at VIII). That
+           was not a deliberate tease - it was the only way to fill 36
+           seats while obeying a 4-crown cap, because these five
+           factions carry SIX crowns. The cap is now exactly six
+           (data/_schema.js), so the table can be honest.
+
+           Caster depth is 3, and that is not a defect to fix: three is
+           every Caster that exists by gate VI. */
         cards: [
           'yamato-minamoto-no-yoshitsune',
           'yamato-tomoe-gozen',
           'yamato-benkei',
           'yamato-abe-no-seimei',
+          'yamato-miyamoto-musashi',
           'yamato-momotaro',
-          'yamato-kaguya',
           'grimmwood-hansel-gretel',
-          'roma-cicero',
           'grimmwood-big-bad-wolf',
           'grimmwood-snow-white',
           'grimmwood-red-riding-hood',
           'grimmwood-pied-piper',
           'grimmwood-gingerbread-man',
-          'takamagahara-tsukuyomi',
           'grimmwood-puss-in-boots',
           'grimmwood-rapunzel',
           'grimmwood-goldilocks',
@@ -721,7 +736,6 @@ window.EOL = window.EOL || {};
           'camelot-king-arthur',
           'camelot-merlin',
           'camelot-lancelot',
-          'camelot-morgan-le-fay',
           'camelot-guinevere',
           'camelot-mordred',
           'sherwood-guy-of-gisborne',
@@ -732,10 +746,13 @@ window.EOL = window.EOL || {};
           'sherwood-friar-tuck',
           'olympus-zeus',
           'olympus-athena',
-          'olympus-hercules',
+          'olympus-poseidon',
           'olympus-apollo',
           'olympus-medusa',
           'olympus-ares',
+          'grimmwood-rumpelstiltskin',
+          'grimmwood-evil-queen',
+          'camelot-morgan-le-fay',
         ],
       },
       line: 'She deals twelve cards onto black stone. "You take one. Then I take one. The only cheating is pretending you did not want what you picked." She will steal the pieces your plan needs.',
@@ -743,7 +760,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Controller', 'Medic'] },
       banTell:
         'She steals the hands that make a plan work - Controllers first, then the healer you expected to keep. The whim is which one she smiles at.',
-      grants: { legendPack: 'yamato-abe-no-seimei', coins: 100 },
+      grants: { legendPack: 'yamato-abe-no-seimei', companion: 'yamato-miyamoto-musashi', coins: 100 },
       resultWin:
         'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
       resultLose:
@@ -763,7 +780,7 @@ window.EOL = window.EOL || {};
       id: 7,
       key: 'the-strategist',
       rival: 'The Strategist',
-      portrait: 'assets/rivals/the-strategist.png',
+      portrait: null,
       mode: 'draft',
       aiProfile: 'strategist',
       format: 'Draft',
@@ -775,45 +792,49 @@ window.EOL = window.EOL || {};
       personaJitter: 0.15,
       pool: {
         featured: 'roma',
-        /* FROZEN POOL: the Strategist's table - kill chains, execute
-           payoffs, and the walls that deny them. */
+        /* FROZEN POOL - REAUTHORED 2026-08-18d: the Strategist's table,
+           kill chains and the walls that deny them. Previously leaked
+           kami-tsukuyomi and kami-kaguya, both from a faction that does
+           not arrive until VIII; replaced with the two Grimmwood crowns
+           the six-crown rule now makes room for. Six factions legal
+           here, all six Roma cards present, 6 crowns, 36 seats. */
         cards: [
+          'roma-julius-caesar',
           'roma-spartacus',
+          'roma-augustus',
+          'roma-cicero',
+          'roma-brutus',
+          'roma-constantine-the-great',
           'grimmwood-gingerbread-man',
-          'olympus-hercules',
+          'olympus-poseidon',
           'sherwood-little-john',
           'yamato-benkei',
           'grimmwood-hansel-gretel',
-          'roma-julius-caesar',
           'camelot-lancelot',
           'grimmwood-big-bad-wolf',
           'sherwood-guy-of-gisborne',
           'sherwood-will-scarlet',
           'yamato-minamoto-no-yoshitsune',
-          'roma-brutus',
           'sherwood-robin-hood',
           'grimmwood-goldilocks',
           'grimmwood-puss-in-boots',
           'camelot-mordred',
           'yamato-tomoe-gozen',
-          'roma-constantine-the-great',
           'olympus-zeus',
-          'takamagahara-tsukuyomi',
           'camelot-merlin',
-          'yamato-kaguya',
           'grimmwood-rapunzel',
-          'roma-cicero',
           'olympus-medusa',
           'camelot-morgan-le-fay',
           'yamato-abe-no-seimei',
           'grimmwood-pied-piper',
           'olympus-athena',
-          'roma-augustus',
           'grimmwood-snow-white',
           'camelot-guinevere',
           'olympus-apollo',
           'sherwood-maid-marian',
           'grimmwood-cinderella',
+          'grimmwood-rumpelstiltskin',
+          'grimmwood-evil-queen',
         ],
       },
       line: 'An old man plots your habits on a wax board of violet lines. He drafts against what you are drafting, and every careless victory becomes a path to your next defeat.',
@@ -821,7 +842,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Caster', 'Sniper'], stat: 'atk' },
       banTell:
         'He removes the ranged finishers your plan cannot live without, hardest hitter first. Have a second plan.',
-      grants: { legendPack: 'roma-constantine-the-great', coins: 100 },
+      grants: { legendPack: 'roma-constantine-the-great', companion: 'roma-brutus', coins: 100 },
       resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
       resultLose:
         '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
@@ -840,7 +861,7 @@ window.EOL = window.EOL || {};
       id: 8,
       key: 'the-chronicler',
       rival: 'The Chronicler',
-      portrait: 'assets/rivals/the-chronicler.png',
+      portrait: null,
       mode: 'draft',
       aiProfile: 'chronicler',
       format: 'Draft',
@@ -851,16 +872,24 @@ window.EOL = window.EOL || {};
       persona: 'chronicler',
       personaJitter: 0.15,
       pool: {
-        featured: 'takamagahara',
-        /* FROZEN POOL: the Chronicler's catalogue - burn, cleanse,
-           Silence, and the bodies that must outlast them. */
+        featured: 'kami',
+        /* FROZEN POOL - REAUTHORED 2026-08-18d: the Chronicler's
+           catalogue - burn, cleanse, Silence, and the bodies that must
+           outlast them. This one was already progression-clean; it is
+           rebuilt only to carry six crowns instead of four, and it is
+           the one gate that reaches a perfect 6-per-role table. */
         cards: [
-          'takamagahara-susanoo',
+          'kami-amaterasu',
+          'kami-tsukuyomi',
+          'kami-izanami',
+          'kami-inari',
+          'kami-izanagi',
+          'kami-kaguya',
+          'kami-susanoo',
           'grimmwood-gingerbread-man',
-          'olympus-hercules',
+          'olympus-poseidon',
           'yamato-benkei',
           'yamato-momotaro',
-          'grimmwood-hansel-gretel',
           'grimmwood-big-bad-wolf',
           'grimmwood-red-riding-hood',
           'camelot-lancelot',
@@ -873,24 +902,19 @@ window.EOL = window.EOL || {};
           'camelot-mordred',
           'roma-brutus',
           'yamato-tomoe-gozen',
-          'takamagahara-amaterasu',
-          'takamagahara-tsukuyomi',
           'grimmwood-evil-queen',
           'olympus-zeus',
           'grimmwood-rapunzel',
-          'yamato-kaguya',
-          'takamagahara-izanami',
-          'takamagahara-inari',
           'roma-cicero',
           'sherwood-friar-tuck',
           'camelot-merlin',
-          'grimmwood-pied-piper',
-          'takamagahara-izanagi',
           'grimmwood-snow-white',
           'grimmwood-cinderella',
           'camelot-guinevere',
           'olympus-apollo',
           'sherwood-maid-marian',
+          'grimmwood-rumpelstiltskin',
+          'camelot-king-arthur',
         ],
       },
       line: 'In a wall-less library beneath cold stars, an archivist drafts the curve and hoards answers. They burn you out, cleanse themselves clean, and write down everyone who disappoints them.',
@@ -898,7 +922,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Caster', 'Medic'], stat: 'atk' },
       banTell:
         'The Chronicler strikes endings and the hands that revise them - Casters first, then healers, strongest first.',
-      grants: { legendPack: 'takamagahara-amaterasu', coins: 100 },
+      grants: { legendPack: 'kami-amaterasu', companion: 'kami-izanami', coins: 100 },
       resultWin:
         'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
       resultLose:
@@ -919,7 +943,7 @@ window.EOL = window.EOL || {};
       id: 9,
       key: 'the-last-guardian',
       rival: 'The Last Guardian',
-      portrait: 'assets/rivals/the-last-guardian.png',
+      portrait: null,
       mode: 'set',
       aiProfile: 'guardian',
       format: 'Unabridged - Three gates',
@@ -939,18 +963,18 @@ window.EOL = window.EOL || {};
            Six attackers/control threats survive any two bans. */
         'roma-constantine-the-great',
         'yamato-momotaro',
-        'takamagahara-susanoo',
+        'kami-susanoo',
         'sherwood-little-john',
         'grimmwood-hansel-gretel',
-        'takamagahara-izanagi',
+        'kami-izanagi',
         'grimmwood-snow-white',
-        'takamagahara-tsukuyomi',
+        'kami-tsukuyomi',
         'roma-cicero',
         'camelot-morgan-le-fay',
         'sherwood-guy-of-gisborne',
         'grimmwood-puss-in-boots',
       ],
-      factionMix: { roma: 2, yamato: 1, takamagahara: 3, sherwood: 2, grimmwood: 3, camelot: 1 },
+      factionMix: { roma: 2, yamato: 1, kami: 3, sherwood: 2, grimmwood: 3, camelot: 1 },
       banProfile: { stat: 'atk' },
       banTell: 'She bans your heaviest hitters, every time. Power draws her eye; bring subtlety.',
       grants: {
@@ -963,7 +987,7 @@ window.EOL = window.EOL || {};
             'olympus',
             'yamato',
             'roma',
-            'takamagahara',
+            'kami',
           ],
         },
         coins: 200,
@@ -988,7 +1012,7 @@ window.EOL = window.EOL || {};
       id: 10,
       key: 'gilgamesh',
       rival: 'Gilgamesh',
-      portrait: 'assets/rivals/gilgamesh.png',
+      portrait: null,
       mode: 'set',
       aiProfile: 'conqueror',
       format: 'Unabridged - Final judgment',
@@ -1013,20 +1037,20 @@ window.EOL = window.EOL || {};
         'duat-sekhmet',
         'duat-isis',
         'duat-nephthys',
-        'takamagahara-susanoo',
-        'takamagahara-tsukuyomi',
-        'takamagahara-inari',
+        'kami-susanoo',
+        'kami-tsukuyomi',
+        'kami-inari',
         'camelot-lancelot',
         'grimmwood-pied-piper',
         'grimmwood-goldilocks',
       ],
-      factionMix: { 'first-legend': 1, duat: 5, takamagahara: 3, camelot: 1, grimmwood: 2 },
+      factionMix: { 'first-legend': 1, duat: 5, kami: 3, camelot: 1, grimmwood: 2 },
       pinned: ['campaign-gilgamesh'],
       unbannable: ['campaign-gilgamesh'],
       banProfile: { power: true },
       banTell:
         'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
-      grants: { legendPack: 'duat-anubis', coins: 300 },
+      grants: { legendPack: 'duat-anubis', companion: 'duat-isis', coins: 300 },
       resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
       resultLose:
         '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
@@ -1354,7 +1378,17 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Oathkeeper',
-        text: '"Two of mine walk with you now. The king who holds. The knight who answers. Do not spend them on doors that open politely." King Arthur and Lancelot join your echoes.',
+        /* WORDING, NOT A PROMISE (owner ruling 2026-08-18d: Normal is
+           coins-only and that is intended).
+
+           These lines used to assert delivery - "X and Y join your
+           echoes" - which is simply false on Normal, the DEFAULT
+           difficulty, where no gate grants a card at all. The rival now
+           OFFERS, which is true at every tier: on Heroic and Legend the
+           cards arrive and the reveal ceremony shows them; on Normal the
+           offer stands and the Road pays coin instead. Nothing in the
+           scene claims an inventory change that did not happen. */
+        text: '"Two of mine are yours to call on now - the king who holds, the knight who answers. Do not spend them on doors that open politely." He sets King Arthur and Lancelot on the stone between you.',
       },
       {
         speaker: 'The Oathkeeper',
@@ -1369,7 +1403,17 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Outlaw',
-        text: '"Take the archer and the big man. One knows how to aim. One knows how to stand beside an aim without becoming its shadow." Robin Hood and Little John walk with you now.',
+        /* WORDING, NOT A PROMISE (owner ruling 2026-08-18d: Normal is
+           coins-only and that is intended).
+
+           These lines used to assert delivery - "X and Y join your
+           echoes" - which is simply false on Normal, the DEFAULT
+           difficulty, where no gate grants a card at all. The rival now
+           OFFERS, which is true at every tier: on Heroic and Legend the
+           cards arrive and the reveal ceremony shows them; on Normal the
+           offer stands and the Road pays coin instead. Nothing in the
+           scene claims an inventory change that did not happen. */
+        text: '"Take the archer and the big man. One knows how to aim. One knows how to stand beside an aim without becoming its shadow." She offers Robin Hood and Little John, and does not watch to see whether you take them.',
       },
       {
         speaker: 'The Outlaw',
@@ -1384,7 +1428,24 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Anointed',
-        text: '"Take the stormfather and the strong one. Zeus sets the promise and keeps it in the same breath - study that until it stops impressing you." Zeus and Hercules join your echoes.',
+        /* REWRITTEN 2026-08-18d. This line used to promise Hercules, who
+           moved to Hemithea and can never be granted at an Olympus gate
+           again - the script named a card the code could not deliver.
+           Poseidon took his place in the faction and in the grant, and
+           the line is better for it: Hercules was a strongman in the
+           Mark faction with no Mark in his kit, where Poseidon's whole
+           trick is that being attacked is what writes the promise. */
+        /* WORDING, NOT A PROMISE (owner ruling 2026-08-18d: Normal is
+           coins-only and that is intended).
+
+           These lines used to assert delivery - "X and Y join your
+           echoes" - which is simply false on Normal, the DEFAULT
+           difficulty, where no gate grants a card at all. The rival now
+           OFFERS, which is true at every tier: on Heroic and Legend the
+           cards arrive and the reveal ceremony shows them; on Normal the
+           offer stands and the Road pays coin instead. Nothing in the
+           scene claims an inventory change that did not happen. */
+        text: '"Take the stormfather and the tide. Zeus sets the promise and keeps it in the same breath - and Poseidon makes them come to him to be marked. Study both until they stop impressing you." She holds out Zeus and Poseidon.',
       },
       {
         speaker: 'The Anointed',
@@ -1425,7 +1486,23 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Strategist',
-        text: '"Take Caesar and Brutus. Caesar ends what he starts. Brutus ends what Caesar starts. Between them you will learn what a kill is worth BEFORE you pay for it, which is the only time the price can be argued."',
+        /* REWRITTEN 2026-08-18d. The old line said "Take Caesar and
+           Brutus" and the gate granted neither - its legendPack is
+           Constantine. Brutus is now the pinned companion, so the line
+           names the two cards that actually arrive, and keeps the
+           original joke by making the pairing about the emperor who
+           legitimises and the knife that answers. */
+        /* WORDING, NOT A PROMISE (owner ruling 2026-08-18d: Normal is
+           coins-only and that is intended).
+
+           These lines used to assert delivery - "X and Y join your
+           echoes" - which is simply false on Normal, the DEFAULT
+           difficulty, where no gate grants a card at all. The rival now
+           OFFERS, which is true at every tier: on Heroic and Legend the
+           cards arrive and the reveal ceremony shows them; on Normal the
+           offer stands and the Road pays coin instead. Nothing in the
+           scene claims an inventory change that did not happen. */
+        text: '"Take Constantine and Brutus. Constantine ends the argument by declaring it settled. Brutus ends the man who declared it. Between them you will learn what a kill is worth BEFORE you pay for it, which is the only time the price can be argued." He slides both across the wax board.',
       },
       {
         speaker: 'The Strategist',
@@ -1444,7 +1521,7 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'The Chronicler',
-        text: 'They tear the page free, far too late, and press two Takamagahara echoes into your hands - the dawn and the dusk. "Go to the Last Guardian. Do not ask her for your name. Ask her what she gave up to keep hers."',
+        text: 'They tear the page free, far too late, and press two Kami echoes into your hands - the dawn and the dusk. "Go to the Last Guardian. Do not ask her for your name. Ask her what she gave up to keep hers."',
         final: true,
       },
     ],
@@ -1478,7 +1555,17 @@ window.EOL = window.EOL || {};
       },
       {
         speaker: 'Gilgamesh',
-        text: '"Two witnesses go with you. The scale that gives life back. The jackal that closes accounts." Isis and Anubis join your echoes. "Not rewards, Wayfarer. Witnesses."',
+        /* WORDING, NOT A PROMISE (owner ruling 2026-08-18d: Normal is
+           coins-only and that is intended).
+
+           These lines used to assert delivery - "X and Y join your
+           echoes" - which is simply false on Normal, the DEFAULT
+           difficulty, where no gate grants a card at all. The rival now
+           OFFERS, which is true at every tier: on Heroic and Legend the
+           cards arrive and the reveal ceremony shows them; on Normal the
+           offer stands and the Road pays coin instead. Nothing in the
+           scene claims an inventory change that did not happen. */
+        text: '"Two witnesses go with you. The scale that gives life back. The jackal that closes accounts." He offers Isis and Anubis. "Not rewards, Wayfarer. Witnesses."',
       },
       {
         speaker: 'Gilgamesh',
@@ -1532,6 +1619,17 @@ window.EOL = window.EOL || {};
          introduction the moment its pages start mattering */
       ledger:
         'One more thing, Blank - THE LEDGER, the quill by the chapter name. My pages on every guardian ahead: how they ban, what ground they hold, what I would bring against them. Read before you knock on strange gates.',
+    },
+    /* THE LEDGER'S IDENTITY IS PER CHAPTER (owner ruling 2026-08-18f).
+       It used to be hardcoded in index.html as "The Recruiter's
+       Ledger", which is right here and wrong in Chapter II, where the
+       Recruiter does not exist. Each chapter now names its own keeper
+       and the header reads from this. */
+    ledger: {
+      title: "The Recruiter's Ledger",
+      icon: 'ri-file-list-3-line',
+      aria: "Open the Recruiter's Ledger",
+      empty: 'The Road has not taken you there. The ledger keeps its pages in order, Blank.',
     },
     /* Back-compat aliases (older callers referenced these names). */
     recruiterDialogue: DIALOGUES[1],

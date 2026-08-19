@@ -41,7 +41,7 @@ Every faction has its own identity - a mechanical keyword, a theme, a tagline, a
 
 - **Yamato** - Energy economy. The rising sun knows no surrender.
 - **Roma** - Triumph (kills). The eternal city demands victory.
-- **Takamagahara** - The Divine Cycle (death and return). The plain of high heaven keeps its own counsel.
+- **Kami** - The Divine Cycle (death and return). The plain of high heaven keeps its own counsel.
 - **Duat** - The Scales (HP thresholds, judgement). The scales do not blink.
 - **Camelot** - Shields & Exposed. Oaths of steel, crowns of fate.
 - **Olympus** - Marks. Thunder sits the throne of heaven.

@@ -45,7 +45,7 @@ global.CustomEvent = function () {};
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
   'js/economy.js',
   'js/shop.js',

@@ -801,6 +801,23 @@
         }
         toggle(e.card.id);
       });
+      /* THE DETAIL DIALOG, on its own control.
+         The collection opens it on a plain click, but here a click is
+         already add/remove - the deck builder's whole loop. So this
+         surface gets an explicit button (visible on hover, and
+         focusable, so the dialog is still reachable from the keyboard
+         on a grid whose Enter key belongs to picking). */
+      var info = document.createElement('button');
+      info.type = 'button';
+      info.className = 'card-info';
+      info.innerHTML = '<i class="ri-information-line" aria-hidden="true"></i>';
+      info.setAttribute('aria-label', 'Details for ' + e.card.name);
+      info.addEventListener('click', function (ev) {
+        /* Never let the card's own add/remove handler see this. */
+        ev.stopPropagation();
+        if (window.EOL.cardDetail) window.EOL.cardDetail.open(e.card.id);
+      });
+      el.appendChild(info);
       grid.appendChild(el);
     });
   }

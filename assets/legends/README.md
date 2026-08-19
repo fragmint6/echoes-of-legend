@@ -1,32 +1,16 @@
-# 128px PNG legend-art build
+# Chapter II legend art build
 
-Generated from `assets/legends/` by the detail-preserving pipeline:
+This directory contains the generated Chapter II legend PNGs specified by the updated `ART-SPEC.md`.
 
-```bash
-python tools/resize_legend_art.py
-```
+- Shipping size: **64 x 88 px lossless PNG**
+- Source art: `assets/legend-src/` at **640 x 880 JPEG**
+- Resampling: linear-light Lanczos with the shared low-sharpening pipeline
+- Manifest: `MANIFEST.csv`
 
-Each legend is **128 x 176 px**, preserving the source ratio of 640:880 (8:11).
+The current build contains all 49 Chapter II legends: all seven Asgard, Pandemonium, Devas, Genesis, Transylvania and Tortuga legends, plus Hemithea's seven. Batch 14 refreshed The Flying Dutchman. No Chapter II legends remain outstanding.
 
-- Lossless **PNG** output
-- Linear-light RGB downsampling
-- Lanczos resampling
-- Very light edge sharpening (default amount: 15)
-- No quantization, posterization, masking, or palette reduction
-- Original 640 x 880 JPEGs remain untouched in `assets/legends/`
+**2026-08-18.** Five factions were renamed (Takamagahara -> Kami, Gehenna -> Pandemonium, Devaloka -> Devas, Jotunheim -> Asgard, Achaea -> Hemithea) and every affected PNG was renamed to match its new card id. Hercules moved from Olympus to Hemithea, so `olympus-hercules.png` is now `hemithea-hercules.png` - the image is byte-identical, only the filename changed. `olympus-poseidon.png` was generated to replace him as Olympus' Tank. Roster is now **113 files**, and MANIFEST.csv was regenerated from disk.
 
-The previous JPEG conversion folders were removed. `MANIFEST.csv` records the
-output dimensions and byte size for each file.
+**2026-08-18b.** Empyrean renamed **Genesis**; its seven PNGs were renamed to match. Kaguya moved from Yamato to Kami (`yamato-kaguya.png` -> `kami-kaguya.png`, image unchanged). Two new portraits generated: `yamato-miyamoto-musashi.png` and `genesis-adam.png`. Roster is now **115 files** and MANIFEST.csv was regenerated from disk.
 
-Optional variants:
-
-```bash
-# Explicit cleanup of legacy JPEGs in the output directory
-python tools/resize_legend_art.py --clean-legacy --overwrite
-
-# Disable sharpening
-python tools/resize_legend_art.py --sharpen 0 --overwrite
-
-# Create a JPEG build only when needed
-python tools/resize_legend_art.py --format jpg --output assets/legends-128-jpg
-```
+Both new portraits were regenerated once: the first attempt came back landscape (1376x768) with smooth painterly shading, which fails the section 4b flat/hard test. The second pass asked explicitly for tall 5:7 portrait orientation and banded 16-bit shading, and both land inside the shipped envelope (Musashi flat 0.095 / hard 0.434, Adam flat 0.157 / hard 0.578; shipped range is flat 0.035-0.275, hard 0.258-0.694).

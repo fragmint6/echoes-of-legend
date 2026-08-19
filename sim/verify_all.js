@@ -30,8 +30,21 @@ const FILES = [
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
+  /* CHAPTER II FACTIONS (2026-08-17). Added here as well as to
+     index.html - this list is what the whole suite audits, so a new
+     faction file that is not in it passes every check VACUOUSLY. The
+     49 new legends were briefly invisible to the lore coverage
+     assertion for exactly that reason. */
+  'data/asgard.js',
+  'data/hemithea.js',
+  'data/pandemonium.js',
+  'data/devas.js',
+  'data/genesis.js',
+  'data/transylvania.js',
+  'data/tortuga.js',
+  'data/lore.js',
   'js/engine.js',
   'js/ai.js',
   'js/text.js',
@@ -70,13 +83,21 @@ const FILL = [
   'olympus-apollo',
   'yamato-momotaro',
 ];
-/* opponents with NO incoming-damage modifiers, so damage models are exact.
-   (Athena has damageMult 0.85, Benkei damageResist - they'd skew every number.) */
+/* opponents with NO incoming-damage modifiers and NO reaction damage, so
+   damage models are exact. (Athena has damageMult 0.85, Benkei
+   damageResist - they'd skew every number.)
+
+   Medusa was here until 2026-08-16, when her gaze gained a 25% ATK
+   retaliation: she was the only legend with no scalable magnitude at
+   all, so an upgrade bought her nothing. That rider means she now
+   deals damage when struck, which silently perturbed every model that
+   attacked into this row. Lancelot replaces her - his passive fires
+   only on ALLY events, so it can never touch a foe-side number. */
 const CLEAN_FOES = [
-  'olympus-hercules',
+  'hemithea-hercules',
   'camelot-mordred',
   'huaxia-mulan',
-  'olympus-medusa',
+  'camelot-lancelot',
   'grimmwood-pied-piper',
   'sherwood-will-scarlet',
 ];
@@ -357,15 +378,15 @@ ROLES.forEach((r) => ok(byRole[r] >= 3, `role ${r} has >=3 legends (${byRole[r]}
 console.log('  roster: ' + ALL.length + ' legends | ' + JSON.stringify(byRole));
 
 /* =============================================================
-   B. DYNAMIC - Takamagahara, card by card
+   B. DYNAMIC - Kami, card by card
    ============================================================= */
 section('B1. Amaterasu - Heaven-Shining Radiance');
 {
-  const B = board(['takamagahara-amaterasu', ...FILL]);
-  const ama = U(B, 'takamagahara-amaterasu');
+  const B = board(['kami-amaterasu', ...FILL]);
+  const ama = U(B, 'kami-amaterasu');
   const foes = foesOf(B);
   const exp = model(ama, foes[0], 0.5);
-  const { delta } = cast(B, 'takamagahara-amaterasu', []);
+  const { delta } = cast(B, 'kami-amaterasu', []);
   ok(
     foes.every((f) => delta[f.uid] > 0),
     'hits ALL enemies (AoE)'
@@ -387,12 +408,12 @@ section('B1. Amaterasu - Heaven-Shining Radiance');
 }
 {
   /* the 105% mode requires a PARTNER's Burn */
-  const B = board(['takamagahara-amaterasu', ...FILL]);
-  const ama = U(B, 'takamagahara-amaterasu');
+  const B = board(['kami-amaterasu', ...FILL]);
+  const ama = U(B, 'kami-amaterasu');
   const foes = foesOf(B);
   foes.forEach((f) => (f.flags.burn = 2));
   const exp = model(ama, foes[0], 0.5 * 1.5);
-  const { delta } = cast(B, 'takamagahara-amaterasu', []);
+  const { delta } = cast(B, 'kami-amaterasu', []);
   ok(
     near(delta[foes[0].uid], exp),
     `75% ATK into a Burning target (${Math.round(delta[foes[0].uid])} vs ${Math.round(exp)})`
@@ -400,13 +421,13 @@ section('B1. Amaterasu - Heaven-Shining Radiance');
 }
 {
   /* kill rider */
-  const B = board(['takamagahara-amaterasu', ...FILL]);
+  const B = board(['kami-amaterasu', ...FILL]);
   const allies = alliesOf(B);
   allies.forEach((a) => (a.hp = Math.round(a.maxHp * 0.5)));
   allies[1].buffs.push({ stat: 'atk', amt: -30, turns: 2, tag: null });
   foesOf(B).forEach((f) => (f.hp = 1));
   const hp0 = allies.map((a) => a.hp);
-  cast(B, 'takamagahara-amaterasu', []);
+  cast(B, 'kami-amaterasu', []);
   ok(
     allies.some((a, i) => a.hp > hp0[i]),
     'kill: allies healed'
@@ -414,11 +435,11 @@ section('B1. Amaterasu - Heaven-Shining Radiance');
   ok(!allies[1].buffs.some((b) => b.amt < 0), 'kill: allies cleansed');
 }
 {
-  const B = board(['takamagahara-amaterasu', ...FILL]);
+  const B = board(['kami-amaterasu', ...FILL]);
   const allies = alliesOf(B);
   allies.forEach((a) => (a.hp = Math.round(a.maxHp * 0.5)));
   const hp0 = allies.map((a) => a.hp);
-  cast(B, 'takamagahara-amaterasu', []);
+  cast(B, 'kami-amaterasu', []);
   ok(
     allies.every((a, i) => a.hp === hp0[i]),
     'no kill: NO heal (rider genuinely conditional)'
@@ -426,15 +447,15 @@ section('B1. Amaterasu - Heaven-Shining Radiance');
 }
 {
   /* the lone-survivor lock must be gone */
-  const B = board(['takamagahara-amaterasu', ...FILL]);
-  const ama = U(B, 'takamagahara-amaterasu');
+  const B = board(['kami-amaterasu', ...FILL]);
+  const ama = U(B, 'kami-amaterasu');
   B.units
     .filter((u) => u.side === 'player' && u !== ama)
     .forEach((u) => {
       u.alive = false;
       u.hp = 0;
     });
-  cast(B, 'takamagahara-amaterasu', []);
+  cast(B, 'kami-amaterasu', []);
   const foe = foesOf(B)[0];
   ok(
     E.legalTargets(B, foe, E.roleAbility(foe)).length > 0,
@@ -444,8 +465,8 @@ section('B1. Amaterasu - Heaven-Shining Radiance');
 
 section('B2. Tsukuyomi - Moonlit Reproach');
 {
-  const B = board(['takamagahara-tsukuyomi', ...FILL]);
-  const tsu = U(B, 'takamagahara-tsukuyomi');
+  const B = board(['kami-tsukuyomi', ...FILL]);
+  const tsu = U(B, 'kami-tsukuyomi');
   const foes = foesOf(B);
   const clean = foes[0],
     dirty = foes[1];
@@ -453,7 +474,7 @@ section('B2. Tsukuyomi - Moonlit Reproach');
   /* NERFED 2026-08-02: 90/60 -> 80/40, cost tax 2 rounds -> 1. */
   const expClean = model(tsu, clean, 0.8);
   const expDirty = model(tsu, dirty, 1.2);
-  const { delta } = cast(B, 'takamagahara-tsukuyomi', [clean, dirty]);
+  const { delta } = cast(B, 'kami-tsukuyomi', [clean, dirty]);
   ok(
     near(delta[clean.uid], expClean),
     `clean target takes 80% (${Math.round(delta[clean.uid])} vs ${Math.round(expClean)})`
@@ -478,9 +499,9 @@ section('B2. Tsukuyomi - Moonlit Reproach');
 
 section('B3. Izanami - A Thousand a Day');
 {
-  const B = board(['takamagahara-izanami', ...FILL]);
-  const iza = U(B, 'takamagahara-izanami');
-  const victim = alliesOf(B).find((u) => u.card.id !== 'takamagahara-izanami');
+  const B = board(['kami-izanami', ...FILL]);
+  const iza = U(B, 'kami-izanami');
+  const victim = alliesOf(B).find((u) => u.card.id !== 'kami-izanami');
   const foes = foesOf(B);
   const hiAtk = foes.slice().sort((a, b) => E.atkOf(b) - E.atkOf(a))[0];
   victim.hp = 1;
@@ -501,10 +522,10 @@ section('B3. Izanami - A Thousand a Day');
 }
 {
   /* stack cap */
-  const B = board(['takamagahara-izanami', ...FILL]);
-  const iza = U(B, 'takamagahara-izanami');
+  const B = board(['kami-izanami', ...FILL]);
+  const iza = U(B, 'kami-izanami');
   for (let i = 0; i < 6; i++) {
-    const v = alliesOf(B).find((u) => u.card.id !== 'takamagahara-izanami');
+    const v = alliesOf(B).find((u) => u.card.id !== 'kami-izanami');
     if (!v) break;
     v.hp = 1;
     const k = foesOf(B)[0];
@@ -517,14 +538,14 @@ section('B3. Izanami - A Thousand a Day');
 
 section("B4. Inari - Kitsune's Bounty");
 {
-  const B = board(['takamagahara-inari', ...FILL]);
-  const ina = U(B, 'takamagahara-inari');
+  const B = board(['kami-inari', ...FILL]);
+  const ina = U(B, 'kami-inari');
   const foe = foesOf(B)[0];
   const exp = model(ina, foe, 0.75);
   B.energy.player = 50;
   const before = B.energy.player;
   const cost = E.costOf(B, ina, ina.card.ability);
-  const { delta } = cast(B, 'takamagahara-inari', [foe]);
+  const { delta } = cast(B, 'kami-inari', [foe]);
   ok(
     near(delta[foe.uid], exp),
     `deals 75% ATK (${Math.round(delta[foe.uid])} vs ${Math.round(exp)})`
@@ -536,15 +557,15 @@ section("B4. Inari - Kitsune's Bounty");
   );
 }
 {
-  const B = board(['takamagahara-inari', ...FILL]);
-  const ina = U(B, 'takamagahara-inari');
+  const B = board(['kami-inari', ...FILL]);
+  const ina = U(B, 'kami-inari');
   const foe = foesOf(B)[0];
   foe.flags.exposed = 1; // partner set it up
   foe.flags.burn = 2; // 2 debuffs
   B.energy.player = 50;
   const before = B.energy.player;
   const cost = E.costOf(B, ina, ina.card.ability);
-  const { delta } = cast(B, 'takamagahara-inari', [foe]);
+  const { delta } = cast(B, 'kami-inari', [foe]);
   const exp = model(ina, foe, 0.75 + 0.3 * 2);
   ok(
     near(delta[foe.uid], exp),
@@ -558,8 +579,8 @@ section("B4. Inari - Kitsune's Bounty");
 
 section('B5. Izanagi - Misogi at the River Mouth');
 {
-  const B = board(['takamagahara-izanagi', ...FILL]);
-  const tgt = alliesOf(B).find((u) => u.card.id !== 'takamagahara-izanagi');
+  const B = board(['kami-izanagi', ...FILL]);
+  const tgt = alliesOf(B).find((u) => u.card.id !== 'kami-izanagi');
   tgt.hp = Math.round(tgt.maxHp * 0.4);
   tgt.buffs.push({ stat: 'atk', amt: -30, turns: 3, tag: null });
   tgt.buffs.push({ stat: 'def', amt: -20, turns: 3, tag: null });
@@ -573,7 +594,7 @@ section('B5. Izanagi - Misogi at the River Mouth');
   });
   const hp0 = tgt.hp,
     oHp0 = others.map((o) => o.hp);
-  cast(B, 'takamagahara-izanagi', [tgt]);
+  cast(B, 'kami-izanagi', [tgt]);
   ok(!E.hasDebuff(tgt), 'primary target FULLY cleansed (all debuffs, incl. burn/exposed/silence)');
   ok(tgt.hp > hp0, 'primary target healed');
   ok(tgt.shield > 0, 'was debuffed -> gains Shield');
@@ -592,10 +613,10 @@ section('B5. Izanagi - Misogi at the River Mouth');
 }
 {
   /* clean target: no rider */
-  const B = board(['takamagahara-izanagi', ...FILL]);
-  const tgt = alliesOf(B).find((u) => u.card.id !== 'takamagahara-izanagi');
+  const B = board(['kami-izanagi', ...FILL]);
+  const tgt = alliesOf(B).find((u) => u.card.id !== 'kami-izanagi');
   tgt.hp = Math.round(tgt.maxHp * 0.5);
-  cast(B, 'takamagahara-izanagi', [tgt]);
+  cast(B, 'kami-izanagi', [tgt]);
   ok(tgt.shield === 0, 'clean target: NO Shield rider');
   ok(!tgt.buffs.some((b) => b.stat === 'atk' && b.amt === 20), 'clean target: NO ATK rider');
 }
@@ -603,8 +624,8 @@ section('B5. Izanagi - Misogi at the River Mouth');
 section('B6. Susanoo - Slayer of Yamata no Orochi (per-trigger routing)');
 {
   /* standing counter is armed at battle start, and fires on the FIRST hit */
-  const B = board(['takamagahara-susanoo', ...FILL]);
-  const sus = U(B, 'takamagahara-susanoo');
+  const B = board(['kami-susanoo', ...FILL]);
+  const sus = U(B, 'kami-susanoo');
   ok(sus.flags.counterPow === 0.45, 'static: counter armed at battle start (45%)');
   ok(
     sus.shield === Math.round(sus.maxHp * 0.1),
@@ -627,8 +648,8 @@ section('B6. Susanoo - Slayer of Yamata no Orochi (per-trigger routing)');
 }
 {
   /* allyBelowHp -> taunt+shield, no counter set */
-  const B = board(['takamagahara-susanoo', ...FILL]);
-  const sus = U(B, 'takamagahara-susanoo');
+  const B = board(['kami-susanoo', ...FILL]);
+  const sus = U(B, 'kami-susanoo');
   const ally =
     alliesOf(B).find((u) => u !== sus && u.slot >= 3) || alliesOf(B).find((u) => u !== sus);
   ally.hp = ally.maxHp;
@@ -764,7 +785,7 @@ const PROBES = {
       'Zeus: marks present -> consumes for damage'
     );
   },
-  'olympus-hercules': (B, u) => {
+  'hemithea-hercules': (B, u) => {
     cast(B, u.card.id, []);
     ok(u.flags.taunt > 0, 'Hercules: taunts');
     ok(
@@ -887,7 +908,7 @@ const PROBES = {
     ok(f.hp < hp1, 'Abe: prophecy strikes at end of round');
     ok(f.flags.exposed > 0, 'Abe: prophecy applies Exposed');
   },
-  'yamato-kaguya': (B, u) => {
+  'kami-kaguya': (B, u) => {
     const before = JSON.stringify(B.units.map((x) => x.hp + '|' + x.shield + '|' + x.buffs.length));
     cast(B, u.card.id, []);
     const after = JSON.stringify(B.units.map((x) => x.hp + '|' + x.shield + '|' + x.buffs.length));
@@ -1078,14 +1099,14 @@ section('B8. Bug regression guards');
 }
 {
   /* dead caster must not resolve a deferred (when:'next'/'turn') effect */
-  const B = board(['takamagahara-amaterasu', ...FILL]);
+  const B = board(['kami-amaterasu', ...FILL]);
   const before = B.deferred.length;
   ok(before === 0, 'no deferred effects leak at battle start');
 }
 {
   /* Susanoo counters the FIRST hit, and only while shielded */
-  const B = board(['takamagahara-susanoo', ...FILL]);
-  const sus = U(B, 'takamagahara-susanoo');
+  const B = board(['kami-susanoo', ...FILL]);
+  const sus = U(B, 'kami-susanoo');
   const foe = foesOf(B)[0];
   const h0 = foe.hp;
   B.energy.enemy = 100;
@@ -1116,7 +1137,7 @@ section('B8. Bug regression guards');
 }
 {
   /* nerf values are actually live */
-  const ama = CARD['takamagahara-amaterasu'];
+  const ama = CARD['kami-amaterasu'];
   ok(ama.ability.cost === 55, `Amaterasu cost is 55 EN (${ama.ability.cost})`);
   ok(ama.ability.spec.effects[0].power === 0.5, 'Amaterasu base power is 50%');
   ok(
@@ -1127,7 +1148,7 @@ section('B8. Bug regression guards');
     ama.ability.spec.effects.some((e) => e.k === 'heal' && e.if && e.if.killedTarget),
     'Amaterasu kill rider KEPT (heal on kill)'
   );
-  const sus = CARD['takamagahara-susanoo'];
+  const sus = CARD['kami-susanoo'];
   ok(
     sus.ability.passive.threshold === 0.3,
     `Susanoo threshold is 30% (${sus.ability.passive.threshold})`
@@ -1163,6 +1184,197 @@ section('B8. Bug regression guards');
      - Untargetable is absolute: no pierce, no AoE, nothing.
      - Every other single-target attacker is still walled.
    ============================================================= */
+section('B8b. Poseidon - Lord of the Shoreline (Mark-on-Provoke)');
+{
+  /* Added 2026-08-18 with the card. Poseidon replaced Hercules as
+     Olympus' Tank when Hercules moved to Hemithea, and he introduced a
+     NEW engine rider (`markAttacker` -> flags.tauntMark) rather than
+     reusing an existing one, so it gets its own behavioural section.
+
+     Why each assertion exists, in the order the bug would appear:
+
+       1/2  the flag must actually arm, and the shield must be exact.
+            A rider that silently no-ops is the failure mode the
+            branchPasses() bug already produced once this session
+            (unknown keys left pass=true, so Odin and Shiva always took
+            the bonus arm). A declared-but-unread key looks identical
+            in the card text and is invisible in play.
+       3    the mark must land on the ATTACKER, not the tank. The
+            obvious implementation - a `selfAttacked` passive - fires
+            on the unit being hit and would mark Poseidon himself.
+       4    allies must never be marked. dealDamage also runs for
+            friendly-fire paths and reflected damage, and Marks feed
+            Zeus' 130% conditional, so a stray ally mark is a real
+            damage bug on the PLAYER's side of the table.
+       5    the rider must die with the Provoke. If tauntMark outlived
+            flags.taunt, Poseidon would mark for the rest of the battle
+            off one cast - which is a Controller's output on a Tank. */
+  const B = board(
+    ['olympus-poseidon', 'camelot-guinevere', 'olympus-apollo'],
+    ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+  );
+  const pos = U(B, 'olympus-poseidon');
+  E.useAbility(B, pos, pos.card.ability, []);
+  ok(pos.flags.taunt === 2 && pos.flags.tauntMark === 1, 'Poseidon arms Provoke and the Mark rider together');
+  ok(near(pos.shield, pos.maxHp * 0.18, 0.02), 'Poseidon shields for 18% Max HP');
+
+  const mord = U(B, 'camelot-mordred');
+  ok(!mord.flags.marked, 'an enemy is unmarked before it attacks the shoreline');
+  E.useAbility(B, mord, E.roleAbility(mord), [pos]);
+  ok(!!mord.flags.marked, 'an enemy that attacks a Provoking Poseidon is Marked');
+  ok(!pos.flags.marked, 'Poseidon himself is never Marked by his own rider');
+
+  const guin = U(B, 'camelot-guinevere');
+  ok(!guin.flags.marked, 'allies are never Marked by the shoreline');
+
+  /* Run the Provoke out and confirm the rider is cleared with it. */
+  pos.flags.taunt = 0;
+  E.nextRound(B);
+  ok(!pos.flags.tauntMark, 'the Mark rider expires with the Provoke, not after it');
+}
+
+section('B8c. Musashi and Adam (added 2026-08-18)');
+{
+  /* MUSASHI - the duellist branch.
+     Both arms are compared against EACH OTHER on the SAME target, with
+     only the target's HP changed. Asserting "the card dealt damage"
+     would have passed while the card was broken: the first draft used
+     `targetHpAbove: 80`, but the engine compares a RATIO (hp/maxHp), so
+     the condition could never be true and the bonus arm never fired.
+     A ratio test catches that; a "did something happen" test does not.
+
+     It also shipped with `pick: 1`, which pickCount() does not know -
+     it returns 0 for anything that is not 'single'/'two', so the target
+     list resolved EMPTY and the whole skill was a no-op that still
+     reported ok:true. Both bugs were found here, not by reading. */
+  const mk = () =>
+    board(
+      ['yamato-miyamoto-musashi', 'camelot-guinevere', 'olympus-apollo'],
+      ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+    );
+  function hit(pct) {
+    const B = mk();
+    const m = U(B, 'yamato-miyamoto-musashi');
+    const t = U(B, 'camelot-mordred');
+    t.hp = Math.floor(t.maxHp * pct);
+    const before = t.hp;
+    E.useAbility(B, m, m.card.ability, [t]);
+    return {
+      dmg: before - t.hp,
+      mult: (before - t.hp) / (E.atkOf(m) * (1 - E.defOf(t) / 100)),
+      crit: m.buffs.filter((b) => b.stat === 'crit').length,
+    };
+  }
+  const full = hit(1.0);
+  const edge = hit(0.85);
+  const under = hit(0.79);
+  ok(full.dmg > 0, 'Musashi actually deals damage (pick must be a form pickCount knows)');
+  ok(near(full.mult, 2.0, 0.02), 'Musashi hits an untouched target for 200% ATK (got ' + full.mult.toFixed(2) + ')');
+  ok(near(under.mult, 1.5, 0.02), 'Musashi hits a wounded target for 150% ATK (got ' + under.mult.toFixed(2) + ')');
+  ok(near(edge.mult, 2.0, 0.02), 'the threshold is 80% Max HP, so 85% still takes the bonus arm');
+  ok(full.crit === 1 && under.crit === 0, 'the Crit buff rides the bonus arm only');
+  ok(full.dmg > under.dmg, 'the opening cut beats the follow-up - the card is an ANTI-execute');
+}
+{
+  /* ADAM - the bet with a clock on it. */
+  const B = board(
+    ['genesis-adam', 'camelot-guinevere', 'olympus-apollo'],
+    ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+  );
+  const a = U(B, 'genesis-adam');
+  E.useAbility(B, a, a.card.ability, []);
+  ok(a.flags.taunt === 2, 'Adam provokes for 2 rounds');
+  ok(a.buffs.some((b) => b.stat === 'def' && b.amt === 20), 'Adam gains 20% DEF');
+  ok(a.pending.length === 1, 'Adam schedules exactly one payout');
+
+  /* The cost must be REAL - healMod -100 has to actually refuse a heal,
+     or the card is strictly upside. */
+  a.hp = Math.floor(a.maxHp * 0.5);
+  const beforeHeal = a.hp;
+  E.applyEffectsPublic(B, U(B, 'camelot-guinevere'), [a], [{ k: 'heal', pctMaxHp: 30, to: 'targets' }], {});
+  ok(a.hp === beforeHeal, 'Adam cannot be healed while the sentence stands');
+
+  const allies = [U(B, 'camelot-guinevere'), U(B, 'olympus-apollo')];
+  allies.forEach((x) => (x.hp = Math.floor(x.maxHp * 0.4)));
+  const pre = allies.map((x) => x.hp);
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(
+    allies.every((x, i) => x.hp > pre[i]),
+    'surviving the 2 rounds heals the whole team'
+  );
+  ok(a.pending.length === 0, 'the payout is consumed, not left pending');
+}
+{
+  /* ...and the enemy's counterplay: kill him and the heal never lands.
+     Without this the card is a delayed team-heal with no risk. */
+  const B = board(
+    ['genesis-adam', 'camelot-guinevere', 'olympus-apollo'],
+    ['camelot-mordred', 'huaxia-mulan', 'camelot-lancelot']
+  );
+  const a = U(B, 'genesis-adam');
+  E.useAbility(B, a, a.card.ability, []);
+  const allies = [U(B, 'camelot-guinevere'), U(B, 'olympus-apollo')];
+  allies.forEach((x) => (x.hp = Math.floor(x.maxHp * 0.4)));
+  const pre = allies.map((x) => x.hp);
+  a.alive = false;
+  a.hp = 0;
+  E.nextRound(B);
+  E.nextRound(B);
+  ok(
+    allies.every((x, i) => x.hp === pre[i]),
+    'killing Adam inside the window cancels the heal - the bet is losable'
+  );
+}
+{
+  /* KAGUYA - the 70 -> 85% buff, measured rather than read off the text.
+     Kaguya + exactly ONE ally makes the random copy deterministic. */
+  const B = board(
+    ['kami-kaguya', 'yamato-tomoe-gozen'],
+    ['camelot-mordred', 'huaxia-mulan']
+  );
+  const k = U(B, 'kami-kaguya');
+  const foes = foesOf(B);
+  const before = foes.map((f) => f.hp);
+  E.useAbility(B, k, k.card.ability, []);
+  const dealt = foes.reduce((sum, f, i) => sum + (before[i] - f.hp), 0);
+  /* Tomoe's 145%, cast off KAGUYA's ATK, scaled by 0.85. */
+  const expect = E.atkOf(k) * 1.45 * 0.85 * (1 - E.defOf(foes[0]) / 100);
+  ok(near(dealt, expect, 0.03), 'Kaguya copies at 85%, not 70% (got ' + Math.round(dealt) + ' vs ' + Math.round(expect) + ')');
+  ok(
+    CARD['kami-kaguya'].ability.spec.effects[0].scale === 0.85,
+    'the copy scale in the data is 0.85'
+  );
+  ok(/85% effectiveness/.test(CARD['kami-kaguya'].ability.text), 'the card text says 85%');
+
+  /* COST, 45 -> 35 (owner ruling 2026-08-18c). Asserted because the whole
+     point of the card is that the copy is CHEAPER than the original it
+     copies - at 45 the discount on the effect (85%) was cancelled by the
+     absence of a discount on the price, so spending the energy on the
+     real skill was almost always correct.
+
+     The second assertion is the one that would catch a bad future tune:
+     Moon Reflection must stay strictly cheaper than the median Active it
+     can copy, or the card has no reason to be drafted. */
+  ok(CARD['kami-kaguya'].ability.cost === 35, 'Moon Reflection costs 35 Energy');
+  {
+    const costs = ALL.filter(
+      (c) => c.ability.type === 'Active' && c.ability.spec && typeof c.ability.cost === 'number'
+    )
+      .map((c) => c.ability.cost)
+      .sort((a, b) => a - b);
+    const median = costs[Math.floor(costs.length / 2)];
+    ok(
+      CARD['kami-kaguya'].ability.cost < median,
+      'Moon Reflection is cheaper than the median Active it copies (' +
+        CARD['kami-kaguya'].ability.cost +
+        ' < ' +
+        median +
+        ')'
+    );
+  }
+}
+
 section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
 {
   const SNIPER_SIGS = ALL.filter(
@@ -1175,10 +1387,10 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
 
   const foes = [
     'camelot-king-arthur',
-    'olympus-hercules',
+    'hemithea-hercules',
     'huaxia-guan-yu',
     'camelot-merlin',
-    'yamato-kaguya',
+    'kami-kaguya',
     'olympus-apollo',
   ];
   const mates = [
@@ -1186,7 +1398,7 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     'sherwood-maid-marian',
     'huaxia-hua-tuo',
     'roma-augustus',
-    'takamagahara-izanagi',
+    'kami-izanagi',
   ];
 
   function setup(legendId, { taunt, untarg } = {}) {
@@ -1229,8 +1441,8 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
       return hp0 - v.hp;
     };
     ['yamato-tomoe-gozen', 'huaxia-nezha'].forEach((id) => {
-      const clean = shoot(id, 'yamato-kaguya', null);
-      const taxed = shoot(id, 'yamato-kaguya', 'camelot-king-arthur');
+      const clean = shoot(id, 'kami-kaguya', null);
+      const taxed = shoot(id, 'kami-kaguya', 'camelot-king-arthur');
       ok(
         near(taxed / clean, 0.7, 0.02),
         CARD[id].name + ' pays the 0.7x Provoke tax (' + clean + ' -> ' + taxed + ')'
@@ -1257,7 +1469,7 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
         .forEach((u) => (out[u.card.id] = hp[u.card.id] - u.hp));
       return out;
     };
-    ['takamagahara-amaterasu', 'huaxia-qin-shi-huang', 'duat-maat'].forEach((id) => {
+    ['kami-amaterasu', 'huaxia-qin-shi-huang', 'duat-maat'].forEach((id) => {
       const clean = spread(id, null);
       const taxed = spread(id, 'camelot-king-arthur');
       const others = Object.keys(clean).filter((k) => k !== 'camelot-king-arthur' && clean[k] > 0);
@@ -1363,13 +1575,13 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
      Apollo's "Mark the highest ATK enemy" bypassed the target picker
      entirely and marked a legend who could not legally be targeted. */
   {
-    const B = setup('olympus-apollo', { untarg: 'yamato-kaguya' });
+    const B = setup('olympus-apollo', { untarg: 'kami-kaguya' });
     E.useAbility(B, U(B, 'olympus-apollo'), CARD['olympus-apollo'].ability, [
       U(B, 'grimmwood-snow-white'),
     ]);
     const marked = B.units.filter((u) => u.side === 'enemy' && u.flags.marked);
     ok(
-      !marked.some((u) => u.card.id === 'yamato-kaguya'),
+      !marked.some((u) => u.card.id === 'kami-kaguya'),
       'Apollo\u2019s Mark rider skips an Untargetable enemy'
     );
     ok(
@@ -1380,11 +1592,37 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     );
   }
 
-  /* --- everyone else is still walled --- */
+  /* --- everyone else is still walled ---
+     PURE UTILITY IS EXEMPT, and always was: guidelines section
+     "The one rule", consequence 3 - "an ability that deals no damage
+     ... ignores Provoke, because there is no blow to intercept."
+
+     The filter did not encode that because until the Chapter II
+     factions there was no single-target enemy skill in the roster
+     with zero damage on it; every Controller carried at least a small
+     hit. Lust, Metatron, Carmilla and Davy Jones are the first four,
+     and the engine correctly lets them through the wall. Testing them
+     against the redirect asserted the opposite of the documented rule. */
+  const dealsDamage = (c) => {
+    let found = false;
+    const walk = (n) => {
+      if (!n || typeof n !== 'object' || found) return;
+      if (Array.isArray(n)) return n.forEach(walk);
+      if (n.k === 'dmg' || n.k === 'lifesteal') found = true;
+      ['effects', 'then', 'other', 'heads', 'tails', 'choose'].forEach((b) => n[b] && walk(n[b]));
+    };
+    walk(c.ability.spec && c.ability.spec.effects);
+    if (c.ability.spec && c.ability.spec.choose) walk(c.ability.spec.choose);
+    return found;
+  };
   ALL.filter((c) => {
     const t = c.ability.spec && c.ability.spec.target;
     return (
-      t && t.side === 'enemy' && c.role !== 'Sniper' && (t.pick === 'single' || t.pick === 'auto')
+      t &&
+      t.side === 'enemy' &&
+      c.role !== 'Sniper' &&
+      (t.pick === 'single' || t.pick === 'auto') &&
+      dealsDamage(c)
     );
   }).forEach((c) => {
     const B = setup(c.id, { taunt: 'camelot-king-arthur' });
@@ -1517,9 +1755,9 @@ section('C. SOAK - invariants over AI-vs-AI games');
     never.length === 0,
     `every legend appeared at least once${never.length ? ' (missing: ' + never.map((c) => c.name).join(', ') + ')' : ''}`
   );
-  const tk = ALL.filter((c) => c.faction === 'takamagahara');
+  const tk = ALL.filter((c) => c.faction === 'kami');
   console.log(
-    '  Takamagahara appearances: ' + tk.map((c) => c.name + '=' + (seen[c.id] || 0)).join(', ')
+    '  Kami appearances: ' + tk.map((c) => c.name + '=' + (seen[c.id] || 0)).join(', ')
   );
 }
 
@@ -1769,18 +2007,18 @@ section('E. EXTERNAL-AUDIT REGRESSIONS (2026-08-04)');
   /* DEFEATED MEANS INERT. Expiry riders and leftover multi-part effects
      must neither protect a corpse nor let a defeated source act. */
   const B = board([
-    'olympus-hercules',
+    'hemithea-hercules',
     'grimmwood-hansel-gretel',
     'camelot-guinevere',
     'sherwood-little-john',
     'grimmwood-snow-white',
     'olympus-apollo',
   ]);
-  const hercules = U(B, 'olympus-hercules');
+  const hercules = U(B, 'hemithea-hercules');
   const hansel = U(B, 'grimmwood-hansel-gretel');
   const living = U(B, 'camelot-guinevere');
 
-  cast(B, 'olympus-hercules', []);
+  cast(B, 'hemithea-hercules', []);
   hercules.alive = false;
   hercules.hp = 0;
   hercules.shield = 0;
@@ -2096,6 +2334,183 @@ section('F. DRAFT INTELLIGENCE - rating coverage');
     isFinite(DAI.powerOf(boss)) && DAI.powerOf(boss) !== 0,
     'an unknown card is priced on the spot, not defaulted to the mean'
   );
+}
+
+/* =============================================================
+   LEGEND LORE (data/lore.js)
+   -------------------------------------------------------------
+   The card detail dialog reads card.lore. A legend with no prose
+   renders a card with a hole in it, so coverage is enforced here
+   rather than discovered by a player.
+   ============================================================= */
+section('LEGEND LORE');
+{
+  const missing = ALL.filter((c) => !c.lore).map((c) => c.id);
+  ok(missing.length === 0, 'every legend has lore' + (missing.length ? ' (missing: ' + missing.slice(0, 5).join(', ') + ')' : ''));
+
+  const stale = Object.keys(EOL.legendLore || {}).filter((id) => !CARD[id]);
+  ok(stale.length === 0, 'no lore entry names a card that does not exist' + (stale.length ? ' (' + stale.join(', ') + ')' : ''));
+
+  /* HOUSE STYLE: lore says WHY, the skill text says what. Rules
+     vocabulary in prose is how two sources of truth start to
+     disagree with each other. */
+  const rules = /\b(Provoke|Provoking|Provoked|Exposed|Marked|Energy|Shielded|Burning|Burned|Silenced|Crit Chance|Max HP)\b/;
+  const leaky = ALL.filter((c) => c.lore && rules.test(c.lore)).map((c) => c.id);
+  ok(leaky.length === 0, 'no lore leaks rules vocabulary' + (leaky.length ? ' (' + leaky.slice(0, 5).join(', ') + ')' : ''));
+
+  /* Long enough to be worth a dialog, short enough to read. */
+  const tooShort = ALL.filter((c) => c.lore && c.lore.length < 80).map((c) => c.id);
+  ok(tooShort.length === 0, 'no lore is a stub' + (tooShort.length ? ' (' + tooShort.slice(0, 5).join(', ') + ')' : ''));
+  const tooLong = ALL.filter((c) => c.lore && c.lore.length > 420).map((c) => c.id);
+  ok(tooLong.length === 0, 'no lore overflows the panel' + (tooLong.length ? ' (' + tooLong.slice(0, 5).join(', ') + ')' : ''));
+
+  /* The prose must name the legend it belongs to, which is the
+     cheapest possible check that lore has not been pasted onto the
+     wrong card. Surnames and mononyms both count. */
+  const flatten = (t) => t.replace(/[\u2018\u2019]/g, "'");
+  const unnamed = ALL.filter((c) => {
+    if (!c.lore) return false;
+    /* Two-letter parts count: "Lu Bu" is a whole name. Curly and
+       straight apostrophes are the same character to a reader, so
+       Ma'at must not fail on typography. */
+    const parts = flatten(c.name)
+      .replace(/[^A-Za-z' ]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 2);
+    const lore = flatten(c.lore);
+    return !parts.some((w) => lore.indexOf(w) >= 0);
+  }).map((c) => c.id);
+  ok(unnamed.length === 0, 'every lore entry names its own legend' + (unnamed.length ? ' (' + unnamed.slice(0, 5).join(', ') + ')' : ''));
+}
+
+/* =============================================================
+   SKILL TEXT THAT SCALES WITH UPGRADES (js/text.js)
+   -------------------------------------------------------------
+   A levelled card hits harder, so its printed Signature Skill must
+   say so - but ONLY for the numbers engine.js actually multiplies
+   by upPower. A wrongly scaled number is a lie about the rules, so
+   this walks the whole roster and checks both directions.
+   ============================================================= */
+section('SKILL TEXT SCALING');
+{
+  const PTS = 6; // a maxed card: +2 points per level, flat
+  /* Every magnitude engine.js now moves. Mirrored deliberately rather
+     than shared with js/text.js - if the two drift, this fails, which
+     is the whole point. */
+  const magsOf = (c) => {
+    const S = new Set();
+    const walk = (effs) =>
+      (effs || []).forEach((e) => {
+        if (!e || typeof e !== 'object') return;
+        if (e.k === 'dmg') {
+          ['power', 'perDebuff', 'perBuff'].forEach((k) => {
+            if (e[k] != null) S.add(Math.round(e[k] * 100));
+          });
+        }
+        if (e.k === 'heal') {
+          if (e.pctMaxHp != null) S.add(e.pctMaxHp);
+          if (e.power != null) S.add(Math.round(e.power * 100));
+          if (e.perCleansed != null) S.add(e.perCleansed);
+        }
+        if (e.k === 'shield' && e.pctMaxHp != null) S.add(e.pctMaxHp);
+        if (e.k === 'stat' && e.amt != null) S.add(Math.abs(e.amt));
+        if (e.k === 'lifesteal' && e.pct != null) S.add(e.pct);
+        if (e.k === 'taunt') {
+          if (e.shieldOnEnd != null) S.add(e.shieldOnEnd);
+          if (e.healOnHit != null) S.add(e.healOnHit);
+        }
+        if (e.k === 'revive') {
+          if (e.pctMaxHp != null) S.add(e.pctMaxHp);
+          if (e.shieldPctMaxHp != null) S.add(e.shieldPctMaxHp);
+        }
+        if (e.k === 'counterStrike') {
+          if (e.power != null) S.add(Math.round(e.power * 100));
+          if (e.markedPower != null) S.add(Math.round(e.markedPower * 100));
+        }
+        /* The multiplier passives are stored as a FACTOR but printed as
+           the distance from 1 - "15% less damage" is mult 0.85. */
+        if (e.k === 'damageMult' || e.k === 'damageResist' || e.k === 'outgoingMult') {
+          if (e.mult != null) S.add(Math.round(Math.abs(1 - e.mult) * 1000) / 10);
+          if (e.pct != null) S.add(Math.abs(e.pct));
+        }
+        if (e.k === 'healMod' && e.pct != null) S.add(Math.abs(e.pct));
+        if (e.k === 'copyAllyActive' && e.scale != null) S.add(Math.round(e.scale * 100));
+        ['then', 'other', 'effects'].forEach((k) => {
+          if (Array.isArray(e[k])) walk(e[k]);
+        });
+        ['heads', 'tails'].forEach((k) => {
+          if (e[k] && Array.isArray(e[k].effects)) walk(e[k].effects);
+        });
+        if (Array.isArray(e.choose)) e.choose.forEach((o) => walk(o.effects));
+      });
+    const sp = c.ability.spec || {};
+    walk(sp.effects);
+    if (Array.isArray(sp.choose)) sp.choose.forEach((o) => walk(o.effects));
+    if (c.ability.passive) walk(c.ability.passive.effects);
+    return S;
+  };
+
+  ok(typeof EOL.scaleSkillText === 'function', 'EOL.scaleSkillText exists');
+  ok(
+    ALL.every((c) => EOL.scaleSkillText(c.ability.text, c, 0) === c.ability.text),
+    'level 0 (no points) never touches the text'
+  );
+
+  let wrong = 0;
+  let badMath = 0;
+  let changed = 0;
+  let tokens = 0;
+  const TOKEN = /title="(\d+)% before upgrades">([\d.]+)</g;
+  ALL.forEach((c) => {
+    const out = EOL.scaleSkillText(c.ability.text, c, PTS);
+    if (out !== c.ability.text) changed++;
+    const S = magsOf(c);
+    let m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(out))) {
+      tokens++;
+      if (!S.has(+m[1])) {
+        wrong++;
+        if (wrong <= 3) console.log('      scaled a value the engine does not:', c.id, m[1]);
+      }
+      if (Math.abs(+m[2] - (+m[1] + PTS)) > 0.001) badMath++;
+    }
+  });
+  ok(wrong === 0, 'no number is scaled that the engine leaves alone');
+  ok(badMath === 0, 'every scaled number is value + the flat bonus');
+  ok(tokens > 90, 'the rewrite reaches the whole roster (' + tokens + ' numbers)');
+  ok(changed === ALL.length, 'EVERY legend reflects its upgrades (' + changed + '/' + ALL.length + ')');
+
+  /* The multiplier passives were invisible until 2026-08-16: stored as
+     a factor, they never matched a printed percentage, so Athena, Benkei,
+     Robin Hood and Lu Bu read as unupgradeable however many levels they
+     had. */
+  const ath = CARD['olympus-athena'];
+  const at = EOL.scaleSkillText(ath.ability.text, ath, PTS);
+  ok(/>21</.test(at), "Athena's 15% less damage reads 21% at max");
+  ok(/>16</.test(at), '...and her 10% Marked reduction reads 16%');
+  const rob = CARD['sherwood-robin-hood'];
+  ok(/>18</.test(EOL.scaleSkillText(rob.ability.text, rob, PTS)), "Robin Hood's 12% bonus reads 18%");
+
+  /* THE FLAT RULE, stated once: 50 goes to 52, not 50.75. */
+  const anu = CARD['duat-anubis'];
+  const an = EOL.scaleSkillText(anu.ability.text, anu, 2);
+  ok(/>132</.test(an), 'a 130% coefficient reads 132% at level 1');
+  ok(/25% HP/.test(an) && !/>27</.test(an), 'a THRESHOLD never moves');
+  ok(/10 Energy/.test(an), 'and neither does an Energy refund');
+  const anMax = EOL.scaleSkillText(anu.ability.text, anu, PTS);
+  ok(/>136</.test(anMax) && />266</.test(anMax), 'both coefficients move by the same flat points');
+
+  /* Durations and counts are not magnitudes. */
+  const morgan = CARD['camelot-morgan-le-fay'];
+  const mg = EOL.scaleSkillText(morgan.ability.text, morgan, PTS);
+  ok(/for 2 rounds/.test(mg), 'a duration is untouched');
+  ok(/>36</.test(mg), "and a debuff's magnitude DEEPENS (30% -> 36%)");
+
+  /* The same number printed twice with different units. */
+  const momo = CARD['yamato-momotaro'];
+  const mo = EOL.scaleSkillText(momo.ability.text, momo, PTS);
+  ok((mo.match(/>18</g) || []).length === 2, "Momotaro's 12% DEF and 12% shield both grow to 18%");
 }
 
 /* ---------------- summary ---------------- */

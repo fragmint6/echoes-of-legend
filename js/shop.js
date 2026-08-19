@@ -727,6 +727,246 @@
     });
   }
 
+  /* =============================================================
+     THE ECHO SHOP
+     -------------------------------------------------------------
+     Shards buy a duplicate of a legend you ALREADY OWN, at any
+     rarity - including legendaries, which no pack may ever contain.
+     Never a legend you do not own: crafting is an upgrade currency,
+     not a collection shortcut, so packs stay the only way to widen a
+     collection and the Crown Law is untouched.
+
+     This used to live as one button inside each card's upgrade
+     panel, which meant the second currency had no shopfront and you
+     could only spend it one card at a time, from a screen whose job
+     was something else. It is a shop, so it lives in the Shop.
+     ============================================================= */
+  var echoTab = 'packs';
+  var echoQuery = '';
+  var echoFilter = 'ready';
+
+  function upg() {
+    return window.EOL.upgrades;
+  }
+
+  function shopTab(name) {
+    echoTab = name === 'echo' ? 'echo' : 'packs';
+    var packs = el('spanel-packs');
+    var echo = el('spanel-echo');
+    if (packs) packs.hidden = echoTab !== 'packs';
+    if (echo) echo.hidden = echoTab !== 'echo';
+    [
+      ['packs', el('stab-packs')],
+      ['echo', el('stab-echo')],
+    ].forEach(function (row) {
+      if (!row[1]) return;
+      var on = echoTab === row[0];
+      row[1].classList.toggle('sel', on);
+      row[1].setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    moveShopThumb();
+    if (echoTab === 'echo') paintEcho();
+  }
+
+  function moveShopThumb() {
+    var thumb = document.querySelector('.shop-thumb');
+    var sel = document.querySelector('.shop-tab.sel');
+    if (!thumb || !sel || !sel.offsetWidth) return;
+    thumb.style.width = sel.offsetWidth + 'px';
+    thumb.style.transform = 'translateX(' + sel.offsetLeft + 'px)';
+  }
+
+  /* Every owned legend, with what a copy costs and what it is worth.
+     `toNext` is the number of copies still missing before the next
+     level can be bought - the single most useful number on the page,
+     and what the list sorts on. */
+  function echoRows() {
+    var econ = window.EOL.econ;
+    var U = upg();
+    if (!econ || !U) return [];
+    var out = [];
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (!econ.owns(c.id)) return;
+        var lv = U.levelOf(c.id);
+        var maxed = lv >= U.MAX_LEVEL;
+        var dupes = U.dupesOf(c.id);
+        var need = U.costOfNextLevel(c.id);
+        /* A card holds at most nine copies - what its three levels
+           can consume. Once the bank covers every remaining level
+           there is nothing a further copy could ever be spent on. */
+        var wanted = U.copiesWanted ? U.copiesWanted(c.id) : 1;
+        out.push({
+          card: c,
+          faction: f,
+          lv: lv,
+          maxed: maxed,
+          dupes: dupes,
+          need: need,
+          toNext: maxed ? 0 : Math.max(0, need - dupes),
+          ready: !maxed && dupes >= need,
+          full: !maxed && wanted <= 0,
+          buyable: !maxed && wanted > 0,
+          cost: U.craftCost(c.rarity),
+        });
+      });
+    });
+    /* ALWAYS BY RARITY (owner ruling 2026-08-16): common first,
+       legendary last. A shelf that reshuffles as you buy is a shelf
+       you have to re-read every time; rarity is a fixed order the
+       player already knows, and it happens to run cheapest-first
+       because craft cost scales with rarity. Name breaks ties. */
+    out.sort(function (a, b) {
+      var ra = RARITY_ORDER[a.card.rarity] || 0;
+      var rb = RARITY_ORDER[b.card.rarity] || 0;
+      if (ra !== rb) return ra - rb;
+      return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
+    });
+    return out;
+  }
+
+  var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
+  var RARITY_ORDER = { common: 0, rare: 1, epic: 2, legendary: 3 };
+
+  function paintEcho() {
+    var grid = el('echo-grid');
+    var U = upg();
+    if (!grid || !U) return;
+    var shards = U.shards();
+
+    var bal = el('echo-balance');
+    if (bal) bal.textContent = shards.toLocaleString();
+
+    var all = echoRows();
+    /* Say what the balance can actually DO - a number with no frame of
+       reference is just a number. */
+    var afford = el('echo-afford');
+    if (afford) {
+      var buyable = all.filter(function (r) {
+        return r.buyable && shards >= r.cost;
+      }).length;
+      afford.textContent = buyable
+        ? 'enough for a copy of ' + buyable + ' of your legends'
+        : all.length
+          ? 'not enough for a copy yet - open packs to melt duplicates'
+          : '';
+    }
+
+    var rows = all.filter(function (r) {
+      if (echoFilter === 'ready' && !r.ready) return false;
+      /* 'Upgradable' means a copy would DO something: not maxed, and
+         not already holding every copy its levels can spend. */
+      if (echoFilter === 'upgradable' && !r.buyable) return false;
+      if (echoQuery && r.card.name.toLowerCase().indexOf(echoQuery) < 0) return false;
+      return true;
+    });
+
+    var esc = window.EOL.ui && window.EOL.ui.esc ? window.EOL.ui.esc : String;
+    grid.innerHTML = rows
+      .map(function (r) {
+        /* The level, as three pips - the same language the collection
+           and the upgrade panel use. */
+        var pips = '';
+        for (var i = 1; i <= U.MAX_LEVEL; i++) {
+          pips += '<span class="ec-pip' + (i <= r.lv ? ' on' : '') + '"></span>';
+        }
+        /* What the copies you already hold are worth: a progress bar
+           toward the next level, so buying feels like closing a gap
+           rather than paying into a void. */
+        var pct = r.maxed ? 100 : Math.min(100, (Math.min(r.dupes, r.need) / r.need) * 100);
+        var boosts = U.boostsOf(r.card.id)
+          .map(function (b) {
+            return (
+              '<i data-icon-domain="game" class="ra ' +
+              BOOST_ICON[b] +
+              ' ec-boost" data-boost="' +
+              b +
+              '"></i>'
+            );
+          })
+          .join('');
+
+        var status = r.maxed
+          ? '<span class="ec-status maxed">Fully upgraded</span>'
+          : r.full
+            ? '<span class="ec-status maxed">' + r.dupes + ' / ' + r.dupes + ' copies held</span>'
+            : r.ready
+            ? '<span class="ec-status ready"><i class="ri-sparkling-line"></i>Ready for level ' +
+              (r.lv + 1) +
+              '</span>'
+            : '<span class="ec-status">' +
+              r.toNext +
+              (r.toNext === 1 ? ' copy' : ' copies') +
+              ' to level ' +
+              (r.lv + 1) +
+              '</span>';
+
+        return (
+          '<article class="ec-card' +
+          (r.ready ? ' ready' : '') +
+          (r.maxed || r.full ? ' maxed' : '') +
+          '" data-echo-card="' +
+          esc(r.card.id) +
+          '" data-rarity="' +
+          esc(r.card.rarity) +
+          '" style="--fc-primary:' +
+          esc(r.faction.colors.primary) +
+          '">' +
+          '<span class="ec-art' +
+          (r.card.art ? ' has-art' : '') +
+          '">' +
+          (r.card.art
+            ? '<img src="' + esc(r.card.art) + '" alt="" draggable="false" loading="lazy" />'
+            : '<i data-icon-domain="game" class="ra ' + esc(r.card.icon) + '"></i>') +
+          '<span class="ec-pips">' +
+          pips +
+          '</span>' +
+          '</span>' +
+          '<div class="ec-body">' +
+          '<div class="ec-top">' +
+          '<b class="ec-name">' +
+          esc(r.card.name) +
+          '</b>' +
+          '<span class="ec-boosts">' +
+          boosts +
+          '</span>' +
+          '</div>' +
+          status +
+          '<div class="ec-bar"><span style="width:' +
+          pct.toFixed(0) +
+          '%"></span></div>' +
+          '<div class="ec-foot">' +
+          '<span class="ec-held">' +
+          (r.maxed ? 'no levels left' : r.dupes + ' / ' + r.need + ' copies') +
+          '</span>' +
+          '<button type="button" class="ec-buy" data-echo-buy="' +
+          esc(r.card.id) +
+          '"' +
+          (shards >= r.cost && r.buyable ? '' : ' disabled') +
+          '><i class="ri-sparkling-2-line"></i>' +
+          r.cost.toLocaleString() +
+          '</button>' +
+          '</div>' +
+          '</div>' +
+          '</article>'
+        );
+      })
+      .join('');
+
+    var empty = el('echo-empty');
+    if (empty) {
+      empty.hidden = rows.length > 0;
+      var msg = echoQuery
+        ? 'No legend you own matches that name.'
+        : echoFilter === 'ready'
+          ? 'Nothing is one copy away yet. Buy a copy below, or switch to <b>Upgradable</b>.'
+          : all.length
+            ? 'Every legend you own is fully upgraded.'
+            : 'Open a pack to start collecting legends.';
+      empty.innerHTML = '<i class="ri-sparkling-2-line"></i><p>' + msg + '</p>';
+    }
+  }
+
   function setCodeStatus(message, stateName) {
     var status = el('shop-code-status');
     if (!status) return;
@@ -891,11 +1131,77 @@
       paintShop();
       syncOpenAnother();
     });
+    var tabPacks = el('stab-packs');
+    var tabEcho = el('stab-echo');
+    if (tabPacks)
+      tabPacks.addEventListener('click', function () {
+        shopTab('packs');
+      });
+    if (tabEcho)
+      tabEcho.addEventListener('click', function () {
+        shopTab('echo');
+      });
+    var echoSearch = el('echo-search');
+    if (echoSearch)
+      echoSearch.addEventListener('input', function () {
+        echoQuery = (echoSearch.value || '').trim().toLowerCase();
+        paintEcho();
+      });
+    document.querySelectorAll('[data-echo-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        echoFilter = btn.dataset.echoFilter;
+        document.querySelectorAll('[data-echo-filter]').forEach(function (b) {
+          b.classList.toggle('sel', b === btn);
+        });
+        paintEcho();
+      });
+    });
+    var echoGrid = el('echo-grid');
+    if (echoGrid)
+      echoGrid.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('[data-echo-buy]') : null;
+        if (!btn) return;
+        var U = upg();
+        if (!U) return;
+        var r = U.craft(btn.dataset.echoBuy);
+        if (r.ok) {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('Copy crafted for ' + r.cost + ' shards', 'ri-sparkling-2-fill');
+          if (window.EOL.audio) window.EOL.audio.ui('confirm');
+        } else if (r.reason === 'shards') {
+          if (window.EOL.ui.toast) window.EOL.ui.toast('Not enough Echo Shards', 'ri-sparkling-2-fill');
+        } else if (r.reason === 'maxed') {
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast('That legend is already fully upgraded', 'ri-information-line');
+        } else if (r.reason === 'full') {
+          /* Nine copies is the cap - every level this card has left is
+             already paid for. Buying a tenth would burn shards on
+             nothing, which is what the old clamp quietly did. */
+          if (window.EOL.ui.toast)
+            window.EOL.ui.toast(
+              'Already holding every copy this legend can use',
+              'ri-information-line'
+            );
+        }
+        paintEcho();
+        paintShop();
+      });
+    /* Crafting, packs and levelling all move the shard balance. */
+    window.addEventListener('eol:upgrades', function () {
+      if (echoTab === 'echo') paintEcho();
+      paintShop();
+    });
+    window.addEventListener('resize', moveShopThumb);
+
     document.addEventListener('eol:view', function (ev) {
-      if (ev.detail === 'shop') paintShop();
-      else closeCodeModal(false);
+      if (ev.detail === 'shop') {
+        paintShop();
+        if (echoTab === 'echo') paintEcho();
+        requestAnimationFrame(moveShopThumb);
+      } else closeCodeModal(false);
     });
     paintShop();
+    requestAnimationFrame(moveShopThumb);
   }
 
   document.addEventListener('DOMContentLoaded', mount);

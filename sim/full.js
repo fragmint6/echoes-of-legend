@@ -107,7 +107,7 @@ global.performance = { now: () => Date.now() };
   'data/yamato.js',
   'data/huaxia.js',
   'data/roma.js',
-  'data/takamagahara.js',
+  'data/kami.js',
   'data/duat.js',
 ].forEach((f) => {
   // eslint-disable-next-line no-eval

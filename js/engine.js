@@ -114,6 +114,7 @@
          baseAtk/baseDef/maxHp at creation. */
       upLevel: 0,
       upStat: null,
+      upBoosts: null, // one stat name per level purchased
       upPower: 1,
       battle: null, // set on createBattle so stats can read round/board state
       uid: 'u' + ++uid,
@@ -171,19 +172,42 @@
     });
     return t;
   }
-  /* SKILL POWER from card upgrades. Applies to a unit's SIGNATURE
-     output only - the ability printed on the card. Basic attacks and
-     role abilities are shared machinery, not the upgraded card, so
-     they stay stock. `ctx.signature` is already tracked everywhere
-     because the log and the battle report need it.
+  /* SKILL BONUS from card upgrades (owner ruling 2026-08-16: FLAT).
+     Applies to a unit's SIGNATURE output only - the ability printed
+     on the card. Basic attacks and role abilities are shared
+     machinery, not the upgraded card, so they stay stock.
+     `ctx.signature` is already tracked everywhere because the log
+     and the battle report need it.
 
-     This multiplies the power coefficient, never a threshold and
-     never an Energy cost: Anubis's 130/260 becomes 132/264 at level
-     1, but his 25%/35% execute gate and his 45 Energy do not move. */
-  function upPow(u, ctx) {
-    if (!u || !u.upPower || u.upPower === 1) return 1;
-    if (ctx && ctx.signature === false) return 1;
-    return u.upPower;
+     FLAT, NOT MULTIPLIED. A level adds +2 PERCENTAGE POINTS to the
+     skill's own numbers: 50% ATK becomes 52%, not 50.75%. That is
+     the number the card prints, so the upgrade is legible without
+     arithmetic - which the old compounding 1.5% multiplier was not.
+
+     `upAdd` returns those points as a FRACTION (0.02 per level),
+     because power coefficients are stored as fractions (1.30 = 130%).
+     Effects whose magnitude is stored as whole percent - pctMaxHp,
+     stat.amt, lifesteal.pct - use upPts() instead.
+
+     Never a threshold, never a duration, never an Energy cost:
+     Anubis's 130/260 becomes 132/264 at level 1, but his 25%/35%
+     execute gate and his 45 Energy do not move. A cliff is not a
+     curve, and moving one silently rewrites a combo. */
+  function upAdd(u, ctx) {
+    if (!u || !u.upLevel) return 0;
+    if (ctx && ctx.signature === false) return 0;
+    return 0.02 * u.upLevel;
+  }
+  /* the same bonus expressed in whole percentage points */
+  function upPts(u, ctx) {
+    return upAdd(u, ctx) * 100;
+  }
+  /* Toward STRONGER, whichever direction that is. A -15% ATK debuff
+     deepens to -17%; a 0.85 damage-taken multiplier drops to 0.83.
+     Sign-blind addition would make half the roster's upgrades a
+     downgrade. */
+  function upToward(base, pts) {
+    return base < 0 ? base - pts : base + pts;
   }
 
   function atkOf(u) {
@@ -471,7 +495,7 @@
           if (e.to && e.to !== 'targets') return; // redirected effects do not hit this target
           if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
           var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
-          var raw = atkOf(unit) * e.power * (ctx.scale || 1) * provokeM * upPow(unit, ctx);
+          var raw = atkOf(unit) * (e.power + upAdd(unit, ctx)) * (ctx.scale || 1) * provokeM;
           if (e.ifMult) {
             e.ifMult.forEach(function (m) {
               if (condMet(B, m.when, condCtx(ctx, tgt))) raw *= m.mult;
@@ -480,12 +504,25 @@
           if (e.perDebuff) {
             var dn = debuffCount(tgt);
             if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
-            raw += atkOf(unit) * e.perDebuff * dn * (ctx.scale || 1) * provokeM * upPow(unit, ctx);
+            raw +=
+              atkOf(unit) * (e.perDebuff + upAdd(unit, ctx)) * dn * (ctx.scale || 1) * provokeM;
           }
           if (e.perBuff) {
             var bn = buffCount(tgt);
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
-            raw += atkOf(unit) * e.perBuff * bn * (ctx.scale || 1) * provokeM * upPow(unit, ctx);
+            raw += atkOf(unit) * (e.perBuff + upAdd(unit, ctx)) * bn * (ctx.scale || 1) * provokeM;
+          }
+          /* TORTUGA (Flying Dutchman): scales with the caster's OWN
+             fallen allies - the crew he has lost. Counts corpses on his
+             side only, unlike Asgard's `fallenAtLeast` which reads
+             both. Capped for the usual reason. */
+          if (e.perFallenAlly) {
+            var fa = B.units.filter(function (x) {
+              return x.side === unit.side && !x.alive;
+            }).length;
+            if (e.perFallenAllyMax != null) fa = Math.min(fa, e.perFallenAllyMax);
+            raw +=
+              atkOf(unit) * (e.perFallenAlly + upAdd(unit, ctx)) * fa * (ctx.scale || 1) * provokeM;
           }
           var outM = outgoingMult(B, unit, tgt);
           B._multTrail = null;
@@ -506,16 +543,16 @@
              above is untouched and remains the single source of truth. */
           var st = [];
           st.push({ k: 'atk', label: 'Attack', value: atkOf(unit) });
-          st.push({ k: 'power', label: 'Skill power', mult: e.power });
-          /* The upgrade has to appear here or the working-out stops
-             adding up to the number above it. */
-          if (upPow(unit, ctx) !== 1) {
-            st.push({
-              k: 'upgrade',
-              label: 'Upgrade ' + '\u2605'.repeat(unit.upLevel || 0),
-              mult: upPow(unit, ctx),
-            });
-          }
+          /* The upgrade is FLAT, so it shows as a bigger coefficient
+             rather than a separate multiplier row - which is exactly
+             how the card now prints it. */
+          st.push({
+            k: 'power',
+            label: 'Skill power',
+            mult: e.power + upAdd(unit, ctx),
+            base: upAdd(unit, ctx) ? e.power : undefined,
+            upLevel: upAdd(unit, ctx) ? unit.upLevel : undefined,
+          });
           if (provokeM !== 1) st.push({ k: 'provoke', label: 'Provoke tax', mult: provokeM });
           if ((ctx.scale || 1) !== 1) st.push({ k: 'scale', label: 'Scaling', mult: ctx.scale });
           if (e.ifMult) {
@@ -532,7 +569,11 @@
                 k: 'perDebuff',
                 label: 'Per debuff (' + dn2 + ')',
                 add:
-                  atkOf(unit) * e.perDebuff * dn2 * (ctx.scale || 1) * provokeM * upPow(unit, ctx),
+                  atkOf(unit) *
+                  (e.perDebuff + upAdd(unit, ctx)) *
+                  dn2 *
+                  (ctx.scale || 1) *
+                  provokeM,
               });
           }
           if (e.perBuff) {
@@ -543,7 +584,7 @@
                 k: 'perBuff',
                 label: 'Per buff (' + bn2 + ')',
                 add:
-                  atkOf(unit) * e.perBuff * bn2 * (ctx.scale || 1) * provokeM * upPow(unit, ctx),
+                  atkOf(unit) * (e.perBuff + upAdd(unit, ctx)) * bn2 * (ctx.scale || 1) * provokeM,
               });
           }
           st.push({ k: 'raw', label: 'Base damage', value: raw, subtotal: true });
@@ -715,17 +756,48 @@
         if (u.side !== side) return;
         var r = table[u.card.id];
         if (!r) return;
-        var lv = Math.max(0, Math.min(3, Math.floor(+r.lv || 0)));
+        /* PER-LEVEL BOOSTS. `boosts` is one stat name per level
+           purchased, so its length is the level and each stat moves
+           by however many levels chose it - "two ATK and one HP" is
+           a real build. A payload carrying only the legacy
+           {lv, stat} is expanded to that stat repeated lv times, so
+           an older client's team still resolves identically. */
+        var boosts = [];
+        if (Array.isArray(r.boosts)) {
+          /* A null entry is a level that is BOUGHT but whose stat the
+             player has not picked yet. It must survive the copy: the
+             array's length is the level, and the level is what pays
+             the flat skill bonus. Dropping nulls here would silently
+             demote a level-3 card to level 2 the moment one of its
+             choices was left open. */
+          r.boosts.forEach(function (b) {
+            if (boosts.length < 3) {
+              boosts.push(b === 'atk' || b === 'def' || b === 'hp' ? b : null);
+            }
+          });
+        } else {
+          var lv0 = Math.max(0, Math.min(3, Math.floor(+r.lv || 0)));
+          var st = r.stat === 'def' || r.stat === 'hp' ? r.stat : 'atk';
+          for (var i = 0; i < lv0; i++) boosts.push(st);
+        }
+        var lv = boosts.length;
         if (!lv) return;
+        var n = { atk: 0, def: 0, hp: 0 };
+        boosts.forEach(function (b) {
+          if (b) n[b]++; // an unassigned level moves no stat
+        });
         u.upLevel = lv;
-        u.upStat = r.stat === 'def' || r.stat === 'hp' ? r.stat : 'atk';
+        u.upBoosts = boosts.slice();
+        /* One word for the build, for anything that wants a label.
+           The maths below never reads it. */
+        u.upStat = n.hp > n.atk && n.hp >= n.def ? 'hp' : n.def > n.atk && n.def >= n.hp ? 'def' : 'atk';
         u.upPower = Math.pow(1.015, lv);
-        var m = 1 + 0.02 * lv;
-        if (u.upStat === 'atk') u.baseAtk = Math.round(u.baseAtk * m);
-        else if (u.upStat === 'hp') {
-          u.maxHp = Math.round(u.maxHp * m);
+        if (n.atk) u.baseAtk = Math.round(u.baseAtk * (1 + 0.02 * n.atk));
+        if (n.hp) {
+          u.maxHp = Math.round(u.maxHp * (1 + 0.02 * n.hp));
           u.hp = u.maxHp;
-        } else if (u.upStat === 'def') {
+        }
+        if (n.def) {
           /* DEF is NOT a scalable stat - it is a percentage-point
              damage reducer clamped to 0..75, and the roster only
              spans 10..30. Multiplying it by 1.02 rounds straight back
@@ -733,7 +805,7 @@
              nothing. It gets FLAT POINTS instead, sized so its value
              matches the other two: +1.5 points per level is +5.3% to
              +6.9% effective HP at max, against +6% for the HP choice. */
-          u.baseDef = u.baseDef + 1.5 * lv;
+          u.baseDef = u.baseDef + 1.5 * n.def;
         }
       });
     }
@@ -838,6 +910,16 @@
       hp: u.hp,
       baseAtk: u.baseAtk,
       baseDef: u.baseDef,
+      /* CARD UPGRADES must survive cloning. The stat share is already
+         folded into baseAtk/baseDef/maxHp above, but `upPower` is read
+         live at every effect site - without it the AI's lookahead
+         evaluated an upgraded signature at STOCK power and quietly
+         undervalued its own best move. (Pre-existing; found while
+         adding per-level boosts 2026-08-16.) */
+      upLevel: u.upLevel,
+      upStat: u.upStat,
+      upBoosts: u.upBoosts,
+      upPower: u.upPower,
       shield: u.shield,
       shieldSrc: u.shieldSrc,
       alive: u.alive,
@@ -1561,6 +1643,26 @@
     if (cond.targetHasDebuff != null) {
       pass = list.length > 0 && hasDebuff(list[0]) === !!cond.targetHasDebuff;
     }
+    /* JOTUNHEIM: the fallen count, readable from a branch.
+       -------------------------------------------------------------
+       branchPasses() is a HAND-MAINTAINED subset of condMet(), and an
+       unknown key does not fail closed - it leaves `pass` at its
+       default of true. Odin's `fallenAtLeast: 3` therefore fired the
+       bonus arm from round one, and Shiva's `targetMarked` (a real
+       condMet key, but not one branchPasses knows) did the same.
+
+       Both were silent: the card did MORE than its text, which no
+       assertion was looking for. Delegating unknown keys to condMet
+       would be the deeper fix, but the two functions deliberately
+       differ - branchPasses reasons about a target LIST where condMet
+       reasons about one target - so the honest repair is to teach it
+       the keys the roster actually uses, and to have
+       sim/verify_chapter2.js prove each branch flips. */
+    if (cond.fallenAtLeast != null) pass = (B.deathSeq || 0) >= cond.fallenAtLeast;
+    if (cond.fallenBelow != null) pass = (B.deathSeq || 0) < cond.fallenBelow;
+    if (cond.targetMarked != null) {
+      pass = list.length > 0 && list[0].flags.marked > 0 === !!cond.targetMarked;
+    }
     if (cond.selfShielded) pass = src.shield > 0;
     if (cond.targetShielded != null) {
       pass = list.length > 0 && list[0].shield > 0 === !!cond.targetShielded;
@@ -1704,6 +1806,16 @@
     if (cond.targetTaunting != null) {
       if (!tgt || tgt.flags.taunt > 0 !== !!cond.targetTaunting) return false;
     }
+    /* ACHAEA: the caster's own HP. `targetHpBelow` reads the victim,
+       which is the wrong end for a passive that asks "am I hurt?" -
+       Achilles' rage triggers on HIS wound, not his attacker's. Reads
+       live HP because a passive has no pre-cast snapshot. */
+    if (cond.selfHpBelow != null) {
+      if (!ctx.self || ctx.self.hp / ctx.self.maxHp >= cond.selfHpBelow) return false;
+    }
+    if (cond.selfHpAbove != null) {
+      if (!ctx.self || ctx.self.hp / ctx.self.maxHp <= cond.selfHpAbove) return false;
+    }
     if (cond.selfShielded) {
       if (!ctx.self || ctx.self.shield <= 0) return false;
     }
@@ -1748,6 +1860,23 @@
     }
     if (cond.drainedEnergyAbove != null) {
       if ((ctx.drainedEnergy || 0) < cond.drainedEnergyAbove) return false;
+    }
+    /* JOTUNHEIM: how many legends have FALLEN so far, counting both
+       sides. `deathSeq` is the engine's existing monotonic death counter
+       (incremented in handleDeath) - this condition only reads it, so
+       Ragnarok needs no new state, no new status and nothing to
+       serialize. Deliberately counts BOTH teams: the Norse read the end
+       of the world approaching, not their own casualties, and a card
+       that only counted your own losses would reward losing. */
+    if (cond.fallenAtLeast != null) {
+      if ((B.deathSeq || 0) < cond.fallenAtLeast) return false;
+    }
+    /* The complement, so a static passive can express "while fewer than
+       N have fallen" without needing an `unless` keyword (Fenrir's
+       chains). Strictly below, so fallenBelow:3 and fallenAtLeast:3
+       partition the space with no overlap and no gap. */
+    if (cond.fallenBelow != null) {
+      if ((B.deathSeq || 0) >= cond.fallenBelow) return false;
     }
     return true;
   }
@@ -1854,7 +1983,13 @@
     if (p && hasTrig(p, 'static')) {
       (p.effects || []).forEach(function (e) {
         if (e.k !== 'outgoingMult') return;
-        if (condMet(B, e.when, { target: target, self: attacker })) m *= e.mult;
+        /* A PASSIVE IS THE CARD'S SIGNATURE. Robin Hood's 1.12 becomes
+           1.18 at max level - the same flat +2 points per level every
+           other signature number gets. Passives have no cast context,
+           so the bonus is read straight off the owner. */
+        if (condMet(B, e.when, { target: target, self: attacker })) {
+          m *= upToward(e.mult - 1, upPts(attacker, null) / 100) + 1;
+        }
       });
     }
     return m;
@@ -1893,6 +2028,10 @@
            every energy level, not just at 50+. */
         if (e.when && !condMet(B, e.when, { self: u, attacker: attacker, defender: defender }))
           return;
+        /* The passive's owner upgrades their own defensive multiplier.
+           These are reductions (<1), so stronger means FURTHER from 1:
+           Athena's 0.85 becomes 0.79 at max, Benkei's 0.85 likewise. */
+        var eMult = e.mult < 1 ? Math.max(0, e.mult - upPts(u, null) / 100) : e.mult;
         var applied = false;
         if (e.firstPerRound) {
           // only signature Skills, and only the first one each round
@@ -1901,21 +2040,21 @@
           /* A preview must not spend the charge - it only reports what
              WOULD happen. Only a real hit consumes it. */
           if (!dryRun) u.roundFlags.athenaFirst = true;
-          m *= e.mult;
+          m *= eMult;
           applied = true;
           logMsg(B, 'passive', u.name + "'s Divine Strategy blunts the attack.", { uid: u.uid });
         } else if (e.ifAttackerMarked) {
           if (!(attacker.flags.marked > 0)) return;
-          m *= e.mult;
+          m *= eMult;
           applied = true;
         } else {
-          m *= e.mult;
+          m *= eMult;
           applied = true;
         }
         if (applied) {
           // statistics: remember who blunted this blow so dealDamage can
           // credit the damage it prevented
-          (B._multTrail = B._multTrail || []).push({ owner: u.uid, mult: e.mult });
+          (B._multTrail = B._multTrail || []).push({ owner: u.uid, mult: eMult });
           emit(B, {
             t: 'proc',
             owner: u.uid,
@@ -1953,6 +2092,43 @@
        kills them honestly. */
     if (tgt.flags.taunt > 0 && tgt.flags.tauntHeal) {
       healUnit(B, tgt, tgt, tgt.maxHp * (tgt.flags.tauntHeal / 100));
+    }
+
+    /* Poseidon's Lord of the Shoreline. The attacker is Marked for
+       having attacked the provoking tank.
+
+       WHY IT IS GATED ON `src.alive` AND A LIVE ENEMY: dealDamage also
+       runs for counter-strikes and reflected damage, where `src` can be
+       the dying unit that just swung. Marking a corpse is invisible but
+       it pollutes the marked-count that Zeus and Athena read.
+
+       WHY IT DOES NOT RE-MARK: the mark case in applyEffects treats an
+       already-marked target as a no-op, so this matches it rather than
+       silently refreshing - Marks have no duration and re-marking is
+       meaningless.
+
+       WHY IT IS HERE AND NOT IN A PASSIVE TRIGGER: `selfAttacked` fires
+       for the unit being attacked, which is the tank, and the effect
+       needs to land on the ATTACKER. Doing it inline keeps it in the
+       same place as the damage that earned it. */
+    if (tgt.flags.taunt > 0 && tgt.flags.tauntMark && src && src.alive && src.side !== tgt.side) {
+      if (!src.flags.marked) {
+        src.flags.marked = 1;
+        logMsg(B, 'mark', src.name + ' is marked.', {
+          uid: src.uid,
+          status: 'marked',
+          signature: true,
+        });
+        emit(B, {
+          t: 'statusApply',
+          status: 'marked',
+          src: tgt.uid,
+          tgt: src.uid,
+          turns: null,
+          signature: true,
+          round: B.round,
+        });
+      }
     }
 
     /* Guan Yu: whether the target was Shielded at the moment the attack
@@ -2356,6 +2532,7 @@
     u.flags.taunt = 0;
     u.flags.tauntHeal = null;
     u.flags.tauntShield = null;
+    u.flags.tauntMark = null;
     u.flags.counterTurns = 0;
     u.flags.counterPow = 0;
     u.flags.counterPowMarked = 0;
@@ -2888,7 +3065,10 @@
              rather than per cast so an AoE prices the provoker (full)
              and the rest of the board (taxed) in the same swing. */
           var provokeM = ctx.provokeTax && !(t.flags.taunt > 0) ? ctx.provokeTax : 1;
-          var power = e.power * (ctx.scale || 1) * provokeM * upPow(src, ctx);
+          /* FLAT upgrade: +2 points of the printed coefficient per
+             level, added BEFORE scale/provoke so a 70% skill that
+             reads 76% at max really lands 76% of ATK. */
+          var power = (e.power + upAdd(src, ctx)) * (ctx.scale || 1) * provokeM;
           var raw = atkOf(src) * power;
           if (e.ifMult) {
             e.ifMult.forEach(function (m) {
@@ -2901,12 +3081,24 @@
           if (e.perDebuff) {
             var dn = debuffCount(t);
             if (e.perDebuffMax != null) dn = Math.min(dn, e.perDebuffMax);
-            raw += atkOf(src) * e.perDebuff * dn * (ctx.scale || 1) * provokeM * upPow(src, ctx);
+            raw +=
+              atkOf(src) * (e.perDebuff + upAdd(src, ctx)) * dn * (ctx.scale || 1) * provokeM;
           }
           if (e.perBuff) {
             var bn = buffCount(t);
             if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
-            raw += atkOf(src) * e.perBuff * bn * (ctx.scale || 1) * provokeM * upPow(src, ctx);
+            raw += atkOf(src) * (e.perBuff + upAdd(src, ctx)) * bn * (ctx.scale || 1) * provokeM;
+          }
+          /* TORTUGA (Flying Dutchman) - live counterpart of the same
+             term in previewDamage. Both sites must stay in step or the
+             preview lies about the number the player is about to deal. */
+          if (e.perFallenAlly) {
+            var fa2 = B.units.filter(function (x) {
+              return x.side === src.side && !x.alive;
+            }).length;
+            if (e.perFallenAllyMax != null) fa2 = Math.min(fa2, e.perFallenAllyMax);
+            raw +=
+              atkOf(src) * (e.perFallenAlly + upAdd(src, ctx)) * fa2 * (ctx.scale || 1) * provokeM;
           }
           /* Only a SIGNATURE spends a Mark - ctx.signature rides in from
              useAbility (`!ability.basic`). This used to pass a flat true,
@@ -2959,15 +3151,26 @@
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var amt =
-            (e.pctMaxHp != null ? t.maxHp * (e.pctMaxHp / 100) : atkOf(src) * (e.power || 1)) *
-            upPow(src, ctx);
+            e.pctMaxHp != null
+              ? t.maxHp * ((e.pctMaxHp + upPts(src, ctx)) / 100)
+              : atkOf(src) * ((e.power || 1) + upAdd(src, ctx));
           /* Cinderella (Glass Slipper): an extra slice of Max HP for
              every debuff this cast has already cleansed from THIS
              target, recorded on ctx by the cleanse case. The two heal
              lines stay separate in the log so the bonus reads as its
              own number. */
           if (e.perCleansed && ctx.cleansed && ctx.cleansed[t.uid])
-            amt += t.maxHp * (e.perCleansed / 100) * ctx.cleansed[t.uid];
+            amt += t.maxHp * ((e.perCleansed + upPts(src, ctx)) / 100) * ctx.cleansed[t.uid];
+          /* JOTUNHEIM (Freyja): a slice of Max HP for every legend that
+             has fallen on either side. Same shape as perCleansed, and
+             CAPPED by perFallenMax for the same reason maxStacks exists -
+             an uncapped per-death scalar becomes a full heal in a long
+             game. */
+          if (e.perFallen) {
+            var fallenN = B.deathSeq || 0;
+            if (e.perFallenMax != null) fallenN = Math.min(fallenN, e.perFallenMax);
+            amt += t.maxHp * ((e.perFallen + upPts(src, ctx)) / 100) * fallenN;
+          }
           healUnit(B, src, t, amt * (ctx.scale || 1), {
             overflowShield: e.overflow === 'shield',
             signature: !!ctx.signature,
@@ -3006,7 +3209,7 @@
           }
         }
         if (lsQualifies && ctx.lastDamage) {
-          healUnit(B, src, src, ctx.lastDamage * (e.pct / 100));
+          healUnit(B, src, src, ctx.lastDamage * ((e.pct + upPts(src, ctx)) / 100));
         }
         break;
       }
@@ -3014,7 +3217,12 @@
       case 'stat': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          var amt = e.amt * (ctx.scale || 1);
+          /* A SIGNATURE's own stat swing grows with the card's level -
+             flat points, toward stronger. Hercules's +20% ATK reads
+             +26% at max, and Morgan's -30% ATK debuff deepens to -36%.
+             Without this, fourteen legends whose whole skill IS a stat
+             swing gained nothing at all from an upgrade. */
+          var amt = upToward(e.amt, upPts(src, ctx)) * (ctx.scale || 1);
           var ok = addBuff(
             B,
             t,
@@ -3073,7 +3281,7 @@
           }
           var amt = addShieldCapped(
             t,
-            t.maxHp * (e.pctMaxHp / 100) * (ctx.scale || 1) * upPow(src, ctx)
+            t.maxHp * ((e.pctMaxHp + upPts(src, ctx)) / 100) * (ctx.scale || 1)
           );
           if (amt <= 0) return;
           t.shieldSrc = src.uid; // last granter is credited for absorbs
@@ -3101,13 +3309,25 @@
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           // taunt always runs to the end of your next turn, minimum
           t.flags.taunt = Math.max(e.turns || 1, 1);
+          /* Both riders bake in the caster's level at ARM time - they
+             pay out later, with no cast context left to read. */
           // Hercules: queue a shield for when the taunt drops
           if (e.shieldOnEnd) {
-            t.flags.tauntShield = e.shieldOnEnd;
+            t.flags.tauntShield = e.shieldOnEnd + upPts(src, ctx);
           }
           // Hansel & Gretel: heal each time they're struck while provoking
           if (e.healOnHit) {
-            t.flags.tauntHeal = e.healOnHit;
+            t.flags.tauntHeal = e.healOnHit + upPts(src, ctx);
+          }
+          /* Poseidon: Mark whoever attacks him while the Provoke stands.
+             Stored as a FLAG rather than resolved here because the
+             attackers are not known at cast time - the whole point of
+             the card is that the enemy chooses who walks into it. Read
+             in dealDamage next to the tauntHeal rider, which is the
+             other "something happens when this taunting unit is hit"
+             hook, so the two stay adjacent and get found together. */
+          if (e.markAttacker) {
+            t.flags.tauntMark = 1;
           }
           logMsg(B, 'buff', t.name + ' taunts the enemy.', {
             uid: t.uid,
@@ -3592,8 +3812,13 @@
       case 'counterStrike': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
-          t.flags.counterPow = e.power;
-          t.flags.counterPowMarked = e.markedPower != null ? e.markedPower : e.power;
+          /* Baked in at ARM time from the caster's level: Guan Yu and
+             Little John arm the counter, so it is their upgrade that
+             pays for it, and the swing itself happens later with no
+             cast context to read. */
+          var cUp = upAdd(src, ctx);
+          t.flags.counterPow = e.power + cUp;
+          t.flags.counterPowMarked = (e.markedPower != null ? e.markedPower : e.power) + cUp;
           t.flags.counterTurns = e.turns || 1;
           if (e.src === 'caster') t.flags.counterSrc = src.uid;
           else delete t.flags.counterSrc;
@@ -3630,8 +3855,18 @@
       case 'revive': {
         list.forEach(function (t) {
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          /* THE LOCKER HOLDS. Davy Jones's condemnation refuses every
+             revive in the game - Isis, Medea, Osiris, Sun Wukong's
+             death-cheat. Checked here, at the single revive site, so no
+             future revive card can accidentally bypass it. */
+          if (t.flags && t.flags.noRevive) {
+            logMsg(B, 'debuff', t.name + ' cannot return - the Locker holds them.', {
+              uid: t.uid,
+            });
+            return;
+          }
           t.alive = true;
-          t.hp = Math.round(t.maxHp * (e.pctMaxHp / 100));
+          t.hp = Math.round(t.maxHp * ((e.pctMaxHp + upPts(src, ctx)) / 100));
           /* Generic `wipe` rider: a legend who comes back should come back
              CLEAN. Without it a revive inherited whatever killed it -
              Burn kept ticking, Exposed kept DEF at zero, and a stacked
@@ -3663,7 +3898,7 @@
           if (e.shieldPctMaxHp) {
             var sh = addShieldCapped(
               t,
-              t.maxHp * (e.shieldPctMaxHp / 100) * (ctx.scale || 1)
+              t.maxHp * ((e.shieldPctMaxHp + upPts(src, ctx)) / 100) * (ctx.scale || 1)
             );
             if (sh > 0) {
               t.shieldSrc = src.uid;
@@ -3684,6 +3919,65 @@
             }
           }
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
+        });
+        break;
+      }
+
+      /* GENESIS: Gabriel accelerates every sealed fate on the board,
+         Raphael cancels the ones aimed at his ally. Both reach into the
+         SAME per-unit `pending` queue that `delayed` writes (Zeus's
+         thunderbolt, Abe no Seimei's shikigami, Azrael's hour), so they
+         work on any faction's delayed effects rather than only their
+         own - the cross-faction hand-off the guidelines ask for.
+
+         Neither is a new mechanic: they are queue maintenance on a
+         structure that already exists, already serializes and already
+         survives cloneBattle. */
+      case 'hastenDelayed': {
+        var hastenBy = e.turns || 1;
+        var hastened = 0;
+        B.units.forEach(function (u) {
+          (u.pending || []).forEach(function (p) {
+            if (p.turns > 1) {
+              p.turns = Math.max(1, p.turns - hastenBy);
+              hastened++;
+            }
+          });
+        });
+        if (hastened) {
+          logMsg(B, 'mark', 'What was sealed draws nearer - ' + hastened + ' fates hasten.', {});
+        }
+        break;
+      }
+
+      case 'cancelDelayed': {
+        var cancelled = 0;
+        list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          cancelled += (t.pending || []).length;
+          t.pending = [];
+        });
+        if (cancelled) {
+          logMsg(B, 'cleanse', 'A sealed fate is undone.', {});
+        }
+        break;
+      }
+
+      /* TORTUGA (Davy Jones): condemn a legend so that nothing can
+         bring them back. Not a new mechanic - the engine already has
+         two revive gates (`spiritSpared`, `deathCheated`); this is a
+         third, set by an ability instead of by a passive. Stored on the
+         unit so it survives serialization and cloneBattle like any
+         other flag. */
+      case 'noRevive': {
+        list.forEach(function (t) {
+          if (!condMet(B, e.if, condCtx(ctx, t))) return;
+          t.flags.noRevive = 1;
+          logMsg(B, 'debuff', t.name + ' is claimed by the Locker.', {
+            uid: t.uid,
+            status: 'norevive',
+            signature: !!ctx.signature,
+          });
         });
         break;
       }
@@ -3835,7 +4129,12 @@
         var sub = copied.spec;
         var subTargets = resolveTargets(B, src, copied, autoPick(B, src, copied));
         var subCtx = {
-          scale: (ctx.scale || 1) * (e.scale || 1),
+          /* Kaguya's own level pays for the copy: her whole signature IS
+             the copy, so without this she is the one card whose upgrade
+             buys nothing. The copied skill's effects then resolve with
+             HER level, not the original owner's - `signature` stays
+             true and `src` is Kaguya throughout. */
+          scale: (ctx.scale || 1) * ((e.scale || 1) + upAdd(src, ctx)),
           killedSomething: ctx.killedSomething,
         };
         var eff = sub.effects || (sub.choose && sub.choose[0].effects) || [];
@@ -4289,10 +4588,25 @@
           delete u.flags.counterSrc;
         }
       });
+      /* STALE RIDER SWEEP. The riders below are all gated on
+         `flags.taunt > 0` at read time, so a leftover flag cannot
+         change a damage number - but it CAN outlive its Provoke when
+         the Provoke ends by a path other than this countdown (a
+         cleanse, a death-and-revive, anything that zeroes the flag
+         directly). Clearing them here means "no Provoke" and "no
+         Provoke riders" are always the same state, so a future reader
+         that forgets the taunt>0 guard cannot resurrect a dead rider.
+         Found by the Poseidon regression test, which zeroed the taunt
+         directly and then asserted the rider was gone. */
+      if (!(u.flags.taunt > 0)) {
+        u.flags.tauntHeal = null;
+        u.flags.tauntMark = null;
+      }
       if (u.flags.taunt > 0) {
         u.flags.taunt -= 1;
         // Hercules: a shield forms as the taunt drops
         if (u.flags.taunt <= 0) u.flags.tauntHeal = null;
+        if (u.flags.taunt <= 0) u.flags.tauntMark = null;
         if (u.flags.taunt <= 0 && u.flags.tauntShield) {
           var shieldPct = u.flags.tauntShield;
           /* Expiry riders belong to the living unit that armed them.
@@ -4473,6 +4787,30 @@
         applyEffects(B, u, [u], pick.effects, { immediate: true, fieldBuff: true });
       });
     }
+
+    /* GEHENNA (Greed): the `roundStart` passive trigger. Fires once per
+       legend per round rollover, AFTER the round's energy grant so a
+       tax lands on the topped-up pool rather than being overwritten by
+       it, and after field relics so it cannot be undone by them.
+
+       Deliberately placed inside nextRound rather than in battle.js:
+       energy is engine state, and a passive that only fired in the UI
+       layer would desync the AI's search and the mirror check. Round 1
+       never passes through nextRound, so a roundStart passive correctly
+       starts paying from round 2 - the same rule the energy grant
+       itself follows. */
+    boardOrder(B).forEach(function (u) {
+      var rp = passiveOf(u);
+      if (!hasTrig(rp, 'roundStart')) return;
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'roundStart',
+        round: B.round,
+      });
+      applyEffects(B, u, [u], rp.effects, { trigger: 'roundStart', immediate: true });
+    });
 
     logMsg(B, 'round', 'Round ' + B.round + ' - Energy restored to ' + e + '.', {});
     if (B.round === RAMP_FROM) {

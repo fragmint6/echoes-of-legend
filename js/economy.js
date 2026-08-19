@@ -318,13 +318,62 @@
     return added;
   }
 
-  /* what the shop may ever sell: everything except Huaxia (held for
-     Chapter 2). Deliberately NOT progression-gated - the Road's fog
-     protects its reveals in the LEDGER; the shop just sells cards. */
+  /* THE CHAPTER II SHELF. Huaxia was already held back for Chapter 2;
+     the seven factions added on 2026-08-17 are the rest of that
+     chapter's roster and are held on exactly the same terms. Shipping
+     them into the shop the moment they exist would spend the chapter's
+     whole reveal before its Road is built - and would also flood the
+     pack pool, halving the odds of pulling any specific older legend.
+
+     Deliberately NOT progression-gated: the Road's fog protects its
+     reveals in the LEDGER; the shop simply does not stock these yet.
+     One list, so unlocking the chapter is a one-line change. */
+  /* THE WITHHELD SHELF - CHAPTER I ONLY (owner ruling 2026-08-18b).
+     -------------------------------------------------------------
+     "Right now keep the shop as is with the pack pool containing just
+     chapter 1 cards."
+
+     THE HISTORY, because this list has now flipped twice and the next
+     reader deserves to know why rather than guessing:
+
+       - originally all eight Chapter II factions sat here, held back
+         because their Road did not exist yet;
+       - on 2026-08-18 they were released into packs, on the reasoning
+         that only the LEGENDARIES needed to stay campaign-only;
+       - that is now reverted. The measured consequence is the reason:
+         releasing them took the packable pool from 35 to 80 cards, so
+         the odds of pulling any specific Chapter I legend fell by more
+         than half - for players who have not seen a line of Chapter II
+         and did not ask for it. Chapter II is still design-only (no
+         data/campaign-ch2.js exists), so those cards were diluting a
+         live economy to pay for content nobody can play yet.
+
+     So the shelf is closed again and the rule is simple: THE SHOP
+     SELLS CHAPTER I. A faction leaves this list when its chapter is
+     playable, not when its cards happen to exist.
+
+     Huaxia is on the list for its own older reason as well - it is a
+     story reveal - but it no longer needs a special case, because the
+     whole chapter is withheld.
+
+     `obtainableEntries` is the "what may ever be sold" list AND the
+     denominator of the collection counter, so a withheld faction also
+     drops out of "N / M legends collected" - which is correct: a
+     player cannot be asked to complete a shelf that is not stocked. */
+  var WITHHELD = [
+    'huaxia',
+    'asgard',
+    'hemithea',
+    'pandemonium',
+    'devas',
+    'genesis',
+    'transylvania',
+    'tortuga',
+  ];
   function obtainableEntries() {
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if (f.id === 'huaxia') return;
+      if (WITHHELD.indexOf(f.id) >= 0) return;
       f.cards.forEach(function (c) {
         out.push({ card: c, faction: f });
       });

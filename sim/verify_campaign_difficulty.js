@@ -29,7 +29,7 @@ window.EOL = {};
 
 require('../data/_schema.js');
 require('../data/roles.js');
-['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'takamagahara', 'yamato'].forEach(
+['camelot', 'duat', 'grimmwood', 'huaxia', 'olympus', 'roma', 'sherwood', 'kami', 'yamato'].forEach(
   (id) => require('../data/' + id + '.js')
 );
 require('../data/battlefields.js');
@@ -98,14 +98,39 @@ const introduced = {
   4: 'olympus',
   6: 'yamato',
   7: 'roma',
-  8: 'takamagahara',
+  8: 'kami',
   10: 'duat',
 };
+/* REPLACED 2026-08-18d. Heroic used to roll a RANDOM epic from the
+   gate's faction; it now hands over the SECOND LEGEND THE EPILOGUE
+   NAMES, pinned in data as `grants.companion`.
+
+   The old assertion is inverted rather than deleted, because the change
+   is a ruling and not a refactor: every gate epilogue names two echoes
+   ("King Arthur and Lancelot join your echoes") and the code granted
+   one, so the script was lying at seven gates. The random epic was the
+   natural slot for the second name - it was already a second card, it
+   was already faction-locked, and nobody could plan around the
+   randomness anyway.
+
+   Two things are asserted: the companion is what Heroic pays, and the
+   random-epic path is GONE for those gates (epicFaction must be unset,
+   or a gate would quietly pay three cards). */
 ok(
-  Object.keys(introduced).every(
-    (id) => C.rewardFor(stages[+id - 1], 'heroic').epicFaction === introduced[id]
-  ),
-  'every non-elite Heroic gate awards a random Epic from its introduced faction'
+  Object.keys(introduced).every((id) => {
+    const stage = stages[+id - 1];
+    const reward = C.rewardFor(stage, 'heroic');
+    const companion = (stage.grants || {}).companion;
+    return companion ? reward.companion === companion && !reward.epicFaction : true;
+  }),
+  'every non-elite Heroic gate awards the second legend its epilogue names'
+);
+ok(
+  Object.keys(introduced).every((id) => {
+    const stage = stages[+id - 1];
+    return !(stage.grants || {}).companion || !C.rewardFor(stage, 'heroic').epicFaction;
+  }),
+  'the old random-Epic roll no longer fires alongside the named companion'
 );
 
 const heroicFive = C.rewardFor(stages[4], 'heroic').choice;
@@ -121,7 +146,7 @@ ok(
   heroicNine.factions.length === 7 &&
     heroicNine.factions.includes('yamato') &&
     heroicNine.factions.includes('roma') &&
-    heroicNine.factions.includes('takamagahara'),
+    heroicNine.factions.includes('kami'),
   'Heroic Last Guardian includes every faction introduced before Gate IX'
 );
 

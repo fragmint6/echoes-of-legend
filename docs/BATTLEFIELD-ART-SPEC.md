@@ -6,6 +6,32 @@ one game, so the shared rules there apply here unless overridden below.
 
 Status: **all 10 regenerated at 2560x1440 PNG** (2026-08-08 unification pass).
 
+> **2026-08-18e.** A second CHAPTER PLATE backdrop joined the set:
+> `assets/chapter-2/cw-bg.png`, the Concord - a tournament city that
+> exists for one week. It is not a battlefield (no cards sit on it), but
+> it follows this document rather than the portrait spec because it is
+> scenery at the same scale, and it was anchored on
+> `assets/chapter-1/cw-bg.png` so the two chapter plates read as one
+> game: same hard 1px outlines, dithered sky bands, flat fills, dark
+> muted palette, one warm light source (a clerk's lantern, echoing
+> Chapter I's roadside lantern). Generated at 1376x768, centre-cropped
+> to 16:9 and NEAREST-upscaled to 2560x1440, 1.88 MB - inside the
+> 1.7-2.5 MB band below.
+>
+> **Replaced 2026-08-18f** with a far more detailed version at the
+> owner's request: the amphitheatre now glows from within, the scaffolds
+> and pavilions layer into five depth planes, the flagstones are cracked
+> and puddled, and loose parchment drifts in the air. Measured against
+> the first attempt: hard edges 0.120 -> 0.277 (more than twice the
+> detail density) and mean luminance 0.386 -> 0.277 (darker, so the
+> stage cards stay the brightest thing on screen). 2.2 MB.
+>
+> The first attempt's numbers, kept for the record: flat runs 0.611
+> vs 0.659, hard edges 0.225 vs 0.163, mean luminance 0.385 vs 0.336,
+> centre-band brightness within 0.03. Close enough on every axis that
+> the two plates sit side by side without one looking like a different
+> renderer.
+
 > **2026-08-08 unification.** The 2026-08-06 boards mixed several art
 > styles. All ten were regenerated in ONE style, anchored on the two
 > canonical backdrops - `assets/menu/menu-bg.png` and

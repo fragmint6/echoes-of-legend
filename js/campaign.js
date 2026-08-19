@@ -20,8 +20,83 @@
   'use strict';
 
   window.EOL = window.EOL || {};
-  var STORY = window.EOL.campaignCh1 || {};
-  var PROGRESS_KEY = 'eol.campaign.ch1.progress';
+
+  /* ---------------------------------------------------------
+     CHAPTER SELECTION (2026-08-18e)
+     -------------------------------------------------------------
+     This module used to be hard-bound to Chapter I through two
+     constants. Chapter II ships the same shape - ten stages, the same
+     stage schema, the same grant vocabulary - so rather than fork the
+     file, the two constants became a lookup and everything downstream
+     reads through `STORY`.
+
+     WHY A SEPARATE PROGRESS KEY PER CHAPTER, and not one blob: a player
+     part-way through Chapter I who opens Chapter II must not have their
+     Road reset, and clearing gate XI must not mark gate I complete. The
+     keys are independent saves; the WALLET and the COLLECTION are
+     global and shared, which is correct - coins and cards belong to the
+     player, progress belongs to the chapter.
+
+     `activeChapter()` is read fresh rather than cached, because the
+     chapter can change between clicks without a reload. --------- */
+  var CHAPTERS = {
+    1: {
+      id: 1,
+      story: function () {
+        return window.EOL.campaignCh1 || {};
+      },
+      progressKey: 'eol.campaign.ch1.progress',
+      label: 'Chapter 1',
+      firstStage: 1,
+      lastStage: 10,
+      /* Faction introduction order, used by the reward/choice code and
+         by the progression audits. */
+      stageFactions: {
+        1: 'grimmwood',
+        2: 'camelot',
+        3: 'sherwood',
+        4: 'olympus',
+        6: 'yamato',
+        7: 'roma',
+        8: 'kami',
+        10: 'duat',
+      },
+      eliteStages: { 5: true, 9: true },
+    },
+    2: {
+      id: 2,
+      story: function () {
+        return window.EOL.campaignCh2 || {};
+      },
+      progressKey: 'eol.campaign.ch2.progress',
+      label: 'Chapter 2',
+      firstStage: 11,
+      lastStage: 20,
+      /* Chapter II opens on the FULL Chapter I shelf, so its own
+         introductions are the eight Chapter II factions. The exams
+         (XV, XIX) introduce nothing, exactly as V and IX do. */
+      stageFactions: {
+        11: 'hemithea',
+        12: 'huaxia',
+        13: 'genesis',
+        14: 'transylvania',
+        16: 'asgard',
+        17: 'devas',
+        18: 'tortuga',
+        20: 'pandemonium',
+      },
+      eliteStages: { 15: true, 19: true },
+    },
+  };
+  var activeChapterId = 1;
+  function chapter() {
+    return CHAPTERS[activeChapterId] || CHAPTERS[1];
+  }
+  /* STORY is a live getter in everything but name: every read below
+     goes through storyOf(), so switching chapters needs no re-init. */
+  function storyOf() {
+    return chapter().story();
+  }
   var SAVE_VERSION = 3;
   var DIFFICULTIES = {
     /* THE NOTE IS SPLIT IN TWO. `mult` is the rival stat multiplier and
@@ -53,17 +128,16 @@
       note: 'rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
     },
   };
-  var STAGE_FACTIONS = {
-    1: 'grimmwood',
-    2: 'camelot',
-    3: 'sherwood',
-    4: 'olympus',
-    6: 'yamato',
-    7: 'roma',
-    8: 'takamagahara',
-    10: 'duat',
-  };
-  var ELITE_STAGES = { 5: true, 9: true };
+  /* Chapter-relative now; the tables live on the chapter record above.
+     Read through these two shims so every existing call site keeps
+     working and cannot accidentally read Chapter I's map while Chapter
+     II is open. */
+  function stageFactions() {
+    return chapter().stageFactions || {};
+  }
+  function eliteStages() {
+    return chapter().eliteStages || {};
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -74,15 +148,33 @@
   function two(n) {
     return n < 10 ? '0' + n : String(n);
   }
-  var ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  /* Extended to XX for Chapter II, whose gates are numbered XI..XX so
+     the Road reads as one continuous journey. Index 0 stays empty so
+     ROMAN[stage.id] works directly. */
+  var ROMAN = [
+    '',
+    'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+    'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
+  ];
 
   function stageById(id) {
-    var list = STORY.stages || [];
+    var list = storyOf().stages || [];
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
   function stageLabel(stage) {
     return 'Stage ' + stage.id + ' - ' + stage.format;
+  }
+  /* Look a card up in the live roster. Used by the companion reveal,
+     which has to print the card's REAL rarity rather than assume one. */
+  function cardById(id) {
+    var found = null;
+    (window.EOL.factions || []).forEach(function (f) {
+      f.cards.forEach(function (c) {
+        if (c.id === id) found = c;
+      });
+    });
+    return found;
   }
   function fieldById(id) {
     return (id && window.EOL.battlefieldById && window.EOL.battlefieldById(id)) || null;
@@ -105,8 +197,9 @@
         CARD_DICT[c.id] = { card: c, faction: f };
       });
     });
-    if (STORY.bossCard && STORY.bossFaction) {
-      CARD_DICT[STORY.bossCard.id] = { card: STORY.bossCard, faction: STORY.bossFaction };
+    var story = storyOf();
+    if (story.bossCard && story.bossFaction) {
+      CARD_DICT[story.bossCard.id] = { card: story.bossCard, faction: story.bossFaction };
     }
     return CARD_DICT;
   }
@@ -165,7 +258,7 @@
     });
     var replacements = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if (f.id === 'huaxia' || f.id === 'duat') return;
+      if (excludedFromChapter1(f)) return;
       f.cards.forEach(function (c) {
         if (c.rarity !== 'legendary' && !used[c.id]) replacements.push({ card: c, faction: f });
       });
@@ -180,6 +273,29 @@
     });
   }
 
+  /* FACTIONS CHAPTER I NEVER DRAFTS.
+     Huaxia and Duat were already excluded - Huaxia is held for
+     Chapter 2 and Duat is the chapter's own reveal. The seven
+     factions added 2026-08-17 belong to Chapter 2 as well, so the
+     Road must not hand them out as draft filler: a Gate III pool
+     offering Lucifer would spoil a chapter that has not been written
+     yet, and would also drown the authored Chapter I rivals in
+     legends the difficulty was never tuned against. */
+  var NOT_IN_CHAPTER_1 = [
+    'huaxia',
+    'duat',
+    'asgard',
+    'hemithea',
+    'pandemonium',
+    'devas',
+    'genesis',
+    'transylvania',
+    'tortuga',
+  ];
+  function excludedFromChapter1(f) {
+    return NOT_IN_CHAPTER_1.indexOf(f.id) >= 0;
+  }
+
   function buildPool(spec) {
     var featuredId = spec && spec.featured ? spec.featured : spec;
     if (spec && spec.cards && spec.cards.length) {
@@ -188,7 +304,7 @@
     }
     var byRole = {};
     (window.EOL.factions || []).forEach(function (f) {
-      if (f.id === 'huaxia' || f.id === 'duat') return;
+      if (excludedFromChapter1(f)) return;
       f.cards.forEach(function (c) {
         (byRole[c.role] = byRole[c.role] || []).push({ card: c, faction: f });
       });
@@ -233,7 +349,7 @@
   function emptyRun() {
     return {
       cleared: [],
-      unlocked: [1],
+      unlocked: [chapter().firstStage],
       clears: {},
       choices: {},
       pendingChoice: null,
@@ -245,7 +361,8 @@
   function normalizeRun(run) {
     run = run || emptyRun();
     run.cleared = Array.isArray(run.cleared) ? run.cleared : [];
-    run.unlocked = Array.isArray(run.unlocked) && run.unlocked.length ? run.unlocked : [1];
+    run.unlocked =
+      Array.isArray(run.unlocked) && run.unlocked.length ? run.unlocked : [chapter().firstStage];
     run.clears = run.clears || {};
     run.choices = run.choices || {};
     run.pendingChoice = run.pendingChoice || null;
@@ -310,14 +427,14 @@
 
   function getProgress() {
     try {
-      var raw = localStorage.getItem(PROGRESS_KEY);
+      var raw = localStorage.getItem(chapter().progressKey);
       if (raw) {
         var decoded = JSON.parse(raw);
         var migrated = !decoded.runs || decoded.v !== SAVE_VERSION;
         var normalized = normalizeProgress(decoded);
         if (migrated) {
           syncRun(normalized);
-          localStorage.setItem(PROGRESS_KEY, JSON.stringify(normalized));
+          localStorage.setItem(chapter().progressKey, JSON.stringify(normalized));
         }
         return normalized;
       }
@@ -336,7 +453,7 @@
   function saveProgress(prog) {
     try {
       syncRun(prog);
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(prog));
+      localStorage.setItem(chapter().progressKey, JSON.stringify(prog));
     } catch (e) {
       /* private mode: the session still works, it just forgets */
     }
@@ -361,9 +478,9 @@
 
   function introducedFactions(stage) {
     var out = [];
-    Object.keys(STAGE_FACTIONS).forEach(function (key) {
+    Object.keys(stageFactions()).forEach(function (key) {
       var id = parseInt(key, 10);
-      var faction = STAGE_FACTIONS[id];
+      var faction = stageFactions()[id];
       if (id < stage.id && out.indexOf(faction) < 0) out.push(faction);
     });
     return out;
@@ -378,8 +495,10 @@
 
   function normalCoinReward(stage) {
     if (stage.grants && typeof stage.grants.coins === 'number') return stage.grants.coins;
-    if (stage.id === 10) return 300;
-    return ELITE_STAGES[stage.id] ? 200 : 100;
+    /* The boss pays the big purse. Chapter-relative: gate X in Chapter
+       I, gate XX in Chapter II. */
+    if (stage.id === chapter().lastStage) return 300;
+    return eliteStages()[stage.id] ? 200 : 100;
   }
 
   function rewardFor(stage, difficultyId) {
@@ -391,22 +510,46 @@
     }
     if (id === 'heroic') {
       reward.coins = normalCoinReward(stage) * 2;
-      if (ELITE_STAGES[stage.id]) {
+      if (eliteStages()[stage.id]) {
         reward.choice = {
           count: 2,
           factions: introducedFactions(stage),
           rarities: ['common', 'rare'],
           label: 'Common/Rare',
         };
+      } else if (stage.grants && stage.grants.companion) {
+        /* THE SECOND NAMED LEGEND (owner ruling 2026-08-18d).
+           -------------------------------------------------------------
+           Every gate epilogue names TWO echoes - "King Arthur and
+           Lancelot join your echoes" - but the code only ever granted
+           the one legendPack, so the second name was a lie in the
+           script at gates II, III, IV, VI, VII, VIII and X.
+
+           Heroic used to roll a RANDOM epic from the gate's faction.
+           That is the slot the second name belongs in, so it is pinned
+           to the card the dialogue actually promises. The randomness
+           bought nothing - it was a lucky dip nobody could plan around -
+           and pinning it makes the writing true without inflating the
+           payout: the gate still hands over exactly two cards.
+
+           `companionOf` carries the real rarity because these are NOT
+           all epics (Lancelot is common, Brutus rare, Izanami common),
+           and the reveal ceremony prints the rarity it is given. */
+        reward.companion = stage.grants.companion;
       } else {
-        reward.epicFaction = STAGE_FACTIONS[stage.id] || null;
+        reward.epicFaction = stageFactions()[stage.id] || null;
       }
       return reward;
     }
     /* Legend: Gate I pays a one-time 300-coin foothold; the remaining
        Road keeps its crown progression and pays no coins. */
-    if (stage.id === 1) reward.coins = 300;
-    if (ELITE_STAGES[stage.id]) {
+    /* Chapter I's Legend tier pays a one-time 300-coin foothold at Gate
+       I because the player starts that chapter with nothing but the
+       Grimmwood twelve. Chapter II's player arrives with a finished
+       collection, so there is nothing to bootstrap - the foothold is a
+       Chapter I rule, not a first-stage rule. */
+    if (chapter().id === 1 && stage.id === chapter().firstStage) reward.coins = 300;
+    if (eliteStages()[stage.id]) {
       reward.choice = {
         count: 2,
         factions: introducedFactions(stage),
@@ -484,7 +627,8 @@
     var reward = rewardFor(stage, difficulty.id);
     var first = prog.cleared.indexOf(stage.id) < 0;
     if (first) prog.cleared.push(stage.id);
-    if (stage.id < 10 && prog.unlocked.indexOf(stage.id + 1) < 0) prog.unlocked.push(stage.id + 1);
+    if (stage.id < chapter().lastStage && prog.unlocked.indexOf(stage.id + 1) < 0)
+      prog.unlocked.push(stage.id + 1);
     prog.clears[stage.id] = (prog.clears[stage.id] || 0) + 1;
 
     if (first) {
@@ -493,6 +637,10 @@
       if (reward.legendPack) {
         if (prog.grants.indexOf(reward.legendPack) < 0) prog.grants.push(reward.legendPack);
         prog.pendingLegend = stage.id;
+      }
+      if (reward.companion) {
+        if (prog.grants.indexOf(reward.companion) < 0) prog.grants.push(reward.companion);
+        prog.pendingEpic = { stage: stage.id, card: reward.companion };
       }
       if (reward.epicFaction) {
         var epicId = randomEpic(reward.epicFaction);
@@ -577,7 +725,7 @@
   }
 
   function portraitFor(speaker, stage) {
-    var list = STORY.stages || [];
+    var list = storyOf().stages || [];
     for (var i = 0; i < list.length; i++) {
       if (list[i].rival === speaker) return list[i].portrait || null;
     }
@@ -602,7 +750,9 @@
     if (kicker) {
       /* icon separators, never raw glyph punctuation - encoding-proof */
       kicker.innerHTML =
-        '<i class="ri-book-open-line"></i> Chapter 1 <i class="ri-sword-line kick-sep"></i> Gate ' +
+        '<i class="ri-book-open-line"></i> ' +
+        chapter().label +
+        ' <i class="ri-sword-line kick-sep"></i> Gate ' +
         (ROMAN[dlg.stage ? dlg.stage.id : 1] || '') +
         (dlg.kind === 'epilogue'
           ? ' <i class="ri-checkbox-circle-line kick-sep"></i> Cleared'
@@ -714,7 +864,7 @@
     if (!stage) return;
     /* any gate answering the door means the wayfinder's work is done */
     stopNavGuide();
-    var lines = (STORY.dialogues || {})[stage.id] || [];
+    var lines = (storyOf().dialogues || {})[stage.id] || [];
     if (stage.id === 1 && !tutorialsEnabled()) {
       /* Keep Gate I's story introduction, but replace its final promise to
          teach every move. Hard runs launch on a clean rival challenge. */
@@ -761,7 +911,7 @@
   function runIntroTutorial() {
     if (!tutorialsEnabled()) return;
     var stage = stageById(1);
-    var lines = STORY.intro || [];
+    var lines = storyOf().intro || [];
     if (!stage || !lines.length) return;
     markIntroSeen();
     openDialogue(stage, lines, 'intro', startNavGuide);
@@ -842,7 +992,7 @@
     chapter: 'Click Gate I and we will talk terms.',
   };
   function guideText(key) {
-    return (STORY.guide || {})[key] || GUIDE_FALLBACK[key] || '';
+    return (storyOf().guide || {})[key] || GUIDE_FALLBACK[key] || '';
   }
 
   /* Which button does the current screen owe the player? */
@@ -1316,6 +1466,10 @@
         face.src = b.stage.portrait;
         face.hidden = false;
       } else {
+        /* Clear the src as well as hiding: a bark from an unarted rival
+           after one from an arted rival would otherwise keep the wrong
+           face in the DOM, and some browsers still fetch a hidden img. */
+        face.removeAttribute('src');
         face.hidden = true;
       }
     }
@@ -1728,7 +1882,17 @@
     var el = $('tutor');
     if (!el || !text) return;
     var face = $('tutor-face');
-    if (face && stage.portrait) face.src = stage.portrait;
+    /* Hide rather than keep a stale src: with the art deleted, leaving
+       the previous rival's face up would mis-attribute the line. */
+    if (face) {
+      if (stage.portrait) {
+        face.src = stage.portrait;
+        face.hidden = false;
+      } else {
+        face.removeAttribute('src');
+        face.hidden = true;
+      }
+    }
     setText($('tutor-name'), stage.rival);
     var body = $('tutor-text');
     if (body && body.textContent !== text) body.textContent = text;
@@ -1831,7 +1995,7 @@
         stopPrepTutor();
         return;
       }
-      var REC = { rival: 'The Recruiter', portrait: 'assets/rivals/the-recruiter.png' };
+      var REC = { rival: 'The Recruiter', portrait: null };
       if (p.phase === 'ban') {
         if (p.waiting || p.revealed) hideTutor();
         else showTutor(REC, A.ban, false);
@@ -1932,6 +2096,7 @@
     /* The pack itself is the reveal. The result receipt confirms the
        reward category without naming the card before the wrapper opens. */
     if (reward.legendPack) parts.push('Legendary reward pack');
+    if (reward.companion) parts.push('a second echo');
     if (!parts.length) parts.push('Gate cleared · No coin reward');
     return difficulty.name + ' · ' + parts.join(' · ');
   }
@@ -2000,7 +2165,7 @@
     activeCampaignStage = null;
     var stage = stageById(r.stage);
     if (r.won && stage) {
-      var lines = (STORY.epilogues || {})[stage.id] || [];
+      var lines = (storyOf().epilogues || {})[stage.id] || [];
       openDialogue(stage, lines, 'epilogue', function () {
         maybeOfferChoice(stage, function () {
           window.EOL.ui.show('chapter');
@@ -2247,9 +2412,15 @@
       return;
     }
     if (!rewardTheaterReady(reofferPendingEpic)) return;
+    /* The companion cards are not all epics - Lancelot is common,
+       Brutus rare, Izanami common - so the ceremony reads the rarity
+       off the card instead of asserting one. A hard-coded 'epic' here
+       would print the wrong frame and the wrong colour for four of the
+       seven gates. */
+    var pendingCard = cardById(pending.card);
     var opened = window.EOL.shop.openCampaignReward(pending.card, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
-      rarity: 'epic',
+      rarity: pendingCard ? pendingCard.rarity : 'epic',
     });
     if (!opened) return;
     prog.pendingEpic = null;
@@ -2337,7 +2508,7 @@
     var unlocked = prog.unlocked || [1];
     var cleared = prog.cleared || [];
 
-    (STORY.stages || []).forEach(function (stage) {
+    (storyOf().stages || []).forEach(function (stage) {
       var card = document.querySelector('[data-campaign-stage="' + stage.id + '"]');
       if (!card) return;
 
@@ -2385,7 +2556,7 @@
   }
 
   function renderStageCopy() {
-    (STORY.stages || []).forEach(function (stage) {
+    (storyOf().stages || []).forEach(function (stage) {
       var card = document.querySelector('[data-campaign-stage="' + stage.id + '"]');
       if (!card) return;
       setText(card.querySelector('.sc-kicker, .rival-kicker'), stageLabel(stage));
@@ -2404,7 +2575,9 @@
   }
 
   function bindStageClicks() {
-    for (var i = 1; i <= 10; i++) {
+    /* Chapter-relative: Chapter I binds 1..10, Chapter II binds 11..20.
+       A fixed 1..10 loop silently bound nothing in Chapter II. */
+    for (var i = chapter().firstStage; i <= chapter().lastStage; i++) {
       (function (stageId) {
         var card = document.querySelector('[data-campaign-stage="' + stageId + '"]');
         if (card) {
@@ -2487,7 +2660,7 @@
     var host = $('ledger-list');
     if (!host) return;
     var prog = getProgress();
-    host.innerHTML = (STORY.stages || [])
+    host.innerHTML = (storyOf().stages || [])
       .map(function (stage) {
         var st = ledgerStateOf(stage, prog);
         var name = st === 'sealed' ? 'Page unwritten' : stage.rival;
@@ -2499,8 +2672,14 @@
               : st === 'intel'
                 ? '<i class="ri-lock-unlock-line lg-open"></i>'
                 : '<i class="ri-lock-2-fill lg-lock"></i>';
+        /* PORTRAIT-OPTIONAL (2026-08-18e). The rival art was deleted so
+           the owner can draw it; `stage.portrait` is now null for every
+           gate until those files land. A sealed row already falls back
+           to the hood glyph, so an unarted row uses the same fallback
+           rather than emitting <img src="null"> and painting a broken
+           image icon in the ledger. */
         var face =
-          st === 'sealed'
+          st === 'sealed' || !stage.portrait
             ? '<span class="lg-face lg-face-hood"><i data-icon-domain="game" class="ra ra-hood"></i></span>'
             : '<span class="lg-face"><img src="' +
               stage.portrait +
@@ -2538,16 +2717,19 @@
         '<h3>Gate ' +
         ROMAN[stage.id] +
         '</h3>' +
-        '<p>The Road has not taken you there. The ledger keeps its pages in order, Blank.</p></div>';
+        '<p>' +
+        ((storyOf().ledger || {}).empty ||
+          'The Road has not taken you there. The ledger keeps its pages in order, Blank.') +
+        '</p></div>';
       return;
     }
     var broke = prog.tellsBroken.indexOf(stage.id) >= 0;
     var clears = prog.clears[stage.id] || 0;
     var html =
       '<div class="lg-legend">' +
-      '<img class="lg-portrait" src="' +
-      stage.portrait +
-      '" alt="" draggable="false" />' +
+      (stage.portrait
+        ? '<img class="lg-portrait" src="' + stage.portrait + '" alt="" draggable="false" />'
+        : '<span class="lg-portrait lg-face-hood"><i data-icon-domain="game" class="ra ra-hood"></i></span>') +
       '<div class="lg-legend-body">' +
       '<span class="lg-kicker">Gate ' +
       ROMAN[stage.id] +
@@ -2725,7 +2907,7 @@
     /* open onto the furthest page the player can read */
     var prog = getProgress();
     var best = 1;
-    (STORY.stages || []).forEach(function (s) {
+    (storyOf().stages || []).forEach(function (s) {
       if (prog.unlocked.indexOf(s.id) >= 0) best = s.id;
     });
     ledgerSel = best;
@@ -2806,7 +2988,7 @@
       /* private mode: show it this session anyway */
     }
     btn.classList.add('guide-mark');
-    var txt = (STORY.guide || {}).ledger || 'The Ledger holds my pages on every rival ahead.';
+    var txt = (storyOf().guide || {}).ledger || 'The Ledger holds my pages on every rival ahead.';
     var body = $('nav-guide-text');
     if (body) body.textContent = txt;
     var skip = $('nav-guide-skip');
@@ -2827,6 +3009,11 @@
      wiring
      --------------------------------------------------------- */
   function mount() {
+    /* Paint the chapter skin at boot, not only on a chapter switch.
+       Without this the body carries no data-chapter until the player
+       changes chapters, so Chapter I would start with no explicit
+       chapter state and the CSS selectors would rely on the default. */
+    paintChapterChrome();
     renderStageCopy();
     bindStageClicks();
 
@@ -2993,7 +3180,83 @@
     window.setTimeout(maybeRunFirstBoot, 2100);
   }
 
+  /* Switch the module to another chapter and repaint. Called by the
+     chapter plates in js/play.js. Returns false for an unknown id so a
+     bad call cannot leave the Road pointed at nothing. */
+  function setChapter(id) {
+    id = parseInt(id, 10);
+    if (!CHAPTERS[id]) return false;
+    if (activeChapterId !== id) {
+      activeChapterId = id;
+      /* The card dictionary caches the boss card, which differs per
+         chapter, so it has to be rebuilt before anything paints. */
+      CARD_DICT = null;
+      cardDict();
+    }
+    /* The Road's score is per chapter - Chapter I walks, Chapter II is
+       a city mid-tournament. Told before the repaint so the music turns
+       over with the view rather than a beat behind it. */
+    if (window.EOL.audio && window.EOL.audio.setCampaignChapter) {
+      window.EOL.audio.setCampaignChapter(activeChapterId);
+    }
+    paintChapterChrome();
+    renderStageCopy();
+    bindStageClicks();
+    paintDifficulty();
+    return true;
+  }
+
+  /* Swap the header copy and show only the active chapter's stage list.
+     Both lists live in index.html; hiding rather than rebuilding keeps
+     the static markup as the source of truth for card structure, which
+     is how Chapter I already worked. */
+  function paintChapterChrome() {
+    var story = storyOf();
+    var ch = chapter();
+    /* One attribute drives the whole Road's skin: backdrop image,
+       vignette warmth, and which particle system runs. CSS owns the
+       rest, so there is no per-frame JS cost to the atmosphere. */
+    try {
+      document.body.dataset.chapter = String(ch.id);
+    } catch (e) {
+      /* no body (headless) - nothing to paint */
+    }
+    setText($('chapter-overline'), ch.label);
+    setText($('chapter-title'), story.title || '');
+    setText($('chapter-subtitle'), story.subtitle || '');
+    var lists = document.querySelectorAll('[data-chapter-stages]');
+    for (var i = 0; i < lists.length; i++) {
+      lists[i].hidden = parseInt(lists[i].getAttribute('data-chapter-stages'), 10) !== ch.id;
+    }
+    /* The ledger is a different book in each chapter - the Recruiter's
+       in Chapter I, the Concord's register in Chapter II - so its
+       heading and the button's aria label follow the chapter rather
+       than sitting hardcoded in index.html. */
+    var led = story.ledger || {};
+    var ledTitle = $('ledger-title');
+    if (ledTitle) {
+      ledTitle.innerHTML =
+        '<i class="' + (led.icon || 'ri-file-list-3-line') + '"></i> ' + (led.title || 'The Ledger');
+    }
+    var ledBtn = $('btn-ledger');
+    if (ledBtn && led.aria) ledBtn.setAttribute('aria-label', led.aria);
+
+    var foot = $('chapter-footer');
+    if (foot) {
+      setText(
+        foot,
+        ch.id === 2
+          ? 'One week \u00b7 ten gates \u00b7 the authority to say what happened'
+          : 'One unfinished story \u00b7 ten guardians \u00b7 a gate toward Uruk'
+      );
+    }
+  }
+
   window.EOL.campaign = {
+    setChapter: setChapter,
+    activeChapter: function () {
+      return activeChapterId;
+    },
     openStageDialogue: openStageDialogue,
     openRecruiterDialogue: function () {
       openStageDialogue(1);
@@ -3028,7 +3291,13 @@
     tutorialsEnabled: tutorialsEnabled,
     rewardFor: rewardFor,
     difficulties: DIFFICULTIES,
-    story: STORY,
+    /* A GETTER, not a snapshot. This used to be a direct reference to
+       the Chapter I story object, captured once at load; with two
+       chapters that would hand callers the wrong book after a switch
+       (and it threw outright once STORY stopped existing). */
+    get story() {
+      return storyOf();
+    },
     /* test hooks */
     _entriesFor: entriesFor,
     _buildPool: buildPool,

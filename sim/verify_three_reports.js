@@ -36,7 +36,7 @@ global.window = { EOL: {} };
 global.performance = { now: () => Date.now() };
 require(path.join(ROOT, 'data/_schema.js'));
 require(path.join(ROOT, 'data/roles.js'));
-['camelot', 'olympus', 'yamato', 'grimmwood', 'duat', 'takamagahara', 'roma', 'huaxia', 'sherwood'].forEach(
+['camelot', 'olympus', 'yamato', 'grimmwood', 'duat', 'kami', 'roma', 'huaxia', 'sherwood'].forEach(
   (f) => require(path.join(ROOT, 'data', f + '.js'))
 );
 require(path.join(ROOT, 'data/battlefields.js'));
