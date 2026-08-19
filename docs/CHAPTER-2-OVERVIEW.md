@@ -514,6 +514,23 @@ Wrecker's theft (XVIII).
 
 ## 7. Rewards and where the cards come from
 
+**The coin table (2026-08-19).** Coin payouts are class-based - gate,
+elite, boss - per difficulty, and every difficulty pays every gate:
+
+| Difficulty | Gate | Elite | Boss |
+|---|---|---|---|
+| Normal | 100 | 200 | 500 |
+| Heroic | 200 | 400 | 750 |
+| Legend | 300 | 600 | 1000 |
+
+Normal stays the coins-only tier. Heroic keeps its Epic rewards beside
+the coins, Legend keeps its Legendary packs beside the coins - the old
+"Legend pays packs INSTEAD of coins" rule is gone, and with it the
+one-off "Gate I pays 300 on Legend" foothold: a normal gate on Legend
+IS 300, so the foothold is simply the table. The authored `grants.coins`
+values in the stage data were removed with it - the table is the single
+source of truth in `js/campaign.js`.
+
 | Gate | Fields | Unlocks | Legendary |
 |---|---|---|---|
 | XI The Understudy | Hemithea | Hemithea | **Achilles** |

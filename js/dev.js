@@ -8,6 +8,11 @@
 
        EOL.dev.coins(5000)     grant coins (negative takes them)
        EOL.dev.grantAll()      own every obtainable card
+       EOL.dev.allCards()      own EVERY card in the game - all 16
+                               factions, legendaries and Chapter II's
+                               withheld shelf included (the one card
+                               it does not grant is the campaign boss,
+                               which is not collectible at all)
        EOL.dev.openRoad()      unlock every campaign gate
        EOL.dev.resetRoad()     blank the campaign + tutorial ONLY
                                (cards and coins kept) and reload
@@ -56,6 +61,25 @@
       );
       vaultNudge();
       return 'owned: ' + econ.ownedCount() + ' / ' + econ.obtainableEntries().length;
+    },
+    /* EVERY CARD, no shop filter: all 16 factions including the eight
+       Chapter II factions the shop withholds and every legendary the
+       Crown Law keeps out of packs. `obtainableEntries` deliberately
+       leaves those out, so this reads the faction roster directly.
+       The campaign boss (campaign-asmodeus) is not in any faction and
+       is not collectible, so it is not included. */
+    allCards: function () {
+      var econ = window.EOL.econ;
+      if (!econ) return 'economy not loaded';
+      var ids = [];
+      (window.EOL.factions || []).forEach(function (f) {
+        f.cards.forEach(function (c) {
+          ids.push(c.id);
+        });
+      });
+      econ.grant(ids);
+      vaultNudge();
+      return 'owned: ' + econ.ownedCount() + ' / ' + ids.length + ' (every collectible card)';
     },
     openRoad: function () {
       var c = window.EOL.campaign;

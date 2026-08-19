@@ -75,20 +75,24 @@ ok(
 );
 storage.clear();
 
+/* THE COIN TABLE (2026-08-19): gate / elite / boss per difficulty.
+   Normal 100/200/500, Heroic 200/400/750, Legend 300/600/1000. Every
+   difficulty pays every gate - Legend's old packs-instead-of-coins
+   rule is gone. */
 const normalCoins = stages.map((stage) => C.rewardFor(stage, 'normal').coins);
 const heroicCoins = stages.map((stage) => C.rewardFor(stage, 'heroic').coins);
+const legendCoins = stages.map((stage) => C.rewardFor(stage, 'legend').coins);
 ok(
-  JSON.stringify(normalCoins) === JSON.stringify([100, 100, 100, 100, 200, 100, 100, 100, 200, 300]),
-  'Normal pays 100 per gate, 200 per elite, and 300 for Gilgamesh'
+  JSON.stringify(normalCoins) === JSON.stringify([100, 100, 100, 100, 200, 100, 100, 100, 200, 500]),
+  'Normal pays 100 per gate, 200 per elite, and 500 for the boss'
 );
 ok(
-  JSON.stringify(heroicCoins) === JSON.stringify(normalCoins.map((coins) => coins * 2)),
-  'Heroic doubles every Normal coin reward'
+  JSON.stringify(heroicCoins) === JSON.stringify([200, 200, 200, 200, 400, 200, 200, 200, 400, 750]),
+  'Heroic pays 200 per gate, 400 per elite, and 750 for the boss'
 );
 ok(
-  JSON.stringify(stages.map((stage) => C.rewardFor(stage, 'legend').coins)) ===
-    JSON.stringify([300, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-  'Legend pays 300 coins at Gate I and no coins at later gates'
+  JSON.stringify(legendCoins) === JSON.stringify([300, 300, 300, 300, 600, 300, 300, 300, 600, 1000]),
+  'Legend pays 300 per gate, 600 per elite, and 1000 for the boss - coins AND packs'
 );
 
 const introduced = {
@@ -199,20 +203,20 @@ ok(
     epicEntry &&
     epicEntry.card.rarity === 'epic' &&
     epicEntry.faction.id === 'grimmwood',
-  'a Heroic first clear pays double coins and persists its random faction Epic'
+  'a Heroic first clear pays its 200 coins (100 Normal + 200 Heroic in the shared wallet) and persists its random faction Epic'
 );
 C.setDifficulty('legend');
 C._recordClear(stages[0]);
 progress = C.getProgress();
 ok(
   progress.coins === 600 && progress.cleared.includes(1),
-  'a Legend Gate I first clear pays its one-time 300 coins'
+  'a Legend Gate I first clear adds its 300 coins to the shared wallet'
 );
 C._recordClear(stages[1]);
 progress = C.getProgress();
 ok(
-  progress.coins === 600 && progress.pendingLegend === 2 && granted.includes('camelot-king-arthur'),
-  'later Legend faction gates pay no coins and grant their crown at clear time'
+  progress.coins === 900 && progress.pendingLegend === 2 && granted.includes('camelot-king-arthur'),
+  'every Legend gate pays coins - Gate II adds another 300 and still grants its crown at clear time'
 );
 C.setDifficulty('normal');
 ok(C.getProgress().cleared.includes(1), 'switching back restores the saved Normal run');

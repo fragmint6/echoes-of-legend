@@ -381,7 +381,6 @@ window.EOL = window.EOL || {};
            marked move, the handoff, or a battle event. That keeps the
            words current regardless of how quickly the player reads. */
       },
-      grants: { coins: 100 },
       resultWin: 'The Recruiter closes his ledger - Gate I is yours.',
       resultLose:
         'The Recruiter sets down his quill. "Dead? At MY gate? Embarrassing - for me, Blank, not you. Take the rematch. Nobody has ever died at my gate twice."',
@@ -478,7 +477,7 @@ window.EOL = window.EOL || {};
         ban: 'My counsel stands in silver, Blank - the two I would strike from his twelve. But it is not me fighting. Refuse freely; the Road grades results, not obedience.',
         six: 'In silver again: the six I would field against him. Rearrange it, replace it, ignore it - your hand, your gate. This is the last one I walk beside you.',
       },
-      grants: { legendPack: 'camelot-king-arthur', companion: 'camelot-lancelot', coins: 100 },
+      grants: { legendPack: 'camelot-king-arthur', companion: 'camelot-lancelot' },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
@@ -545,7 +544,7 @@ window.EOL = window.EOL || {};
       banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
       banTellBroken:
         'Correction entered: today she let a Tank stand. You will remember this match. So, now, will the ledger.',
-      grants: { legendPack: 'sherwood-robin-hood', companion: 'sherwood-little-john', coins: 100 },
+      grants: { legendPack: 'sherwood-robin-hood', companion: 'sherwood-little-john' },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
       barks: {
@@ -609,7 +608,7 @@ window.EOL = window.EOL || {};
         'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
       banTellBroken:
         'The ledger stands corrected: your healer went unstruck. Mercy, or a mistake - it records both the same way.',
-      grants: { legendPack: 'olympus-zeus', companion: 'olympus-poseidon', coins: 100 },
+      grants: { legendPack: 'olympus-zeus', companion: 'olympus-poseidon' },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
       barks: {
@@ -666,7 +665,6 @@ window.EOL = window.EOL || {};
         'She reads your twelve like a ledger and strikes what the rest of it leans on. Bring no single point of failure.',
       grants: {
         choice: { count: 2, factions: ['grimmwood', 'camelot', 'sherwood', 'olympus'] },
-        coins: 200,
       },
       resultWin: 'The Warden lays the iron key on the table. "You changed after winning. Go on."',
       resultLose: '"The Mid-Road keeps what does not adapt," the Warden says. "Return ready."',
@@ -760,7 +758,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Controller', 'Medic'] },
       banTell:
         'She steals the hands that make a plan work - Controllers first, then the healer you expected to keep. The whim is which one she smiles at.',
-      grants: { legendPack: 'yamato-abe-no-seimei', companion: 'yamato-miyamoto-musashi', coins: 100 },
+      grants: { legendPack: 'yamato-abe-no-seimei', companion: 'yamato-miyamoto-musashi' },
       resultWin:
         'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
       resultLose:
@@ -842,7 +840,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Caster', 'Sniper'], stat: 'atk' },
       banTell:
         'He removes the ranged finishers your plan cannot live without, hardest hitter first. Have a second plan.',
-      grants: { legendPack: 'roma-constantine-the-great', companion: 'roma-brutus', coins: 100 },
+      grants: { legendPack: 'roma-constantine-the-great', companion: 'roma-brutus' },
       resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
       resultLose:
         '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
@@ -922,7 +920,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Caster', 'Medic'], stat: 'atk' },
       banTell:
         'The Chronicler strikes endings and the hands that revise them - Casters first, then healers, strongest first.',
-      grants: { legendPack: 'kami-amaterasu', companion: 'kami-izanami', coins: 100 },
+      grants: { legendPack: 'kami-amaterasu', companion: 'kami-izanami' },
       resultWin:
         'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
       resultLose:
@@ -990,7 +988,6 @@ window.EOL = window.EOL || {};
             'kami',
           ],
         },
-        coins: 200,
       },
       resultWin: 'The Guardian speaks, voice rough with disuse: "Then carry it." The gate opens.',
       resultLose: 'The Guardian shakes her head once, and the gate stays shut. She will be here.',
@@ -1050,7 +1047,7 @@ window.EOL = window.EOL || {};
       banProfile: { power: true },
       banTell:
         'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
-      grants: { legendPack: 'duat-anubis', companion: 'duat-isis', coins: 300 },
+      grants: { legendPack: 'duat-anubis', companion: 'duat-isis' },
       resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
       resultLose:
         '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',

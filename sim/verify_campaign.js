@@ -217,22 +217,19 @@ ok(
   'the ledger spotlight line is authored (ASCII, names the LEDGER)'
 );
 
-/* NORMAL ECONOMY (owner ruling 2026-08-12): ordinary gates pay 100,
-   the two elites 200, and Gilgamesh 300. Heroic doubles this baseline;
-   Legend pays only at Gate I (the full matrix is exercised separately by
-   verify_campaign_difficulty.js). */
-var normalCoins = S.stages.map(function (st) {
-  return (st.grants || {}).coins || 0;
+/* NORMAL ECONOMY (rewritten 2026-08-19). Coin payouts moved out of the
+   stage data and into the class-based table in js/campaign.js:
+   ordinary gates 100, elites 200, the boss 500 - per difficulty
+   normal 100/200/500, heroic 200/400/750, legend 300/600/1000. The
+   data-side contract is therefore the ABSENCE of coins in grants: a
+   stray authored number would be a second, stale source of truth.
+   (The table itself is asserted in verify_campaign_difficulty.js.) */
+var strayCoins = S.stages.filter(function (st) {
+  return (st.grants || {}).coins != null;
 });
 ok(
-  JSON.stringify(normalCoins) === JSON.stringify([100, 100, 100, 100, 200, 100, 100, 100, 200, 300]),
-  'Normal gate coin baselines follow the ordinary/elite/Gilgamesh law'
-);
-ok(
-  normalCoins.reduce(function (sum, coins) {
-    return sum + coins;
-  }, 0) === 1400,
-  'a complete Normal Road pays exactly 1400 coins'
+  strayCoins.length === 0,
+  'no stage grant carries an authored coin value - the coin table is the single source'
 );
 
 /* THE RARITY LAW (owner ruling 2026-08-10): one legendary per six

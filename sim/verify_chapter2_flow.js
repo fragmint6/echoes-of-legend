@@ -73,7 +73,9 @@ const server = http.createServer((req, res) => {
       window.addEventListener('error', (e) => window.__errs.push(String(e.message)));
     },
   });
-  await sleep(3500);
+  /* jsdom's resource loading is not deterministic - wait for the game
+     to actually boot instead of trusting a fixed sleep. */
+  for (let i = 0; i < 160 && !(dom.window.EOL && dom.window.EOL.campaign); i++) await sleep(500);
   const w = dom.window;
   const d = w.document;
   const $ = (id) => d.getElementById(id);
@@ -88,23 +90,55 @@ const server = http.createServer((req, res) => {
   const realErrs = (w.__errs || []).filter((m) => !benign(m));
   t(realErrs.length === 0, 'no page errors on boot' + (realErrs.length ? ' -> ' + realErrs[0] : ''));
 
-  /* ---------- A. heroic rewards at gate XI ---------- */
-  console.log('A. gate XI heroic grants a Hemithea epic');
+  /* ---------- A. the coin table + heroic rewards at gate XI ---------- */
+  console.log('A. the coin table (100/200/500 · 200/400/750 · 300/600/1000)');
   EOL.campaign.setChapter(2);
   EOL.campaign.setDifficulty('heroic');
   const stage11 = EOL.campaign._stageById(11);
   const heroic = EOL.campaign.rewardFor(stage11, 'heroic');
   const legend = EOL.campaign.rewardFor(stage11, 'legend');
   t(!!stage11, 'gate XI resolves');
+  /* The full table, both chapters: gate / elite / boss per difficulty. */
+  const CLASSES = { 11: 'gate', 15: 'elite', 20: 'boss', 1: 'gate', 5: 'elite', 10: 'boss' };
+  const WANT = {
+    normal: { gate: 100, elite: 200, boss: 500 },
+    heroic: { gate: 200, elite: 400, boss: 750 },
+    legend: { gate: 300, elite: 600, boss: 1000 },
+  };
+  let tableOk = 0;
+  [1, 2].forEach((ch) => {
+    EOL.campaign.setChapter(ch);
+    ['normal', 'heroic', 'legend'].forEach((diff) => {
+      Object.keys(CLASSES).forEach((stageId) => {
+        const st = EOL.campaign._stageById(parseInt(stageId, 10));
+        if (ch === 1 && parseInt(stageId, 10) > 10) return;
+        if (ch === 2 && parseInt(stageId, 10) < 11) return;
+        const got = EOL.campaign.rewardFor(st, diff).coins;
+        const want = WANT[diff][CLASSES[stageId]];
+        if (got === want) tableOk++;
+        else t(false, 'ch' + ch + ' ' + diff + ' gate ' + stageId + ': ' + got + ' != ' + want);
+      });
+    });
+  });
+  t(tableOk === 18, 'every chapter/difficulty/class coin value matches the table (' + tableOk + '/18)');
+  EOL.campaign.setChapter(2);
   t(!!legend.legendPack && legend.legendPack === 'hemithea-achilles', 'legend tier keeps the Achilles crown');
-  t(legend.coins === 0, 'legend tier pays NO coins at XI - the Gate I 300-coin foothold is a Chapter I rule (player owns all Grimmwood)');
+  t(legend.coins === 300, 'and now pays its 300 coins WITH the pack');
   t(!!heroic.companion, 'heroic tier grants a card');
   if (heroic.companion) {
     const comp = EOL.campaign._entriesFor([heroic.companion])[0];
     t(comp && comp.card.rarity === 'epic' && comp.faction.id === 'hemithea', 'and it is an epic from Hemithea (' + heroic.companion + ')');
   }
+  t(heroic.coins === 200, 'heroic gate XI pays 200 coins');
   const normal = EOL.campaign.rewardFor(stage11, 'normal');
-  t(normal.coins === 150 && !normal.legendPack && !normal.companion, 'normal stays coins-only (150)');
+  t(normal.coins === 100 && !normal.legendPack && !normal.companion, 'normal stays coins-only (100)');
+  /* The old one-off: Legend Gate I's 300-coin foothold is now simply
+     the table's normal-gate Legend payout - no special case anywhere. */
+  EOL.campaign.setChapter(1);
+  const ch1Gate1 = EOL.campaign.rewardFor(EOL.campaign._stageById(1), 'legend');
+  t(ch1Gate1.coins === 300 && ch1Gate1.legendPack == null, 'Chapter I gate I on Legend pays the table 300 (the old foothold, now generic)');
+  t(EOL.campaign.rewardFor(EOL.campaign._stageById(10), 'normal').coins === 500, 'the Chapter I boss pays 500 on Normal');
+  EOL.campaign.setChapter(2);
 
   /* ---------- B. rival fielding is adaptive ---------- */
   console.log('B. chapter II rivals sideboard live (strongest six)');
@@ -240,8 +274,8 @@ const server = http.createServer((req, res) => {
     const gate11 = d.querySelector('[data-campaign-stage="11"] .sc-rewards');
     const txt = gate11 ? gate11.textContent : '';
     t(
-      txt.indexOf('300') >= 0 && txt.indexOf('Epic echo') >= 0 && txt.indexOf('Hemithea') >= 0,
-      'gate XI heroic shows +300 coins AND the Hemithea Epic echo (' + txt.replace(/\s+/g, ' ').trim() + ')'
+      txt.indexOf('200') >= 0 && txt.indexOf('Epic echo') >= 0 && txt.indexOf('Hemithea') >= 0,
+      'gate XI heroic shows +200 coins AND the Hemithea Epic echo (' + txt.replace(/\s+/g, ' ').trim() + ')'
     );
   }
   {
@@ -251,6 +285,24 @@ const server = http.createServer((req, res) => {
       txt.indexOf('Epic echo') >= 0 && txt.indexOf('Asgard') >= 0,
       'the Undertaker hands over the Asgard epic on the plate too'
     );
+  }
+  {
+    /* Legend now advertises its coins beside the pack. */
+    EOL.campaign.setDifficulty('legend');
+    await sleep(300);
+    const gate11L = d.querySelector('[data-campaign-stage="11"] .sc-rewards');
+    const txtL = gate11L ? gate11L.textContent : '';
+    t(
+      txtL.indexOf('300') >= 0 && txtL.indexOf('Legendary reward pack') >= 0,
+      'gate XI legend shows +300 coins AND the Legendary pack'
+    );
+    const bossL = d.querySelector('[data-campaign-stage="20"] .sc-rewards');
+    t(
+      bossL && bossL.textContent.indexOf('1000') >= 0,
+      'the boss advertises its 1000 Legend coins'
+    );
+    EOL.campaign.setDifficulty('heroic');
+    await sleep(300);
   }
 
   server.close();

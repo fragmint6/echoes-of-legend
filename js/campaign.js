@@ -111,23 +111,48 @@
       name: 'Normal',
       bonus: 0,
       mult: null,
-      note: 'Standard rivals · coin rewards',
+      note: 'Standard rivals · coins 100 / 200 / 500',
     },
     heroic: {
       id: 'heroic',
       name: 'Heroic',
       bonus: 0.1,
       mult: 'x1.1',
-      note: 'rival ATK & DEF · double coins · Epic rewards',
+      note: 'rival ATK & DEF · coins 200 / 400 / 750 · Epic rewards',
     },
     legend: {
       id: 'legend',
       name: 'Legend',
       bonus: 0.2,
       mult: 'x1.2',
-      note: 'rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
+      note: 'rival ATK & DEF · coins 300 / 600 / 1000 · Legendary rewards',
     },
   };
+  /* ---------------------------------------------------------
+     THE COIN TABLE (2026-08-19). Coin payouts are class-based:
+     gate / elite / boss, per difficulty. Every difficulty pays every
+     gate - Legend's old "packs instead of coins" rule is gone, so a
+     Legend run funds itself like the other two tiers.
+
+       normal   100 / 200 / 500
+       heroic   200 / 400 / 750   (+ its Epic rewards)
+       legend   300 / 600 / 1000  (+ its Legendary packs)
+
+     This replaces the old grants.coins data values and the one-off
+     "Gate I pays 300 on Legend" foothold - that bonus existed because
+     Chapter I's player starts owning all of Grimmwood, but the table
+     already pays a normal gate 300 on Legend, which is the foothold.
+     --------------------------------------------------------- */
+  var GATE_COINS = {
+    normal: { gate: 100, elite: 200, boss: 500 },
+    heroic: { gate: 200, elite: 400, boss: 750 },
+    legend: { gate: 300, elite: 600, boss: 1000 },
+  };
+  function gateCoins(stage, difficultyId) {
+    var row = GATE_COINS[DIFFICULTIES[difficultyId] ? difficultyId : 'normal'] || GATE_COINS.normal;
+    if (stage.id === chapter().lastStage) return row.boss;
+    return eliteStages()[stage.id] ? row.elite : row.gate;
+  }
   /* Chapter-relative now; the tables live on the chapter record above.
      Read through these two shims so every existing call site keeps
      working and cannot accidentally read Chapter I's map while Chapter
@@ -493,23 +518,14 @@
     return faction ? faction.name : id;
   }
 
-  function normalCoinReward(stage) {
-    if (stage.grants && typeof stage.grants.coins === 'number') return stage.grants.coins;
-    /* The boss pays the big purse. Chapter-relative: gate X in Chapter
-       I, gate XX in Chapter II. */
-    if (stage.id === chapter().lastStage) return 300;
-    return eliteStages()[stage.id] ? 200 : 100;
-  }
-
   function rewardFor(stage, difficultyId) {
     var id = DIFFICULTIES[difficultyId] ? difficultyId : 'normal';
-    var reward = { coins: 0, difficulty: id };
+    var reward = { coins: gateCoins(stage, id), difficulty: id };
     if (id === 'normal') {
-      reward.coins = normalCoinReward(stage);
+      /* Normal stays the coins-only tier - no card grants at all. */
       return reward;
     }
     if (id === 'heroic') {
-      reward.coins = normalCoinReward(stage) * 2;
       if (eliteStages()[stage.id]) {
         reward.choice = {
           count: 2,
@@ -541,14 +557,8 @@
       }
       return reward;
     }
-    /* Legend: Gate I pays a one-time 300-coin foothold; the remaining
-       Road keeps its crown progression and pays no coins. */
-    /* Chapter I's Legend tier pays a one-time 300-coin foothold at Gate
-       I because the player starts that chapter with nothing but the
-       Grimmwood twelve. Chapter II's player arrives with a finished
-       collection, so there is nothing to bootstrap - the foothold is a
-       Chapter I rule, not a first-stage rule. */
-    if (chapter().id === 1 && stage.id === chapter().firstStage) reward.coins = 300;
+    /* Legend keeps its crown progression AND pays the table's coins
+       (2026-08-19) - the old "packs instead of coins" rule is gone. */
     if (eliteStages()[stage.id]) {
       reward.choice = {
         count: 2,

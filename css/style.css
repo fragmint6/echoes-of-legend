@@ -7145,6 +7145,14 @@ body[data-gfx='low'] .set-pill.bump {
   filter: drop-shadow(0 0 10px var(--fx)) drop-shadow(0 0 22px var(--fx));
   animation: fx-cast-sigil 0.76s var(--ease) forwards;
 }
+/* A passive answering its trigger: same sigil, no ring, quieter. */
+.fx-cast-sigil.small {
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  font-size: 18px;
+  animation-duration: 0.68s;
+}
 @keyframes fx-cast-sigil {
   0% {
     opacity: 0;
