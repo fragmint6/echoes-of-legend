@@ -30767,3 +30767,778 @@ span.lg-portrait i {
 .cd-close:active {
   transform: rotate(90deg) scale(0.92);
 }
+
+/* ========================================================================
+   SHOP + CARD DETAIL POLISH (2026-08-19)
+   A final, self-contained surface pass. These rules intentionally sit last:
+   the shop had accumulated several generations of layout rules and the
+   resulting selector conflicts caused dim CTAs, square clipping and tooltips
+   under neighbouring products.
+   ======================================================================== */
+
+/* ---- Pack shelf: a framed showroom with predictable clipping ---- */
+#spanel-packs {
+  position: relative;
+  isolation: isolate;
+  max-width: 1280px;
+  margin: 18px auto 0;
+  border: 1px solid rgba(255, 214, 130, 0.16);
+  border-radius: 24px;
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at 50% -12%, rgba(255, 205, 110, 0.1), transparent 48%),
+    linear-gradient(180deg, rgba(18, 20, 35, 0.82), rgba(8, 10, 19, 0.72));
+  box-shadow: inset 0 1px rgba(255,255,255,.045), 0 24px 70px rgba(0,0,0,.25);
+}
+.shop-shelf {
+  gap: 34px 30px;
+  padding: 24px clamp(18px, 3vw, 38px) 30px;
+}
+.shop-shelf-head {
+  position: relative;
+  margin: 4px 0 0;
+  padding: 0 0 12px;
+}
+.shop-shelf-head::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  margin-left: 8px;
+  background: linear-gradient(90deg, rgba(255,214,130,.38), transparent);
+}
+.product {
+  width: 208px;
+  max-width: 208px;
+  gap: 11px;
+  z-index: 1;
+}
+.product:has(.product-pack:hover) { z-index: 80; }
+.product-pack {
+  width: 208px;
+  border-radius: 20px;
+  border-color: rgba(255, 214, 130, 0.42);
+  cursor: var(--cur-pointer, pointer);
+  will-change: transform;
+}
+/* A product's whitespace, title and button no longer animate its pack. */
+.product:hover .product-pack {
+  transform: none;
+  box-shadow: 0 18px 50px rgba(0,0,0,.6), 0 0 40px rgba(255,205,110,.16);
+  animation-play-state: running;
+}
+.product-pack:hover {
+  transform: translateY(-7px) scale(1.025);
+  box-shadow: 0 30px 68px rgba(0,0,0,.72), 0 0 54px rgba(255,205,110,.3);
+  animation-play-state: paused;
+  translate: 0 0;
+}
+.product:hover .product-sheen { left: -60%; }
+.product-pack:hover .product-sheen { left: 125%; }
+.product-name { font-size: 14px; line-height: 1.3; }
+
+/* Enabled prices should look purchasable, not disabled. */
+.product .buy-pack:not(:disabled) {
+  color: #1b1205;
+  border-color: #ffe19a;
+  background: linear-gradient(180deg, #ffe8aa 0%, #f5c05a 55%, #d89432 100%);
+  box-shadow: inset 0 1px rgba(255,255,255,.75), 0 8px 22px rgba(223,151,45,.32);
+  text-shadow: 0 1px rgba(255,255,255,.28);
+  opacity: 1;
+  filter: none;
+}
+.product .buy-pack:not(:disabled) i { color: #4b2b08; }
+.product .buy-pack:not(:disabled):hover {
+  border-color: #fff1c8;
+  background: linear-gradient(180deg, #fff0c5, #ffd36f 55%, #e6a33e);
+  box-shadow: inset 0 1px #fff, 0 12px 30px rgba(238,174,64,.48), 0 0 22px rgba(255,205,110,.25);
+}
+.product:hover .buy-pack:not(:disabled) { transform: none; }
+.product .buy-pack:not(:disabled):hover { transform: translateY(-2px); }
+.product .buy-pack:disabled {
+  opacity: .62;
+  filter: saturate(.65);
+  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.055);
+}
+
+/* ---- Pack dossier: opaque, clipped, high-layer and information-rich ---- */
+.product-info {
+  top: 14px;
+  left: 50%;
+  width: 350px;
+  max-width: calc(100vw - 36px);
+  transform: translate(-50%, 12px) scale(.96);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 214, 130, .48);
+  background: #0d1020;
+  box-shadow: 0 28px 80px rgba(0,0,0,.88), 0 0 0 1px rgba(255,255,255,.035) inset,
+              0 0 40px rgba(255,190,80,.18);
+  z-index: 120;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.product-info::after { display: none; }
+.product:hover .product-info,
+.product:focus-within .product-info {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 12px) scale(.96);
+}
+.product-pack:hover ~ .product-info {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0) scale(1);
+}
+.product-tip {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 15px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,214,130,.2);
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255,218,130,.22), transparent 44%),
+    linear-gradient(110deg, #30233f, #171a31 68%, #242038);
+}
+.product-tip > i {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid rgba(255,214,130,.42);
+  border-radius: 10px;
+  background: rgba(0,0,0,.2);
+  color: #ffd682;
+  font-size: 18px;
+  box-shadow: 0 0 18px rgba(255,205,110,.14);
+}
+.product-tip > span { display: flex; flex-direction: column; gap: 2px; color: #c6cada; letter-spacing: .04em; }
+.product-tip b { color: #ffe7ae; font: 800 13px/1.2 'Cinzel', Georgia, serif; letter-spacing: .07em; }
+.product-info-body { padding: 13px 15px 15px; background: linear-gradient(180deg, #111426, #090b16); }
+.product-info .product-desc {
+  padding: 0;
+  margin: 0 0 11px;
+  color: #d6dae8;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.pack-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.pack-facts > span {
+  min-width: 0;
+  padding: 7px 5px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px;
+  background: rgba(255,255,255,.035);
+  color: #adb3c7;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+.pack-facts i { display: block; margin-bottom: 3px; color: #ffd682; font-size: 14px; }
+.pack-facts b { color: #fff; }
+.faction-list { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; }
+.faction-list > b { flex-basis: 100%; margin-bottom: 2px; color: #868da4; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; }
+.faction-list > span {
+  padding: 3px 7px;
+  border: 1px solid rgba(130,157,230,.2);
+  border-radius: 999px;
+  background: rgba(105,130,210,.08);
+  color: #cdd8f6;
+  font-size: 8.5px;
+  font-weight: 650;
+}
+.featured-factions > span { padding: 5px 12px; color: #ffe4aa; border-color: rgba(255,214,130,.28); background: rgba(255,205,110,.08); }
+.odds-title { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 6px; }
+.odds-title span { color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.odds-title em { color: #747c94; font-size: 8.5px; font-style: normal; }
+.odds-grid { display: grid; gap: 5px; }
+.odds-grid > span { display: grid; grid-template-columns: 56px 1fr 30px; align-items: center; gap: 7px; font-size: 9px; }
+.odds-grid b { color: #b7bed1; font-weight: 700; }
+.odds-grid i { position: relative; height: 5px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.07); }
+.odds-grid i::after { content: ''; display: block; width: var(--odds); height: 100%; border-radius: inherit; background: var(--oc); box-shadow: 0 0 8px var(--oc); }
+.odds-grid strong { color: var(--oc); font-size: 9px; text-align: right; }
+.odds-common { --oc: var(--r-common-1, #b9c3d6); }
+.odds-rare { --oc: var(--r-rare-1, #63d7ff); }
+.odds-epic { --oc: var(--r-epic-1, #c07cff); }
+.guarantee {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 7px 9px;
+  border: 1px solid rgba(192,124,255,.28);
+  border-radius: 9px;
+  background: linear-gradient(90deg, rgba(192,124,255,.12), rgba(255,214,130,.07));
+  font-size: 9px;
+  color: #aeb4c8;
+}
+.guarantee i, .guarantee b { color: var(--r-epic-1); }
+
+/* ---- Echo shop: consistent radii, no content escaping card bounds ---- */
+#spanel-echo {
+  max-width: 1180px;
+  margin: 18px auto 0;
+  padding: 22px clamp(14px, 2.5vw, 30px) 34px;
+  border: 1px solid rgba(192,124,255,.16);
+  border-radius: 24px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 0, rgba(192,124,255,.1), transparent 45%), rgba(10,10,21,.58);
+}
+.echo-counter { margin-top: 0; border-radius: 20px; overflow: hidden; }
+.echo-tools { padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.025); }
+.echo-search-wrap { min-width: min(100%, 240px); }
+.echo-grid { grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 16px; }
+.ec-card { min-width: 0; border-radius: 18px; padding: 11px; }
+.ec-art { border-radius: 13px; }
+.ec-foot { flex-wrap: wrap; }
+.ec-actions { min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+.ec-buy, .ec-up { border-radius: 10px; }
+
+/* ---- Hover stat honesty: only the upgraded result is highlighted ---- */
+.stat-row.boosted .stat-val { color: var(--r-epic-1); text-shadow: 0 0 12px color-mix(in srgb, var(--r-epic-1) 45%, transparent); }
+.stat-row.boosted .stat-fill { background: linear-gradient(90deg, #7a4ac8, var(--r-epic-1)); }
+
+/* ---- Detail dialog: real card ratio, breathing room, lore as caption ---- */
+.cd-card {
+  width: min(1060px, 100%);
+  max-height: calc(var(--vh1) * 92);
+  border-radius: 22px;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse at 15% 0, rgba(255,205,110,.07), transparent 42%),
+    linear-gradient(180deg, rgba(19,22,38,.995), rgba(8,10,19,.995));
+}
+.cd-body { padding: 28px 30px 30px; }
+.cd-hero { grid-template-columns: minmax(280px, 350px) minmax(0, 1fr); gap: 34px; padding-right: 38px; align-items: start; }
+.cd-art-col { display: flex; flex-direction: column; gap: 15px; min-height: 0; }
+.cd-art {
+  position: relative;
+  top: auto;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  aspect-ratio: 64 / 88;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(0,0,0,.48), 0 0 25px color-mix(in srgb, var(--fc-primary) 14%, transparent);
+}
+.cd-art img { object-fit: cover; object-position: center 22%; }
+.cd-art-lore {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-left: 3px solid color-mix(in srgb, var(--fc-primary) 62%, transparent);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.cd-info-col { gap: 18px; padding: 5px 0; }
+.cd-name { margin: 4px 0 11px; font-size: clamp(25px, 3vw, 32px); }
+.cd-tags { gap: 7px; }
+.cd-tag { padding: 4px 9px; }
+.cd-wheel { margin-top: 10px; }
+.cd-stats { gap: 10px; margin: 0; }
+.cd-stat { padding: 12px 8px; border-radius: 12px; }
+.cd-skill { padding: 15px 16px; border-radius: 13px; overflow: hidden; }
+.cd-skill.is-active {
+  border-color: color-mix(in srgb, var(--rar-1) 38%, var(--line));
+  border-left: 3px solid var(--rar-1);
+  background: radial-gradient(circle at 100% 0, color-mix(in srgb, var(--rar-1) 12%, transparent), transparent 48%), rgba(0,0,0,.3);
+}
+.cd-skill-top { margin-bottom: 9px; }
+.cd-skill .ab-type { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 7px; }
+.cd-energy-cost {
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  color: #ffe08b;
+  border-color: rgba(255,214,130,.35);
+  background: rgba(255,205,110,.09);
+}
+.cd-energy-cost i { color: #ffd050; }
+.cd-energy-cost b { color: #fff0b8; font-size: 11px; }
+.cd-energy-cost span { color: #b7a66f; font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
+.cd-skill-name { font-size: 17px; margin-bottom: 8px; }
+.cd-skill-text { font-size: 13px; line-height: 1.68; }
+.cd-up { margin-top: 0; padding: 15px 16px; border-radius: 13px; }
+
+@media (max-width: 760px) {
+  .cd-modal { padding: 10px; }
+  .cd-card { max-height: calc(var(--vh1) * 96); }
+  .cd-body { padding: 48px 16px 20px; }
+  .cd-hero { grid-template-columns: 1fr; gap: 22px; padding-right: 0; }
+  .cd-art-col { width: min(100%, 340px); margin: 0 auto; }
+  .cd-art { max-height: none; }
+  .cd-info-col { gap: 15px; }
+  .cd-stats { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  #spanel-packs, #spanel-echo { border-radius: 18px; }
+  .shop-shelf { padding-inline: 12px; }
+}
+@media (hover: none) {
+  .product { width: min(100%, 320px); max-width: 320px; }
+  .product-info,
+  .product:hover .product-info,
+  .product:focus-within .product-info {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/* ========================================================================
+   SHOP/DETAIL CONSISTENCY FIXES (2026-08-19b)
+   ======================================================================== */
+/* Locked chapter products must not participate in layout. The generic
+   .product { display:flex } rule otherwise outranks the browser's [hidden]
+   stylesheet and leaves the Archive Pack visibly rendered. */
+.product[hidden] {
+  display: none !important;
+}
+
+/* The shelf is an open stage, not a second card behind every product. */
+#spanel-packs {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Reserve the same title row for every product, including two-line weekly
+   names, so all purchase buttons share one baseline. */
+.product-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+}
+.product .buy-pack {
+  min-height: 38px;
+  margin-top: 0;
+}
+
+/* Dossiers sit ABOVE their pack. They no longer cover the wrapper, title or
+   purchase control while the player is reading them. */
+.product-info {
+  top: 0;
+  bottom: auto;
+  transform: translate(-50%, calc(-100% - 4px)) scale(.97);
+  transform-origin: 50% 100%;
+}
+.product:hover .product-info,
+.product:focus-within .product-info {
+  transform: translate(-50%, calc(-100% - 4px)) scale(.97);
+}
+.product-pack:hover ~ .product-info {
+  transform: translate(-50%, calc(-100% - 14px)) scale(1);
+}
+.pack-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Active and passive skills use the exact same component. Their only visual
+   distinction is --ab-c (purple for Active, green for Passive) and the Energy
+   chip that only Active skills need. */
+.cd-skill.is-active,
+.cd-skill.is-passive {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ab-c);
+  background: rgba(0, 0, 0, .28);
+}
+.cd-skill.is-active .cd-skill-name,
+.cd-skill.is-active .ab-type {
+  color: var(--ab-c);
+}
+.cd-skill.is-active .ab-type,
+.cd-skill.is-passive .ab-type {
+  color: #06070d;
+  background: var(--ab-c);
+}
+
+/* The element matchup is a real information panel rather than loose copy
+   floating below the identity chips. */
+.cd-wheel {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 12px;
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--el) 34%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el) 7%, rgba(0, 0, 0, .3));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+}
+
+/* Entrance motion is applied once by JS when the modal opens. Level-up's
+   kick animation can now finish without causing mg-rise to replay. */
+.cd-card {
+  animation: none;
+}
+.cd-modal.opening .cd-card {
+  animation: mg-rise .28s var(--ease);
+}
+
+@media (hover: none) {
+  .product-info,
+  .product:hover .product-info,
+  .product:focus-within .product-info {
+    transform: none;
+  }
+}
+
+/* ========================================================================
+   SHOP LAYERING + EMPTY-STATE CORRECTIONS (2026-08-19c)
+   ======================================================================== */
+/* The dossier's entire stacking context must outrank the wallet, tabs and
+   masthead controls it overlaps when opening upward. A large z-index on the
+   dossier alone cannot escape an isolated parent stacking context. */
+#spanel-packs {
+  z-index: 10000;
+  isolation: isolate;
+}
+.product:has(.product-pack:hover) {
+  z-index: 10001;
+}
+.product-info {
+  z-index: 10002;
+}
+
+/* Remove every remnant of the old per-product plaque. Earlier theme rules
+   add a shadow and an inset ::before frame after the base product reset. */
+.product {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.product::before {
+  content: none;
+  display: none;
+}
+
+/* display:grid on .echo-empty otherwise beats the user-agent [hidden] rule. */
+.echo-empty[hidden] {
+  display: none !important;
+}
+
+/* ========================================================================
+   SEARCHABLE, BOUNDED FILTER DROPDOWNS (2026-08-19)
+   ======================================================================== */
+.dd-searchable .dd-menu {
+  width: 260px;
+  max-width: min(260px, calc(100vw - 28px));
+  padding: 7px;
+}
+.dd-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.dd-search > i {
+  position: absolute;
+  left: 10px;
+  color: var(--txt-faint);
+  font-size: 13px;
+  pointer-events: none;
+}
+.dd-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px 8px 30px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  outline: 0;
+  background: rgba(255, 255, 255, .055);
+  color: var(--txt);
+  font: inherit;
+  font-size: 12px;
+}
+.dd-search input::placeholder { color: var(--txt-faint); }
+.dd-search input:focus {
+  border-color: rgba(150, 180, 255, .72);
+  box-shadow: 0 0 0 2px rgba(90, 130, 255, .13);
+}
+.dd-options {
+  max-height: 252px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 188, 255, .55) rgba(255, 255, 255, .045);
+}
+.dd-options::-webkit-scrollbar { width: 7px; }
+.dd-options::-webkit-scrollbar-track { background: rgba(255, 255, 255, .035); border-radius: 99px; }
+.dd-options::-webkit-scrollbar-thumb { background: rgba(159, 188, 255, .48); border-radius: 99px; }
+.dd-opt[hidden] { display: none !important; }
+.dd-no-matches {
+  margin: 8px 6px;
+  color: var(--txt-faint);
+  font-size: 11px;
+  text-align: center;
+}
+.echo-dropdowns {
+  flex-wrap: nowrap;
+  margin-left: auto;
+}
+.echo-dropdowns .dd-btn { min-width: 180px; }
+.echo-tools { overflow: visible; }
+#spanel-echo { overflow: visible; }
+@media (max-width: 760px) {
+  .echo-dropdowns { width: 100%; margin-left: 0; }
+  .echo-dropdowns .dd { flex: 1 1 0; min-width: 0; }
+  .echo-dropdowns .dd-btn { min-width: 0; width: 100%; }
+}
+
+/* ========================================================================
+   DROPDOWN SCROLL FINISH + ECHO SHOP ENTRANCE (2026-08-19)
+   ======================================================================== */
+/* Keep the two-pixel option nudge, but reserve room for it inside the list.
+   Transformed children otherwise enlarge the scrollable overflow region and
+   make browsers flash a horizontal scrollbar. */
+.dd-searchable .dd-menu {
+  width: 272px;
+  max-width: min(272px, calc(100vw - 28px));
+}
+.dd-options {
+  box-sizing: border-box;
+  width: 100%;
+  padding-right: 7px;
+  overflow-x: hidden;
+  overflow-x: clip;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 188, 255, .32) transparent;
+}
+.dd-options .dd-opt {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+.dd-options::-webkit-scrollbar {
+  width: 5px;
+  height: 0;
+}
+.dd-options::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 5px;
+}
+.dd-options::-webkit-scrollbar-thumb {
+  min-height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(159, 188, 255, .3);
+  background-clip: padding-box;
+}
+.dd-options:hover::-webkit-scrollbar-thumb {
+  background: rgba(159, 188, 255, .48);
+  background-clip: padding-box;
+}
+
+/* Opening the Echo Shop should feel like changing rooms, not swapping raw
+   display states. The counter establishes the surface, then tools and stock
+   settle in behind it. */
+#spanel-echo:not([hidden]) {
+  animation: echo-shop-enter .38s cubic-bezier(.2, .82, .25, 1) both;
+}
+#spanel-echo:not([hidden]) .echo-counter {
+  animation: echo-shop-piece .34s var(--ease) .05s backwards;
+}
+#spanel-echo:not([hidden]) .echo-tools {
+  animation: echo-shop-piece .34s var(--ease) .11s backwards;
+}
+#spanel-echo:not([hidden]) .echo-grid,
+#spanel-echo:not([hidden]) .echo-empty:not([hidden]) {
+  animation: echo-shop-piece .38s var(--ease) .17s backwards;
+}
+@keyframes echo-shop-enter {
+  from { opacity: 0; transform: translateY(12px) scale(.992); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes echo-shop-piece {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+body[data-gfx='low'] #spanel-echo:not([hidden]),
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-counter,
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-tools,
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-grid,
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #spanel-echo:not([hidden]),
+  #spanel-echo:not([hidden]) .echo-counter,
+  #spanel-echo:not([hidden]) .echo-tools,
+  #spanel-echo:not([hidden]) .echo-grid,
+  #spanel-echo:not([hidden]) .echo-empty {
+    animation: none;
+  }
+}
+
+/* Eight options are the baseline capacity of every filter menu. Only menus
+   with a ninth option become scroll regions, and only those long menus get
+   the extra width that keeps their scrollbar away from labels/checkmarks. */
+.dd-options {
+  max-height: 272px;
+}
+.dd-options .dd-opt {
+  min-height: 34px;
+}
+.dd-scrollable .dd-menu {
+  width: 272px;
+  max-width: min(272px, calc(100vw - 28px));
+}
+
+/* Let option rows use the full list content box. Horizontal overflow is
+   already clipped, so the former seven-pixel safety gutter only made the
+   right edge look noticeably emptier than the left. */
+.dd-options {
+  padding-right: 0;
+  padding-left: 0;
+}
+.dd-options .dd-opt {
+  width: 100%;
+}
+
+/* ========================================================================
+   CARD HOVER STABILITY + RARITY LEVEL STARS (2026-08-19)
+   ======================================================================== */
+/* Hover motion is vertical only. Scaling the card and then scaling its art a
+   second time changed the crop on both horizontal edges and looked like the
+   card was sliding inside its grid cell. */
+.card:hover {
+  transform: translateY(-8px);
+}
+.card:hover .art-portrait {
+  transform: none;
+}
+
+/* Level stars are independent crests now, not a chopped banner. The card's
+   visual layers clip themselves, allowing the stars to overlap its top border
+   without letting artwork or the hover wash bleed beyond rounded corners. */
+.card {
+  overflow: visible;
+}
+.card-art,
+.card-vignette,
+.card-sheen,
+.card-frame,
+.card-overlay {
+  border-radius: inherit;
+}
+.card-overlay {
+  overflow: hidden;
+}
+.card-sheen {
+  clip-path: inset(0 round var(--radius));
+}
+.card-stars {
+  --star-c: var(--rar-1);
+  top: -11px;
+  height: auto;
+  min-height: 0;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .78));
+}
+.card:hover .card-stars {
+  border: 0;
+  transform: translateX(-50%);
+}
+.card-stars i {
+  position: relative;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--star-c) 72%, #fff);
+  clip-path: polygon(
+    50% 2%, 60% 29%, 88% 30%, 66% 48%, 74% 78%,
+    50% 62%, 26% 78%, 34% 48%, 12% 30%, 40% 29%
+  );
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, .8))
+    drop-shadow(0 0 8px color-mix(in srgb, var(--star-c) 74%, transparent));
+}
+/* The inset star leaves a thick rarity-coloured outer star visible: a real
+   shaped border rather than a rectangular CSS border clipped afterwards. */
+.card-stars i::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 5px;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--star-c) 24%, #fff) 0%,
+    var(--star-c) 48%,
+    color-mix(in srgb, var(--star-c) 72%, #050711) 100%
+  );
+  clip-path: inherit;
+}
+.card[data-rarity='common'] .card-stars { --star-c: var(--r-common-1); }
+.card[data-rarity='rare'] .card-stars { --star-c: var(--r-rare-1); }
+.card[data-rarity='epic'] .card-stars { --star-c: var(--r-epic-1); }
+.card[data-rarity='legendary'] .card-stars { --star-c: var(--r-legendary-1); }
+
+/* Author styling on .cd-stat-base used to override the browser's [hidden]
+   rule, so unboosted stats still printed a redundant base comparison. */
+.cd-stat-base[hidden] {
+  display: none !important;
+}
+
+/* ========================================================================
+   FINAL CARD MOTION, TYPE, AND STAR LAYERING (2026-08-19)
+   ======================================================================== */
+/* Roboto is the site default. Explicit display faces such as Cinzel and the
+   few deliberately-authored Inter components keep their existing families. */
+body {
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+}
+.cd-art-lore {
+  font-family: 'Cinzel', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: .015em;
+}
+
+/* Restore the satisfying whole-card zoom without zooming/cropping the art
+   independently—the latter was what read as a horizontal slide. */
+.card {
+  overflow: hidden;
+}
+.card:hover {
+  transform: translateY(-9px) scale(1.03);
+}
+.card:hover .art-portrait {
+  transform: none;
+}
+
+/* With the card clipping its own layers again, the original full-width sheen
+   sweep stays inside the rounded frame. */
+.card-sheen {
+  border-radius: 0;
+  clip-path: none;
+}
+
+/* Stars remain visible over the details wash and sit across the top border,
+   but no longer depend on escaping the card's clipping boundary. */
+.card-stars,
+.card:hover .card-stars {
+  top: 0;
+  z-index: 14;
+  transform: translateX(-50%);
+}

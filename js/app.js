@@ -77,10 +77,10 @@
     return window.EOL.colorElements(String(s));
   }
 
-  function statRow(icon, key, val, display, max, color) {
+  function statRow(icon, key, val, display, max, color, boosted) {
     var pct = Math.max(4, Math.min(100, (val / max) * 100));
     return (
-      '<div class="stat-row" style="--sc:' +
+      '<div class="stat-row' + (boosted ? ' boosted' : '') + '" style="--sc:' +
       color +
       ';--pct:' +
       pct.toFixed(1) +
@@ -252,6 +252,10 @@
     var badges = options.upgrades ? upgradeBadges(card) : '';
     if (badges) el.dataset.upgraded = '1';
     var U0 = window.EOL.upgrades;
+    var shownStats = card.stats;
+    if (U0 && options.upgrades && (!window.EOL.econ || window.EOL.econ.owns(card.id))) {
+      shownStats = U0.statsFor(card.id, card) || card.stats;
+    }
     if (U0 && options.upgrades) {
       /* A card that can be levelled is worth spotting from across the
          grid, so the whole card is flagged - not just the overlay,
@@ -332,16 +336,33 @@
       '</div>' +
       '</div>' +
       '<div class="stat-block">' +
-      statRow('ra-health', 'HP', card.stats.hp, card.stats.hp.toLocaleString(), MAX.hp, '#ff5f7e') +
+      statRow(
+        'ra-health',
+        'HP',
+        shownStats.hp,
+        shownStats.hp.toLocaleString(),
+        MAX.hp,
+        '#ff5f7e',
+        shownStats.hp !== card.stats.hp
+      ) +
       statRow(
         'ra-sword',
         'ATK',
-        card.stats.atk,
-        card.stats.atk.toLocaleString(),
+        shownStats.atk,
+        shownStats.atk.toLocaleString(),
         MAX.atk,
-        '#ffb347'
+        '#ffb347',
+        shownStats.atk !== card.stats.atk
       ) +
-      statRow('ra-shield', 'DEF', card.stats.def, card.stats.def + '%', MAX.def, '#5fb2ff') +
+      statRow(
+        'ra-shield',
+        'DEF',
+        shownStats.def,
+        shownStats.def + '%',
+        MAX.def,
+        '#5fb2ff',
+        shownStats.def !== card.stats.def
+      ) +
       '</div>' +
       '<div class="ability" style="--ab-c:' +
       abColor +
@@ -597,9 +618,13 @@
   function iconDomainAttr(icon) {
     return icon && /(^|\s)ra(\s|$)/.test(icon) ? ' data-icon-domain="game"' : '';
   }
-  function buildDropdown(host, label, opts, onPick) {
+  function buildDropdown(host, label, opts, onPick, config) {
+    config = config || {};
     var dd = document.createElement('div');
-    dd.className = 'dd';
+    dd.className =
+      'dd' +
+      (config.searchable ? ' dd-searchable' : '') +
+      (opts.length > 8 ? ' dd-scrollable' : '');
 
     var btn = document.createElement('button');
     btn.className = 'dd-btn';
@@ -609,7 +634,30 @@
 
     var menu = document.createElement('div');
     menu.className = 'dd-menu';
-    menu.setAttribute('role', 'listbox');
+
+    var optionsHost = document.createElement('div');
+    optionsHost.className = 'dd-options';
+    optionsHost.setAttribute('role', 'listbox');
+    var noMatches = null;
+    var optionSearch = null;
+    if (config.searchable) {
+      var searchWrap = document.createElement('label');
+      searchWrap.className = 'dd-search';
+      searchWrap.innerHTML = '<i class="ri-search-line" aria-hidden="true"></i>';
+      optionSearch = document.createElement('input');
+      optionSearch.type = 'search';
+      optionSearch.autocomplete = 'off';
+      optionSearch.placeholder = config.searchPlaceholder || 'Search ' + label.toLowerCase() + 's...';
+      optionSearch.setAttribute('aria-label', 'Search ' + label.toLowerCase() + ' options');
+      searchWrap.appendChild(optionSearch);
+      menu.appendChild(searchWrap);
+      noMatches = document.createElement('p');
+      noMatches.className = 'dd-no-matches';
+      noMatches.textContent = 'No matching ' + label.toLowerCase() + '.';
+      noMatches.hidden = true;
+    }
+    menu.appendChild(optionsHost);
+    if (noMatches) menu.appendChild(noMatches);
 
     function paint(v) {
       var o =
@@ -625,7 +673,7 @@
         esc(o.text) +
         '</span>' +
         '<i class="dd-caret ri-arrow-down-s-line"></i>';
-      menu.querySelectorAll('.dd-opt').forEach(function (el) {
+      optionsHost.querySelectorAll('.dd-opt').forEach(function (el) {
         el.classList.toggle('sel', el.dataset.value === v);
         el.setAttribute('aria-selected', el.dataset.value === v ? 'true' : 'false');
       });
@@ -647,11 +695,46 @@
         '</span><i class="dd-check ri-check-line"></i>';
       b.addEventListener('click', function () {
         paint(o.value);
+        if (optionSearch) {
+          optionSearch.value = '';
+          optionsHost.querySelectorAll('.dd-opt').forEach(function (option) {
+            option.hidden = false;
+          });
+          if (noMatches) noMatches.hidden = true;
+        }
         dd.classList.remove('open');
         btn.setAttribute('aria-expanded', 'false');
         onPick(o.value);
       });
-      menu.appendChild(b);
+      optionsHost.appendChild(b);
+    });
+
+    if (optionSearch) {
+      optionSearch.addEventListener('input', function () {
+        var query = optionSearch.value.trim().toLowerCase();
+        var visible = 0;
+        optionsHost.querySelectorAll('.dd-opt').forEach(function (option) {
+          var match = !query || option.textContent.toLowerCase().indexOf(query) >= 0;
+          option.hidden = !match;
+          if (match) visible++;
+        });
+        if (noMatches) noMatches.hidden = visible > 0;
+      });
+      optionSearch.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          var firstVisible = Array.prototype.filter.call(
+            optionsHost.querySelectorAll('.dd-opt'),
+            function (option) { return !option.hidden; }
+          )[0];
+          if (firstVisible) {
+            e.preventDefault();
+            firstVisible.click();
+          }
+        }
+      });
+    }
+    menu.addEventListener('click', function (e) {
+      e.stopPropagation();
     });
 
     btn.addEventListener('click', function (e) {
@@ -660,12 +743,18 @@
       closeAllMenus(dd);
       dd.classList.toggle('open', willOpen);
       btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (willOpen && optionSearch) {
+        window.setTimeout(function () {
+          optionSearch.focus();
+          optionSearch.select();
+        }, 0);
+      }
     });
 
     dd.appendChild(btn);
     dd.appendChild(menu);
     host.appendChild(dd);
-    paint('all');
+    paint(config.initialValue || 'all');
     return dd;
   }
 
@@ -922,7 +1011,7 @@
     buildDropdown(host, 'Faction', factionOpts, function (v) {
       state.faction = v;
       applyFilters();
-    });
+    }, { searchable: true, searchPlaceholder: 'Search factions...' });
     buildDropdown(host, 'Rarity', rarityOpts, function (v) {
       state.rarity = v;
       applyFilters();

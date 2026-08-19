@@ -266,10 +266,18 @@ let packs = 0,
   matches = 0,
   wins = 0;
 const PAY = econ.PAY;
-const packDef = shop.PACKS.echo;
-/* the shelf's job ends when every SOLD echo is owned - the seven
-   faction legendaries are the campaign's to give, not the shop's */
+/* Once Chapter I's sold cards are complete, the run buys Archive Packs.
+   Chapter pools are intentionally separate; using Echoes forever here used
+   to rely on the very cross-chapter leak this simulation now guards. */
+function nextChapterPack() {
+  const unowned = new Set(econ.packableEntries().map((e) => e.card.id));
+  const c1Left = shop._packUniverse(shop.PACKS.echo).some((e) => unowned.has(e.card.id));
+  return c1Left ? shop.PACKS.echo : shop.PACKS.archive;
+}
+/* the shelf's job ends when every SOLD echo is owned - faction
+   legendaries are the campaign's to give, not the shop's */
 while (econ.packableEntries().length > 0 && packs + matches < 4000) {
+  const packDef = nextChapterPack();
   if (wallet >= packDef.price) {
     wallet -= packDef.price;
     const out = shop.rollPack(rng, packDef);
@@ -292,7 +300,7 @@ ok(
 );
 const hours = ((matches * 3.5) / 60).toFixed(1);
 console.log(
-  `  Normal Road coins carried ${Math.floor(CHAPTER_COINS / packDef.price)} packs; total ${packs} packs, ` +
+  `  Normal Road coins carried ${Math.floor(CHAPTER_COINS / shop.PACKS.echo.price)} packs; total ${packs} packs, ` +
     `${matches} matches (${wins} won) - roughly ${hours}h of play after the campaign`
 );
 /* THE CROWN LAW shortened the shelf ON PURPOSE: 35 sellable echoes

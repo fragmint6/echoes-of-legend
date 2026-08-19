@@ -8,7 +8,7 @@ shard spend moved to the Shop's Echo Shop tab (§3.5); levelling up has a ceremo
 levellable cards are flagged (§5.4); the card shows `Lv0`, three boost slots and level
 stars on its frame (§5.1); printed skill numbers reflect the card's own upgrades (§5.5);
 the skill bonus is now **flat** (§1.4); a level also costs **500 coins** (§1.5); a card
-holds at most **nine copies** (§3.6); a new level starts with **no boost chosen** (§1.6);
+holds at most **nine copies** (§3.6); a new level defaults visibly to **ATK** (§1.6);
 and **every legend** now has something an upgrade can raise (§1.7).
 
 **Purpose:** Turn the collection's dead end into a long tail. Packs used to pay nothing
@@ -33,32 +33,25 @@ Every card has an **upgrade level, 0 to 3**. Each level costs duplicates of that
 Each level grants **both**:
 
 - **+2 percentage points to every magnitude in its Signature Skill** (§1.4); and
-- **one stat the player chooses, per level** — **+2% ATK**, **+2% HP**, or
-  **+1.5 DEF points** (§1.3).
+- **one stat the player chooses, per level** — **+5% ATK**, **+7% HP**, or
+  **+3 DEF percentage points** (§1.3).
 
 It also costs **500 coins** (§1.5).
 
-### 1.0 Why DEF is points and not a percentage
+### 1.0 DEF uses percentage points
 
-DEF is not a scalable stat. It is a percentage-**point** damage reducer, clamped by the
-engine to 0..75, and the whole roster spans only 10..30. A multiplicative +2% on `def:
-10` rounds straight back to 10 — the DEF choice would have silently done nothing.
-
-It gets **+1.5 flat points per level** instead, sized to match the other two options:
-at max that is +5.3% to +6.9% effective HP depending on the card's base DEF, against
-+6% for the HP choice. Engine and UI share the constant so they can never disagree.
+DEF is already displayed as a percentage damage reducer, so its booster adds **3 flat
+percentage points** per chosen level. A Tank at 30% DEF therefore moves to 33%, exactly
+as shown in both the detail dialog and battle state.
 
 Choices are **freely re-assignable** outside battle at no cost. They are locked at
 battle start, so a respec can never be used as a mid-fight tactic.
 
 ### 1.1 Why these numbers
 
-Each level grants **+2% of one stat you choose for that level** (§1.3) and **+2
-percentage points to every magnitude in the card's own Signature Skill** (§1.4).
-
-The stat share is small on purpose: three levels is +6% of one stat, which is inside the
-natural spread between comparable cards, so a maxed legend is a better version of itself
-rather than a different card.
+Each level grants **+5% ATK, +7% HP, or +3 DEF percentage points** for that level's chosen booster
+(§1.3), plus **+2 percentage points to every magnitude in the card's own Signature
+Skill** (§1.4).
 
 ### 1.2 What upgrades never touch
 
@@ -81,7 +74,7 @@ direction: the small-coefficient cards are the ones whose upgrades were invisibl
 ### 1.3 One boost per level
 
 *(Owner ruling 2026-08-16.)* Levels do **not** share a single chosen stat. Each level
-carries its own, so `["atk", "atk", "hp"]` is a real build: +4% ATK, +2% HP, and the
+carries its own, so `["atk", "atk", "hp"]` is a real build: +10% ATK, +7% HP, and the
 +6 skill points that all three levels bought.
 
 This makes a maxed card three small decisions instead of one toggle, and it lets a player
@@ -133,20 +126,12 @@ checked **before** anything is deducted, so a failed level-up costs nothing.
 
 ---
 
-### 1.6 A new level starts unassigned
+### 1.6 A new level defaults to ATK
 
-*(Owner ruling 2026-08-16.)* Buying a level does **not** pick its boost. `boosts[i]` is
-`null` until the player chooses, the row in the dialog shows nothing selected, and the
-summary says how many choices are still open.
-
-The previous behaviour defaulted to the build's dominant stat. That is a decision taken
-away from the player, and it was wrong every time somebody wanted to diversify — the one
-case where the choice actually matters.
-
-`null` is a first-class value throughout: the array's **length is still the level**, so an
-unassigned level pays the full flat skill bonus (§1.4) while moving no stat. Both
-`js/upgrades.js` and `js/engine.js` preserve nulls rather than filtering them, because
-dropping one would silently demote a level-3 card to level 2.
+Buying a level selects **ATK** immediately, so the purchase always produces a visible raw
+stat increase. Every level remains freely re-assignable to HP or DEF outside battle.
+Legacy saves may still contain a `null` choice; the array's length remains the level so
+those saves retain their full skill bonus until the player chooses a stat.
 
 ### 1.7 Every legend benefits
 

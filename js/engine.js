@@ -844,8 +844,8 @@
        cards: drafts stay the great equalizer and the Daily Puzzle
        keeps its promise that everyone receives the exact same board.
 
-       Only the ONE chosen stat moves, by 2% per level. Skill power
-       is a separate compounding multiplier applied at the effect
+       Only the chosen stat moves: +5% ATK, +7% HP, or +3 flat DEF
+       points per chosen level. Skill power is a separate multiplier applied at the effect
        sites; thresholds and Energy costs never move. */
     function applyUpgrades(side, table) {
       if (!table) return;
@@ -889,20 +889,14 @@
            The maths below never reads it. */
         u.upStat = n.hp > n.atk && n.hp >= n.def ? 'hp' : n.def > n.atk && n.def >= n.hp ? 'def' : 'atk';
         u.upPower = Math.pow(1.015, lv);
-        if (n.atk) u.baseAtk = Math.round(u.baseAtk * (1 + 0.02 * n.atk));
+        if (n.atk) u.baseAtk = Math.round(u.baseAtk * (1 + 0.05 * n.atk));
         if (n.hp) {
-          u.maxHp = Math.round(u.maxHp * (1 + 0.02 * n.hp));
+          u.maxHp = Math.round(u.maxHp * (1 + 0.07 * n.hp));
           u.hp = u.maxHp;
         }
         if (n.def) {
-          /* DEF is NOT a scalable stat - it is a percentage-point
-             damage reducer clamped to 0..75, and the roster only
-             spans 10..30. Multiplying it by 1.02 rounds straight back
-             to where it started, so the DEF choice would silently do
-             nothing. It gets FLAT POINTS instead, sized so its value
-             matches the other two: +1.5 points per level is +5.3% to
-             +6.9% effective HP at max, against +6% for the HP choice. */
-          u.baseDef = u.baseDef + 1.5 * n.def;
+          /* DEF is already a displayed percentage: +3 means 30% -> 33%. */
+          u.baseDef = u.baseDef + 3 * n.def;
         }
       });
     }
