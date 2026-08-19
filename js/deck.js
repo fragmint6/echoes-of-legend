@@ -360,6 +360,33 @@
     return true;
   }
 
+  /* Fill remaining slots from owned cards while obeying every normal deck
+     law. This is deliberately deterministic (owned roster order), so it is
+     a convenience, never a hidden deck-building algorithm. */
+  function autoComplete() {
+    if (!editing) return false;
+    var econ = window.EOL.econ;
+    var changed = false;
+    roster().forEach(function (entry) {
+      if (editing.ids.length >= DECK_SIZE || has(entry.card.id)) return;
+      if (econ && !econ.owns(entry.card.id)) return;
+      var current = entriesOf(editing);
+      if (window.EOL.deckRules.legendaryCapBlocked(current, entry.card)) return;
+      if (window.EOL.deckRules.capBlocked(current, entry.card)) return;
+      editing.ids.push(entry.card.id);
+      changed = true;
+    });
+    if (changed) {
+      editing.ts = Date.now();
+      save();
+      render();
+      if (window.EOL.audio) window.EOL.audio.ui('tap');
+    }
+    if (editing.ids.length < DECK_SIZE)
+      hintWarn('Not enough owned legends fit the remaining role and Legendary limits.');
+    return changed;
+  }
+
   function removeCard(id) {
     if (!editing) return false;
     var i = editing.ids.indexOf(id);
@@ -681,8 +708,34 @@
   }
 
   function renderHeader() {
+    var total = count();
     var c = $('deck-count');
-    if (c) c.textContent = count();
+    if (c) c.textContent = total;
+    var fill = $('deck-meter-fill');
+    if (fill) fill.style.width = Math.min(100, (total / DECK_SIZE) * 100) + '%';
+    var ready = $('deck-ready-label');
+    if (ready) ready.textContent = total === DECK_SIZE ? 'Battle-ready deck' : DECK_SIZE - total + ' slots remaining';
+
+    var entries = editing ? entriesOf(editing) : [];
+    var crowns = window.EOL.deckRules ? window.EOL.deckRules.legendaryCount(entries) : 0;
+    var legendStatus = $('deck-legend-status');
+    if (legendStatus)
+      legendStatus.innerHTML =
+        '<i data-icon-domain="game" class="ra ra-crown"></i>' + crowns + ' / 2 Legendary';
+
+    var roleCounts = {};
+    entries.forEach(function (entry) {
+      roleCounts[entry.card.role] = (roleCounts[entry.card.role] || 0) + 1;
+    });
+    var peak = 0;
+    Object.keys(roleCounts).forEach(function (role) { peak = Math.max(peak, roleCounts[role]); });
+    var roleStatus = $('deck-role-status');
+    if (roleStatus) {
+      roleStatus.classList.toggle('near-cap', peak >= MAX_PER_ROLE);
+      roleStatus.innerHTML = '<i class="ri-team-line"></i>' + (peak ? 'Highest role ' + peak : 'Max 4 per role');
+    }
+    var workbench = document.querySelector('.deck-workbench');
+    if (workbench) workbench.classList.toggle('is-ready', total === DECK_SIZE);
   }
 
   function render() {
@@ -823,10 +876,9 @@
          the badge was a second control for the same action sitting on
          top of the art. */
       el.addEventListener('click', function () {
-        if (window.matchMedia('(hover: none)').matches) {
-          if (window.EOL.audio) window.EOL.audio.card('pick');
-          return; // tap = details
-        }
+        /* A card always means add/remove, on mouse and touch alike. The old
+           touch-only early return made cards such as Adam impossible to add
+           on phones and tablets. Details have their own explicit button. */
         toggle(e.card.id);
       });
       /* THE DETAIL DIALOG, on its own control.
@@ -893,6 +945,8 @@
 
     var clearBtn = $('btn-deck-clear');
     if (clearBtn) clearBtn.addEventListener('click', clear);
+    var autoBtn = $('btn-deck-auto');
+    if (autoBtn) autoBtn.addEventListener('click', autoComplete);
     var doneBtn = $('btn-deck-save');
     if (doneBtn) doneBtn.addEventListener('click', closeEditor);
     var backBtn = $('btn-deck-back');

@@ -328,8 +328,8 @@ const server = http.createServer((req, res) => {
     const gate11L = d.querySelector('[data-campaign-stage="11"] .sc-rewards');
     const txtL = gate11L ? gate11L.textContent : '';
     t(
-      txtL.indexOf('300') >= 0 && txtL.indexOf('Legendary reward pack') >= 0,
-      'gate XI legend shows +300 coins AND the Legendary pack'
+      txtL.indexOf('300') >= 0 && txtL.indexOf('Achilles') >= 0,
+      'gate XI Legend shows +300 coins and names Achilles'
     );
     const bossL = d.querySelector('[data-campaign-stage="20"] .sc-rewards');
     t(

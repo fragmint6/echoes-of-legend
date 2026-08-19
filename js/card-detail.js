@@ -88,6 +88,16 @@
     return window.EOL.upgrades;
   }
 
+  var CHAPTER_ONE_FACTIONS = [
+    'grimmwood', 'camelot', 'sherwood', 'olympus',
+    'yamato', 'roma', 'kami', 'duat',
+  ];
+  function chapterOf(faction) {
+    return CHAPTER_ONE_FACTIONS.indexOf(faction.id) >= 0
+      ? { n: 1, label: 'Chapter I', icon: 'ri-flag-line' }
+      : { n: 2, label: 'Chapter II', icon: 'ri-book-2-line' };
+  }
+
   function entryFor(id) {
     if (window.EOL.ui && window.EOL.ui.entryFor) return window.EOL.ui.entryFor(id);
     var found = null;
@@ -389,6 +399,7 @@
     var owned = !econ || econ.owns(card.id);
     var up = U();
     var lvNow = up ? up.levelOf(card.id) : 0;
+    var cardChapter = chapterOf(faction);
 
     var art = card.art
       ? '<img src="' + esc(card.art) + '" alt="" draggable="false" />'
@@ -446,6 +457,11 @@
       esc(ELEMENT_ICON[card.element] || 'ra-player') +
       '"></i>' +
       esc(card.element) +
+      '</span>' +
+      '<span class="cd-tag chapter" data-chapter="' +
+      cardChapter.n +
+      '"><i class="' + cardChapter.icon + '" aria-hidden="true"></i>' +
+      cardChapter.label +
       '</span>' +
       /* THE LEVEL IS ALWAYS STATED for a legend you own, including
          LEVEL 0. "No badge" is ambiguous - it could mean unupgraded

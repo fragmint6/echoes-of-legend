@@ -30792,7 +30792,7 @@ span.lg-portrait i {
 }
 .shop-shelf {
   gap: 34px 30px;
-  padding: 24px clamp(18px, 3vw, 38px) 30px;
+  padding: 24px clamp(18px, calc(var(--vw1) * 3), 38px) 30px;
 }
 .shop-shelf-head {
   position: relative;
@@ -30866,7 +30866,7 @@ span.lg-portrait i {
   top: 14px;
   left: 50%;
   width: 350px;
-  max-width: calc(100vw - 36px);
+  max-width: calc(var(--vw1) * 100 - 36px);
   transform: translate(-50%, 12px) scale(.96);
   border-radius: 18px;
   overflow: hidden;
@@ -30984,7 +30984,7 @@ span.lg-portrait i {
 #spanel-echo {
   max-width: 1180px;
   margin: 18px auto 0;
-  padding: 22px clamp(14px, 2.5vw, 30px) 34px;
+  padding: 22px clamp(14px, calc(var(--vw1) * 2.5), 30px) 34px;
   border: 1px solid rgba(192,124,255,.16);
   border-radius: 24px;
   overflow: hidden;
@@ -31040,7 +31040,7 @@ span.lg-portrait i {
   line-height: 1.65;
 }
 .cd-info-col { gap: 18px; padding: 5px 0; }
-.cd-name { margin: 4px 0 11px; font-size: clamp(25px, 3vw, 32px); }
+.cd-name { margin: 4px 0 11px; font-size: clamp(25px, calc(var(--vw1) * 3), 32px); }
 .cd-tags { gap: 7px; }
 .cd-tag { padding: 4px 9px; }
 .cd-wheel { margin-top: 10px; }
@@ -31238,7 +31238,7 @@ span.lg-portrait i {
    ======================================================================== */
 .dd-searchable .dd-menu {
   width: 260px;
-  max-width: min(260px, calc(100vw - 28px));
+  max-width: min(260px, calc(var(--vw1) * 100 - 28px));
   padding: 7px;
 }
 .dd-search {
@@ -31309,7 +31309,7 @@ span.lg-portrait i {
    make browsers flash a horizontal scrollbar. */
 .dd-searchable .dd-menu {
   width: 272px;
-  max-width: min(272px, calc(100vw - 28px));
+  max-width: min(272px, calc(var(--vw1) * 100 - 28px));
 }
 .dd-options {
   box-sizing: border-box;
@@ -31396,7 +31396,7 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
 }
 .dd-scrollable .dd-menu {
   width: 272px;
-  max-width: min(272px, calc(100vw - 28px));
+  max-width: min(272px, calc(var(--vw1) * 100 - 28px));
 }
 
 /* Let option rows use the full list content box. Horizontal overflow is
@@ -31541,4 +31541,176 @@ body {
   top: 0;
   z-index: 14;
   transform: translateX(-50%);
+}
+
+/* ========================================================================
+   CARD CHAPTER CHIP, LORE FACE, STAR ALIGNMENT (2026-08-19)
+   ======================================================================== */
+.cd-art-lore {
+  font-family: 'Merriweather', Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0;
+}
+.cd-tag.chapter[data-chapter='1'] {
+  color: #ffe0a0;
+  border-color: rgba(245, 197, 111, .42);
+  background: rgba(230, 171, 82, .08);
+}
+.cd-tag.chapter[data-chapter='2'] {
+  color: #cfe0ff;
+  border-color: rgba(145, 175, 255, .4);
+  background: rgba(90, 120, 200, .1);
+}
+
+/* The centre of a 27px star now lands directly on the card's top border.
+   Visual layers clip themselves; only the level crest may escape. */
+.card {
+  overflow: visible;
+}
+.card-stars,
+.card:hover .card-stars {
+  top: -13.5px;
+  z-index: 14;
+}
+.card-sheen {
+  /* .card-sheen is 180% of the card because of inset:-40%; 22.222%
+     maps that oversized layer back to the exact card rectangle. */
+  clip-path: inset(22.222% round var(--radius));
+}
+
+/* ========================================================================
+   DECK FORGE — COMPACT COMPOSITION WORKBENCH (2026-08-19)
+   ======================================================================== */
+.deck-mast { margin-bottom: 16px; }
+.deck-workbench {
+  --forge: #ffd682;
+  display: grid;
+  grid-template-columns: minmax(245px, 300px) minmax(0, 1fr);
+  gap: 18px;
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid rgba(255, 214, 130, .22);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 8% 0, rgba(255, 205, 110, .12), transparent 36%),
+    linear-gradient(145deg, rgba(22, 24, 39, .96), rgba(9, 11, 21, .94));
+  box-shadow: inset 0 1px rgba(255,255,255,.05), 0 18px 48px rgba(0,0,0,.3);
+}
+.deck-workbench.is-ready {
+  border-color: rgba(127, 227, 192, .38);
+  --forge: #7fe3c0;
+}
+.deck-command {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 0;
+  padding: 3px 2px 2px;
+}
+.deck-name-field { display: grid; gap: 6px; }
+.deck-name-field > span,
+.deck-row-tag > span:first-child {
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.deck-name-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  outline: 0;
+  background: rgba(255,255,255,.045);
+  color: #fff;
+  font: 700 15px 'Cinzel', Georgia, serif;
+}
+.deck-name-input:focus {
+  border-color: color-mix(in srgb, var(--forge) 68%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--forge) 12%, transparent);
+}
+.deck-completion {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(0,0,0,.2);
+}
+.deck-count-ring {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-content: center;
+  border: 2px solid color-mix(in srgb, var(--forge) 62%, transparent);
+  border-radius: 50%;
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--forge) 12%, transparent);
+  text-align: center;
+}
+.deck-count-ring strong { color: #fff; font: 800 19px/1 'Cinzel', serif; }
+.deck-count-ring span { color: var(--txt-faint); font-size: 8px; }
+.deck-progress-copy { display: grid; gap: 7px; min-width: 0; flex: 1; }
+.deck-progress-copy b { color: var(--txt); font-size: 11.5px; }
+.deck-meter { display: block; height: 5px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.09); }
+.deck-meter i { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#d99536,var(--forge)); box-shadow:0 0 10px var(--forge); transition:width .3s var(--ease); }
+.deck-laws { display:flex; flex-wrap:wrap; gap:6px; }
+.deck-laws span {
+  display:inline-flex; align-items:center; gap:5px; padding:5px 8px;
+  border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035);
+  color:var(--txt-dim); font-size:9.5px; font-weight:700;
+}
+.deck-laws i { color:var(--forge); }
+.deck-laws .near-cap { border-color:rgba(255,179,71,.42); color:#ffd39a; }
+.deck-command .deck-hint {
+  margin: 0;
+  padding: 9px 10px;
+  border-left: 2px solid color-mix(in srgb, var(--forge) 58%, transparent);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--forge) 5%, transparent);
+}
+.deck-command .deck-hint.warn { color:#ffc0ca; border-left-color:#ff5f7e; background:rgba(255,95,126,.07); }
+.deck-actions { margin-top:auto; }
+.deck-actions .btn { flex:1 1 auto; justify-content:center; padding-inline:12px; }
+.deck-roster-tray {
+  min-width:0;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;
+  background:rgba(0,0,0,.18);
+}
+.deck-roster-tray .deck-row-tag { justify-content:space-between; margin:0 2px 9px; }
+.deck-slots-12 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.deck-slots-12 .deck-slot { min-height: 126px; padding: 9px 5px 7px; }
+.deck-slots-12 .deck-slot.empty { background:rgba(255,255,255,.018); }
+.deck-slots-12 .deck-slot.empty .ds-num { font-size:17px; }
+.deck-slots-12 .deck-slot.filled:hover { transform:translateY(-3px); }
+.view.deck > .toolbar {
+  margin: 0 0 24px;
+  border-radius: 16px;
+  background: rgba(13, 16, 29, .78);
+}
+.deck-grid { margin-top: 0; }
+@media (max-width: 1120px) {
+  .deck-slots-12 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+@media (max-width: 820px) {
+  .deck-workbench { grid-template-columns: 1fr; }
+  .deck-slots-12 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (max-width: 520px) {
+  .deck-slots-12 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .deck-actions .btn { flex:1 1 40%; }
+}
+@media (hover: none) {
+  .deck-grid .card-info { opacity: 1; }
 }

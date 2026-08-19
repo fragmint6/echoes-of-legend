@@ -145,7 +145,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&family=Roboto:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,700&display=swap"
       rel="stylesheet"
     />
 
@@ -172,7 +172,7 @@
          plain image. -->
     <link rel="icon" href="assets/favicon.ico?v=20260819c" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png?v=20260819c" />
-    <link rel="stylesheet" href="css/style.css?v=20260819l" />
+    <link rel="stylesheet" href="css/style.css?v=20260819m" />
     <link rel="stylesheet" href="css/daily.css?v=20260819c" />
     <!-- Build differences (CrazyGames portal build). Last, so it wins on
          equal specificity. Paired with js/platform.js below. -->
@@ -1037,60 +1037,66 @@
 
     <!-- ==================== DECK EDITOR ==================== -->
     <section class="view deck" data-view="deck">
-      <header class="col-header">
+      <header class="col-header mast deck-mast">
         <button class="back-btn" id="btn-deck-back">
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <h2 class="col-title">Deck Editor</h2>
-          <p class="col-sub">
-            <span id="deck-count">0</span> of 12 legends - max 4 per role, 2 Legendaries
-            <button
-              type="button"
-              class="tipdot"
-              data-tip="A deck holds 12 legends, with at most 4 of the same role and 2 Legendary cards. Bring a mix: tough front-liners, damage dealers, and support."
-              aria-label="Tip"
-            >
-              <i class="ri-question-line"></i>
-            </button>
-          </p>
+          <span class="mast-emblem" aria-hidden="true"><i data-icon-domain="game" class="ra ra-shield"></i></span>
+          <h2 class="col-title">Forge a Deck</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">Choose twelve legends. The order is yours to read, not a battle formation.</p>
         </div>
-        <input
-          class="deck-name-input"
-          id="deck-name"
-          maxlength="24"
-          placeholder="Name this deck"
-          autocomplete="off"
-          spellcheck="false"
-        />
       </header>
 
-      <div class="deck-tray">
-        <div class="deck-rows">
-          <div class="deck-row-tag">
-            Your Twelve
-            <span class="deck-row-note"
-              >order here doesn't matter - you pick your battle six when the fight starts</span
-            >
+      <section class="deck-workbench" aria-label="Deck composition">
+        <div class="deck-command">
+          <label class="deck-name-field" for="deck-name">
+            <span>Deck name</span>
+            <input
+              class="deck-name-input"
+              id="deck-name"
+              maxlength="24"
+              placeholder="Name this deck"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+          <div class="deck-completion">
+            <div class="deck-count-ring"><strong id="deck-count">0</strong><span>/ 12</span></div>
+            <div class="deck-progress-copy">
+              <b id="deck-ready-label">Building your twelve</b>
+              <span class="deck-meter"><i id="deck-meter-fill"></i></span>
+            </div>
           </div>
-          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
-        </div>
-        <div class="deck-side">
+          <div class="deck-laws" aria-label="Deck rules">
+            <span id="deck-role-status"><i class="ri-team-line"></i>Max 4 per role</span>
+            <span id="deck-legend-status"><i data-icon-domain="game" class="ra ra-crown"></i>0 / 2 Legendary</span>
+          </div>
           <div class="deck-hint">
             <i class="ri-information-line"></i>
-            Click a legend to add or remove them. Saves itself as you build - 12 legends and at most
-            4 of any role makes it battle-ready.
+            Click any owned legend below to add or remove it. Invalid choices now explain the exact rule blocking them.
           </div>
           <div class="deck-actions">
             <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
               <i class="ri-refresh-line"></i><span>Clear</span>
+            </button>
+            <button class="btn btn-ghost btn-slim" id="btn-deck-auto">
+              <i class="ri-sparkling-line"></i><span>Complete</span>
             </button>
             <button class="btn btn-primary btn-slim" id="btn-deck-save">
               <i class="ri-check-line"></i><span>Done</span>
             </button>
           </div>
         </div>
-      </div>
+        <div class="deck-roster-tray">
+          <div class="deck-row-tag">
+            <span>Your Twelve</span>
+            <span class="deck-row-note">click a filled slot to remove it</span>
+          </div>
+          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
+        </div>
+      </section>
 
       <!-- same toolbar as the collection -->
       <div class="toolbar">
@@ -4281,15 +4287,15 @@
     <script src="js/upgrades.js?v=20260819l"></script>
     <script src="js/quests.js?v=20260819c"></script>
     <script src="js/quest-board.js?v=20260819c"></script>
-    <script src="js/card-detail.js?v=20260819l"></script>
+    <script src="js/card-detail.js?v=20260819m"></script>
     <script src="js/engine.js?v=20260819l"></script>
     <script src="js/ai.js?v=20260819c"></script>
     <script src="js/battle.js?v=20260819c"></script>
-    <script src="js/deck.js?v=20260819g"></script>
+    <script src="js/deck.js?v=20260819m"></script>
     <script src="js/pool.js?v=20260819c"></script>
     <script src="js/play.js?v=20260819c"></script>
     <script src="js/daily.js?v=20260819c"></script>
-    <script src="js/campaign.js?v=20260819c"></script>
+    <script src="js/campaign.js?v=20260819m"></script>
     <script src="js/shop.js?v=20260819g"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
