@@ -1,8 +1,38 @@
 # DESIGN — Pack Pools: chapter tiers and the featured shelf
 
-*Written 2026-08-19 as a decision document. Nothing ships until the
-owner picks; candidate structures are labelled, measured facts are
-from the live roster, and the recommendation is at the end.*
+*Written 2026-08-19 as a decision document; shipped the same day in
+the owner's final shape. Section 0 is what actually shipped; the
+analysis below it is the reasoning that got us there.*
+
+---
+
+## 0. SHIPPED 2026-08-19 - the owner's shelf
+
+- **Featured this week** (first section): TWO packs, two factions
+  each, named for how the pair is related. The rotation is authored -
+  four weeks, eight pairs, all sixteen factions exactly once a cycle:
+  Divine Pact (Genesis+Olympus), Debtors' Ledger (Pandemonium+Tortuga),
+  Deathless Court (Duat+Asgard), Green Hollow (Grimmwood+Hemithea),
+  Mark Circuit (Huaxia+Devas), Old Roads (Sherwood+Kami), Wall & Word
+  (Camelot+Yamato), First & Last Throne (Roma+Transylvania). 500
+  coins, five cards, Epic final, Crown-Law clean; the wrapper shows
+  both faction crests and the pair's wordmark.
+- **Daily Pack** (same section): free, once per local day, ONE card
+  from every non-legendary in the game (98 cards), odds Common 75 /
+  Rare 20 / Epic 5 - the small Epic chance is the hook. Dupes still
+  pay shards and copies.
+- **Chapter packs** (second section): ONE per chapter - Echoes Pack
+  (Chapter I) and Archive Pack (Chapter II), 500 coins, five cards,
+  odds 45/35/20 with a guaranteed Epic final. The Trio and Crown
+  tiers are retired with it.
+- **The gating law**: a chapter's pack is visible while the player is
+  ON that chapter or has beaten it. Mid-Chapter-I players see only
+  Echoes; on Chapter II both shelves open. (Echoes also stays open
+  from boot - it is the original shelf.)
+- **The Crown Law** holds everywhere: no legendary enters any
+  universe, featured, daily or chapter. 17 crowns remain Road-only.
+
+Everything below this line is the pre-decision analysis.
 
 ---
 

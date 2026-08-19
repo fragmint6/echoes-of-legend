@@ -566,13 +566,24 @@ the Road. So each faction's legendary is the campaign reward for the
 gate that introduces it: you can buy your way toward Sherwood, but Robin
 Hood comes from beating the Outlaw.
 
-**The whole chapter is withheld from the shop** (owner ruling, 2026-08-18b:
-*"keep the shop as is with the pack pool containing just chapter 1 cards"*).
-Releasing these cards for one turn took the packable pool from 35 to 80 and
-roughly halved the odds of pulling any given Chapter One legend, for players
-who cannot play this chapter yet. `WITHHELD` now lists all eight faction ids
-and packable is back to 36. The per-chapter shop remains the open design
-question; see §8 of the lore doc.
+**The shop is open to both chapters** (owner ruling 2026-08-19, superseding
+the 2026-08-18b withhold). The whole roster is obtainable now, and pack
+pools are SCOPED per pack instead of per game:
+
+- **Featured this week** - two packs a week, two factions each, named for
+  how the pair is related (the rotation is authored: four weeks, all
+  sixteen factions, one line of lore per pairing);
+- **Daily Pack** - free, once a day, one card from every non-legendary in
+  the game, long odds with a small Epic chance;
+- **Chapter packs** - one per chapter: the Echoes Pack (Chapter I) and the
+  Archive Pack (Chapter II), 500 coins, five cards, one Epic guaranteed.
+  A chapter's pack shows while the player is ON that chapter or has
+  beaten it - mid-Chapter-I players see only Echoes; on Chapter II both
+  shelves open.
+
+The Crown Law is untouched: no pack, featured or daily or chapter, ever
+contains a legendary. Per-chapter pools mean a Chapter I player's odds
+never dilute again, which is what the withhold was for.
 
 ---
 
@@ -645,13 +656,10 @@ Tracked honestly, because none of this is built:
   deck with no hook is harder to author than one with a hook.
 - **Balance is paper-only.** 50 cards tuned against each other and never
   played.
-- **The shop model is undecided.** Open question, raised by the owner
-  2026-08-18: one global pool with a withhold list, versus a Chapter One
-  shop and a Chapter Two shop. Three candidate shapes are written up in
-  §8 of `LORE-Campaign-Chapter2.md`; none is implemented. Note the live
-  side-effect that motivates it: the packable pool went 35 -> 77 when the
-  seven factions landed, roughly halving the odds of pulling any specific
-  older legend for players who never asked for Chapter Two.
+- ~~**The shop model is undecided.**~~ **Done 2026-08-19** - featured
+  weekly pairs, the free Daily Pack, and one chapter pack per chapter
+  (Echoes / Archive), gated by where the player is on the Road. The
+  design record is `docs/DESIGN-Pack-Pools.md`.
 - **Asmodeus has a card** (`campaign-asmodeus`, unbannable and pinned,
   like Gilgamesh). Sargon and the Concord officials still have none -
   they are voices in the scenes, not fighters.

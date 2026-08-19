@@ -530,6 +530,107 @@ const server = http.createServer((req, res) => {
     );
   }
 
+  /* ---------- I. the pack shelves: featured, daily, chapter gating ---------- */
+  console.log('I. the pack shelves - featured pairs, the free daily, chapter gating');
+  {
+    const shop = EOL.shop;
+    /* Pool scoping: each pack draws from its own universe, and every
+       universe obeys the Crown Law. */
+    const c1 = shop._packUniverse(shop.PACKS.echo);
+    const c2 = shop._packUniverse(shop.PACKS.archive);
+    const all = shop._packUniverse(shop.PACKS.daily);
+    t(c1.length === 46, 'the Echoes universe is the 46 Chapter I non-legendaries (' + c1.length + ')');
+    t(c2.length === 52, 'the Archive universe is the 52 Chapter II non-legendaries (' + c2.length + ')');
+    t(all.length === 98, 'the Daily universe is every non-legendary in the game (' + all.length + ')');
+    t(
+      [c1, c2, all].every((pool) => pool.every((e) => e.card.rarity !== 'legendary')),
+      'the Crown Law holds in every universe'
+    );
+    const feat = shop._packUniverse(Object.assign({}, shop.PACKS.featured, { _featuredMeta: shop._featuredMeta(0) }));
+    t(
+      feat.length > 0 &&
+        new Set(feat.map((e) => e.faction.id)).size === 2 &&
+        feat.every((e) => shop._featuredMeta(0).factions.indexOf(e.faction.id) >= 0),
+      'a featured universe is exactly its two factions (' + feat.length + ' cards)'
+    );
+    /* The rotation: four authored weeks, two packs each, sixteen
+       distinct factions across the cycle. */
+    t(shop.FEATURED_WEEKS.length === 4, 'the featured rotation is four weeks');
+    const weekFactions = new Set();
+    shop.FEATURED_WEEKS.forEach((week) => {
+      t(week.length === 2, 'each week fields exactly two featured packs');
+      week.forEach((pk) => {
+        t(pk.factions.length === 2 && !!pk.name && !!pk.blurb, pk.name + ' names two factions and its reason');
+        pk.factions.forEach((f) => weekFactions.add(f));
+      });
+    });
+    t(weekFactions.size === 16, 'the cycle features all sixteen factions exactly once (' + weekFactions.size + ')');
+
+    /* The chapter gating law, in the live shop DOM. */
+    d.body.dataset.view = 'shop';
+    await sleep(400);
+    /* each shelf pack wears its own wrapper, pips and wordmark */
+    [
+      ['daily', 'Daily', 'ra-book', 1],
+      ['echo', 'Echoes', 'ra-spiral-shell', 5],
+      ['archive', 'Archive', 'ra-scroll-unfurled', 5],
+    ].forEach((row) => {
+      const host = d.querySelector('.product-pack[data-pack="' + row[0] + '"]');
+      const face = host && host.querySelector('.pk-face');
+      t(
+        !!face && face.classList.contains('pk-' + row[0]) &&
+          !!face.querySelector('.pk-emblem .' + row[2]) &&
+          face.querySelectorAll('.pk-pips span').length === row[3] &&
+          host.querySelector('.pk-wordmark span').textContent === row[1],
+        'the ' + row[1] + ' pack wears its wrapper, emblem, pips and wordmark'
+      );
+    });
+    {
+      const f0 = d.querySelector('.product-pack[data-pack="featured"][data-slot="0"]');
+      t(
+        !!f0 && f0.querySelectorAll('.pk-emblem i').length === 2,
+        'the featured wrapper shows both faction crests'
+      );
+    }
+    EOL.campaign.setChapter(1);
+    EOL.shop.paintShop();
+    t(
+      !d.querySelector('.product[data-product="echo"]').hidden &&
+        d.querySelector('.product[data-product="archive"]').hidden,
+      'on Chapter I only the Echoes shelf shows - the Archive stays sealed'
+    );
+    EOL.campaign.setChapter(2);
+    EOL.shop.paintShop();
+    t(
+      !d.querySelector('.product[data-product="archive"]').hidden,
+      'on Chapter II the Archive opens'
+    );
+    EOL.campaign.setChapter(1);
+    EOL.shop.paintShop();
+
+    /* The daily claim guard, exercised through the real begin(). The
+       collection may already be complete (the every-card command ran
+       earlier), so the observable truth is the RESULTS array: one
+       card on the claim, untouched on the refused second claim. */
+    const r0 = shop.results();
+    const claimedBefore = shop._dailyClaimed();
+    shop.begin('daily');
+    const r1 = shop.results();
+    if (!claimedBefore) {
+      t(r1.length === 1 && r1 !== r0, 'the free daily claim rolls exactly one card');
+      t(r1.every((e) => e.card.rarity !== 'legendary'), 'and the Crown Law holds even on the freebie');
+      t(shop._dailyClaimed(), 'and the day is marked');
+      shop.begin('daily');
+      const r2 = shop.results();
+      t(
+        r2.length === 1 && r2[0] === r1[0],
+        'a second claim the same day grants nothing - the same single result stands'
+      );
+    } else {
+      t(true, 'the daily was already claimed earlier in this suite run');
+    }
+  }
+
   server.close();
   console.log('');
   console.log(fails + ' fail(s)');

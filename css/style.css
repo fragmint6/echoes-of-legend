@@ -8161,6 +8161,46 @@ body[data-gfx='low'] .set-pill.bump {
   --pk-stud2: #d64c5e;
   --pk-bgglow: rgba(186, 120, 255, 0.24);
 }
+/* the daily freebie: parchment over slate - a calendar page, not a
+   vault */
+.pk-face.pk-daily {
+  --pk-hi: #3c4a3a;
+  --pk-mid: #25301f;
+  --pk-lo: #101408;
+  --pk-a: #b8d9a8;
+  --pk-glow: rgba(170, 214, 150, 0.4);
+  --pk-stud1: #e9f2d8;
+  --pk-stud2: #93b57e;
+  --pk-bgglow: rgba(150, 200, 120, 0.13);
+}
+/* the Archive: the Concord's register - gold ink on ink-dark blue */
+.pk-face.pk-archive {
+  --pk-hi: #3a3f6e;
+  --pk-mid: #232749;
+  --pk-lo: #0d0f22;
+  --pk-a: #ffd682;
+  --pk-glow: rgba(255, 205, 110, 0.5);
+  --pk-stud1: #ffe6a3;
+  --pk-stud2: #f5c05a;
+  --pk-bgglow: rgba(96, 120, 220, 0.28);
+}
+/* the featured pact: two houses, two metals - brass and copper */
+.pk-face.pk-featured {
+  --pk-hi: #5a3f2b;
+  --pk-mid: #332419;
+  --pk-lo: #160f08;
+  --pk-a: #f0c48a;
+  --pk-glow: rgba(240, 190, 120, 0.5);
+  --pk-stud1: #ffe2ae;
+  --pk-stud2: #d98a52;
+  --pk-bgglow: rgba(214, 150, 90, 0.2);
+}
+/* the daily page is paper, not foil: a plainer weave */
+.pk-daily .pk-weave {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 12px);
+}
 /* foil texture: vertical fluting + faint horizontal weave + a whisper
    of diagonal brush */
 .pk-weave {
@@ -8466,6 +8506,21 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .product-pack .pk-emblem i {
   --pk-icon-sz: 46px;
+}
+/* the featured pack carries TWO faction crests, side by side */
+.pk-emblem.pk-emblem-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8%;
+}
+.pk-emblem.pk-emblem-pair i {
+  position: relative;
+  inset: auto;
+  font-size: calc(var(--pk-icon-sz, 46px) * 0.62);
+}
+.pk-emblem.pk-emblem-pair i + i {
+  margin-left: 2%;
 }
 /* the pip fan: the pack SIZE drawn as tiny fanned cards - three on
    the budget shelf, five above it */
@@ -27496,6 +27551,29 @@ body[data-gfx='low'] .ec-card {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 18px;
   align-items: stretch;
+}
+/* the two shelf sections: featured week and chapter packs */
+.shop-shelf-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 -6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd682;
+}
+.shop-shelf-head i {
+  font-size: 19px;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 90, 0.45));
+}
+.shelf-note {
+  grid-column: 1 / -1;
 }
 .buy-pack {
   min-width: 120px;

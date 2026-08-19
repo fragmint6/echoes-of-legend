@@ -47,6 +47,13 @@ global.CustomEvent = function () {};
   'data/roma.js',
   'data/kami.js',
   'data/duat.js',
+  'data/asgard.js',
+  'data/hemithea.js',
+  'data/pandemonium.js',
+  'data/devas.js',
+  'data/genesis.js',
+  'data/transylvania.js',
+  'data/tortuga.js',
   'js/economy.js',
   'js/shop.js',
 ].forEach((f) => eval(fs.readFileSync(path.join(ROOT, f), 'utf8')));
@@ -93,22 +100,29 @@ const invalid = econ.redeemCode('NOT-A-CODE');
 ok(!invalid.ok && invalid.status === 'invalid' && econ.coins() === 5000, 'an unknown code grants nothing');
 econ._reset();
 const fresh = econ.unownedEntries();
-ok(fresh.length === 42, `obtainable-and-unowned at start is 42 (${fresh.length})`);
+/* the shelf is open now (2026-08-19): 115 cards obtainable, the
+   starter's 12 Grimmwood owned at boot */
+ok(fresh.length === 103, `obtainable-and-unowned at start is 103 (${fresh.length})`);
 ok(
-  fresh.every((e) => e.faction.id !== 'huaxia'),
-  'Huaxia is never obtainable (held for Chapter 2)'
+  fresh.some((e) => e.faction.id === 'huaxia'),
+  'Huaxia is obtainable - the whole roster is on the shelf'
 );
 /* THE CROWN LAW (owner ruling 2026-08-10): packs sell echoes, never
    crowns - the packable pool is the unowned roster below legendary */
 const packable = econ.packableEntries();
-ok(packable.length === 35, `packable (unowned, sub-legendary) at start is 35 (${packable.length})`);
+/* 103 unowned - 15 unowned legendaries (17 crowns, 2 owned by the
+   Grimmwood starter) */
+ok(packable.length === 88, `packable (unowned, sub-legendary) at start is 88 (${packable.length})`);
 ok(
   packable.every((e) => e.card.rarity !== 'legendary'),
   'the packable pool holds no legendary'
 );
 ok(
-  shop.PACKS.trio.price === 200 && shop.PACKS.echo.price === 500 && shop.PACKS.crown.price === 1000,
-  'shelf prices are Trio 200 / Echoes 500 / Crown 1,000'
+  shop.PACKS.echo.price === 500 &&
+    shop.PACKS.archive.price === 500 &&
+    shop.PACKS.daily.price === 0 &&
+    shop.PACKS.featured.price === 500,
+  'shelf prices are Daily 0 / Echoes 500 / Archive 500 / Featured 500'
 );
 Object.keys(shop.PACKS).forEach((key) => {
   const pack = shop.PACKS[key];
@@ -123,12 +137,17 @@ Object.keys(shop.PACKS).forEach((key) => {
     sizeOk = true,
     huaxiaOk = true,
     crownOk = true;
+  /* each pack rolls from its OWN universe (chapter, featured pair,
+     whole roster), filtered to unowned */
+  const universe = shop._packUniverse(pack).filter((e) => econ.unownedEntries().some((u) => u.card.id === e.card.id));
+  const meta = pack.pool === 'featured' ? shop._featuredMeta(0) : null;
+  const wantsHuaxia = pack.pool === 'chapter2' || pack.pool === 'all' || (meta && meta.factions.indexOf('huaxia') >= 0);
   for (let i = 0; i < 400; i++) {
-    const out = shop.rollPack(rng, pack, fresh.slice());
+    const out = shop.rollPack(rng, pack, universe.slice());
     if (out.length !== pack.size) sizeOk = false;
     const ids = out.map((e) => e.card.id);
     if (new Set(ids).size !== ids.length) dupeOk = false;
-    if (out.some((e) => e.faction.id === 'huaxia')) huaxiaOk = false;
+    if (out.some((e) => e.faction.id === 'huaxia') && !wantsHuaxia) huaxiaOk = false;
     if (out.some((e) => e.card.rarity === 'legendary')) crownOk = false;
     if (pack.final) {
       const last = out[out.length - 1];
@@ -137,10 +156,13 @@ Object.keys(shop.PACKS).forEach((key) => {
   }
   ok(sizeOk, pack.name + ': always ' + pack.size + ' cards');
   ok(dupeOk, pack.name + ': never a duplicate inside a pack');
-  ok(huaxiaOk, pack.name + ': never Huaxia');
+  ok(huaxiaOk, pack.name + ': stays inside its own universe');
   ok(crownOk, pack.name + ': NEVER a legendary - even fed the raw unowned roster');
   if (pack.final) ok(finalOk, pack.name + ': final-card guarantee (always Epic) holds');
-  ok(pack.price > 0 && pack.odds.reduce((t, r) => t + r[1], 0) === 100, pack.name + ': odds sum to 100');
+  ok(
+    (pack.price > 0 || pack.key === 'daily') && pack.odds.reduce((t, r) => t + r[1], 0) === 100,
+    pack.name + ': odds sum to 100'
+  );
 });
 
 console.log('B. the run: Chapter 1 coins -> packs -> the grind');
@@ -172,9 +194,11 @@ while (econ.packableEntries().length > 0 && packs + matches < 4000) {
 }
 ok(econ.packableEntries().length === 0, 'every sold echo lands');
 const leftovers = econ.unownedEntries();
+/* 17 crowns in the roster, 2 owned by the Grimmwood starter - every
+   other card is on the shelf, so 15 crowns are the Road's to give */
 ok(
-  leftovers.length === 7 && leftovers.every((e) => e.card.rarity === 'legendary'),
-  `all that remains after the shelf is the Road's seven crowns (${leftovers.length})`
+  leftovers.length === 15 && leftovers.every((e) => e.card.rarity === 'legendary'),
+  `all that remains after the shelf is the Road's crowns (${leftovers.length})`
 );
 const hours = ((matches * 3.5) / 60).toFixed(1);
 console.log(

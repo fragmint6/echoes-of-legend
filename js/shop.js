@@ -17,28 +17,37 @@
   'use strict';
   window.EOL = window.EOL || {};
 
-  /* THE SHELF (owner rulings 2026-08-10): three tiers - a budget
-     taste, the standard five, and a top shelf heavy with Epics.
-     THE CROWN LAW, same day: NO LEGENDARY IN ANY PACK, ever. The
-     future may sell coins, and the day it does, the only thing money
-     can speed up is the shelf of echoes - crowns are earned on the
-     Road. Epic is the ceiling of every table below. */
+  /* THE SHELF (owner ruling 2026-08-19 - the chapter packs, the
+     featured pairs and the free daily):
+       - FEATURED: two packs a week, each two factions, named for how
+         the pair is related (the rotation is authored, not random);
+       - DAILY: free, one card, the whole non-legendary roster, long
+         odds with a small Epic chance - once a day;
+       - CHAPTER: one pack per chapter - Echoes (Chapter I) and
+         Archive (Chapter II) - 500 coins, five cards, one Epic
+         guaranteed.
+     THE CROWN LAW, unchanged since 2026-08-10: NO LEGENDARY IN ANY
+     PACK, ever - featured, daily and chapter packs included. Epic is
+     the ceiling of every table below. */
   var PACKS = {
-    trio: {
-      key: 'trio',
-      name: 'Trio Pack',
-      price: 200,
-      size: 3,
+    daily: {
+      key: 'daily',
+      name: 'Daily Pack',
+      word: 'Daily',
+      price: 0,
+      size: 1,
       odds: [
-        ['common', 50],
-        ['rare', 35],
-        ['epic', 15],
+        ['common', 75],
+        ['rare', 20],
+        ['epic', 5],
       ],
-      final: null, // no guarantee - it is the budget shelf
+      final: null, // one card, no guarantee - the freebie is the point
+      pool: 'all',
     },
     echo: {
       key: 'echo',
       name: 'Echoes Pack',
+      word: 'Echoes',
       price: 500,
       size: 5,
       odds: [
@@ -47,18 +56,38 @@
         ['epic', 20],
       ],
       final: [['epic', 100]],
+      pool: 'chapter1',
     },
-    crown: {
-      key: 'crown',
-      name: 'Crown Pack',
-      price: 1000,
+    archive: {
+      key: 'archive',
+      name: 'Archive Pack',
+      word: 'Archive',
+      price: 500,
       size: 5,
       odds: [
-        ['common', 15],
-        ['rare', 45],
-        ['epic', 40],
+        ['common', 45],
+        ['rare', 35],
+        ['epic', 20],
       ],
       final: [['epic', 100]],
+      pool: 'chapter2',
+    },
+    /* the two featured shelves: one pack each, two factions each,
+       named by their relationship. The pack's pool and face resolve
+       from the weekly rotation below. */
+    featured: {
+      key: 'featured',
+      name: 'Featured Pack',
+      word: 'Featured',
+      price: 500,
+      size: 5,
+      odds: [
+        ['common', 45],
+        ['rare', 35],
+        ['epic', 20],
+      ],
+      final: [['epic', 100]],
+      pool: 'featured',
     },
     /* THE LEGEND PACK - never on the shelf, never priced. The Road
        hands one over after certain gates: a single-card ceremony
@@ -83,6 +112,167 @@
       final: null,
     },
   };
+  /* the shelf's sellable packs, in display order */
+  var SHELF_KEYS = ['daily', 'echo', 'archive', 'featured'];
+
+  /* ---------------------------------------------------------
+     THE FEATURED ROTATION (weekly, authored).
+     ---------------------------------------------------------
+     Two pairs a week, each pair named for the relationship between
+     its two factions. Sixteen factions, four weeks - every faction
+     is featured exactly once a cycle, and every pairing is a line
+     the game actually teaches (the mark circuit, the fallen count,
+     the theft economy...). The rotation is keyed by ISO week, so
+     it is stable for a player all week and returns in four.
+     --------------------------------------------------------- */
+  var FEATURED_WEEKS = [
+    [
+      {
+        name: 'Divine Pact',
+        word: 'Divine',
+        factions: ['genesis', 'olympus'],
+        blurb: 'Two heavens, one court: the old gods mark, the new ones seal, and the hour comes sooner.',
+      },
+      {
+        name: "Debtors' Ledger",
+        word: 'Ledger',
+        factions: ['pandemonium', 'tortuga'],
+        blurb: 'Every price is stated, every price is paid - the sins name the cost, the pirates take it anyway.',
+      },
+    ],
+    [
+      {
+        name: 'Deathless Court',
+        word: 'Court',
+        factions: ['duat', 'asgard'],
+        blurb: 'The scales read every fallen legend, and the north counts the same dead.',
+      },
+      {
+        name: 'Green Hollow',
+        word: 'Hollow',
+        factions: ['grimmwood', 'hemithea'],
+        blurb: 'The woods make a legend of anyone - and mortals only ascend when the fight gives them a reason.',
+      },
+    ],
+    [
+      {
+        name: 'Mark Circuit',
+        word: 'Circuit',
+        factions: ['huaxia', 'devas'],
+        blurb: 'Marks supplied, marks spent, marks supplied again - the wheel the two empires trade.',
+      },
+      {
+        name: 'Old Roads',
+        word: 'Roads',
+        factions: ['sherwood', 'kami'],
+        blurb: 'Outlaws and foxes: borrowed names, long knives, and shrines in the green.',
+      },
+    ],
+    [
+      {
+        name: 'Wall & Word',
+        word: 'Wall',
+        factions: ['camelot', 'yamato'],
+        blurb: 'Two codes of honor - the wall that shields, the oath that binds - drawn against each other.',
+      },
+      {
+        name: 'First & Last Throne',
+        word: 'Throne',
+        factions: ['roma', 'transylvania'],
+        blurb: 'An empire that lasted, and the things that refused to end with it.',
+      },
+    ],
+  ];
+
+  function isoWeekNumber(d) {
+    d = d || new Date();
+    var day = (d.getDay() + 6) % 7; // Monday = 0
+    var thursday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day + 3);
+    var firstThursday = new Date(thursday.getFullYear(), 0, 4);
+    var firstDay = (firstThursday.getDay() + 6) % 7;
+    firstThursday.setDate(4 - firstDay + 7);
+    return 1 + Math.round((thursday - firstThursday) / (7 * 24 * 3600 * 1000));
+  }
+
+  function rotationFor(week) {
+    return FEATURED_WEEKS[(week - 1) % FEATURED_WEEKS.length];
+  }
+  function featuredMeta(slot) {
+    return rotationFor(isoWeekNumber())[slot] || FEATURED_WEEKS[0][slot];
+  }
+
+  /* ---------------- pack pools (pure) ---------------- */
+  var CHAPTER1_FACTIONS = ['grimmwood', 'camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'kami', 'duat'];
+  var CHAPTER2_FACTIONS = ['huaxia', 'asgard', 'hemithea', 'pandemonium', 'devas', 'genesis', 'transylvania', 'tortuga'];
+
+  /* Every card the pack may EVER contain - its universe. The Crown
+     Law lives here: a legendary never enters ANY pack's universe,
+     featured, daily or chapter. Ownership filters on top of this. */
+  function packUniverse(pack) {
+    var out = [];
+    var want = null;
+    if (pack && pack.pool === 'chapter1') want = CHAPTER1_FACTIONS;
+    else if (pack && pack.pool === 'chapter2') want = CHAPTER2_FACTIONS;
+    else if (pack && pack.pool === 'featured') {
+      var meta = pack._featuredMeta || featuredMeta(pack._featuredSlot || 0);
+      want = meta.factions;
+    }
+    (window.EOL.factions || []).forEach(function (f) {
+      if (want && want.indexOf(f.id) < 0) return;
+      f.cards.forEach(function (c) {
+        if (c.rarity === 'legendary') return; // the Crown Law
+        out.push({ card: c, faction: f });
+      });
+    });
+    return out;
+  }
+
+  /* Unowned, sub-legendary cards from the pack's universe - the
+     Crown Law applies to every pool, featured and daily included.
+     The old shelf never dead-ended (duplicates pay shards) and the
+     new one does not either: when the universe is fully owned the
+     fallback returns its whole non-legendary roster as duplicates. */
+  function duplicateAwarePool(pack) {
+    pack = pack || PACKS.echo;
+    var econ = window.EOL.econ;
+    var universe = packUniverse(pack).filter(function (e) {
+      return e.card.rarity !== 'legendary';
+    });
+    if (!econ) return universe;
+    var fresh = universe.filter(function (e) {
+      return !econ.owns(e.card.id);
+    });
+    return fresh.length ? fresh : universe;
+  }
+
+  /* the chapter-pack visibility law: a chapter's pack is visible
+     while the player is ON that chapter or has beaten it. Chapter
+     I's shelf is always visible (it is the original shelf - hiding
+     it would be a regression); Chapter II's opens when the player
+     selects Chapter II or clears Gate XX. */
+  function chapterBeaten(id) {
+    var c = window.EOL.campaign;
+    if (!c || !c.story) return false;
+    var story = c.story;
+    var last = 0;
+    (story.stages || []).forEach(function (st) {
+      last = Math.max(last, st.id);
+    });
+    try {
+      var prog = c.getProgress();
+      return prog && prog.cleared && prog.cleared.indexOf(last) >= 0;
+    } catch (e) {
+      return false;
+    }
+  }
+  function packVisible(key) {
+    if (key === 'archive') {
+      var c = window.EOL.campaign;
+      var active = c && c.activeChapter ? c.activeChapter() : 1;
+      return active === 2 || chapterBeaten(2);
+    }
+    return true;
+  }
 
   /* Sequence timings (ms) - cinematic pacing; tests set FAST mode.
      THE DEAL (reworked 2026-08-10, owner: 'too sporadic'): the old
@@ -249,25 +439,62 @@
     var canBuy =
       !!pack &&
       pack.price > 0 &&
-      ['trio', 'echo', 'crown'].indexOf(pack.key) >= 0 &&
+      SHELF_KEYS.indexOf(pack.key) >= 0 &&
+      pack.key !== 'daily' &&
       !!econ &&
       econ.coins() >= pack.price &&
-      duplicateAwarePool().length > 0;
+      duplicateAwarePool(pack).length > 0;
     again.hidden = !canBuy;
   }
 
+  /* ---- the free daily pack: once per local day ---- */
+  function dailyDateKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+  function dailyClaimed() {
+    try {
+      return localStorage.getItem('eol.daily.pack.' + dailyDateKey()) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+  function markDailyClaimed() {
+    try {
+      localStorage.setItem('eol.daily.pack.' + dailyDateKey(), '1');
+    } catch (e) {
+      /* private mode: the claim still resolves this session */
+    }
+  }
+
   /* 1 - the PURCHASE: price gated, cards granted at roll time */
-  function begin(packKey) {
+  function begin(packKey, packOverride) {
     var pack = PACKS[packKey] || currentPack || PACKS.echo;
+    if (packOverride) {
+      pack = Object.assign({}, pack, packOverride);
+    }
     var econ = window.EOL.econ;
     if (!econ) return;
     /* the Legend Pack is the Road's to give, never the shelf's to sell */
     if (pack.key === 'legend' || pack.key === 'epic') return;
+    /* THE DAILY PACK is free and once a day - the only pack with a
+       claim guard instead of a price. */
+    if (pack.key === 'daily') {
+      if (dailyClaimed()) {
+        if (window.EOL.audio) window.EOL.audio.ui('deny');
+        if (window.EOL.ui && window.EOL.ui.toast)
+          window.EOL.ui.toast('Already claimed - the shelf restocks at midnight', 'ri-time-line');
+        return;
+      }
+      markDailyClaimed();
+    } else if (!packVisible(pack.key)) {
+      return; // a gated shelf is not for sale yet
+    }
     /* The old guard refused the sale once every card was owned. Packs
        now pay duplicates (which are upgrade material and Echo Shards),
        so the shelf only closes if there is genuinely nothing to draw -
        which cannot happen while the roster has a non-legendary card. */
-    if (!duplicateAwarePool().length) {
+    if (!duplicateAwarePool(pack).length) {
       if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
         window.EOL.ui.toast(
@@ -276,7 +503,7 @@
         );
       return;
     }
-    if (!econ.spend(pack.price)) {
+    if (pack.price > 0 && !econ.spend(pack.price)) {
       if (window.EOL.audio) window.EOL.audio.ui('deny');
       if (window.EOL.ui && window.EOL.ui.toast)
         window.EOL.ui.toast('Not enough coins - the Road pays in gates and wars', 'ri-coin-fill');
@@ -284,7 +511,7 @@
     }
     if (window.EOL.audio) window.EOL.audio.pack('buy');
     currentAwardMeta = null;
-    results = rollPack(Math.random, pack);
+    results = rollPack(Math.random, pack, duplicateAwarePool(pack));
     /* GRANT NOW: the ceremony is theater, the ledger is truth.
        A card already owned is a DUPLICATE: it pays Echo Shards and
        banks toward that card's next upgrade level instead of being a
@@ -357,6 +584,7 @@
     /* the pack on the table wears the wrapper you paid for */
     document.querySelectorAll('#po-pack .pk-host').forEach(function (h) {
       h.dataset.pack = pack.key;
+      if (pack._featuredSlot != null) h.dataset.slot = String(pack._featuredSlot);
       buildPackFace(h);
     });
     resetStage();
@@ -659,16 +887,28 @@
      ruby studs for Crown. The pips row is the pack size - three
      little fanned cards on the budget shelf, five up top. */
   var PK_STYLE = {
-    trio: { icon: 'ra-diamonds-card' },
+    daily: { icon: 'ra-book' },
     echo: { icon: 'ra-spiral-shell' },
-    crown: { icon: 'ra-crown' },
+    archive: { icon: 'ra-scroll-unfurled' },
+    featured: { icon: 'ra-daggers' },
     legend: { icon: 'ra-sunbeams' },
     epic: { icon: 'ra-gem' },
   };
+  function factionById(id) {
+    return (window.EOL.factions || []).filter(function (f) {
+      return f.id === id;
+    })[0];
+  }
   function buildPackFace(host) {
     if (!host) return;
     var key = PACKS[host.dataset.pack] ? host.dataset.pack : 'echo';
     var pack = PACKS[key];
+    /* a featured face is stamped with its weekly pair: the two
+       faction crests ride in the emblem instead of one icon */
+    var meta = null;
+    if (key === 'featured') {
+      meta = pack._featuredMeta || featuredMeta(parseInt(host.dataset.slot || '0', 10));
+    }
     var face = host.querySelector('.pk-face');
     if (!face) {
       face = document.createElement('div');
@@ -677,6 +917,19 @@
     face.className = 'pk-face pk-' + key;
     var pips = '';
     for (var i = 0; i < pack.size; i++) pips += '<span></span>';
+    var emblemIcons = '';
+    if (meta) {
+      var f1 = factionById(meta.factions[0]);
+      var f2 = factionById(meta.factions[1]);
+      emblemIcons =
+        '<i data-icon-domain="game" class="ra ' +
+        (f1 ? f1.icon : 'ra-crossed-swords') +
+        '"></i><i data-icon-domain="game" class="ra ' +
+        (f2 ? f2.icon : 'ra-crossed-swords') +
+        '"></i>';
+    } else {
+      emblemIcons = '<i data-icon-domain="game" class="ra ' + PK_STYLE[key].icon + '"></i>';
+    }
     face.innerHTML =
       '<div class="pk-weave"></div>' +
       '<div class="pk-rays"></div>' +
@@ -686,21 +939,21 @@
       '<span class="pk-corner tl"></span><span class="pk-corner tr"></span>' +
       '<span class="pk-corner bl"></span><span class="pk-corner br"></span>' +
       '<span class="pk-spark s1"></span><span class="pk-spark s2"></span><span class="pk-spark s3"></span>' +
-      '<div class="pk-emblem">' +
+      '<div class="pk-emblem' +
+      (meta ? ' pk-emblem-pair' : '') +
+      '">' +
       '<div class="pk-medal"></div>' +
       '<div class="pk-ring outer"></div>' +
       '<div class="pk-ring inner"></div>' +
       '<span class="pk-stud n"></span><span class="pk-stud e"></span>' +
       '<span class="pk-stud s"></span><span class="pk-stud w"></span>' +
-      '<i data-icon-domain="game" class="ra ' +
-      PK_STYLE[key].icon +
-      '"></i>' +
+      emblemIcons +
       '</div>' +
       '<div class="pk-pips">' +
       pips +
       '</div>' +
       '<div class="pk-wordmark"><span>' +
-      pack.name.split(' ')[0] +
+      (meta ? meta.word : pack.word || pack.name.split(' ')[0]) +
       '</span><i data-icon-domain="game" class="ra ra-crossed-swords"></i><span>Pack</span></div>';
   }
 
@@ -732,12 +985,65 @@
           ? 'Collection complete - packs now pay duplicates and Echo Shards'
           : econ.ownedCount() + ' / ' + econ.obtainableEntries().length + ' legends collected';
     /* Packs stay BUYABLE at a complete collection: they pay duplicates,
-       which are upgrade material. Only the price gates the button now. */
+       which are upgrade material. Only the price gates the button now -
+       and the daily pack gates on the day instead. */
     document.querySelectorAll('.buy-pack').forEach(function (btn) {
       var pack = PACKS[btn.dataset.pack];
       if (!pack) return;
-      btn.disabled = econ.coins() < pack.price || !duplicateAwarePool().length;
+      if (pack.key === 'featured') {
+        var slot = parseInt(btn.dataset.slot || '0', 10);
+        var meta = featuredMeta(slot);
+        pack = Object.assign({}, pack, { _featuredMeta: meta });
+      }
+      if (pack.key === 'daily') {
+        var claimed = dailyClaimed();
+        btn.disabled = claimed;
+        btn.innerHTML = claimed
+          ? '<i class="ri-time-line"></i><span>Opens tomorrow</span>'
+          : '<i class="ri-gift-line"></i><span>Free</span>';
+        return;
+      }
+      btn.disabled = econ.coins() < pack.price || !duplicateAwarePool(pack).length;
       btn.innerHTML = COIN_IMG + '<span>' + pack.price + '</span>';
+    });
+
+    /* THE FEATURED SHELF: names, blurbs and odds resolve from the
+       weekly rotation, and the two faction crests ride the wrapper. */
+    [0, 1].forEach(function (slot) {
+      var product = el('product-featured-' + slot);
+      var host = document.querySelector('.product-pack[data-pack="featured"][data-slot="' + slot + '"]');
+      var meta = featuredMeta(slot);
+      if (product) {
+        var name = product.querySelector('.product-name');
+        var desc = product.querySelector('.product-desc');
+        var odds = product.querySelector('.product-odds');
+        var f1 = factionById(meta.factions[0]);
+        var f2 = factionById(meta.factions[1]);
+        if (name) name.textContent = meta.name + ' Pack';
+        if (desc)
+          desc.textContent =
+            (f1 ? f1.name : meta.factions[0]) +
+            ' + ' +
+            (f2 ? f2.name : meta.factions[1]) +
+            '. ' +
+            meta.blurb;
+        if (odds)
+          odds.innerHTML =
+            '<span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>' +
+            '<span><b>Final card</b> Epic 100%</span>';
+      }
+      if (host) {
+        host.dataset.slot = String(slot);
+        buildPackFace(host);
+      }
+    });
+
+    /* THE CHAPTER SHELF follows the visibility law: a chapter's pack
+       shows while the player is on that chapter or has beaten it. */
+    SHELF_KEYS.forEach(function (key) {
+      if (key === 'daily' || key === 'featured') return;
+      var product = document.querySelector('.product[data-product="' + key + '"]');
+      if (product) product.hidden = !packVisible(key);
     });
   }
 
@@ -1085,7 +1391,18 @@
 
     document.querySelectorAll('.buy-pack').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        begin(btn.dataset.pack);
+        if (btn.dataset.pack === 'featured') {
+          var slot = parseInt(btn.dataset.slot || '0', 10);
+          var meta = featuredMeta(slot);
+          begin('featured', {
+            _featuredSlot: slot,
+            _featuredMeta: meta,
+            name: meta.name + ' Pack',
+            word: meta.word,
+          });
+        } else {
+          begin(btn.dataset.pack);
+        }
       });
     });
     var codeOpen = el('shop-code-open');
@@ -1113,7 +1430,17 @@
         if (status && status.dataset.state === 'error') setCodeStatus('', '');
       });
     el('po-again').addEventListener('click', function () {
-      begin(currentPack ? currentPack.key : 'echo');
+      if (!currentPack) return;
+      if (currentPack.key === 'featured') {
+        begin('featured', {
+          _featuredSlot: currentPack._featuredSlot,
+          _featuredMeta: currentPack._featuredMeta || featuredMeta(currentPack._featuredSlot || 0),
+          name: currentPack.name,
+          word: currentPack.word,
+        });
+      } else {
+        begin(currentPack.key);
+      }
     });
     el('po-done').addEventListener('click', close);
     el('po-skip').addEventListener('click', skip);
@@ -1222,6 +1549,8 @@
 
   window.EOL.shop = {
     PACKS: PACKS,
+    SHELF_KEYS: SHELF_KEYS,
+    FEATURED_WEEKS: FEATURED_WEEKS,
     rollPack: rollPack,
     rollRarity: rollRarity,
     begin: begin,
@@ -1240,5 +1569,14 @@
     setFast: function (v) {
       FAST = !!v;
     }, // test hook: zero-duration timers
+    /* test hooks - the pool maths behind the shelf */
+    _packUniverse: packUniverse,
+    _duplicateAwarePool: duplicateAwarePool,
+    _rotationFor: rotationFor,
+    _featuredMeta: featuredMeta,
+    _packVisible: packVisible,
+    _dailyClaimed: dailyClaimed,
+    _markDailyClaimed: markDailyClaimed,
+    _dailyDateKey: dailyDateKey,
   };
 })();
