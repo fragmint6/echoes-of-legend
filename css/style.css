@@ -16363,18 +16363,14 @@ body[data-gfx='low'] .turn-clock.crit {
   -ms-interpolation-mode: nearest-neighbor;
   user-select: none;
 }
-/* One rule covers every site that renders legend art: collection and
-   pack cards, battle tiles, the card-detail modal, the dialogue bust,
-   the rival plate, and the small faces (bark, tutor, wayfinder).
-   Locked/grayscale states override the blur with their own filter. */
+/* One rule covers the LEGEND-ART sites that carry the sharpness pass
+   (2026-08-19): collection and pack cards, battle tiles, the
+   card-detail panel. RIVAL portraits (dialogue bust, gate circle,
+   barks, tutor/wayfinder faces) stay crisp - their painted 128x176
+   art is the face of a person and the blur made it read as broken. */
 .art-portrait img,
 .bart-portrait img,
-.cd-art img,
-.chapter-dialogue-bust img,
-.rival-portrait,
-.rival-bark-face,
-.nav-guide-face,
-.tutor-face {
+.cd-art img {
   filter: blur(0.75px);
 }
 
@@ -22482,7 +22478,9 @@ body[data-gfx='low'] .mb-spores {
   gap: 20px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
   justify-content: center;
-  align-items: start;
+  /* stretch, not start: the two chapter cards sit in one row and
+     must read as a matched pair, whatever their copy length is */
+  align-items: stretch;
   width: 100%;
   margin: clamp(16px, calc(var(--vh1) * 6), 54px) auto 14px;
 }
@@ -22592,6 +22590,9 @@ body[data-gfx='low'] .mb-spores {
   align-items: flex-start;
   gap: 9px;
   padding: 20px 22px 20px;
+  /* fill the stretched card so the CTA can bottom-align: the shorter
+     chapter's gap lands above its Open-chapter button, never under it */
+  flex: 1;
 }
 .ch-kicker {
   font-size: 9.5px;
@@ -22643,7 +22644,9 @@ body[data-gfx='low'] .mb-spores {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  /* bottom-anchored: both cards' CTAs sit on the same line, whatever
+     the description length, so the pair reads as equal heights */
+  margin-top: auto;
   padding: 8px 13px 8px 15px;
   border-radius: 999px;
   border: 1px solid rgba(245, 197, 111, 0.4);

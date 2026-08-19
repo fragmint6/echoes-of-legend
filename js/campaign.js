@@ -2636,6 +2636,35 @@
       if (!card) return;
       setText(card.querySelector('.sc-kicker, .rival-kicker'), stageLabel(stage));
       setText(card.querySelector('.sc-name, .rival-name'), stage.rival);
+      /* THE GATE CIRCLE (2026-08-19): the avatar shows the rival's
+         face. The static markup ships a hood glyph; a stage with a
+         portrait swaps it for the real image, and a future stage
+         without one keeps the glyph. */
+      var avatar = card.querySelector('.sc-avatar');
+      if (avatar) {
+        var portrait = avatar.querySelector('.sc-portrait');
+        if (stage.portrait) {
+          if (!portrait || portrait.tagName !== 'IMG') {
+            var img = document.createElement('img');
+            img.className = 'sc-portrait';
+            img.alt = stage.rival;
+            img.draggable = false;
+            if (portrait) portrait.replaceWith(img);
+            else avatar.appendChild(img);
+            portrait = img;
+          }
+          if (portrait.getAttribute('src') !== stage.portrait)
+            portrait.setAttribute('src', stage.portrait);
+        } else if (portrait && portrait.tagName === 'IMG') {
+          /* revert to the glyph: the Wayfarer has no face */
+          var span = document.createElement('span');
+          span.className = 'sc-portrait sc-portrait-empty';
+          span.setAttribute('role', 'img');
+          span.setAttribute('aria-label', stage.rival);
+          span.innerHTML = '<i data-icon-domain="game" class="ra ra-hood"></i>';
+          portrait.replaceWith(span);
+        }
+      }
       var desc = card.querySelector('.sc-desc, .rival-desc');
       if (desc && stage.line) setText(desc, stage.line);
       var meta = card.querySelector('.sc-meta, .rival-meta');

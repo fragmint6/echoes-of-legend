@@ -349,8 +349,14 @@ const server = http.createServer((req, res) => {
     const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     t(cssSrc.indexOf('url(#eol-flat)') < 0 && htmlSrc.indexOf('eol-flat') < 0, 'no flat-filter reference survives in css or html');
     t(
-      /\.art-portrait img,\s*\.bart-portrait img,[^}]*\.tutor-face\s*\{[^}]*filter:\s*blur\(0\.75px\)/s.test(cssSrc),
-      'every legend-art render site carries the blur rule instead'
+      /\.art-portrait img,\s*\.bart-portrait img,\s*\.cd-art img\s*\{[^}]*filter:\s*blur\(0\.75px\)/s.test(cssSrc),
+      'the sharpness pass covers the legend-art sites (cards, battle tiles, detail)'
+    );
+    t(
+      !/\.chapter-dialogue-bust img,[^}]*filter:/s.test(cssSrc) &&
+        !/\.rival-portrait,[^}]*filter:/s.test(cssSrc) &&
+        !/\.rival-bark-face,[^}]*filter:/s.test(cssSrc),
+      'rival portraits stay crisp - the blur never touches the bust, plate or barks'
     );
     /* THE NATIVE-SIZE LAW: every fixed art frame renders at the
        source's own size - LEGEND art at 64x88 (card detail), RIVAL
@@ -382,6 +388,36 @@ const server = http.createServer((req, res) => {
     });
     t(missingPortraits.length === 0, 'all twenty rivals ship a portrait that resolves' + (missingPortraits.length ? ' -> ' + missingPortraits.join(', ') : ''));
     EOL.campaign.setChapter(2);
+  }
+
+  /* ---------- G2. the gate circle shows the rival's face ---------- */
+  {
+    EOL.campaign.setChapter(2);
+    d.body.dataset.view = 'chapter';
+    await sleep(400);
+    const av11 = d.querySelector('[data-campaign-stage="11"] .sc-avatar');
+    const img11 = av11 && av11.querySelector('img.sc-portrait');
+    t(
+      !!img11 && img11.getAttribute('src') === 'assets/rivals/the-understudy.png',
+      'the gate circle renders the Understudy portrait'
+    );
+    const av16 = d.querySelector('[data-campaign-stage="16"] .sc-avatar');
+    const img16 = av16 && av16.querySelector('img.sc-portrait');
+    t(
+      !!img16 && img16.getAttribute('src') === 'assets/rivals/the-undertaker.png',
+      'and the Undertaker - every gate circle carries its rival'
+    );
+    EOL.campaign.setChapter(1);
+    d.body.dataset.view = 'chapter';
+    await sleep(400);
+    const av1 = d.querySelector('[data-campaign-stage="1"] .sc-avatar');
+    const img1 = av1 && av1.querySelector('img.sc-portrait');
+    t(
+      !!img1 && img1.getAttribute('src') === 'assets/rivals/the-recruiter.png',
+      'Chapter 1 circles render too - the Recruiter has a face again'
+    );
+    EOL.campaign.setChapter(2);
+    await sleep(200);
   }
 
   /* ---------- G. every reward grant changes the collection ---------- */
