@@ -1638,13 +1638,34 @@ sec('S17. Collection stars are big enough to read across a grid');
   const block = css.slice(i, i + 420);
   const w = /width:\s*(\d+)px/.exec(block);
   ok(w && +w[1] >= 34, 'the collection star is at least 34px (was 27px)');
-  /* The star is centred ON the border, so the offset must stay exactly
-     half its size or the crest drifts off the frame. */
+  /* THE SIDE ARMS SIT ON THE BORDER (owner ruling 2026-08-19), which
+     is a different anchor from centring the glyph. The clip-path puts
+     those arms at y=30% of the star's box, so the offset tracks 30% of
+     its size - at half, the arms float clear above the frame. */
+  const ARM_Y = 0.3;
   const j = css.lastIndexOf('.card-stars,');
   const off = /top:\s*(-?[\d.]+)px/.exec(css.slice(j, j + 220));
   ok(
-    w && off && Math.abs(Math.abs(+off[1]) - +w[1] / 2) < 0.51,
-    'and its offset is half the star size, so it stays centred on the border'
+    w && off && Math.abs(Math.abs(+off[1]) - +w[1] * ARM_Y) < 0.51,
+    'and its offset drops it by 30%, seating the side arms on the border'
+  );
+  /* Guard the assumption above: if the silhouette is ever redrawn, the
+     30% here is silently wrong. Read the arm height out of the shape. */
+  /* the declaration wraps across lines, so read past the short block */
+  const clip = /clip-path:\s*polygon\(([\s\S]*?)\)/.exec(css.slice(i, i + 900));
+  const armPct = clip
+    ? Math.min.apply(
+        null,
+        clip[1]
+          .split(',')
+          .map((p) => p.trim().split(/\s+/).map(parseFloat))
+          .filter((p) => p[0] < 15 || p[0] > 85)
+          .map((p) => p[1])
+      )
+    : null;
+  ok(
+    armPct !== null && Math.abs(armPct / 100 - ARM_Y) < 0.02,
+    'and the silhouette really does put its outer arms at 30% (' + armPct + '%)'
   );
 }
 

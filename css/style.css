@@ -31545,14 +31545,18 @@ body {
 }
 
 /* The centre of the star lands directly on the card's top border, so
-   this offset is always HALF the star size (34px -> -17px). Visual
-   layers clip themselves; only the level crest may escape. */
+   the star's two side arms land on the card's top border. The clip-path
+   puts those arms at y=30% of the glyph's box (its 12,30 and 88,30
+   points), so the offset is 30% of the star size (34px -> -10.2px),
+   NOT half of it - half centres the middle of the star on the frame and
+   leaves the arms floating above it. Visual layers clip themselves;
+   only the level crest may escape. */
 .card {
   overflow: visible;
 }
 .card-stars,
 .card:hover .card-stars {
-  top: -17px;
+  top: -10.2px;
   z-index: 14;
 }
 
@@ -31760,8 +31764,14 @@ body {
   background:none;
   border:0;
 }
+/* HUNG BY THE SIDE TIPS, NOT BY THE MIDDLE (owner ruling 2026-08-19).
+   The clip-path puts the star's two outer arms at y=30% of its box
+   (the 12,30 and 88,30 points), so seating those arms ON the card's
+   top border means dropping the star by 30% of its height - not the
+   50% that centres the whole glyph. The old half-size offset floated
+   the star too high, with the arms hanging clear above the frame. */
 .bcard-up-stars > i {
-  margin-top:calc(var(--star-h) / -2);
+  margin-top:calc(var(--star-h) * -0.3);
 }
 /* THE SAME STAR THE COLLECTION WEARS (owner ruling 2026-08-19).
    The battle crest used to be a single flat rarity-coloured fill,
