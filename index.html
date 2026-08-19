@@ -179,27 +179,6 @@
     <link rel="stylesheet" href="css/platform.css" />
   </head>
   <body>
-    <!-- FLAT COLOUR PASS (2026-08-19, owner request). Legend art renders
-         through this SVG filter: each colour channel is quantized to 5
-         levels (125 colours total), so gradients and anti-aliased edges
-         read as clean flat bands - flatter, posterized pixel art. The
-         pixels themselves stay nearest-neighbour crisp; this only
-         flattens the palette.
-         THE KNOB: the three tableValues lists below. 5 values = 125
-         colours; 4 values = 64 (harder flattening); 6 = 216 (softer).
-         Browsers that cannot reference SVG filters simply render the
-         art unfiltered - no image is ever broken by this. -->
-    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
-      <defs>
-        <filter id="eol-flat" color-interpolation-filters="sRGB">
-          <feComponentTransfer>
-            <feFuncR type="discrete" tableValues="0 .25 .5 .75 1" />
-            <feFuncG type="discrete" tableValues="0 .25 .5 .75 1" />
-            <feFuncB type="discrete" tableValues="0 .25 .5 .75 1" />
-          </feComponentTransfer>
-        </filter>
-      </defs>
-    </svg>
     <!-- PLATFORM FLAG. Must run before any module reads a capability and
          before first paint, so css/platform.css never flashes a control
          it is about to hide. Sets body[data-platform] + EOL.platform. -->

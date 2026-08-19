@@ -326,23 +326,18 @@ const server = http.createServer((req, res) => {
     await sleep(300);
   }
 
-  /* ---------- F. the flat colour pass is wired ---------- */
-  console.log('F. the flat colour pass (posterized legend art)');
+  /* ---------- F. the sharpness pass is wired ---------- */
+  console.log('F. the sharpness pass (flat colours reverted, softened pixels)');
   {
     const flat = d.getElementById('eol-flat');
-    t(!!flat && flat.tagName.toLowerCase() === 'filter', 'index.html defines the #eol-flat SVG filter');
-    t(
-      !!flat && flat.querySelector('feFuncR[type="discrete"]') != null,
-      'the filter quantizes channels (discrete transfer) rather than darkening or blending'
-    );
+    t(!flat, 'the #eol-flat posterization filter is fully reverted');
     const cssSrc = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+    const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    t(cssSrc.indexOf('url(#eol-flat)') < 0 && htmlSrc.indexOf('eol-flat') < 0, 'no flat-filter reference survives in css or html');
     t(
-      /\.art-portrait img,\s*\.bart-portrait img,[^}]*\.tutor-face\s*\{[^}]*filter:\s*url\(#eol-flat\)/s.test(cssSrc),
-      'every legend-art render site carries the flat filter rule'
+      /\.art-portrait img,\s*\.bart-portrait img,[^}]*\.tutor-face\s*\{[^}]*filter:\s*blur\(0\.75px\)/s.test(cssSrc),
+      'every legend-art render site carries the blur rule instead'
     );
-    /* A filter reference that 404s would silently render nothing. */
-    t(cssSrc.indexOf('url(#eol-flat)') >= 0, 'the rule references the inline filter, not a file');
-
     /* THE 64x88 LAW: every fixed art frame renders at the source's
        native size - the dialogue bust, the rival plate, the detail
        panel and the small faces. The 256px experiment is retired. */
