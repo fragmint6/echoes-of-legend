@@ -62,12 +62,17 @@
       vaultNudge();
       return 'owned: ' + econ.ownedCount() + ' / ' + econ.obtainableEntries().length;
     },
-    /* EVERY CARD, no shop filter: all 16 factions including the eight
-       Chapter II factions the shop withholds and every legendary the
-       Crown Law keeps out of packs. `obtainableEntries` deliberately
-       leaves those out, so this reads the faction roster directly.
-       The campaign boss (campaign-asmodeus) is not in any faction and
-       is not collectible, so it is not included. */
+    /* EVERY CARD, no shop filter: all factions including the Chapter II
+       shelf the shop withholds and every legendary the Crown Law keeps
+       out of packs. `obtainableEntries` deliberately leaves those out,
+       so this reads the faction roster directly.
+
+       THE COUNT MUST MATCH THE GRANT. The first version reported
+       `econ.ownedCount()`, which counts only the OBTAINABLE (Chapter I)
+       shelf - so the command granted 155 cards and then said "55 / 155
+       owned", which read as the command failing. The numerator now
+       asks `owns()` about every id that was just granted, so the
+       number always equals the roster total (or names the gap). */
     allCards: function () {
       var econ = window.EOL.econ;
       if (!econ) return 'economy not loaded';
@@ -78,8 +83,17 @@
         });
       });
       econ.grant(ids);
+      var owned = ids.filter(function (id) {
+        return econ.owns(id);
+      }).length;
       vaultNudge();
-      return 'owned: ' + econ.ownedCount() + ' / ' + ids.length + ' (every collectible card)';
+      return (
+        'owned: ' +
+        owned +
+        ' / ' +
+        ids.length +
+        (owned === ids.length ? ' (every collectible card)' : ' (some cards failed to grant)')
+      );
     },
     openRoad: function () {
       var c = window.EOL.campaign;

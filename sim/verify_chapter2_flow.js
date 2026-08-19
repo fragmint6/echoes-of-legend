@@ -270,6 +270,27 @@ const server = http.createServer((req, res) => {
   t(bodyText.indexOf('Chapter 2') >= 0 || bodyText.indexOf('Hundred-Year') >= 0, 'chapter II plate renders');
   const mojibake = /[\ufffd]|\\u[0-9a-fA-F]{4}/.test(bodyText);
   t(!mojibake, 'no mojibake or literal escapes on the chapter II plate');
+
+  /* ---------- E. the every-card console command ---------- */
+  console.log('E. EOL.dev.allCards() grants and COUNTS the whole roster');
+  {
+    const allIds = [];
+    (EOL.factions || []).forEach((f) => f.cards.forEach((c) => allIds.push(c.id)));
+    const res = EOL.dev.allCards();
+    t(
+      res === 'owned: ' + allIds.length + ' / ' + allIds.length + ' (every collectible card)',
+      'the command reports the true full-roster count (' + res + ')'
+    );
+    t(EOL.econ.owns('hemithea-achilles'), 'a withheld Chapter II legendary is owned');
+    t(EOL.econ.owns('transylvania-mr-hyde'), 'a renamed card is owned under its new id');
+    t(
+      allIds.every((id) => EOL.econ.owns(id)),
+      'every faction card - all ' + allIds.length + ' - is owned after the command'
+    );
+    /* The old bug this pins: the command granted every card but its
+       numerator used ownedCount(), which only counts the obtainable
+       Chapter I shelf - so a full grant read as "55 / N owned". */
+  }
   {
     const gate11 = d.querySelector('[data-campaign-stage="11"] .sc-rewards');
     const txt = gate11 ? gate11.textContent : '';
