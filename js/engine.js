@@ -522,6 +522,16 @@
          preview only saw top-level `dmg` entries, so branch-based
          executes (Anubis/Gilgamesh, and now Goldilocks) showed no number
          at all while two-line conditionals could show the wrong total. */
+      /* THE SEQUENTIAL DRY-RUN (2026-08-19). Some skills change the
+         target's DEF BEFORE their own damage lands - Zeus's judgment
+         debuffs DEF and then strikes, Odysseus exposes and then hits.
+         The old scan computed every hit against the target's current
+         DEF, so the hover under-predicted such casts (yellow when the
+         real blow was lethal). The scan now walks the effect list in
+         order and folds preceding DEF-affecting effects into `defV`,
+         exactly like the resolver does. */
+      var defAtStart = defOf(tgt);
+      var defV = defAtStart;
       function scan(list) {
         (list || []).forEach(function (e) {
           if (e.k === 'branch') {
@@ -536,7 +546,28 @@
             scan(pass ? e.then : e.other || e.else);
             return;
           }
-          if (e.k !== 'dmg') return;
+          /* `onlyMarked` gates this effect the way the resolver's
+             target filter does - an unmarked hover target is not hit
+             by Zeus's marked-only arm at all. */
+          if (e.onlyMarked && !(tgt.flags.marked > 0)) return;
+          if (e.k !== 'dmg') {
+            /* a preceding effect that lands on THIS target changes
+               the DEF the next hit will face - fold it into defV */
+            if (e.to && e.to !== 'targets') return;
+            if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
+            if (e.k === 'exposed') defV = 0;
+            else if (e.k === 'stat' && e.stat === 'def')
+              defV = clamp(defV + e.amt, 0, 75);
+            else if (e.k === 'consumeBuffs') {
+              /* strips POSITIVE buffs; negative DEF debuffs survive */
+              var negDef = 0;
+              (tgt.buffs || []).forEach(function (b) {
+                if (b.stat === 'def' && b.amt < 0) negDef += b.amt;
+              });
+              defV = clamp(tgt.baseDef + negDef, 0, 75);
+            }
+            return;
+          }
           if (e.to && e.to !== 'targets') return; // redirected effects do not hit this target
           if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
           var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
@@ -579,7 +610,7 @@
              real cast - the number on the hover IS the number dealt. */
           var elDmg = e.element === 'inherit' ? unit.element : e.element;
           var elM = elementMult(elDmg, tgt.element);
-          var afterDef = raw * outM * inM * resistM * elM * (1 - defOf(tgt) / 100);
+          var afterDef = raw * outM * inM * resistM * elM * (1 - defV / 100);
           var hit = Math.max(1, Math.round(afterDef));
           total += hit;
           found = true;
@@ -654,11 +685,19 @@
               label: 'Resistance (' + Math.min(90, tgt.flags.resistPct) + '%)',
               mult: resistM,
             });
-          if (defOf(tgt))
+          /* The row is shown whenever the defence changed OR the
+             target had any at cast start - a defence the skill itself
+             stripped to 0 is exactly the fact the player needs to see,
+             even though its multiplier is x1. */
+          if (defV !== defAtStart || defAtStart)
             st.push({
               k: 'def',
-              label: 'Defence (' + defOf(tgt) + ')',
-              mult: 1 - defOf(tgt) / 100,
+              label:
+                'Defence (' +
+                defV +
+                (defV !== defAtStart ? ', after this skill' : '') +
+                ')',
+              mult: 1 - defV / 100,
             });
           st.push({ k: 'total', label: 'Damage', value: hit, subtotal: true });
           hits.push({ steps: st, dmg: hit });

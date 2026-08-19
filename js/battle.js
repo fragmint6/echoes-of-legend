@@ -1224,27 +1224,40 @@
     return '\u00d7' + (Math.round(m * 1000) / 1000).toLocaleString();
   }
 
-  function stepRowHTML(s) {
+  /* THE HORIZONTAL WORKING-OUT (2026-08-19). The old breakdown was
+     a vertical ledger of rows - tall enough to run off the board on
+     a six-step skill. It is now a wrapping CHIP CHAIN: each factor
+     is a small pill, connected by x / + / =, reading left to right
+     like the arithmetic itself. */
+  function stepChipHTML(s, connector) {
     var right;
     if (s.mult != null) right = fmtMult(s.mult);
     else if (s.add != null) right = '+' + Math.round(s.add).toLocaleString();
     else right = Math.round(s.value).toLocaleString();
     return (
-      '<div class="dpb-row' +
+      '<span class="dpb-chip' +
       (s.subtotal ? ' sub' : '') +
       (s.k === 'total' ? ' tot' : '') +
-      '"><span class="dpb-k">' +
+      '">' +
+      (connector ? '<i class="dpb-link">' + connector + '</i>' : '') +
+      '<b>' +
       esc(s.label) +
-      '</span><span class="dpb-v">' +
+      '</b><i>' +
       right +
-      '</span></div>'
+      '</i></span>'
     );
   }
+  function chipConnector(s) {
+    if (s.mult != null) return '\u00d7';
+    if (s.add != null) return '+';
+    return '=';
+  }
 
-  /* Open downward when there is not enough room above. Measured
-     against the board rect, not the window: the board is what the
-     panel would visually escape from, and the game is scaled, so
-     window coordinates alone would misjudge it. */
+  /* Open downward when there is not enough room above, and clamp
+     sideways when the wide chain would escape the board's edges.
+     Measured against the board rect, not the window: the board is
+     what the panel would visually escape from, and the game is
+     scaled, so window coordinates alone would misjudge it. */
   var DPB_H = 190; /* generous estimate; only decides the side */
   function flipBreakdown(chip) {
     try {
@@ -1252,6 +1265,16 @@
       var host = document.getElementById('board');
       var top = host ? host.getBoundingClientRect().top : 0;
       chip.classList.toggle('flip', r.top - top < DPB_H);
+      /* the chain wraps wide - shift it so it stays on the board */
+      var panel = chip.querySelector('.dmg-breakdown');
+      if (panel && host) {
+        var pr = panel.getBoundingClientRect();
+        var hr = host.getBoundingClientRect();
+        var dx = 0;
+        if (pr.left < hr.left) dx = hr.left - pr.left + 10;
+        else if (pr.right > hr.right) dx = hr.right - pr.right - 10;
+        panel.style.setProperty('--dpb-shift', Math.round(dx) + 'px');
+      }
     } catch (e) {
       /* positioning is a nicety - never let it break targeting */
     }
@@ -1263,15 +1286,18 @@
     var multi = hits.length > 1;
     var body = '';
     hits.forEach(function (h, i) {
-      if (multi) body += '<div class="dpb-hit">Hit ' + (i + 1) + '</div>';
-      h.steps.forEach(function (s) {
-        /* on a multi-hit skill the per-hit "Damage" line is the hit,
-           not the answer - the grand total below is the answer */
-        body += stepRowHTML(s);
+      var line = '';
+      if (multi) line += '<span class="dpb-hit">Hit ' + (i + 1) + '</span>';
+      h.steps.forEach(function (s, si) {
+        line += stepChipHTML(s, si > 0 ? chipConnector(s) : '');
       });
+      body += '<div class="dpb-line">' + line + '</div>';
     });
     if (multi) {
-      body += stepRowHTML({ k: 'total', label: 'Total damage', value: pv.dmg, subtotal: true });
+      body +=
+        '<div class="dpb-line dpb-line-total">' +
+        stepChipHTML({ k: 'total', label: 'Total damage', value: pv.dmg, subtotal: true }, '=') +
+        '</div>';
     }
     var foot = '';
     if (pv.critChance > 0) {

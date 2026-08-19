@@ -309,6 +309,35 @@ console.log('E. the AI prices the matchup');
   );
 }
 
+console.log('G. sequential casts: the preview sees DEF changes its own skill makes');
+{
+  /* Zeus's Divine Judgment lowers the target's DEF and THEN strikes,
+     in the same cast. The hover must show the number the cast deals -
+     the old preview read the pre-cast DEF and under-predicted by the
+     full defence share (yellow when the real blow was lethal). */
+  const B = battle([g('olympus-zeus'), ...FILLER, g('camelot-guinevere'), g('sherwood-little-john')]);
+  const z = unit(B, 'olympus-zeus');
+  const t = B.units.find((u) => u.side === 'enemy' && u.slot === 0);
+  t.flags.marked = 1;
+  const pv = E.previewDamage(B, z, z.card.ability, t);
+  const hp0 = t.hp;
+  E.useAbility(B, z, z.card.ability, []);
+  const dealt = hp0 - t.hp;
+  ok(!!pv && Math.abs(pv.dmg - dealt) <= 1, 'Zeus previews exactly what the cast deals (' + (pv && pv.dmg) + ' vs ' + dealt + ')');
+  ok(
+    !!pv && pv.hits[0].steps.some((stp) => stp.k === 'def' && /after this skill/.test(stp.label)),
+    'and the breakdown names the in-cast DEF drop (' + (pv && JSON.stringify(pv.hits[0].steps.filter((stp) => stp.k === 'def'))) + ')'
+  );
+  /* the marked-only arm: an unmarked hover target takes NOTHING,
+     even while a different enemy carries the mark */
+  const B2 = battle([g('olympus-zeus'), ...FILLER, g('camelot-guinevere'), g('sherwood-little-john')]);
+  const z2 = unit(B2, 'olympus-zeus');
+  B2.units.find((u) => u.side === 'enemy' && u.slot === 0).flags.marked = 1;
+  const unmarked = B2.units.find((u) => u.side === 'enemy' && u.slot === 1);
+  const pv2 = E.previewDamage(B2, z2, z2.card.ability, unmarked);
+  ok(pv2 === null, 'the hover on an unmarked target shows no damage from the marked-only arm');
+}
+
 console.log('F. determinism and neutrality bookkeeping');
 {
   /* elementMult is a pure function of the two elements - the mirror

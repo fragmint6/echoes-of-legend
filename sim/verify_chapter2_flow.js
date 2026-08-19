@@ -720,6 +720,14 @@ const server = http.createServer((req, res) => {
         /\.product:hover \.product-info[^}]*opacity:\s*1;/s.test(cssSrc),
       'the desc and odds reveal on hover'
     );
+    t(
+      /\.product-info\s*\{[^}]*top:\s*0;[^}]*translateY\(calc\(-100%/s.test(cssSrc),
+      'the tooltip floats ABOVE the pack'
+    );
+    t(
+      /\.product \.buy-pack\s*\{[^}]*position:\s*relative;[^}]*z-index:\s*2;/s.test(cssSrc),
+      'the buy pill is always visible in the flow below the pack'
+    );
 
     /* The split card detail: art owns the left column at full
        dialog height; everything else reads right. */
@@ -771,6 +779,25 @@ const server = http.createServer((req, res) => {
     t(
       d.getElementById('echo-sentinel') != null,
       'the echo grid has a lazy-load sentinel'
+    );
+    t(
+      /\.ec-card\s*\{[^}]*flex-direction:\s*column;/s.test(cssSrc) &&
+        /\.ec-art\s*\{[^}]*aspect-ratio:\s*64 \/ 88;/s.test(cssSrc),
+      'the echo entries are CARD-shaped - full-bleed art on top, numbers underneath'
+    );
+
+    /* The horizontal damage breakdown: a wrapping chip chain instead
+       of the tall vertical ledger that ran off the board. */
+    const battleSrc = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
+    t(
+      battleSrc.indexOf('stepChipHTML') >= 0 && battleSrc.indexOf('dpb-line') >= 0,
+      'the breakdown renders as a horizontal chip chain'
+    );
+    t(
+      /\.dpb-chip\s*\{/s.test(cssSrc) &&
+        /\.dpb-line\s*\{[^}]*flex-wrap:\s*wrap;/s.test(cssSrc) &&
+        /\.dmg-breakdown\s*\{[^}]*--dpb-shift:/s.test(cssSrc),
+      'the chain wraps horizontally and clamps to the board edges'
     );
   }
 

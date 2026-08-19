@@ -8014,14 +8014,14 @@ body[data-gfx='low'] .set-pill.bump {
   border-radius: 0;
   background: none;
 }
-/* the hover panel: the desc and the odds ride over the pack,
-   appearing only when the cursor asks - the shelf stays clean,
-   the information does not. */
+/* the hover panel: the desc and the odds appear ABOVE the pack when
+   the cursor asks - the shelf stays clean, the buy pill below stays
+   visible the whole time. */
 .product-info {
   position: absolute;
   left: 50%;
-  bottom: 46px;
-  transform: translateX(-50%) translateY(6px);
+  top: 0;
+  transform: translateX(-50%) translateY(calc(-100% - 10px));
   width: min(320px, calc(var(--vw1) * 88));
   max-width: none;
   padding: 14px 16px;
@@ -8043,7 +8043,7 @@ body[data-gfx='low'] .set-pill.bump {
 .product:hover .product-info,
 .product:focus-within .product-info {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(calc(-100% - 14px));
 }
 /* touch screens cannot hover - the info flows inline instead */
 @media (hover: none) {
@@ -8131,9 +8131,12 @@ body[data-gfx='low'] .set-pill.bump {
   color: var(--txt-dim);
   margin: 0;
 }
-/* the floating buy pill: no container, just the price hovering under
-   the pack, lighting up when it is affordable */
+/* the buy pill is ALWAYS visible, in the flow below the pack - the
+   tooltip floats above and never covers it */
 .product .buy-pack {
+  position: relative;
+  z-index: 2;
+  margin-top: 2px;
   min-width: 132px;
   padding: 9px 16px;
   border-radius: 999px;
@@ -26759,15 +26762,16 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
    right-aligned into a column, because a column of figures is what
    makes the arithmetic checkable at a glance. */
 .dmg-breakdown {
+  --dpb-shift: 0px;
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(4px);
   z-index: 40;
   display: block;
   width: max-content;
-  min-width: 190px;
-  max-width: 260px;
+  min-width: 210px;
+  max-width: min(400px, calc(var(--vw1) * 86));
   padding: 9px 11px 10px;
   border-radius: 11px;
   border: 1px solid rgba(255, 179, 71, 0.42);
@@ -26792,15 +26796,15 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
 .dmg-preview:focus-visible .dmg-breakdown {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(0);
 }
 .dmg-preview.flip .dmg-breakdown {
   bottom: auto;
   top: calc(100% + 8px);
-  transform: translateX(-50%) translateY(-4px);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(-4px);
 }
 .dmg-preview.flip:hover .dmg-breakdown {
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(0);
 }
 .dpb-title {
   display: block;
@@ -26813,49 +26817,71 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.dpb-row {
+/* the chip chain: factors read left to right, wrapping when the
+   panel hits its width - horizontal instead of a tall ledger */
+.dpb-line {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 1.5px 0;
-  line-height: 1.35;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 6px;
+  padding: 2px 0;
 }
-.dpb-k {
-  min-width: 0;
-  color: var(--txt-dim);
-  font-weight: 600;
+.dpb-line + .dpb-line {
+  margin-top: 2px;
 }
-.dpb-v {
-  flex: 0 0 auto;
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  color: #fff;
-}
-/* subtotals close a section: the base damage, and the answer */
-.dpb-row.sub {
-  margin-top: 4px;
-  padding-top: 5px;
+.dpb-line-total {
+  margin-top: 5px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
-.dpb-row.sub .dpb-k {
+.dpb-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+.dpb-chip b {
+  color: var(--txt-dim);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.dpb-chip i {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 10.5px;
+  color: #fff;
+}
+.dpb-link {
+  font-style: normal;
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+}
+/* subtotals close a section: the base damage, and the answer */
+.dpb-chip.sub {
+  border-color: rgba(255, 179, 71, 0.42);
+  background: rgba(255, 179, 71, 0.08);
+}
+.dpb-chip.sub b {
   color: var(--txt);
   font-weight: 800;
 }
-.dpb-row.tot .dpb-v {
+.dpb-chip.tot i {
   color: #ffb347;
   font-size: 12px;
 }
 .dpb-hit {
-  margin: 6px 0 2px;
   color: var(--txt-faint);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-}
-.dpb-hit:first-of-type {
-  margin-top: 0;
+  padding: 1px 4px 1px 0;
 }
 .dpb-note {
   margin-top: 6px;
@@ -27419,10 +27445,12 @@ body[data-gfx='low'] .shop-code-scrim {
   border-radius: 999px;
 }
 
-/* ---- the legend cards (2026-08-19 restyle) ---- */
+/* ---- the legend cards (2026-08-19 restyle) ----
+   CARD-shaped, not tile-shaped: the art owns the whole top of the
+   card like the collection does, and the numbers read underneath. */
 .echo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 14px;
   max-width: 1100px;
   margin: 16px auto 0;
@@ -27450,14 +27478,14 @@ body[data-gfx='low'] .shop-code-scrim {
   --rar: var(--r-epic-1);
   position: relative;
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 11px;
   border: 1px solid var(--line);
-  border-left: 3px solid color-mix(in srgb, var(--rar) 65%, transparent);
   border-radius: 14px;
   background: linear-gradient(
-    140deg,
-    color-mix(in srgb, var(--rar) 7%, rgba(255, 255, 255, 0.02)),
+    160deg,
+    color-mix(in srgb, var(--rar) 8%, rgba(255, 255, 255, 0.02)),
     rgba(255, 255, 255, 0.02)
   );
   overflow: hidden;
@@ -27467,14 +27495,15 @@ body[data-gfx='low'] .shop-code-scrim {
     box-shadow 0.2s var(--ease);
 }
 .ec-card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--rar) 55%, transparent);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  transform: translateY(-4px) scale(1.02);
+  border-color: color-mix(in srgb, var(--rar) 60%, transparent);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.5),
+    0 0 22px color-mix(in srgb, var(--rar) 14%, transparent);
 }
 /* A legend one copy from a level is the reason to be on this page. */
 .ec-card.ready {
   border-color: color-mix(in srgb, var(--r-epic-1) 55%, transparent);
-  border-left-color: var(--r-epic-1);
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--r-epic-1) 14%, transparent),
     0 0 22px color-mix(in srgb, var(--r-epic-1) 14%, transparent);
@@ -27484,17 +27513,16 @@ body[data-gfx='low'] .shop-code-scrim {
 }
 .ec-art {
   position: relative;
-  flex: 0 0 auto;
-  width: 62px;
-  height: 84px;
+  width: 100%;
+  aspect-ratio: 64 / 88; /* the legend portrait frame, card-top */
   display: grid;
   place-items: center;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--fc-primary) 40%, transparent);
-  border-radius: 9px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.4);
   color: var(--fc-primary);
-  font-size: 24px;
+  font-size: 26px;
 }
 /* the rarity badge: a small crest on the art's corner, coloured by
    the card's own tier - the shelf reads at a glance */
@@ -27514,9 +27542,12 @@ body[data-gfx='low'] .shop-code-scrim {
   pointer-events: none;
 }
 .ec-art img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 22%;
   image-rendering: pixelated;
 }
 .ec-pips {
@@ -27544,9 +27575,10 @@ body[data-gfx='low'] .shop-code-scrim {
 .ec-body {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
+  padding: 0 2px;
 }
 .ec-top {
   display: flex;
