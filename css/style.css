@@ -31300,3 +31300,87 @@ span.lg-portrait i {
   .echo-dropdowns .dd { flex: 1 1 0; min-width: 0; }
   .echo-dropdowns .dd-btn { min-width: 0; width: 100%; }
 }
+
+/* ========================================================================
+   DROPDOWN SCROLL FINISH + ECHO SHOP ENTRANCE (2026-08-19)
+   ======================================================================== */
+/* Keep the two-pixel option nudge, but reserve room for it inside the list.
+   Transformed children otherwise enlarge the scrollable overflow region and
+   make browsers flash a horizontal scrollbar. */
+.dd-searchable .dd-menu {
+  width: 272px;
+  max-width: min(272px, calc(100vw - 28px));
+}
+.dd-options {
+  box-sizing: border-box;
+  width: 100%;
+  padding-right: 7px;
+  overflow-x: hidden;
+  overflow-x: clip;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 188, 255, .32) transparent;
+}
+.dd-options .dd-opt {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+.dd-options::-webkit-scrollbar {
+  width: 5px;
+  height: 0;
+}
+.dd-options::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 5px;
+}
+.dd-options::-webkit-scrollbar-thumb {
+  min-height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(159, 188, 255, .3);
+  background-clip: padding-box;
+}
+.dd-options:hover::-webkit-scrollbar-thumb {
+  background: rgba(159, 188, 255, .48);
+  background-clip: padding-box;
+}
+
+/* Opening the Echo Shop should feel like changing rooms, not swapping raw
+   display states. The counter establishes the surface, then tools and stock
+   settle in behind it. */
+#spanel-echo:not([hidden]) {
+  animation: echo-shop-enter .38s cubic-bezier(.2, .82, .25, 1) both;
+}
+#spanel-echo:not([hidden]) .echo-counter {
+  animation: echo-shop-piece .34s var(--ease) .05s backwards;
+}
+#spanel-echo:not([hidden]) .echo-tools {
+  animation: echo-shop-piece .34s var(--ease) .11s backwards;
+}
+#spanel-echo:not([hidden]) .echo-grid,
+#spanel-echo:not([hidden]) .echo-empty:not([hidden]) {
+  animation: echo-shop-piece .38s var(--ease) .17s backwards;
+}
+@keyframes echo-shop-enter {
+  from { opacity: 0; transform: translateY(12px) scale(.992); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes echo-shop-piece {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+body[data-gfx='low'] #spanel-echo:not([hidden]),
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-counter,
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-tools,
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-grid,
+body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #spanel-echo:not([hidden]),
+  #spanel-echo:not([hidden]) .echo-counter,
+  #spanel-echo:not([hidden]) .echo-tools,
+  #spanel-echo:not([hidden]) .echo-grid,
+  #spanel-echo:not([hidden]) .echo-empty {
+    animation: none;
+  }
+}
