@@ -172,7 +172,7 @@
          plain image. -->
     <link rel="icon" href="assets/favicon.ico?v=20260819c" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png?v=20260819c" />
-    <link rel="stylesheet" href="css/style.css?v=20260819c" />
+    <link rel="stylesheet" href="css/style.css?v=20260819e" />
     <link rel="stylesheet" href="css/daily.css?v=20260819c" />
     <!-- Build differences (CrazyGames portal build). Last, so it wins on
          equal specificity. Paired with js/platform.js below. -->
@@ -562,7 +562,7 @@
              stands between a new player and the Play button. The full
              text lives in Settings under Privacy. -->
         <p class="home-policy" id="home-policy" hidden>
-          <i class="ri-shield-check-line" aria-hidden="true"></i>
+          <i class="ri-forbid-2-line" aria-hidden="true"></i>
           <span>
             This game stores your progress and anonymous play statistics.
             See <b>Settings › Privacy</b> for what is kept and how to remove it.
@@ -1207,14 +1207,20 @@
           <h3 class="product-name">Daily Pack</h3>
           <button class="btn btn-primary buy-pack" data-pack="daily"></button>
           <div class="product-info">
-            <span class="product-tip">Free, once a day</span>
-            <p class="product-desc">
-              One legend from every corner of the roster - with a slim
-              chance of an <b>Epic</b>.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 75% &middot; Rare 20% &middot; Epic 5%</span>
-            </p>
+            <div class="product-tip"><i class="ri-calendar-check-line"></i><span><b>Daily gift</b>Free once per day</span></div>
+            <div class="product-info-body">
+              <p class="product-desc">A daily draw from every unlocked corner of the roster. A small ritual, with a real chance to reveal an <b>Epic</b>.</p>
+              <div class="pack-facts">
+                <span><i class="ri-stack-line"></i><b>1</b> card</span>
+                <span><i class="ri-flag-line"></i>All factions</span>
+              </div>
+              <div class="odds-title"><span>Reveal odds</span><em>per card</em></div>
+              <div class="odds-grid">
+                <span class="odds-common"><b>Common</b><i style="--odds:75%"></i><strong>75%</strong></span>
+                <span class="odds-rare"><b>Rare</b><i style="--odds:20%"></i><strong>20%</strong></span>
+                <span class="odds-epic"><b>Epic</b><i style="--odds:5%"></i><strong>5%</strong></span>
+              </div>
+            </div>
           </div>
         </article>
 
@@ -1230,15 +1236,19 @@
           <h3 class="product-name">Echoes Pack</h3>
           <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           <div class="product-info">
-            <span class="product-tip">Chapter I shelf</span>
-            <p class="product-desc">
-              Grimmwood, Camelot, Sherwood, Olympus, Yamato, Roma, Kami
-              and Duat. Five legends, and the final card is always <b>Epic</b>.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
-              <span><b>Final card</b> Epic 100%</span>
-            </p>
+            <div class="product-tip"><i class="ri-book-open-line"></i><span><b>Chapter I collection</b>The Road's eight houses</span></div>
+            <div class="product-info-body">
+              <p class="product-desc">Five Chapter I legends. The fifth reveal is protected and will always be <b>Epic</b>.</p>
+              <div class="pack-facts"><span><i class="ri-stack-line"></i><b>5</b> cards</span><span><i class="ri-trophy-line"></i>Epic finisher</span></div>
+              <div class="faction-list"><b>Factions</b><span>Grimmwood</span><span>Camelot</span><span>Sherwood</span><span>Olympus</span><span>Yamato</span><span>Roma</span><span>Kami</span><span>Duat</span></div>
+              <div class="odds-title"><span>Reveal odds</span><em>cards 1–4</em></div>
+              <div class="odds-grid">
+                <span class="odds-common"><b>Common</b><i style="--odds:45%"></i><strong>45%</strong></span>
+                <span class="odds-rare"><b>Rare</b><i style="--odds:35%"></i><strong>35%</strong></span>
+                <span class="odds-epic"><b>Epic</b><i style="--odds:20%"></i><strong>20%</strong></span>
+              </div>
+              <div class="guarantee"><i class="ri-sparkling-2-line"></i><span>Final reveal</span><b>Epic · 100%</b></div>
+            </div>
           </div>
         </article>
         <article class="product" data-product="archive" hidden>
@@ -1248,16 +1258,19 @@
           <h3 class="product-name">Archive Pack</h3>
           <button class="btn btn-primary buy-pack" data-pack="archive"></button>
           <div class="product-info">
-            <span class="product-tip">Chapter II shelf</span>
-            <p class="product-desc">
-              Huaxia, Asgard, Hemithea, Pandemonium, Devas, Genesis,
-              Transylvania and Tortuga. Five legends, and the final card is always
-              <b>Epic</b>.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
-              <span><b>Final card</b> Epic 100%</span>
-            </p>
+            <div class="product-tip"><i class="ri-book-2-line"></i><span><b>Chapter II archive</b>Unlocked by clearing Gate X</span></div>
+            <div class="product-info-body">
+              <p class="product-desc">Five Chapter II legends from the Concord's archive. The fifth reveal is protected and will always be <b>Epic</b>.</p>
+              <div class="pack-facts"><span><i class="ri-stack-line"></i><b>5</b> cards</span><span><i class="ri-trophy-line"></i>Epic finisher</span></div>
+              <div class="faction-list"><b>Factions</b><span>Huaxia</span><span>Asgard</span><span>Hemithea</span><span>Pandemonium</span><span>Devas</span><span>Genesis</span><span>Transylvania</span><span>Tortuga</span></div>
+              <div class="odds-title"><span>Reveal odds</span><em>cards 1–4</em></div>
+              <div class="odds-grid">
+                <span class="odds-common"><b>Common</b><i style="--odds:45%"></i><strong>45%</strong></span>
+                <span class="odds-rare"><b>Rare</b><i style="--odds:35%"></i><strong>35%</strong></span>
+                <span class="odds-epic"><b>Epic</b><i style="--odds:20%"></i><strong>20%</strong></span>
+              </div>
+              <div class="guarantee"><i class="ri-sparkling-2-line"></i><span>Final reveal</span><b>Epic · 100%</b></div>
+            </div>
           </div>
         </article>
         <p class="product-note shelf-note">
@@ -4287,16 +4300,16 @@
     <script src="js/upgrades.js?v=20260819c"></script>
     <script src="js/quests.js?v=20260819c"></script>
     <script src="js/quest-board.js?v=20260819c"></script>
-    <script src="js/card-detail.js?v=20260819c"></script>
+    <script src="js/card-detail.js?v=20260819e"></script>
     <script src="js/engine.js?v=20260819c"></script>
     <script src="js/ai.js?v=20260819c"></script>
     <script src="js/battle.js?v=20260819c"></script>
-    <script src="js/deck.js?v=20260819c"></script>
+    <script src="js/deck.js?v=20260819e"></script>
     <script src="js/pool.js?v=20260819c"></script>
     <script src="js/play.js?v=20260819c"></script>
     <script src="js/daily.js?v=20260819c"></script>
     <script src="js/campaign.js?v=20260819c"></script>
-    <script src="js/shop.js?v=20260819c"></script>
+    <script src="js/shop.js?v=20260819e"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
          the missing global and the game runs local-only.
@@ -4344,7 +4357,7 @@
     <script src="js/mp.js?v=20260819c"></script>
     <script src="js/netplay.js?v=20260819c"></script>
     <script src="js/history.js?v=20260819c"></script>
-    <script src="js/app.js?v=20260819c"></script>
+    <script src="js/app.js?v=20260819e"></script>
 
     <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the
          game is fully wired before a third-party CDN script is even

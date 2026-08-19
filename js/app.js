@@ -77,10 +77,10 @@
     return window.EOL.colorElements(String(s));
   }
 
-  function statRow(icon, key, val, display, max, color) {
+  function statRow(icon, key, val, display, max, color, boosted) {
     var pct = Math.max(4, Math.min(100, (val / max) * 100));
     return (
-      '<div class="stat-row" style="--sc:' +
+      '<div class="stat-row' + (boosted ? ' boosted' : '') + '" style="--sc:' +
       color +
       ';--pct:' +
       pct.toFixed(1) +
@@ -252,6 +252,10 @@
     var badges = options.upgrades ? upgradeBadges(card) : '';
     if (badges) el.dataset.upgraded = '1';
     var U0 = window.EOL.upgrades;
+    var shownStats = card.stats;
+    if (U0 && options.upgrades && (!window.EOL.econ || window.EOL.econ.owns(card.id))) {
+      shownStats = U0.statsFor(card.id, card) || card.stats;
+    }
     if (U0 && options.upgrades) {
       /* A card that can be levelled is worth spotting from across the
          grid, so the whole card is flagged - not just the overlay,
@@ -332,16 +336,33 @@
       '</div>' +
       '</div>' +
       '<div class="stat-block">' +
-      statRow('ra-health', 'HP', card.stats.hp, card.stats.hp.toLocaleString(), MAX.hp, '#ff5f7e') +
+      statRow(
+        'ra-health',
+        'HP',
+        shownStats.hp,
+        shownStats.hp.toLocaleString(),
+        MAX.hp,
+        '#ff5f7e',
+        shownStats.hp !== card.stats.hp
+      ) +
       statRow(
         'ra-sword',
         'ATK',
-        card.stats.atk,
-        card.stats.atk.toLocaleString(),
+        shownStats.atk,
+        shownStats.atk.toLocaleString(),
         MAX.atk,
-        '#ffb347'
+        '#ffb347',
+        shownStats.atk !== card.stats.atk
       ) +
-      statRow('ra-shield', 'DEF', card.stats.def, card.stats.def + '%', MAX.def, '#5fb2ff') +
+      statRow(
+        'ra-shield',
+        'DEF',
+        shownStats.def,
+        shownStats.def + '%',
+        MAX.def,
+        '#5fb2ff',
+        shownStats.def !== card.stats.def
+      ) +
       '</div>' +
       '<div class="ability" style="--ab-c:' +
       abColor +
