@@ -245,33 +245,29 @@
     return fresh.length ? fresh : universe;
   }
 
-  /* the chapter-pack visibility law: a chapter's pack is visible
-     while the player is ON that chapter or has beaten it. Chapter
-     I's shelf is always visible (it is the original shelf - hiding
-     it would be a regression); Chapter II's opens when the player
-     selects Chapter II or clears Gate XX. */
-  function chapterBeaten(id) {
-    var c = window.EOL.campaign;
-    if (!c || !c.story) return false;
-    var story = c.story;
-    var last = 0;
-    (story.stages || []).forEach(function (st) {
-      last = Math.max(last, st.id);
-    });
+  /* Chapter II merchandise is a reward for finishing Chapter I, not
+     merely for opening the chapter selector. Gate X on ANY difficulty
+     unlocks it. Read the Chapter I save directly so the answer remains
+     correct while the campaign module is currently displaying Chapter II. */
+  function clearedChapterOne() {
     try {
-      var prog = c.getProgress();
-      return prog && prog.cleared && prog.cleared.indexOf(last) >= 0;
+      var raw = localStorage.getItem('eol.campaign.ch1.progress');
+      if (!raw) return false;
+      var progress = JSON.parse(raw);
+      if (progress.runs) {
+        return Object.keys(progress.runs).some(function (difficulty) {
+          var run = progress.runs[difficulty];
+          return run && Array.isArray(run.cleared) && run.cleared.indexOf(10) >= 0;
+        });
+      }
+      /* Legacy saves pre-date difficulty runs. */
+      return Array.isArray(progress.cleared) && progress.cleared.indexOf(10) >= 0;
     } catch (e) {
       return false;
     }
   }
   function packVisible(key) {
-    if (key === 'archive') {
-      var c = window.EOL.campaign;
-      var active = c && c.activeChapter ? c.activeChapter() : 1;
-      return active === 2 || chapterBeaten(2);
-    }
-    return true;
+    return key !== 'archive' || clearedChapterOne();
   }
 
   /* Sequence timings (ms) - cinematic pacing; tests set FAST mode.
@@ -409,6 +405,12 @@
 
   function el(id) {
     return document.getElementById(id);
+  }
+  function escHtml(value) {
+    if (window.EOL.ui && window.EOL.ui.esc) return window.EOL.ui.esc(value);
+    return String(value).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
   }
 
   function resetStage() {
@@ -999,8 +1001,8 @@
         var claimed = dailyClaimed();
         btn.disabled = claimed;
         btn.innerHTML = claimed
-          ? '<i class="ri-time-line"></i><span>Opens tomorrow</span>'
-          : '<i class="ri-gift-line"></i><span>Free</span>';
+          ? '<i class="ri-check-line"></i><span>Opened</span>'
+          : '<i class="ri-gift-line"></i><span>Open free</span>';
         return;
       }
       btn.disabled = econ.coins() < pack.price || !duplicateAwarePool(pack).length;
@@ -1015,22 +1017,27 @@
       var meta = featuredMeta(slot);
       if (product) {
         var name = product.querySelector('.product-name');
-        var desc = product.querySelector('.product-desc');
-        var odds = product.querySelector('.product-odds');
+        var info = product.querySelector('.product-info');
         var f1 = factionById(meta.factions[0]);
         var f2 = factionById(meta.factions[1]);
+        var f1Name = f1 ? f1.name : meta.factions[0];
+        var f2Name = f2 ? f2.name : meta.factions[1];
         if (name) name.textContent = meta.name + ' Pack';
-        if (desc)
-          desc.textContent =
-            (f1 ? f1.name : meta.factions[0]) +
-            ' + ' +
-            (f2 ? f2.name : meta.factions[1]) +
-            '. ' +
-            meta.blurb;
-        if (odds)
-          odds.innerHTML =
-            '<span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>' +
-            '<span><b>Final card</b> Epic 100%</span>';
+        if (info)
+          info.innerHTML =
+            '<div class="product-tip"><i class="ri-sword-line"></i><span><b>Featured this week</b>' +
+            escHtml(f1Name) + ' × ' + escHtml(f2Name) + '</span></div>' +
+            '<div class="product-info-body">' +
+            '<p class="product-desc">' + escHtml(meta.blurb) + '</p>' +
+            '<div class="pack-facts"><span><i class="ri-stack-line"></i><b>5</b> cards</span>' +
+            '<span><i class="ri-trophy-line"></i>Epic finisher</span><span><i class="ri-forbid-2-line"></i>No Legendary</span></div>' +
+            '<div class="faction-list featured-factions"><b>Featured factions</b><span>' +
+            escHtml(f1Name) + '</span><span>' + escHtml(f2Name) + '</span></div>' +
+            '<div class="odds-title"><span>Reveal odds</span><em>cards 1–4</em></div>' +
+            '<div class="odds-grid"><span class="odds-common"><b>Common</b><i style="--odds:45%"></i><strong>45%</strong></span>' +
+            '<span class="odds-rare"><b>Rare</b><i style="--odds:35%"></i><strong>35%</strong></span>' +
+            '<span class="odds-epic"><b>Epic</b><i style="--odds:20%"></i><strong>20%</strong></span></div>' +
+            '<div class="guarantee"><i class="ri-sparkling-2-line"></i><span>Final reveal</span><b>Epic · 100%</b></div></div>';
       }
       if (host) {
         host.dataset.slot = String(slot);

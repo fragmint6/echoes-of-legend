@@ -396,9 +396,8 @@
     var isActive = card.ability.type === 'Active';
     var cost =
       isActive && card.ability.cost != null
-        ? '<span class="ab-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
-          card.ability.cost +
-          '</span>'
+        ? '<span class="ab-cost cd-energy-cost" title="Energy cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+          '<b>' + card.ability.cost + '</b><span>Energy</span></span>'
         : '';
 
     host.innerHTML =
@@ -419,6 +418,9 @@
       '">' +
       art +
       '</div>' +
+      /* Lore belongs to the portrait: it reads as the legend's caption
+         and no longer crowds the mechanical information column. */
+      (card.lore ? '<p class="cd-lore cd-art-lore">' + esc(card.lore) + '</p>' : '') +
       '</div>' +
       '<div class="cd-info-col">' +
       '<div class="cd-ident">' +
@@ -463,17 +465,16 @@
          bows to another. */
       elementWheelLine(card) +
       '</div>' +
-      /* THE LORE. Only rendered when the legend actually has some -
-         an empty quote block is worse than no quote block. */
-      (card.lore ? '<p class="cd-lore">' + esc(card.lore) + '</p>' : '') +
       statTable(card) +
-      '<div class="cd-skill" style="--ab-c:' +
+      '<div class="cd-skill' + (isActive ? ' is-active' : ' is-passive') + '" style="--ab-c:' +
       (isActive ? 'var(--rar-1)' : '#7fe3c0') +
       '">' +
       '<div class="cd-skill-top">' +
-      '<span class="ab-type">' +
+      '<span class="ab-type"><i class="' +
+      (isActive ? 'ri-sword-line' : 'ri-repeat-line') +
+      '" aria-hidden="true"></i>' +
       esc(card.ability.type) +
-      '</span>' +
+      ' skill</span>' +
       cost +
       '</div>' +
       '<h3 class="cd-skill-name">' +

@@ -815,7 +815,10 @@
         return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
       });
     sorted.forEach(function (e, i) {
-      var el = window.EOL.ui.buildCard(e.card, e.faction, i, { markUnowned: true });
+      var el = window.EOL.ui.buildCard(e.card, e.faction, i, {
+        markUnowned: true,
+        upgrades: true,
+      });
       /* No +/x button. Clicking the card already adds or removes it, so
          the badge was a second control for the same action sitting on
          top of the art. */
