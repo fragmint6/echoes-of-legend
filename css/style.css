@@ -23883,13 +23883,11 @@ body[data-gfx='low'] .c2-glow {
   border-color: color-mix(in srgb, var(--rival-b) 58%, transparent);
 }
 
-/* Rival plates use the same full-art portrait law as ordinary legend cards:
-   a complete opaque scene, face high in the frame, with the text plate
-   allowed to own the lower edge. EXPERIMENT 2026-08-19: the plate's
-   portrait frame is 256px (4x the 64x88 source) instead of 128px. */
+/* Rival plates follow the 64x88 law: the portrait frame is the art's
+   native size, no upscale. */
 .rival-art.has-portrait {
-  flex-basis: 256px;
-  min-height: 256px;
+  flex-basis: 64px;
+  min-height: 88px;
   margin: 6px 10px 0;
   border: 1px solid color-mix(in srgb, var(--rival-a) 35%, rgba(255, 255, 255, 0.12));
   border-radius: 10px 10px 3px 3px;
@@ -24318,17 +24316,18 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* EXPERIMENT 2026-08-19: the bust renders the FULL legend-art frame at
-   256x352 (4x the 64x88 source) instead of 128x176 (2x). See the note
-   in js/dev.js - this is the 'what happens at 256px' trial, one
-   revert away if the owner prefers the 128px frame. */
+/* THE 64x88 LAW (2026-08-19, owner ruling): every fixed frame that
+   renders legend art shows it at its NATIVE 64x88 - no upscale, no
+   interpolation, the crispest pixels the source has. Full-bleed card
+   sites (collection, battle tile, pack fronts) still cover their card
+   frames from the same 64x88 source. */
 .chapter-dialogue-bust {
   position: relative;
   align-self: center;
   display: grid;
   place-items: center;
-  width: 256px;
-  height: 352px;
+  width: 64px;
+  height: 88px;
   margin: 10px 0 10px 12px;
   overflow: hidden;
   border-radius: 10px;
@@ -24337,8 +24336,8 @@ body[data-gfx='low'] .rival-card.is-first:hover {
 }
 .chapter-dialogue-bust img {
   display: block;
-  width: 256px;
-  height: 352px;
+  width: 64px;
+  height: 88px;
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24473,16 +24472,15 @@ html.mqw640 .chapter-dialogue-bar {
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 0;
 }
-/* half-scale (128x176 - the OLD full frame) keeps the pixel grid even
-   on small screens while the desktop frame experiments at 256x352 */
+/* native 64x88 everywhere - the mobile bust is the desktop bust */
 html.mqw640 .chapter-dialogue-bust {
-  width: 128px;
-  height: 176px;
+  width: 64px;
+  height: 88px;
   margin: 8px 0 8px 8px;
 }
 html.mqw640 .chapter-dialogue-bust img {
-  width: 128px;
-  height: 176px;
+  width: 64px;
+  height: 88px;
 }
 html.mqw640 .chapter-dialogue-glyph {
   font-size: 30px;
@@ -24560,7 +24558,7 @@ html.mqw640 .chapter-dialogue-foot {
 .rival-bark-face {
   flex: 0 0 auto;
   width: 64px;
-  height: 88px; /* half of the 128x176 art frame - even pixel grid */
+  height: 88px; /* the native 64x88 art frame */
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24627,9 +24625,10 @@ html.mqw640 .rival-bark {
   width: min(340px, calc(var(--vw1) * 88));
   gap: 9px;
 }
+/* 64x88 law: the mobile faces are the desktop faces */
 html.mqw640 .rival-bark-face {
-  width: 32px;
-  height: 44px;
+  width: 64px;
+  height: 88px;
 }
 html.mqw640 .rival-bark-text {
   font-size: 12.5px;
@@ -24711,7 +24710,7 @@ html.mqw640 .rival-bark-text {
 .nav-guide-face {
   flex: 0 0 auto;
   width: 64px;
-  height: 88px; /* half of the 128x176 art frame - even pixel grid */
+  height: 88px; /* the native 64x88 art frame */
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24774,8 +24773,8 @@ html.mqw640 .nav-guide {
   gap: 9px;
 }
 html.mqw640 .nav-guide-face {
-  width: 32px;
-  height: 44px;
+  width: 64px;
+  height: 88px;
 }
 html.mqw640 .nav-guide-text {
   font-size: 12px;
@@ -25078,7 +25077,7 @@ html.mqw640 .nav-guide-text {
 .tutor-face {
   flex: 0 0 auto;
   width: 64px;
-  height: 88px; /* half-scale of the 128x176 frame - even pixel grid */
+  height: 88px; /* the native 64x88 frame */
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -25122,8 +25121,8 @@ html.mqw640 .tutor {
   width: auto;
 }
 html.mqw640 .tutor-face {
-  width: 32px;
-  height: 44px;
+  width: 64px;
+  height: 88px;
 }
 
 /* The script's marked choices: a slow golden pulse says "these, next".
@@ -29103,10 +29102,11 @@ body[data-gfx='low'] .qb-body {
   padding-right: 34px; /* clear the close button */
   margin-bottom: 14px;
 }
+/* 64x88 law: the card-detail art panel is the art's native frame. */
 .cd-art {
   flex: 0 0 auto;
-  width: 92px;
-  height: 126px;
+  width: 64px;
+  height: 88px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -29115,7 +29115,7 @@ body[data-gfx='low'] .qb-body {
   background:
     radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--el) 22%, transparent), transparent 70%),
     rgba(0, 0, 0, 0.4);
-  font-size: 40px;
+  font-size: 32px;
   color: var(--el);
 }
 .cd-art img {

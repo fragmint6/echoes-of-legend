@@ -342,6 +342,24 @@ const server = http.createServer((req, res) => {
     );
     /* A filter reference that 404s would silently render nothing. */
     t(cssSrc.indexOf('url(#eol-flat)') >= 0, 'the rule references the inline filter, not a file');
+
+    /* THE 64x88 LAW: every fixed art frame renders at the source's
+       native size - the dialogue bust, the rival plate, the detail
+       panel and the small faces. The 256px experiment is retired. */
+    const bustRule = /\.chapter-dialogue-bust\s*\{[^}]*width:\s*64px;[^}]*height:\s*88px;/s;
+    t(bustRule.test(cssSrc), 'the dialogue bust renders the art at native 64x88');
+    t(
+      /\.rival-art\.has-portrait\s*\{[^}]*flex-basis:\s*64px;[^}]*min-height:\s*88px;/s.test(cssSrc),
+      'the rival plate frame is native 64x88'
+    );
+    t(
+      /\.cd-art\s*\{[^}]*width:\s*64px;[^}]*height:\s*88px;/s.test(cssSrc),
+      'the card-detail art panel is native 64x88'
+    );
+    t(
+      !/\.chapter-dialogue-bust\s*\{[^}]*width:\s*256px/s.test(cssSrc),
+      'the 256px experiment is retired'
+    );
   }
 
   server.close();
