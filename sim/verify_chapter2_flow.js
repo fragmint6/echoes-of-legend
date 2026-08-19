@@ -479,6 +479,10 @@ const server = http.createServer((req, res) => {
       wheel && wheel.querySelectorAll('.ew-arrow').length === 7,
       'all seven arrows render - one from each spoke to its prey'
     );
+    t(
+      wheel && wheel.querySelectorAll('.ew-rune').length === 14,
+      'the inscription renders - two carved runes per sector'
+    );
     const fireNode = wheel && wheel.querySelector('.ew-node[data-ew="Fire"]');
     const natureNode = wheel && wheel.querySelector('.ew-node[data-ew="Nature"]');
     const physNode = wheel && wheel.querySelector('.ew-node[data-ew="Physical"]');
@@ -493,6 +497,10 @@ const server = http.createServer((req, res) => {
       t(
         wheel.querySelector('.ew-arrow[data-from="Fire"]').classList.contains('hot'),
         'and the Fire-to-Nature arrow burns'
+      );
+      t(
+        Array.from(wheel.querySelectorAll('.ew-rune')).some((rn) => rn.dataset.sector === 'Fire' && rn.classList.contains('ew-rune-hot')),
+        "Fire's own runes wake when Fire is hovered"
       );
       const detail = d.getElementById('ew-detail-name');
       t(

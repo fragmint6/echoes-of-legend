@@ -686,6 +686,19 @@
     Lightning: 'The storm strikes the tallest body first. A word can still close the sky.',
     Physical: 'The body stamps out the flame. The storm does not care how strong it is.',
   };
+  /* Seven carved glyphs, one per element, drawn with straight cuts -
+     the kind of sign a century of hands has chalked onto a stone
+     floor. The wheel wears two of each, in the sector its element
+     rules, so the ring reads as an inscription rather than a diagram. */
+  var EW_RUNES = [
+    'M2 3 L2 11 M2 7 L8 3 L8 10', // fire: the rising tongue
+    'M8 3 L4 7 L8 11 M2 7 L4 7', // nature: the branching bough
+    'M2 3 L8 3 L8 5 L4 5 M4 5 L4 11', // light: the standing ray
+    'M2 11 L5 3 L8 11 M5 7 L2 7', // shadow: the hooded peak
+    'M2 3 L8 11 M8 3 L2 11 M5 3 L5 11', // magic: the crossed word
+    'M5 3 L5 11 M2 7 L8 7 M2 3 L8 11', // lightning: the split bolt
+    'M2 3 L8 3 L8 11 L2 11 M5 3 L5 11', // physical: the door of the body
+  ];
 
   function elementCycleOrder() {
     var beats = window.EOL.engine && window.EOL.engine.ELEMENT_BEATS;
@@ -757,6 +770,45 @@
     var hubTitle = host.querySelector('.ew-hub-title');
     var hubSub = host.querySelector('.ew-hub-sub');
     var nodes = [];
+    var runes = [];
+
+    /* THE INSCRIPTION: two carved glyphs per sector, on the rim
+       between the ruling element and its prey. Each rune belongs to
+       the sector whose element claims it, so hovering a spoke wakes
+       the runes its element carved. */
+    if (svg) {
+      var runeGroup = document.createElementNS(svgNS, 'g');
+      runeGroup.setAttribute('class', 'ew-runes');
+      svg.appendChild(runeGroup);
+      order.forEach(function (el, i) {
+        for (var r = 0; r < 2; r++) {
+          var mid = i + 0.33 + r * 0.34;
+          var ang = -Math.PI / 2 + (mid * 2 * Math.PI) / order.length;
+          var rx = 50 + 44.5 * Math.cos(ang);
+          var ry = 50 + 44.5 * Math.sin(ang);
+          var path = document.createElementNS(svgNS, 'path');
+          path.setAttribute('d', EW_RUNES[i % EW_RUNES.length]);
+          path.setAttribute('class', 'ew-rune');
+          path.dataset.sector = el;
+          path.setAttribute(
+            'transform',
+            'translate(' + rx.toFixed(2) + ' ' + ry.toFixed(2) + ') rotate(' + (ang * 180) / Math.PI + ') translate(-5 -4.5) scale(0.55)'
+          );
+          runeGroup.appendChild(path);
+          runes.push(path);
+        }
+      });
+      /* a slow-engraved ring of fine ticks just inside the runes */
+      var tickRing = document.createElementNS(svgNS, 'circle');
+      tickRing.setAttribute('class', 'ew-tick-ring');
+      tickRing.setAttribute('cx', '50');
+      tickRing.setAttribute('cy', '50');
+      tickRing.setAttribute('r', '38.5');
+      tickRing.setAttribute('fill', 'none');
+      tickRing.setAttribute('stroke-dasharray', '0.6 3.1');
+      svg.appendChild(tickRing);
+    }
+
     pos.forEach(function (p) {
       var node = document.createElement('div');
       node.className = 'ew-node';
@@ -782,6 +834,12 @@
         svg.querySelectorAll('.ew-arrow').forEach(function (a) {
           a.classList.toggle('hot', a.dataset.from === p.el);
         });
+        /* the inscription wakes where the element carved it, and
+           chills where its predator did */
+        runes.forEach(function (rn) {
+          rn.classList.toggle('ew-rune-hot', rn.dataset.sector === p.el);
+          rn.classList.toggle('ew-rune-cold', rn.dataset.sector === predator);
+        });
         if (hubTitle) hubTitle.textContent = p.el;
         if (hubSub)
           hubSub.textContent = EW_VERBS[p.el] + ' ' + beats[p.el] + ' · bows to ' + predator;
@@ -806,6 +864,9 @@
       });
       svg.querySelectorAll('.ew-arrow').forEach(function (a) {
         a.classList.remove('hot');
+      });
+      runes.forEach(function (rn) {
+        rn.classList.remove('ew-rune-hot', 'ew-rune-cold');
       });
       if (hubTitle) hubTitle.textContent = 'The Wheel';
       if (hubSub) hubSub.textContent = 'hover a spoke';

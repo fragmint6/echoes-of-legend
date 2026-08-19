@@ -25687,10 +25687,12 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
 }
 
 /* ---- the wheel of seven (rulebook) ----
-   Seven spokes in cycle order, an arrow from each to its prey, and
-   hover states: the hovered spoke blooms, its prey burns gold, its
-   predator chills, everything else dims, and the detail panel
-   speaks the matchup. The ring's slow turn is the only idle
+   Rendered as the Concord's chalk-and-stone inscription: a worn
+   slate slab, an engraved ring of tick marks, two carved runes in
+   each element's sector, and chalk-cut spokes. Hover states: the
+   hovered spoke blooms, its prey burns gold, its predator chills,
+   its sector's runes wake, everything else dims, and the detail
+   panel speaks the matchup. The ring's slow turn is the only idle
    motion - it pauses while a spoke is under the cursor. */
 .rule-card-wheel {
   grid-column: 1 / -1;
@@ -25716,31 +25718,63 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   width: 320px;
   height: 320px;
   flex: 0 0 auto;
+  /* the slab: worn slate with a faint oil-sheen and a veiled light
+     from the upper left */
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 226, 170, 0.08), transparent 40%),
+    radial-gradient(circle at 62% 74%, rgba(0, 0, 0, 0.5), transparent 58%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(28deg, rgba(0, 0, 0, 0.08) 0 3px, transparent 3px 9px),
+    radial-gradient(circle at 50% 50%, #141826 0%, #0d101d 62%, #090b14 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 130, 0.08),
+    0 18px 46px rgba(0, 0, 0, 0.62),
+    inset 0 2px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -3px 10px rgba(0, 0, 0, 0.75);
 }
+/* a chalk line, scored once, with the shadow of the scoring */
 .ew-ring {
   position: absolute;
   inset: 12px;
   border-radius: 50%;
-  border: 1px dashed rgba(255, 214, 130, 0.28);
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255, 214, 130, 0.05), transparent 62%),
-    conic-gradient(
-      from 0deg,
-      rgba(255, 214, 130, 0.1),
-      transparent 20%,
-      rgba(255, 214, 130, 0.05) 40%,
-      transparent 60%,
-      rgba(255, 214, 130, 0.1) 80%,
-      transparent 100%
-    );
-  animation: ew-ring-turn 48s linear infinite;
+  border: 1px solid rgba(255, 214, 130, 0.22);
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 5px rgba(0, 0, 0, 0.16),
+    inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  animation: ew-ring-turn 120s linear infinite;
 }
-.element-wheel:hover .ew-ring {
+/* the engraved tick ring: 96 fine cuts, chalk-faded */
+.ew-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 214, 130, 0.16) 0deg 0.55deg, transparent 0.55deg 3.75deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+}
+.ew-ring::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 214, 130, 0.1);
+  animation: ew-ring-turn-back 90s linear infinite;
+}
+.element-wheel:hover .ew-ring,
+.element-wheel:hover .ew-ring::after {
   animation-play-state: paused;
 }
 @keyframes ew-ring-turn {
   to {
     transform: rotate(360deg);
+  }
+}
+@keyframes ew-ring-turn-back {
+  to {
+    transform: rotate(-360deg);
   }
 }
 .ew-arrows {
@@ -25752,9 +25786,11 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   pointer-events: none;
 }
 .ew-arrow {
-  stroke: rgba(255, 214, 130, 0.24);
-  stroke-width: 0.7;
-  stroke-dasharray: 2 2.4;
+  stroke: rgba(255, 214, 130, 0.2);
+  stroke-width: 0.55;
+  stroke-dasharray: 1.4 2.8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px rgba(255, 214, 130, 0.14));
   transition:
     stroke 0.2s ease,
     stroke-width 0.2s ease,
@@ -25762,9 +25798,38 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
 }
 .ew-arrow.hot {
   stroke: #ffd050;
-  stroke-width: 1.5;
+  stroke-width: 1.3;
   stroke-dasharray: none;
-  filter: drop-shadow(0 0 4px rgba(255, 208, 80, 0.8));
+  filter: drop-shadow(0 0 4px rgba(255, 208, 80, 0.85));
+}
+/* the carved glyphs between the spokes */
+.ew-rune {
+  fill: none;
+  stroke: rgba(255, 224, 160, 0.3);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px rgba(255, 214, 130, 0.12));
+  transition:
+    stroke 0.25s ease,
+    filter 0.25s ease,
+    opacity 0.25s ease;
+}
+.element-wheel[data-ew-active] .ew-rune:not(.ew-rune-hot):not(.ew-rune-cold) {
+  opacity: 0.35;
+}
+.ew-rune.ew-rune-hot {
+  stroke: #ffd682;
+  stroke-width: 1.3;
+  filter: drop-shadow(0 0 3px rgba(255, 208, 80, 0.9));
+}
+.ew-rune.ew-rune-cold {
+  stroke: #9fb6cc;
+  filter: drop-shadow(0 0 2px rgba(159, 182, 204, 0.6));
+}
+.ew-tick-ring {
+  stroke: rgba(255, 214, 130, 0.14);
+  stroke-width: 0.5;
 }
 .ew-node {
   position: absolute;
@@ -25775,13 +25840,17 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   height: 66px;
   border-radius: 50%;
   color: var(--el, #fff);
+  /* a carved disc: dark stone, a scored rim, light falling from
+     above, the element's own glow seeping through the grain */
   background:
-    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--el, #fff) 22%, transparent), transparent 62%),
-    rgba(10, 12, 22, 0.92);
-  border: 2px solid color-mix(in srgb, var(--el, #fff) 52%, transparent);
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--el, #fff) 20%, transparent), transparent 64%),
+    radial-gradient(circle at 50% 50%, rgba(16, 19, 32, 0.96), rgba(8, 10, 18, 0.98));
+  border: 1px solid color-mix(in srgb, var(--el, #fff) 45%, transparent);
   box-shadow:
-    0 0 14px color-mix(in srgb, var(--el, #fff) 22%, transparent),
-    inset 0 1px rgba(255, 255, 255, 0.08);
+    inset 0 2px 5px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.28),
+    0 0 12px color-mix(in srgb, var(--el, #fff) 20%, transparent);
   cursor: var(--cur-pointer);
   transition:
     transform 0.24s var(--ease),
@@ -25789,6 +25858,15 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
     filter 0.24s ease,
     border-color 0.24s ease,
     box-shadow 0.24s ease;
+}
+/* the chisel's kiss: a second scored ring just inside the rim */
+.ew-node::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 224, 160, 0.16);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 .ew-node i {
   font-size: 26px;
@@ -25800,12 +25878,13 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
+  font-family: 'Cinzel', Georgia, serif;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--txt-dim);
-  transition: color 0.24s ease;
+  transition: color 0.24s ease, text-shadow 0.24s ease;
 }
 .ew-node:hover {
   transform: translate(-50%, -50%) scale(1.16);
@@ -25819,6 +25898,7 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   transform: translate(-50%, -50%) scale(1.18);
   border-color: var(--el, #fff);
   box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
     0 0 22px color-mix(in srgb, var(--el, #fff) 55%, transparent),
     0 0 44px color-mix(in srgb, var(--el, #fff) 22%, transparent);
 }
@@ -25830,21 +25910,25 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   border-color: #ffd050;
   color: #ffd050;
   box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
     0 0 20px rgba(255, 208, 80, 0.65),
     0 0 40px rgba(255, 170, 50, 0.3);
   animation: ew-prey-pulse 0.9s ease-in-out infinite alternate;
 }
 .ew-node.ew-prey .ew-label {
   color: #ffd682;
+  text-shadow: 0 0 8px rgba(255, 208, 80, 0.6);
 }
 @keyframes ew-prey-pulse {
   from {
     box-shadow:
+      inset 0 2px 5px rgba(0, 0, 0, 0.7),
       0 0 16px rgba(255, 208, 80, 0.5),
       0 0 32px rgba(255, 170, 50, 0.22);
   }
   to {
     box-shadow:
+      inset 0 2px 5px rgba(0, 0, 0, 0.7),
       0 0 26px rgba(255, 208, 80, 0.85),
       0 0 52px rgba(255, 170, 50, 0.4);
   }
@@ -25853,11 +25937,13 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   border-color: #9fb6cc;
   color: #9fb6cc;
   box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
     0 0 16px rgba(159, 182, 204, 0.5),
     inset 0 1px rgba(255, 255, 255, 0.1);
 }
 .ew-node.ew-predator .ew-label {
   color: #9fb6cc;
+  text-shadow: 0 0 8px rgba(159, 182, 204, 0.5);
 }
 .ew-hub {
   position: absolute;
@@ -25873,23 +25959,36 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   gap: 4px;
   text-align: center;
   pointer-events: none;
+  /* the boss of the slab: dark, scored twice, faint gold through
+     the middle */
   background:
-    radial-gradient(circle at 50% 30%, rgba(255, 214, 130, 0.12), transparent 66%),
-    rgba(10, 12, 22, 0.94);
-  border: 1px solid rgba(255, 214, 130, 0.4);
-  box-shadow: 0 0 26px rgba(0, 0, 0, 0.55);
+    radial-gradient(circle at 50% 30%, rgba(255, 214, 130, 0.1), transparent 66%),
+    radial-gradient(circle at 50% 50%, rgba(12, 14, 26, 0.97), rgba(7, 8, 16, 0.98));
+  border: 1px solid rgba(255, 214, 130, 0.35);
+  box-shadow:
+    inset 0 0 0 4px rgba(0, 0, 0, 0.3),
+    inset 0 2px 5px rgba(0, 0, 0, 0.8),
+    0 0 26px rgba(0, 0, 0, 0.55);
+}
+.ew-hub::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 214, 130, 0.22);
 }
 .ew-hub-title {
   font-family: 'Cinzel', Georgia, serif;
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: #ffd682;
+  text-shadow: 0 0 10px rgba(255, 200, 90, 0.4);
 }
 .ew-hub-sub {
   font-size: 9.5px;
   line-height: 1.4;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--txt-dim);
   max-width: 88px;
