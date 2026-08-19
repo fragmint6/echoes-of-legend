@@ -1232,36 +1232,20 @@
        is where the six is actually CHOSEN, so it needs the same fact
        without a hover - otherwise the one screen where the decision is
        made is the one screen that hides what a legend is worth. */
+    /* STARS ONLY, exactly as on the live battle card (owner ruling
+       2026-08-19). The boost pips were removed from battle.js in the
+       same pass but this copy was missed, and their CSS went with the
+       other one - so they rendered here as unstyled ghost icons piled
+       in the corner. The hover panel names every booster, which is
+       where that detail belongs on both boards. */
     var upLv = prepUpgradeLevel(c, side);
-    var upChrome = '';
-    if (upLv) {
-      var starsHtml = new Array(upLv + 1).join('<i></i>');
-      var boostHtml = prepUpgradeBoosts(c, side)
-        .map(function (b, bi) {
-          if (!b || !PREP_BOOST_ICON[b]) return '';
-          return (
-            '<span data-boost="' +
-            b +
-            '" title="Level ' +
-            (bi + 1) +
-            ' ' +
-            b.toUpperCase() +
-            ' booster"><i data-icon-domain="game" class="ra ' +
-            PREP_BOOST_ICON[b] +
-            '"></i></span>'
-          );
-        })
-        .join('');
-      upChrome =
-        '<span class="bcard-up-stars" aria-label="Level ' +
+    var upChrome = upLv
+      ? '<span class="bcard-up-stars" aria-label="Level ' +
         upLv +
         '">' +
-        starsHtml +
-        '</span>' +
-        '<span class="bcard-up-boosts">' +
-        boostHtml +
-        '</span>';
-    }
+        new Array(upLv + 1).join('<i></i>') +
+        '</span>'
+      : '';
     /* No HP/ATK/DEF strip in preparation: the numbers live in the hover
        panel, and stripping them here keeps the ban/pick grids readable. */
     wrap.innerHTML =
@@ -1280,7 +1264,6 @@
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
-      upChrome +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
       '<div class="bcard-top">' +
@@ -1302,6 +1285,10 @@
       '</div>' +
       '<div class="bcard-ring"></div>' +
       '</div>' +
+      /* Outside .bcard-inner (overflow:hidden for the portrait mask),
+         same as the live battle card - inside it the crest was sliced
+         off at the tile's top border. */
+      upChrome +
       '</div>';
     wrap.addEventListener('mouseenter', function () {
       showPrepTip(e, side, wrap);

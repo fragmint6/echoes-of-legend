@@ -1436,7 +1436,9 @@ sec('S13. Upgrades are visible on the prep board and in battle');
 
   const boardFn = play.slice(play.indexOf('function boardCard'), play.indexOf('Name fitting for prep'));
   ok(/bcard-up-stars/.test(boardFn), 'a prep tile wears its level stars');
-  ok(/bcard-up-boosts/.test(boardFn), 'and its boost pips');
+  /* The boost pips were dropped from BOTH boards on 2026-08-19 - the
+     hover flyout names every booster already. Asserted in full in S16. */
+  ok(!/bcard-up-boosts/.test(boardFn), 'and no longer duplicates the booster pips');
   ok(/prepUpgradeLevel/.test(boardFn), 'driven by the same predicate, so the rival stays bare');
 
   /* Only the card's OWN signature scales - a role Basic is shared
@@ -1532,10 +1534,40 @@ sec('S16. Battle chrome: stars only, and a level box that does not repeat itself
   ok(!/\.bcard-up-boosts\s*[{,>\[]/.test(css), 'and the dead boost-pip rules are gone from the sheet');
 
   /* Stars have to survive a busy board, so they are sized for the
-     board rather than sized to match the collection. */
-  const starCss = css.slice(css.indexOf('.bcard-up-stars i {'), css.indexOf('.bcard-up-stars i {') + 300);
-  const px = /width:\s*(\d+)px/.exec(starCss);
+     board rather than sized to match the collection. The size lives on
+     --star-h because the crest's own offset is derived from it. */
+  const wrapCss = css.slice(
+    css.indexOf('.bcard-up-stars {'),
+    css.indexOf('.bcard-up-stars > i')
+  );
+  const px = /--star-h:\s*(\d+)px/.exec(wrapCss);
   ok(px && +px[1] >= 20, 'the battle star is at least 20px (was 11px)');
+
+  /* THE CREST MUST NOT BE CLIPPED (owner report 2026-08-19).
+     .bcard-inner is overflow:hidden for the portrait mask, so a crest
+     rendered inside it is sliced off at the card's top border however
+     high its z-index goes. Both boards must hang it off .bcard. */
+  const unitFn = battle.slice(
+    battle.indexOf('function unitCardHTML'),
+    battle.indexOf('function unitLockMsg')
+  );
+  const innerOpen = unitFn.indexOf("'<div class=\"bcard-inner\">'");
+  const chromeCall = unitFn.indexOf('battleUpgradeChrome(u)');
+  ok(innerOpen >= 0 && chromeCall > innerOpen, 'the battle card renders its stars');
+  /* The chrome must come AFTER .bcard-inner's closing tag - i.e. after
+     .bcard-ring, which is the last thing inside it. */
+  ok(
+    chromeCall > unitFn.indexOf('bcard-ring'),
+    'and renders them outside .bcard-inner, so the top border cannot clip them'
+  );
+  /* The wrapper mirrors .bcard-inner's own geometry so its top edge is
+     the VISIBLE card edge on both boards - .bcard and .bcard-inner do
+     not share a box in battle, where .bcard is flex:1 1 0. */
+  ok(/aspect-ratio:\s*5\s*\/\s*6/.test(wrapCss), 'the crest mirrors the 5/6 card face');
+  ok(/top:\s*50%/.test(wrapCss) && /translateY\(-50%\)/.test(wrapCss),
+    'and is centred exactly like .bcard-inner, so it tracks the face at any slot height');
+  ok(!/\.pcard \.bcard-up-stars\s*\{[^}]*top:/.test(css),
+    'with no per-board nudge left to drift out of step');
 
   /* The level box states the level and the boosters and stops there -
      the panel's own stat lines directly above already carry the
@@ -1547,6 +1579,22 @@ sec('S16. Battle chrome: stars only, and a level box that does not repeat itself
   ok(/tip-upgrade-head/.test(dock), 'the flyout level box names the level and boosters');
   ok(!/tip-raw-stats/.test(dock), 'and does not repeat HP/ATK/DEF underneath them');
   ok(!/\.tip-raw-stats\s*[{,>\[]/.test(css), 'its rules are gone from the sheet too');
+
+  /* THE PREP BOARD IS THE SAME CARD (owner report 2026-08-19).
+     The boost pips were removed from battle.js but this second copy
+     was missed, and their CSS went with the other one - so they
+     rendered here as unstyled ghost icons piled in the corner. */
+  const play = fs.readFileSync(path.join(ROOT, 'js/play.js'), 'utf8');
+  const boardFn = play.slice(
+    play.indexOf('function boardCard'),
+    play.indexOf('Name fitting for prep')
+  );
+  ok(/bcard-up-stars/.test(boardFn), 'the prep tile wears its level stars');
+  ok(!/bcard-up-boosts/.test(boardFn), 'and renders no booster pips of its own');
+  ok(
+    boardFn.indexOf('upChrome +') > boardFn.indexOf('bcard-ring'),
+    'the prep crest also sits outside .bcard-inner'
+  );
 }
 
 sec('S17. Collection stars are big enough to read across a grid');

@@ -648,7 +648,6 @@
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
-      battleUpgradeChrome(u) +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
       '<div class="bcard-top">' +
@@ -682,6 +681,13 @@
         : '') +
       '<div class="bcard-ring"></div>' +
       '</div>' +
+      /* THE STARS SIT OUTSIDE .bcard-inner, which is overflow:hidden
+         for the portrait mask - rendered inside it, the crest was
+         sliced off at the card's top border no matter how high its
+         z-index went. .bcard is position:relative with no overflow of
+         its own, so it is the nearest ancestor that can let the stars
+         hang above the edge. */
+      battleUpgradeChrome(u) +
       '</div>'
     );
   }
