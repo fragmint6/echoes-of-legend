@@ -340,8 +340,8 @@ const server = http.createServer((req, res) => {
     await sleep(300);
   }
 
-  /* ---------- F. the sharpness pass is wired ---------- */
-  console.log('F. the sharpness pass (flat colours reverted, softened pixels)');
+  /* ---------- F. the crisp-pixel law is wired ---------- */
+  console.log('F. the crisp-pixel law (all softening reverted)');
   {
     const flat = d.getElementById('eol-flat');
     t(!flat, 'the #eol-flat posterization filter is fully reverted');
@@ -349,14 +349,12 @@ const server = http.createServer((req, res) => {
     const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     t(cssSrc.indexOf('url(#eol-flat)') < 0 && htmlSrc.indexOf('eol-flat') < 0, 'no flat-filter reference survives in css or html');
     t(
-      /\.art-portrait img,\s*\.bart-portrait img,\s*\.cd-art img\s*\{[^}]*filter:\s*blur\(0\.75px\)/s.test(cssSrc),
-      'the sharpness pass covers the legend-art sites (cards, battle tiles, detail)'
+      cssSrc.indexOf('filter: blur(0.75px)') < 0,
+      'the softening blur is gone from every art site - crisp pixels everywhere'
     );
     t(
-      !/\.chapter-dialogue-bust img,[^}]*filter:/s.test(cssSrc) &&
-        !/\.rival-portrait,[^}]*filter:/s.test(cssSrc) &&
-        !/\.rival-bark-face,[^}]*filter:/s.test(cssSrc),
-      'rival portraits stay crisp - the blur never touches the bust, plate or barks'
+      /\.art-portrait img,\s*\.bart-portrait img\s*\{[^}]*image-rendering:\s*pixelated;/s.test(cssSrc),
+      'legend art still draws nearest-neighbour, unfiltered'
     );
     /* THE NATIVE-SIZE LAW: every fixed art frame renders at the
        source's own size - LEGEND art at 64x88 (card detail), RIVAL

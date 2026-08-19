@@ -16342,11 +16342,9 @@ body[data-gfx='low'] .turn-clock.crit {
    image-rendering: pixelated stays - the art is authored with hard
    edges, so any smoothing at card scale reads as blur.
 
-   SHARPNESS (2026-08-19): the flat-colour pass was reverted on owner
-   request. Instead the art renders at its native crisp pixels and a
-   whisper of blur takes the razor edge off the blocks - softening,
-   not posterizing. THE KNOB: the blur() radius in the shared rule
-   below; 0 = fully crisp, 1px = soft haze.
+   FULLY CRISP (2026-08-19, owner ruling): all softening experiments
+   are retired. Legend art, rival portraits, every render site draws
+   at nearest-neighbour with NO filter - the pixels are the point.
    ============================================================= */
 .art-portrait,
 .bart-portrait {
@@ -16362,16 +16360,6 @@ body[data-gfx='low'] .turn-clock.crit {
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
   user-select: none;
-}
-/* One rule covers the LEGEND-ART sites that carry the sharpness pass
-   (2026-08-19): collection and pack cards, battle tiles, the
-   card-detail panel. RIVAL portraits (dialogue bust, gate circle,
-   barks, tutor/wayfinder faces) stay crisp - their painted 128x176
-   art is the face of a person and the blur made it read as broken. */
-.art-portrait img,
-.bart-portrait img,
-.cd-art img {
-  filter: blur(0.75px);
 }
 
 /* ---- collection card: full-bleed illustration ----
