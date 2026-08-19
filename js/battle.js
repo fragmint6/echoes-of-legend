@@ -3609,13 +3609,20 @@
      A rotating rune ring plus an element sigil, so you can see
      *what* is being cast before the projectile even lands.
      -------------------------------------------------------- */
-  /* PER-CARD SIGNATURE SIGILS (Chapter II, 2026-08-19). The cast ring
-     used to show the ELEMENT's sigil for every legend - a fine default,
-     but a signature is a person's, not an element's. These override the
-     sigil and colour for the Chapter II signatures whose cast deserves
-     its own mark (plus the boss). The strike/trail style still comes
-     from the element, so projectiles keep their identity. */
+  /* PER-CARD SIGNATURE SIGILS (Chapter II, 2026-08-19; Chapter I,
+     2026-08-19b). The cast ring used to show the ELEMENT's sigil for
+     every legend - a fine default, but a signature is a person's, not
+     an element's. `castFxFor` now resolves, in order:
+       1. a CARD_CAST_FX override (curated colour + sigil below),
+       2. the card's OWN icon as the sigil - every legend already
+          carries one, so every signature in both chapters gets its
+          personal mark with no per-card list needed,
+       3. the faction's primary colour for the ring, so a cast reads
+          as the character's, not just the element's.
+     The strike/trail style still comes from the element, so projectiles
+     keep their elemental identity. */
   var CARD_CAST_FX = {
+    /* -- Chapter II -- */
     'campaign-asmodeus': { color: '#ffe9a8', sigil: 'ra-quill-ink' },
     'hemithea-odysseus': { color: '#ffe6a8', sigil: 'ra-fast-ship' },
     'hemithea-medea': { color: '#7ef0a8', sigil: 'ra-bubbling-potion' },
@@ -3661,11 +3668,82 @@
     'pandemonium-gluttony': { color: '#ff7a4d', sigil: 'ra-meat-hook' },
     'pandemonium-sloth': { color: '#ff7a4d', sigil: 'ra-hourglass' },
     'pandemonium-lust': { color: '#ff7a4d', sigil: 'ra-heartburn' },
+    /* -- Chapter I marquee casts, where the element colour would lie
+       about who is casting. The rest of Chapter I falls through to
+       card-icon + faction-colour and still gets its personal sigil. -- */
+    'grimmwood-big-bad-wolf': { color: '#e05a4a', sigil: 'ra-wolf-head' },
+    'grimmwood-red-riding-hood': { color: '#e05a4a', sigil: 'ra-hood' },
+    'grimmwood-evil-queen': { color: '#b03a2e', sigil: 'ra-queen-crown' },
+    'grimmwood-rumpelstiltskin': { color: '#c9a227', sigil: 'ra-gold-bar' },
+    'grimmwood-snow-white': { color: '#7ef0a8', sigil: 'ra-apple' },
+    'grimmwood-pied-piper': { color: '#4fa86a', sigil: 'ra-horn-call' },
+    'grimmwood-cinderella': { color: '#9fd8ff', sigil: 'ra-glass-heart' },
+    'grimmwood-goldilocks': { color: '#c9a227', sigil: 'ra-honeycomb' },
+    'grimmwood-rapunzel': { color: '#4fa86a', sigil: 'ra-tower' },
+    'grimmwood-puss-in-boots': { color: '#e8a33d', sigil: 'ra-cat' },
+    'grimmwood-hansel-gretel': { color: '#ffb07a', sigil: 'ra-candle' },
+    'grimmwood-gingerbread-man': { color: '#e8a33d', sigil: 'ra-shoe-prints' },
+    'camelot-king-arthur': { color: '#9fd8ff', sigil: 'ra-crown' },
+    'camelot-merlin': { color: '#ff7cd5', sigil: 'ra-crystal-wand' },
+    'camelot-morgan-le-fay': { color: '#d08cff', sigil: 'ra-raven' },
+    'camelot-lancelot': { color: '#4c7bd8', sigil: 'ra-sword' },
+    'camelot-guinevere': { color: '#7ef0a8', sigil: 'ra-heart-tower' },
+    'camelot-mordred': { color: '#e05a4a', sigil: 'ra-dripping-blade' },
+    'sherwood-robin-hood': { color: '#3f9b5c', sigil: 'ra-archer' },
+    'sherwood-little-john': { color: '#3f9b5c', sigil: 'ra-heavy-shield' },
+    'sherwood-will-scarlet': { color: '#e05a4a', sigil: 'ra-daggers' },
+    'sherwood-guy-of-gisborne': { color: '#e05a4a', sigil: 'ra-knight-helmet' },
+    'sherwood-maid-marian': { color: '#7ef0a8', sigil: 'ra-two-hearts' },
+    'sherwood-friar-tuck': { color: '#e8a33d', sigil: 'ra-beer' },
+    'olympus-zeus': { color: '#d8b64c', sigil: 'ra-lightning-bolt' },
+    'olympus-athena': { color: '#9fd8ff', sigil: 'ra-shield' },
+    'olympus-poseidon': { color: '#7fe3ff', sigil: 'ra-harpoon-trident' },
+    'olympus-apollo': { color: '#ffe9a8', sigil: 'ra-sun-symbol' },
+    'olympus-medusa': { color: '#d08cff', sigil: 'ra-snake' },
+    'olympus-ares': { color: '#e05a4a', sigil: 'ra-bleeding-hearts' },
+    'yamato-abe-no-seimei': { color: '#d08cff', sigil: 'ra-rune-stone' },
+    'yamato-miyamoto-musashi': { color: '#e05a4a', sigil: 'ra-spinning-sword' },
+    'yamato-benkei': { color: '#e05a4a', sigil: 'ra-helmet' },
+    'yamato-tomoe-gozen': { color: '#e05a4a', sigil: 'ra-arrow-flights' },
+    'yamato-minamoto-no-yoshitsune': { color: '#e05a4a', sigil: 'ra-dervish-swords' },
+    'yamato-momotaro': { color: '#e05a4a', sigil: 'ra-round-shield' },
+    'roma-julius-caesar': { color: '#7b4dc0', sigil: 'ra-crossed-swords' },
+    'roma-spartacus': { color: '#e05a4a', sigil: 'ra-circular-shield' },
+    'roma-augustus': { color: '#7b4dc0', sigil: 'ra-crowned-heart' },
+    'roma-cicero': { color: '#7b4dc0', sigil: 'ra-book' },
+    'roma-brutus': { color: '#4a5568', sigil: 'ra-cloak-and-dagger' },
+    'roma-constantine-the-great': { color: '#9fd8ff', sigil: 'ra-hospital-cross' },
+    'kami-amaterasu': { color: '#ffe9a8', sigil: 'ra-sun' },
+    'kami-tsukuyomi': { color: '#d08cff', sigil: 'ra-mirror' },
+    'kami-izanami': { color: '#4a5568', sigil: 'ra-tombstone' },
+    'kami-inari': { color: '#e8a33d', sigil: 'ra-fox' },
+    'kami-izanagi': { color: '#7fe3ff', sigil: 'ra-water-drop' },
+    'kami-kaguya': { color: '#bfe6ff', sigil: 'ra-moon-sun' },
+    'kami-susanoo': { color: '#9fe8ff', sigil: 'ra-trident' },
+    'duat-anubis': { color: '#c9a227', sigil: 'ra-bird-mask' },
+    'duat-horus': { color: '#ffe9a8', sigil: 'ra-bird-claw' },
+    'duat-maat': { color: '#ffe9a8', sigil: 'ra-radial-balance' },
+    'duat-sekhmet': { color: '#e05a4a', sigil: 'ra-lion' },
+    'duat-isis': { color: '#ffe9a8', sigil: 'ra-feathered-wing' },
+    'duat-nephthys': { color: '#d08cff', sigil: 'ra-angel-wings' },
   };
   function castFxFor(uid) {
     var actor = B && B.uidMap ? B.uidMap[uid] : null;
-    var id = actor && actor.card ? actor.card.id : null;
-    return CARD_CAST_FX[id] || null;
+    if (!actor || !actor.card) return null;
+    var base = ELEMENT_FX[actor.element] || ELEMENT_FX.Physical;
+    var over = CARD_CAST_FX[actor.card.id];
+    var color =
+      (over && over.color) ||
+      (actor.faction && actor.faction.colors && actor.faction.colors.primary) ||
+      base.color;
+    var sigil = (over && over.sigil) || actor.card.icon || base.sigil;
+    return {
+      color: color,
+      style: base.style,
+      trail: color,
+      sigil: sigil,
+      shape: base.shape,
+    };
   }
 
   function playCast(uid, element, signature) {
@@ -3678,17 +3756,7 @@
         element: element,
         signature: !!signature,
       });
-    var fx = ELEMENT_FX[element] || ELEMENT_FX.Physical;
-    var over = castFxFor(uid);
-    if (over) {
-      fx = {
-        color: over.color,
-        style: fx.style,
-        trail: over.color,
-        sigil: over.sigil,
-        shape: fx.shape,
-      };
-    }
+    var fx = castFxFor(uid) || ELEMENT_FX[element] || ELEMENT_FX.Physical;
 
     var ring = spawn('fx-cast-ring' + (signature ? ' big' : ''), a.x, a.y, fx.color, 700);
     ring.innerHTML = '<span></span><span></span>';
@@ -3720,6 +3788,22 @@
         }
       }, 620);
     }
+  }
+
+  /* A passive answering its trigger: the legend's own sigil flashes
+     small over the card, without the cast ring - the signature is
+     firing, but nobody is spending an action. Rides the engine's
+     'proc'/'passive' log lines, so it covers every triggered passive
+     in both chapters (Red Riding Hood's hunt, Achilles' rage, Loki's
+     death-burst, Mulan's resolve...). */
+  function playPassiveSigil(uid) {
+    var a = centreOf(uid);
+    if (!a) return;
+    var fx = castFxFor(uid) || ELEMENT_FX.Physical;
+    var sig = spawn('fx-cast-sigil small', a.x, a.y, fx.color, 680);
+    sig.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
+    var ring = spawn('fx-cast-ring', a.x, a.y, fx.color, 560);
+    ring.innerHTML = '<span></span><span></span>';
   }
 
   /* --------------------------------------------------------
@@ -4846,6 +4930,11 @@
       if (l.type === 'action') {
         // the cast tell fires first, so you see what is being cast
         playCast(l.meta.uid, l.meta.element, l.meta.signature);
+        return;
+      }
+      if (l.type === 'proc' || l.type === 'passive') {
+        // a passive answering its trigger flashes the owner's sigil
+        playPassiveSigil(l.meta.owner || l.meta.uid);
         return;
       }
       if (l.type === 'damage' && l.meta.src && !l.__aoe) {

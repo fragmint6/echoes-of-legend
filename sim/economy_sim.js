@@ -146,7 +146,9 @@ Object.keys(shop.PACKS).forEach((key) => {
 console.log('B. the run: Chapter 1 coins -> packs -> the grind');
 econ._reset();
 const rng = mulberry(77);
-const CHAPTER_COINS = 1400;
+/* Coin table 2026-08-19: a complete Normal Road = 8 gates x 100 +
+   2 elites x 200 + the boss's 500. */
+const CHAPTER_COINS = 1700;
 let wallet = CHAPTER_COINS; // complete Normal Road
 let packs = 0,
   matches = 0,

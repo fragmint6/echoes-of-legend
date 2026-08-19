@@ -837,10 +837,11 @@ const server = http.createServer((req, res) => {
   await sleep(200);
   const legendGate2Preview = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
   t(
-    legendGate2Preview.querySelectorAll('.sc-reward').length === 1 &&
+    legendGate2Preview.querySelectorAll('.sc-reward').length === 2 &&
       !!legendGate2Preview.querySelector('.legendary') &&
-      !legendGate2Preview.querySelector('.coin'),
-    'Legend faction gates advertise only their Legendary reward'
+      !!legendGate2Preview.querySelector('.coin') &&
+      legendGate2Preview.textContent.indexOf('300') >= 0,
+    'Legend faction gates advertise their Legendary reward AND its 300 coins'
   );
   d.querySelector('[data-road-difficulty="normal"]').click();
   await sleep(200);
@@ -1103,12 +1104,13 @@ const server = http.createServer((req, res) => {
     const gate2Rewards = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
     t(
       gate2Rewards &&
-        gate2Rewards.querySelectorAll('.sc-reward').length === 1 &&
-        !gate2Rewards.querySelector('.coin') &&
+        gate2Rewards.querySelectorAll('.sc-reward').length === 2 &&
+        !!gate2Rewards.querySelector('.coin') &&
         !!gate2Rewards.querySelector('.legendary') &&
         gate2Rewards.textContent.indexOf('Legendary reward pack') >= 0 &&
+        gate2Rewards.textContent.indexOf('300') >= 0 &&
         gate2Rewards.textContent.indexOf('King Arthur') < 0,
-      'a Legend gate receipt contains only its spoiler-free Legendary pack'
+      'a Legend gate receipt shows its 300 coins beside the spoiler-free pack'
     );
     for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
