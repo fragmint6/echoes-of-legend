@@ -31232,3 +31232,71 @@ span.lg-portrait i {
 .echo-empty[hidden] {
   display: none !important;
 }
+
+/* ========================================================================
+   SEARCHABLE, BOUNDED FILTER DROPDOWNS (2026-08-19)
+   ======================================================================== */
+.dd-searchable .dd-menu {
+  width: 260px;
+  max-width: min(260px, calc(100vw - 28px));
+  padding: 7px;
+}
+.dd-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.dd-search > i {
+  position: absolute;
+  left: 10px;
+  color: var(--txt-faint);
+  font-size: 13px;
+  pointer-events: none;
+}
+.dd-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px 8px 30px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  outline: 0;
+  background: rgba(255, 255, 255, .055);
+  color: var(--txt);
+  font: inherit;
+  font-size: 12px;
+}
+.dd-search input::placeholder { color: var(--txt-faint); }
+.dd-search input:focus {
+  border-color: rgba(150, 180, 255, .72);
+  box-shadow: 0 0 0 2px rgba(90, 130, 255, .13);
+}
+.dd-options {
+  max-height: 252px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 188, 255, .55) rgba(255, 255, 255, .045);
+}
+.dd-options::-webkit-scrollbar { width: 7px; }
+.dd-options::-webkit-scrollbar-track { background: rgba(255, 255, 255, .035); border-radius: 99px; }
+.dd-options::-webkit-scrollbar-thumb { background: rgba(159, 188, 255, .48); border-radius: 99px; }
+.dd-opt[hidden] { display: none !important; }
+.dd-no-matches {
+  margin: 8px 6px;
+  color: var(--txt-faint);
+  font-size: 11px;
+  text-align: center;
+}
+.echo-dropdowns {
+  flex-wrap: nowrap;
+  margin-left: auto;
+}
+.echo-dropdowns .dd-btn { min-width: 180px; }
+.echo-tools { overflow: visible; }
+#spanel-echo { overflow: visible; }
+@media (max-width: 760px) {
+  .echo-dropdowns { width: 100%; margin-left: 0; }
+  .echo-dropdowns .dd { flex: 1 1 0; min-width: 0; }
+  .echo-dropdowns .dd-btn { min-width: 0; width: 100%; }
+}

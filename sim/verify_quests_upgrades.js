@@ -1119,7 +1119,7 @@ sec('S8. The Echo Shop is a shopfront, not a list');
   const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
   ok(/echo-counter/.test(html), 'the shard balance is the subject of the screen');
   ok(/echo-afford/.test(html) && /enough for a copy of/.test(shop), 'and says what it can buy');
-  ok(/data-echo-filter/.test(html), 'filtering is a segmented control, not a checkbox');
+  ok(/echo-dropdowns/.test(html) && /buildEchoFilters/.test(shop), 'status and chapter filtering use dropdown controls');
   ok(!/echo-only-useful/.test(html) && !/echo-only-useful/.test(shop), 'the old checkbox is gone');
   ok(/ec-bar/.test(shop), 'each legend shows progress toward its next level');
   ok(/ec-pip/.test(shop), 'and its current level as pips');

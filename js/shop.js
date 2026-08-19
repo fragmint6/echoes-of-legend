@@ -1089,6 +1089,41 @@
     if (echoTab === 'echo') paintEcho();
   }
 
+  function buildEchoFilters() {
+    var host = el('echo-dropdowns');
+    var ui = window.EOL.ui;
+    if (!host || !ui || !ui.buildDropdown || host.dataset.built) return;
+    host.dataset.built = '1';
+
+    ui.buildDropdown(
+      host,
+      'Status',
+      [
+        { value: 'ready', text: 'Ready to level', icon: 'ri-sparkling-line' },
+        { value: 'upgradable', text: 'Upgradable', icon: 'ri-arrow-up-down-line' },
+        { value: 'all', text: 'All statuses', icon: 'ri-stack-line' },
+      ],
+      function (value) {
+        echoFilter = value;
+        paintEcho();
+      },
+      { initialValue: 'ready' }
+    );
+    ui.buildDropdown(
+      host,
+      'Chapter',
+      [
+        { value: 'all', text: 'All chapters', icon: 'ri-book-open-line' },
+        { value: 'ch1', text: 'Chapter I', icon: 'ri-flag-line' },
+        { value: 'ch2', text: 'Chapter II', icon: 'ri-book-2-line' },
+      ],
+      function (value) {
+        echoChapter = value;
+        paintEcho();
+      }
+    );
+  }
+
   function moveShopThumb() {
     var thumb = document.querySelector('.shop-thumb');
     var sel = document.querySelector('.shop-tab.sel');
@@ -1455,6 +1490,7 @@
   }
 
   function mount() {
+    buildEchoFilters();
     /* The ceremony is shared by Shop purchases and campaign rewards. It
        was authored inside the Shop section, so opening it from the chapter
        map only set state on an ancestor hidden with the inactive view—the
@@ -1564,25 +1600,6 @@
         echoQuery = (echoSearch.value || '').trim().toLowerCase();
         paintEcho();
       });
-    document.querySelectorAll('[data-echo-filter]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        echoFilter = btn.dataset.echoFilter;
-        document.querySelectorAll('[data-echo-filter]').forEach(function (b) {
-          b.classList.toggle('sel', b === btn);
-        });
-        paintEcho();
-      });
-    });
-    /* THE CHAPTER TABS: page the owned shelf by chapter. */
-    document.querySelectorAll('[data-echo-chapter]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        echoChapter = btn.dataset.echoChapter;
-        document.querySelectorAll('[data-echo-chapter]').forEach(function (b) {
-          b.classList.toggle('sel', b === btn);
-        });
-        paintEcho();
-      });
-    });
     var echoGrid = el('echo-grid');
     if (echoGrid)
       echoGrid.addEventListener('click', function (e) {

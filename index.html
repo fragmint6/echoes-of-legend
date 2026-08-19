@@ -172,7 +172,7 @@
          plain image. -->
     <link rel="icon" href="assets/favicon.ico?v=20260819c" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png?v=20260819c" />
-    <link rel="stylesheet" href="css/style.css?v=20260819f" />
+    <link rel="stylesheet" href="css/style.css?v=20260819g" />
     <link rel="stylesheet" href="css/daily.css?v=20260819c" />
     <!-- Build differences (CrazyGames portal build). Last, so it wins on
          equal specificity. Paired with js/platform.js below. -->
@@ -1307,29 +1307,10 @@
             <i class="ri-search-line" aria-hidden="true"></i>
             <input type="text" id="echo-search" placeholder="Search your legends..." />
           </div>
-          <div class="echo-seg" role="group" aria-label="Filter">
-            <button type="button" class="echo-seg-btn sel" data-echo-filter="ready">
-              Ready to level
-            </button>
-            <button type="button" class="echo-seg-btn" data-echo-filter="upgradable">
-              Upgradable
-            </button>
-            <button type="button" class="echo-seg-btn" data-echo-filter="all">All</button>
-          </div>
-          <!-- THE CHAPTER TABS (2026-08-19): the shelf of owned legends
-               is long now, so it pages by chapter - gold for the Road,
-               blue for the Concord, neutral for everything. -->
-          <div class="echo-seg echo-chapters" role="group" aria-label="Chapter">
-            <button type="button" class="echo-seg-btn echo-chapter sel" data-echo-chapter="all">
-              All chapters
-            </button>
-            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch1">
-              <i class="ri-flag-line" aria-hidden="true"></i>Chapter I
-            </button>
-            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch2">
-              <i class="ri-book-2-line" aria-hidden="true"></i>Chapter II
-            </button>
-          </div>
+          <!-- Status and chapter are dropdowns so the toolbar remains compact
+               as the shop gains more filtering axes. js/shop.js builds both
+               with the same accessible control used by Collection. -->
+          <div class="filters echo-dropdowns" id="echo-dropdowns"></div>
         </div>
 
         <div class="echo-grid" id="echo-grid"></div>
@@ -4304,12 +4285,12 @@
     <script src="js/engine.js?v=20260819c"></script>
     <script src="js/ai.js?v=20260819c"></script>
     <script src="js/battle.js?v=20260819c"></script>
-    <script src="js/deck.js?v=20260819e"></script>
+    <script src="js/deck.js?v=20260819g"></script>
     <script src="js/pool.js?v=20260819c"></script>
     <script src="js/play.js?v=20260819c"></script>
     <script src="js/daily.js?v=20260819c"></script>
     <script src="js/campaign.js?v=20260819c"></script>
-    <script src="js/shop.js?v=20260819f"></script>
+    <script src="js/shop.js?v=20260819g"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
          the missing global and the game runs local-only.
@@ -4357,7 +4338,7 @@
     <script src="js/mp.js?v=20260819c"></script>
     <script src="js/netplay.js?v=20260819c"></script>
     <script src="js/history.js?v=20260819c"></script>
-    <script src="js/app.js?v=20260819e"></script>
+    <script src="js/app.js?v=20260819g"></script>
 
     <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the
          game is fully wired before a third-party CDN script is even

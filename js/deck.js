@@ -759,7 +759,7 @@
     window.EOL.ui.buildDropdown(host, 'Faction', factionOpts, function (v) {
       stateFilter.faction = v;
       applyGridFilter();
-    });
+    }, { searchable: true, searchPlaceholder: 'Search factions...' });
     window.EOL.ui.buildDropdown(host, 'Rarity', rarityOpts, function (v) {
       stateFilter.rarity = v;
       applyGridFilter();
