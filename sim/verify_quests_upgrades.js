@@ -178,26 +178,25 @@ sec('D. Chosen stat, and only the chosen stat');
     upgrades: { 'duat-anubis': { lv: 3, stat: 'atk' } },
   });
   const ua = unitOf(atkB, 'duat-anubis');
-  ok(ua.baseAtk === Math.round(baseAtk * 1.06), 'ATK choice is +2%/level');
+  ok(ua.baseAtk === Math.round(baseAtk * 1.15), 'ATK choice is +5%/level');
   ok(ua.maxHp === baseHp && ua.baseDef === baseDef, 'ATK choice leaves HP and DEF alone');
 
   const hpB = E.createBattle(mine(), foes(), {
     upgrades: { 'duat-anubis': { lv: 3, stat: 'hp' } },
   });
   const uh = unitOf(hpB, 'duat-anubis');
-  ok(uh.maxHp === Math.round(baseHp * 1.06), 'HP choice is +2%/level');
+  ok(uh.maxHp === Math.round(baseHp * 1.21), 'HP choice is +7%/level');
   ok(uh.hp === uh.maxHp, 'HP choice starts the fight full');
   ok(uh.baseAtk === baseAtk, 'HP choice leaves ATK alone');
 
-  /* DEF is a percentage-POINT reducer clamped 0..75 across a 10..30
-     roster, so a multiplicative bonus would round back to nothing.
-     It gets flat points instead. */
+  /* DEF is a percentage reducer; its relative booster keeps one decimal
+     so +3% remains visible even on the roster's smaller values. */
   const defB = E.createBattle(mine(), foes(), {
     upgrades: { 'duat-anubis': { lv: 3, stat: 'def' } },
   });
   const ud = unitOf(defB, 'duat-anubis');
-  ok(ud.baseDef > baseDef, 'DEF choice actually moves DEF (it is points, not a multiplier)');
-  ok(ud.baseDef === baseDef + 4.5, 'DEF choice is +1.5 points per level');
+  ok(ud.baseDef > baseDef, 'DEF choice visibly moves DEF');
+  ok(ud.baseDef === Math.round(baseDef * 1.09 * 10) / 10, 'DEF choice is +3% per level');
   ok(ud.baseAtk === baseAtk && ud.maxHp === baseHp, 'DEF choice leaves ATK and HP alone');
 }
 
@@ -380,8 +379,8 @@ sec('J2. PER-LEVEL BOOSTS - a card can mix its three levels');
 
   /* The display maths must move each stat by ITS OWN count. */
   const st = U.statsFor(id, card);
-  ok(st.atk === Math.round(card.stats.atk * 1.04), 'two ATK levels = +4% ATK');
-  ok(st.hp === Math.round(card.stats.hp * 1.02), 'one HP level = +2% HP');
+  ok(st.atk === Math.round(card.stats.atk * 1.1), 'two ATK levels = +10% ATK');
+  ok(st.hp === Math.round(card.stats.hp * 1.07), 'one HP level = +7% HP');
   ok(st.def === card.stats.def, 'a stat nobody chose does not move');
   ok(st.lv === 3, 'the level is still three');
 
@@ -410,7 +409,7 @@ sec('J2. PER-LEVEL BOOSTS - a card can mix its three levels');
   ok(U.levelOf(id) === U.boostsOf(id).length, 'level is derived from the boosts array');
 }
 
-sec('J3. A v1 save migrates without changing anybody\u2019s numbers');
+sec('J3. A v1 save migrates into the current boost balance');
 {
   U._reset();
   const id = 'duat-anubis';
@@ -430,8 +429,8 @@ sec('J3. A v1 save migrates without changing anybody\u2019s numbers');
     'the single old stat becomes that stat on every purchased level'
   );
   ok(
-    U.statsFor(id, card).hp === Math.round(card.stats.hp * 1.04),
-    'and the resulting numbers are IDENTICAL to what v1 produced'
+    U.statsFor(id, card).hp === Math.round(card.stats.hp * 1.14),
+    'and the migrated boosts use the current HP rate'
   );
   localStorage.removeItem('eol.upgrades.v1');
 }

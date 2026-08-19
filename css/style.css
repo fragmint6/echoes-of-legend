@@ -31409,3 +31409,94 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
 .dd-options .dd-opt {
   width: 100%;
 }
+
+/* ========================================================================
+   CARD HOVER STABILITY + RARITY LEVEL STARS (2026-08-19)
+   ======================================================================== */
+/* Hover motion is vertical only. Scaling the card and then scaling its art a
+   second time changed the crop on both horizontal edges and looked like the
+   card was sliding inside its grid cell. */
+.card:hover {
+  transform: translateY(-8px);
+}
+.card:hover .art-portrait {
+  transform: none;
+}
+
+/* Level stars are independent crests now, not a chopped banner. The card's
+   visual layers clip themselves, allowing the stars to overlap its top border
+   without letting artwork or the hover wash bleed beyond rounded corners. */
+.card {
+  overflow: visible;
+}
+.card-art,
+.card-vignette,
+.card-sheen,
+.card-frame,
+.card-overlay {
+  border-radius: inherit;
+}
+.card-overlay {
+  overflow: hidden;
+}
+.card-sheen {
+  clip-path: inset(0 round var(--radius));
+}
+.card-stars {
+  --star-c: var(--rar-1);
+  top: -11px;
+  height: auto;
+  min-height: 0;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .78));
+}
+.card:hover .card-stars {
+  border: 0;
+  transform: translateX(-50%);
+}
+.card-stars i {
+  position: relative;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--star-c) 72%, #fff);
+  clip-path: polygon(
+    50% 2%, 60% 29%, 88% 30%, 66% 48%, 74% 78%,
+    50% 62%, 26% 78%, 34% 48%, 12% 30%, 40% 29%
+  );
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, .8))
+    drop-shadow(0 0 8px color-mix(in srgb, var(--star-c) 74%, transparent));
+}
+/* The inset star leaves a thick rarity-coloured outer star visible: a real
+   shaped border rather than a rectangular CSS border clipped afterwards. */
+.card-stars i::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 5px;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--star-c) 24%, #fff) 0%,
+    var(--star-c) 48%,
+    color-mix(in srgb, var(--star-c) 72%, #050711) 100%
+  );
+  clip-path: inherit;
+}
+.card[data-rarity='common'] .card-stars { --star-c: var(--r-common-1); }
+.card[data-rarity='rare'] .card-stars { --star-c: var(--r-rare-1); }
+.card[data-rarity='epic'] .card-stars { --star-c: var(--r-epic-1); }
+.card[data-rarity='legendary'] .card-stars { --star-c: var(--r-legendary-1); }
+
+/* Author styling on .cd-stat-base used to override the browser's [hidden]
+   rule, so unboosted stats still printed a redundant base comparison. */
+.cd-stat-base[hidden] {
+  display: none !important;
+}

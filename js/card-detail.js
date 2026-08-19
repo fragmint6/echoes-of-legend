@@ -109,7 +109,6 @@
   function statTable(card) {
     var up = U();
     var s = up ? up.statsFor(card.id, card) : null;
-    var lv = up ? up.levelOf(card.id) : 0;
     var rows = [
       {
         k: 'HP',
@@ -141,7 +140,9 @@
       '<div class="cd-stats">' +
       rows
         .map(function (r) {
-          var moved = lv > 0 && r.now !== r.base;
+          /* Show the comparison only when this exact stat owns at least
+             one booster. Level alone is not a reason to repeat a base value. */
+          var moved = !!(s && s.counts && s.counts[r.key] > 0);
           var fmt = function (v) {
             return r.pct ? v + '%' : Math.round(v).toLocaleString();
           };
@@ -637,11 +638,13 @@
       /* Mirrors statsFor() exactly - if these two ever disagree the
          number animates to a value the card does not actually have. */
       prev = {
-        hp: was.hp ? Math.round(card.stats.hp * (1 + up.STAT_PER_LEVEL * was.hp)) : card.stats.hp,
+        hp: was.hp ? Math.round(card.stats.hp * (1 + up.HP_PER_LEVEL * was.hp)) : card.stats.hp,
         atk: was.atk
-          ? Math.round(card.stats.atk * (1 + up.STAT_PER_LEVEL * was.atk))
+          ? Math.round(card.stats.atk * (1 + up.ATK_PER_LEVEL * was.atk))
           : card.stats.atk,
-        def: was.def ? card.stats.def + up.DEF_POINTS_PER_LEVEL * was.def : card.stats.def,
+        def: was.def
+          ? Math.round(card.stats.def * (1 + up.DEF_PER_LEVEL * was.def) * 10) / 10
+          : card.stats.def,
       };
     }
 
@@ -868,7 +871,8 @@
       ].forEach(function (row) {
         var tile = body.querySelector('.cd-stat[data-stat="' + row[0] + '"] .cd-stat-v');
         if (!tile) return;
-        var moved = row[2] !== row[1];
+        var counts = up.boostCounts(id);
+        var moved = !!counts[row[0]];
         tile.classList.toggle('up', moved);
         var base = tile.querySelector('.cd-stat-base');
         if (base) {
