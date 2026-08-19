@@ -1025,13 +1025,12 @@ has always staged its fights under rules, and this is the oldest one.*
 
 Every arena in the city is chalked with a wheel of seven spokes, one
 syllable on each, and the ring means what the judges say it has always
-meant: a fire burns the green, but the sun makes the fire pointless.
-The grounded tree swallows the storm, but the storm strikes the body.
-The body breaks the spell, the word binds the shadow, the shadow
-eclipses the light — and the light outshines the flame. Each element
-sears one and bows to one; nothing in the wheel is strongest, which is
-exactly why it has survived four hundred years of people arguing about
-everything else.
+meant: a fire burns the green, but the green closes over the light.
+The light drives out the shadow, the shadow drinks the spell, the word
+cages the storm — and the storm strikes the body that stamped out the
+flame. Each element sears one and bows to one; nothing in the wheel is
+strongest, which is exactly why it has survived four hundred years of
+people arguing about everything else.
 
 In play: an attack made of an element that sears its target deals
 eight percent more; an attack made of an element that bows to its

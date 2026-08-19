@@ -453,6 +453,75 @@ const server = http.createServer((req, res) => {
     EOL.campaign.setDifficulty('heroic');
   }
 
+  /* ---------- H. the adjusted wheel, its rulebook picture, and the
+     element filters ---------- */
+  console.log('H. the adjusted wheel + rulebook picture + element filters');
+  {
+    /* The owner-adjusted cycle, held by the engine table. */
+    const BEATS = EOL.engine.ELEMENT_BEATS;
+    t(BEATS.Fire === 'Nature', 'Fire beats Nature');
+    t(BEATS.Nature === 'Light', 'Nature beats Light');
+    t(BEATS.Light === 'Shadow', 'Light beats Shadow');
+    t(BEATS.Shadow === 'Magic', 'Shadow beats Magic');
+    t(BEATS.Magic === 'Lightning', 'Magic beats Lightning');
+    t(BEATS.Lightning === 'Physical', 'Lightning beats Physical');
+    t(BEATS.Physical === 'Fire', 'Physical beats Fire');
+
+    /* The rulebook wheel renders the real table - seven spokes, seven
+       arrows, hover classes present. */
+    const wheel = d.getElementById('element-wheel');
+    t(!!wheel && wheel.dataset.built === '1', 'the rulebook wheel is built at boot');
+    t(
+      wheel && wheel.querySelectorAll('.ew-node').length === 7,
+      'all seven spokes render'
+    );
+    t(
+      wheel && wheel.querySelectorAll('.ew-arrow').length === 7,
+      'all seven arrows render - one from each spoke to its prey'
+    );
+    const fireNode = wheel && wheel.querySelector('.ew-node[data-ew="Fire"]');
+    const natureNode = wheel && wheel.querySelector('.ew-node[data-ew="Nature"]');
+    const physNode = wheel && wheel.querySelector('.ew-node[data-ew="Physical"]');
+    if (fireNode && natureNode && physNode) {
+      fireNode.dispatchEvent(new w.MouseEvent('mouseenter', { bubbles: false }));
+      t(
+        wheel.dataset.ewActive === 'Fire' &&
+          natureNode.classList.contains('ew-prey') &&
+          physNode.classList.contains('ew-predator'),
+        'hovering Fire lights its prey (Nature) and predator (Physical)'
+      );
+      t(
+        wheel.querySelector('.ew-arrow[data-from="Fire"]').classList.contains('hot'),
+        'and the Fire-to-Nature arrow burns'
+      );
+      const detail = d.getElementById('ew-detail-name');
+      t(
+        detail && detail.textContent === 'Fire sears Nature',
+        'the detail panel speaks the matchup (' + (detail && detail.textContent) + ')'
+      );
+    }
+
+    /* Both card browsers offer an Element filter. */
+    d.body.dataset.view = 'collection';
+    await sleep(400);
+    const colFilters = Array.from(d.querySelectorAll('#filters .dd-btn')).map((b) => b.textContent.trim());
+    t(colFilters.some((t2) => t2.indexOf('Element') >= 0), 'the collection toolbar carries an Element filter');
+    const colOpts = Array.from(d.querySelectorAll('#filters .dd-opt')).map((o) => o.textContent.trim());
+    t(
+      ['Fire', 'Nature', 'Light', 'Shadow', 'Magic', 'Lightning', 'Physical'].every((el) => colOpts.indexOf(el) >= 0),
+      'all seven elements are listed in cycle order (' + colOpts.filter((o) => o !== 'All Elements').join(', ') + ')'
+    );
+    d.body.dataset.view = 'play';
+    await sleep(300);
+    const deckFilters = Array.from(d.querySelectorAll('#deck-filters .dd-btn')).map((b) => b.textContent.trim());
+    t(deckFilters.some((t2) => t2.indexOf('Element') >= 0), 'the deck builder toolbar carries an Element filter too');
+    const deckOpts = Array.from(d.querySelectorAll('#deck-filters .dd-opt')).map((o) => o.textContent.trim());
+    t(
+      ['Fire', 'Nature', 'Light', 'Shadow', 'Magic', 'Lightning', 'Physical'].every((el) => deckOpts.indexOf(el) >= 0),
+      'and lists all seven elements'
+    );
+  }
+
   server.close();
   console.log('');
   console.log(fails + ' fail(s)');

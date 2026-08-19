@@ -985,6 +985,51 @@
             </div>
           </div>
         </article>
+
+        <!-- N. the wheel of seven -->
+        <article class="rule-card rule-card-wheel">
+          <div class="rc-head">
+            <i data-icon-domain="game" class="ra ra-cycle"></i>
+            <h3>The Wheel of Seven</h3>
+          </div>
+          <div class="rc-body">
+            <p class="rb-wheel-intro">
+              Every element <b>sears</b> exactly one and <b>bows</b> to exactly one. Advantage
+              deals <b>+8%</b>; disadvantage pays the exact reciprocal, <b>about &minus;8%</b> - the
+              two halves cancel, so the wheel moves damage between matchups and adds none.
+              Read the board, then choose your target. <b>Hover a spoke.</b>
+            </p>
+            <div class="rb-wheel-stage">
+              <!-- js/app.js builds the seven spokes and the arrows from
+                   window.EOL.engine.ELEMENT_BEATS, so the picture can
+                   never drift from the damage math it describes -->
+              <div
+                class="element-wheel"
+                id="element-wheel"
+                role="img"
+                aria-label="The Wheel of Seven: each element sears one and bows to one"
+              >
+                <svg class="ew-arrows" aria-hidden="true"></svg>
+                <div class="ew-ring" aria-hidden="true"></div>
+                <div class="ew-hub" id="ew-hub" aria-hidden="true">
+                  <span class="ew-hub-title">The Wheel</span>
+                  <span class="ew-hub-sub">hover a spoke</span>
+                </div>
+              </div>
+              <div class="ew-detail">
+                <i data-icon-domain="game" class="ra ra-cycle" aria-hidden="true"></i>
+                <div class="ew-detail-copy">
+                  <h4 id="ew-detail-name">Seven syllables</h4>
+                  <p id="ew-detail-text">
+                    The Concord chalks the wheel on every arena floor: each element answers the
+                    one before it, and the answer comes back around.
+                  </p>
+                  <p class="ew-detail-math" id="ew-detail-math">+8% against its prey &middot; the reciprocal against its predator</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
       </div>
 
       <footer>Echoes of Legend - the rules in plain words</footer>

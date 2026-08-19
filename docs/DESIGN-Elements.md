@@ -192,10 +192,10 @@ gentler; it makes it creep.
 
 **SHIPPED 2026-08-19.** The Wheel of Seven is live:
 
-- The cycle: Fire sears Nature, Nature grounds Lightning, Lightning
-  strikes the body, the blade cuts the spell (Physical over Magic),
-  the word binds the shadow (Magic over Shadow), the shadow eclipses
-  the Light, the sun outshines the flame.
+- The cycle (owner-adjusted 2026-08-19): Fire sears Nature, Nature
+  shades the Light, the Light dispels the Shadow, the Shadow devours
+  Magic, Magic contains Lightning, Lightning strikes the body, the
+  body smothers the flame (Physical over Fire).
 - Advantage multiplies the damage of the matchup by **1.08**;
   disadvantage by **1/1.08** — exact reciprocals, the fairness law.
 - It reads the DAMAGE's element, not the card's: a Fire card swinging

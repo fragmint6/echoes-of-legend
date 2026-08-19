@@ -50,7 +50,7 @@
     return window.EOL.ui && window.EOL.ui.rich ? window.EOL.ui.rich(s) : String(s);
   }
   /* THE WHEEL OF SEVEN - the element's prey and its predator, in the
-     game's own words: "Fire sears Nature, and bows to Light." */
+     game's own words: "Fire sears Nature, and bows to Physical." */
   function elementWheelLine(card) {
     var E = window.EOL.engine;
     if (!E || !E.ELEMENT_BEATS || !card || !card.element) return '';
@@ -63,12 +63,12 @@
     if (!prey && !predator) return '';
     var verbs = {
       Fire: 'sears',
-      Nature: 'grounds',
+      Nature: 'shades',
+      Light: 'dispels',
+      Shadow: 'devours',
+      Magic: 'contains',
       Lightning: 'strikes',
-      Physical: 'breaks',
-      Magic: 'binds',
-      Shadow: 'eclipses',
-      Light: 'outshines',
+      Physical: 'smothers',
     };
     return (
       '<div class="cd-wheel">' +

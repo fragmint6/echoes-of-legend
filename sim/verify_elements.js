@@ -129,14 +129,15 @@ console.log('A. the table: seven elements, one prey and one predator each');
     const predators = els.filter((x) => E.ELEMENT_BEATS[x] === el);
     ok(predators.length === 1, el + ' bows to exactly one predator (' + predators[0] + ')');
   });
-  /* the authored lore cycle, stated once and held */
+  /* the authored lore cycle (owner-adjusted 2026-08-19), stated once
+     and held - a changed pairing fails the build, not silently */
   ok(E.ELEMENT_BEATS.Fire === 'Nature', 'Fire sears Nature');
-  ok(E.ELEMENT_BEATS.Nature === 'Lightning', 'Nature grounds Lightning');
+  ok(E.ELEMENT_BEATS.Nature === 'Light', 'Nature shades the Light');
+  ok(E.ELEMENT_BEATS.Light === 'Shadow', 'the Light dispels the Shadow');
+  ok(E.ELEMENT_BEATS.Shadow === 'Magic', 'the Shadow devours Magic');
+  ok(E.ELEMENT_BEATS.Magic === 'Lightning', 'Magic contains Lightning');
   ok(E.ELEMENT_BEATS.Lightning === 'Physical', 'Lightning strikes the body');
-  ok(E.ELEMENT_BEATS.Physical === 'Magic', 'the blade cuts the spell');
-  ok(E.ELEMENT_BEATS.Magic === 'Shadow', 'the word binds the shadow');
-  ok(E.ELEMENT_BEATS.Shadow === 'Light', 'the shadow eclipses the Light');
-  ok(E.ELEMENT_BEATS.Light === 'Fire', 'the sun outshines the flame');
+  ok(E.ELEMENT_BEATS.Physical === 'Fire', 'the body smothers the flame');
 }
 
 console.log('B. the reciprocity law - the two halves cancel exactly');
@@ -312,8 +313,8 @@ console.log('F. determinism and neutrality bookkeeping');
 {
   /* elementMult is a pure function of the two elements - the mirror
      lock and the sim can both trust it. */
-  const a = E.elementMult('Shadow', 'Light');
-  const b = E.elementMult('Shadow', 'Light');
+  const a = E.elementMult('Fire', 'Nature');
+  const b = E.elementMult('Fire', 'Nature');
   ok(a === b && a === E.ELEMENT_ADV, 'elementMult is pure and deterministic');
   /* every shipped card's element exists on the wheel */
   const orphans = ALL.filter((x) => !E.ELEMENT_BEATS[x.card.element]);

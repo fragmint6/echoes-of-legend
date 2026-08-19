@@ -58,12 +58,12 @@
      Seven elements in a cycle; each sears one and bows to one:
 
        Fire sears Nature
-       Nature grounds Lightning
+       Nature shades the Light
+       the Light dispels the Shadow
+       the Shadow devours Magic
+       Magic contains Lightning
        Lightning strikes the body (Physical)
-       the blade cuts the spell (Physical over Magic)
-       the word binds the shadow (Magic over Shadow)
-       the shadow eclipses the Light
-       the sun outshines the flame (Light over Fire)
+       the body smothers the flame (Physical over Fire)
 
      THE FAIRNESS LAW: advantage and disadvantage are EXACT
      reciprocals - 1.08 and 1/1.08 - so the two halves of any matchup
@@ -83,12 +83,12 @@
   var ELEMENT_DIS = 1 / ELEMENT_ADV; // exact reciprocal - the fairness law
   var ELEMENT_BEATS = {
     Fire: 'Nature',
-    Nature: 'Lightning',
+    Nature: 'Light',
+    Light: 'Shadow',
+    Shadow: 'Magic',
+    Magic: 'Lightning',
     Lightning: 'Physical',
-    Physical: 'Magic',
-    Magic: 'Shadow',
-    Shadow: 'Light',
-    Light: 'Fire',
+    Physical: 'Fire',
   };
   function elementMult(attackerElement, defenderElement) {
     if (!attackerElement || !defenderElement) return 1;

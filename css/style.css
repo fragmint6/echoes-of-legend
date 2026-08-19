@@ -25686,6 +25686,273 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   }
 }
 
+/* ---- the wheel of seven (rulebook) ----
+   Seven spokes in cycle order, an arrow from each to its prey, and
+   hover states: the hovered spoke blooms, its prey burns gold, its
+   predator chills, everything else dims, and the detail panel
+   speaks the matchup. The ring's slow turn is the only idle
+   motion - it pauses while a spoke is under the cursor. */
+.rule-card-wheel {
+  grid-column: 1 / -1;
+}
+.rb-wheel-intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--txt-faint);
+}
+.rb-wheel-intro b {
+  color: #ffd682;
+}
+.rb-wheel-stage {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+  padding: 6px 4px 14px;
+}
+.element-wheel {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  flex: 0 0 auto;
+}
+.ew-ring {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 214, 130, 0.28);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 214, 130, 0.05), transparent 62%),
+    conic-gradient(
+      from 0deg,
+      rgba(255, 214, 130, 0.1),
+      transparent 20%,
+      rgba(255, 214, 130, 0.05) 40%,
+      transparent 60%,
+      rgba(255, 214, 130, 0.1) 80%,
+      transparent 100%
+    );
+  animation: ew-ring-turn 48s linear infinite;
+}
+.element-wheel:hover .ew-ring {
+  animation-play-state: paused;
+}
+@keyframes ew-ring-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ew-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.ew-arrow {
+  stroke: rgba(255, 214, 130, 0.24);
+  stroke-width: 0.7;
+  stroke-dasharray: 2 2.4;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    filter 0.2s ease;
+}
+.ew-arrow.hot {
+  stroke: #ffd050;
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 4px rgba(255, 208, 80, 0.8));
+}
+.ew-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  color: var(--el, #fff);
+  background:
+    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--el, #fff) 22%, transparent), transparent 62%),
+    rgba(10, 12, 22, 0.92);
+  border: 2px solid color-mix(in srgb, var(--el, #fff) 52%, transparent);
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--el, #fff) 22%, transparent),
+    inset 0 1px rgba(255, 255, 255, 0.08);
+  cursor: var(--cur-pointer);
+  transition:
+    transform 0.24s var(--ease),
+    opacity 0.24s ease,
+    filter 0.24s ease,
+    border-color 0.24s ease,
+    box-shadow 0.24s ease;
+}
+.ew-node i {
+  font-size: 26px;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--el, #fff) 55%, transparent));
+}
+.ew-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+  transition: color 0.24s ease;
+}
+.ew-node:hover {
+  transform: translate(-50%, -50%) scale(1.16);
+}
+/* an active hover dims the rest of the wheel and names the roles */
+.element-wheel[data-ew-active] .ew-node:not(.ew-focus):not(.ew-prey):not(.ew-predator) {
+  opacity: 0.22;
+  filter: saturate(0.3);
+}
+.ew-node.ew-focus {
+  transform: translate(-50%, -50%) scale(1.18);
+  border-color: var(--el, #fff);
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--el, #fff) 55%, transparent),
+    0 0 44px color-mix(in srgb, var(--el, #fff) 22%, transparent);
+}
+.ew-node.ew-focus .ew-label {
+  color: #fff;
+  text-shadow: 0 0 10px var(--el, #fff);
+}
+.ew-node.ew-prey {
+  border-color: #ffd050;
+  color: #ffd050;
+  box-shadow:
+    0 0 20px rgba(255, 208, 80, 0.65),
+    0 0 40px rgba(255, 170, 50, 0.3);
+  animation: ew-prey-pulse 0.9s ease-in-out infinite alternate;
+}
+.ew-node.ew-prey .ew-label {
+  color: #ffd682;
+}
+@keyframes ew-prey-pulse {
+  from {
+    box-shadow:
+      0 0 16px rgba(255, 208, 80, 0.5),
+      0 0 32px rgba(255, 170, 50, 0.22);
+  }
+  to {
+    box-shadow:
+      0 0 26px rgba(255, 208, 80, 0.85),
+      0 0 52px rgba(255, 170, 50, 0.4);
+  }
+}
+.ew-node.ew-predator {
+  border-color: #9fb6cc;
+  color: #9fb6cc;
+  box-shadow:
+    0 0 16px rgba(159, 182, 204, 0.5),
+    inset 0 1px rgba(255, 255, 255, 0.1);
+}
+.ew-node.ew-predator .ew-label {
+  color: #9fb6cc;
+}
+.ew-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  text-align: center;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 214, 130, 0.12), transparent 66%),
+    rgba(10, 12, 22, 0.94);
+  border: 1px solid rgba(255, 214, 130, 0.4);
+  box-shadow: 0 0 26px rgba(0, 0, 0, 0.55);
+}
+.ew-hub-title {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #ffd682;
+}
+.ew-hub-sub {
+  font-size: 9.5px;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+  max-width: 88px;
+}
+.ew-detail {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 130, 0.22);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 214, 130, 0.07), transparent 55%),
+    rgba(5, 7, 15, 0.55);
+}
+.ew-detail > i {
+  font-size: 26px;
+  color: #ffd682;
+  filter: drop-shadow(0 0 10px rgba(255, 200, 90, 0.6));
+}
+.ew-detail-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.ew-detail-copy h4 {
+  margin: 0;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--txt);
+}
+.ew-detail-copy p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--txt-faint);
+}
+.ew-detail-math {
+  font-size: 11px !important;
+  letter-spacing: 0.05em;
+  color: var(--txt-dim) !important;
+}
+.ew-detail-math b {
+  color: #ffd682;
+}
+@media (max-width: 640px) {
+  .element-wheel {
+    width: 252px;
+    height: 252px;
+  }
+  .ew-node {
+    width: 52px;
+    height: 52px;
+  }
+  .ew-node i {
+    font-size: 20px;
+  }
+}
+
 
 /* =============================================================
    THE LEDGER (2026-08-10) - the Recruiter's book, openable.
