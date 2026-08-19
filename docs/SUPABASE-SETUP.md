@@ -719,6 +719,34 @@ create policy "update own save"
 -- no delete policy: saves are never deleted from the client
 ```
 
+### Healing a save whose collection disagrees with itself
+
+*(Added 2026-08-19, after the "grid shows 115 owned, counter says 55"
+report. The save JSON in the vault was written by an older build and
+the client counter was running a stale cached bundle - two truths on
+one screen.)*
+
+The save is **client-authoritative**, so it heals itself without
+touching the database: every boot now reconciles `owned` against the
+live roster (stale ids drop, both chapters' campaign grants fold in,
+the starter twelve always count), and the next signed-in push writes
+the corrected document back to the vault. The one-line manual fix,
+if a player is stuck BEFORE a new build boots:
+
+```js
+// console (F12), signed in or not - then sign in and let the vault sync:
+EOL.dev.reconcile()
+```
+
+If a specific row is corrupted beyond JSON (the Supabase client
+returns a parse error and the save cannot load at all), this SQL
+nukes that row so the next sign-in adopts the device save:
+
+```sql
+-- replace the user id; ONLY as a last resort - the vault data is lost
+delete from public.saves where user_id = '00000000-0000-0000-0000-000000000000';
+```
+
 Verify with `node sim/preflight.js` - it now checks the `saves` table
 alongside the multiplayer ones.
 

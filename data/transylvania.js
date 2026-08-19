@@ -99,7 +99,7 @@ window.EOL.registerFaction({
     },
 
     {
-      id: 'transylvania-monster',
+      id: 'transylvania-frankensteins-monster',
       name: "Frankenstein's Monster",
       rarity: 'epic',
       role: 'Tank',
@@ -135,7 +135,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-brain-freeze',
-      art: 'assets/legends/transylvania-monster.png',
+      art: 'assets/legends/transylvania-frankensteins-monster.png',
     },
 
     {
@@ -169,7 +169,7 @@ window.EOL.registerFaction({
     },
 
     {
-      id: 'transylvania-hyde',
+      id: 'transylvania-mr-hyde',
       name: 'Mr. Hyde',
       rarity: 'epic',
       role: 'Bruiser',
@@ -214,7 +214,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-round-bottom-flask',
-      art: 'assets/legends/transylvania-hyde.png',
+      art: 'assets/legends/transylvania-mr-hyde.png',
     },
 
     {
@@ -237,7 +237,7 @@ window.EOL.registerFaction({
            The monster-hunter inside the monster faction is deliberate.
            He answers Camelot, Durga, the Kraken - and the Monster
            standing next to him. */
-        text: 'Deal <b>150% ATK Light Damage</b> and <b>destroy</b> the target\\u2019s Shield.',
+        text: 'Deal <b>150% ATK Light Damage</b> and <b>destroy</b> the target\'s Shield.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },
@@ -308,7 +308,11 @@ window.EOL.registerFaction({
         passive: {
           trigger: 'incomingAbilityDamage',
           effects: [
-            { k: 'damageMult', mult: 0, firstPerRound: true },
+            /* `firstPerRoundAny`: the card says "the first HIT each
+               round", and a Basic attack is a hit. Athena's Divine
+               Strategy stays signature-only; this flag is what lets the
+               portrait catch anything thrown at him. */
+            { k: 'damageMult', mult: 0, firstPerRound: true, firstPerRoundAny: true },
             /* The portrait ages instead of him. Also the card's only
                upgradeable magnitude: "first hit" and "no damage" are
                both structural, so without this an upgrade did nothing

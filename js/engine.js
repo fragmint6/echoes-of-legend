@@ -51,6 +51,51 @@
      the post-DEF damage by exactly CRIT_MULT. No variance, no scaling,
      no battlefield can touch it - Crit Chance is the only moving part. */
   var CRIT_MULT = 1.5;
+
+  /* ---------------------------------------------------------
+     THE WHEEL OF SEVEN (2026-08-19) - elements are mechanical now.
+     ---------------------------------------------------------
+     Seven elements in a cycle; each sears one and bows to one:
+
+       Fire sears Nature
+       Nature shades the Light
+       the Light dispels the Shadow
+       the Shadow devours Magic
+       Magic contains Lightning
+       Lightning strikes the body (Physical)
+       the body smothers the flame (Physical over Fire)
+
+     THE FAIRNESS LAW: advantage and disadvantage are EXACT
+     reciprocals - 1.08 and 1/1.08 - so the two halves of any matchup
+     cancel precisely. The wheel MOVES damage between matchups; it
+     adds none in aggregate. That is the whole point: every element
+     has exactly one predator and one prey, nothing is strictly
+     better, and the counterplay is the draft-and-ban game.
+
+     SCOPE: attacks and counter-strikes (everything that flows
+     through dealDamage). Burn ticks, which ignore DEF and shields
+     and live outside the attack pipeline, are untouched.
+
+     DETERMINISM: a pure function of two element strings. The mirror
+     lock, the AI search and the sim all read the same table.
+     --------------------------------------------------------- */
+  var ELEMENT_ADV = 1.08;
+  var ELEMENT_DIS = 1 / ELEMENT_ADV; // exact reciprocal - the fairness law
+  var ELEMENT_BEATS = {
+    Fire: 'Nature',
+    Nature: 'Light',
+    Light: 'Shadow',
+    Shadow: 'Magic',
+    Magic: 'Lightning',
+    Lightning: 'Physical',
+    Physical: 'Fire',
+  };
+  function elementMult(attackerElement, defenderElement) {
+    if (!attackerElement || !defenderElement) return 1;
+    if (ELEMENT_BEATS[attackerElement] === defenderElement) return ELEMENT_ADV;
+    if (ELEMENT_BEATS[defenderElement] === attackerElement) return ELEMENT_DIS;
+    return 1;
+  }
   var RAMP_FROM = 4;
   var RAMP_STEP = 0.15; // +15% ATK per round past the threshold
 
@@ -477,6 +522,16 @@
          preview only saw top-level `dmg` entries, so branch-based
          executes (Anubis/Gilgamesh, and now Goldilocks) showed no number
          at all while two-line conditionals could show the wrong total. */
+      /* THE SEQUENTIAL DRY-RUN (2026-08-19). Some skills change the
+         target's DEF BEFORE their own damage lands - Zeus's judgment
+         debuffs DEF and then strikes, Odysseus exposes and then hits.
+         The old scan computed every hit against the target's current
+         DEF, so the hover under-predicted such casts (yellow when the
+         real blow was lethal). The scan now walks the effect list in
+         order and folds preceding DEF-affecting effects into `defV`,
+         exactly like the resolver does. */
+      var defAtStart = defOf(tgt);
+      var defV = defAtStart;
       function scan(list) {
         (list || []).forEach(function (e) {
           if (e.k === 'branch') {
@@ -491,7 +546,28 @@
             scan(pass ? e.then : e.other || e.else);
             return;
           }
-          if (e.k !== 'dmg') return;
+          /* `onlyMarked` gates this effect the way the resolver's
+             target filter does - an unmarked hover target is not hit
+             by Zeus's marked-only arm at all. */
+          if (e.onlyMarked && !(tgt.flags.marked > 0)) return;
+          if (e.k !== 'dmg') {
+            /* a preceding effect that lands on THIS target changes
+               the DEF the next hit will face - fold it into defV */
+            if (e.to && e.to !== 'targets') return;
+            if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
+            if (e.k === 'exposed') defV = 0;
+            else if (e.k === 'stat' && e.stat === 'def')
+              defV = clamp(defV + e.amt, 0, 75);
+            else if (e.k === 'consumeBuffs') {
+              /* strips POSITIVE buffs; negative DEF debuffs survive */
+              var negDef = 0;
+              (tgt.buffs || []).forEach(function (b) {
+                if (b.stat === 'def' && b.amt < 0) negDef += b.amt;
+              });
+              defV = clamp(tgt.baseDef + negDef, 0, 75);
+            }
+            return;
+          }
           if (e.to && e.to !== 'targets') return; // redirected effects do not hit this target
           if (e.if && !condMet(B, e.if, condCtx(ctx, tgt))) return;
           var provokeM = ctx.provokeTax && !(tgt.flags.taunt > 0) ? ctx.provokeTax : 1;
@@ -530,7 +606,11 @@
           var inM = incomingMult(B, unit, tgt, ctx.signature === true, true);
           B._multTrail = null;
           var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
-          var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
+          /* The Wheel of Seven rides the preview exactly as it rides the
+             real cast - the number on the hover IS the number dealt. */
+          var elDmg = e.element === 'inherit' ? unit.element : e.element;
+          var elM = elementMult(elDmg, tgt.element);
+          var afterDef = raw * outM * inM * resistM * elM * (1 - defV / 100);
           var hit = Math.max(1, Math.round(afterDef));
           total += hit;
           found = true;
@@ -588,6 +668,15 @@
               });
           }
           st.push({ k: 'raw', label: 'Base damage', value: raw, subtotal: true });
+          if (elM !== 1)
+            st.push({
+              k: 'element',
+              label:
+                elM > 1
+                  ? 'Element advantage (' + ELEMENT_BEATS[elDmg] + ')'
+                  : 'Element disadvantage',
+              mult: elM,
+            });
           if (outM !== 1) st.push({ k: 'outgoing', label: 'Attacker bonus', mult: outM });
           if (inM !== 1) st.push({ k: 'incoming', label: 'Target damage taken', mult: inM });
           if (resistM !== 1)
@@ -596,11 +685,19 @@
               label: 'Resistance (' + Math.min(90, tgt.flags.resistPct) + '%)',
               mult: resistM,
             });
-          if (defOf(tgt))
+          /* The row is shown whenever the defence changed OR the
+             target had any at cast start - a defence the skill itself
+             stripped to 0 is exactly the fact the player needs to see,
+             even though its multiplier is x1. */
+          if (defV !== defAtStart || defAtStart)
             st.push({
               k: 'def',
-              label: 'Defence (' + defOf(tgt) + ')',
-              mult: 1 - defOf(tgt) / 100,
+              label:
+                'Defence (' +
+                defV +
+                (defV !== defAtStart ? ', after this skill' : '') +
+                ')',
+              mult: 1 - defV / 100,
             });
           st.push({ k: 'total', label: 'Damage', value: hit, subtotal: true });
           hits.push({ steps: st, dmg: hit });
@@ -958,6 +1055,7 @@
         srcUid: pn.srcUid,
         effects: pn.effects,
         scale: pn.scale,
+        persistAfterDeath: pn.persistAfterDeath,
       };
     }
     if (u.costMods) {
@@ -2034,15 +2132,40 @@
         var eMult = e.mult < 1 ? Math.max(0, e.mult - upPts(u, null) / 100) : e.mult;
         var applied = false;
         if (e.firstPerRound) {
-          // only signature Skills, and only the first one each round
-          if (!isAbilityDamage) return;
+          /* Athena's Divine Strategy answers signature Skills only. A
+             card whose text says the first HIT - any hit - declares
+             `firstPerRoundAny` (Dorian Gray's Portrait) and catches
+             Basics too. */
+          if (!isAbilityDamage && !e.firstPerRoundAny) return;
           if (u.roundFlags.athenaFirst) return;
           /* A preview must not spend the charge - it only reports what
              WOULD happen. Only a real hit consumes it. */
-          if (!dryRun) u.roundFlags.athenaFirst = true;
+          if (!dryRun) {
+            u.roundFlags.athenaFirst = true;
+            /* The passive's rider effects fire on the hit the first-
+               per-round gate answers. Without this, Dorian's portrait
+               deflected blows forever but never aged a day: the +3% DEF
+               growth is part of the same passive and had no other path
+               into the engine. */
+            var riders = (p.effects || []).filter(function (r) {
+              return r.k !== 'damageMult' && r.k !== 'damageResist' && r.k !== 'outgoingMult';
+            });
+            if (riders.length) {
+              applyEffects(B, u, [u], riders, {
+                trigger: 'incomingAbilityDamage',
+                immediate: true,
+                triggerTarget: attacker,
+              });
+            }
+          }
           m *= eMult;
           applied = true;
-          logMsg(B, 'passive', u.name + "'s Divine Strategy blunts the attack.", { uid: u.uid });
+          logMsg(
+            B,
+            'passive',
+            u.name + "'s " + (u.card && u.card.ability ? u.card.ability.name : 'guard') + ' blunts the attack.',
+            { uid: u.uid }
+          );
         } else if (e.ifAttackerMarked) {
           if (!(attacker.flags.marked > 0)) return;
           m *= eMult;
@@ -2081,7 +2204,7 @@
     return t;
   }
 
-  function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders) {
+  function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders, persisted) {
     if (!tgt.alive) return 0;
 
     /* Run, Run, Run / Breadcrumb Barricade recover BEFORE the incoming
@@ -2143,7 +2266,13 @@
        timed flag it becomes a real support tool - a Medic can pre-emptively
        harden an ally instead of only repairing damage after it lands. */
     var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
-    var mult = outM * inM * resistM;
+    /* The Wheel of Seven: element matchup rides the same multiplier
+       train as every other damage law. It reads the DAMAGE's element -
+       the element this blow is made of, not the card's - so a Fire
+       card swinging a Physical basic pays Physical's matchup, and a
+       Physical card casting a Fire signature pays Fire's. */
+    var elM = elementMult(element, tgt.element);
+    var mult = outM * inM * resistM * elM;
     var afterDef = raw * mult * (1 - defOf(tgt) / 100);
 
     // crit - always exactly CRIT_MULT (1.5x), never variable
@@ -2153,7 +2282,12 @@
       afterDef *= CRIT_MULT;
     }
 
-    var dmg = Math.max(1, Math.round(afterDef));
+    /* The 1-damage floor keeps rounding from vanishing a real hit. A blow
+       FULLY negated by an incoming multiplier (Dorian Gray's Portrait,
+       mult 0) is not a rounding artefact - it is the card's whole point,
+       and flooring it to 1 leaked a scratch through the portrait every
+       round. */
+    var dmg = inM === 0 ? 0 : Math.max(1, Math.round(afterDef));
 
     // shield soaks first
     var absorbed = 0;
@@ -2280,7 +2414,14 @@
       overkill: Math.max(0, dmg - hpBefore),
       crit: crit,
       element: element,
+      elementStrong: elM > 1,
+      elementWeak: elM < 1,
+      elementMult: elM,
       ability: !!isAbility,
+      /* an announced persisted effect (Azrael's hour) is the ONE legal
+         damage source from a fallen caster - flag it so invariant
+         taps can tell the rule from a regression */
+      persisted: !!persisted,
       killed: tgt.hp <= 0,
       tgtFront: isFront(tgt),
       tgtTaunting: tgt.flags.taunt > 0,
@@ -2295,13 +2436,23 @@
       logMsg(
         B,
         'damage',
-        src.name + ' hits ' + tgt.name + ' for ' + dmg + (crit ? ' (CRIT)' : '') + '.',
+        src.name +
+          ' hits ' +
+          tgt.name +
+          ' for ' +
+          dmg +
+          (crit ? ' (CRIT)' : '') +
+          (elM > 1 ? ' (STRONG)' : elM < 1 ? ' (WEAK)' : '') +
+          '.',
         {
           uid: tgt.uid,
           src: src.uid,
           amount: dmg,
           crit: crit,
           element: element,
+          elementStrong: elM > 1,
+          elementWeak: elM < 1,
+          elementMult: elM,
           hpAfter: tgt.hp,
           shieldAfter: tgt.shield,
           maxHp: tgt.maxHp,
@@ -2499,11 +2650,16 @@
   function handleDeath(B, u, killerUid) {
     // Sun Wukong: revive once
     var p = passiveOf(u);
-    if (p && hasTrig(p, 'wouldDie') && !u.usedOnce.wouldDie) {
+    /* The Locker refuses Wukong's death-cheat before it fires, exactly as
+       it refuses every other revive. Without this guard the condemned
+       legend spent his one cheat, stayed dead, and still wore the
+       follow-up shield/taunt/ATK riders as a corpse. */
+    if (p && hasTrig(p, 'wouldDie') && !u.usedOnce.wouldDie && !u.flags.noRevive) {
       u.usedOnce.wouldDie = true;
       // logged first so the UI can play the revive before the buffs it grants
       logMsg(B, 'revive', u.name + ' refuses to fall - ' + u.card.ability.name + '!', {
         uid: u.uid,
+        by: u.uid,
         ability: u.card.ability.name,
       });
       emit(B, {
@@ -2522,6 +2678,27 @@
       });
       applyEffects(B, u, [u], p.effects, { trigger: 'wouldDie', immediate: true });
       return;
+    }
+
+    /* LOKI (selfDied): the only shipped card whose whole payload fires on
+       its OWN death. `selfKilled` reads the KILLER's passive (Perseus
+       grows on his first kill); Loki is the reverse - he is worth more
+       dead than alive, and his death advances the Asgard count that
+       turns Fenrir and Odin on. Fired while he is still flagged alive so
+       the effects resolve with him as their caster, then death proceeds
+       normally. */
+    if (p && hasTrig(p, 'selfDied')) {
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'selfDied',
+        round: B.round,
+      });
+      applyEffects(B, u, [u], p.effects, { trigger: 'selfDied', immediate: true });
+      logMsg(B, 'passive', u.name + "'s end is the plan - " + u.card.ability.name + '!', {
+        uid: u.uid,
+      });
     }
 
     u.alive = false;
@@ -2749,13 +2926,16 @@
   function applyEffects(B, src, targets, effects, ctx) {
     /* A queued rider or multi-part cast stops with its caster. Damage had
        its own mid-cast guard, but heals, shields and stat effects did not,
-       allowing the remainder of an action to resolve from the grave. */
-    if (!src || !src.alive) return;
+       allowing the remainder of an action to resolve from the grave.
+       `persistedCaster` is the single intentional exception: a delayed
+       effect declared `persistAfterDeath` (Azrael's hour) is allowed to
+       land from a fallen caster, because the card's text promises it. */
+    if (!src || (!src.alive && !(ctx && ctx.persistedCaster))) return;
     ctx = ctx || {};
     (effects || []).forEach(function (e) {
       /* A counter can defeat the caster during an earlier damage effect
          in this very list; re-check between every component. */
-      if (!src.alive) return;
+      if (!src.alive && !ctx.persistedCaster) return;
       /* Per-trigger routing. A passive declaring `triggers: [...]` fires its
          whole effects list on ANY of them; an effect may add `on: 'name'`
          (or an array) to respond to only some. Effects without `on` are
@@ -3055,8 +3235,9 @@
              (Guan Yu, Susanoo) resolves inside dealDamage, so an AoE could
              kill its own caster on hit 1 and still land hits 2..n from a
              corpse. Pre-existing; surfaced by the energy-carryover pass,
-             which lets big AoEs be cast far more often. */
-          if (!src.alive) return;
+             which lets big AoEs be cast far more often. A delayed strike
+             declared `persistAfterDeath` is the one announced exception. */
+          if (!src.alive && !ctx.persistedCaster) return;
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var aliveBefore = t.alive;
           var element = e.element === 'inherit' ? src.element : e.element;
@@ -3114,7 +3295,8 @@
             element,
             ctx.signature === true,
             false,
-            ctx.rider === true
+            ctx.rider === true,
+            !!ctx.persistedCaster
           );
           /* THE FULL BLOW, NOT JUST THE HP LOST. dealDamage() returns the
              HP damage only - the shield soak is already subtracted from it.
@@ -3858,15 +4040,28 @@
           /* THE LOCKER HOLDS. Davy Jones's condemnation refuses every
              revive in the game - Isis, Medea, Osiris, Sun Wukong's
              death-cheat. Checked here, at the single revive site, so no
-             future revive card can accidentally bypass it. */
+             future revive card can accidentally bypass it. A REFUSED
+             revive spends nothing: Medea does not lose her one cauldron
+             to a corpse the Locker already claimed. */
           if (t.flags && t.flags.noRevive) {
             logMsg(B, 'debuff', t.name + ' cannot return - the Locker holds them.', {
               uid: t.uid,
             });
             return;
           }
+          /* ONCE-PER-BATTLE REVIVES. `maxStacks` on a revive effect is a
+             LIFETIME cap on the REVIVER (stackTotals lives on `src`), not
+             on the raised legend - a per-target cap would let one Medea
+             resurrect six different allies, which is not what "once per
+             battle" says. The cap is only spent when the legend actually
+             comes back, so a void attempt cannot burn the charge. */
+          if (e.stackTag && e.maxStacks && stacksUsed(src, e.stackTag) >= e.maxStacks) return;
           t.alive = true;
           t.hp = Math.round(t.maxHp * ((e.pctMaxHp + upPts(src, ctx)) / 100));
+          if (e.stackTag && e.maxStacks) {
+            src.stackTotals = src.stackTotals || {};
+            src.stackTotals[e.stackTag] = stacksUsed(src, e.stackTag) + 1;
+          }
           /* Generic `wipe` rider: a legend who comes back should come back
              CLEAN. Without it a revive inherited whatever killed it -
              Burn kept ticking, Exposed kept DEF at zero, and a stacked
@@ -3919,6 +4114,17 @@
             }
           }
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
+          /* The UI plays the resurrection off the LOG, not the event bus -
+             flashRecent() keys on a 'revive' line. Isis and Medea's effect
+             revives never wrote one, so the pillar/embers ceremony only
+             ever played for Wukong's death-cheat. `by` rides along so the
+             ceremony can be themed to the legend doing the raising. */
+          logMsg(B, 'revive', t.name + ' returns to the fight!', {
+            uid: t.uid,
+            by: src.uid,
+            ability: src.card ? src.card.ability.name : null,
+            amount: t.hp,
+          });
         });
         break;
       }
@@ -3991,6 +4197,8 @@
             srcUid: src.uid,
             effects: e.effects,
             scale: ctx.scale || 1,
+            /* Azrael: the hour lands even if the caster has fallen. */
+            persistAfterDeath: !!e.persistAfterDeath,
           });
         });
         /* This used to log "N enemies are marked", which described a
@@ -4074,12 +4282,19 @@
           var payload = e.payload || [];
           emit(B, { t: 'buffsConsumed', tgt: t.uid, count: n, by: src.uid, round: B.round });
           logMsg(B, 'buff', t.name + "'s blessings are spent (" + n + ').', { uid: t.uid });
-          /* the payout scales with how many stacks were cashed */
-          applyEffects(B, src, [t], payload, {
-            immediate: true,
-            scale: (ctx.scale || 1) * n,
-            signature: !!ctx.signature,
-          });
+          /* The payout fires once PER BUFF TAKEN, not once scaled by the
+             count. The old scaled form folded five stolen buffs into one
+             fat stack (Anne Bonny robbed a fully-buffed legend and walked
+             away +40% ATK from a card that says "Max: 4 stacks" of +8%).
+             Firing the payload n times lets each effect's own stackTag /
+             maxStacks cap the payout the way the card text promises. */
+          for (var pi = 0; pi < n; pi++) {
+            applyEffects(B, src, [t], payload, {
+              immediate: true,
+              scale: ctx.scale || 1,
+              signature: !!ctx.signature,
+            });
+          }
         });
         break;
       }
@@ -4767,9 +4982,16 @@
         /* Same rule as resolveDeferred: a dead caster's pending effects do
            not resolve. Abe no Seimei's shikigami was striking from the
            grave, which removed the counterplay of killing the diviner
-           before the prophecy lands. */
-        if (src && src.alive && u.alive) {
-          applyEffects(B, src, [u], p.effects, { scale: p.scale, immediate: true });
+           before the prophecy lands. A card whose TEXT promises otherwise
+           opts out per-effect with `persistAfterDeath` (Azrael's Appointed
+           Hour): the hour is announced to everyone, and the note on the
+           card says it comes even if he has fallen. */
+        if (u.alive && (p.persistAfterDeath || (src && src.alive))) {
+          applyEffects(B, src, [u], p.effects, {
+            scale: p.scale,
+            immediate: true,
+            persistedCaster: !!p.persistAfterDeath,
+          });
         }
       });
       u.pending = still;
@@ -4836,6 +5058,10 @@
   window.EOL = window.EOL || {};
   window.EOL.engine = {
     ENERGY_BY_ROUND: ENERGY_BY_ROUND,
+    ELEMENT_BEATS: ELEMENT_BEATS,
+    ELEMENT_ADV: ELEMENT_ADV,
+    ELEMENT_DIS: ELEMENT_DIS,
+    elementMult: elementMult,
     energyForRound: energyForRound,
     CRIT_MULT: CRIT_MULT,
     RAMP_FROM: RAMP_FROM,

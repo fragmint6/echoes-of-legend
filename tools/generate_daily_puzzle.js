@@ -44,6 +44,15 @@ const SCRIPTS = [
   'data/roma.js',
   'data/kami.js',
   'data/duat.js',
+  /* CHAPTER II FILES (2026-08-19): same fix as the worker - the
+     forge drew from Chapter I only because these were never loaded. */
+  'data/asgard.js',
+  'data/hemithea.js',
+  'data/pandemonium.js',
+  'data/devas.js',
+  'data/genesis.js',
+  'data/transylvania.js',
+  'data/tortuga.js',
   'data/battlefields.js',
   'data/draft-ai.js',
   'js/engine.js',

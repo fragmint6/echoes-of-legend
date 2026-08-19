@@ -58,10 +58,45 @@
       return 0;
     }
   }
+  /* THE OWNERSHIP LEDGER IS ROSTER-DRIVEN (2026-08-19).
+     -------------------------------------------------------------
+     The old build's collection count and the new build's grid were
+     reading two different truths - a stale cached bundle on one
+     hand, an account save written by an older build on the other -
+     and the result was a screen that owned all 115 legends while
+     the counter said 55. Two laws kill that whole class of bug:
+
+       1. every read of the owned array is sanitized against the
+          live roster (stale ids from before a rename, the boss card,
+          junk rows all drop out; duplicates collapse);
+       2. every count is derived from the SAME roster, so a
+          denominator and a numerator can never disagree again. */
+  var ROSTER_IDS = null;
+  function rosterIds() {
+    if (ROSTER_IDS) return ROSTER_IDS;
+    var set = {};
+    (window.EOL.factions || []).forEach(function (f) {
+      (f.cards || []).forEach(function (c) {
+        set[c.id] = true;
+      });
+    });
+    ROSTER_IDS = set;
+    return ROSTER_IDS;
+  }
+  function sanitizeOwned(arr) {
+    var roster = rosterIds();
+    var seen = {};
+    return (arr || []).filter(function (id) {
+      if (!roster[id] || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
   function readArr(key) {
     try {
       var v = JSON.parse(localStorage.getItem(key));
-      return Array.isArray(v) ? v : [];
+      if (!Array.isArray(v)) return [];
+      return key === OWNED_KEY ? sanitizeOwned(v) : v;
     } catch (e) {
       return [];
     }
@@ -75,19 +110,23 @@
   }
 
   /* the starter twelve: the entire Grimmwood faction, same source of
-     truth the deck manager seeds from */
+     truth the deck manager seeds from. The empty result is NOT cached:
+     an early call before the faction files land would otherwise poison
+     every ownership count for the whole session ([] is truthy, so the
+     old guard happily stored it). */
   var STARTER = null;
   function starterIds() {
-    if (STARTER) return STARTER;
+    if (STARTER && STARTER.length) return STARTER;
     var f = (window.EOL.factions || []).filter(function (x) {
       return x.id === 'grimmwood';
     })[0];
-    STARTER = f
+    var ids = f
       ? f.cards.map(function (c) {
           return c.id;
         })
       : [];
-    return STARTER;
+    if (ids.length) STARTER = ids;
+    return ids;
   }
 
   /* ONE-TIME IMPORT: saves from before the economy carried campaign
@@ -107,13 +146,69 @@
           prog.grants.forEach(function (id) {
             if (owned.indexOf(id) < 0) owned.push(id);
           });
-          write(OWNED_KEY, owned);
+          write(OWNED_KEY, sanitizeOwned(owned));
         }
       }
       write(MIGRATED_KEY, '1');
     } catch (e) {
       /* a broken save must never break the boot */
     }
+  }
+
+  /* THE RECONCILE PASS (2026-08-19). One command, one source of
+     truth. Every ownership source the game writes - the owned
+     ledger, both campaigns' grants, and the starter shelf - is
+     unioned against the live roster, and the result is written
+     back. It repairs the database/local disagreement in place:
+     nothing the player earned is dropped, stale ids are, and the
+     count that comes out is exactly the count the grid shows.
+
+     Runs on every boot (it is idempotent and cheap) AND from the
+     console as EOL.dev.reconcile() so a broken account save can be
+     fixed without touching a database row by hand. */
+  function reconcile() {
+    var rawArr = (function () {
+      try {
+        var v = JSON.parse(localStorage.getItem(OWNED_KEY));
+        return Array.isArray(v) ? v : [];
+      } catch (e) {
+        return [];
+      }
+    })();
+    var out = {};
+    starterIds().forEach(function (id) {
+      out[id] = true;
+    });
+    rawArr.forEach(function (id) {
+      out[id] = true;
+    });
+    ['eol.campaign.ch1.progress', 'eol.campaign.ch2.progress'].forEach(function (key) {
+      try {
+        var prog = JSON.parse(localStorage.getItem(key));
+        (prog && prog.grants ? prog.grants : []).forEach(function (id) {
+          out[id] = true;
+        });
+      } catch (e) {
+        /* private mode or broken save - the ledger still reconciles */
+      }
+    });
+    var owned = sanitizeOwned(Object.keys(out));
+    var current = readArr(OWNED_KEY);
+    var same = current.length === owned.length && owned.every(function (id, i) {
+      return current[i] === id;
+    });
+    if (!same) {
+      write(OWNED_KEY, owned);
+      /* a mid-session repair must repaint the grid and the counters */
+      emitOwned();
+    }
+    return {
+      owned: owned.length,
+      changed: !same,
+      dropped: rawArr.filter(function (id) {
+        return owned.indexOf(id) < 0;
+      }).length,
+    };
   }
 
   function emitCoins() {
@@ -297,19 +392,40 @@
 
   function owns(id) {
     migrate();
+    ensureReconciled();
     if (starterIds().indexOf(id) >= 0) return true;
     return readArr(OWNED_KEY).indexOf(id) >= 0;
   }
-  function grant(ids) {
+  /* THE RECONCILE RUNS ONCE PER BOOT, BEFORE THE FIRST OWNERSHIP
+     QUESTION - whatever wrote the ledger (an old build, a cloud
+     restore, a rename that predates the id-migration) is folded
+     against the live roster before any counter or grid can read it. */
+  var RECONCILED = false;
+  function ensureReconciled() {
+    if (RECONCILED) return;
+    RECONCILED = true;
+    reconcile();
+  }
+  function grant(ids, opts) {
     migrate();
     var owned = readArr(OWNED_KEY);
     var added = [];
     (ids || []).forEach(function (id) {
-      if (starterIds().indexOf(id) >= 0) return;
-      if (owned.indexOf(id) < 0) {
-        owned.push(id);
-        added.push(id);
+      /* A grant of a card you already carry is a COPY (2026-08-19,
+         owner ruling): duplicates are upgrade material, so no reward
+         grant is ever a no-op. Reward paths opt in via {dupes:true}
+         and the copy banks toward the card's next level (overflow to
+         Echo Shards) through the upgrades system. The pack shelf keeps
+         the plain call - it banks its own duplicates around its
+         ceremony, so double-counting is impossible. */
+      if (owns(id)) {
+        if (opts && opts.dupes && window.EOL.upgrades && window.EOL.upgrades.addDuplicate) {
+          window.EOL.upgrades.addDuplicate(id, 1);
+        }
+        return;
       }
+      owned.push(id);
+      added.push(id);
     });
     if (added.length) {
       write(OWNED_KEY, owned);
@@ -318,62 +434,20 @@
     return added;
   }
 
-  /* THE CHAPTER II SHELF. Huaxia was already held back for Chapter 2;
-     the seven factions added on 2026-08-17 are the rest of that
-     chapter's roster and are held on exactly the same terms. Shipping
-     them into the shop the moment they exist would spend the chapter's
-     whole reveal before its Road is built - and would also flood the
-     pack pool, halving the odds of pulling any specific older legend.
-
-     Deliberately NOT progression-gated: the Road's fog protects its
-     reveals in the LEDGER; the shop simply does not stock these yet.
-     One list, so unlocking the chapter is a one-line change. */
-  /* THE WITHHELD SHELF - CHAPTER I ONLY (owner ruling 2026-08-18b).
+  /* THE CHAPTER SHELF (owner ruling 2026-08-19, superseding the
+     2026-08-18b withhold).
      -------------------------------------------------------------
-     "Right now keep the shop as is with the pack pool containing just
-     chapter 1 cards."
+     Chapter II is playable now, so the whole roster is obtainable:
+     every faction's cards count toward the collection, and pack pools
+     are SCOPED per pack in js/shop.js (chapter / featured / daily).
+     Per-chapter pools mean a Chapter I player's odds never dilute
+     again, which was the only reason the withhold ever existed.
 
-     THE HISTORY, because this list has now flipped twice and the next
-     reader deserves to know why rather than guessing:
-
-       - originally all eight Chapter II factions sat here, held back
-         because their Road did not exist yet;
-       - on 2026-08-18 they were released into packs, on the reasoning
-         that only the LEGENDARIES needed to stay campaign-only;
-       - that is now reverted. The measured consequence is the reason:
-         releasing them took the packable pool from 35 to 80 cards, so
-         the odds of pulling any specific Chapter I legend fell by more
-         than half - for players who have not seen a line of Chapter II
-         and did not ask for it. Chapter II is still design-only (no
-         data/campaign-ch2.js exists), so those cards were diluting a
-         live economy to pay for content nobody can play yet.
-
-     So the shelf is closed again and the rule is simple: THE SHOP
-     SELLS CHAPTER I. A faction leaves this list when its chapter is
-     playable, not when its cards happen to exist.
-
-     Huaxia is on the list for its own older reason as well - it is a
-     story reveal - but it no longer needs a special case, because the
-     whole chapter is withheld.
-
-     `obtainableEntries` is the "what may ever be sold" list AND the
-     denominator of the collection counter, so a withheld faction also
-     drops out of "N / M legends collected" - which is correct: a
-     player cannot be asked to complete a shelf that is not stocked. */
-  var WITHHELD = [
-    'huaxia',
-    'asgard',
-    'hemithea',
-    'pandemonium',
-    'devas',
-    'genesis',
-    'transylvania',
-    'tortuga',
-  ];
+     The Crown Law is untouched: `packableEntries` still excludes
+     every legendary, in every pool. */
   function obtainableEntries() {
     var out = [];
     (window.EOL.factions || []).forEach(function (f) {
-      if (WITHHELD.indexOf(f.id) >= 0) return;
       f.cards.forEach(function (c) {
         out.push({ card: c, faction: f });
       });
@@ -410,6 +484,8 @@
     owns: owns,
     grant: grant,
     starterIds: starterIds,
+    rosterIds: rosterIds,
+    reconcile: reconcile,
     obtainableEntries: obtainableEntries,
     unownedEntries: unownedEntries,
     packableEntries: packableEntries,

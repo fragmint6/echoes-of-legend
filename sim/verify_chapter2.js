@@ -293,16 +293,14 @@ console.log('F. Greed taxes the enemy pool, not his own (Pandemonium)');
   );
 }
 
-console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
+console.log('G. the shelves are open and scoped (2026-08-19)');
 {
-  /* OWNER RULING 2026-08-18: the seven factions' commons, rares and epics
-     are buyable; their one legendary each is not, because the Crown Law
-     keeps every legendary in the game out of packs. Huaxia stays wholly
-     unbuyable because Chapter II spends it as the reveal at gate XIX.
-
-     Asserted behaviourally against the real economy rather than by
-     grepping js/economy.js, because the thing that matters is what the
-     shop actually offers. */
+  /* OWNER RULING 2026-08-19: Chapter II is playable, so the whole
+     roster is obtainable and pack pools are SCOPED per pack - chapter
+     packs, the daily pool and the featured pairs. The Crown Law still
+     keeps every legendary out of every wrapper. Asserted behaviourally
+     against the real economy rather than by grepping, because the
+     thing that matters is what the shelf actually offers. */
   global.localStorage = {
     _d: {},
     getItem(k) { return this._d[k] || null; },
@@ -323,44 +321,25 @@ console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
   const packable = econ.packableEntries();
   const isNew = (e) => NEW.includes(e.faction.id);
 
-  /* INVERTED 2026-08-18b (owner ruling: "keep the shop as is with the
-     pack pool containing just chapter 1 cards").
-
-     This block used to assert that all fifty Chapter II cards WERE
-     obtainable and forty-three of them packable. That was the state
-     between the two rulings. The shop is now closed to the whole
-     chapter again, so the correct assertion is the opposite one, and it
-     is written as zero-or-nothing rather than deleted so the flip stays
-     legible to whoever reads this next.
-
-     WHY THE REVERT: releasing them took the packable pool from 35 to 80
-     cards and roughly halved the odds of pulling any specific Chapter I
-     legend - for players who cannot play Chapter II, because it does
-     not exist in code yet. */
+  ok(obtainable.length === 115, 'all 115 cards are obtainable (' + obtainable.length + ')');
+  /* NEW is the seven factions this suite tracks - Huaxia is asserted
+     separately below, so the chapter-II total is 51 + 9. */
+  ok(obtainable.filter(isNew).length === 51, 'all seven NEW factions are obtainable (' + obtainable.filter(isNew).length + ')');
   ok(
-    obtainable.filter(isNew).length === 0,
-    'no Chapter II card is obtainable while the chapter is unplayable (' +
-      obtainable.filter(isNew).length +
-      ')'
-  );
-  ok(
-    packable.filter(isNew).length === 0,
-    'no Chapter II card is packable either (' +
-      packable.filter(isNew).length +
-      ')'
+    obtainable.filter((e) => e.faction.id === 'huaxia').length === 9,
+    'Huaxia is on the shelf - the gate XIX reveal law is retired with the withhold'
   );
   ok(
     packable.filter((e) => e.card.rarity === 'legendary').length === 0,
     'no legendary is packable anywhere in the game (the Crown Law)'
   );
   ok(
-    obtainable.filter((e) => e.faction.id === 'huaxia').length === 0,
-    'Huaxia is still withheld entirely - it is the gate XIX reveal'
+    packable.filter(isNew).length === econ.unownedEntries().filter((e) => isNew(e) && e.card.rarity !== 'legendary').length,
+    'Chapter II non-legendaries are packable exactly as Chapter I is'
   );
 
-  /* One legendary per faction is the roster law AND the reason exactly 7
-     cards are held back. If a faction ever gained a second, the pack count
-     would silently drop to 41 and nobody would notice. */
+  /* One legendary per faction is the roster law AND the reason the
+     Crown Law can hold every pool: 17 crowns stay Road-only. */
   NEW.forEach((id) => {
     const f = EOL.factions.find((x) => x.id === id);
     const legs = f.cards.filter((c) => c.rarity === 'legendary');
@@ -370,41 +349,15 @@ console.log('G. packs - 42 in, 7 legendaries and Huaxia out');
   global.document = priorDoc;
 }
 
-console.log('H. the Chapter II shelf is closed');
+console.log('H. the pack pools are scoped by chapter and feature');
 {
-  /* These factions belong to a chapter whose Road does not exist yet.
-     Selling them now spends the reveal and floods the pack pool; the
-     campaign drafting them spoils it AND breaks the tuning of authored
-     Chapter I rivals. Both exclusions are asserted here because both
-     are one-line changes that are easy to lose. */
+  /* The shelf model supersedes the closed-shelf tests that lived here:
+     pools now live in js/shop.js (packUniverse), scoped per pack, and
+     the economy's blanket withhold list is GONE - both facts asserted
+     here because they are one-line regressions. */
   const econSrc = fs.readFileSync(path.join(ROOT, 'js/economy.js'), 'utf8');
   const camp = fs.readFileSync(path.join(ROOT, 'js/campaign.js'), 'utf8');
-  /* RESTORED 2026-08-18b, after one turn in the opposite state.
-
-     The history, since this assertion has now flipped twice:
-       1. originally: all eight Chapter II factions withheld;
-       2. 2026-08-18a: released, on the reasoning that only legendaries
-          needed holding back - this test was rewritten to assert their
-          ABSENCE from the list;
-       3. 2026-08-18b (owner): "keep the shop as is with the pack pool
-          containing just chapter 1 cards" - so they are withheld again
-          and this asserts their PRESENCE once more.
-
-     Kept as an explicit per-faction loop rather than a regex on the
-     whole literal, because the failure that matters is one faction
-     quietly falling off the list, and a whole-literal match would also
-     fail for harmless reformatting. */
-  ok(/var WITHHELD = \[/.test(econSrc), 'the shop still has a single withhold list');
-  ok(
-    new RegExp("WITHHELD[^\\]]*'huaxia'").test(econSrc),
-    'Huaxia is withheld - it is a story reveal as well as a Chapter II card'
-  );
-  NEW.forEach((id) => {
-    ok(
-      new RegExp("WITHHELD[^\\]]*'" + id + "'").test(econSrc),
-      id + ' is withheld from the shop while Chapter II is unplayable'
-    );
-  });
+  ok(!/var WITHHELD/.test(econSrc), 'the blanket withhold list is retired - pools are scoped per pack now');
   ok(/NOT_IN_CHAPTER_1/.test(camp), 'the campaign has a single Chapter I exclusion list');
   NEW.forEach((id) => {
     ok(new RegExp("'" + id + "'").test(camp), 'Chapter I never drafts ' + id);

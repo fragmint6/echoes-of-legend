@@ -457,7 +457,7 @@
      Cards are built in small batches; a sentinel at the bottom of the
      grid pulls in the next batch as it approaches the viewport, so the
      DOM only ever holds what the user has scrolled to. */
-  var state = { faction: 'all', rarity: 'all', role: 'all', q: '' };
+  var state = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
   var PAGE = 12; // cards per lazy batch
   var filtered = ROSTER.slice(); // entries matching the current filters
   var rendered = 0; // how many of `filtered` are in the DOM
@@ -469,6 +469,7 @@
         (state.faction === 'all' || entry.faction.id === state.faction) &&
         (state.rarity === 'all' || c.rarity === state.rarity) &&
         (state.role === 'all' || c.role === state.role) &&
+        (state.element === 'all' || c.element === state.element) &&
         (state.q === '' || c.name.toLowerCase().indexOf(state.q) !== -1)
       );
     });
@@ -488,10 +489,18 @@
   /* the truth line under the Collection title: how many of the
      roster you actually OWN (it used to read '63 of 63 legends' at
      a fresh install - the filter count posing as a collection
-     count) */
+     count). It now prints BOTH numbers: a bare numerator is how a
+     stale build read '55 owned' while the grid showed all 115 -
+     with the denominator on screen, the two halves can never
+     silently disagree again. */
   function paintOwnedCount() {
     var el = document.getElementById('owned-count');
-    if (el && window.EOL.econ) el.textContent = window.EOL.econ.ownedCount();
+    if (el && window.EOL.econ)
+      el.textContent =
+        window.EOL.econ.ownedCount() +
+        ' / ' +
+        window.EOL.econ.obtainableEntries().length +
+        ' legends';
   }
 
   /* ownership changes at runtime (packs, gate grants): every painted
@@ -660,6 +669,224 @@
     return dd;
   }
 
+  /* ---------------------------------------------------------
+     THE WHEEL OF SEVEN (rulebook). Built from the engine's own
+     ELEMENT_BEATS table, so the picture can never drift from the
+     damage math it describes. Seven spokes in cycle order, an arrow
+     from each to its prey, and hover states that light the prey
+     (gold) and the predator (ice) while the detail panel speaks.
+     --------------------------------------------------------- */
+  var EW_VERBS = {
+    Fire: 'sears',
+    Nature: 'shades',
+    Light: 'dispels',
+    Shadow: 'devours',
+    Magic: 'contains',
+    Lightning: 'strikes',
+    Physical: 'smothers',
+  };
+  var EW_FLAVOR = {
+    Fire: 'A fire burns the green. Stamp it out and it is only ash.',
+    Nature: 'The forest closes over the light, and it knows what fire wants.',
+    Light: 'The light drives the shadow out of a room. Under the canopy, it waits.',
+    Shadow: 'The shadow drinks a spell the moment it is spoken. The light makes it a shadow again.',
+    Magic: 'The word cages the storm. Spoken in the dark, the word is swallowed.',
+    Lightning: 'The storm strikes the tallest body first. A word can still close the sky.',
+    Physical: 'The body stamps out the flame. The storm does not care how strong it is.',
+  };
+  /* Seven carved glyphs, one per element, drawn with straight cuts -
+     the kind of sign a century of hands has chalked onto a stone
+     floor. The wheel wears two of each, in the sector its element
+     rules, so the ring reads as an inscription rather than a diagram. */
+  var EW_RUNES = [
+    'M2 3 L2 11 M2 7 L8 3 L8 10', // fire: the rising tongue
+    'M8 3 L4 7 L8 11 M2 7 L4 7', // nature: the branching bough
+    'M2 3 L8 3 L8 5 L4 5 M4 5 L4 11', // light: the standing ray
+    'M2 11 L5 3 L8 11 M5 7 L2 7', // shadow: the hooded peak
+    'M2 3 L8 11 M8 3 L2 11 M5 3 L5 11', // magic: the crossed word
+    'M5 3 L5 11 M2 7 L8 7 M2 3 L8 11', // lightning: the split bolt
+    'M2 3 L8 3 L8 11 L2 11 M5 3 L5 11', // physical: the door of the body
+  ];
+
+  function elementCycleOrder() {
+    var beats = window.EOL.engine && window.EOL.engine.ELEMENT_BEATS;
+    if (!beats) return [];
+    var order = [];
+    var cur = 'Fire';
+    while (order.length < 7 && order.indexOf(cur) < 0) {
+      order.push(cur);
+      cur = beats[cur];
+    }
+    return order.length === 7 ? order : Object.keys(beats);
+  }
+
+  function buildElementWheel() {
+    var host = document.getElementById('element-wheel');
+    if (!host || host.dataset.built || !window.EOL.engine || !window.EOL.engine.ELEMENT_BEATS) return;
+    host.dataset.built = '1';
+    var beats = window.EOL.engine.ELEMENT_BEATS;
+    var order = elementCycleOrder();
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var pos = order.map(function (el, i) {
+      var ang = -Math.PI / 2 + (i * 2 * Math.PI) / order.length;
+      return { el: el, x: 50 + 41 * Math.cos(ang), y: 50 + 41 * Math.sin(ang) };
+    });
+
+    /* ---- the arrows: one chord from each spoke to its prey ---- */
+    var svg = host.querySelector('.ew-arrows');
+    if (svg) {
+      svg.setAttribute('viewBox', '0 0 100 100');
+      var defs = document.createElementNS(svgNS, 'defs');
+      var marker = document.createElementNS(svgNS, 'marker');
+      marker.setAttribute('id', 'ew-arrowhead');
+      marker.setAttribute('viewBox', '0 0 10 10');
+      marker.setAttribute('refX', '7');
+      marker.setAttribute('refY', '5');
+      marker.setAttribute('markerWidth', '7');
+      marker.setAttribute('markerHeight', '7');
+      marker.setAttribute('orient', 'auto-start-reverse');
+      var head = document.createElementNS(svgNS, 'path');
+      head.setAttribute('d', 'M 0 1 L 8 5 L 0 9 z');
+      head.setAttribute('fill', '#ffd050');
+      marker.appendChild(head);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+      pos.forEach(function (p, i) {
+        var nxt = pos[(i + 1) % pos.length];
+        var dx = nxt.x - p.x;
+        var dy = nxt.y - p.y;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        var ux = dx / len;
+        var uy = dy / len;
+        var line = document.createElementNS(svgNS, 'line');
+        /* start at the spoke's rim, end at the prey's rim */
+        line.setAttribute('x1', (p.x + ux * 9).toFixed(2));
+        line.setAttribute('y1', (p.y + uy * 9).toFixed(2));
+        line.setAttribute('x2', (nxt.x - ux * 10).toFixed(2));
+        line.setAttribute('y2', (nxt.y - uy * 10).toFixed(2));
+        line.setAttribute('class', 'ew-arrow');
+        line.dataset.from = p.el;
+        line.setAttribute('marker-end', 'url(#ew-arrowhead)');
+        svg.appendChild(line);
+      });
+    }
+
+    /* ---- the spokes ---- */
+    var detailName = document.getElementById('ew-detail-name');
+    var detailText = document.getElementById('ew-detail-text');
+    var detailMath = document.getElementById('ew-detail-math');
+    var hubTitle = host.querySelector('.ew-hub-title');
+    var hubSub = host.querySelector('.ew-hub-sub');
+    var nodes = [];
+    var runes = [];
+
+    /* THE INSCRIPTION: two carved glyphs per sector, on the rim
+       between the ruling element and its prey. Each rune belongs to
+       the sector whose element claims it, so hovering a spoke wakes
+       the runes its element carved. */
+    if (svg) {
+      var runeGroup = document.createElementNS(svgNS, 'g');
+      runeGroup.setAttribute('class', 'ew-runes');
+      svg.appendChild(runeGroup);
+      order.forEach(function (el, i) {
+        for (var r = 0; r < 2; r++) {
+          var mid = i + 0.33 + r * 0.34;
+          var ang = -Math.PI / 2 + (mid * 2 * Math.PI) / order.length;
+          var rx = 50 + 44.5 * Math.cos(ang);
+          var ry = 50 + 44.5 * Math.sin(ang);
+          var path = document.createElementNS(svgNS, 'path');
+          path.setAttribute('d', EW_RUNES[i % EW_RUNES.length]);
+          path.setAttribute('class', 'ew-rune');
+          path.dataset.sector = el;
+          path.setAttribute(
+            'transform',
+            'translate(' + rx.toFixed(2) + ' ' + ry.toFixed(2) + ') rotate(' + (ang * 180) / Math.PI + ') translate(-5 -4.5) scale(0.55)'
+          );
+          runeGroup.appendChild(path);
+          runes.push(path);
+        }
+      });
+      /* a slow-engraved ring of fine ticks just inside the runes */
+      var tickRing = document.createElementNS(svgNS, 'circle');
+      tickRing.setAttribute('class', 'ew-tick-ring');
+      tickRing.setAttribute('cx', '50');
+      tickRing.setAttribute('cy', '50');
+      tickRing.setAttribute('r', '38.5');
+      tickRing.setAttribute('fill', 'none');
+      tickRing.setAttribute('stroke-dasharray', '0.6 3.1');
+      svg.appendChild(tickRing);
+    }
+
+    pos.forEach(function (p) {
+      var node = document.createElement('div');
+      node.className = 'ew-node';
+      node.dataset.ew = p.el;
+      node.style.left = p.x + '%';
+      node.style.top = p.y + '%';
+      node.style.setProperty('--el', ELEMENT_COLOR[p.el] || '#fff');
+      node.innerHTML =
+        '<i data-icon-domain="game" class="ra ' +
+        (ELEMENT_ICON[p.el] || 'ra-player') +
+        '"></i><span class="ew-label">' +
+        esc(p.el) +
+        '</span>';
+      var predator = order[(order.indexOf(p.el) - 1 + order.length) % order.length];
+      node.addEventListener('mouseenter', function () {
+        host.dataset.ewActive = p.el;
+        nodes.forEach(function (n) {
+          n.classList.remove('ew-focus', 'ew-prey', 'ew-predator');
+          if (n.dataset.ew === p.el) n.classList.add('ew-focus');
+          else if (n.dataset.ew === beats[p.el]) n.classList.add('ew-prey');
+          else if (n.dataset.ew === predator) n.classList.add('ew-predator');
+        });
+        svg.querySelectorAll('.ew-arrow').forEach(function (a) {
+          a.classList.toggle('hot', a.dataset.from === p.el);
+        });
+        /* the inscription wakes where the element carved it, and
+           chills where its predator did */
+        runes.forEach(function (rn) {
+          rn.classList.toggle('ew-rune-hot', rn.dataset.sector === p.el);
+          rn.classList.toggle('ew-rune-cold', rn.dataset.sector === predator);
+        });
+        if (hubTitle) hubTitle.textContent = p.el;
+        if (hubSub)
+          hubSub.textContent = EW_VERBS[p.el] + ' ' + beats[p.el] + ' · bows to ' + predator;
+        if (detailName) detailName.textContent = p.el + ' ' + EW_VERBS[p.el] + ' ' + beats[p.el];
+        if (detailText) detailText.textContent = EW_FLAVOR[p.el] || '';
+        if (detailMath)
+          detailMath.innerHTML =
+            '+8% vs <b>' +
+            esc(beats[p.el]) +
+            '</b> &middot; about &minus;8% vs <b>' +
+            esc(predator) +
+            '</b> - the exact reciprocal';
+      });
+      host.appendChild(node);
+      nodes.push(node);
+    });
+    /* pointer leave the stage: everything settles back */
+    host.addEventListener('mouseleave', function () {
+      delete host.dataset.ewActive;
+      nodes.forEach(function (n) {
+        n.classList.remove('ew-focus', 'ew-prey', 'ew-predator');
+      });
+      svg.querySelectorAll('.ew-arrow').forEach(function (a) {
+        a.classList.remove('hot');
+      });
+      runes.forEach(function (rn) {
+        rn.classList.remove('ew-rune-hot', 'ew-rune-cold');
+      });
+      if (hubTitle) hubTitle.textContent = 'The Wheel';
+      if (hubSub) hubSub.textContent = 'hover a spoke';
+      if (detailName) detailName.textContent = 'Seven syllables';
+      if (detailText)
+        detailText.textContent =
+          'The Concord chalks the wheel on every arena floor: each element answers the one before it, and the answer comes back around.';
+      if (detailMath)
+        detailMath.innerHTML = '+8% against its prey &middot; the reciprocal against its predator';
+    });
+  }
+
   function buildFilters() {
     var host = document.getElementById('filters');
     if (!host) return;
@@ -685,6 +912,13 @@
       roleOpts.push({ value: r, text: r, icon: 'ra ' + ROLE_ICON[r] });
     });
 
+    /* The Wheel of Seven: elements filter like every other axis, listed
+       in cycle order so the matchup reads at a glance. */
+    var elementOpts = [{ value: 'all', text: 'All Elements', icon: 'ra ra-cycle' }];
+    elementCycleOrder().forEach(function (el) {
+      elementOpts.push({ value: el, text: el, icon: 'ra ' + ELEMENT_ICON[el] });
+    });
+
     buildDropdown(host, 'Faction', factionOpts, function (v) {
       state.faction = v;
       applyFilters();
@@ -695,6 +929,10 @@
     });
     buildDropdown(host, 'Role', roleOpts, function (v) {
       state.role = v;
+      applyFilters();
+    });
+    buildDropdown(host, 'Element', elementOpts, function (v) {
+      state.element = v;
       applyFilters();
     });
 
@@ -716,7 +954,7 @@
     var reset = document.getElementById('reset');
     if (reset) {
       reset.addEventListener('click', function () {
-        state = { faction: 'all', rarity: 'all', role: 'all', q: '' };
+        state = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
         if (s) s.value = '';
         host.querySelectorAll('.dd').forEach(function (dd) {
           dd.classList.remove('is-filtered');
@@ -2281,6 +2519,7 @@
 
     buildFilters();
     applyFilters();
+    buildElementWheel();
 
     document.getElementById('btn-collection').addEventListener('click', function () {
       show('collection');

@@ -3974,6 +3974,30 @@ body[data-turn='player'] .turn-label {
     0 0 28px rgba(255, 160, 40, 0.78),
     0 2px 8px rgba(0, 0, 0, 0.98);
 }
+/* The Wheel of Seven: the number announces its matchup - smaller than
+   CRITICAL so a crit stays the headline verdict. */
+.pop-element {
+  display: inline-block;
+  margin-left: 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  vertical-align: 0.3em;
+}
+.pop-element.strong {
+  color: #ffd050;
+  text-shadow:
+    0 0 10px rgba(255, 190, 60, 0.95),
+    0 2px 6px rgba(0, 0, 0, 0.95);
+}
+.pop-element.weak {
+  color: #9fb6cc;
+  text-shadow:
+    0 0 8px rgba(159, 182, 204, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.95);
+}
 @keyframes pop-up {
   0% {
     opacity: 0;
@@ -6407,6 +6431,70 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
   }
 }
 
+/* MEDEA'S CAULDRON. The emerald resurrection bubbles up rather than
+   bursting: circles of light that pop near the top of their rise, like
+   the surface of a boiling pot. */
+.fx-cauldron-bubble {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fx);
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%);
+  box-shadow: 0 0 10px var(--fx);
+  animation: fx-cauldron-bubble 1.15s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+@keyframes fx-cauldron-bubble {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(calc(var(--sx) * 0.3), calc(var(--sy) * 0.3)) scale(0.7);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(calc(var(--sx) * 0.92), calc(var(--sy) * 0.92)) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) scale(1.6);
+  }
+}
+
+/* ISIS'S WINGS. Two fans of light fold open behind the returning legend,
+   drawn with layered radial strips - a pair of soft, straight-edged
+   feathers rather than another ring. */
+.fx-isis-wing {
+  position: absolute;
+  width: 96px;
+  height: 64px;
+  margin: -32px 0 0 -48px;
+  clip-path: polygon(0% 100%, 12% 38%, 28% 16%, 44% 6%, 60% 10%, 62% 100%);
+  background: linear-gradient(180deg, var(--fx), rgba(255, 255, 255, 0.06));
+  opacity: 0;
+  animation: fx-isis-wing 1.25s var(--ease) forwards;
+}
+.fx-isis-wing.w2 {
+  transform: scaleX(-1);
+}
+@keyframes fx-isis-wing {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.25);
+  }
+  30% {
+    opacity: 0.85;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.06) translateY(-10px);
+  }
+}
+
 /* Three phases. `.dead` is also set for the first two, so these override it
    to animate the transition rather than let it snap. */
 /* 1. the legend drains to grey */
@@ -7080,6 +7168,14 @@ body[data-gfx='low'] .set-pill.bump {
   font-size: 26px;
   filter: drop-shadow(0 0 10px var(--fx)) drop-shadow(0 0 22px var(--fx));
   animation: fx-cast-sigil 0.76s var(--ease) forwards;
+}
+/* A passive answering its trigger: same sigil, no ring, quieter. */
+.fx-cast-sigil.small {
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  font-size: 18px;
+  animation-duration: 0.68s;
 }
 @keyframes fx-cast-sigil {
   0% {
@@ -7887,23 +7983,139 @@ body[data-gfx='low'] .set-pill.bump {
 }
 
 .shop-body {
-  display: grid;
-  place-items: center;
-  padding: 30px 0 20px;
+  display: block;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 30px 24px 20px;
+}
+/* THE FLOWING SHELF (2026-08-19): packs sit in an open, centered
+   flow - no product boxes. The wrapper card styling moved into the
+   hover panel; what remains on the shelf is the pack itself, its
+   name, and the floating buy pill. */
+.shop-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px 34px;
+  justify-content: center;
+  align-items: flex-start;
 }
 .product {
+  position: relative;
   display: flex;
-  gap: clamp(22px, calc(var(--vw1) * 4), 48px);
+  flex-direction: column;
   align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: 860px;
-  padding: clamp(20px, calc(var(--vw1) * 3), 38px);
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) + 4px);
+  gap: 10px;
+  flex: 0 0 auto;
+  width: 218px;
+  max-width: 218px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+/* the hover panel (2026-08-19 restyle): a small parchment card that
+   floats above the pack, with a header strip, the odds as coloured
+   rarity chips and an arrow pointing down at the pack. */
+.product-info {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%) translateY(calc(-100% - 14px));
+  width: min(300px, calc(var(--vw1) * 86));
+  max-width: none;
+  padding: 0;
+  border: 1px solid rgba(255, 214, 130, 0.34);
+  border-radius: 12px;
   background:
-    radial-gradient(ellipse at 18% 10%, rgba(255, 205, 110, 0.09), transparent 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.28));
+    radial-gradient(ellipse at 18% 0%, rgba(255, 205, 110, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(22, 25, 42, 0.99), rgba(10, 12, 22, 0.99));
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.7),
+    0 0 26px rgba(255, 205, 110, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s var(--ease),
+    transform 0.24s cubic-bezier(0.2, 1.2, 0.4, 1);
+  z-index: 6;
+}
+/* the caret pointing at the pack */
+.product-info::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: linear-gradient(135deg, rgba(22, 25, 42, 0.99), rgba(10, 12, 22, 0.99));
+  border-right: 1px solid rgba(255, 214, 130, 0.34);
+  border-bottom: 1px solid rgba(255, 214, 130, 0.34);
+}
+.product:hover .product-info,
+.product:focus-within .product-info {
+  opacity: 1;
+  transform: translateX(-50%) translateY(calc(-100% - 18px));
+}
+/* the header strip: says what this pack IS at a glance */
+.product-tip {
+  display: block;
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 214, 130, 0.07);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffd682;
+}
+.product-desc {
+  padding: 9px 12px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--txt);
+  margin: 0;
+}
+.product-desc b {
+  color: var(--r-epic-1);
+}
+.product-odds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 12px 11px;
+  font-size: 11px;
+  color: var(--txt-dim);
+  margin: 0;
+}
+/* the odds read as rarity chips - colour coded, not a text wall */
+.product-odds > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+.product-odds > span b {
+  font-weight: 800;
+  color: var(--txt-faint);
+}
+/* touch screens cannot hover - the info flows inline instead */
+@media (hover: none) {
+  .product {
+    width: auto;
+    max-width: 320px;
+  }
+  .product-info {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    width: 100%;
+  }
 }
 .product-pack {
   position: relative;
@@ -7947,25 +8159,24 @@ body[data-gfx='low'] .set-pill.bump {
 .product:hover .product-sheen {
   left: 125%;
 }
-.product-info {
-  max-width: 430px;
-}
 .product-name {
   font-family: 'Cinzel', Georgia, serif;
-  font-size: 27px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  margin: 0 0 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 0;
   background: linear-gradient(120deg, #fff3d0, #ffd977 45%, #f5c05a);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .product-desc {
-  font-size: 14px;
+  font-size: 12.5px;
   line-height: 1.6;
   color: var(--txt);
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 .product-desc b {
   color: var(--r-epic-1);
@@ -7973,10 +8184,40 @@ body[data-gfx='low'] .set-pill.bump {
 .product-odds {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 11px;
   color: var(--txt-dim);
-  margin: 0 0 12px;
+  margin: 0;
+}
+/* the buy pill is ALWAYS visible, in the flow below the pack - the
+   tooltip floats above and never covers it */
+.product .buy-pack {
+  position: relative;
+  z-index: 2;
+  margin-top: 2px;
+  min-width: 132px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 197, 111, 0.4);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 214, 130, 0.16), transparent 60%),
+    rgba(230, 171, 82, 0.1);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px rgba(255, 255, 255, 0.08);
+  transition:
+    transform 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    opacity 0.25s ease;
+}
+.product:hover .buy-pack:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: rgba(245, 197, 111, 0.8);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.55),
+    0 0 22px rgba(255, 205, 110, 0.3),
+    inset 0 1px rgba(255, 255, 255, 0.1);
 }
 .product-odds b {
   color: var(--txt);
@@ -8064,6 +8305,46 @@ body[data-gfx='low'] .set-pill.bump {
   --pk-stud1: #ff9d9d;
   --pk-stud2: #d64c5e;
   --pk-bgglow: rgba(186, 120, 255, 0.24);
+}
+/* the daily freebie: parchment over slate - a calendar page, not a
+   vault */
+.pk-face.pk-daily {
+  --pk-hi: #3c4a3a;
+  --pk-mid: #25301f;
+  --pk-lo: #101408;
+  --pk-a: #b8d9a8;
+  --pk-glow: rgba(170, 214, 150, 0.4);
+  --pk-stud1: #e9f2d8;
+  --pk-stud2: #93b57e;
+  --pk-bgglow: rgba(150, 200, 120, 0.13);
+}
+/* the Archive: the Concord's register - gold ink on ink-dark blue */
+.pk-face.pk-archive {
+  --pk-hi: #3a3f6e;
+  --pk-mid: #232749;
+  --pk-lo: #0d0f22;
+  --pk-a: #ffd682;
+  --pk-glow: rgba(255, 205, 110, 0.5);
+  --pk-stud1: #ffe6a3;
+  --pk-stud2: #f5c05a;
+  --pk-bgglow: rgba(96, 120, 220, 0.28);
+}
+/* the featured pact: two houses, two metals - brass and copper */
+.pk-face.pk-featured {
+  --pk-hi: #5a3f2b;
+  --pk-mid: #332419;
+  --pk-lo: #160f08;
+  --pk-a: #f0c48a;
+  --pk-glow: rgba(240, 190, 120, 0.5);
+  --pk-stud1: #ffe2ae;
+  --pk-stud2: #d98a52;
+  --pk-bgglow: rgba(214, 150, 90, 0.2);
+}
+/* the daily page is paper, not foil: a plainer weave */
+.pk-daily .pk-weave {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 12px);
 }
 /* foil texture: vertical fluting + faint horizontal weave + a whisper
    of diagonal brush */
@@ -8370,6 +8651,21 @@ body[data-gfx='low'] .set-pill.bump {
 }
 .product-pack .pk-emblem i {
   --pk-icon-sz: 46px;
+}
+/* the featured pack carries TWO faction crests, side by side */
+.pk-emblem.pk-emblem-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8%;
+}
+.pk-emblem.pk-emblem-pair i {
+  position: relative;
+  inset: auto;
+  font-size: calc(var(--pk-icon-sz, 46px) * 0.62);
+}
+.pk-emblem.pk-emblem-pair i + i {
+  margin-left: 2%;
 }
 /* the pip fan: the pack SIZE drawn as tiny fanned cards - three on
    the budget shelf, five above it */
@@ -16269,6 +16565,10 @@ body[data-gfx='low'] .turn-clock.crit {
 
    image-rendering: pixelated stays - the art is authored with hard
    edges, so any smoothing at card scale reads as blur.
+
+   FULLY CRISP (2026-08-19, owner ruling): all softening experiments
+   are retired. Legend art, rival portraits, every render site draws
+   at nearest-neighbour with NO filter - the pixels are the point.
    ============================================================= */
 .art-portrait,
 .bart-portrait {
@@ -22390,7 +22690,9 @@ body[data-gfx='low'] .mb-spores {
   gap: 20px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
   justify-content: center;
-  align-items: start;
+  /* stretch, not start: the two chapter cards sit in one row and
+     must read as a matched pair, whatever their copy length is */
+  align-items: stretch;
   width: 100%;
   margin: clamp(16px, calc(var(--vh1) * 6), 54px) auto 14px;
 }
@@ -22500,6 +22802,9 @@ body[data-gfx='low'] .mb-spores {
   align-items: flex-start;
   gap: 9px;
   padding: 20px 22px 20px;
+  /* fill the stretched card so the CTA can bottom-align: the shorter
+     chapter's gap lands above its Open-chapter button, never under it */
+  flex: 1;
 }
 .ch-kicker {
   font-size: 9.5px;
@@ -22551,7 +22856,9 @@ body[data-gfx='low'] .mb-spores {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  /* bottom-anchored: both cards' CTAs sit on the same line, whatever
+     the description length, so the pair reads as equal heights */
+  margin-top: auto;
   padding: 8px 13px 8px 15px;
   border-radius: 999px;
   border: 1px solid rgba(245, 197, 111, 0.4);
@@ -23793,13 +24100,11 @@ body[data-gfx='low'] .c2-glow {
   border-color: color-mix(in srgb, var(--rival-b) 58%, transparent);
 }
 
-/* Rival plates use the same full-art portrait law as ordinary legend cards:
-   a complete opaque scene, face high in the frame, with the text plate
-   allowed to own the lower edge. The normal-card source is 128 x 176 and
-   `cover` crops it like the collection/battle card does. */
+/* Rival plates follow the 64x88 law: the portrait frame is the art's
+   native size, no upscale. */
 .rival-art.has-portrait {
-  flex-basis: 128px;
-  min-height: 128px;
+  flex-basis: 64px;
+  min-height: 88px;
   margin: 6px 10px 0;
   border: 1px solid color-mix(in srgb, var(--rival-a) 35%, rgba(255, 255, 255, 0.12));
   border-radius: 10px 10px 3px 3px;
@@ -24228,9 +24533,10 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* The bust renders the FULL 128x176 legend-art frame, pixel-crisp at its
-   native 1x scale (the same art contract as the legend cards - see
-   .art-portrait), fully inside the bar. No crop, no overhang. */
+/* RIVAL PORTRAITS are their own asset family (128x176 - see
+   assets/rivals/MANIFEST.csv), and the bust renders them at that
+   native size: 128x176, no upscale, no crop. The 64x88 law applies
+   to LEGEND art; this frame shows rivals only. */
 .chapter-dialogue-bust {
   position: relative;
   align-self: center;
@@ -24382,7 +24688,8 @@ html.mqw640 .chapter-dialogue-bar {
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 0;
 }
-/* half-scale (64x88) keeps the pixel grid even on small screens */
+/* half-scale (64x88) on small screens keeps the rival portrait's
+   pixel grid even */
 html.mqw640 .chapter-dialogue-bust {
   width: 64px;
   height: 88px;
@@ -24468,7 +24775,7 @@ html.mqw640 .chapter-dialogue-foot {
 .rival-bark-face {
   flex: 0 0 auto;
   width: 64px;
-  height: 88px; /* half of the 128x176 art frame - even pixel grid */
+  height: 88px; /* the native 64x88 art frame */
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24535,9 +24842,10 @@ html.mqw640 .rival-bark {
   width: min(340px, calc(var(--vw1) * 88));
   gap: 9px;
 }
+/* 64x88 law: the mobile faces are the desktop faces */
 html.mqw640 .rival-bark-face {
-  width: 32px;
-  height: 44px;
+  width: 64px;
+  height: 88px;
 }
 html.mqw640 .rival-bark-text {
   font-size: 12.5px;
@@ -24619,7 +24927,7 @@ html.mqw640 .rival-bark-text {
 .nav-guide-face {
   flex: 0 0 auto;
   width: 64px;
-  height: 88px; /* half of the 128x176 art frame - even pixel grid */
+  height: 88px; /* the native 64x88 art frame */
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24682,8 +24990,8 @@ html.mqw640 .nav-guide {
   gap: 9px;
 }
 html.mqw640 .nav-guide-face {
-  width: 32px;
-  height: 44px;
+  width: 64px;
+  height: 88px;
 }
 html.mqw640 .nav-guide-text {
   font-size: 12px;
@@ -24986,7 +25294,7 @@ html.mqw640 .nav-guide-text {
 .tutor-face {
   flex: 0 0 auto;
   width: 64px;
-  height: 88px; /* half-scale of the 128x176 frame - even pixel grid */
+  height: 88px; /* the native 64x88 frame */
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -25030,8 +25338,8 @@ html.mqw640 .tutor {
   width: auto;
 }
 html.mqw640 .tutor-face {
-  width: 32px;
-  height: 44px;
+  width: 64px;
+  height: 88px;
 }
 
 /* The script's marked choices: a slow golden pulse says "these, next".
@@ -25575,6 +25883,372 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   }
   .rb-fields {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---- the wheel of seven (rulebook) ----
+   Rendered as the Concord's chalk-and-stone inscription: a worn
+   slate slab, an engraved ring of tick marks, two carved runes in
+   each element's sector, and chalk-cut spokes. Hover states: the
+   hovered spoke blooms, its prey burns gold, its predator chills,
+   its sector's runes wake, everything else dims, and the detail
+   panel speaks the matchup. The ring's slow turn is the only idle
+   motion - it pauses while a spoke is under the cursor. */
+.rule-card-wheel {
+  grid-column: 1 / -1;
+}
+.rb-wheel-intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--txt-faint);
+}
+.rb-wheel-intro b {
+  color: #ffd682;
+}
+.rb-wheel-stage {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+  padding: 6px 4px 14px;
+}
+.element-wheel {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  flex: 0 0 auto;
+  /* the slab: worn slate with a faint oil-sheen and a veiled light
+     from the upper left */
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 226, 170, 0.08), transparent 40%),
+    radial-gradient(circle at 62% 74%, rgba(0, 0, 0, 0.5), transparent 58%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(28deg, rgba(0, 0, 0, 0.08) 0 3px, transparent 3px 9px),
+    radial-gradient(circle at 50% 50%, #141826 0%, #0d101d 62%, #090b14 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 130, 0.08),
+    0 18px 46px rgba(0, 0, 0, 0.62),
+    inset 0 2px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -3px 10px rgba(0, 0, 0, 0.75);
+}
+/* a chalk line, scored once, with the shadow of the scoring */
+.ew-ring {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 214, 130, 0.22);
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 5px rgba(0, 0, 0, 0.16),
+    inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  animation: ew-ring-turn 120s linear infinite;
+}
+/* the engraved tick ring: 96 fine cuts, chalk-faded */
+.ew-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 214, 130, 0.16) 0deg 0.55deg, transparent 0.55deg 3.75deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+}
+.ew-ring::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 214, 130, 0.1);
+  animation: ew-ring-turn-back 90s linear infinite;
+}
+.element-wheel:hover .ew-ring,
+.element-wheel:hover .ew-ring::after {
+  animation-play-state: paused;
+}
+@keyframes ew-ring-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ew-ring-turn-back {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+.ew-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.ew-arrow {
+  stroke: rgba(255, 214, 130, 0.2);
+  stroke-width: 0.55;
+  stroke-dasharray: 1.4 2.8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px rgba(255, 214, 130, 0.14));
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    filter 0.2s ease;
+}
+.ew-arrow.hot {
+  stroke: #ffd050;
+  stroke-width: 1.3;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 4px rgba(255, 208, 80, 0.85));
+}
+/* the carved glyphs between the spokes */
+.ew-rune {
+  fill: none;
+  stroke: rgba(255, 224, 160, 0.3);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px rgba(255, 214, 130, 0.12));
+  transition:
+    stroke 0.25s ease,
+    filter 0.25s ease,
+    opacity 0.25s ease;
+}
+.element-wheel[data-ew-active] .ew-rune:not(.ew-rune-hot):not(.ew-rune-cold) {
+  opacity: 0.35;
+}
+.ew-rune.ew-rune-hot {
+  stroke: #ffd682;
+  stroke-width: 1.3;
+  filter: drop-shadow(0 0 3px rgba(255, 208, 80, 0.9));
+}
+.ew-rune.ew-rune-cold {
+  stroke: #9fb6cc;
+  filter: drop-shadow(0 0 2px rgba(159, 182, 204, 0.6));
+}
+.ew-tick-ring {
+  stroke: rgba(255, 214, 130, 0.14);
+  stroke-width: 0.5;
+}
+.ew-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  color: var(--el, #fff);
+  /* a carved disc: dark stone, a scored rim, light falling from
+     above, the element's own glow seeping through the grain */
+  background:
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--el, #fff) 20%, transparent), transparent 64%),
+    radial-gradient(circle at 50% 50%, rgba(16, 19, 32, 0.96), rgba(8, 10, 18, 0.98));
+  border: 1px solid color-mix(in srgb, var(--el, #fff) 45%, transparent);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.28),
+    0 0 12px color-mix(in srgb, var(--el, #fff) 20%, transparent);
+  cursor: var(--cur-pointer);
+  transition:
+    transform 0.24s var(--ease),
+    opacity 0.24s ease,
+    filter 0.24s ease,
+    border-color 0.24s ease,
+    box-shadow 0.24s ease;
+}
+/* the chisel's kiss: a second scored ring just inside the rim */
+.ew-node::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 224, 160, 0.16);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.ew-node i {
+  font-size: 26px;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--el, #fff) 55%, transparent));
+}
+.ew-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+  transition: color 0.24s ease, text-shadow 0.24s ease;
+}
+.ew-node:hover {
+  transform: translate(-50%, -50%) scale(1.16);
+}
+/* an active hover dims the rest of the wheel and names the roles */
+.element-wheel[data-ew-active] .ew-node:not(.ew-focus):not(.ew-prey):not(.ew-predator) {
+  opacity: 0.22;
+  filter: saturate(0.3);
+}
+.ew-node.ew-focus {
+  transform: translate(-50%, -50%) scale(1.18);
+  border-color: var(--el, #fff);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
+    0 0 22px color-mix(in srgb, var(--el, #fff) 55%, transparent),
+    0 0 44px color-mix(in srgb, var(--el, #fff) 22%, transparent);
+}
+.ew-node.ew-focus .ew-label {
+  color: #fff;
+  text-shadow: 0 0 10px var(--el, #fff);
+}
+.ew-node.ew-prey {
+  border-color: #ffd050;
+  color: #ffd050;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
+    0 0 20px rgba(255, 208, 80, 0.65),
+    0 0 40px rgba(255, 170, 50, 0.3);
+  animation: ew-prey-pulse 0.9s ease-in-out infinite alternate;
+}
+.ew-node.ew-prey .ew-label {
+  color: #ffd682;
+  text-shadow: 0 0 8px rgba(255, 208, 80, 0.6);
+}
+@keyframes ew-prey-pulse {
+  from {
+    box-shadow:
+      inset 0 2px 5px rgba(0, 0, 0, 0.7),
+      0 0 16px rgba(255, 208, 80, 0.5),
+      0 0 32px rgba(255, 170, 50, 0.22);
+  }
+  to {
+    box-shadow:
+      inset 0 2px 5px rgba(0, 0, 0, 0.7),
+      0 0 26px rgba(255, 208, 80, 0.85),
+      0 0 52px rgba(255, 170, 50, 0.4);
+  }
+}
+.ew-node.ew-predator {
+  border-color: #9fb6cc;
+  color: #9fb6cc;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
+    0 0 16px rgba(159, 182, 204, 0.5),
+    inset 0 1px rgba(255, 255, 255, 0.1);
+}
+.ew-node.ew-predator .ew-label {
+  color: #9fb6cc;
+  text-shadow: 0 0 8px rgba(159, 182, 204, 0.5);
+}
+.ew-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  text-align: center;
+  pointer-events: none;
+  /* the boss of the slab: dark, scored twice, faint gold through
+     the middle */
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 214, 130, 0.1), transparent 66%),
+    radial-gradient(circle at 50% 50%, rgba(12, 14, 26, 0.97), rgba(7, 8, 16, 0.98));
+  border: 1px solid rgba(255, 214, 130, 0.35);
+  box-shadow:
+    inset 0 0 0 4px rgba(0, 0, 0, 0.3),
+    inset 0 2px 5px rgba(0, 0, 0, 0.8),
+    0 0 26px rgba(0, 0, 0, 0.55);
+}
+.ew-hub::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 214, 130, 0.22);
+}
+.ew-hub-title {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffd682;
+  text-shadow: 0 0 10px rgba(255, 200, 90, 0.4);
+}
+.ew-hub-sub {
+  font-size: 9.5px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
+  max-width: 88px;
+}
+.ew-detail {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 130, 0.22);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 214, 130, 0.07), transparent 55%),
+    rgba(5, 7, 15, 0.55);
+}
+.ew-detail > i {
+  font-size: 26px;
+  color: #ffd682;
+  filter: drop-shadow(0 0 10px rgba(255, 200, 90, 0.6));
+}
+.ew-detail-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.ew-detail-copy h4 {
+  margin: 0;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--txt);
+}
+.ew-detail-copy p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--txt-faint);
+}
+.ew-detail-math {
+  font-size: 11px !important;
+  letter-spacing: 0.05em;
+  color: var(--txt-dim) !important;
+}
+.ew-detail-math b {
+  color: #ffd682;
+}
+@media (max-width: 640px) {
+  .element-wheel {
+    width: 252px;
+    height: 252px;
+  }
+  .ew-node {
+    width: 52px;
+    height: 52px;
+  }
+  .ew-node i {
+    font-size: 20px;
   }
 }
 
@@ -26146,15 +26820,16 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
    right-aligned into a column, because a column of figures is what
    makes the arithmetic checkable at a glance. */
 .dmg-breakdown {
+  --dpb-shift: 0px;
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(4px);
   z-index: 40;
   display: block;
   width: max-content;
-  min-width: 190px;
-  max-width: 260px;
+  min-width: 210px;
+  max-width: min(400px, calc(var(--vw1) * 86));
   padding: 9px 11px 10px;
   border-radius: 11px;
   border: 1px solid rgba(255, 179, 71, 0.42);
@@ -26179,15 +26854,15 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
 .dmg-preview:focus-visible .dmg-breakdown {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(0);
 }
 .dmg-preview.flip .dmg-breakdown {
   bottom: auto;
   top: calc(100% + 8px);
-  transform: translateX(-50%) translateY(-4px);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(-4px);
 }
 .dmg-preview.flip:hover .dmg-breakdown {
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(calc(-50% + var(--dpb-shift))) translateY(0);
 }
 .dpb-title {
   display: block;
@@ -26200,49 +26875,71 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.dpb-row {
+/* the chip chain: factors read left to right, wrapping when the
+   panel hits its width - horizontal instead of a tall ledger */
+.dpb-line {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 1.5px 0;
-  line-height: 1.35;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 6px;
+  padding: 2px 0;
 }
-.dpb-k {
-  min-width: 0;
-  color: var(--txt-dim);
-  font-weight: 600;
+.dpb-line + .dpb-line {
+  margin-top: 2px;
 }
-.dpb-v {
-  flex: 0 0 auto;
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  color: #fff;
-}
-/* subtotals close a section: the base damage, and the answer */
-.dpb-row.sub {
-  margin-top: 4px;
-  padding-top: 5px;
+.dpb-line-total {
+  margin-top: 5px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
-.dpb-row.sub .dpb-k {
+.dpb-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+.dpb-chip b {
+  color: var(--txt-dim);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.dpb-chip i {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 10.5px;
+  color: #fff;
+}
+.dpb-link {
+  font-style: normal;
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+}
+/* subtotals close a section: the base damage, and the answer */
+.dpb-chip.sub {
+  border-color: rgba(255, 179, 71, 0.42);
+  background: rgba(255, 179, 71, 0.08);
+}
+.dpb-chip.sub b {
   color: var(--txt);
   font-weight: 800;
 }
-.dpb-row.tot .dpb-v {
+.dpb-chip.tot i {
   color: #ffb347;
   font-size: 12px;
 }
 .dpb-hit {
-  margin: 6px 0 2px;
   color: var(--txt-faint);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-}
-.dpb-hit:first-of-type {
-  margin-top: 0;
+  padding: 1px 4px 1px 0;
 }
 .dpb-note {
   margin-top: 6px;
@@ -26787,62 +27484,128 @@ body[data-gfx='low'] .shop-code-scrim {
   background: color-mix(in srgb, var(--r-epic-1) 24%, transparent);
   color: #fff;
 }
+/* THE CHAPTER TABS are colour-coded by chapter: the Road wears gold,
+   the Concord wears register-blue. */
+.echo-seg.echo-chapters .echo-seg-btn i {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.echo-seg-btn.echo-chapter[data-echo-chapter='ch1'].sel {
+  background: linear-gradient(180deg, rgba(255, 205, 110, 0.28), rgba(230, 171, 82, 0.16));
+  color: #ffe6a3;
+  border: 1px solid rgba(245, 197, 111, 0.5);
+  border-radius: 999px;
+}
+.echo-seg-btn.echo-chapter[data-echo-chapter='ch2'].sel {
+  background: linear-gradient(180deg, rgba(120, 150, 235, 0.28), rgba(90, 120, 200, 0.16));
+  color: #cfe0ff;
+  border: 1px solid rgba(150, 180, 255, 0.5);
+  border-radius: 999px;
+}
 
-/* ---- the legend cards ---- */
+/* ---- the legend cards (2026-08-19 restyle) ----
+   CARD-shaped, not tile-shaped: the art owns the whole top of the
+   card like the collection does, and the numbers read underneath. */
 .echo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: 12px;
-  max-width: 900px;
-  margin: 16px auto 44px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  max-width: 1100px;
+  margin: 16px auto 0;
+}
+/* the sentinel that feeds the lazy batches */
+.echo-sentinel {
+  display: grid;
+  place-items: center;
+  max-width: 1100px;
+  margin: 0 auto 44px;
+  padding: 10px 0;
+}
+.echo-sentinel[hidden] {
+  display: none;
+}
+.echo-sentinel span {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--r-epic-1);
+  animation: ew-ring-turn 0.9s linear infinite;
 }
 .ec-card {
+  --rar: var(--r-epic-1);
   position: relative;
   display: flex;
-  gap: 12px;
-  padding: 11px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 11px;
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 14px;
   background: linear-gradient(
-    140deg,
-    color-mix(in srgb, var(--fc-primary) 9%, rgba(255, 255, 255, 0.02)),
+    160deg,
+    color-mix(in srgb, var(--rar) 8%, rgba(255, 255, 255, 0.02)),
     rgba(255, 255, 255, 0.02)
   );
   overflow: hidden;
   transition:
     border-color 0.2s var(--ease),
-    transform 0.2s var(--ease);
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
 }
 .ec-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--fc-primary) 45%, transparent);
+  transform: translateY(-4px) scale(1.02);
+  border-color: color-mix(in srgb, var(--rar) 60%, transparent);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.5),
+    0 0 22px color-mix(in srgb, var(--rar) 14%, transparent);
 }
 /* A legend one copy from a level is the reason to be on this page. */
 .ec-card.ready {
   border-color: color-mix(in srgb, var(--r-epic-1) 55%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r-epic-1) 14%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--r-epic-1) 14%, transparent),
+    0 0 22px color-mix(in srgb, var(--r-epic-1) 14%, transparent);
 }
 .ec-card.maxed {
   opacity: 0.62;
 }
 .ec-art {
   position: relative;
-  flex: 0 0 auto;
-  width: 62px;
-  height: 84px;
+  width: 100%;
+  aspect-ratio: 64 / 88; /* the legend portrait frame, card-top */
   display: grid;
   place-items: center;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--fc-primary) 40%, transparent);
-  border-radius: 9px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.4);
   color: var(--fc-primary);
-  font-size: 24px;
+  font-size: 26px;
+}
+/* the rarity badge: a small crest on the art's corner, coloured by
+   the card's own tier - the shelf reads at a glance */
+.ec-rarity {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  padding: 1.5px 5px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--rar) 55%, transparent);
+  background: rgba(5, 6, 13, 0.88);
+  color: var(--rar);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 .ec-art img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 22%;
   image-rendering: pixelated;
 }
 .ec-pips {
@@ -26870,9 +27633,10 @@ body[data-gfx='low'] .shop-code-scrim {
 .ec-body {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
+  padding: 0 2px;
 }
 .ec-top {
   display: flex;
@@ -26964,12 +27728,25 @@ body[data-gfx='low'] .shop-code-scrim {
   cursor: pointer;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    opacity 0.2s ease;
 }
-.ec-buy:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgba(192, 124, 255, 0.38), rgba(122, 74, 200, 0.26));
+/* AFFORDABLE: the pill lights up - the affordance reads before the
+   click, which is the point of the color coding. */
+.ec-buy.ok {
+  border-color: color-mix(in srgb, var(--r-epic-1) 90%, transparent);
+  background: linear-gradient(180deg, rgba(192, 124, 255, 0.4), rgba(122, 74, 200, 0.28));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--r-epic-1) 35%, transparent);
+}
+.ec-buy.ok:hover {
+  background: linear-gradient(180deg, rgba(192, 124, 255, 0.55), rgba(122, 74, 200, 0.38));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--r-epic-1) 55%, transparent);
 }
 .ec-buy:disabled {
-  opacity: 0.38;
+  opacity: 0.32;
   cursor: not-allowed;
 }
 .ec-buy i {
@@ -27017,11 +27794,29 @@ body[data-gfx='low'] .ec-card {
   transition: none;
 }
 
-.shop-shelf {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
-  align-items: stretch;
+/* the two shelf sections: featured week and chapter packs */
+.shop-shelf-head {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 -6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd682;
+}
+.shop-shelf-head i {
+  font-size: 19px;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 90, 0.45));
+}
+.shelf-note {
+  flex-basis: 100%;
+  text-align: center;
 }
 .buy-pack {
   min-width: 120px;
@@ -28970,7 +29765,7 @@ body[data-gfx='low'] .qb-body {
 }
 .cd-card {
   position: relative;
-  width: min(560px, 100%);
+  width: min(880px, 100%);
   max-height: calc(var(--vh1) * 88);
   overflow-y: auto;
   border: 1px solid var(--line-2);
@@ -29003,41 +29798,84 @@ body[data-gfx='low'] .qb-body {
   padding: 18px 18px 20px;
 }
 
-/* ---- hero: portrait + identity ---- */
+/* ---- hero: the split layout (2026-08-19) ----
+   The art owns the FULL height of the dialog on the left; every
+   word of information lives in the right column. */
 .cd-hero {
-  display: flex;
-  gap: 15px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: clamp(200px, 34%, 320px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
   padding-right: 34px; /* clear the close button */
-  margin-bottom: 14px;
+  margin-bottom: 0;
+  min-height: 100%;
 }
+.cd-art-col {
+  position: relative;
+  min-height: 100%;
+}
+/* the art fills its column: as tall as the whole popup, cropping
+   like the collection card does */
 .cd-art {
-  flex: 0 0 auto;
-  width: 92px;
-  height: 126px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  max-height: calc(var(--vh1) * 80);
   display: grid;
   place-items: center;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--fc-primary) 45%, transparent);
-  border-radius: 11px;
+  border-radius: 14px;
   background:
     radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--el) 22%, transparent), transparent 70%),
     rgba(0, 0, 0, 0.4);
-  font-size: 40px;
+  font-size: 32px;
   color: var(--el);
 }
 .cd-art img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* the FULL frame, never cropped: the 64x88 portrait sits whole
+     inside the column, letterboxed on the tinted panel */
+  object-fit: contain;
+  object-position: center;
   image-rendering: pixelated;
 }
 .cd-art.locked img,
 .cd-art.locked i {
   filter: grayscale(1) brightness(0.6);
 }
+.cd-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 4px 0 2px;
+}
 .cd-ident {
   min-width: 0;
+}
+/* THE WHEEL OF SEVEN - the element's matchup line under the tags. */
+.cd-wheel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--txt-faint);
+}
+.cd-wheel i {
+  font-size: 14px;
+  color: var(--el, #ffd050);
+  filter: drop-shadow(0 0 6px var(--el, #ffd050));
+}
+.cd-wheel b {
+  color: var(--txt);
+  font-weight: 700;
 }
 .cd-faction {
   display: block;
@@ -29604,8 +30442,14 @@ body[data-gfx='low'] .card-ready {
 
 @media (max-width: 640px) {
   .cd-hero {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    padding-right: 0;
+  }
+  /* narrow screens: the art becomes a full-width banner, not a
+     column - the split layout is a desktop luxury */
+  .cd-art {
+    position: relative;
+    max-height: 220px;
   }
   .cd-modal {
     padding: 12px;
@@ -29714,4 +30558,212 @@ span.lg-portrait i {
 .nav-guide-face-empty i {
   font-size: 26px;
   color: rgba(255, 205, 130, 0.45);
+}
+
+
+/* =============================================================
+   THE MICROANIMATION SWEEP (2026-08-19)
+   -------------------------------------------------------------
+   Every interactable that was missing motion gets it here, in one
+   consistent language: lift on hover, press on click, and the
+   shop's own entrance/float rhythms. All respect body[data-gfx=low]
+   and prefers-reduced-motion further down the file.
+   ============================================================= */
+
+/* ---- the upgrade panel: buttons that grow into the press ---- */
+.up-btn {
+  transition:
+    transform 0.18s var(--ease),
+    box-shadow 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+.up-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--r-epic-1) 70%, transparent);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.4),
+    0 0 14px color-mix(in srgb, var(--r-epic-1) 25%, transparent);
+}
+.up-btn:not(:disabled):active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: none;
+}
+.up-btn:not(:disabled):hover .up-coin,
+.up-btn:not(:disabled):hover .up-icon {
+  transform: translateY(-1px);
+}
+.up-coin,
+.up-icon {
+  transition: transform 0.18s var(--ease);
+}
+.up-shop {
+  transition:
+    color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.up-shop:hover {
+  transform: translateX(2px);
+}
+.up-pip {
+  transition:
+    transform 0.16s var(--ease),
+    box-shadow 0.16s var(--ease),
+    border-color 0.16s var(--ease);
+}
+.up-pip:not(.on):hover {
+  transform: scale(1.25);
+  border-color: color-mix(in srgb, var(--r-epic-1) 60%, transparent);
+}
+
+/* ---- the shop tabs and segment buttons ---- */
+.shop-tab {
+  transition:
+    color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.shop-tab:hover {
+  transform: translateY(-1px);
+}
+.shop-tab:active {
+  transform: translateY(0) scale(0.96);
+}
+.echo-seg-btn {
+  transition:
+    background 0.16s var(--ease),
+    color 0.16s var(--ease),
+    transform 0.16s var(--ease);
+}
+.echo-seg-btn:hover {
+  transform: translateY(-1px);
+  color: var(--txt);
+}
+.echo-seg-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* ---- the shelf entrance: products rise in, one after another ---- */
+.product {
+  animation: shelf-in 0.5s var(--ease) backwards;
+}
+.product:nth-of-type(1) { animation-delay: 0.02s; }
+.product:nth-of-type(2) { animation-delay: 0.07s; }
+.product:nth-of-type(3) { animation-delay: 0.12s; }
+.product:nth-of-type(4) { animation-delay: 0.17s; }
+.product:nth-of-type(5) { animation-delay: 0.22s; }
+@keyframes shelf-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* the pack breathes while it sits on the shelf. The float rides the
+   standalone `translate` property so it composes with the hover
+   transform instead of owning it. */
+.product-pack {
+  animation: pack-float 4.2s ease-in-out infinite;
+}
+.product:hover .product-pack {
+  animation-play-state: paused;
+  translate: 0 0;
+}
+@keyframes pack-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
+/* the price pill shimmers as the cursor lands (::before - the
+   ::after slot belongs to the hover-bleed jitter fix) */
+.product .buy-pack:not(:disabled) {
+  position: relative;
+  overflow: hidden;
+}
+.product .buy-pack:not(:disabled)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.45s var(--ease);
+  pointer-events: none;
+  z-index: 0;
+}
+.product .buy-pack:not(:disabled):hover::before {
+  left: 120%;
+}
+.product .buy-pack > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- the echo cards arrive as each lazy batch renders ---- */
+.ec-card {
+  animation: shelf-in 0.34s var(--ease) backwards;
+}
+.ec-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, #ffd682 55%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 214, 130, 0.2), rgba(230, 171, 82, 0.1));
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition:
+    transform 0.18s var(--ease),
+    box-shadow 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+.ec-up:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 214, 130, 0.9);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+.ec-up:not(:disabled):active {
+  transform: translateY(0) scale(0.95);
+}
+.ec-up:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+.ec-up i {
+  color: #ffd682;
+  font-size: 12px;
+}
+.ec-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---- the dialog close and the chapter select press ---- */
+.cd-close {
+  transition:
+    transform 0.18s var(--ease),
+    color 0.18s var(--ease),
+    border-color 0.18s var(--ease);
+}
+.cd-close:hover {
+  transform: rotate(90deg);
+}
+.cd-close:active {
+  transform: rotate(90deg) scale(0.92);
 }

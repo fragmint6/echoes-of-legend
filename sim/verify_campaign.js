@@ -217,22 +217,19 @@ ok(
   'the ledger spotlight line is authored (ASCII, names the LEDGER)'
 );
 
-/* NORMAL ECONOMY (owner ruling 2026-08-12): ordinary gates pay 100,
-   the two elites 200, and Gilgamesh 300. Heroic doubles this baseline;
-   Legend pays only at Gate I (the full matrix is exercised separately by
-   verify_campaign_difficulty.js). */
-var normalCoins = S.stages.map(function (st) {
-  return (st.grants || {}).coins || 0;
+/* NORMAL ECONOMY (rewritten 2026-08-19). Coin payouts moved out of the
+   stage data and into the class-based table in js/campaign.js:
+   ordinary gates 100, elites 200, the boss 500 - per difficulty
+   normal 100/200/500, heroic 200/400/750, legend 300/600/1000. The
+   data-side contract is therefore the ABSENCE of coins in grants: a
+   stray authored number would be a second, stale source of truth.
+   (The table itself is asserted in verify_campaign_difficulty.js.) */
+var strayCoins = S.stages.filter(function (st) {
+  return (st.grants || {}).coins != null;
 });
 ok(
-  JSON.stringify(normalCoins) === JSON.stringify([100, 100, 100, 100, 200, 100, 100, 100, 200, 300]),
-  'Normal gate coin baselines follow the ordinary/elite/Gilgamesh law'
-);
-ok(
-  normalCoins.reduce(function (sum, coins) {
-    return sum + coins;
-  }, 0) === 1400,
-  'a complete Normal Road pays exactly 1400 coins'
+  strayCoins.length === 0,
+  'no stage grant carries an authored coin value - the coin table is the single source'
 );
 
 /* THE RARITY LAW (owner ruling 2026-08-10): one legendary per six
@@ -258,11 +255,17 @@ EOL.factions.forEach(function (f) {
     if (st.grants && st.grants.legendPack) packs.push(st.grants.legendPack);
   });
   ok(packs.length === new Set(packs).size, 'no legendary is granted twice');
+  /* THE CROWN LAW, updated 2026-08-19: Gate I now crowns Evil Queen
+     on Legend, so Grimmwood rides the road like every other faction.
+     Its OTHER legendary - Rumpelstiltskin - stays on the starter
+     shelf, because the player boots owning the whole Grimmwood
+     twelve. Huaxia remains withheld (the Chapter II reveal). */
   var wanted = [];
   EOL.factions.forEach(function (f) {
-    if (f.id === 'grimmwood' || f.id === 'huaxia') return;
+    if (f.id === 'huaxia') return;
     f.cards.forEach(function (c) {
-      if (c.rarity === 'legendary') wanted.push(c.id);
+      if (c.rarity === 'legendary' && c.id !== 'grimmwood-rumpelstiltskin')
+        wanted.push(c.id);
     });
   });
   ok(
@@ -270,7 +273,7 @@ EOL.factions.forEach(function (f) {
       wanted.every(function (id) {
         return packs.indexOf(id) >= 0;
       }),
-    'every obtainable faction legendary rides exactly one Legend Pack (' +
+    'every road-crowned legendary rides exactly one Legend Pack - Rumpelstiltskin stays on the starter shelf (' +
       packs.length +
       ' of ' +
       wanted.length +

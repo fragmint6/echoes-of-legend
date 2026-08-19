@@ -49,6 +49,41 @@
   function rich(s) {
     return window.EOL.ui && window.EOL.ui.rich ? window.EOL.ui.rich(s) : String(s);
   }
+  /* THE WHEEL OF SEVEN - the element's prey and its predator, in the
+     game's own words: "Fire sears Nature, and bows to Physical." */
+  function elementWheelLine(card) {
+    var E = window.EOL.engine;
+    if (!E || !E.ELEMENT_BEATS || !card || !card.element) return '';
+    var beats = E.ELEMENT_BEATS;
+    var prey = beats[card.element];
+    var predator = null;
+    Object.keys(beats).forEach(function (el) {
+      if (beats[el] === card.element) predator = el;
+    });
+    if (!prey && !predator) return '';
+    var verbs = {
+      Fire: 'sears',
+      Nature: 'shades',
+      Light: 'dispels',
+      Shadow: 'devours',
+      Magic: 'contains',
+      Lightning: 'strikes',
+      Physical: 'smothers',
+    };
+    return (
+      '<div class="cd-wheel">' +
+      '<i data-icon-domain="game" class="ra ra-cycle"></i>' +
+      '<span>' +
+      esc(card.element) +
+      ' ' +
+      esc(verbs[card.element] || 'answers') +
+      ' <b>' +
+      esc(prey || '-') +
+      '</b>' +
+      (predator ? ' · bows to <b>' + esc(predator) + '</b>' : '') +
+      '</span></div>'
+    );
+  }
   function U() {
     return window.EOL.upgrades;
   }
@@ -374,12 +409,18 @@
       ';--el:' +
       esc(ELEMENT_COLOR[card.element] || '#fff') +
       '">' +
+      /* THE SPLIT LAYOUT (2026-08-19): the art owns the FULL height
+         of the dialog on the left; every word of information lives
+         in the right column. */
+      '<div class="cd-art-col">' +
       '<div class="cd-art' +
       (card.art ? ' has-art' : '') +
       (owned ? '' : ' locked') +
       '">' +
       art +
       '</div>' +
+      '</div>' +
+      '<div class="cd-info-col">' +
       '<div class="cd-ident">' +
       '<span class="cd-faction">' +
       esc(faction.name) +
@@ -417,7 +458,10 @@
           '</span>'
         : '<span class="cd-tag locked"><i class="ri-lock-line"></i>Not owned</span>') +
       '</div>' +
-      '</div>' +
+      /* THE WHEEL OF SEVEN: the element now means something, so the
+         detail says what it means - this legend sears one element and
+         bows to another. */
+      elementWheelLine(card) +
       '</div>' +
       /* THE LORE. Only rendered when the legend actually has some -
          an empty quote block is worse than no quote block. */
@@ -449,7 +493,9 @@
         ? '<p class="cd-skill-note">' + rich(card.ability.note) + '</p>'
         : '') +
       '</div>' +
-      upgradePanel(card);
+      upgradePanel(card) +
+      '</div>' +
+      '</div>';
     return true;
   }
 

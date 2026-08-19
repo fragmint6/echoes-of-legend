@@ -17,8 +17,8 @@ window.EOL.registerFaction({
         type: 'Active',
         name: 'Divine Judgment',
         cost: 60,
-        text: 'If any enemies are <b>Marked</b>, deal <b>130% ATK Lightning Damage</b> to them and reduce their DEF by <b>20% for 2 rounds</b>; otherwise <b>Mark</b> all enemies.',
-        note: null,
+        text: 'If any enemies are <b>Marked</b>: <b>first</b> reduce the DEF of those enemies by <b>20% for 2 rounds</b>, <b>then</b> deal <b>130% ATK Lightning Damage</b> to them. Otherwise, <b>Mark</b> all enemies.',
+        note: 'The DEF drop lands before the bolt - the damage preview already counts it.',
         spec: {
           target: { side: 'enemy', pick: 'all', row: 'any' },
           effects: [
@@ -26,6 +26,10 @@ window.EOL.registerFaction({
               k: 'branch',
               cond: { anyTargetMarked: true },
               then: [
+                /* ORDER IS THE POINT (2026-08-19): the DEF debuff
+                   resolves BEFORE the damage in the same cast, so the
+                   bolt lands against the reduced defence. The damage
+                   preview models this sequence too. */
                 {
                   k: 'stat',
                   stat: 'def',

@@ -29,7 +29,7 @@
 
   var decks = []; // [{id,name,ids,ts}]
   var editing = null; // deck object currently in the editor
-  var stateFilter = { faction: 'all', rarity: 'all', role: 'all', q: '' };
+  var stateFilter = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
   var BY_ID = null;
   var idSeq = 1;
   var hintTimer = null;
@@ -700,6 +700,7 @@
         (stateFilter.faction === 'all' || el.dataset.faction === stateFilter.faction) &&
         (stateFilter.rarity === 'all' || el.dataset.rarity === stateFilter.rarity) &&
         (stateFilter.role === 'all' || el.dataset.role === stateFilter.role) &&
+        (stateFilter.element === 'all' || el.dataset.element === stateFilter.element) &&
         (stateFilter.q === '' || el.dataset.name.indexOf(stateFilter.q) !== -1);
       el.style.display = show ? '' : 'none';
       if (show) any++;
@@ -735,6 +736,26 @@
       });
     });
 
+    /* The Wheel of Seven, in cycle order - the same filter the
+       collection offers. */
+    var elementOpts = [{ value: 'all', text: 'All Elements', icon: 'ra ra-cycle' }];
+    var beats = window.EOL.engine && window.EOL.engine.ELEMENT_BEATS;
+    if (beats) {
+      var order = [];
+      var cur = 'Fire';
+      while (order.length < 7 && order.indexOf(cur) < 0) {
+        order.push(cur);
+        cur = beats[cur];
+      }
+      order.forEach(function (el) {
+        elementOpts.push({
+          value: el,
+          text: el,
+          icon: 'ra ' + (window.EOL.ui.ELEMENT_ICON[el] || 'ra-player'),
+        });
+      });
+    }
+
     window.EOL.ui.buildDropdown(host, 'Faction', factionOpts, function (v) {
       stateFilter.faction = v;
       applyGridFilter();
@@ -745,6 +766,10 @@
     });
     window.EOL.ui.buildDropdown(host, 'Role', roleOpts, function (v) {
       stateFilter.role = v;
+      applyGridFilter();
+    });
+    window.EOL.ui.buildDropdown(host, 'Element', elementOpts, function (v) {
+      stateFilter.element = v;
       applyGridFilter();
     });
 
@@ -759,7 +784,7 @@
     var reset = $('deck-reset');
     if (reset) {
       reset.addEventListener('click', function () {
-        stateFilter = { faction: 'all', rarity: 'all', role: 'all', q: '' };
+        stateFilter = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
         if (s) s.value = '';
         host.querySelectorAll('.dd').forEach(function (dd) {
           dd.classList.remove('is-filtered');

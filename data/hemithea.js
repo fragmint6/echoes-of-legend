@@ -191,21 +191,33 @@ window.EOL.registerFaction({
         /* Differentiated from Isis (Duat), the other revive in the
            game, on every axis that matters: Medea is a PASSIVE (fires
            without spending an action), AUTOMATIC (no choice of who),
-           at a LOWER percentage, and once per battle. Isis is an active
-           35% + Shield the player aims. Same idea, different card. */
-        text: 'The first time an ally is defeated, Medea immediately restores them to <b>30% Max HP</b>.',
+           and once per battle. Isis is an active 35% + Shield the
+           player aims. Same idea, different card.
+
+           BUFFED 2026-08-19 (owner): 30% -> 65%. At 30% the legend she
+           raised usually died to the next basic attack, which made the
+           whole signature feel like a stall rather than a resurrection;
+           65% is a second life that changes the fight, and it stays
+           under Isis's aimed 35% + Shield total value because it is
+           automatic and cannot choose its target. */
+        text: 'The first time an ally is defeated, Medea immediately restores them to <b>65% Max HP</b>.',
         note: 'Once per battle.',
         passive: {
           trigger: 'allyDied',
           effects: [
             {
               k: 'revive',
-              pctMaxHp: 30,
+              pctMaxHp: 65,
               /* `lastFallenAlly` is the same resolver Isis uses: the
                  allyDied trigger fires with the corpse already flagged
                  dead, so an ordinary 'allies' target would skip them. */
               to: 'lastFallenAlly',
               wipe: true,
+              /* `maxStacks: 1` is the whole once-per-battle contract.
+                 The engine's revive case reads it off the REVIVER's
+                 stackTotals, so a second ally death finds the cauldron
+                 spent - enforced at runtime by
+                 sim/verify_chapter2_skills.js. */
               stackTag: 'cauldron-of-youth',
               maxStacks: 1,
             },

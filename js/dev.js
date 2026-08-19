@@ -8,6 +8,16 @@
 
        EOL.dev.coins(5000)     grant coins (negative takes them)
        EOL.dev.grantAll()      own every obtainable card
+       EOL.dev.allCards()      own EVERY card in the game - all 16
+                               factions, legendaries and Chapter II's
+                               withheld shelf included (the one card
+                               it does not grant is the campaign boss,
+                               which is not collectible at all)
+       EOL.dev.wheel()         print the Wheel of Seven (the element
+                               matchup cycle, advantage 1.08)
+       EOL.dev.reconcile()     rebuild the ownership ledger against
+                               the live roster - repairs a save whose
+                               collection counter and grid disagree
        EOL.dev.openRoad()      unlock every campaign gate
        EOL.dev.resetRoad()     blank the campaign + tutorial ONLY
                                (cards and coins kept) and reload
@@ -56,6 +66,70 @@
       );
       vaultNudge();
       return 'owned: ' + econ.ownedCount() + ' / ' + econ.obtainableEntries().length;
+    },
+    /* EVERY CARD, no shop filter: all factions including the Chapter II
+       shelf the shop withholds and every legendary the Crown Law keeps
+       out of packs. `obtainableEntries` deliberately leaves those out,
+       so this reads the faction roster directly.
+
+       THE COUNT MUST MATCH THE GRANT. The first version reported
+       `econ.ownedCount()`, which counts only the OBTAINABLE (Chapter I)
+       shelf - so the command granted 155 cards and then said "55 / 155
+       owned", which read as the command failing. The numerator now
+       asks `owns()` about every id that was just granted, so the
+       number always equals the roster total (or names the gap). */
+    allCards: function () {
+      var econ = window.EOL.econ;
+      if (!econ) return 'economy not loaded';
+      var ids = [];
+      (window.EOL.factions || []).forEach(function (f) {
+        f.cards.forEach(function (c) {
+          ids.push(c.id);
+        });
+      });
+      econ.grant(ids);
+      var owned = ids.filter(function (id) {
+        return econ.owns(id);
+      }).length;
+      vaultNudge();
+      return (
+        'owned: ' +
+        owned +
+        ' / ' +
+        ids.length +
+        (owned === ids.length ? ' (every collectible card)' : ' (some cards failed to grant)')
+      );
+    },
+    /* THE WHEEL OF SEVEN, in one console line - each element sears
+       one and bows to one, advantage 1.08 / disadvantage 1/1.08. */
+    wheel: function () {
+      var E = window.EOL.engine;
+      if (!E || !E.ELEMENT_BEATS) return 'engine not loaded';
+      var lines = ['Wheel of Seven (advantage x1.08, disadvantage the exact reciprocal):'];
+      Object.keys(E.ELEMENT_BEATS).forEach(function (el) {
+        lines.push('  ' + el + ' -> sears ' + E.ELEMENT_BEATS[el]);
+      });
+      return lines.join('\n');
+    },
+    /* THE OWNERSHIP RECONCILE (2026-08-19). The answer to "the
+       collection shows 115 owned but the counter says 55": rebuild
+       the ledger from the live roster, both campaigns' grants and
+       the starter shelf, write it back, and push the corrected
+       snapshot to the account vault. Nothing earned is dropped;
+       stale ids (old names, the boss card, junk rows) are. */
+    reconcile: function () {
+      var econ = window.EOL.econ;
+      if (!econ || !econ.reconcile) return 'economy not loaded';
+      var r = econ.reconcile();
+      vaultNudge();
+      return (
+        'ledger reconciled: ' +
+        r.owned +
+        ' owned (of ' +
+        econ.obtainableEntries().length +
+        ' obtainable)' +
+        (r.changed ? ' - ' + r.dropped + ' stale ids dropped' : ' - already consistent')
+      );
     },
     openRoad: function () {
       var c = window.EOL.campaign;

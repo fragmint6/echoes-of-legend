@@ -153,7 +153,7 @@ window.EOL = window.EOL || {};
       id: 1,
       key: 'the-recruiter',
       rival: 'The Recruiter',
-      portrait: null,
+      portrait: 'assets/rivals/the-recruiter.png',
       mode: 'classic',
       /* In-match teaching is event-driven and reader-paced: no automatic
          round chatter or stale backlog. The instruction remains manually
@@ -381,7 +381,17 @@ window.EOL = window.EOL || {};
            marked move, the handoff, or a battle event. That keeps the
            words current regardless of how quickly the player reads. */
       },
-      grants: { coins: 100 },
+      /* THE OPENING GATE'S SET REWARDS (2026-08-19, owner ruling).
+         Gate I was the one gate whose Heroic tier fell through to a
+         RANDOM Grimmwood epic and whose Legend tier granted nothing,
+         because the gate had no authored companion/legend. The chapter
+         now follows the same set-epic law as every other gate:
+         Heroic pins Big Bad Wolf (the wolf is Grimmwood's set epic),
+         Legend pins Evil Queen (one of Grimmwood's two crowns). The
+         cards are already on the starter shelf, so the grant is the
+         Road writing them down as EARNED - the ceremonies still play
+         and the epilogue says exactly that. */
+      grants: { legendPack: 'grimmwood-evil-queen', companion: 'grimmwood-big-bad-wolf' },
       resultWin: 'The Recruiter closes his ledger - Gate I is yours.',
       resultLose:
         'The Recruiter sets down his quill. "Dead? At MY gate? Embarrassing - for me, Blank, not you. Take the rematch. Nobody has ever died at my gate twice."',
@@ -403,7 +413,7 @@ window.EOL = window.EOL || {};
       id: 2,
       key: 'the-oathkeeper',
       rival: 'The Oathkeeper',
-      portrait: null,
+      portrait: 'assets/rivals/the-oathkeeper.png',
       mode: 'classic',
       aiProfile: 'sentinel',
       /* His words answer battle events and stay until read; he no longer
@@ -478,7 +488,7 @@ window.EOL = window.EOL || {};
         ban: 'My counsel stands in silver, Blank - the two I would strike from his twelve. But it is not me fighting. Refuse freely; the Road grades results, not obedience.',
         six: 'In silver again: the six I would field against him. Rearrange it, replace it, ignore it - your hand, your gate. This is the last one I walk beside you.',
       },
-      grants: { legendPack: 'camelot-king-arthur', companion: 'camelot-lancelot', coins: 100 },
+      grants: { legendPack: 'camelot-king-arthur', companion: 'camelot-lancelot' },
       resultWin: 'The Oathkeeper lowers his shield. "You saw the promise. Not the opening."',
       resultLose: '"A wall is not cruelty," the Oathkeeper says. "Come back and learn its shape."',
       barks: {
@@ -495,7 +505,7 @@ window.EOL = window.EOL || {};
       id: 3,
       key: 'the-outlaw',
       rival: 'The Outlaw',
-      portrait: null,
+      portrait: 'assets/rivals/the-outlaw.png',
       mode: 'classic',
       aiProfile: 'hunter',
       format: 'Classic',
@@ -545,7 +555,7 @@ window.EOL = window.EOL || {};
       banTell: 'She takes the walls. The ledger has never once seen her let a Tank stand.',
       banTellBroken:
         'Correction entered: today she let a Tank stand. You will remember this match. So, now, will the ledger.',
-      grants: { legendPack: 'sherwood-robin-hood', companion: 'sherwood-little-john', coins: 100 },
+      grants: { legendPack: 'sherwood-robin-hood', companion: 'sherwood-little-john' },
       resultWin: '"Oh," she says softly. "You protect the strong so they can protect the rest."',
       resultLose: 'The Outlaw reloads without hurry. "The favorite ate the whole supper. Again?"',
       barks: {
@@ -563,7 +573,7 @@ window.EOL = window.EOL || {};
       id: 4,
       key: 'the-anointed',
       rival: 'The Anointed',
-      portrait: null,
+      portrait: 'assets/rivals/the-anointed.png',
       mode: 'classic',
       aiProfile: 'anointed',
       format: 'Classic',
@@ -609,7 +619,7 @@ window.EOL = window.EOL || {};
         'She strikes the healers first, then whatever swings heaviest. Mercy is hers to give, not yours.',
       banTellBroken:
         'The ledger stands corrected: your healer went unstruck. Mercy, or a mistake - it records both the same way.',
-      grants: { legendPack: 'olympus-zeus', companion: 'olympus-poseidon', coins: 100 },
+      grants: { legendPack: 'olympus-zeus', companion: 'olympus-poseidon' },
       resultWin: 'The Anointed marks herself, and the circle goes dark. "You read the promise."',
       resultLose: '"A warning can be mercy," she says. "You treated it as noise."',
       barks: {
@@ -627,7 +637,7 @@ window.EOL = window.EOL || {};
       id: 5,
       key: 'the-warden-of-the-mid-road',
       rival: 'The Warden of the Mid-Road',
-      portrait: null,
+      portrait: 'assets/rivals/the-warden-of-the-mid-road.png',
       mode: 'set',
       aiProfile: 'warden',
       format: 'Unabridged - Three gates',
@@ -666,7 +676,6 @@ window.EOL = window.EOL || {};
         'She reads your twelve like a ledger and strikes what the rest of it leans on. Bring no single point of failure.',
       grants: {
         choice: { count: 2, factions: ['grimmwood', 'camelot', 'sherwood', 'olympus'] },
-        coins: 200,
       },
       resultWin: 'The Warden lays the iron key on the table. "You changed after winning. Go on."',
       resultLose: '"The Mid-Road keeps what does not adapt," the Warden says. "Return ready."',
@@ -687,7 +696,7 @@ window.EOL = window.EOL || {};
       id: 6,
       key: 'the-trickster',
       rival: 'The Trickster',
-      portrait: null,
+      portrait: 'assets/rivals/the-trickster.png',
       mode: 'draft',
       aiProfile: 'trickster',
       format: 'Draft',
@@ -760,7 +769,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Controller', 'Medic'] },
       banTell:
         'She steals the hands that make a plan work - Controllers first, then the healer you expected to keep. The whim is which one she smiles at.',
-      grants: { legendPack: 'yamato-abe-no-seimei', companion: 'yamato-miyamoto-musashi', coins: 100 },
+      grants: { legendPack: 'yamato-abe-no-seimei', companion: 'yamato-miyamoto-musashi' },
       resultWin:
         'The Trickster laughs until she nearly falls off her chair. "You picked for the future. Expensive."',
       resultLose:
@@ -780,7 +789,7 @@ window.EOL = window.EOL || {};
       id: 7,
       key: 'the-strategist',
       rival: 'The Strategist',
-      portrait: null,
+      portrait: 'assets/rivals/the-strategist.png',
       mode: 'draft',
       aiProfile: 'strategist',
       format: 'Draft',
@@ -842,7 +851,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Caster', 'Sniper'], stat: 'atk' },
       banTell:
         'He removes the ranged finishers your plan cannot live without, hardest hitter first. Have a second plan.',
-      grants: { legendPack: 'roma-constantine-the-great', companion: 'roma-brutus', coins: 100 },
+      grants: { legendPack: 'roma-constantine-the-great', companion: 'roma-brutus' },
       resultWin: 'He wipes the violet board clean with his sleeve. "Good. I hated being right."',
       resultLose:
         '"Every decision casts a shadow," he says, not unkindly. "I only walked along yours."',
@@ -861,7 +870,7 @@ window.EOL = window.EOL || {};
       id: 8,
       key: 'the-chronicler',
       rival: 'The Chronicler',
-      portrait: null,
+      portrait: 'assets/rivals/the-chronicler.png',
       mode: 'draft',
       aiProfile: 'chronicler',
       format: 'Draft',
@@ -922,7 +931,7 @@ window.EOL = window.EOL || {};
       banProfile: { roles: ['Caster', 'Medic'], stat: 'atk' },
       banTell:
         'The Chronicler strikes endings and the hands that revise them - Casters first, then healers, strongest first.',
-      grants: { legendPack: 'kami-amaterasu', companion: 'kami-izanami', coins: 100 },
+      grants: { legendPack: 'kami-amaterasu', companion: 'kami-izanami' },
       resultWin:
         'The Chronicler closes the book on a page that refuses to stay blank. "Continuing," they write.',
       resultLose:
@@ -943,7 +952,7 @@ window.EOL = window.EOL || {};
       id: 9,
       key: 'the-last-guardian',
       rival: 'The Last Guardian',
-      portrait: null,
+      portrait: 'assets/rivals/the-last-guardian.png',
       mode: 'set',
       aiProfile: 'guardian',
       format: 'Unabridged - Three gates',
@@ -990,7 +999,6 @@ window.EOL = window.EOL || {};
             'kami',
           ],
         },
-        coins: 200,
       },
       resultWin: 'The Guardian speaks, voice rough with disuse: "Then carry it." The gate opens.',
       resultLose: 'The Guardian shakes her head once, and the gate stays shut. She will be here.',
@@ -1012,7 +1020,7 @@ window.EOL = window.EOL || {};
       id: 10,
       key: 'gilgamesh',
       rival: 'Gilgamesh',
-      portrait: null,
+      portrait: 'assets/rivals/campaign-gilgamesh.png',
       mode: 'set',
       aiProfile: 'conqueror',
       format: 'Unabridged - Final judgment',
@@ -1050,7 +1058,7 @@ window.EOL = window.EOL || {};
       banProfile: { power: true },
       banTell:
         'He strikes crowns: whatever is mightiest in your twelve, plan to fight without it. His own name cannot be struck at all.',
-      grants: { legendPack: 'duat-anubis', companion: 'duat-isis', coins: 300 },
+      grants: { legendPack: 'duat-anubis', companion: 'duat-isis' },
       resultWin: 'The scales balance. Gilgamesh bows his head. "Your story deserves to last."',
       resultLose:
         '"Death is not a mistake," Gilgamesh says. "Neither is losing. Come back when you know the difference."',
@@ -1360,6 +1368,16 @@ window.EOL = window.EOL || {};
       {
         speaker: 'The Recruiter',
         text: 'The old man closes the ledger - then thinks better of it and opens it again. "Hansel and Gretel: banned, and furious about it. Cinderella: banned, and gracious about it. It is always the ones who promise happy endings who fight hardest when someone tries to delete them."',
+      },
+      {
+        speaker: 'The Recruiter',
+        /* OFFER, NOT ARRIVAL - the same ruling as every later gate
+           (2026-08-18d). Normal is coins-only, and on top of that the
+           whole Grimmwood twelve is already the player's starter shelf,
+           so these two cannot "join" anything. On Heroic the Road marks
+           the wolf earned, on Legend the queen - the grant matches this
+           line, card for card. */
+        text: '"The Road began with Grimmwood already in your hands - all twelve of them, the wolf and the queen among the rest. On Heroic the wolf is marked yours by right of the gate. On Legend, the queen." He turns the ledger so you can see the line. "I do not hand over what you already carry. I write it down."',
       },
       {
         speaker: 'The Wayfarer',

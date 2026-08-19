@@ -111,23 +111,48 @@
       name: 'Normal',
       bonus: 0,
       mult: null,
-      note: 'Standard rivals · coin rewards',
+      note: 'Standard rivals · coins 100 / 200 / 500',
     },
     heroic: {
       id: 'heroic',
       name: 'Heroic',
       bonus: 0.1,
       mult: 'x1.1',
-      note: 'rival ATK & DEF · double coins · Epic rewards',
+      note: 'rival ATK & DEF · coins 200 / 400 / 750 · Epic rewards',
     },
     legend: {
       id: 'legend',
       name: 'Legend',
       bonus: 0.2,
       mult: 'x1.2',
-      note: 'rival ATK & DEF · Gate I: 300 coins · Legendary rewards',
+      note: 'rival ATK & DEF · coins 300 / 600 / 1000 · Legendary rewards',
     },
   };
+  /* ---------------------------------------------------------
+     THE COIN TABLE (2026-08-19). Coin payouts are class-based:
+     gate / elite / boss, per difficulty. Every difficulty pays every
+     gate - Legend's old "packs instead of coins" rule is gone, so a
+     Legend run funds itself like the other two tiers.
+
+       normal   100 / 200 / 500
+       heroic   200 / 400 / 750   (+ its Epic rewards)
+       legend   300 / 600 / 1000  (+ its Legendary packs)
+
+     This replaces the old grants.coins data values and the one-off
+     "Gate I pays 300 on Legend" foothold - that bonus existed because
+     Chapter I's player starts owning all of Grimmwood, but the table
+     already pays a normal gate 300 on Legend, which is the foothold.
+     --------------------------------------------------------- */
+  var GATE_COINS = {
+    normal: { gate: 100, elite: 200, boss: 500 },
+    heroic: { gate: 200, elite: 400, boss: 750 },
+    legend: { gate: 300, elite: 600, boss: 1000 },
+  };
+  function gateCoins(stage, difficultyId) {
+    var row = GATE_COINS[DIFFICULTIES[difficultyId] ? difficultyId : 'normal'] || GATE_COINS.normal;
+    if (stage.id === chapter().lastStage) return row.boss;
+    return eliteStages()[stage.id] ? row.elite : row.gate;
+  }
   /* Chapter-relative now; the tables live on the chapter record above.
      Read through these two shims so every existing call site keeps
      working and cannot accidentally read Chapter I's map while Chapter
@@ -493,23 +518,14 @@
     return faction ? faction.name : id;
   }
 
-  function normalCoinReward(stage) {
-    if (stage.grants && typeof stage.grants.coins === 'number') return stage.grants.coins;
-    /* The boss pays the big purse. Chapter-relative: gate X in Chapter
-       I, gate XX in Chapter II. */
-    if (stage.id === chapter().lastStage) return 300;
-    return eliteStages()[stage.id] ? 200 : 100;
-  }
-
   function rewardFor(stage, difficultyId) {
     var id = DIFFICULTIES[difficultyId] ? difficultyId : 'normal';
-    var reward = { coins: 0, difficulty: id };
+    var reward = { coins: gateCoins(stage, id), difficulty: id };
     if (id === 'normal') {
-      reward.coins = normalCoinReward(stage);
+      /* Normal stays the coins-only tier - no card grants at all. */
       return reward;
     }
     if (id === 'heroic') {
-      reward.coins = normalCoinReward(stage) * 2;
       if (eliteStages()[stage.id]) {
         reward.choice = {
           count: 2,
@@ -541,14 +557,8 @@
       }
       return reward;
     }
-    /* Legend: Gate I pays a one-time 300-coin foothold; the remaining
-       Road keeps its crown progression and pays no coins. */
-    /* Chapter I's Legend tier pays a one-time 300-coin foothold at Gate
-       I because the player starts that chapter with nothing but the
-       Grimmwood twelve. Chapter II's player arrives with a finished
-       collection, so there is nothing to bootstrap - the foothold is a
-       Chapter I rule, not a first-stage rule. */
-    if (chapter().id === 1 && stage.id === chapter().firstStage) reward.coins = 300;
+    /* Legend keeps its crown progression AND pays the table's coins
+       (2026-08-19) - the old "packs instead of coins" rule is gone. */
     if (eliteStages()[stage.id]) {
       reward.choice = {
         count: 2,
@@ -653,7 +663,20 @@
         var cards = [];
         if (reward.legendPack) cards.push(reward.legendPack);
         if (prog.pendingEpic && prog.pendingEpic.stage === stage.id) cards.push(prog.pendingEpic.card);
-        window.EOL.econ.grant(cards);
+        /* EVERY REWARD GRANT CHANGES THE COLLECTION (2026-08-19,
+           owner ruling). Cards are upgradeable with copies, so a
+           grant of a card you already own - the whole Grimmwood
+           shelf, a crown from a previous run - banks a duplicate
+           instead of quietly doing nothing. The reveal ceremony
+           shows the copy for what it is. */
+        var duped = cards.filter(function (id) {
+          return window.EOL.econ.owns(id);
+        });
+        window.EOL.econ.grant(cards, { dupes: true });
+        if (duped.length) {
+          prog.grantDupes = prog.grantDupes || {};
+          prog.grantDupes[stage.id] = duped;
+        }
         if (reward.coins) window.EOL.econ.addCoins(reward.coins);
       }
     } else {
@@ -1266,6 +1289,11 @@
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
           aiProfile: stage.aiProfile || null,
+          /* CHAPTER II sideboards live: the authored opening six is
+             seeded, but any ban-hole fills with the strongest bench -
+             see submitSix in js/play.js. Chapter I keeps its scripted
+             deterministic sixes (stages 1-4 are the tutorial). */
+          adaptiveSix: chapter().id === 2,
           /* the Recruiter's ledger: HOW this rival bans, told BEFORE
              the player commits their own (playtest note 2026-08-09:
              the least-informed call must not stay the blindest one) */
@@ -2091,12 +2119,21 @@
     }
     var parts = [];
     if (reward.coins) parts.push('+' + reward.coins + ' coins');
+    /* The epicFaction fallback is DEAD for every shipped gate (2026-08-19):
+       Heroic always grants a pinned companion now, Gate I included. The
+       branch survives as a safety net for a future gate authored without
+       one. */
     if (reward.epicFaction) parts.push('Random ' + factionName(reward.epicFaction) + ' Epic');
     if (reward.choice) parts.push('Choose ' + reward.choice.count + ' ' + reward.choice.label + ' cards');
     /* The pack itself is the reveal. The result receipt confirms the
        reward category without naming the card before the wrapper opens. */
     if (reward.legendPack) parts.push('Legendary reward pack');
-    if (reward.companion) parts.push('a second echo');
+    /* The set echo is named - there is nothing random to conceal, and
+       "a second echo" told the player nothing useful. */
+    if (reward.companion) {
+      var companionPart = entriesFor([reward.companion])[0];
+      parts.push(companionPart ? companionPart.card.name : 'a second echo');
+    }
     if (!parts.length) parts.push('Gate cleared · No coin reward');
     return difficulty.name + ' · ' + parts.join(' · ');
   }
@@ -2337,8 +2374,10 @@
       p2.choices[stage.id] = picked.slice();
       if (p2.pendingChoice === stage.id) p2.pendingChoice = null;
       saveProgress(p2);
-      /* the chosen echoes are OWNED now, not just remembered */
-      if (window.EOL.econ) window.EOL.econ.grant(picked);
+      /* the chosen echoes are OWNED now, not just remembered - and a
+         choice of a card you already carry banks a copy (2026-08-19:
+         copies are upgrade material, no grant is a no-op) */
+      if (window.EOL.econ) window.EOL.econ.grant(picked, { dupes: true });
       modal.hidden = true;
       if (window.EOL.audio) window.EOL.audio.campaign('reward');
       done();
@@ -2392,12 +2431,20 @@
       return;
     }
     if (!rewardTheaterReady(reofferPendingLegend)) return;
+    /* A copy, not an arrival: recordClear remembered which granted
+       cards were already owned, and the ceremony says so. */
+    var duplicate =
+      prog.grantDupes && prog.grantDupes[stage.id]
+        ? prog.grantDupes[stage.id].indexOf(cardId) >= 0
+        : false;
     var opened = window.EOL.shop.openCampaignReward(cardId, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
       rarity: 'legendary',
+      duplicate: duplicate,
     });
     if (!opened) return;
     prog.pendingLegend = null;
+    if (prog.grantDupes) delete prog.grantDupes[stage.id];
     saveProgress(prog);
   }
 
@@ -2418,12 +2465,18 @@
        would print the wrong frame and the wrong colour for four of the
        seven gates. */
     var pendingCard = cardById(pending.card);
+    var duplicate =
+      prog.grantDupes && prog.grantDupes[stage.id]
+        ? prog.grantDupes[stage.id].indexOf(pending.card) >= 0
+        : false;
     var opened = window.EOL.shop.openCampaignReward(pending.card, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
       rarity: pendingCard ? pendingCard.rarity : 'epic',
+      duplicate: duplicate,
     });
     if (!opened) return;
     prog.pendingEpic = null;
+    if (prog.grantDupes) delete prog.grantDupes[stage.id];
     saveProgress(prog);
   }
 
@@ -2483,6 +2536,28 @@
           factionName(reward.epicFaction) +
           ' Epic</span>'
       );
+    /* THE SET ECHO (2026-08-19, owner ruling). Every Heroic gate hands
+       over ONE set card - the companion its epilogue names - never a
+       random lucky dip. The chip therefore NAMES the card, because
+       there is nothing random to hide. The retired wording was
+       "Epic echo - Hemithea", which read like a procedurally generated
+       loot label; "Odysseus" does not. The card's REAL rarity still
+       drives the chip colour (Lancelot is common, Brutus rare,
+       Odysseus and the wolf epic), and the reveal ceremony at clear
+       time is unchanged. */
+    if (reward.companion) {
+      var companionEntry = entriesFor([reward.companion])[0];
+      var companionRarity = companionEntry ? companionEntry.card.rarity : 'epic';
+      var companionCls = companionRarity === 'epic' ? 'epic' : '';
+      var companionName = companionEntry ? companionEntry.card.name : 'an echo';
+      chips.push(
+        '<span class="sc-reward ' +
+          companionCls +
+          '"><i data-icon-domain="game" class="ra ra-gem"></i>' +
+          companionName +
+          '</span>'
+      );
+    }
     if (reward.choice)
       chips.push(
         '<span class="sc-reward"><i data-icon-domain="game" class="ra ra-locked-fortress"></i>Choose ' +
@@ -2561,6 +2636,35 @@
       if (!card) return;
       setText(card.querySelector('.sc-kicker, .rival-kicker'), stageLabel(stage));
       setText(card.querySelector('.sc-name, .rival-name'), stage.rival);
+      /* THE GATE CIRCLE (2026-08-19): the avatar shows the rival's
+         face. The static markup ships a hood glyph; a stage with a
+         portrait swaps it for the real image, and a future stage
+         without one keeps the glyph. */
+      var avatar = card.querySelector('.sc-avatar');
+      if (avatar) {
+        var portrait = avatar.querySelector('.sc-portrait');
+        if (stage.portrait) {
+          if (!portrait || portrait.tagName !== 'IMG') {
+            var img = document.createElement('img');
+            img.className = 'sc-portrait';
+            img.alt = stage.rival;
+            img.draggable = false;
+            if (portrait) portrait.replaceWith(img);
+            else avatar.appendChild(img);
+            portrait = img;
+          }
+          if (portrait.getAttribute('src') !== stage.portrait)
+            portrait.setAttribute('src', stage.portrait);
+        } else if (portrait && portrait.tagName === 'IMG') {
+          /* revert to the glyph: the Wayfarer has no face */
+          var span = document.createElement('span');
+          span.className = 'sc-portrait sc-portrait-empty';
+          span.setAttribute('role', 'img');
+          span.setAttribute('aria-label', stage.rival);
+          span.innerHTML = '<i data-icon-domain="game" class="ra ra-hood"></i>';
+          portrait.replaceWith(span);
+        }
+      }
       var desc = card.querySelector('.sc-desc, .rival-desc');
       if (desc && stage.line) setText(desc, stage.line);
       var meta = card.querySelector('.sc-meta, .rival-meta');

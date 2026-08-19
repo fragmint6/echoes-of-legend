@@ -60,7 +60,7 @@
      two rulings already has DONE_KEY = '1' for the first key, so reusing it
      would skip empyrean->genesis and yamato-kaguya->kami-kaguya entirely and
      silently eat those cards. A new key re-runs the whole (idempotent) map. */
-  var DONE_KEY = 'eol.idmap.2026-08-18b';
+  var DONE_KEY = 'eol.idmap.2026-08-19a';
 
   /* old faction id -> new faction id. Card ids are `<faction>-<slug>`
      and only the PREFIX changes, so a prefix swap is sufficient and
@@ -89,6 +89,14 @@
        reasoning as Hercules: the slug moved house, so a prefix swap is
        not enough and the full id has to be mapped. */
     'yamato-kaguya': 'kami-kaguya',
+    /* Added 2026-08-19a. The art update renamed two Transylvania cards
+       to the names their files now carry: "the Monster" became
+       "Frankenstein's Monster" (the id says whose it is) and "Mr. Hyde"
+       stopped hiding inside a bare "hyde". Same faction, new slug, so
+       the full id maps - and the old art files were deleted with it,
+       one file per character. */
+    'transylvania-monster': 'transylvania-frankensteins-monster',
+    'transylvania-hyde': 'transylvania-mr-hyde',
   };
 
   function mapId(id) {

@@ -514,6 +514,31 @@ Wrecker's theft (XVIII).
 
 ## 7. Rewards and where the cards come from
 
+**The coin table (2026-08-19).** Coin payouts are class-based - gate,
+elite, boss - per difficulty, and every difficulty pays every gate:
+
+| Difficulty | Gate | Elite | Boss |
+|---|---|---|---|
+| Normal | 100 | 200 | 500 |
+| Heroic | 200 | 400 | 750 |
+| Legend | 300 | 600 | 1000 |
+
+Normal stays the coins-only tier. Heroic keeps its Epic rewards beside
+the coins, Legend keeps its Legendary packs beside the coins - the old
+"Legend pays packs INSTEAD of coins" rule is gone, and with it the
+one-off "Gate I pays 300 on Legend" foothold: a normal gate on Legend
+IS 300, so the foothold is simply the table. The authored `grants.coins`
+values in the stage data were removed with it - the table is the single
+source of truth in `js/campaign.js`.
+
+**Every reward grant changes the collection** (2026-08-19). Cards are
+upgradeable with copies, so a grant of a card you already own - the
+whole Grimmwood starter shelf, a crown from a previous run - banks a
+DUPLICATE toward that card's next level instead of quietly doing
+nothing. The reveal ceremony wears the same copy tag a pack duplicate
+does (Echo Shards + a step toward the next level). Pack purchases keep
+their own duplicate banking, so nothing double-counts.
+
 | Gate | Fields | Unlocks | Legendary |
 |---|---|---|---|
 | XI The Understudy | Hemithea | Hemithea | **Achilles** |
@@ -541,13 +566,24 @@ the Road. So each faction's legendary is the campaign reward for the
 gate that introduces it: you can buy your way toward Sherwood, but Robin
 Hood comes from beating the Outlaw.
 
-**The whole chapter is withheld from the shop** (owner ruling, 2026-08-18b:
-*"keep the shop as is with the pack pool containing just chapter 1 cards"*).
-Releasing these cards for one turn took the packable pool from 35 to 80 and
-roughly halved the odds of pulling any given Chapter One legend, for players
-who cannot play this chapter yet. `WITHHELD` now lists all eight faction ids
-and packable is back to 36. The per-chapter shop remains the open design
-question; see §8 of the lore doc.
+**The shop is open to both chapters** (owner ruling 2026-08-19, superseding
+the 2026-08-18b withhold). The whole roster is obtainable now, and pack
+pools are SCOPED per pack instead of per game:
+
+- **Featured this week** - two packs a week, two factions each, named for
+  how the pair is related (the rotation is authored: four weeks, all
+  sixteen factions, one line of lore per pairing);
+- **Daily Pack** - free, once a day, one card from every non-legendary in
+  the game, long odds with a small Epic chance;
+- **Chapter packs** - one per chapter: the Echoes Pack (Chapter I) and the
+  Archive Pack (Chapter II), 500 coins, five cards, one Epic guaranteed.
+  A chapter's pack shows while the player is ON that chapter or has
+  beaten it - mid-Chapter-I players see only Echoes; on Chapter II both
+  shelves open.
+
+The Crown Law is untouched: no pack, featured or daily or chapter, ever
+contains a legendary. Per-chapter pools mean a Chapter I player's odds
+never dilute again, which is what the withhold was for.
 
 ---
 
@@ -566,21 +602,24 @@ per-frame JavaScript in any of it; CSS owns the atmosphere.
 | Extra layer | — | slow amber "arena breathing" glow over the arches |
 | Vignette | cold, tight | warmer, lifted off the arena so the arches are not crushed |
 | Ledger | The Recruiter's Ledger | **The Concord Register** |
-| Score | `road` — A minor, 74bpm, bells and space | `road2` — **D dorian, 88bpm**, processional pulse and a struck-metal filing ostinato |
+| Score | `road` — A minor, 74bpm, bells and space | `road2` — **D mixolydian, 116bpm**, a festival: oom-pah tuba, snare backbeat, tambourine, a dance tune and a second fiddle |
 
-**Why D dorian for the score.** The raised sixth is the whole difference
-between mournful and expectant. Chapter I is a person walking alone and
-natural minor suits it; the Concord is loud, political and funny before
-it is sad, and every attempt in plain D minor dragged it back toward
-Chapter I's grief. The form is a week in forty bars: arrival among
-half-built stands, the crowd filling in, a hush in the archive under the
-street, the schedule pressing, the floor at full noise, then a stripped
+**Why a festival, not a procession (rewritten 2026-08-19).** The first
+score was a processional in D dorian — stately, and stately is the one
+thing a festival city is not. The Concord is a city that exists for one
+week and is dismantled afterwards: market stalls, street bands, a crowd
+that drinks because the week is short. So the Road now plays a festival
+in D mixolydian — the flat seventh is the street-band colour, the
+difference between a court and a fair — at a 116bpm dance pace, with an
+oom-pah tuba bass, a snare backbeat and a tambourine on the offbeats.
+The form is still the week, fifty-two bars: morning market, the band
+arriving, a hush in the archive under the street, the schedule pressing,
+the floor at full noise with the crowd, the last dance, and a stripped
 reprise as the pavilions come down.
 
-The ostinato is deliberately metallic and on the offbeat — tablets being
-struck and filed, which is what the Concord actually does all week. It
-drops out entirely in the archive section, leaving a drone and one bell:
-the only place in the chapter where somebody is alone with a record.
+The archive section keeps the old score's one good instinct: the band
+drops out entirely, leaving a drone and one bell — the only place in
+the chapter where somebody is alone with a record.
 
 ---
 
@@ -592,8 +631,24 @@ Tracked honestly, because none of this is built:
   twelves, both exams, the boss card, and every scene.
 - ~~Boards are unassigned.~~ **Done** - every gate pins a board and both
   exams pin a three-board fight card, all drawn from the existing ten.
-- **Nothing is simmed.** Every WR above is authored. Chapter One's
-  numbers moved substantially under `sim/campaign_soak.js`.
+- **The win rates are still unsimmed.** Every WR above is authored.
+  Chapter One's numbers moved substantially under `sim/campaign_soak.js`.
+  What IS measured now (2026-08-19): every one of the 50 Chapter II
+  signature skills runs through the engine in `sim/verify_chapter2_skills.js`
+  (137 assertions, per-card), and the whole chapter flow - heroic
+  rewards, adaptive sideboarding, ledger-faithful bans, personalities -
+  is pinned by `sim/verify_chapter2_flow.js`. The authored win rates
+  remain the one number a soak still has to earn.
+- **The rivals now try their hardest** (2026-08-19). The chapter shipped
+  with every rival on `adaptive`, a personality that did not exist, and
+  with Chapter I's deterministic in-order six refills - the Understudy
+  filled ban-holes with her weakest bench and evaluated positions with
+  no character at all. Now: ten named personalities (understudy,
+  bookmaker, herald, collector, bridgeHero, undertaker, mason, wrecker,
+  auditor, redactor) bend the same full-depth search the player faces;
+  every rival sideboards live from its twelve with the authored opening
+  six seeded; and the two price personalities ban on the cost axis their
+  tells promise.
 - **The Redactor's "overrule" is unproven** — undoing and replaying an
   action is not something the engine currently does.
 - **Sargon, the Concord officials and the rivals have no cards.**
@@ -601,13 +656,10 @@ Tracked honestly, because none of this is built:
   deck with no hook is harder to author than one with a hook.
 - **Balance is paper-only.** 50 cards tuned against each other and never
   played.
-- **The shop model is undecided.** Open question, raised by the owner
-  2026-08-18: one global pool with a withhold list, versus a Chapter One
-  shop and a Chapter Two shop. Three candidate shapes are written up in
-  §8 of `LORE-Campaign-Chapter2.md`; none is implemented. Note the live
-  side-effect that motivates it: the packable pool went 35 -> 77 when the
-  seven factions landed, roughly halving the odds of pulling any specific
-  older legend for players who never asked for Chapter Two.
+- ~~**The shop model is undecided.**~~ **Done 2026-08-19** - featured
+  weekly pairs, the free Daily Pack, and one chapter pack per chapter
+  (Echoes / Archive), gated by where the player is on the Road. The
+  design record is `docs/DESIGN-Pack-Pools.md`.
 - **Asmodeus has a card** (`campaign-asmodeus`, unbannable and pinned,
   like Gilgamesh). Sargon and the Concord officials still have none -
   they are voices in the scenes, not fighters.
@@ -615,10 +667,13 @@ Tracked honestly, because none of this is built:
   backdrop (`assets/chapter-2/cw-bg.png`), its own particle weather
   (drifting parchment, rising embers, slow ash - against Chapter I's
   falling glints, wisps and dust), its own ledger (**The Concord
-  Register**, not the Recruiter's), and its own score (`road2`, D dorian
-  at 88bpm against Chapter I's A minor at 74). All switched by
-  `body[data-chapter]` from one `setChapter()` call.
-- **All twenty rival portraits are missing on purpose** (2026-08-18e).
-  The art was deleted for the owner's own pass; `stage.portrait` is null
-  everywhere and the UI shows a hood glyph. Briefs for all twenty are in
+  Register**, not the Recruiter's), and its own score (`road2`, a D
+  mixolydian festival at 116bpm against Chapter I's A minor walk at
+  74). All switched by `body[data-chapter]` from one `setChapter()`
+  call.
+- ~~**All twenty rival portraits are missing.**~~ **Done 2026-08-19** -
+  every rival ships a 128x176 portrait in `assets/rivals/` (the twenty
+  rivals plus Gilgamesh and the Recruiter, with its own MANIFEST), and
+  every stage's `portrait` points at it - the dialogue bust, the prep
+  plate and the battle barks all render it. Briefs remain in
   `docs/ART-SPEC.md` section 6.

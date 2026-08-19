@@ -332,7 +332,12 @@
             id: e.card.id,
             entry: e,
             role: profile.roles && profile.roles.indexOf(e.card.role) >= 0 ? 1 : 0,
-            stat: profile.stat === 'atk' ? e.card.stats.atk : 0,
+            stat:
+              profile.stat === 'atk'
+                ? e.card.stats.atk
+                : profile.stat === 'cost'
+                  ? (e.card.ability && e.card.ability.cost) || 0
+                  : 0,
             power: profile.power ? ai.powerOf(e.card) : 0,
             deny: ai.denyValue(deckEntries, e, myPool || []),
           };
@@ -342,13 +347,19 @@
       /* A personality bends close decisions; it does not pretend an
          overwhelming outlier is harmless. Reserve a slot immediately when
          generic threat value clears the rest by twice the variation window,
-         then let the authored profile decide the other ban. */
+         then let the authored profile decide the other ban.
+
+         The PRICE personalities (Chapter II's Understudy and Bookmaker)
+         opt out: their whole authored identity IS the axis - "the two
+         cards you paid the most for", "the cheapest thing you brought" -
+         and a generic threat escape would quietly overwrite the very ban
+         the ledger promised. */
       var byThreat = scored.slice().sort(function (a, b) {
         return b.deny - a.deny;
       });
       if (
-        byThreat.length === 1 ||
-        byThreat[0].deny - byThreat[1].deny > BAN_DOMINANT_GAP
+        profile.stat !== 'cost' &&
+        (byThreat.length === 1 || byThreat[0].deny - byThreat[1].deny > BAN_DOMINANT_GAP)
       ) {
         out.push(byThreat[0].id);
         continue;
@@ -373,6 +384,27 @@
         });
         scored.forEach(function (candidate) {
           candidate.profileTie = 0.6 * (1 - (topStat - candidate.stat) / statWindow);
+        });
+      } else if (profile.stat === 'cost') {
+        /* The PRICE axis (Chapter II): "the two cards you paid the most
+           for" (the Understudy, default) or, with `costAsc`, "the
+           cheapest thing you brought" (the Bookmaker). Prices here are
+           Energy costs - a passive's price is 0, so the cheap end of the
+           axis genuinely includes them. */
+        var costs = scored.map(function (candidate) {
+          return candidate.stat;
+        });
+        var topCost = profile.costAsc
+          ? Math.min.apply(null, costs)
+          : Math.max.apply(null, costs);
+        var costWindow = 0.35;
+        scored = scored.filter(function (candidate) {
+          return profile.costAsc
+            ? candidate.stat - topCost <= costWindow
+            : topCost - candidate.stat <= costWindow;
+        });
+        scored.forEach(function (candidate) {
+          candidate.profileTie = 0.6 * (1 - Math.abs(candidate.stat - topCost) / costWindow);
         });
       } else if (profile.power) {
         var topPower = Math.max.apply(
@@ -425,6 +457,27 @@
     if (profile === 'chronicler' && (tags.gives.burn || tags.gives.cleanse || tags.gives.denial))
       v += 0.06;
     if (profile === 'conqueror' && (tags.gives.exposed || tags.gives.kills)) v += 0.056;
+    /* CHAPTER II fielding bonuses - the same mechanism Chapter I's nine
+       profiles use, so a rival fields the bodies its trade is built
+       around instead of a generic tier list. */
+    var ch2 = {
+      understudy: { Caster: 0.1, Medic: 0.08, Sniper: 0.06, Tank: 0.05 },
+      bookmaker: { Controller: 0.16, Sniper: 0.1, Tank: 0.06, Bruiser: 0.04 },
+      herald: { Caster: 0.16, Controller: 0.1, Medic: 0.06, Tank: 0.04 },
+      collector: { Controller: 0.16, Tank: 0.08, Bruiser: 0.06, Caster: 0.04 },
+      bridgeHero: { Controller: 0.08, Medic: 0.06, Sniper: 0.06, Bruiser: 0.05, Tank: 0.05, Caster: 0.04 },
+      undertaker: { Bruiser: 0.14, Caster: 0.1, Controller: 0.04 },
+      mason: { Medic: 0.1, Caster: 0.1, Bruiser: 0.06, Tank: 0.04 },
+      wrecker: { Controller: 0.16, Caster: 0.07, Tank: 0.05 },
+      auditor: { Controller: 0.1, Caster: 0.09, Sniper: 0.06, Bruiser: 0.05, Medic: 0.04 },
+      redactor: { Caster: 0.16, Controller: 0.1, Bruiser: 0.05 },
+    };
+    if (ch2[profile] && ch2[profile][role] != null) v += ch2[profile][role];
+    if (profile === 'bookmaker' && (tags.gives.energy || tags.gives.denial)) v += 0.05;
+    if (profile === 'herald' && (tags.gives.burn || tags.gives.denial)) v += 0.05;
+    if (profile === 'undertaker' && tags.gives.kills) v += 0.05;
+    if (profile === 'mason' && (tags.gives.cleanse || tags.gives.kills)) v += 0.05;
+    if (profile === 'wrecker' && (tags.gives.energy || tags.gives.denial)) v += 0.05;
     return v;
   }
 
@@ -2253,14 +2306,21 @@
     /* THE SET: the bot sideboards against your PUBLIC six (last game is
        fair information for both sides) and obeys the same swap law */
     var enemySix = null;
-    if (!setState && prep.botSix && prep.botSix.length) {
+    if (!setState && prep.botSix && prep.botSix.length && !prep.adaptiveSix) {
       /* SCRIPTED SIX (§8 dial 2): authored AND deterministic, including
          its refills. When the player bans into the script, the hole is
          filled from the deck list IN ORDER - never by chooseSix's "best
          of bench", which quietly UPGRADED the six (soak-found 2026-08-09:
          banning the Outlaw's Little John summoned Guy of Gisborne). The
          enemy12 arrays are therefore ordered six-first, bench
-         weakest-first. */
+         weakest-first.
+
+         CHAPTER II OPTS OUT (prep.adaptiveSix): nobody on the Concord
+         floor is learning the loop, so every rival sideboards LIVE.
+         The authored opening six is seeded as must-keeps below, and any
+         hole a ban opens is filled by the strongest remaining bench -
+         the rival fields its best possible six, never a weakest-first
+         refill. */
       enemySix = [];
       var takeScripted = function (id) {
         if (enemySix.length >= RULES().FIELD_SIZE) return;

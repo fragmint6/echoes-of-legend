@@ -170,19 +170,19 @@
          header stores each dimension in a single byte.
          icon-128.png is the standalone mark for anything that wants a
          plain image. -->
-    <link rel="icon" href="assets/favicon.ico" sizes="any" />
-    <link rel="apple-touch-icon" href="assets/icon-128.png" />
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/daily.css" />
+    <link rel="icon" href="assets/favicon.ico?v=20260819c" sizes="any" />
+    <link rel="apple-touch-icon" href="assets/icon-128.png?v=20260819c" />
+    <link rel="stylesheet" href="css/style.css?v=20260819c" />
+    <link rel="stylesheet" href="css/daily.css?v=20260819c" />
     <!-- Build differences (CrazyGames portal build). Last, so it wins on
          equal specificity. Paired with js/platform.js below. -->
-    <link rel="stylesheet" href="css/platform.css" />
+    <link rel="stylesheet" href="css/platform.css?v=20260819c" />
   </head>
   <body>
     <!-- PLATFORM FLAG. Must run before any module reads a capability and
          before first paint, so css/platform.css never flashes a control
          it is about to hide. Sets body[data-platform] + EOL.platform. -->
-    <script src="js/platform.js"></script>
+    <script src="js/platform.js?v=20260819c"></script>
 
     <div class="bg-layer"></div>
     <div class="bg-grid"></div>
@@ -943,45 +943,90 @@
             </p>
             <div class="rb-fields">
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/colosseum.png" alt="The Colosseum" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/colosseum.png?v=20260819c" alt="The Colosseum" loading="lazy" draggable="false" />
                 <figcaption><b>The Colosseum</b><span>No special laws. The one honest board.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/mirror-realm.png" alt="The Mirror Realm" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/mirror-realm.png?v=20260819c" alt="The Mirror Realm" loading="lazy" draggable="false" />
                 <figcaption><b>The Mirror Realm</b><span>Each player's first signature every round echoes again at 50% power.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/spirit-world.png" alt="The Spirit World" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/spirit-world.png?v=20260819c" alt="The Spirit World" loading="lazy" draggable="false" />
                 <figcaption><b>The Spirit World</b><span>The first killing blow leaves each legend at 1 HP instead (once each).</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/narrow-pass.png" alt="The Narrow Pass" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/narrow-pass.png?v=20260819c" alt="The Narrow Pass" loading="lazy" draggable="false" />
                 <figcaption><b>The Narrow Pass</b><span>Only the front row may use basic attacks. The back must spend energy.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/open-plains.png" alt="The Open Plains" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/open-plains.png?v=20260819c" alt="The Open Plains" loading="lazy" draggable="false" />
                 <figcaption><b>The Open Plains</b><span>No backline penalty when the front row falls.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/mana-spring.png" alt="Mana Spring" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/mana-spring.png?v=20260819c" alt="Mana Spring" loading="lazy" draggable="false" />
                 <figcaption><b>Mana Spring</b><span>+20 energy to both sides, every round.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/energy-void.png" alt="Energy Void" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/energy-void.png?v=20260819c" alt="Energy Void" loading="lazy" draggable="false" />
                 <figcaption><b>Energy Void</b><span>-10 energy to both sides, every round. Waste nothing.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/ancient-ruins.png" alt="The Ancient Ruins" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/ancient-ruins.png?v=20260819c" alt="The Ancient Ruins" loading="lazy" draggable="false" />
                 <figcaption><b>The Ancient Ruins</b><span>A random relic blessing for every survivor, every round.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/heros-trial.png" alt="The Legend's Trial" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/heros-trial.png?v=20260819c" alt="The Legend's Trial" loading="lazy" draggable="false" />
                 <figcaption><b>The Legend's Trial</b><span>Everyone grows: +15% attack at every round rollover.</span></figcaption>
               </figure>
               <figure class="rb-field">
-                <img src="assets/boards/thumbs/blood-battlefield.png" alt="The Blood Battlefield" loading="lazy" draggable="false" />
+                <img src="assets/boards/thumbs/blood-battlefield.png?v=20260819c" alt="The Blood Battlefield" loading="lazy" draggable="false" />
                 <figcaption><b>The Blood Battlefield</b><span>Every kill grants your team +20 Energy. Momentum becomes Energy.</span></figcaption>
               </figure>
+            </div>
+          </div>
+        </article>
+
+        <!-- N. the wheel of seven -->
+        <article class="rule-card rule-card-wheel">
+          <div class="rc-head">
+            <i data-icon-domain="game" class="ra ra-cycle"></i>
+            <h3>The Wheel of Seven</h3>
+          </div>
+          <div class="rc-body">
+            <p class="rb-wheel-intro">
+              Every element <b>sears</b> exactly one and <b>bows</b> to exactly one. Advantage
+              deals <b>+8%</b>; disadvantage pays the exact reciprocal, <b>about &minus;8%</b> - the
+              two halves cancel, so the wheel moves damage between matchups and adds none.
+              Read the board, then choose your target. <b>Hover a spoke.</b>
+            </p>
+            <div class="rb-wheel-stage">
+              <!-- js/app.js builds the seven spokes and the arrows from
+                   window.EOL.engine.ELEMENT_BEATS, so the picture can
+                   never drift from the damage math it describes -->
+              <div
+                class="element-wheel"
+                id="element-wheel"
+                role="img"
+                aria-label="The Wheel of Seven: each element sears one and bows to one"
+              >
+                <svg class="ew-arrows" aria-hidden="true"></svg>
+                <div class="ew-ring" aria-hidden="true"></div>
+                <div class="ew-hub" id="ew-hub" aria-hidden="true">
+                  <span class="ew-hub-title">The Wheel</span>
+                  <span class="ew-hub-sub">hover a spoke</span>
+                </div>
+              </div>
+              <div class="ew-detail">
+                <i data-icon-domain="game" class="ra ra-cycle" aria-hidden="true"></i>
+                <div class="ew-detail-copy">
+                  <h4 id="ew-detail-name">Seven syllables</h4>
+                  <p id="ew-detail-text">
+                    The Concord chalks the wheel on every arena floor: each element answers the
+                    one before it, and the answer comes back around.
+                  </p>
+                  <p class="ew-detail-math" id="ew-detail-math">+8% against its prey &middot; the reciprocal against its predator</p>
+                </div>
+              </div>
             </div>
           </div>
         </article>
@@ -1121,59 +1166,105 @@
 
       <div class="shop-panel" id="spanel-packs">
       <div class="shop-body shop-shelf">
-        <article class="product">
-          <div class="product-pack pk-host" data-pack="trio">
+        <!-- THE FEATURED SHELF (2026-08-19): two packs a week, two
+             factions each, named for how the pair is related. The
+             weekly rotation lives in js/shop.js; the names, blurbs,
+             crests and odds below are painted from it.
+             Each product flows: pack, name (always), buy pill
+             (always), then a hover tooltip with the details. -->
+        <h3 class="shop-shelf-head"><i data-icon-domain="game" class="ra ra-daggers"></i>Featured this week</h3>
+        <article class="product" id="product-featured-0">
+          <div class="product-pack pk-host" data-pack="featured" data-slot="0">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Featured Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="featured" data-slot="0"></button>
           <div class="product-info">
-            <h3 class="product-name">Trio Pack</h3>
-            <p class="product-desc">
-              Three new legends. No guarantees, no ceremony wasted - the budget shelf.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 50% &middot; Rare 35% &middot; Epic 15%</span>
-            </p>
-            <button class="btn btn-primary buy-pack" data-pack="trio"></button>
+            <span class="product-tip">Featured this week</span>
+            <p class="product-desc"></p>
+            <p class="product-odds"></p>
           </div>
         </article>
+        <article class="product" id="product-featured-1">
+          <div class="product-pack pk-host" data-pack="featured" data-slot="1">
+            <div class="product-sheen"></div>
+          </div>
+          <h3 class="product-name">Featured Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="featured" data-slot="1"></button>
+          <div class="product-info">
+            <span class="product-tip">Featured this week</span>
+            <p class="product-desc"></p>
+            <p class="product-odds"></p>
+          </div>
+        </article>
+
+        <!-- THE DAILY PACK: free, one card, the whole non-legendary
+             roster, long odds - once per local day. -->
         <article class="product">
+          <div class="product-pack pk-host" data-pack="daily">
+            <div class="product-sheen"></div>
+          </div>
+          <h3 class="product-name">Daily Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="daily"></button>
+          <div class="product-info">
+            <span class="product-tip">Free, once a day</span>
+            <p class="product-desc">
+              One legend from every corner of the roster - with a slim
+              chance of an <b>Epic</b>.
+            </p>
+            <p class="product-odds">
+              <span><b>Card odds</b> Common 75% &middot; Rare 20% &middot; Epic 5%</span>
+            </p>
+          </div>
+        </article>
+
+        <!-- THE CHAPTER SHELF: one pack per chapter. A chapter's pack
+             shows while the player is on that chapter or has beaten
+             it - js/shop.js enforces the law, this markup just
+             carries the products. -->
+        <h3 class="shop-shelf-head"><i data-icon-domain="game" class="ra ra-book"></i>Chapter packs</h3>
+        <article class="product" data-product="echo">
           <div class="product-pack pk-host" data-pack="echo">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Echoes Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           <div class="product-info">
-            <h3 class="product-name">Echoes Pack</h3>
+            <span class="product-tip">Chapter I shelf</span>
             <p class="product-desc">
-              Five new legends. The final card is always <b>Epic</b> rarity.
+              Grimmwood, Camelot, Sherwood, Olympus, Yamato, Roma, Kami
+              and Duat. Five legends, and the final card is always <b>Epic</b>.
             </p>
             <p class="product-odds">
               <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
               <span><b>Final card</b> Epic 100%</span>
             </p>
-            <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           </div>
         </article>
-        <article class="product">
-          <div class="product-pack pk-host" data-pack="crown">
+        <article class="product" data-product="archive" hidden>
+          <div class="product-pack pk-host" data-pack="archive">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Archive Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="archive"></button>
           <div class="product-info">
-            <h3 class="product-name">Crown Pack</h3>
+            <span class="product-tip">Chapter II shelf</span>
             <p class="product-desc">
-              Five new legends, heavy with power: nearly half the pulls are <b>Epic</b>, and the
-              final card always is.
+              Huaxia, Asgard, Hemithea, Pandemonium, Devas, Genesis,
+              Transylvania and Tortuga. Five legends, and the final card is always
+              <b>Epic</b>.
             </p>
             <p class="product-odds">
-              <span><b>Card odds</b> Common 15% &middot; Rare 45% &middot; Epic 40%</span>
+              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
               <span><b>Final card</b> Epic 100%</span>
             </p>
-            <p class="product-note">
-              <i data-icon-domain="game" class="ra ra-crown"></i><b>No pack sells a Legendary.</b> The rarest echoes are
-              earned on the Road of Echoes - one per faction, granted at its gate. Coins buy
-              speed here, never crowns.
-            </p>
-            <button class="btn btn-primary buy-pack" data-pack="crown"></button>
           </div>
         </article>
+        <p class="product-note shelf-note">
+          <i data-icon-domain="game" class="ra ra-crown"></i><b>No pack sells a Legendary.</b> The rarest
+          echoes are earned on the Road - one per faction, granted at its gate. Coins buy
+          speed here, never crowns.
+        </p>
       </div>
       </div>
 
@@ -1212,9 +1303,24 @@
             </button>
             <button type="button" class="echo-seg-btn" data-echo-filter="all">All</button>
           </div>
+          <!-- THE CHAPTER TABS (2026-08-19): the shelf of owned legends
+               is long now, so it pages by chapter - gold for the Road,
+               blue for the Concord, neutral for everything. -->
+          <div class="echo-seg echo-chapters" role="group" aria-label="Chapter">
+            <button type="button" class="echo-seg-btn echo-chapter sel" data-echo-chapter="all">
+              All chapters
+            </button>
+            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch1">
+              <i class="ri-flag-line" aria-hidden="true"></i>Chapter I
+            </button>
+            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch2">
+              <i class="ri-book-2-line" aria-hidden="true"></i>Chapter II
+            </button>
+          </div>
         </div>
 
         <div class="echo-grid" id="echo-grid"></div>
+        <div class="echo-sentinel" id="echo-sentinel" aria-hidden="true"><span></span></div>
         <div class="echo-empty" id="echo-empty" hidden></div>
       </div>
 
@@ -2510,7 +2616,7 @@
           <span class="ch-art" aria-hidden="true">
             <img
               class="ch-cover-img"
-              src="assets/chapter-1/cw-bg.png"
+              src="assets/chapter-1/cw-bg.png?v=20260819c"
               alt="The Road of Echoes"
               draggable="false"
             />
@@ -2541,7 +2647,7 @@
           <span class="ch-art" aria-hidden="true">
             <img
               class="ch-cover-img"
-              src="assets/chapter-2/cw-bg.png"
+              src="assets/chapter-2/cw-bg.png?v=20260819c"
               alt="The Hundred-Year Truce"
               draggable="false"
             />
@@ -3394,9 +3500,10 @@
           <i class="ri-close-line"></i>
         </button>
         <div class="chapter-dialogue-bust" aria-hidden="true">
-          <!-- Rival art deleted 2026-08-18e for the owner's own pass.
-               The bust starts EMPTY with the glyph visible; js/campaign.js
-               swaps them per line and already handles a null portrait. -->
+          <!-- Every rival portrait ships in assets/rivals/ (128x176).
+               The bust starts EMPTY with the glyph visible;
+               js/campaign.js swaps them per line and still handles a
+               null portrait (the Wayfarer has no face). -->
           <img id="chapter-dialogue-portrait" alt="" draggable="false" hidden />
           <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph"
             ><i data-icon-domain="game" class="ra ra-hood"></i
@@ -4144,52 +4251,52 @@
     <!-- Runs BEFORE economy/deck/upgrades, which each read their own
          localStorage key on first call. Rewrites saved card ids for the
          2026-08-18 faction renames; see js/id-migration.js. -->
-    <script src="js/id-migration.js"></script>
-    <script src="js/text.js"></script>
-    <script src="data/_schema.js"></script>
-    <script src="data/roles.js"></script>
-    <script src="data/camelot.js"></script>
-    <script src="data/olympus.js"></script>
-    <script src="data/yamato.js"></script>
+    <script src="js/id-migration.js?v=20260819c"></script>
+    <script src="js/text.js?v=20260819c"></script>
+    <script src="data/_schema.js?v=20260819c"></script>
+    <script src="data/roles.js?v=20260819c"></script>
+    <script src="data/camelot.js?v=20260819c"></script>
+    <script src="data/olympus.js?v=20260819c"></script>
+    <script src="data/yamato.js?v=20260819c"></script>
 
-    <script src="data/grimmwood.js"></script>
-    <script src="data/sherwood.js"></script>
-    <script src="data/huaxia.js"></script>
-    <script src="data/roma.js"></script>
-    <script src="data/kami.js"></script>
-    <script src="data/duat.js"></script>
-    <script src="data/asgard.js"></script>
-    <script src="data/hemithea.js"></script>
-    <script src="data/pandemonium.js"></script>
-    <script src="data/devas.js"></script>
-    <script src="data/genesis.js"></script>
-    <script src="data/transylvania.js"></script>
-    <script src="data/tortuga.js"></script>
-    <script src="data/battlefields.js"></script>
+    <script src="data/grimmwood.js?v=20260819c"></script>
+    <script src="data/sherwood.js?v=20260819c"></script>
+    <script src="data/huaxia.js?v=20260819c"></script>
+    <script src="data/roma.js?v=20260819c"></script>
+    <script src="data/kami.js?v=20260819c"></script>
+    <script src="data/duat.js?v=20260819c"></script>
+    <script src="data/asgard.js?v=20260819c"></script>
+    <script src="data/hemithea.js?v=20260819c"></script>
+    <script src="data/pandemonium.js?v=20260819c"></script>
+    <script src="data/devas.js?v=20260819c"></script>
+    <script src="data/genesis.js?v=20260819c"></script>
+    <script src="data/transylvania.js?v=20260819c"></script>
+    <script src="data/tortuga.js?v=20260819c"></script>
+    <script src="data/battlefields.js?v=20260819c"></script>
     <!-- Legend prose. AFTER the faction files: it attaches onto the
          cards they registered. -->
-    <script src="data/lore.js"></script>
-    <script src="data/campaign-ch1.js"></script>
-    <script src="data/campaign-ch2.js"></script>
-    <script src="data/draft-ai.js"></script>
+    <script src="data/lore.js?v=20260819c"></script>
+    <script src="data/campaign-ch1.js?v=20260819c"></script>
+    <script src="data/campaign-ch2.js?v=20260819c"></script>
+    <script src="data/draft-ai.js?v=20260819c"></script>
 
     <!-- Original procedural score + role/element sound language. Loaded
          before gameplay modules so every flow can call it safely. -->
-    <script src="js/audio.js"></script>
-    <script src="js/economy.js"></script>
-    <script src="js/upgrades.js"></script>
-    <script src="js/quests.js"></script>
-    <script src="js/quest-board.js"></script>
-    <script src="js/card-detail.js"></script>
-    <script src="js/engine.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/battle.js"></script>
-    <script src="js/deck.js"></script>
-    <script src="js/pool.js"></script>
-    <script src="js/play.js"></script>
-    <script src="js/daily.js"></script>
-    <script src="js/campaign.js"></script>
-    <script src="js/shop.js"></script>
+    <script src="js/audio.js?v=20260819c"></script>
+    <script src="js/economy.js?v=20260819c"></script>
+    <script src="js/upgrades.js?v=20260819c"></script>
+    <script src="js/quests.js?v=20260819c"></script>
+    <script src="js/quest-board.js?v=20260819c"></script>
+    <script src="js/card-detail.js?v=20260819c"></script>
+    <script src="js/engine.js?v=20260819c"></script>
+    <script src="js/ai.js?v=20260819c"></script>
+    <script src="js/battle.js?v=20260819c"></script>
+    <script src="js/deck.js?v=20260819c"></script>
+    <script src="js/pool.js?v=20260819c"></script>
+    <script src="js/play.js?v=20260819c"></script>
+    <script src="js/daily.js?v=20260819c"></script>
+    <script src="js/campaign.js?v=20260819c"></script>
+    <script src="js/shop.js?v=20260819c"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
          the missing global and the game runs local-only.
@@ -4211,15 +4318,15 @@
       defer
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
     ></script>
-    <script src="js/supabase-config.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="js/supabase-config.js?v=20260819c"></script>
+    <script src="js/auth.js?v=20260819c"></script>
     <!-- Privacy-light playtest funnel + voluntary feedback inbox. Stores
          only through the validating RPCs in Supabase migration 06. -->
-    <script src="js/telemetry.js"></script>
+    <script src="js/telemetry.js?v=20260819c"></script>
     <!-- THE VAULT: full-save cloud sync for signed-in players (wallet,
          collection, campaign, decks, settings). Local-only when signed
          out; see the three laws at the top of the file. -->
-    <script src="js/cloud.js"></script>
+    <script src="js/cloud.js?v=20260819c"></script>
     <!-- THE WORKBENCH: EOL.dev console commands (coins, grantAll,
          openRoad, reset). Harmless in production until the economy
          is server-side - see the header of the file. -->
@@ -4231,13 +4338,13 @@
          loaded there at all. -->
     <script>
       if (!window.EOL || !window.EOL.platform || window.EOL.platform.devConsole) {
-        document.write('<script src="js/dev.js"><\/script>');
+        document.write('<script src="js/dev.js?v=20260819c"><\/script>');
       }
     </script>
-    <script src="js/mp.js"></script>
-    <script src="js/netplay.js"></script>
-    <script src="js/history.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/mp.js?v=20260819c"></script>
+    <script src="js/netplay.js?v=20260819c"></script>
+    <script src="js/history.js?v=20260819c"></script>
+    <script src="js/app.js?v=20260819c"></script>
 
     <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the
          game is fully wired before a third-party CDN script is even
@@ -4246,7 +4353,7 @@
          Basic Launch measures. See docs/CRAZYGAMES.md. -->
     <script>
       if (window.EOL && window.EOL.platform && window.EOL.platform.sdk) {
-        document.write('<script src="js/crazygames-sdk.js"><\/script>');
+        document.write('<script src="js/crazygames-sdk.js?v=20260819c"><\/script>');
       }
     </script>
   </body>

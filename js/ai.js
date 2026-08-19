@@ -143,6 +143,182 @@
       energy: 1.012,
       lethal: 1.024,
     },
+    /* ---------------------------------------------------------
+       CHAPTER II PERSONALITIES (2026-08-19).
+       ---------------------------------------------------------
+       Chapter II's rivals all shipped with `adaptive`, a profile name
+       that did not exist - profileFor() returned null, so every gate
+       XI..XX rival evaluated positions with no personality at all and
+       fielded with no persona bonus. Each rival is a person with a
+       trade and a described playstyle; these weights make the search
+       prefer the payoffs that trade is built around, exactly the way
+       Chapter I's nine profiles do. None of them change depth, beam,
+       budget or time - a profile bends VALUES inside the same depth-4
+       search, it never sandbags. */
+    /* XI - the Understudy. Nothing on her board is finished yet: every
+       mortal ascends when the fight gives it a reason, so she values
+       the growth triggers (statUp, revive, exposed) and the bodies that
+       survive long enough to grow. */
+    understudy: {
+      roles: { Bruiser: 1.012, Medic: 1.01, Sniper: 1.008, Tank: 1.006, Caster: 1.006 },
+      effects: {
+        statUp: 1.016,
+        revive: 1.03,
+        heal: 1.01,
+        exposed: 1.012,
+        dmg: 1.004,
+        shield: 1.006,
+      },
+      energy: 1.006,
+      lethal: 1.01,
+    },
+    /* XII - the Bookmaker. He never opens a position; he prices yours.
+       Energy is the currency everything costs, so he values taxing it,
+       countering the wall, and cashing Marks. */
+    bookmaker: {
+      roles: { Controller: 1.014, Sniper: 1.01, Bruiser: 1.008, Tank: 1.006, Caster: 1.004 },
+      effects: {
+        drainEnergy: 1.022,
+        costMod: 1.016,
+        counterStrike: 1.016,
+        mark: 1.016,
+        exposed: 1.01,
+        dmg: 1.004,
+        shield: 1.006,
+        taunt: 1.004,
+      },
+      energy: 1.014,
+      lethal: 1.012,
+    },
+    /* XIII - the Herald. He reads what is about to happen, then does it:
+       almost nothing deals damage on the turn it acts - the damage is
+       scheduled, in the open, two rounds out. */
+    herald: {
+      roles: { Caster: 1.014, Controller: 1.012, Medic: 1.008, Tank: 1.006 },
+      effects: {
+        delayed: 1.026,
+        burn: 1.014,
+        silence: 1.01,
+        statUp: 1.008,
+        heal: 1.006,
+        dmg: 1.002,
+      },
+      energy: 1.014,
+      lethal: 1.002,
+    },
+    /* XIV - the Collector. She does not remove your advantages; she
+       keeps them, and they reappear on her side of the table. */
+    collector: {
+      roles: { Controller: 1.014, Tank: 1.01, Bruiser: 1.008, Caster: 1.006 },
+      effects: {
+        statDown: 1.02,
+        heal: 1.012,
+        shield: 1.008,
+        taunt: 1.006,
+        dmg: 1.002,
+      },
+      energy: 1.008,
+      lethal: 1.006,
+    },
+    /* XV - the Hero of the Bridge (the first exam). The entry in the
+       book has no seam: a disciplined, balanced line with no favourite
+       instrument, built to punish the flashy answer. */
+    bridgeHero: {
+      roles: { Controller: 1.01, Medic: 1.008, Sniper: 1.008, Bruiser: 1.006, Tank: 1.006, Caster: 1.006 },
+      effects: {
+        exposed: 1.01,
+        mark: 1.008,
+        statDown: 1.008,
+        dmg: 1.006,
+        heal: 1.004,
+        shield: 1.004,
+        statUp: 1.004,
+      },
+      energy: 1.01,
+      lethal: 1.012,
+    },
+    /* XVI - the Undertaker. His deck is below curve while the board is
+       full and improves with every legend that falls, so he trades
+       bodies gladly and never refuses an exchange. */
+    undertaker: {
+      roles: { Bruiser: 1.012, Caster: 1.01, Controller: 1.006, Sniper: 1.006 },
+      effects: {
+        dmg: 1.016,
+        healMod: 1.012,
+        exposed: 1.008,
+        statDown: 1.006,
+        burn: 1.006,
+        heal: 0.996,
+      },
+      energy: 1.006,
+      lethal: 1.02,
+    },
+    /* XVII - the Mason. Nothing on her board kills anything by itself:
+       she lays the bed true, then the wall. Marks and combos are her
+       courses; finishers are for other people. */
+    mason: {
+      roles: { Medic: 1.012, Caster: 1.01, Bruiser: 1.008, Tank: 1.006 },
+      effects: {
+        mark: 1.022,
+        cleanse: 1.014,
+        statDown: 1.012,
+        heal: 1.01,
+        exposed: 1.008,
+        dmg: 1.004,
+        shield: 1.006,
+      },
+      energy: 1.01,
+      lethal: 1.008,
+    },
+    /* XVIII - the Wrecker. Nothing she does is destroyed - buffs,
+       energy, shields, a revive you were counting on: all of it
+       changes hands. */
+    wrecker: {
+      roles: { Controller: 1.014, Caster: 1.008, Sniper: 1.006, Tank: 1.006 },
+      effects: {
+        stealEnergy: 1.022,
+        drainEnergy: 1.022,
+        drainTax: 1.018,
+        statDown: 1.012,
+        mark: 1.008,
+        burn: 1.008,
+        dmg: 1.002,
+      },
+      energy: 1.018,
+      lethal: 1.006,
+    },
+    /* XIX - the Auditor (the second exam). He starts nothing: his twelve
+       is built out of the seven decks you were handed, each aimed back
+       at the habit it taught you. */
+    auditor: {
+      roles: { Controller: 1.012, Caster: 1.01, Sniper: 1.008, Bruiser: 1.006, Medic: 1.006, Tank: 1.004 },
+      effects: {
+        silence: 1.012,
+        statDown: 1.012,
+        exposed: 1.01,
+        mark: 1.008,
+        dmg: 1.006,
+        heal: 1.006,
+        cleanse: 1.006,
+      },
+      energy: 1.01,
+      lethal: 1.014,
+    },
+    /* XX - Asmodeus, the Redactor. Four hundred years of tidy history:
+       he strikes lines out, strips what they carried, and grows a
+       little stronger every time the record is revised. */
+    redactor: {
+      roles: { Caster: 1.02, Controller: 1.014, Bruiser: 1.008, Sniper: 1.006 },
+      effects: {
+        silence: 1.03,
+        statUp: 1.02,
+        dmg: 1.01,
+        statDown: 1.006,
+        delayed: 1.004,
+      },
+      energy: 1.012,
+      lethal: 1.016,
+    },
   };
 
   function profileFor(B, side) {
@@ -409,7 +585,14 @@
               if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
               bonus += atk * e.perBuff * bn;
             }
-            var raw = (atk * e.power + bonus) * (1 - E.defOf(t) / 100);
+            /* The Wheel of Seven: the AI prices element matchups in the
+               same breath as defence, or it will never prefer the prey
+               its element sears over the neutral target. */
+            var elDmg = e.element === 'inherit' ? unit.element : e.element;
+            var raw =
+              (atk * e.power + bonus) *
+              (1 - E.defOf(t) / 100) *
+              E.elementMult(elDmg, t.element);
             if (raw >= t.hp)
               s += 900 + raw * 0.4; // finishing blow
             else s += raw;

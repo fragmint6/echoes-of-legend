@@ -149,6 +149,39 @@ console.log('A3. a player who migrated BEFORE the second wave still gets it');
   ok(owned.includes('genesis-gabriel') && owned.includes('kami-kaguya'), 'the old guard key does not block the new renames');
 }
 
+console.log('A4. the third wave: Transylvania slugs follow their new names (2026-08-19a)');
+{
+  const store = {
+    'eol.owned.v1': J(['transylvania-monster', 'transylvania-hyde', 'transylvania-dracula']),
+    'eol.decks.v1': J([{ id: 1, name: 'a', ids: ['transylvania-monster', 'transylvania-hyde'] }]),
+    'eol.upgrades.v2': J({ v: 2, cards: { 'transylvania-hyde': { dupes: 3, boosts: ['atk'] } } }),
+  };
+  freshEnv(store);
+  const owned = P(store['eol.owned.v1']);
+  ok(owned.includes('transylvania-frankensteins-monster'), 'transylvania-monster -> transylvania-frankensteins-monster');
+  ok(owned.includes('transylvania-mr-hyde'), 'transylvania-hyde -> transylvania-mr-hyde');
+  ok(owned.includes('transylvania-dracula'), 'the rest of Transylvania is untouched');
+  ok(
+    P(store['eol.decks.v1'])[0].ids.join() ===
+      'transylvania-frankensteins-monster,transylvania-mr-hyde',
+    'both land in saved decks'
+  );
+  ok(
+    P(store['eol.upgrades.v2']).cards['transylvania-mr-hyde'].dupes === 3,
+    "Mr. Hyde's dupes survive the rename"
+  );
+}
+
+console.log('A5. a player who migrated BEFORE the third wave still gets it');
+{
+  const store = {
+    'eol.idmap.2026-08-18b': '1',
+    'eol.owned.v1': J(['transylvania-monster']),
+  };
+  freshEnv(store);
+  ok(P(store['eol.owned.v1']).includes('transylvania-frankensteins-monster'), 'the 08-18b guard key does not block the new renames');
+}
+
 console.log('B. Hercules changed faction, not just faction name');
 {
   const store = {
@@ -227,11 +260,21 @@ console.log('E. a cloud restore re-arms the migration');
   /* cloud.restore() writes the vault over localStorage and reloads, so
      old ids can arrive on a device that already set DONE_KEY. The boot
      must force the rewrite when the restore marker is present. */
-  const store = { 'eol.idmap.2026-08-18b': '1', 'eol.owned.v1': J(['takamagahara-inari']) };
+  /* Read the CURRENT guard key from the shipped file - a bump must not
+     leave this test asserting against a retired key. */
+  const src = fs.readFileSync(path.join(ROOT, 'js/id-migration.js'), 'utf8');
+  const m = src.match(/var DONE_KEY = '([^']+)'/);
+  if (!m) throw new Error('DONE_KEY not found in js/id-migration.js');
+  const DONE_KEY = m[1];
+  const store = {};
+  store[DONE_KEY] = '1';
+  store['eol.owned.v1'] = J(['takamagahara-inari']);
   freshEnv(store, {}); // no marker: guard holds, nothing happens
   ok(P(store['eol.owned.v1'])[0] === 'takamagahara-inari', 'without the marker the guard short-circuits');
 
-  const store2 = { 'eol.idmap.2026-08-18b': '1', 'eol.owned.v1': J(['takamagahara-inari']) };
+  const store2 = {};
+  store2[DONE_KEY] = '1';
+  store2['eol.owned.v1'] = J(['takamagahara-inari']);
   const sess = { 'eol.cloud.restored': '1' };
   freshEnv(store2, sess);
   ok(P(store2['eol.owned.v1'])[0] === 'kami-inari', 'a cloud-restore boot migrates despite the guard');

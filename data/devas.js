@@ -114,7 +114,7 @@ window.EOL.registerFaction({
           target: { side: 'ally', pick: 'all', row: 'any' },
           effects: [
             { k: 'heal', pctMaxHp: 24, to: 'targets' },
-            { k: 'cleanse', n: 1, to: 'targets' },
+            { k: 'cleanse', count: 1, to: 'targets' },
           ],
         },
       },
@@ -204,7 +204,7 @@ window.EOL.registerFaction({
         spec: {
           target: { side: 'ally', pick: 'all', row: 'any' },
           effects: [
-            { k: 'cleanse', n: 99, to: 'targets' },
+            { k: 'cleanse', count: 'all', to: 'targets' },
             /* A small heal so the card HAS an upgradeable magnitude.
                Ganesha was one of five new legends whose skill scaled
                with nothing - the same hole Medusa had. Kept small (10%)

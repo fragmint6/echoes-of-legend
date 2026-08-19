@@ -829,18 +829,20 @@ const server = http.createServer((req, res) => {
   const heroicGate1 = d.querySelector('[data-campaign-stage="1"] .sc-rewards');
   t(
     heroicGate1.textContent.indexOf('200') >= 0 &&
-      heroicGate1.textContent.indexOf('Epic') >= 0 &&
+      heroicGate1.textContent.indexOf('Big Bad Wolf') >= 0 &&
+      heroicGate1.textContent.indexOf('Random') < 0 &&
       heroicGate1.textContent.indexOf('Legendary') < 0,
-    'Heroic faction gates advertise only double coins and their Epic'
+    'Heroic faction gates advertise their coins and the SET echo - Gate I names Big Bad Wolf, never a random dip'
   );
   d.querySelector('[data-road-difficulty="legend"]').click();
   await sleep(200);
   const legendGate2Preview = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
   t(
-    legendGate2Preview.querySelectorAll('.sc-reward').length === 1 &&
+    legendGate2Preview.querySelectorAll('.sc-reward').length === 2 &&
       !!legendGate2Preview.querySelector('.legendary') &&
-      !legendGate2Preview.querySelector('.coin'),
-    'Legend faction gates advertise only their Legendary reward'
+      !!legendGate2Preview.querySelector('.coin') &&
+      legendGate2Preview.textContent.indexOf('300') >= 0,
+    'Legend faction gates advertise their Legendary reward AND its 300 coins'
   );
   d.querySelector('[data-road-difficulty="normal"]').click();
   await sleep(200);
@@ -1009,10 +1011,11 @@ const server = http.createServer((req, res) => {
     'closing the code popup returns focus to its wallet chip'
   );
   t(
-    w.EOL.shop.PACKS.trio.price === 200 &&
+    w.EOL.shop.PACKS.daily.price === 0 &&
       w.EOL.shop.PACKS.echo.price === 500 &&
-      w.EOL.shop.PACKS.crown.price === 1000,
-    'the shelf uses the 200 / 500 / 1,000 pack prices'
+      w.EOL.shop.PACKS.archive.price === 500 &&
+      w.EOL.shop.PACKS.featured.price === 500,
+    'the shelf uses the Free daily / 500-chapter / 500-featured prices'
   );
   t($('shop-wallet').textContent.indexOf('5,100') >= 0 || $('shop-wallet').textContent.indexOf('5100') >= 0, 'the shop shows the wallet');
   // the library coin (owner ruling: icon font, never a generated sprite)
@@ -1020,9 +1023,9 @@ const server = http.createServer((req, res) => {
   t(!$('shop-wallet').querySelector('.ra-lightning-bolt') && !$('shop-wallet').querySelector('img'), 'no lightning bolt and no sprite anywhere near the wallet');
   // tiered CSS wrappers: one skeleton, each shelf pack wearing its own skin
   for (const [key, word, icon] of [
-    ['trio', 'Trio', 'ra-diamonds-card'],
+    ['daily', 'Daily', 'ra-book'],
     ['echo', 'Echoes', 'ra-spiral-shell'],
-    ['crown', 'Crown', 'ra-crown'],
+    ['archive', 'Archive', 'ra-scroll-unfurled'],
   ]) {
     const host = d.querySelector('.product-pack[data-pack="' + key + '"]');
     const face = host && host.querySelector('.pk-face');
@@ -1031,16 +1034,27 @@ const server = http.createServer((req, res) => {
     t(!!face && face.querySelectorAll('.pk-pips span').length === w.EOL.shop.PACKS[key].size, 'and a pip fan matching its size');
     t(!!host && host.querySelector('.pk-wordmark span').textContent === word, 'and its wordmark says ' + word);
   }
+  {
+    // the two featured wrappers carry the pair's two faction crests
+    const f0 = d.querySelector('.product-pack[data-pack="featured"][data-slot="0"]');
+    const meta0 = w.EOL.shop._featuredMeta(0);
+    t(
+      !!f0 && f0.querySelectorAll('.pk-emblem i').length === 2 && !!f0.querySelector('.pk-wordmark span') && f0.querySelector('.pk-wordmark span').textContent === meta0.word,
+      "the first featured wrapper shows both crests and the pair's wordmark"
+    );
+    const name0 = d.querySelector('#product-featured-0 .product-name');
+    t(!!name0 && name0.textContent === meta0.name + ' Pack', 'the featured product is named for its pair (' + meta0.name + ' Pack)');
+  }
   w.EOL.shop.setFast(true);
   {
     const before = w.EOL.econ.unownedEntries().length;
     const coinsBefore = w.EOL.econ.coins();
-    d.querySelector('.buy-pack[data-pack="trio"]').click();
+    d.querySelector('.buy-pack[data-pack="echo"]').click();
     // the pack on the opening table must wear the wrapper that was bought
     t(
       Array.from(d.querySelectorAll('#po-pack .pk-face')).length >= 3 &&
-        Array.from(d.querySelectorAll('#po-pack .pk-face')).every((f) => f.classList.contains('pk-trio')),
-      'the opening pack (and both burst halves) wear the Trio skin'
+        Array.from(d.querySelectorAll('#po-pack .pk-face')).every((f) => f.classList.contains('pk-echo')),
+      'the opening pack (and both burst halves) wear the Echoes skin'
     );
     for (let g = 0; g < 20 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
@@ -1049,17 +1063,38 @@ const server = http.createServer((req, res) => {
     t(w.EOL.shop.state() === 'summary', 'the pack opens to its summary');
     t($('po-summary').textContent.indexOf('Preview only') < 0, "the demo-era 'Preview only' note is DEAD");
     t($('po-summary').textContent.indexOf('Yours now') >= 0, 'the summary tells the truth: the cards are owned');
-    t(w.EOL.econ.coins() === coinsBefore - 200, 'the Trio pack cost 200 coins');
-    t(w.EOL.econ.unownedEntries().length === before - 3, 'three NEW legends joined the collection');
-    t(w.EOL.shop.results().every((e) => e.faction.id !== 'huaxia'), 'no Huaxia in the pull');
+    t(w.EOL.econ.coins() === coinsBefore - 500, 'the Echoes pack cost 500 coins');
+    t(w.EOL.econ.unownedEntries().length === before - 5, 'five NEW legends joined the collection');
+    t(w.EOL.shop.results().every((e) => ['grimmwood', 'camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'kami', 'duat'].indexOf(e.faction.id) >= 0), 'the Echoes pull stays inside Chapter I');
     t(w.EOL.shop.results().every((e) => e.card.rarity !== 'legendary'), 'and no legendary - the Crown Law holds in the pull');
     t(w.EOL.shop.results().every((e) => w.EOL.econ.owns(e.card.id)), 'the pull is OWNED (granted at roll time)');
-    t(!$('po-again').hidden, 'Open Another appears while another Trio pack is affordable');
-    const drain = w.EOL.econ.coins() - 199;
+    t(!$('po-again').hidden, 'Open Another appears while another Echoes pack is affordable');
+    const drain = w.EOL.econ.coins() - 499;
     w.EOL.econ.spend(drain);
     t($('po-again').hidden, 'Open Another hides immediately when the pack is no longer affordable');
     w.EOL.econ.addCoins(drain);
     w.EOL.shop.close();
+  }
+
+  /* ---------- THE DAILY PACK: free, once a day ---------- */
+  {
+    const before = w.EOL.econ.unownedEntries().length;
+    const dailyBtn = d.querySelector('.buy-pack[data-pack="daily"]');
+    t(!dailyBtn.disabled && dailyBtn.textContent.indexOf('Free') >= 0, 'the Daily Pack is free before the claim');
+    dailyBtn.click();
+    for (let g = 0; g < 20 && w.EOL.shop.state() !== 'summary'; g++) {
+      if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();
+      await sleep(150);
+    }
+    t(w.EOL.shop.results().length === 1, 'the daily pull is exactly one card');
+    t(w.EOL.econ.unownedEntries().length === before - 1, 'the free card joined the collection');
+    t(w.EOL.shop.results().every((e) => e.card.rarity !== 'legendary'), 'no crown rides the freebie - the Crown Law holds');
+    w.EOL.shop.close();
+    t(
+      d.querySelector('.buy-pack[data-pack="daily"]').disabled &&
+        d.querySelector('.buy-pack[data-pack="daily"]').textContent.indexOf('tomorrow') >= 0,
+      'a second claim is refused until midnight'
+    );
   }
 
   /* ---------- THE CROWN LAW + THE LEGEND PACK ---------- */
@@ -1103,12 +1138,13 @@ const server = http.createServer((req, res) => {
     const gate2Rewards = d.querySelector('[data-campaign-stage="2"] .sc-rewards');
     t(
       gate2Rewards &&
-        gate2Rewards.querySelectorAll('.sc-reward').length === 1 &&
-        !gate2Rewards.querySelector('.coin') &&
+        gate2Rewards.querySelectorAll('.sc-reward').length === 2 &&
+        !!gate2Rewards.querySelector('.coin') &&
         !!gate2Rewards.querySelector('.legendary') &&
         gate2Rewards.textContent.indexOf('Legendary reward pack') >= 0 &&
+        gate2Rewards.textContent.indexOf('300') >= 0 &&
         gate2Rewards.textContent.indexOf('King Arthur') < 0,
-      'a Legend gate receipt contains only its spoiler-free Legendary pack'
+      'a Legend gate receipt shows its 300 coins beside the spoiler-free pack'
     );
     for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();

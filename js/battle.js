@@ -1224,27 +1224,40 @@
     return '\u00d7' + (Math.round(m * 1000) / 1000).toLocaleString();
   }
 
-  function stepRowHTML(s) {
+  /* THE HORIZONTAL WORKING-OUT (2026-08-19). The old breakdown was
+     a vertical ledger of rows - tall enough to run off the board on
+     a six-step skill. It is now a wrapping CHIP CHAIN: each factor
+     is a small pill, connected by x / + / =, reading left to right
+     like the arithmetic itself. */
+  function stepChipHTML(s, connector) {
     var right;
     if (s.mult != null) right = fmtMult(s.mult);
     else if (s.add != null) right = '+' + Math.round(s.add).toLocaleString();
     else right = Math.round(s.value).toLocaleString();
     return (
-      '<div class="dpb-row' +
+      '<span class="dpb-chip' +
       (s.subtotal ? ' sub' : '') +
       (s.k === 'total' ? ' tot' : '') +
-      '"><span class="dpb-k">' +
+      '">' +
+      (connector ? '<i class="dpb-link">' + connector + '</i>' : '') +
+      '<b>' +
       esc(s.label) +
-      '</span><span class="dpb-v">' +
+      '</b><i>' +
       right +
-      '</span></div>'
+      '</i></span>'
     );
   }
+  function chipConnector(s) {
+    if (s.mult != null) return '\u00d7';
+    if (s.add != null) return '+';
+    return '=';
+  }
 
-  /* Open downward when there is not enough room above. Measured
-     against the board rect, not the window: the board is what the
-     panel would visually escape from, and the game is scaled, so
-     window coordinates alone would misjudge it. */
+  /* Open downward when there is not enough room above, and clamp
+     sideways when the wide chain would escape the board's edges.
+     Measured against the board rect, not the window: the board is
+     what the panel would visually escape from, and the game is
+     scaled, so window coordinates alone would misjudge it. */
   var DPB_H = 190; /* generous estimate; only decides the side */
   function flipBreakdown(chip) {
     try {
@@ -1252,6 +1265,16 @@
       var host = document.getElementById('board');
       var top = host ? host.getBoundingClientRect().top : 0;
       chip.classList.toggle('flip', r.top - top < DPB_H);
+      /* the chain wraps wide - shift it so it stays on the board */
+      var panel = chip.querySelector('.dmg-breakdown');
+      if (panel && host) {
+        var pr = panel.getBoundingClientRect();
+        var hr = host.getBoundingClientRect();
+        var dx = 0;
+        if (pr.left < hr.left) dx = hr.left - pr.left + 10;
+        else if (pr.right > hr.right) dx = hr.right - pr.right - 10;
+        panel.style.setProperty('--dpb-shift', Math.round(dx) + 'px');
+      }
     } catch (e) {
       /* positioning is a nicety - never let it break targeting */
     }
@@ -1263,15 +1286,18 @@
     var multi = hits.length > 1;
     var body = '';
     hits.forEach(function (h, i) {
-      if (multi) body += '<div class="dpb-hit">Hit ' + (i + 1) + '</div>';
-      h.steps.forEach(function (s) {
-        /* on a multi-hit skill the per-hit "Damage" line is the hit,
-           not the answer - the grand total below is the answer */
-        body += stepRowHTML(s);
+      var line = '';
+      if (multi) line += '<span class="dpb-hit">Hit ' + (i + 1) + '</span>';
+      h.steps.forEach(function (s, si) {
+        line += stepChipHTML(s, si > 0 ? chipConnector(s) : '');
       });
+      body += '<div class="dpb-line">' + line + '</div>';
     });
     if (multi) {
-      body += stepRowHTML({ k: 'total', label: 'Total damage', value: pv.dmg, subtotal: true });
+      body +=
+        '<div class="dpb-line dpb-line-total">' +
+        stepChipHTML({ k: 'total', label: 'Total damage', value: pv.dmg, subtotal: true }, '=') +
+        '</div>';
     }
     var foot = '';
     if (pv.critChance > 0) {
@@ -3609,6 +3635,143 @@
      A rotating rune ring plus an element sigil, so you can see
      *what* is being cast before the projectile even lands.
      -------------------------------------------------------- */
+  /* PER-CARD SIGNATURE SIGILS (Chapter II, 2026-08-19; Chapter I,
+     2026-08-19b). The cast ring used to show the ELEMENT's sigil for
+     every legend - a fine default, but a signature is a person's, not
+     an element's. `castFxFor` now resolves, in order:
+       1. a CARD_CAST_FX override (curated colour + sigil below),
+       2. the card's OWN icon as the sigil - every legend already
+          carries one, so every signature in both chapters gets its
+          personal mark with no per-card list needed,
+       3. the faction's primary colour for the ring, so a cast reads
+          as the character's, not just the element's.
+     The strike/trail style still comes from the element, so projectiles
+     keep their elemental identity. */
+  var CARD_CAST_FX = {
+    /* -- Chapter II -- */
+    'campaign-asmodeus': { color: '#ffe9a8', sigil: 'ra-quill-ink' },
+    'hemithea-odysseus': { color: '#ffe6a8', sigil: 'ra-fast-ship' },
+    'hemithea-medea': { color: '#7ef0a8', sigil: 'ra-bubbling-potion' },
+    'hemithea-atalanta': { color: '#a6f0c2', sigil: 'ra-barbed-arrow' },
+    'hemithea-hercules': { color: '#ff7575', sigil: 'ra-muscle-fat' },
+    'hemithea-jason': { color: '#a6f0c2', sigil: 'ra-ocean-emblem' },
+    'huaxia-qin-shi-huang': { color: '#ff8b6a', sigil: 'ra-scroll-unfurled' },
+    'huaxia-guan-yu': { color: '#ff8b6a', sigil: 'ra-broadsword' },
+    'huaxia-sun-wukong': { color: '#ffd050', sigil: 'ra-aura' },
+    'huaxia-zhuge-liang': { color: '#ff8b6a', sigil: 'ra-crystal-ball' },
+    'huaxia-huang-zhong': { color: '#ff8b6a', sigil: 'ra-arrow-cluster' },
+    'genesis-lucifer': { color: '#ffb07a', sigil: 'ra-falling' },
+    'genesis-azrael': { color: '#d08cff', sigil: 'ra-scythe' },
+    'genesis-gabriel': { color: '#fff8dc', sigil: 'ra-ocarina' },
+    'genesis-metatron': { color: '#fff8dc', sigil: 'ra-quill-ink' },
+    'genesis-raphael': { color: '#a6f0c2', sigil: 'ra-medical-pack' },
+    'transylvania-dracula': { color: '#d08cff', sigil: 'ra-batwings' },
+    'transylvania-frankensteins-monster': { color: '#ff7575', sigil: 'ra-brain-freeze' },
+    'transylvania-carmilla': { color: '#ff7cd5', sigil: 'ra-broken-heart' },
+    'transylvania-mr-hyde': { color: '#ff7575', sigil: 'ra-round-bottom-flask' },
+    'transylvania-van-helsing': { color: '#ffe9a8', sigil: 'ra-bone-knife' },
+    'transylvania-invisible-man': { color: '#ff7cd5', sigil: 'ra-uncertainty' },
+    'asgard-odin': { color: '#bfe6ff', sigil: 'ra-eye-shield' },
+    'asgard-thor': { color: '#9fe8ff', sigil: 'ra-lightning-storm' },
+    'asgard-hel': { color: '#bfe6ff', sigil: 'ra-death-skull' },
+    'asgard-freyja': { color: '#ffe9a8', sigil: 'ra-feather-wing' },
+    'asgard-heimdall': { color: '#bfe6ff', sigil: 'ra-ringing-bell' },
+    'devas-shiva': { color: '#ffd98a', sigil: 'ra-fire-ring' },
+    'devas-kali': { color: '#ffd98a', sigil: 'ra-skull' },
+    'devas-indra': { color: '#9fe8ff', sigil: 'ra-focused-lightning' },
+    'devas-durga': { color: '#ffb07a', sigil: 'ra-flaming-trident' },
+    'devas-ganesha': { color: '#a6f0c2', sigil: 'ra-trefoil-lily' },
+    'devas-hanuman': { color: '#ffd98a', sigil: 'ra-boot-stomp' },
+    'devas-vishnu': { color: '#ffe9a8', sigil: 'ra-sunbeams' },
+    'tortuga-davy-jones': { color: '#7fe3d4', sigil: 'ra-crossed-bones' },
+    'tortuga-anne-bonny': { color: '#7fe3d4', sigil: 'ra-crossed-sabres' },
+    'tortuga-captain-kidd': { color: '#7fe3d4', sigil: 'ra-compass' },
+    'tortuga-calico-jack': { color: '#7fe3d4', sigil: 'ra-crossed-bones' },
+    'tortuga-flying-dutchman': { color: '#7fe3d4', sigil: 'ra-ship-emblem' },
+    'pandemonium-pride': { color: '#ffe9a8', sigil: 'ra-crown-of-thorns' },
+    'pandemonium-wrath': { color: '#ff7a4d', sigil: 'ra-muscle-up' },
+    'pandemonium-envy': { color: '#ff7a4d', sigil: 'ra-burning-eye' },
+    'pandemonium-gluttony': { color: '#ff7a4d', sigil: 'ra-meat-hook' },
+    'pandemonium-sloth': { color: '#ff7a4d', sigil: 'ra-hourglass' },
+    'pandemonium-lust': { color: '#ff7a4d', sigil: 'ra-heartburn' },
+    /* -- Chapter I marquee casts, where the element colour would lie
+       about who is casting. The rest of Chapter I falls through to
+       card-icon + faction-colour and still gets its personal sigil. -- */
+    'grimmwood-big-bad-wolf': { color: '#e05a4a', sigil: 'ra-wolf-head' },
+    'grimmwood-red-riding-hood': { color: '#e05a4a', sigil: 'ra-hood' },
+    'grimmwood-evil-queen': { color: '#b03a2e', sigil: 'ra-queen-crown' },
+    'grimmwood-rumpelstiltskin': { color: '#c9a227', sigil: 'ra-gold-bar' },
+    'grimmwood-snow-white': { color: '#7ef0a8', sigil: 'ra-apple' },
+    'grimmwood-pied-piper': { color: '#4fa86a', sigil: 'ra-horn-call' },
+    'grimmwood-cinderella': { color: '#9fd8ff', sigil: 'ra-glass-heart' },
+    'grimmwood-goldilocks': { color: '#c9a227', sigil: 'ra-honeycomb' },
+    'grimmwood-rapunzel': { color: '#4fa86a', sigil: 'ra-tower' },
+    'grimmwood-puss-in-boots': { color: '#e8a33d', sigil: 'ra-cat' },
+    'grimmwood-hansel-gretel': { color: '#ffb07a', sigil: 'ra-candle' },
+    'grimmwood-gingerbread-man': { color: '#e8a33d', sigil: 'ra-shoe-prints' },
+    'camelot-king-arthur': { color: '#9fd8ff', sigil: 'ra-crown' },
+    'camelot-merlin': { color: '#ff7cd5', sigil: 'ra-crystal-wand' },
+    'camelot-morgan-le-fay': { color: '#d08cff', sigil: 'ra-raven' },
+    'camelot-lancelot': { color: '#4c7bd8', sigil: 'ra-sword' },
+    'camelot-guinevere': { color: '#7ef0a8', sigil: 'ra-heart-tower' },
+    'camelot-mordred': { color: '#e05a4a', sigil: 'ra-dripping-blade' },
+    'sherwood-robin-hood': { color: '#3f9b5c', sigil: 'ra-archer' },
+    'sherwood-little-john': { color: '#3f9b5c', sigil: 'ra-heavy-shield' },
+    'sherwood-will-scarlet': { color: '#e05a4a', sigil: 'ra-daggers' },
+    'sherwood-guy-of-gisborne': { color: '#e05a4a', sigil: 'ra-knight-helmet' },
+    'sherwood-maid-marian': { color: '#7ef0a8', sigil: 'ra-two-hearts' },
+    'sherwood-friar-tuck': { color: '#e8a33d', sigil: 'ra-beer' },
+    'olympus-zeus': { color: '#d8b64c', sigil: 'ra-lightning-bolt' },
+    'olympus-athena': { color: '#9fd8ff', sigil: 'ra-shield' },
+    'olympus-poseidon': { color: '#7fe3ff', sigil: 'ra-harpoon-trident' },
+    'olympus-apollo': { color: '#ffe9a8', sigil: 'ra-sun-symbol' },
+    'olympus-medusa': { color: '#d08cff', sigil: 'ra-snake' },
+    'olympus-ares': { color: '#e05a4a', sigil: 'ra-bleeding-hearts' },
+    'yamato-abe-no-seimei': { color: '#d08cff', sigil: 'ra-rune-stone' },
+    'yamato-miyamoto-musashi': { color: '#e05a4a', sigil: 'ra-spinning-sword' },
+    'yamato-benkei': { color: '#e05a4a', sigil: 'ra-helmet' },
+    'yamato-tomoe-gozen': { color: '#e05a4a', sigil: 'ra-arrow-flights' },
+    'yamato-minamoto-no-yoshitsune': { color: '#e05a4a', sigil: 'ra-dervish-swords' },
+    'yamato-momotaro': { color: '#e05a4a', sigil: 'ra-round-shield' },
+    'roma-julius-caesar': { color: '#7b4dc0', sigil: 'ra-crossed-swords' },
+    'roma-spartacus': { color: '#e05a4a', sigil: 'ra-circular-shield' },
+    'roma-augustus': { color: '#7b4dc0', sigil: 'ra-crowned-heart' },
+    'roma-cicero': { color: '#7b4dc0', sigil: 'ra-book' },
+    'roma-brutus': { color: '#4a5568', sigil: 'ra-cloak-and-dagger' },
+    'roma-constantine-the-great': { color: '#9fd8ff', sigil: 'ra-hospital-cross' },
+    'kami-amaterasu': { color: '#ffe9a8', sigil: 'ra-sun' },
+    'kami-tsukuyomi': { color: '#d08cff', sigil: 'ra-mirror' },
+    'kami-izanami': { color: '#4a5568', sigil: 'ra-tombstone' },
+    'kami-inari': { color: '#e8a33d', sigil: 'ra-fox' },
+    'kami-izanagi': { color: '#7fe3ff', sigil: 'ra-water-drop' },
+    'kami-kaguya': { color: '#bfe6ff', sigil: 'ra-moon-sun' },
+    'kami-susanoo': { color: '#9fe8ff', sigil: 'ra-trident' },
+    'duat-anubis': { color: '#c9a227', sigil: 'ra-bird-mask' },
+    'duat-horus': { color: '#ffe9a8', sigil: 'ra-bird-claw' },
+    'duat-maat': { color: '#ffe9a8', sigil: 'ra-radial-balance' },
+    'duat-sekhmet': { color: '#e05a4a', sigil: 'ra-lion' },
+    'duat-isis': { color: '#ffe9a8', sigil: 'ra-feathered-wing' },
+    'duat-nephthys': { color: '#d08cff', sigil: 'ra-angel-wings' },
+  };
+  function castFxFor(uid) {
+    var actor = B && B.uidMap ? B.uidMap[uid] : null;
+    if (!actor || !actor.card) return null;
+    var base = ELEMENT_FX[actor.element] || ELEMENT_FX.Physical;
+    var over = CARD_CAST_FX[actor.card.id];
+    var color =
+      (over && over.color) ||
+      (actor.faction && actor.faction.colors && actor.faction.colors.primary) ||
+      base.color;
+    var sigil = (over && over.sigil) || actor.card.icon || base.sigil;
+    return {
+      color: color,
+      style: base.style,
+      trail: color,
+      sigil: sigil,
+      shape: base.shape,
+    };
+  }
+
   function playCast(uid, element, signature) {
     var a = centreOf(uid);
     if (!a) return;
@@ -3619,7 +3782,7 @@
         element: element,
         signature: !!signature,
       });
-    var fx = ELEMENT_FX[element] || ELEMENT_FX.Physical;
+    var fx = castFxFor(uid) || ELEMENT_FX[element] || ELEMENT_FX.Physical;
 
     var ring = spawn('fx-cast-ring' + (signature ? ' big' : ''), a.x, a.y, fx.color, 700);
     ring.innerHTML = '<span></span><span></span>';
@@ -3651,6 +3814,22 @@
         }
       }, 620);
     }
+  }
+
+  /* A passive answering its trigger: the legend's own sigil flashes
+     small over the card, without the cast ring - the signature is
+     firing, but nobody is spending an action. Rides the engine's
+     'proc'/'passive' log lines, so it covers every triggered passive
+     in both chapters (Red Riding Hood's hunt, Achilles' rage, Loki's
+     death-burst, Mulan's resolve...). */
+  function playPassiveSigil(uid) {
+    var a = centreOf(uid);
+    if (!a) return;
+    var fx = castFxFor(uid) || ELEMENT_FX.Physical;
+    var sig = spawn('fx-cast-sigil small', a.x, a.y, fx.color, 680);
+    sig.innerHTML = '<i data-icon-domain="game" class="ra ' + fx.sigil + '"></i>';
+    var ring = spawn('fx-cast-ring', a.x, a.y, fx.color, 560);
+    ring.innerHTML = '<span></span><span></span>';
   }
 
   /* --------------------------------------------------------
@@ -4318,6 +4497,22 @@
   var REVIVE_TOTAL_MS = REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
   var reviveFx = {}; // uid -> { phase, at } so render() can resume the anim
 
+  /* THEMED RESURRECTIONS (Chapter II, 2026-08-19). The generic ceremony
+     is a pillar of gold - right for Wukong's trickster return, wrong for
+     everyone else. Each reviver gets its own ceremony: Medea's cauldron
+     bubbles emerald, Isis unfolds wings of light. Keyed by card id, read
+     off the `by` field the engine's revive log line now carries. */
+  var REVIVE_THEMES = {
+    'hemithea-medea': { color: '#7ef0a8', word: '#d8ffe9', audio: 'cauldron', bubbles: true },
+    'duat-isis': { color: '#ffe9a8', word: '#fff6d6', audio: 'radiance', wings: true },
+    'huaxia-sun-wukong': { color: '#ffd050', word: '#fff6d6', audio: null },
+  };
+  function reviveTheme(byUid) {
+    var src = B && B.uidMap ? B.uidMap[byUid] : null;
+    var id = src && src.card ? src.card.id : null;
+    return REVIVE_THEMES[id] || null;
+  }
+
   /* true while the legend should still be drawn as a corpse */
   function isDownForRevive(uid) {
     var st = reviveFx[uid];
@@ -4351,14 +4546,15 @@
       }, ms);
   }
 
-  function playRevive(uid, label) {
+  function playRevive(uid, label, theme) {
     var c = centreOf(uid);
     if (!c) return 0;
+    theme = theme || {};
     if (window.EOL.audio) {
       window.EOL.audio.duck(0.2, 1.3);
-      window.EOL.audio.battle('revive');
+      window.EOL.audio.battle('revive', { theme: theme.audio || null });
     }
-    var GOLD = '#ffd050';
+    var GOLD = theme.color || '#ffd050';
 
     // the board holds its breath
     var dim = spawn('fx-dim', 0, 0, null, REVIVE_TOTAL_MS + 300);
@@ -4400,7 +4596,7 @@
       pf.style.animationDelay = REVIVE_FALL_MS * 0.5 + s * 26 + 'ms';
     }
 
-    // 2. pillar of golden light climbs out of the smoke
+    // 2. pillar of light climbs out of the smoke, in the reviver's colour
     setTimeout(function () {
       // pillar stands on the card and rises off the top of the board
       // (CSS pins it to top:0, so --h is the distance down to the legend)
@@ -4416,12 +4612,26 @@
         }, d);
       });
 
-      // 4. embers stream upward
+      // 3b. Isis: wings of light fold open behind the returning legend
+      if (theme.wings) {
+        spawn('fx-isis-wing', c.x, c.y, '#fff6d6', 1250);
+        spawn('fx-isis-wing w2', c.x, c.y, GOLD, 1150);
+      }
+
+      // 4. embers stream upward - cauldron bubbles for Medea
       for (var i = 0; i < 18; i++) {
         var m = spawn('fx-revive-mote', c.x, c.y, i % 3 ? GOLD : '#fff3c4', 1200);
         m.style.setProperty('--sx', (Math.random() * 96 - 48).toFixed(1) + 'px');
         m.style.setProperty('--sy', (-46 - Math.random() * 82).toFixed(1) + 'px');
         m.style.animationDelay = i * 30 + 'ms';
+      }
+      if (theme.bubbles) {
+        for (var b = 0; b < 12; b++) {
+          var bu = spawn('fx-cauldron-bubble', c.x + (Math.random() * 54 - 27), c.y + 16, GOLD, 1150);
+          bu.style.setProperty('--sx', (Math.random() * 40 - 20).toFixed(1) + 'px');
+          bu.style.setProperty('--sy', (-36 - Math.random() * 78).toFixed(1) + 'px');
+          bu.style.animationDelay = b * 55 + 'ms';
+        }
       }
 
       // 5. the card pulses gold as it comes back. render() has rebuilt the
@@ -4441,9 +4651,20 @@
         bd.classList.remove('revive-flash');
       }, 700);
 
-      // 6. callout
+      // 6. callout - the word glows in the reviver's own colour
       var word = spawn('fx-revive-word', c.x, c.y, GOLD, 1400);
       word.textContent = label || 'REBORN';
+      if (theme.word) {
+        word.style.color = theme.word;
+        word.style.textShadow =
+          '0 0 12px ' +
+          GOLD +
+          ', 0 0 30px ' +
+          GOLD +
+          ', 0 0 58px ' +
+          GOLD +
+          ', 0 3px 10px rgba(0, 0, 0, 0.95)';
+      }
     }, REVIVE_FALL_MS + REVIVE_DOWN_MS);
 
     return REVIVE_TOTAL_MS + 500;
@@ -4737,6 +4958,11 @@
         playCast(l.meta.uid, l.meta.element, l.meta.signature);
         return;
       }
+      if (l.type === 'proc' || l.type === 'passive') {
+        // a passive answering its trigger flashes the owner's sigil
+        playPassiveSigil(l.meta.owner || l.meta.uid);
+        return;
+      }
       if (l.type === 'damage' && l.meta.src && !l.__aoe) {
         // multi-hit abilities land one blow at a time instead of stacking
         var seat = seq[l.meta.uid] || 0;
@@ -4763,11 +4989,11 @@
         var rdelay = (lastHit[l.meta.uid] || 0) + 420;
         revived[l.meta.uid] = rdelay + REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
         hold = Math.max(hold, rdelay + REVIVE_TOTAL_MS + 500);
-        (function (uid, d) {
+        (function (uid, d, theme) {
           setTimeout(function () {
-            playRevive(uid, 'REBORN');
+            playRevive(uid, 'REBORN', theme);
           }, d);
-        })(l.meta.uid, rdelay);
+        })(l.meta.uid, rdelay, reviveTheme(l.meta.by));
         return;
       }
       if (l.type === 'burn') {
@@ -4889,6 +5115,14 @@
         verdict.className = 'pop-critical';
         verdict.textContent = 'CRITICAL';
         pop.appendChild(verdict);
+      }
+      /* The Wheel of Seven: the number announces the matchup. Strong in
+         gold, weak in ash-blue - the same honesty the preview shows. */
+      if (l.meta.elementStrong || l.meta.elementWeak) {
+        var ev = document.createElement('span');
+        ev.className = 'pop-element ' + (l.meta.elementStrong ? 'strong' : 'weak');
+        ev.textContent = l.meta.elementStrong ? 'STRONG' : 'WEAK';
+        pop.appendChild(ev);
       }
       // stack simultaneous numbers so they don't overlap
       var lane = popLane[l.meta.uid] || 0;

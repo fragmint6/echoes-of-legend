@@ -119,8 +119,18 @@ function board(myIds, foeIds) {
 const U = (B, id) => B.units.find((u) => u.card.id === id);
 const foesOf = (B) => B.units.filter((u) => u.side === 'enemy' && u.alive);
 const alliesOf = (B) => B.units.filter((u) => u.side === 'player' && u.alive);
-/* expected post-mitigation damage for `power` × ATK against t */
-const model = (src, t, power) => E.atkOf(src) * power * (1 - E.defOf(t) / 100);
+/* expected post-mitigation damage for `power` × ATK against t.
+   The Wheel of Seven rides every damage model too: the signature's
+   resolved damage element decides the matchup factor. */
+const sigElementOf = (src) => {
+  const ab = src && src.card && src.card.ability;
+  if (!ab || !ab.spec) return src.card.element;
+  const dmg = (ab.spec.effects || []).find((e) => e.k === 'dmg');
+  if (!dmg || !dmg.element) return src.card.element;
+  return dmg.element === 'inherit' ? src.card.element : dmg.element;
+};
+const model = (src, t, power) =>
+  E.atkOf(src) * power * (1 - E.defOf(t) / 100) * E.elementMult(sigElementOf(src), t.element);
 const near = (a, b, tol) =>
   b === 0 ? Math.abs(a) < 1 : Math.abs(a - b) / Math.abs(b) <= (tol || 0.06);
 
@@ -634,14 +644,16 @@ section('B6. Susanoo - Slayer of Yamata no Orochi (per-trigger routing)');
   const foe = foesOf(B)[0];
   const foeHp0 = foe.hp;
   const shield0 = sus.shield;
+  const defBefore = E.defOf(foe); // the foe's own Guard buffs it mid-swing
   B.energy.enemy = 100;
   E.useAbility(B, foe, E.roleAbility(foe), [sus]);
   const back = foeHp0 - foe.hp;
-  const exp = E.atkOf(sus) * 0.45 * (1 - E.defOf(foe) / 100);
+  const exp =
+    E.atkOf(sus) * 0.45 * (1 - defBefore / 100) * E.elementMult(sus.element, foe.element);
   ok(back > 0, 'counter fires on the FIRST attack (no off-by-one)');
   ok(
     near(back, exp, 0.2),
-    `counter deals ~45% ATK (${Math.round(back)} vs ${Math.round(exp)} pre-crit)`
+    `counter deals ~45% ATK with the wheel (${Math.round(back)} vs ${Math.round(exp)} pre-crit)`
   );
   ok(!(sus.flags.taunt > 0), 'being attacked does NOT taunt (on: routing works)');
   ok(sus.shield <= shield0, 'being attacked grants NO new shield (on: routing works)');
@@ -1689,7 +1701,8 @@ section('C. SOAK - invariants over AI-vs-AI games');
              rest of its own effect list, but every remaining hit resolves for
              0 - dealDamage returns early on a dead source's target. Only
              NON-ZERO damage from a corpse is a real violation. */
-          if (src && !src.alive && ev.t === 'dmg' && ev.amount > 0) viol.deadEffect++;
+          if (src && !src.alive && ev.t === 'dmg' && ev.amount > 0 && !ev.persisted)
+            viol.deadEffect++;
         }
       };
 

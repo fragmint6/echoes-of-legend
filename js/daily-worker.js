@@ -28,6 +28,17 @@ importScripts(
   '../data/roma.js',
   '../data/kami.js',
   '../data/duat.js',
+  /* CHAPTER II FILES (2026-08-19): the worker used to forge every
+     puzzle from the Chapter I roster only - Chapter II's cards never
+     appeared in a single puzzle because the factions were not even
+     loaded here. The full shelf forges now. */
+  '../data/asgard.js',
+  '../data/hemithea.js',
+  '../data/pandemonium.js',
+  '../data/devas.js',
+  '../data/genesis.js',
+  '../data/transylvania.js',
+  '../data/tortuga.js',
   '../data/battlefields.js',
   '../data/draft-ai.js',
   'engine.js',

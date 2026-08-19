@@ -452,6 +452,16 @@
       color: '#ffd977',
       desc: 'Strikes back against the attacker when struck while Shielded.',
     },
+    /* Davy Jones's Locker: the condemnation must be visible while the
+       target is still standing, or the denial reads as a glitch when
+       their revive never happens. */
+    norevive: {
+      icon: 'ra-anchor',
+      kind: 'debuff',
+      label: 'Lockered',
+      color: '#7fe3d4',
+      desc: 'Claimed by the Locker. If this legend falls, nothing can bring them back.',
+    },
     healdown: {
       icon: 'ra-broken-heart',
       kind: 'debuff',
@@ -566,6 +576,9 @@
       if (u.flags.resistPct > 0) push('resist', u.flags.resistPctTurns, 1);
       /* an armed counter-strike (Guan Yu / Little John) shows as ready */
       if (u.flags.counterTurns > 0) push('counterstrike', u.flags.counterTurns, 1);
+      /* Davy Jones's Locker: visible while it matters, i.e. before death.
+         The mark lasts until they fall, so it wears no turn count. */
+      if (u.flags.noRevive > 0) push('norevive', null, 1);
       /* only a heal REDUCTION wears the debuff chip */
       if (u.flags.healMod < 0) push('healdown', u.flags.healModTurns, 1);
     }
