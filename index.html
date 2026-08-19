@@ -1296,9 +1296,24 @@
             </button>
             <button type="button" class="echo-seg-btn" data-echo-filter="all">All</button>
           </div>
+          <!-- THE CHAPTER TABS (2026-08-19): the shelf of owned legends
+               is long now, so it pages by chapter - gold for the Road,
+               blue for the Concord, neutral for everything. -->
+          <div class="echo-seg echo-chapters" role="group" aria-label="Chapter">
+            <button type="button" class="echo-seg-btn echo-chapter sel" data-echo-chapter="all">
+              All chapters
+            </button>
+            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch1">
+              <i class="ri-flag-line" aria-hidden="true"></i>Chapter I
+            </button>
+            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch2">
+              <i class="ri-book-2-line" aria-hidden="true"></i>Chapter II
+            </button>
+          </div>
         </div>
 
         <div class="echo-grid" id="echo-grid"></div>
+        <div class="echo-sentinel" id="echo-sentinel" aria-hidden="true"><span></span></div>
         <div class="echo-empty" id="echo-empty" hidden></div>
       </div>
 

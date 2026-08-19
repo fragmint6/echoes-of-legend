@@ -362,10 +362,9 @@ const server = http.createServer((req, res) => {
        retired. */
     const bustRule = /\.chapter-dialogue-bust\s*\{[^}]*width:\s*128px;[^}]*height:\s*176px;/s;
     t(bustRule.test(cssSrc), 'the dialogue bust renders rival portraits at their native 128x176');
-    t(
-      /\.cd-art\s*\{[^}]*width:\s*64px;[^}]*height:\s*88px;/s.test(cssSrc),
-      'the card-detail art panel stays at the legend art native 64x88'
-    );
+    /* THE CARD-DETAIL LAW CHANGED (2026-08-19): the art no longer
+       sits in a 64x88 corner box - it owns the dialog's full height
+       in the split layout, which section K pins. */
     t(
       !/\.chapter-dialogue-bust\s*\{[^}]*width:\s*256px/s.test(cssSrc),
       'the 256px experiment is retired'
@@ -698,6 +697,81 @@ const server = http.createServer((req, res) => {
     t(raw.length === new Set(raw).size, 'the written ledger has no duplicate rows');
     /* a second reconcile is a no-op - idempotent by construction */
     t(EOL.dev.reconcile().indexOf('already consistent') >= 0, 'a second reconcile finds nothing to do');
+  }
+
+  /* ---------- K. the UI overhaul: flow shelf, split detail, echo tabs ---------- */
+  console.log('K. the UI overhaul - flow shelf, split detail, echo tabs');
+  {
+    const CHAPTER1 = ['grimmwood', 'camelot', 'sherwood', 'olympus', 'yamato', 'roma', 'kami', 'duat'];
+    const cssSrc = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+
+    /* The flowing shelf: products are boxless and centered, the info
+       rides a hover panel, the buy pill floats under the pack. */
+    t(
+      /\.shop-shelf\s*\{[^}]*display:\s*flex;[^}]*justify-content:\s*center;/s.test(cssSrc),
+      'the pack shelf is a centered flow, not a grid of boxes'
+    );
+    t(
+      /\.product\s*\{[^}]*border:\s*none;/s.test(cssSrc),
+      'the product containers are gone - packs sit in the open'
+    );
+    t(
+      /\.product-info\s*\{[^}]*opacity:\s*0;/s.test(cssSrc) &&
+        /\.product:hover \.product-info[^}]*opacity:\s*1;/s.test(cssSrc),
+      'the desc and odds reveal on hover'
+    );
+
+    /* The split card detail: art owns the left column at full
+       dialog height; everything else reads right. */
+    t(
+      /\.cd-hero\s*\{[^}]*grid-template-columns:[^}]*1fr/s.test(cssSrc) &&
+        /\.cd-art-col\s*\{/s.test(cssSrc) && /\.cd-info-col\s*\{/s.test(cssSrc),
+      'the card detail is a two-column split (art left, info right)'
+    );
+    t(
+      /\.cd-art\s*\{[^}]*height:\s*100%;/s.test(cssSrc),
+      'the art fills the full height of the dialog'
+    );
+    EOL.ui.show('collection');
+    await sleep(400);
+    const ownedCard = d.querySelector('#roster .card:not(.unowned)');
+    if (ownedCard) {
+      ownedCard.click();
+      await sleep(400);
+      const detail = d.getElementById('card-detail');
+      t(!detail.hidden, 'a collection card opens the detail dialog');
+      t(
+        detail.querySelector('.cd-art-col .cd-art') && detail.querySelector('.cd-info-col .cd-ident'),
+        'the open dialog carries the split layout'
+      );
+      d.getElementById('cd-close').click();
+    }
+
+    /* The echo shop: chapter tabs, lazy batches, rarity badges. */
+    d.body.dataset.view = 'shop';
+    await sleep(400);
+    const tabs = Array.from(d.querySelectorAll('[data-echo-chapter]')).map((b) => b.dataset.echoChapter);
+    t(tabs.join(',') === 'all,ch1,ch2', 'the echo shop carries chapter tabs (all / ch1 / ch2)');
+    d.querySelector('[data-echo-chapter="ch1"]').click();
+    await sleep(200);
+    t(
+      Array.from(d.querySelectorAll('.ec-card')).every((c) => {
+        const id = c.dataset.echoCard;
+        const factions = EOL.factions.filter((f) => f.cards.some((x) => x.id === id));
+        return factions.length === 0 || CHAPTER1.indexOf(factions[0].id) >= 0;
+      }),
+      'the Chapter I tab shows only Chapter I legends'
+    );
+    d.querySelector('[data-echo-chapter="all"]').click();
+    await sleep(200);
+    t(
+      !!d.querySelector('.ec-card .ec-rarity'),
+      'every echo card wears its rarity badge'
+    );
+    t(
+      d.getElementById('echo-sentinel') != null,
+      'the echo grid has a lazy-load sentinel'
+    );
   }
 
   server.close();

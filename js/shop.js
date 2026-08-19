@@ -1064,6 +1064,17 @@
   var echoTab = 'packs';
   var echoQuery = '';
   var echoFilter = 'ready';
+  /* THE CHAPTER TABS (2026-08-19): the shelf of owned legends is
+     long, so it pages by chapter. */
+  var echoChapter = 'all';
+
+  /* THE ECHO LAZY LOAD (2026-08-19): the grid used to innerHTML
+     every owned card in one pass - with the roster open to 115 the
+     shelf re-painted a wall of DOM per keystroke. Rows are computed
+     once per paint, then rendered in batches as the sentinel
+     approaches. */
+  var ECHO_PAGE = 12;
+  var echoBatch = { rows: [], i: 0, observer: null };
 
   function upg() {
     return window.EOL.upgrades;
@@ -1148,6 +1159,147 @@
   var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
   var RARITY_ORDER = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
+  /* THE CARD, ONE ROW (2026-08-19 restyle): rarity-tinted rail,
+     pips, the copy gap, and a buy button that lights up only when
+     the shard balance can actually afford it. */
+  function echoCardHTML(r, shards) {
+    var U = upg();
+    var esc = window.EOL.ui && window.EOL.ui.esc ? window.EOL.ui.esc : String;
+    var pips = '';
+    for (var i = 1; i <= U.MAX_LEVEL; i++) {
+      pips += '<span class="ec-pip' + (i <= r.lv ? ' on' : '') + '"></span>';
+    }
+    var pct = r.maxed ? 100 : Math.min(100, (Math.min(r.dupes, r.need) / r.need) * 100);
+    var boosts = U.boostsOf(r.card.id)
+      .map(function (b) {
+        return (
+          '<i data-icon-domain="game" class="ra ' +
+          BOOST_ICON[b] +
+          ' ec-boost" data-boost="' +
+          b +
+          '"></i>'
+        );
+      })
+      .join('');
+    var status = r.maxed
+      ? '<span class="ec-status maxed">Fully upgraded</span>'
+      : r.full
+        ? '<span class="ec-status maxed">' + r.dupes + ' / ' + r.dupes + ' copies held</span>'
+        : r.ready
+          ? '<span class="ec-status ready"><i class="ri-sparkling-line"></i>Ready for level ' +
+            (r.lv + 1) +
+            '</span>'
+          : '<span class="ec-status">' +
+            r.toNext +
+            (r.toNext === 1 ? ' copy' : ' copies') +
+            ' to level ' +
+            (r.lv + 1) +
+            '</span>';
+    var afford = shards >= r.cost && r.buyable;
+    return (
+      '<article class="ec-card' +
+      (r.ready ? ' ready' : '') +
+      (r.maxed || r.full ? ' maxed' : '') +
+      '" data-echo-card="' +
+      esc(r.card.id) +
+      '" data-rarity="' +
+      esc(r.card.rarity) +
+      '" style="--fc-primary:' +
+      esc(r.faction.colors.primary) +
+      ';--rar:' +
+      'var(--r-' +
+      esc(r.card.rarity) +
+      '-1)' +
+      '">' +
+      '<span class="ec-art' +
+      (r.card.art ? ' has-art' : '') +
+      '">' +
+      (r.card.art
+        ? '<img src="' + esc(r.card.art) + '" alt="" draggable="false" loading="lazy" />'
+        : '<i data-icon-domain="game" class="ra ' + esc(r.card.icon) + '"></i>') +
+      '<span class="ec-rarity" data-rarity="' +
+      esc(r.card.rarity) +
+      '">' +
+      esc(r.card.rarity) +
+      '</span>' +
+      '<span class="ec-pips">' +
+      pips +
+      '</span>' +
+      '</span>' +
+      '<div class="ec-body">' +
+      '<div class="ec-top">' +
+      '<b class="ec-name">' +
+      esc(r.card.name) +
+      '</b>' +
+      '<span class="ec-boosts">' +
+      boosts +
+      '</span>' +
+      '</div>' +
+      status +
+      '<div class="ec-bar"><span style="width:' +
+      pct.toFixed(0) +
+      '%"></span></div>' +
+      '<div class="ec-foot">' +
+      '<span class="ec-held">' +
+      (r.maxed ? 'no levels left' : r.dupes + ' / ' + r.need + ' copies') +
+      '</span>' +
+      '<button type="button" class="ec-buy' +
+      (afford ? ' ok' : '') +
+      '" data-echo-buy="' +
+      esc(r.card.id) +
+      '"' +
+      (afford ? '' : ' disabled') +
+      '><i class="ri-sparkling-2-line"></i>' +
+      r.cost.toLocaleString() +
+      '</button>' +
+      '</div>' +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function echoRowsFiltered(all) {
+    return all.filter(function (r) {
+      if (echoChapter === 'ch1' && CHAPTER2_FACTIONS.indexOf(r.faction.id) >= 0) return false;
+      if (echoChapter === 'ch2' && CHAPTER1_FACTIONS.indexOf(r.faction.id) >= 0) return false;
+      if (echoFilter === 'ready' && !r.ready) return false;
+      if (echoFilter === 'upgradable' && !r.buyable) return false;
+      if (echoQuery && r.card.name.toLowerCase().indexOf(echoQuery) < 0) return false;
+      return true;
+    });
+  }
+
+  function renderEchoBatch() {
+    var grid = el('echo-grid');
+    var sent = el('echo-sentinel');
+    if (!grid) return;
+    var rows = echoBatch.rows;
+    var slice = rows.slice(echoBatch.i, echoBatch.i + ECHO_PAGE);
+    grid.insertAdjacentHTML('beforeend', slice.map(function (r) {
+      return echoCardHTML(r, upg().shards());
+    }).join(''));
+    echoBatch.i += slice.length;
+    if (sent) sent.hidden = echoBatch.i >= rows.length;
+  }
+
+  function armEchoObserver() {
+    var sent = el('echo-sentinel');
+    if (!sent) return;
+    if (echoBatch.observer) echoBatch.observer.disconnect();
+    if ('IntersectionObserver' in window) {
+      echoBatch.observer = new IntersectionObserver(
+        function (entries) {
+          if (entries.some(function (e2) { return e2.isIntersecting; })) renderEchoBatch();
+        },
+        { rootMargin: '600px 0px' }
+      );
+      echoBatch.observer.observe(sent);
+    } else {
+      /* no observer: render everything, nothing is lost */
+      while (echoBatch.i < echoBatch.rows.length) renderEchoBatch();
+    }
+  }
+
   function paintEcho() {
     var grid = el('echo-grid');
     var U = upg();
@@ -1172,117 +1324,27 @@
           : '';
     }
 
-    var rows = all.filter(function (r) {
-      if (echoFilter === 'ready' && !r.ready) return false;
-      /* 'Upgradable' means a copy would DO something: not maxed, and
-         not already holding every copy its levels can spend. */
-      if (echoFilter === 'upgradable' && !r.buyable) return false;
-      if (echoQuery && r.card.name.toLowerCase().indexOf(echoQuery) < 0) return false;
-      return true;
-    });
+    var rows = echoRowsFiltered(all);
 
-    var esc = window.EOL.ui && window.EOL.ui.esc ? window.EOL.ui.esc : String;
-    grid.innerHTML = rows
-      .map(function (r) {
-        /* The level, as three pips - the same language the collection
-           and the upgrade panel use. */
-        var pips = '';
-        for (var i = 1; i <= U.MAX_LEVEL; i++) {
-          pips += '<span class="ec-pip' + (i <= r.lv ? ' on' : '') + '"></span>';
-        }
-        /* What the copies you already hold are worth: a progress bar
-           toward the next level, so buying feels like closing a gap
-           rather than paying into a void. */
-        var pct = r.maxed ? 100 : Math.min(100, (Math.min(r.dupes, r.need) / r.need) * 100);
-        var boosts = U.boostsOf(r.card.id)
-          .map(function (b) {
-            return (
-              '<i data-icon-domain="game" class="ra ' +
-              BOOST_ICON[b] +
-              ' ec-boost" data-boost="' +
-              b +
-              '"></i>'
-            );
-          })
-          .join('');
-
-        var status = r.maxed
-          ? '<span class="ec-status maxed">Fully upgraded</span>'
-          : r.full
-            ? '<span class="ec-status maxed">' + r.dupes + ' / ' + r.dupes + ' copies held</span>'
-            : r.ready
-            ? '<span class="ec-status ready"><i class="ri-sparkling-line"></i>Ready for level ' +
-              (r.lv + 1) +
-              '</span>'
-            : '<span class="ec-status">' +
-              r.toNext +
-              (r.toNext === 1 ? ' copy' : ' copies') +
-              ' to level ' +
-              (r.lv + 1) +
-              '</span>';
-
-        return (
-          '<article class="ec-card' +
-          (r.ready ? ' ready' : '') +
-          (r.maxed || r.full ? ' maxed' : '') +
-          '" data-echo-card="' +
-          esc(r.card.id) +
-          '" data-rarity="' +
-          esc(r.card.rarity) +
-          '" style="--fc-primary:' +
-          esc(r.faction.colors.primary) +
-          '">' +
-          '<span class="ec-art' +
-          (r.card.art ? ' has-art' : '') +
-          '">' +
-          (r.card.art
-            ? '<img src="' + esc(r.card.art) + '" alt="" draggable="false" loading="lazy" />'
-            : '<i data-icon-domain="game" class="ra ' + esc(r.card.icon) + '"></i>') +
-          '<span class="ec-pips">' +
-          pips +
-          '</span>' +
-          '</span>' +
-          '<div class="ec-body">' +
-          '<div class="ec-top">' +
-          '<b class="ec-name">' +
-          esc(r.card.name) +
-          '</b>' +
-          '<span class="ec-boosts">' +
-          boosts +
-          '</span>' +
-          '</div>' +
-          status +
-          '<div class="ec-bar"><span style="width:' +
-          pct.toFixed(0) +
-          '%"></span></div>' +
-          '<div class="ec-foot">' +
-          '<span class="ec-held">' +
-          (r.maxed ? 'no levels left' : r.dupes + ' / ' + r.need + ' copies') +
-          '</span>' +
-          '<button type="button" class="ec-buy" data-echo-buy="' +
-          esc(r.card.id) +
-          '"' +
-          (shards >= r.cost && r.buyable ? '' : ' disabled') +
-          '><i class="ri-sparkling-2-line"></i>' +
-          r.cost.toLocaleString() +
-          '</button>' +
-          '</div>' +
-          '</div>' +
-          '</article>'
-        );
-      })
-      .join('');
+    /* lazy batches: compute once, render as the sentinel approaches */
+    grid.innerHTML = '';
+    echoBatch.rows = rows;
+    echoBatch.i = 0;
+    renderEchoBatch();
+    armEchoObserver();
 
     var empty = el('echo-empty');
     if (empty) {
       empty.hidden = rows.length > 0;
       var msg = echoQuery
         ? 'No legend you own matches that name.'
-        : echoFilter === 'ready'
-          ? 'Nothing is one copy away yet. Buy a copy below, or switch to <b>Upgradable</b>.'
-          : all.length
-            ? 'Every legend you own is fully upgraded.'
-            : 'Open a pack to start collecting legends.';
+        : echoChapter !== 'all'
+          ? 'You own no legends from that chapter yet - open a pack.'
+          : echoFilter === 'ready'
+            ? 'Nothing is one copy away yet. Buy a copy below, or switch to <b>Upgradable</b>.'
+            : all.length
+              ? 'Every legend you own is fully upgraded.'
+              : 'Open a pack to start collecting legends.';
       empty.innerHTML = '<i class="ri-sparkling-2-line"></i><p>' + msg + '</p>';
     }
   }
@@ -1492,6 +1554,16 @@
       btn.addEventListener('click', function () {
         echoFilter = btn.dataset.echoFilter;
         document.querySelectorAll('[data-echo-filter]').forEach(function (b) {
+          b.classList.toggle('sel', b === btn);
+        });
+        paintEcho();
+      });
+    });
+    /* THE CHAPTER TABS: page the owned shelf by chapter. */
+    document.querySelectorAll('[data-echo-chapter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        echoChapter = btn.dataset.echoChapter;
+        document.querySelectorAll('[data-echo-chapter]').forEach(function (b) {
           b.classList.toggle('sel', b === btn);
         });
         paintEcho();

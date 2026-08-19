@@ -409,12 +409,18 @@
       ';--el:' +
       esc(ELEMENT_COLOR[card.element] || '#fff') +
       '">' +
+      /* THE SPLIT LAYOUT (2026-08-19): the art owns the FULL height
+         of the dialog on the left; every word of information lives
+         in the right column. */
+      '<div class="cd-art-col">' +
       '<div class="cd-art' +
       (card.art ? ' has-art' : '') +
       (owned ? '' : ' locked') +
       '">' +
       art +
       '</div>' +
+      '</div>' +
+      '<div class="cd-info-col">' +
       '<div class="cd-ident">' +
       '<span class="cd-faction">' +
       esc(faction.name) +
@@ -457,7 +463,6 @@
          bows to another. */
       elementWheelLine(card) +
       '</div>' +
-      '</div>' +
       /* THE LORE. Only rendered when the legend actually has some -
          an empty quote block is worse than no quote block. */
       (card.lore ? '<p class="cd-lore">' + esc(card.lore) + '</p>' : '') +
@@ -488,7 +493,9 @@
         ? '<p class="cd-skill-note">' + rich(card.ability.note) + '</p>'
         : '') +
       '</div>' +
-      upgradePanel(card);
+      upgradePanel(card) +
+      '</div>' +
+      '</div>';
     return true;
   }
 
