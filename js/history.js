@@ -424,9 +424,6 @@
     if (scrim) scrim.addEventListener('click', function () { show(false); });
     var back = $('hist-back');
     if (back) back.addEventListener('click', function () { showList(); });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && open) show(false);
-    });
   }
 
   if (document.readyState === 'loading') {

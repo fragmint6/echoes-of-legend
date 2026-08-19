@@ -1570,19 +1570,6 @@
         charge();
       }
     });
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') return;
-      var codeModal = el('shop-code-modal');
-      if (codeModal && !codeModal.hidden) {
-        closeCodeModal(true);
-        return;
-      }
-      /* The theater is global now: a campaign reward opens over Chapter,
-         while paid packs open over Shop. Escape must work in both places. */
-      if (!el('pack-opening').classList.contains('on')) return;
-      if (state === 'summary') close();
-      else skip();
-    });
     document.addEventListener('eol:coins', function () {
       paintShop();
       syncOpenAnother();

@@ -98,36 +98,111 @@
     return chapter().story();
   }
   var SAVE_VERSION = 3;
+  /* =============================================================
+     DIFFICULTY IS RIVAL CARD LEVELS  (owner ruling 2026-08-19)
+     -------------------------------------------------------------
+     It used to be a flat x1.1 / x1.2 multiplier on rival ATK and DEF.
+     That predates card upgrades and, once upgrades shipped, it was an
+     arbitrary second scaling system sitting beside a real one: the
+     player levels their legends, so a harder rival should be a rival
+     with LEVELLED legends - the same mechanic, read the same way, on
+     the same card chrome.
+
+       heroic   every rival at level 1, elites and the final boss at 2
+       legend   every rival at level 2, elites and the final boss at 3
+
+     `bonus` is now 0 on every tier, so scaledRivalStats() multiplies
+     by 1 and the old path is inert rather than stacking on top of the
+     new one. It is deliberately KEPT rather than deleted: it is still
+     threaded through play.js, battle.js and the engine, and a future
+     event or modifier may want a raw multiplier that is not a card
+     level. Setting it to zero here turns the system off in one place.
+
+     THE BOOSTERS ARE FIXED BY ROLE, not chosen: a rival has no player
+     to pick for it, and a random pick would make the same gate harder
+     or easier on a reroll. Each role takes the booster its job wants -
+     see RIVAL_BOOST. */
   var DIFFICULTIES = {
-    /* THE NOTE IS SPLIT IN TWO. `mult` is the rival stat multiplier and
-       is rendered as a colour-coded chip (x1.1 / x1.2) because a
-       multiplier is what the engine actually applies - scaledRivalStats
-       multiplies by (1 + bonus), so "x1.1" is the literal truth where
-       "+10%" made players ask "+10% of what, and does it stack?".
-       `note` carries the rest of the line as plain text. Normal has no
-       chip at all: there is nothing to multiply by. */
     normal: {
       id: 'normal',
       name: 'Normal',
       bonus: 0,
+      /* `lv`/`eliteLv` are the rival card levels this tier fields. */
+      lv: 0,
+      eliteLv: 0,
       mult: null,
       note: 'Standard rivals · coins 100 / 200 / 500',
     },
     heroic: {
       id: 'heroic',
       name: 'Heroic',
-      bonus: 0.1,
-      mult: 'x1.1',
-      note: 'rival ATK & DEF · coins 200 / 400 / 750 · Epic rewards',
+      bonus: 0,
+      lv: 1,
+      eliteLv: 2,
+      mult: 'Lv1',
+      note: 'rivals at Level 1, elites & boss Level 2 · coins 200 / 400 / 750 · Epic rewards',
     },
     legend: {
       id: 'legend',
       name: 'Legend',
-      bonus: 0.2,
-      mult: 'x1.2',
-      note: 'rival ATK & DEF · coins 300 / 600 / 1000 · Legendary rewards',
+      bonus: 0,
+      lv: 2,
+      eliteLv: 3,
+      mult: 'Lv2',
+      note: 'rivals at Level 2, elites & boss Level 3 · coins 300 / 600 / 1000 · Legendary rewards',
     },
   };
+
+  /* THE BOOSTER EACH ROLE TAKES (owner ruling 2026-08-19).
+       Tank, Bruiser        HP   - they are there to survive the turn
+       Sniper, Caster       ATK  - they are there to end it
+       Controller, Medic    DEF  - they are there to still be standing
+     Every level a rival card holds takes its role's booster, so a
+     level-3 elite Tank is three HP boosters and nothing else. */
+  var RIVAL_BOOST = {
+    Tank: 'hp',
+    Bruiser: 'hp',
+    Sniper: 'atk',
+    Caster: 'atk',
+    Controller: 'def',
+    Medic: 'def',
+  };
+
+  /* Is this stage an elite or the chapter's final boss? Those two
+     classes field the higher level, and they are already the two the
+     coin table singles out - same predicate, so the difficulty curve
+     and the payout curve can never disagree about what a gate is. */
+  function isEliteStage(stage) {
+    if (!stage) return false;
+    return stage.id === chapter().lastStage || !!eliteStages()[stage.id];
+  }
+
+  /* THE RIVAL'S UPGRADE PAYLOAD for one stage, in exactly the shape
+     createBattle's `enemyUpgrades` consumes: { cardId: {lv, boosts} }.
+     Built from the enemy TWELVE, so a card the AI benches costs
+     nothing and a card it fields is already levelled.
+
+     Returns null on Normal, which is what keeps Normal honest: a mode
+     that passes nothing gets stock cards inside the engine. */
+  function rivalUpgrades(stage, difficulty) {
+    if (!difficulty || !stage) return null;
+    var lv = isEliteStage(stage) ? difficulty.eliteLv : difficulty.lv;
+    lv = Math.max(0, Math.min(3, Math.floor(+lv || 0)));
+    if (!lv) return null;
+    var out = {};
+    var dict = cardDict();
+    (stage.enemy12 || []).forEach(function (id) {
+      /* cardDict() stores {card, faction} wrappers, not bare cards. */
+      var entry = dict[id];
+      var card = entry && entry.card;
+      if (!card) return;
+      var stat = RIVAL_BOOST[card.role] || 'atk';
+      var boosts = [];
+      for (var i = 0; i < lv; i++) boosts.push(stat);
+      out[id] = { lv: lv, boosts: boosts };
+    });
+    return Object.keys(out).length ? out : null;
+  }
   /* ---------------------------------------------------------
      THE COIN TABLE (2026-08-19). Coin payouts are class-based:
      gate / elite / boss, per difficulty. Every difficulty pays every
@@ -1257,6 +1332,10 @@
         campaignStage: stage.id,
         campaignDifficulty: difficulty.id,
         enemyStatBonus: difficulty.bonus,
+        /* Heroic/Legend field LEVELLED rivals rather than a flat stat
+           multiplier - see DIFFICULTIES. Null on Normal, which leaves
+           the engine's stock default in place. */
+        enemyUpgrades: rivalUpgrades(stage, difficulty),
         war: 'single',
         botSix: stage.botSix || null,
         botBanProfile: stage.banProfile || null,
@@ -1285,6 +1364,10 @@
           campaignStage: stage.id,
           campaignDifficulty: difficulty.id,
           enemyStatBonus: difficulty.bonus,
+          /* Heroic/Legend field LEVELLED rivals - see DIFFICULTIES.
+             Carried through setBegin() too, so games 2 and 3 of an
+             Unabridged exam meet the same rival, not a stock one. */
+          enemyUpgrades: rivalUpgrades(stage, difficulty),
           war: stage.mode === 'set' ? 'set' : 'single',
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
@@ -2499,10 +2582,11 @@
     paintDifficultyNote($('road-difficulty-note'), difficulty);
   }
 
-  /* The difficulty line, with the rival multiplier as a colour-coded
-     chip. Built from DOM nodes rather than innerHTML: the strings are
-     ours today, but a note that ever carries a player-supplied word
-     must not be able to inject markup. */
+  /* The difficulty line, with the rival's CARD LEVEL as a colour-coded
+     chip ("Lv1" / "Lv2" - it was a stat multiplier until 2026-08-19).
+     Built from DOM nodes rather than innerHTML: the strings are ours
+     today, but a note that ever carries a player-supplied word must
+     not be able to inject markup. */
   function paintDifficultyNote(node, difficulty) {
     if (!node) return;
     node.textContent = '';
@@ -3174,13 +3258,11 @@
         skipTutorial();
       });
 
+    /* Enter/Space advance a scene; Escape is deliberately NOT bound
+       (2026-08-19) - the dialogue has its own skip control. */
     document.addEventListener('keydown', function (event) {
       if (!dlg) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        closeDialogue();
-      } else if (event.key === 'Enter' || event.key === ' ') {
+      if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         advanceDialogue();
       }
@@ -3282,13 +3364,6 @@
         renderLedger();
         if (window.EOL.audio) window.EOL.audio.campaign('page');
       });
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && $('ledger') && !$('ledger').hidden) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        closeLedger();
-      }
-    });
 
     window.setTimeout(maybeRunFirstBoot, 2100);
   }

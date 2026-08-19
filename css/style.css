@@ -31446,10 +31446,14 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
 }
 .card-stars i {
   position: relative;
-  width: 27px;
-  height: 27px;
-  flex: 0 0 27px;
-  border-radius: 6px;
+  /* BIGGER (owner ruling 2026-08-19). The level is the card's headline
+     fact and has to survive a scrolling grid at a glance; 27px still
+     read as trim on a 240px card. Scaled with the notch offset and the
+     ::after inset below so the shaped rarity border keeps its ratio. */
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--star-c) 72%, #fff);
   clip-path: polygon(
     50% 2%, 60% 29%, 88% 30%, 66% 48%, 74% 78%,
@@ -31464,8 +31468,8 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
 .card-stars i::after {
   content: '';
   position: absolute;
-  inset: 3px;
-  border-radius: 5px;
+  inset: 4px;
+  border-radius: 6px;
   background: linear-gradient(
     155deg,
     color-mix(in srgb, var(--star-c) 24%, #fff) 0%,
@@ -31540,14 +31544,15 @@ body {
   background: rgba(90, 120, 200, .1);
 }
 
-/* The centre of a 27px star now lands directly on the card's top border.
-   Visual layers clip themselves; only the level crest may escape. */
+/* The centre of the star lands directly on the card's top border, so
+   this offset is always HALF the star size (34px -> -17px). Visual
+   layers clip themselves; only the level crest may escape. */
 .card {
   overflow: visible;
 }
 .card-stars,
 .card:hover .card-stars {
-  top: -13.5px;
+  top: -17px;
   z-index: 14;
 }
 
@@ -31690,47 +31695,40 @@ body {
 /* ========================================================================
    LIVE BATTLE UPGRADE CHROME (2026-08-19)
    ======================================================================== */
+/* THE STARS ARE THE WHOLE BADGE on a battle card, so they are sized to
+   be read across the board rather than sized to match the collection
+   (owner ruling 2026-08-19). A battle card is small and busy - status
+   chips, an HP bar, an acted veil - and an 11px star simply vanished in
+   it. They sit ABOVE the card's top edge on purpose: that strip is the
+   only real estate nothing else competes for, so growing them costs the
+   art nothing.
+
+   The boost pips that used to live here are gone: the flyout already
+   names every booster on hover, and the card is the wrong place to say
+   it twice. */
 .bcard-up-stars {
   position:absolute;
-  z-index:13;
-  top:-1px;
+  z-index:14;
+  top:-11px;
   left:50%;
   display:flex;
-  gap:2px;
+  gap:3px;
   transform:translateX(-50%);
   pointer-events:none;
 }
 .bcard-up-stars i {
-  width:11px;
-  height:11px;
+  width:21px;
+  height:21px;
   background:var(--rar-1, #ffd682);
-  clip-path:polygon(50% 2%,60% 30%,89% 31%,66% 49%,75% 79%,50% 62%,25% 79%,34% 49%,11% 31%,40% 30%);
-  filter:drop-shadow(0 0 1px #05060c) drop-shadow(0 0 4px var(--rar-1, #ffd682));
+  clip-path:polygon(50% 2%,60% 29%,88% 30%,66% 48%,74% 78%,50% 62%,26% 78%,34% 48%,12% 30%,40% 29%);
+  filter:
+    drop-shadow(0 0 1px #05060c)
+    drop-shadow(0 1px 2px rgba(0,0,0,.85))
+    drop-shadow(0 0 7px var(--rar-1, #ffd682));
 }
-.bcard-up-boosts {
-  position:absolute;
-  z-index:13;
-  top:11px;
-  right:5px;
-  display:flex;
-  flex-direction:column;
-  gap:3px;
-  pointer-events:none;
-}
-.bcard-up-boosts > span {
-  width:15px;
-  height:15px;
-  display:grid;
-  place-items:center;
-  border:1px solid currentColor;
-  border-radius:5px;
-  background:rgba(5,7,14,.86);
-  box-shadow:0 2px 6px rgba(0,0,0,.5);
-  font-size:8px;
-}
-.bcard-up-boosts [data-boost='atk'] { color:#ffb347; }
-.bcard-up-boosts [data-boost='hp'] { color:#ff5f7e; }
-.bcard-up-boosts [data-boost='def'] { color:#5fb2ff; }
+/* The prep board reuses these classes on a tile that is not clipped the
+   same way; nudge them back onto its edge. */
+.pcard .bcard-up-stars { top:-10px; }
 
 .tip-upgrade {
   margin:8px 0 10px;
@@ -31750,14 +31748,10 @@ body {
 .tip-upgrade-head [data-boost='atk'] { color:#ffb347; }
 .tip-upgrade-head [data-boost='hp'] { color:#ff5f7e; }
 .tip-upgrade-head [data-boost='def'] { color:#5fb2ff; }
-.tip-raw-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; margin-top:7px; }
-.tip-raw-stats > span {
-  display:flex; align-items:center; justify-content:center; gap:3px;
-  min-width:0; padding:4px 3px; border-radius:6px; background:rgba(0,0,0,.2);
-  color:var(--txt-faint); font-size:8px;
-}
-.tip-raw-stats b { color:#fff; font-variant-numeric:tabular-nums; }
-.tip-raw-stats i { color:var(--r-epic-1); }
+/* `.tip-raw-stats` is gone with the block it styled: the flyout's own
+   stat lines sit directly above and already carry the boosted values,
+   so repeating HP/ATK/DEF inside the level box restated numbers the
+   player had just read. */
 
 /* ========================================================================
    DECK DELETE CONFIRMATION

@@ -29,7 +29,7 @@
 
   var decks = []; // [{id,name,ids,ts}]
   var editing = null; // deck object currently in the editor
-  var stateFilter = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
+  var stateFilter = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '', sort: 'name' };
   var BY_ID = null;
   var idSeq = 1;
   var hintTimer = null;
@@ -766,6 +766,47 @@
     if (empty) empty.classList.toggle('show', any === 0);
   }
 
+  /* REORDER THE GRID IN PLACE (2026-08-19).
+     -------------------------------------------------------------
+     The deck grid builds every card once and filters by hiding nodes,
+     so a sort here cannot rebuild the list: rebuilding would drop the
+     in-deck marks, the details buttons and their listeners. Instead
+     the existing nodes are re-appended in the new order, which is what
+     appendChild already does for a node that is in the DOM - it moves
+     it rather than cloning it, so every listener survives. */
+  function applyGridSort() {
+    var grid = $('deck-grid');
+    if (!grid || !window.EOL.ui.sortEntries) return;
+    var byId = {};
+    roster().forEach(function (e) {
+      byId[e.card.id] = e;
+    });
+    var nodes = [];
+    grid.querySelectorAll('.card[data-id]').forEach(function (el) {
+      var entry = byId[el.dataset.id];
+      if (entry) nodes.push({ el: el, entry: entry });
+    });
+    var ordered = window.EOL.ui.sortEntries(
+      nodes.map(function (n) {
+        return n.entry;
+      }),
+      stateFilter.sort,
+      true
+    );
+    var elFor = {};
+    nodes.forEach(function (n) {
+      elFor[n.entry.card.id] = n.el;
+    });
+    /* One fragment, one reflow - moving 115 cards one at a time made
+       the sort visibly chug on the larger roster. */
+    var frag = document.createDocumentFragment();
+    ordered.forEach(function (entry) {
+      var el = elFor[entry.card.id];
+      if (el) frag.appendChild(el);
+    });
+    grid.appendChild(frag);
+  }
+
   /* ---------------- filters (identical to the collection) ---------------- */
   function buildDeckFilters() {
     var host = $('deck-filters');
@@ -829,6 +870,31 @@
       stateFilter.element = v;
       applyGridFilter();
     });
+    /* SORT, the same seven orders the Collection offers. The COMPARATOR
+       is shared (EOL.ui.sortEntries) so the two screens can never
+       disagree about what "by Rarity" means, but the option LIST is
+       declared locally on purpose: js/deck.js is loaded before
+       js/app.js, so EOL.ui.SORT_OPTS does not exist yet when mount()
+       runs and reading it here silently dropped the control. */
+    var sortOpts = (window.EOL.ui && window.EOL.ui.SORT_OPTS) || [
+      { value: 'name', text: 'Name', icon: 'ri-file-list-3-line' },
+      { value: 'rarity', text: 'Rarity', icon: 'ri-trophy-line' },
+      { value: 'level', text: 'Level', icon: 'ri-sparkling-2-line' },
+      { value: 'faction', text: 'Faction', icon: 'ri-flag-line' },
+      { value: 'atk', text: 'ATK', icon: 'ra ra-sword' },
+      { value: 'def', text: 'DEF', icon: 'ra ra-shield' },
+      { value: 'hp', text: 'HP', icon: 'ra ra-health' },
+    ];
+    window.EOL.ui.buildDropdown(
+      host,
+      'Sort',
+      sortOpts,
+      function (v) {
+        stateFilter.sort = v;
+        applyGridSort();
+      },
+      { initialValue: 'name' }
+    );
 
     var s = $('deck-search');
     if (s) {
@@ -841,7 +907,14 @@
     var reset = $('deck-reset');
     if (reset) {
       reset.addEventListener('click', function () {
-        stateFilter = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
+        stateFilter = {
+          faction: 'all',
+          rarity: 'all',
+          role: 'all',
+          element: 'all',
+          q: '',
+          sort: 'name',
+        };
         if (s) s.value = '';
         host.querySelectorAll('.dd').forEach(function (dd) {
           dd.classList.remove('is-filtered');
@@ -849,6 +922,7 @@
           if (first) first.click();
         });
         applyGridFilter();
+        applyGridSort();
       });
     }
   }
@@ -859,18 +933,12 @@
     if (!grid) return;
     grid.innerHTML = '';
     /* Deck construction is an ownership task, so the usable part of the
-       collection always comes first. Alphabetical order remains stable
-       inside the owned and unowned halves. */
-    var econ = window.EOL.econ;
-    var sorted = roster()
-      .slice()
-      .sort(function (a, b) {
-        if (econ) {
-          var ownedDelta = (econ.owns(b.card.id) ? 1 : 0) - (econ.owns(a.card.id) ? 1 : 0);
-          if (ownedDelta) return ownedDelta;
-        }
-        return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
-      });
+       collection always comes first; the chosen sort orders each half.
+       Shared with the Collection through EOL.ui.sortEntries so the two
+       grids cannot drift apart. */
+    var sorted = window.EOL.ui.sortEntries
+      ? window.EOL.ui.sortEntries(roster(), stateFilter.sort, true)
+      : roster().slice();
     sorted.forEach(function (e, i) {
       var el = window.EOL.ui.buildCard(e.card, e.faction, i, {
         markUnowned: true,
@@ -960,12 +1028,6 @@
     if (deleteCancel) deleteCancel.addEventListener('click', function () { closeDeleteConfirm(true); });
     if (deleteScrim) deleteScrim.addEventListener('click', function () { closeDeleteConfirm(true); });
     if (deleteConfirm) deleteConfirm.addEventListener('click', confirmDelete);
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && $('deck-delete-modal') && !$('deck-delete-modal').hidden) {
-        event.preventDefault();
-        closeDeleteConfirm(true);
-      }
-    });
 
     var nameIn = $('deck-name');
     if (nameIn) {

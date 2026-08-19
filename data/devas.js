@@ -231,15 +231,23 @@ window.EOL.registerFaction({
         name: 'Leap to Lanka',
         cost: 40,
         /* The leap over the sea, expressed as the leap over the front
-           row. `row: 'back'` already exists and already bypasses Provoke
-           (the engine's piercesTaunt path treats an explicitly
-           back-row-only strike as reaching past the wall), so this needs
-           nothing new. It is the roster's answer to a Provoke-heavy
-           board, which this very release adds four of. */
+           row. It is the roster's answer to a Provoke-heavy board,
+           which this very release adds four of.
+
+           `piercesTaunt: true` IS REQUIRED (fixed 2026-08-19). The
+           original comment here claimed `row: 'back'` already bypassed
+           Provoke "via the engine's piercesTaunt path" - it does not.
+           piercesTaunt() reads an explicit `target.piercesTaunt` and
+           otherwise falls back to "Sniper signature"; Hanuman is a
+           BRUISER, so his leap was body-blocked by the very front-row
+           wall the card exists to jump over. A live board redirected
+           him onto the provoking Tank while the text promised the back
+           line. Row and pierce are two separate rules and this card
+           needs both stated. */
         text: 'Leap the enemy line and deal <b>175% ATK Physical Damage</b> to one <b>back row</b> enemy, ignoring <b>Provoke</b>.',
         note: null,
         spec: {
-          target: { side: 'enemy', pick: 'single', row: 'back' },
+          target: { side: 'enemy', pick: 'single', row: 'back', piercesTaunt: true },
           effects: [{ k: 'dmg', power: 1.75, element: 'Physical' }],
         },
       },

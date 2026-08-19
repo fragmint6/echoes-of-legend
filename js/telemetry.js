@@ -469,9 +469,6 @@
           }
         );
       });
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') closeFeedback();
-    });
 
     window.addEventListener('error', function (event) {
       /* Resource-load errors do not carry an ErrorEvent message; omit them

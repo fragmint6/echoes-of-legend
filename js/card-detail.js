@@ -1028,9 +1028,6 @@
     if (closeBtn) closeBtn.addEventListener('click', close);
     var scrim = $('cd-scrim');
     if (scrim) scrim.addEventListener('click', close);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.hidden) close();
-    });
     /* A pack or a campaign grant can change ownership while the
        dialog is open - repaint rather than showing a stale lock. */
     document.addEventListener('eol:owned', function () {

@@ -470,22 +470,19 @@
      rendering
      --------------------------------------------------------- */
   var UP_BOOST_ICON = { atk: 'ra-sword', hp: 'ra-health', def: 'ra-shield' };
+  /* THE LEVEL ON A BATTLE CARD IS THE STARS, AND ONLY THE STARS
+     (owner ruling 2026-08-19). The boost pips used to ride here too,
+     but the flyout already names every booster the moment you hover a
+     legend - and a battle card is smaller and busier than a collection
+     card, with status chips, an HP bar and an acted veil competing for
+     the same corners. Two places saying the same thing cost the card
+     more than the repetition was worth. */
   function battleUpgradeChrome(u) {
     var lv = Math.max(0, Math.min(3, +u.upLevel || 0));
     if (!lv) return '';
     var stars = '';
     for (var i = 0; i < lv; i++) stars += '<i></i>';
-    var boosts = (u.upBoosts || []).map(function (boost, index) {
-      if (!boost || !UP_BOOST_ICON[boost]) return '';
-      return (
-        '<span data-boost="' + boost + '" title="Level ' + (index + 1) + ' ' + boost.toUpperCase() +
-        ' booster"><i data-icon-domain="game" class="ra ' + UP_BOOST_ICON[boost] + '"></i></span>'
-      );
-    }).join('');
-    return (
-      '<span class="bcard-up-stars" aria-label="Level ' + lv + '">' + stars + '</span>' +
-      '<span class="bcard-up-boosts">' + boosts + '</span>'
-    );
+    return '<span class="bcard-up-stars" aria-label="Level ' + lv + '">' + stars + '</span>';
   }
 
   /* `deadView` renders the legend as a corpse regardless of engine state.
@@ -754,6 +751,12 @@
         );
       })
       .join('');
+    /* LEVEL AND BOOSTERS ONLY (owner ruling 2026-08-19). This box used
+       to repeat HP/ATK/DEF underneath, which was redundant twice over:
+       the panel's own stat lines directly above already show the live
+       values, and those values ALREADY have the boosters folded in -
+       so the box was restating numbers the player had just read, in a
+       block that exists to explain where they came from. */
     return (
       '<div class="tip-upgrade">' +
       '<div class="tip-upgrade-head"><b>Level ' +
@@ -761,17 +764,7 @@
       '</b><span>' +
       boostTip +
       '</span></div>' +
-      '<div class="tip-raw-stats">' +
-      '<span><i data-icon-domain="game" class="ra ra-health"></i><b>' +
-      Math.round(u.maxHp).toLocaleString() +
-      '</b> HP</span>' +
-      '<span><i data-icon-domain="game" class="ra ra-sword"></i><b>' +
-      Math.round(u.baseAtk).toLocaleString() +
-      '</b> ATK</span>' +
-      '<span><i data-icon-domain="game" class="ra ra-shield"></i><b>' +
-      u.baseDef +
-      '%</b> DEF</span>' +
-      '</div></div>'
+      '</div>'
     );
   }
 

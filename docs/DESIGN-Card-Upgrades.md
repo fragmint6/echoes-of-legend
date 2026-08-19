@@ -567,3 +567,63 @@ diagonal shine that swept across on hover. It washed over the portrait, the stat
 the upgrade chrome that hover exists to reveal. Removed as a **node**, not hidden in CSS:
 a card-sized gradient layer that is never visible is still a layer the compositor carries
 for every card in a scrolling grid.
+
+---
+
+## 7. Campaign difficulty is rival card levels
+
+*(Owner ruling 2026-08-19.)*
+
+Heroic and Legend used to be a flat **x1.1 / x1.2** multiplier on rival ATK and DEF
+(`enemyStatBonus` → `scaledRivalStats`). That predates this document: difficulty shipped
+before upgrades did, and once upgrades existed the multiplier was an arbitrary *second*
+scaling system sitting beside a real one. A harder rival should be a rival with
+**levelled legends** — the same mechanic the player uses, read off the same card chrome.
+
+| Difficulty | Ordinary gates | Elites & final boss |
+|---|---|---|
+| Normal | stock | stock |
+| Heroic | Level 1 | Level 2 |
+| Legend | Level 2 | Level 3 |
+
+"Elite" is the predicate the coin table already uses (`eliteStages` plus the chapter's
+`lastStage`), so the difficulty curve and the payout curve can never disagree about what
+a gate is.
+
+### 7.1 The boosters are fixed by role
+
+A rival has no player to choose its boosters, and a random pick would make the same gate
+harder or easier on a reroll. Each role takes the booster its job wants:
+
+| Role | Booster |
+|---|---|
+| Tank, Bruiser | **HP** — they are there to survive the turn |
+| Sniper, Caster | **ATK** — they are there to end it |
+| Controller, Medic | **DEF** — they are there to still be standing |
+
+`RIVAL_BOOST` in `js/campaign.js` is the one table, and
+`sim/verify_campaign_difficulty.js` reads it out of the module source and compares it to
+its own copy — a mirror that is never compared is a second source of truth.
+
+### 7.2 What this touches
+
+`rivalUpgrades(stage, difficulty)` builds a standard `{ cardId: {lv, boosts} }` payload
+from the stage's enemy **twelve**, so a benched card costs nothing and a fielded one is
+already levelled. It rides `cfg.enemyUpgrades` through `startPrep` → `BATTLE().start` →
+`createBattle`, and is run through `upgrades.sanitize()` on the way, so a bad stage table
+cannot hand the engine an illegal level.
+
+- **Normal passes `null`**, which leaves the engine's stock default in place — the same
+  thing that keeps drafts and the Daily Puzzle honest.
+- **Campaign drafts stay stock on both sides.** Ownership never gated drafts and levels
+  do not either; `launchDraft()` deliberately does not call `rivalUpgrades`.
+- **Unabridged exams carry it through all three games** (`setState.enemyUpgrades`), or the
+  set would be hard in game 1 and stock in games 2–3.
+- **The preparation board shows it.** `prepUpgradeLevel()` reads the rival's level out of
+  that payload rather than the player's collection, so a Legend-tier boss wears its stars
+  *before* the player commits their bans.
+
+`enemyStatBonus` is set to **0** on every tier rather than deleted. It is still threaded
+through `play.js`, `battle.js` and the engine, and a future event or modifier may want a
+raw multiplier that is not a card level; zeroing it here turns the system off in one place
+instead of ripping out a working path.

@@ -1512,6 +1512,127 @@ sec('S15. The collection card carries no hover shine');
   );
 }
 
+sec('S16. Battle chrome: stars only, and a level box that does not repeat itself');
+{
+  const battle = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
+  const cssRaw = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  /* Comments explaining WHY a rule was removed legitimately name it,
+     so the sheet is stripped of comments before asserting absence. */
+  const css = cssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  /* THE CARD SHOWS THE LEVEL, THE FLYOUT EXPLAINS IT (owner ruling
+     2026-08-19). A battle card is small and busy, and the flyout
+     already names every booster on hover. */
+  const chrome = battle.slice(
+    battle.indexOf('function battleUpgradeChrome'),
+    battle.indexOf('function unitCardHTML')
+  );
+  ok(/bcard-up-stars/.test(chrome), 'the battle card still wears its level stars');
+  ok(!/bcard-up-boosts/.test(chrome), 'but no longer repeats the booster icons');
+  ok(!/\.bcard-up-boosts\s*[{,>\[]/.test(css), 'and the dead boost-pip rules are gone from the sheet');
+
+  /* Stars have to survive a busy board, so they are sized for the
+     board rather than sized to match the collection. */
+  const starCss = css.slice(css.indexOf('.bcard-up-stars i {'), css.indexOf('.bcard-up-stars i {') + 300);
+  const px = /width:\s*(\d+)px/.exec(starCss);
+  ok(px && +px[1] >= 20, 'the battle star is at least 20px (was 11px)');
+
+  /* The level box states the level and the boosters and stops there -
+     the panel's own stat lines directly above already carry the
+     boosted values. */
+  const dock = battle.slice(
+    battle.indexOf('function upgradeDockHTML'),
+    battle.indexOf('function skillTextFor')
+  );
+  ok(/tip-upgrade-head/.test(dock), 'the flyout level box names the level and boosters');
+  ok(!/tip-raw-stats/.test(dock), 'and does not repeat HP/ATK/DEF underneath them');
+  ok(!/\.tip-raw-stats\s*[{,>\[]/.test(css), 'its rules are gone from the sheet too');
+}
+
+sec('S17. Collection stars are big enough to read across a grid');
+{
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  const i = css.lastIndexOf('.card-stars i {');
+  const block = css.slice(i, i + 420);
+  const w = /width:\s*(\d+)px/.exec(block);
+  ok(w && +w[1] >= 34, 'the collection star is at least 34px (was 27px)');
+  /* The star is centred ON the border, so the offset must stay exactly
+     half its size or the crest drifts off the frame. */
+  const j = css.lastIndexOf('.card-stars,');
+  const off = /top:\s*(-?[\d.]+)px/.exec(css.slice(j, j + 220));
+  ok(
+    w && off && Math.abs(Math.abs(+off[1]) - +w[1] / 2) < 0.51,
+    'and its offset is half the star size, so it stays centred on the border'
+  );
+}
+
+sec('S18. Escape is not bound anywhere');
+{
+  /* OWNER RULING 2026-08-19, and a real hazard: the global handler
+     stayed armed DURING A BATTLE, so a stray Escape walked the player
+     out of a live game - a forfeit against a real opponent online. */
+  const files = fs.readdirSync(path.join(ROOT, 'js')).filter((f) => /\.js$/.test(f));
+  const offenders = files.filter((f) =>
+    /['"]Escape['"]/.test(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'))
+  );
+  ok(offenders.length === 0, 'no js/ module binds Escape' + (offenders.length ? ' (' + offenders.join(', ') + ')' : ''));
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  ok(!/function overlayOpen/.test(app), 'and the helper that fed the global handler went with it');
+}
+
+sec('S19. Campaign difficulty is rival card levels, not a stat multiplier');
+{
+  const camp = fs.readFileSync(path.join(ROOT, 'js/campaign.js'), 'utf8');
+  const play = fs.readFileSync(path.join(ROOT, 'js/play.js'), 'utf8');
+
+  /* The old x1.1 / x1.2 predates upgrades. Difficulty is now the same
+     mechanic the player uses, read off the same card chrome. */
+  ok(/lv:\s*1,[\s\S]{0,40}eliteLv:\s*2/.test(camp), 'heroic fields Lv1 rivals, Lv2 elites and boss');
+  ok(/lv:\s*2,[\s\S]{0,40}eliteLv:\s*3/.test(camp), 'legend fields Lv2 rivals, Lv3 elites and boss');
+  const heroic = camp.slice(camp.indexOf('heroic: {'), camp.indexOf('legend: {'));
+  ok(/bonus:\s*0\b/.test(heroic), 'and the flat stat multiplier is switched off');
+
+  /* Fixed by ROLE: a rival has no player to choose for it, and a
+     random pick would make the same gate harder on a reroll. */
+  const boosts = camp.slice(camp.indexOf('var RIVAL_BOOST'), camp.indexOf('function isEliteStage'));
+  ['Tank', 'Bruiser'].forEach((r) =>
+    ok(new RegExp(r + ":\\s*'hp'").test(boosts), r + ' takes the HP booster'));
+  ['Sniper', 'Caster'].forEach((r) =>
+    ok(new RegExp(r + ":\\s*'atk'").test(boosts), r + ' takes the ATK booster'));
+  ['Controller', 'Medic'].forEach((r) =>
+    ok(new RegExp(r + ":\\s*'def'").test(boosts), r + ' takes the DEF booster'));
+
+  ok(/function rivalUpgrades/.test(camp), 'the stage builds a rival upgrade payload');
+  ok(/isEliteStage\(stage\)/.test(camp), 'elites and the boss read the higher level');
+  /* Drafts stay stock on BOTH sides - the great equalizer rule. */
+  const draft = camp.slice(camp.indexOf('function launchDraft'), camp.indexOf('function launchDraft') + 900);
+  ok(!/rivalUpgrades/.test(draft), 'a campaign DRAFT still fields stock rivals');
+
+  /* The payload has to reach the engine, and be clamped on the way. */
+  ok(/enemyUpgrades:\s*rivalUpgrades\(stage, difficulty\)/.test(camp), 'and it is passed to the prep');
+  ok(/upgrades\.sanitize\(cfg\.enemyUpgrades\)/.test(play), 'play.js clamps it before the engine sees it');
+  ok(/enemyUpgrades: setState\.enemyUpgrades/.test(play), 'and it survives all three games of an exam');
+  /* The player must SEE the rival's level before committing bans. */
+  ok(/side === 'foe' \|\| side === 'enemy'/.test(play), 'the prep board reads the rival level from that payload');
+}
+
+sec('S20. The roster can be sorted');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const deck = fs.readFileSync(path.join(ROOT, 'js/deck.js'), 'utf8');
+  const wanted = ['name', 'rarity', 'level', 'faction', 'atk', 'def', 'hp'];
+  wanted.forEach((k) =>
+    ok(new RegExp("value: '" + k + "'").test(app), 'sort offers ' + k.toUpperCase()));
+  ok(/SORTERS\s*=/.test(app), 'one comparator table backs them');
+  ok(/sortEntries: function/.test(app), 'exported so both grids share it');
+  ok(/EOL\.ui\.sortEntries/.test(deck), 'and the deck builder uses that same table');
+  ok(/'Sort'/.test(deck), 'the deck builder has the control too');
+  /* Owned-first is a separate, stable rule layered on top. */
+  ok(/ownedFirst/.test(app), 'owned legends still lead, whatever the sort');
+  /* Level is the one order that depends on upgrade state. */
+  ok(/state\.sort !== 'level'/.test(app), 'levelling re-sorts only the Level order');
+}
+
 sec('T. The board cannot be closed');
 {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

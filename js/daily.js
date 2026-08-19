@@ -1816,18 +1816,6 @@
         else enterPuzzle();
       });
     }
-    document.addEventListener(
-      'keydown',
-      function (e) {
-        var modal = $('daily-modal');
-        if (e.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false') {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          closeModal();
-        }
-      },
-      true
-    );
   });
 
   window.EOL.daily = {

@@ -232,41 +232,122 @@ const camelot = EOL.factions.find((faction) => faction.id === 'camelot');
 const sherwood = EOL.factions.find((faction) => faction.id === 'sherwood');
 const playerSix = camelot.cards.slice(0, 6).map((card) => ({ card, faction: camelot }));
 const enemySix = sherwood.cards.slice(0, 6).map((card) => ({ card, faction: sherwood }));
-const visibleHeroic = EOL.engine.scaledRivalStats(enemySix[0].card.stats, 0.1);
-const visibleLegend = EOL.engine.scaledRivalStats(enemySix[0].card.stats, 0.2);
+/* DIFFICULTY IS RIVAL CARD LEVELS NOW (owner ruling 2026-08-19).
+   -------------------------------------------------------------
+   This section used to hardcode 0.1 / 0.2 and assert the flat
+   ATK/DEF multiplier. Those assertions kept passing after the rework
+   for the wrong reason: they called scaledRivalStats() and
+   createBattle() with literal bonuses instead of reading the values
+   the campaign actually ships, so they were testing a dormant code
+   path while the live difficulty went unchecked.
+
+   Everything below is driven off C.difficulties, so it can never
+   again pass while describing a system the game does not use. The
+   multiplier helper is still exercised - it remains in the engine for
+   a future modifier - but it is no longer confused for the setting. */
+const DIFFS = C.difficulties;
 ok(
-  visibleHeroic.atk === Math.round(enemySix[0].card.stats.atk * 1.1) &&
-    visibleHeroic.def === Math.round(enemySix[0].card.stats.def * 1.1) &&
-    visibleLegend.atk === Math.round(enemySix[0].card.stats.atk * 1.2) &&
-    visibleLegend.def === Math.round(enemySix[0].card.stats.def * 1.2) &&
-    visibleHeroic.hp === enemySix[0].card.stats.hp,
-  'the shared visual stat helper exposes the exact Heroic and Legend rival numbers'
+  DIFFS.heroic.bonus === 0 && DIFFS.legend.bonus === 0,
+  'no difficulty ships a flat rival stat multiplier any more'
 );
-const heroicBattle = EOL.engine.createBattle(playerSix, enemySix, {
-  roleAware: false,
-  enemyStatBonus: 0.1,
+ok(
+  DIFFS.normal.lv === 0 && DIFFS.heroic.lv === 1 && DIFFS.legend.lv === 2,
+  'ordinary gates field Lv0 / Lv1 / Lv2 rivals'
+);
+ok(
+  DIFFS.normal.eliteLv === 0 && DIFFS.heroic.eliteLv === 2 && DIFFS.legend.eliteLv === 3,
+  'elites and the final boss field one level higher on Heroic and Legend'
+);
+
+/* The engine still honours a raw bonus - the path is dormant, not
+   deleted - so the helper keeps its own test at an explicit value. */
+const probe = EOL.engine.scaledRivalStats(enemySix[0].card.stats, 0.1);
+ok(
+  probe.atk === Math.round(enemySix[0].card.stats.atk * 1.1) &&
+    probe.def === Math.round(enemySix[0].card.stats.def * 1.1) &&
+    probe.hp === enemySix[0].card.stats.hp,
+  'the rival stat helper still works when a caller passes a bonus explicitly'
+);
+
+/* A rival built at a difficulty's level must actually arrive levelled,
+   with its ROLE's booster and no other stat touched. */
+const ROLE_WANT = {
+  Tank: 'hp',
+  Bruiser: 'hp',
+  Sniper: 'atk',
+  Caster: 'atk',
+  Controller: 'def',
+  Medic: 'def',
+};
+
+/* ASSERT THE SHIPPED MAPPING, not just this file's copy of it.
+   The payload builder below mirrors campaign.js so the engine leg of
+   the test can run standalone - but a mirror that is never compared
+   is a second source of truth, and flipping Bruiser to ATK in
+   campaign.js would leave every assertion here green. So the real
+   RIVAL_BOOST table is read out of the module source and checked
+   against ROLE_WANT first. */
+{
+  const campSrc = require('fs').readFileSync(
+    require('path').join(__dirname, '../js/campaign.js'),
+    'utf8'
+  );
+  const table = campSrc.slice(
+    campSrc.indexOf('var RIVAL_BOOST'),
+    campSrc.indexOf('function isEliteStage')
+  );
+  const shipped = {};
+  table.replace(/(\w+):\s*'(atk|def|hp)'/g, (_, role, stat) => {
+    shipped[role] = stat;
+    return '';
+  });
+  ok(
+    Object.keys(ROLE_WANT).every((r) => shipped[r] === ROLE_WANT[r]) &&
+      Object.keys(shipped).length === Object.keys(ROLE_WANT).length,
+    'campaign.js RIVAL_BOOST matches the documented role mapping ' +
+      JSON.stringify(shipped)
+  );
+}
+function rivalPayload(entries, lv) {
+  const out = {};
+  entries.forEach((e) => {
+    const boosts = [];
+    for (let i = 0; i < lv; i++) boosts.push(ROLE_WANT[e.card.role]);
+    out[e.card.id] = { lv: lv, boosts: boosts };
+  });
+  return out;
+}
+[
+  ['Heroic gate', DIFFS.heroic.lv],
+  ['Heroic elite', DIFFS.heroic.eliteLv],
+  ['Legend gate', DIFFS.legend.lv],
+  ['Legend elite', DIFFS.legend.eliteLv],
+].forEach(([label, lv]) => {
+  const B = EOL.engine.createBattle(playerSix, enemySix, {
+    roleAware: false,
+    enemyUpgrades: rivalPayload(enemySix, lv),
+  });
+  const foes = B.units.filter((u) => u.side === 'enemy');
+  const mine = B.units.filter((u) => u.side === 'player');
+  ok(
+    foes.every((u) => u.upLevel === lv),
+    label + ': every rival arrives at level ' + lv
+  );
+  ok(
+    mine.every((u) => u.upLevel === 0),
+    label + ': the difficulty never touches the player'
+  );
+  ok(
+    foes.every((u) => {
+      const want = ROLE_WANT[u.role];
+      const s = u.card.stats;
+      if (want === 'hp') return u.maxHp > s.hp && u.baseAtk === s.atk && u.baseDef === s.def;
+      if (want === 'atk') return u.baseAtk > s.atk && u.maxHp === s.hp && u.baseDef === s.def;
+      return u.baseDef > s.def && u.maxHp === s.hp && u.baseAtk === s.atk;
+    }),
+    label + ': each rival takes its role booster and moves no other stat'
+  );
 });
-const heroicEnemy = heroicBattle.units.find((unit) => unit.side === 'enemy');
-const heroicPlayer = heroicBattle.units.find((unit) => unit.side === 'player');
-ok(
-  heroicEnemy.baseAtk === Math.round(heroicEnemy.card.stats.atk * 1.1) &&
-    heroicEnemy.baseDef === Math.round(heroicEnemy.card.stats.def * 1.1) &&
-    heroicEnemy.maxHp === heroicEnemy.card.stats.hp &&
-    heroicPlayer.baseAtk === heroicPlayer.card.stats.atk &&
-    heroicPlayer.baseDef === heroicPlayer.card.stats.def &&
-    heroicPlayer.maxHp === heroicPlayer.card.stats.hp,
-  'Heroic applies +10% ATK/DEF to rivals only, without changing either side’s HP'
-);
-const legendBattle = EOL.engine.createBattle(playerSix, enemySix, {
-  roleAware: false,
-  enemyStatBonus: 0.2,
-});
-const legendEnemy = legendBattle.units.find((unit) => unit.side === 'enemy');
-ok(
-  legendEnemy.baseAtk === Math.round(legendEnemy.card.stats.atk * 1.2) &&
-    legendEnemy.baseDef === Math.round(legendEnemy.card.stats.def * 1.2),
-  'Legend applies +20% ATK/DEF to rivals'
-);
 
 const fs = require('fs');
 const path = require('path');

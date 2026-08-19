@@ -464,6 +464,13 @@
      can use them as soon as the DOM is ready. */
   window.EOL.ui = {
     buildCard: buildCard,
+    /* The shared roster sort, so the deck builder orders legends by
+       exactly the same rules as the Collection. `key` is one of
+       SORT_KEYS; anything unknown falls back to name. */
+    sortEntries: function (list, key, ownedFirst) {
+      return sortEntries(list, key, ownedFirst);
+    },
+    SORT_OPTS: SORT_OPTS,
     repaintCard: function (id) {
       repaintCard(id);
     },
@@ -498,7 +505,86 @@
      Cards are built in small batches; a sentinel at the bottom of the
      grid pulls in the next batch as it approaches the viewport, so the
      DOM only ever holds what the user has scrolled to. */
-  var state = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '' };
+  var state = { faction: 'all', rarity: 'all', role: 'all', element: 'all', q: '', sort: 'name' };
+
+  /* =============================================================
+     SORTING THE ROSTER  (2026-08-19)
+     -------------------------------------------------------------
+     One comparator table, exported as EOL.ui.sortEntries, so the
+     Collection and the deck builder cannot drift into two different
+     ideas of what "by Rarity" means.
+
+     Every order is DESCENDING where bigger is more interesting
+     (rarity, level, ATK, DEF, HP) and ascending where it is a label
+     (name, faction). Name is the universal tie-break, so a sort is
+     always total and a repaint can never reshuffle equal cards.
+
+     LEVEL reads live from EOL.upgrades, which is also why the grid is
+     re-sorted on `eol:upgrades` - levelling a legend should move it. */
+  var RARITY_RANK = { common: 0, rare: 1, epic: 2, legendary: 3 };
+  /* Icons come from the pinned Remix 4.5.0 catalog in
+     tools/audit_icons.js, except the three stat rows: ATK/DEF/HP are
+     game-domain semantics and use the same RPG Awesome glyphs the stat
+     bars and boost slots already use, so a sort option looks like the
+     thing it sorts by. */
+  var SORT_OPTS = [
+    { value: 'name', text: 'Name', icon: 'ri-file-list-3-line' },
+    { value: 'rarity', text: 'Rarity', icon: 'ri-trophy-line' },
+    { value: 'level', text: 'Level', icon: 'ri-sparkling-2-line' },
+    { value: 'faction', text: 'Faction', icon: 'ri-flag-line' },
+    { value: 'atk', text: 'ATK', icon: 'ra ra-sword' },
+    { value: 'def', text: 'DEF', icon: 'ra ra-shield' },
+    { value: 'hp', text: 'HP', icon: 'ra ra-health' },
+  ];
+  function levelOfCard(id) {
+    var U = window.EOL.upgrades;
+    if (!U) return 0;
+    /* An unowned legend has no level to speak of, and showing one
+       would be a lie the collection tells about a locked card. */
+    if (window.EOL.econ && !window.EOL.econ.owns(id)) return 0;
+    return U.levelOf(id);
+  }
+  function byName(a, b) {
+    return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
+  }
+  var SORTERS = {
+    name: byName,
+    rarity: function (a, b) {
+      return (RARITY_RANK[b.card.rarity] || 0) - (RARITY_RANK[a.card.rarity] || 0) || byName(a, b);
+    },
+    level: function (a, b) {
+      return levelOfCard(b.card.id) - levelOfCard(a.card.id) || byName(a, b);
+    },
+    faction: function (a, b) {
+      return (
+        a.faction.name.localeCompare(b.faction.name, 'en', { sensitivity: 'base' }) || byName(a, b)
+      );
+    },
+    atk: function (a, b) {
+      return b.card.stats.atk - a.card.stats.atk || byName(a, b);
+    },
+    def: function (a, b) {
+      return b.card.stats.def - a.card.stats.def || byName(a, b);
+    },
+    hp: function (a, b) {
+      return b.card.stats.hp - a.card.stats.hp || byName(a, b);
+    },
+  };
+  /* `ownedFirst` keeps the collection's owned-lead rule (owner ruling
+     2026-08-10) on top of whichever order was chosen. The deck builder
+     passes it too; a draft or pack surface would not. */
+  function sortEntries(list, key, ownedFirst) {
+    var cmp = SORTERS[key] || SORTERS.name;
+    var out = list.slice().sort(cmp);
+    var econ = window.EOL.econ;
+    if (ownedFirst && econ) {
+      /* A stable sort, so the chosen order survives inside each half. */
+      out.sort(function (a, b) {
+        return (econ.owns(b.card.id) ? 1 : 0) - (econ.owns(a.card.id) ? 1 : 0);
+      });
+    }
+    return out;
+  }
   var PAGE = 12; // cards per lazy batch
   var filtered = ROSTER.slice(); // entries matching the current filters
   var rendered = 0; // how many of `filtered` are in the DOM
@@ -515,16 +601,10 @@
       );
     });
     /* OWNED FIRST, always (owner ruling 2026-08-10): your legends
-       lead, the locked ones trail. ROSTER is already A-Z and sort()
-       is stable in every engine we serve, so each half stays
-       alphabetical. */
-    var econ = window.EOL.econ;
-    if (econ) {
-      list.sort(function (a, b) {
-        return (econ.owns(b.card.id) ? 1 : 0) - (econ.owns(a.card.id) ? 1 : 0);
-      });
-    }
-    return list;
+       lead, the locked ones trail. The chosen sort orders each half;
+       sort() is stable in every engine we serve, so the two rules
+       compose instead of fighting. */
+    return sortEntries(list, state.sort, true);
   }
 
   /* the truth line under the Collection title: how many of the
@@ -555,6 +635,18 @@
     });
     filtered = matching();
     paintOwnedCount();
+  });
+
+  /* LEVELLING A LEGEND CAN MOVE IT. Under "sort by Level" the grid's
+     order is a function of the upgrade state, so a level bought in the
+     detail dialog has to re-order the list underneath it. Only the
+     Level sort depends on it, so the rebuild is skipped otherwise -
+     an upgrade must not throw away scroll position on the six orders
+     that cannot have changed. */
+  window.addEventListener('eol:upgrades', function () {
+    if (state.sort !== 'level') return;
+    if (document.body.dataset.view !== 'collection') return;
+    applyFilters();
   });
 
   /* THE HOME WALLET: the main-menu coin chip beside the account pill.
@@ -1044,12 +1136,22 @@
       state.element = v;
       applyFilters();
     });
+    /* SORT sits last, after the four filters. Filtering asks "which
+       legends", sorting asks "in what order" - and the order question
+       only makes sense once the set is chosen. */
+    buildDropdown(
+      host,
+      'Sort',
+      SORT_OPTS,
+      function (v) {
+        state.sort = v;
+        applyFilters();
+      },
+      { initialValue: 'name' }
+    );
 
     document.addEventListener('click', function () {
       closeAllMenus(null);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeAllMenus(null);
     });
 
     var s = document.getElementById('search');
@@ -1794,9 +1896,6 @@
     }
     document.getElementById('auth-close').addEventListener('click', close);
     document.getElementById('auth-scrim').addEventListener('click', close);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.hidden) close();
-    });
     modal.querySelectorAll('.auth-tab').forEach(function (t) {
       t.addEventListener('click', function () {
         setMode(t.dataset.mode);
@@ -1922,9 +2021,6 @@
         if (acctMenu.contains(e.target) || openBtn.contains(e.target)) return;
         toggleAcctMenu(false);
       });
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') toggleAcctMenu(false);
-      });
     }
 
 
@@ -1954,14 +2050,7 @@
       function close() {
         modal.hidden = true;
         delete document.body.dataset.modal;
-        document.removeEventListener('keydown', onKey);
       }
-      function onKey(e) {
-        if (e.key === 'Escape') {
-          close();
-        }
-      }
-      document.addEventListener('keydown', onKey);
       cancel.onclick = close;
       document.getElementById('signout-scrim').onclick = close;
       confirm.onclick = function () {
@@ -2087,9 +2176,6 @@
     if (setModal) {
       document.getElementById('settings-close').addEventListener('click', closeSettings);
       document.getElementById('settings-scrim').addEventListener('click', closeSettings);
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeSettings();
-      });
       document.getElementById('settings-form').addEventListener('submit', function (e) {
         e.preventDefault();
         if (busy) return;
@@ -2438,11 +2524,7 @@
         done = true;
         modal.hidden = true;
         delete document.body.dataset.modal;
-        document.removeEventListener('keydown', onKey);
         resolve(choice);
-      }
-      function onKey(e) {
-        if (e.key === 'Escape') finish(null);
       }
       document.getElementById('merge-keep-cloud').onclick = function () {
         finish('cloud');
@@ -2456,7 +2538,6 @@
       document.getElementById('merge-scrim').onclick = function () {
         finish(null);
       };
-      document.addEventListener('keydown', onKey);
       document.getElementById('merge-keep-cloud').focus();
     });
   }
@@ -2676,69 +2757,25 @@
     document.getElementById('btn-shop-back').addEventListener('click', function () {
       goBack();
     });
-    /* IS ANYTHING LAYERED OVER THE VIEW RIGHT NOW?
+    /* ESCAPE IS NOT BOUND ANYWHERE (owner ruling 2026-08-19).
        -------------------------------------------------------------
-       Escape means "close the thing in front of me", and only when
-       there is nothing in front of you does it mean "go back a
-       screen". The handler below used to skip that first question
-       entirely, so Escape inside a dialog closed the dialog AND
-       navigated the view out from under it - press it in the draft
-       pool builder and you landed on the main menu with the room
-       gone.
+       A global "Escape backs out one view" handler used to live here.
+       It was dangerous: it stayed armed DURING A BATTLE, so a stray
+       Escape walked the player straight out of a live game - including
+       a multiplayer match, where leaving is a forfeit against a real
+       opponent. It guarded against open overlays but never against the
+       battle itself.
 
-       Asking the DOM which overlays are visible is deliberate: the
-       alternative is every modal remembering to announce itself, and
-       the two that forgot (the room panel and the pool builder) are
-       exactly the ones that broke. A dialog that is on screen is on
-       screen, whether or not it opted in. */
-    function overlayOpen() {
-      if (document.body.dataset.modal) return true;
-      var sel =
-        '.auth-modal, .room-modal, .mm-modal, .quit-modal, .daily-modal,' +
-        '.shop-code-modal, .grant-choice, .ledger, [role="dialog"]';
-      var found = false;
-      document.querySelectorAll(sel).forEach(function (el) {
-        if (found || el.hidden) return;
-        /* Three conventions are in use across these dialogs - the
-           `hidden` attribute, aria-hidden, and CSS - so all three are
-           consulted rather than trusting whichever one this dialog
-           happened to pick. The Daily overlay, for instance, is
-           driven entirely by aria-hidden and would otherwise read as
-           permanently open. */
-        if (el.getAttribute('aria-hidden') === 'true') return;
-        /* An inner dialog card (.daily-forge is one) inherits its
-           visibility from the overlay wrapping it, so walk up: a
-           dialog inside a closed overlay is closed. */
-        var p = el.parentElement;
-        while (p && p !== document.body) {
-          if (p.hidden || p.getAttribute('aria-hidden') === 'true') return;
-          p = p.parentElement;
-        }
-        var cs = window.getComputedStyle(el);
-        if (cs.display !== 'none' && cs.visibility !== 'hidden') found = true;
-      });
-      return found;
-    }
+       Rather than special-case the battle view, the binding is gone
+       and every Escape handler in the client went with it: each screen
+       already has a visible, deliberate way out (a Back button, a
+       close X, a scrim click), and a key that silently discards
+       progress is not worth the keystroke it saves. The dead
+       overlayOpen() helper that fed this handler was removed with it.
 
-    // No Leave buttons on these screens - Esc backs out one level.
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') return;
-      /* Whatever is on top owns Escape and closes itself; the view
-         must not also slide out behind it. */
-      if (overlayOpen()) return;
-      /* Campaign dialogue owns Escape while it is open; do not let the
-         shared view-back handler strand an open scene on another screen. */
-      if (
-        window.EOL.campaign &&
-        window.EOL.campaign.dialogueOpen &&
-        window.EOL.campaign.dialogueOpen()
-      ) {
-        window.EOL.campaign.closeRecruiterDialogue();
-        return;
-      }
-      goBack();
-      // the shop and the deck picker modal handle Esc themselves
-    });
+       If a keyboard exit is ever wanted again, it belongs on a
+       specific dialog, must be inert while `B` is live in battle.js,
+       and must never reach goBack(). */
     document.getElementById('btn-result-home').addEventListener('click', function () {
       document.getElementById('result').className = 'result';
       /* A puzzle's secondary action returns to the singleplayer mode

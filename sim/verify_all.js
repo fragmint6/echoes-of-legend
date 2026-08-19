@@ -1627,12 +1627,23 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     if (c.ability.spec && c.ability.spec.choose) walk(c.ability.spec.choose);
     return found;
   };
+  /* A CARD MAY DECLARE THE EXCEPTION EXPLICITLY. `target.piercesTaunt`
+     is the engine's opt-in (js/engine.js piercesTaunt), and a card that
+     sets it has said so in its printed text - Hanuman's leap over the
+     enemy line is the first non-Sniper to use it. Those cards are
+     asserted the other way round, just below, so the exception is
+     still tested rather than merely skipped. */
+  const declaresPierce = (c) => {
+    const t = (c.ability.spec && c.ability.spec.target) || {};
+    return t.piercesTaunt === true;
+  };
   ALL.filter((c) => {
     const t = c.ability.spec && c.ability.spec.target;
     return (
       t &&
       t.side === 'enemy' &&
       c.role !== 'Sniper' &&
+      !declaresPierce(c) &&
       (t.pick === 'single' || t.pick === 'auto') &&
       dealsDamage(c)
     );
@@ -1642,6 +1653,31 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
     ok(
       pool.length === 1 && pool[0].card.id === 'camelot-king-arthur',
       'Taunt still walls ' + c.role + ' ' + c.name
+    );
+  });
+
+  /* --- THE TEXT IS THE CONTRACT ---
+     Driven off the PRINTED TEXT, not off the spec flag. Hanuman
+     shipped promising "ignoring Provoke" in his text while his spec
+     said nothing: a comment claimed `row: 'back'` bypassed the wall,
+     which it never did, so a live Provoke dragged the leap onto the
+     front-row Tank. A flag-driven check cannot catch that - deleting
+     the flag would just delete the test with it. Asking every card
+     that CLAIMS the pierce to actually perform it is what makes the
+     bug unfixable by comment. */
+  const claimsPierce = (c) =>
+    /ignor\w*\s+(<b>)?\s*(provoke|taunt)|bypass\w*\s+(<b>)?\s*(provoke|taunt)/i.test(
+      c.ability.text || ''
+    );
+  ALL.filter((c) => {
+    const t = c.ability.spec && c.ability.spec.target;
+    return t && t.side === 'enemy' && claimsPierce(c) && dealsDamage(c);
+  }).forEach((c) => {
+    const B = setup(c.id, { taunt: 'camelot-king-arthur' });
+    const pool = E.legalTargets(B, U(B, c.id), c.ability);
+    ok(
+      pool.length > 0 && !pool.some((t) => t.card.id === 'camelot-king-arthur'),
+      c.name + ' ignores Provoke exactly as its text promises'
     );
   });
 }

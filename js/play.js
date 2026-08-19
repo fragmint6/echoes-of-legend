@@ -739,46 +739,83 @@
      -------------------------------------------------------------
      Exactly the rule upgradesFor() enforces when it builds the battle
      payload, asked of one card: YOUR legends in an owned-card mode
-     carry their levels, and nothing else does. The rival is always
-     stock (a campaign rival scales through enemyStatBonus instead),
-     and drafts and the Daily Puzzle are stock on both sides.
+     carry their levels, and drafts and the Daily Puzzle are stock on
+     both sides.
+
+     THE RIVAL CAN BE LEVELLED TOO (2026-08-19). Campaign Heroic and
+     Legend field levelled rivals - that is what the difficulty now
+     IS - so the enemy side reads its level out of the prep's
+     `enemyUpgrades` payload rather than out of the player's
+     collection. The player must be able to SEE that a Legend-tier
+     boss is running level 3 before they commit their bans.
 
      Kept beside upgradesFor deliberately: the board a player inspects
      before committing must show the numbers the engine will actually
-     build, or the preparation screen lies about their own team. */
+     build, or the preparation screen lies about the fight. */
   function prepUpgradeLevel(card, side) {
     var U = window.EOL.upgrades;
     if (!U || !card) return 0;
-    if (side === 'foe' || side === 'enemy' || side === 'ledger') return 0;
     var cfg = prep;
     if (!cfg || cfg.mode === 'draft') return 0;
     if (cfg.puzzle || cfg.campaignStage === 'puzzle') return 0;
+    if (side === 'foe' || side === 'enemy') {
+      var rec = cfg.enemyUpgrades && cfg.enemyUpgrades[card.id];
+      if (!rec) return 0;
+      return Math.max(0, Math.min(U.MAX_LEVEL, Math.floor(+rec.lv || 0)));
+    }
+    /* The ledger describes a collectible card, not a fielded one. */
+    if (side === 'ledger') return 0;
     if (window.EOL.econ && !window.EOL.econ.owns(card.id)) return 0;
     return U.levelOf(card.id);
+  }
+
+  /* The boosts behind that level, for whichever side owns them. The
+     player's come from their save; the rival's ride in the payload. */
+  function prepUpgradeBoosts(card, side) {
+    var U = window.EOL.upgrades;
+    if (!U || !card) return [];
+    var lv = prepUpgradeLevel(card, side);
+    if (!lv) return [];
+    if (side === 'foe' || side === 'enemy') {
+      var rec = (prep && prep.enemyUpgrades && prep.enemyUpgrades[card.id]) || {};
+      var b = Array.isArray(rec.boosts) ? rec.boosts.slice(0, lv) : [];
+      while (b.length < lv) b.push(null);
+      return b;
+    }
+    return U.boostsOf(card.id);
   }
 
   function prepVisibleStats(card, side) {
     var bonus = prepRivalBonus(side);
     var stats = window.EOL.engine.scaledRivalStats(card.stats, bonus);
     stats.bonus = bonus;
-    /* YOUR upgraded legend shows its upgraded numbers. statsFor() is
-       the same maths the engine's applyUpgrades() runs, so the tile,
-       the battle card and the fight cannot disagree. Rival scaling and
-       upgrades are mutually exclusive by the rule above, so neither
-       can double-count the other. */
+    /* An upgraded legend shows its upgraded numbers - yours from your
+       save, a campaign rival's from the difficulty payload. The maths
+       below mirrors the engine's applyUpgrades() exactly, so the tile,
+       the battle card and the fight cannot disagree. Rival stat
+       scaling (`bonus`) and card levels are mutually exclusive, so
+       neither can double-count the other. */
     var U = window.EOL.upgrades;
     if (!bonus && U && prepUpgradeLevel(card, side) > 0) {
-      var up = U.statsFor(card.id, card);
-      if (up) {
-        stats.hp = up.hp;
-        stats.atk = up.atk;
-        stats.def = up.def;
-        stats.upgraded = {
-          hp: up.hp !== card.stats.hp,
-          atk: up.atk !== card.stats.atk,
-          def: up.def !== card.stats.def,
-        };
-      }
+      var counts = { atk: 0, def: 0, hp: 0 };
+      prepUpgradeBoosts(card, side).forEach(function (b) {
+        if (b && counts[b] != null) counts[b]++;
+      });
+      var up = {
+        hp: counts.hp ? Math.round(card.stats.hp * (1 + U.HP_PER_LEVEL * counts.hp)) : card.stats.hp,
+        atk: counts.atk
+          ? Math.round(card.stats.atk * (1 + U.ATK_PER_LEVEL * counts.atk))
+          : card.stats.atk,
+        def: counts.def ? card.stats.def + U.DEF_POINTS_PER_LEVEL * counts.def : card.stats.def,
+      };
+      stats.hp = up.hp;
+      stats.atk = up.atk;
+      stats.def = up.def;
+      stats.upgraded = {
+        hp: up.hp !== card.stats.hp,
+        atk: up.atk !== card.stats.atk,
+        def: up.def !== card.stats.def,
+      };
     }
     return stats;
   }
@@ -799,10 +836,10 @@
      shape the battle flyout uses, so a legend reads identically on the
      board it is chosen on and the board it fights on. */
   var PREP_BOOST_ICON = { atk: 'ra-sword', hp: 'ra-health', def: 'ra-shield' };
-  function prepUpgradeHTML(card, lv) {
+  function prepUpgradeHTML(card, lv, side) {
     var U = window.EOL.upgrades;
     if (!U || !lv) return '';
-    var boosts = U.boostsOf(card.id)
+    var boosts = prepUpgradeBoosts(card, side)
       .map(function (b) {
         if (!b || !PREP_BOOST_ICON[b]) return '';
         return (
@@ -1035,7 +1072,7 @@
         '#5fb2ff'
       ) +
       '</div>' +
-      prepUpgradeHTML(c, upLv) +
+      prepUpgradeHTML(c, upLv, side) +
       '<div class="dk-abs">' +
       tipAbRow(
         sig,
@@ -1198,9 +1235,8 @@
     var upLv = prepUpgradeLevel(c, side);
     var upChrome = '';
     if (upLv) {
-      var Ub = window.EOL.upgrades;
       var starsHtml = new Array(upLv + 1).join('<i></i>');
-      var boostHtml = (Ub ? Ub.boostsOf(c.id) : [])
+      var boostHtml = prepUpgradeBoosts(c, side)
         .map(function (b, bi) {
           if (!b || !PREP_BOOST_ICON[b]) return '';
           return (
@@ -1648,6 +1684,10 @@
       campaignStage: cfg.campaignStage || null,
       campaignDifficulty: cfg.campaignDifficulty || null,
       enemyStatBonus: Math.max(0, +cfg.enemyStatBonus || 0),
+      /* CAMPAIGN difficulty as rival CARD LEVELS (2026-08-19). Built
+         by campaign.js rivalUpgrades(); null on Normal and outside the
+         campaign, which leaves the engine's stock default in place. */
+      enemyUpgrades: cfg.enemyUpgrades || null,
       /* CAMPAIGN rival behaviour hooks (all optional, all inert
          outside the campaign):
            botSix       scripted fielded six (stages 1-4, §8 dial 2)
@@ -2540,9 +2580,16 @@
       campaignTutorialsEnabled(cfg) && cfg.script && cfg.script.match ? cfg.script.match : null;
     BATTLE().start({
       teams: { player: playerSix, enemy: enemySix },
-      /* Upgrades are Classic-only; the enemy is always stock here
-         (a campaign rival scales through enemyStatBonus instead). */
+      /* Upgrades are Classic-only. The bot is stock EXCEPT in the
+         campaign, where Heroic and Legend field levelled rivals -
+         that is what the difficulty now is (campaign.js DIFFICULTIES).
+         Sanitized like any other externally-built payload so a bad
+         stage table can never hand the engine an illegal level. */
       upgrades: upgradesFor(cfg, playerSix),
+      enemyUpgrades:
+        cfg.enemyUpgrades && window.EOL.upgrades
+          ? window.EOL.upgrades.sanitize(cfg.enemyUpgrades)
+          : null,
       field: cfg.field,
       mode: cfg.mode,
       war: setState ? 'unabridged' : 'single',
@@ -2688,10 +2735,6 @@
       stay.onclick = null;
       go.onclick = null;
       scrim.onclick = null;
-      document.removeEventListener('keydown', onKey);
-    };
-    var onKey = function (ev) {
-      if (ev.key === 'Escape') close();
     };
     m.hidden = false;
     stay.onclick = close;
@@ -3531,6 +3574,9 @@
       campaignStage: cfg.campaignStage || null,
       campaignDifficulty: cfg.campaignDifficulty || null,
       enemyStatBonus: cfg.enemyStatBonus || 0,
+      /* The levelled rival must survive all three games of an exam,
+         or the set gets harder in game 1 and easier in games 2-3. */
+      enemyUpgrades: cfg.enemyUpgrades || null,
       rival: cfg.rival || null,
       aiProfile: cfg.aiProfile || null,
       pinnedEnemy: cfg.pinnedEnemy ? cfg.pinnedEnemy.slice() : [],
@@ -4075,6 +4121,7 @@
       campaignStage: setState.campaignStage || null,
       campaignDifficulty: setState.campaignDifficulty || null,
       enemyStatBonus: setState.enemyStatBonus || 0,
+      enemyUpgrades: setState.enemyUpgrades || null,
       rival: setState.rival || null,
       aiProfile: setState.aiProfile || null,
       pinnedEnemy:
@@ -5477,22 +5524,6 @@
         if (e.target === cov) coachHide();
       });
 
-    document.addEventListener(
-      'keydown',
-      function (e) {
-        if (e.key !== 'Escape') return;
-        if (coachOpen()) {
-          e.stopPropagation();
-          coachHide();
-          return;
-        }
-        if ($('deck-modal').classList.contains('show')) {
-          e.stopPropagation();
-          modalShow(false);
-        }
-      },
-      true
-    );
   });
 
   /* card widths are viewport-driven, so names must be re-fitted on resize */

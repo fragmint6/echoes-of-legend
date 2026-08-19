@@ -353,22 +353,6 @@
         if (onCommit) onCommit(chosen.slice());
         show(false);
       });
-    /* CLAIM THE KEY, do not merely react to it. This listener runs
-       before app.js's global "Escape backs out a view" handler, so
-       closing quietly would leave that handler looking at a screen
-       with nothing open - and it would back out of the room too.
-       Stopping propagation is what makes Escape mean "close the
-       builder" and only that. Capture phase for the same reason: the
-       topmost thing decides first. */
-    document.addEventListener(
-      'keydown',
-      function (e) {
-        if (e.key !== 'Escape' || !open) return;
-        e.stopPropagation();
-        show(false);
-      },
-      true
-    );
   }
 
   if (document.readyState === 'loading') {
