@@ -33,6 +33,8 @@
   var BY_ID = null;
   var idSeq = 1;
   var hintTimer = null;
+  var pendingDeleteId = null;
+  var deleteReturnFocus = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -292,6 +294,36 @@
     save(); /* the vault syncs the whole deck list - nothing per-deck */
   }
 
+  function closeDeleteConfirm(restoreFocus) {
+    var modal = $('deck-delete-modal');
+    if (modal) modal.hidden = true;
+    pendingDeleteId = null;
+    if (restoreFocus && deleteReturnFocus && deleteReturnFocus.focus) deleteReturnFocus.focus();
+    deleteReturnFocus = null;
+  }
+
+  function askDelete(deck, trigger) {
+    if (!deck || deck.id === GRIMMWOOD_STARTER_ID) return;
+    var modal = $('deck-delete-modal');
+    if (!modal) return;
+    pendingDeleteId = deck.id;
+    deleteReturnFocus = trigger || document.activeElement;
+    var name = $('deck-delete-name');
+    if (name) name.textContent = deck.name;
+    modal.hidden = false;
+    var cancel = $('deck-delete-cancel');
+    if (cancel) cancel.focus();
+  }
+
+  function confirmDelete() {
+    if (!pendingDeleteId) return;
+    var id = pendingDeleteId;
+    closeDeleteConfirm(false);
+    removeDeck(id);
+    renderManager();
+    if (window.EOL.audio) window.EOL.audio.ui('confirm');
+  }
+
   /* ---------------- editor state ---------------- */
   function count() {
     return editing ? editing.ids.length : 0;
@@ -358,33 +390,6 @@
     save();
     render();
     return true;
-  }
-
-  /* Fill remaining slots from owned cards while obeying every normal deck
-     law. This is deliberately deterministic (owned roster order), so it is
-     a convenience, never a hidden deck-building algorithm. */
-  function autoComplete() {
-    if (!editing) return false;
-    var econ = window.EOL.econ;
-    var changed = false;
-    roster().forEach(function (entry) {
-      if (editing.ids.length >= DECK_SIZE || has(entry.card.id)) return;
-      if (econ && !econ.owns(entry.card.id)) return;
-      var current = entriesOf(editing);
-      if (window.EOL.deckRules.legendaryCapBlocked(current, entry.card)) return;
-      if (window.EOL.deckRules.capBlocked(current, entry.card)) return;
-      editing.ids.push(entry.card.id);
-      changed = true;
-    });
-    if (changed) {
-      editing.ts = Date.now();
-      save();
-      render();
-      if (window.EOL.audio) window.EOL.audio.ui('tap');
-    }
-    if (editing.ids.length < DECK_SIZE)
-      hintWarn('Not enough owned legends fit the remaining role and Legendary limits.');
-    return changed;
   }
 
   function removeCard(id) {
@@ -577,8 +582,7 @@
       var delBtn = el.querySelector('.dc-del');
       if (delBtn)
         delBtn.addEventListener('click', function () {
-          removeDeck(d.id);
-          renderManager();
+          askDelete(d, delBtn);
         });
       host.appendChild(el);
     });
@@ -945,12 +949,23 @@
 
     var clearBtn = $('btn-deck-clear');
     if (clearBtn) clearBtn.addEventListener('click', clear);
-    var autoBtn = $('btn-deck-auto');
-    if (autoBtn) autoBtn.addEventListener('click', autoComplete);
     var doneBtn = $('btn-deck-save');
     if (doneBtn) doneBtn.addEventListener('click', closeEditor);
     var backBtn = $('btn-deck-back');
     if (backBtn) backBtn.addEventListener('click', closeEditor);
+
+    var deleteCancel = $('deck-delete-cancel');
+    var deleteConfirm = $('deck-delete-confirm');
+    var deleteScrim = $('deck-delete-scrim');
+    if (deleteCancel) deleteCancel.addEventListener('click', function () { closeDeleteConfirm(true); });
+    if (deleteScrim) deleteScrim.addEventListener('click', function () { closeDeleteConfirm(true); });
+    if (deleteConfirm) deleteConfirm.addEventListener('click', confirmDelete);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && $('deck-delete-modal') && !$('deck-delete-modal').hidden) {
+        event.preventDefault();
+        closeDeleteConfirm(true);
+      }
+    });
 
     var nameIn = $('deck-name');
     if (nameIn) {

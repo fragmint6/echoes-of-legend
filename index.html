@@ -172,7 +172,7 @@
          plain image. -->
     <link rel="icon" href="assets/favicon.ico?v=20260819c" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png?v=20260819c" />
-    <link rel="stylesheet" href="css/style.css?v=20260819m" />
+    <link rel="stylesheet" href="css/style.css?v=20260819n" />
     <link rel="stylesheet" href="css/daily.css?v=20260819c" />
     <!-- Build differences (CrazyGames portal build). Last, so it wins on
          equal specificity. Paired with js/platform.js below. -->
@@ -1081,9 +1081,6 @@
             <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
               <i class="ri-refresh-line"></i><span>Clear</span>
             </button>
-            <button class="btn btn-ghost btn-slim" id="btn-deck-auto">
-              <i class="ri-sparkling-line"></i><span>Complete</span>
-            </button>
             <button class="btn btn-primary btn-slim" id="btn-deck-save">
               <i class="ri-check-line"></i><span>Done</span>
             </button>
@@ -1121,6 +1118,24 @@
 
       <footer>Echoes of Legend - Prototype</footer>
     </section>
+
+    <div class="deck-delete-modal" id="deck-delete-modal" hidden role="dialog" aria-modal="true" aria-labelledby="deck-delete-title">
+      <div class="deck-delete-scrim" id="deck-delete-scrim"></div>
+      <div class="deck-delete-card">
+        <span class="deck-delete-icon"><i class="ri-delete-bin-line"></i></span>
+        <div>
+          <span class="deck-delete-kicker">Permanent action</span>
+          <h3 id="deck-delete-title">Delete this deck?</h3>
+          <p><b id="deck-delete-name">This deck</b> will be removed from this device and your next cloud save.</p>
+        </div>
+        <div class="deck-delete-actions">
+          <button type="button" class="btn btn-ghost btn-slim" id="deck-delete-cancel">Keep deck</button>
+          <button type="button" class="btn btn-slim deck-delete-confirm" id="deck-delete-confirm">
+            <i class="ri-delete-bin-line"></i><span>Delete permanently</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- ==================== SHOP ==================== -->
     <section class="view shop" data-view="shop">
@@ -4269,7 +4284,7 @@
     <script src="data/hemithea.js?v=20260819c"></script>
     <script src="data/pandemonium.js?v=20260819c"></script>
     <script src="data/devas.js?v=20260819c"></script>
-    <script src="data/genesis.js?v=20260819c"></script>
+    <script src="data/genesis.js?v=20260819n"></script>
     <script src="data/transylvania.js?v=20260819c"></script>
     <script src="data/tortuga.js?v=20260819c"></script>
     <script src="data/battlefields.js?v=20260819c"></script>
@@ -4290,10 +4305,10 @@
     <script src="js/card-detail.js?v=20260819m"></script>
     <script src="js/engine.js?v=20260819l"></script>
     <script src="js/ai.js?v=20260819c"></script>
-    <script src="js/battle.js?v=20260819c"></script>
-    <script src="js/deck.js?v=20260819m"></script>
+    <script src="js/battle.js?v=20260819n"></script>
+    <script src="js/deck.js?v=20260819n"></script>
     <script src="js/pool.js?v=20260819c"></script>
-    <script src="js/play.js?v=20260819c"></script>
+    <script src="js/play.js?v=20260819n"></script>
     <script src="js/daily.js?v=20260819c"></script>
     <script src="js/campaign.js?v=20260819m"></script>
     <script src="js/shop.js?v=20260819g"></script>

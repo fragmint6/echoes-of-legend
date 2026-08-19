@@ -43,11 +43,11 @@
   /* =============================================================
      WHERE CARD UPGRADES APPLY  (docs/DESIGN-Card-Upgrades.md §2)
      -------------------------------------------------------------
-     Classic only - singleplayer, campaign, multiplayer and private
-     rooms, single and Unabridged alike.
+     Every owned-card mode - Classic singleplayer, campaign, multiplayer
+     and private rooms, single and Unabridged alike.
 
-     Stock cards everywhere else, and the DEFAULT is stock: a mode
-     that does not call this gets no upgrades at all. That is what
+     Stock cards in Draft and the Daily Puzzle; the DEFAULT remains stock
+     inside the engine, so a mode that does not opt in gets no upgrades. That
      keeps the two promises the game already makes -
 
        drafts are "the great equalizer", built from nothing, and
@@ -61,7 +61,7 @@
      explicitly rather than inferred from the mode. */
   function upgradesFor(cfg, six) {
     if (!window.EOL.upgrades) return null;
-    if (!cfg || cfg.mode !== 'classic') return null;
+    if (!cfg || cfg.mode === 'draft') return null;
     if (cfg.puzzle || cfg.campaignStage === 'puzzle') return null;
     return window.EOL.upgrades.payloadFor(
       (six || []).map(function (e) {
