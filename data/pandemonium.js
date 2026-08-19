@@ -323,7 +323,7 @@ window.EOL.registerFaction({
            Zero damage, correct for a Controller, and it is the only
            card in the game that turns an opponent's board against
            itself. */
-        text: 'One enemy is <b>Provoked into the open</b>, drawing their own allies\\u2019 single-target attacks for 1 round, and loses <b>15% DEF</b> for 2 rounds.',
+        text: 'One enemy is <b>Provoked into the open</b>, drawing their own allies\' single-target attacks for 1 round, and loses <b>15% DEF</b> for 2 rounds.',
         note: null,
         spec: {
           target: { side: 'enemy', pick: 'single', row: 'any' },

@@ -222,7 +222,12 @@ window.EOL.registerFaction({
         text: 'When Loki is defeated, all enemies are <b>Burned</b> for 2 rounds and lose <b>15% ATK</b> for 2 rounds.',
         note: null,
         passive: {
-          trigger: 'selfKilled',
+          /* `selfDied`, not `selfKilled`: selfKilled is the KILLER's
+             trigger (Perseus grows on his own first kill). Loki's whole
+             payload fires when HE falls, which needed its own trigger -
+             implemented in handleDeath and pinned by
+             sim/verify_chapter2_skills.js. */
+          trigger: 'selfDied',
           effects: [
             { k: 'burn', turns: 2, to: 'enemies' },
             { k: 'stat', stat: 'atk', amt: -15, turns: 2, to: 'enemies' },

@@ -1266,6 +1266,11 @@
           botSix: stage.botSix || null,
           botBanProfile: stage.banProfile || null,
           aiProfile: stage.aiProfile || null,
+          /* CHAPTER II sideboards live: the authored opening six is
+             seeded, but any ban-hole fills with the strongest bench -
+             see submitSix in js/play.js. Chapter I keeps its scripted
+             deterministic sixes (stages 1-4 are the tutorial). */
+          adaptiveSix: chapter().id === 2,
           /* the Recruiter's ledger: HOW this rival bans, told BEFORE
              the player commits their own (playtest note 2026-08-09:
              the least-informed call must not stay the blindest one) */
@@ -2483,6 +2488,29 @@
           factionName(reward.epicFaction) +
           ' Epic</span>'
       );
+    /* THE SECOND NAMED ECHO (companion). The plate used to render coins
+       and legend packs only, so every gate's companion reward was
+       invisible until the epilogue - gate XI Heroic read as "+300 coins
+       and nothing else" even though it hands over Odysseus, an epic
+       from Hemithea. The chip prints the card's REAL rarity (Lancelot
+       is common, Brutus rare, Odysseus epic) and faction without naming
+       the card: the reveal is still the reveal. */
+    if (reward.companion) {
+      var companionEntry = entriesFor([reward.companion])[0];
+      var companionRarity = companionEntry ? companionEntry.card.rarity : 'epic';
+      var companionFaction = companionEntry ? companionEntry.faction.id : null;
+      var companionCls = companionRarity === 'epic' ? 'epic' : '';
+      var companionLabel =
+        companionRarity.charAt(0).toUpperCase() + companionRarity.slice(1) + ' echo';
+      if (companionFaction) companionLabel = companionLabel + ' - ' + factionName(companionFaction);
+      chips.push(
+        '<span class="sc-reward ' +
+          companionCls +
+          '"><i data-icon-domain="game" class="ra ra-gem"></i>' +
+          companionLabel +
+          '</span>'
+      );
+    }
     if (reward.choice)
       chips.push(
         '<span class="sc-reward"><i data-icon-domain="game" class="ra ra-locked-fortress"></i>Choose ' +

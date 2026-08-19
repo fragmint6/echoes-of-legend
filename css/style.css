@@ -6407,6 +6407,70 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
   }
 }
 
+/* MEDEA'S CAULDRON. The emerald resurrection bubbles up rather than
+   bursting: circles of light that pop near the top of their rise, like
+   the surface of a boiling pot. */
+.fx-cauldron-bubble {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fx);
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%);
+  box-shadow: 0 0 10px var(--fx);
+  animation: fx-cauldron-bubble 1.15s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+@keyframes fx-cauldron-bubble {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(calc(var(--sx) * 0.3), calc(var(--sy) * 0.3)) scale(0.7);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(calc(var(--sx) * 0.92), calc(var(--sy) * 0.92)) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) scale(1.6);
+  }
+}
+
+/* ISIS'S WINGS. Two fans of light fold open behind the returning legend,
+   drawn with layered radial strips - a pair of soft, straight-edged
+   feathers rather than another ring. */
+.fx-isis-wing {
+  position: absolute;
+  width: 96px;
+  height: 64px;
+  margin: -32px 0 0 -48px;
+  clip-path: polygon(0% 100%, 12% 38%, 28% 16%, 44% 6%, 60% 10%, 62% 100%);
+  background: linear-gradient(180deg, var(--fx), rgba(255, 255, 255, 0.06));
+  opacity: 0;
+  animation: fx-isis-wing 1.25s var(--ease) forwards;
+}
+.fx-isis-wing.w2 {
+  transform: scaleX(-1);
+}
+@keyframes fx-isis-wing {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.25);
+  }
+  30% {
+    opacity: 0.85;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.06) translateY(-10px);
+  }
+}
+
 /* Three phases. `.dead` is also set for the first two, so these override it
    to animate the transition rather than let it snap. */
 /* 1. the legend drains to grey */

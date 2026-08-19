@@ -3609,6 +3609,65 @@
      A rotating rune ring plus an element sigil, so you can see
      *what* is being cast before the projectile even lands.
      -------------------------------------------------------- */
+  /* PER-CARD SIGNATURE SIGILS (Chapter II, 2026-08-19). The cast ring
+     used to show the ELEMENT's sigil for every legend - a fine default,
+     but a signature is a person's, not an element's. These override the
+     sigil and colour for the Chapter II signatures whose cast deserves
+     its own mark (plus the boss). The strike/trail style still comes
+     from the element, so projectiles keep their identity. */
+  var CARD_CAST_FX = {
+    'campaign-asmodeus': { color: '#ffe9a8', sigil: 'ra-quill-ink' },
+    'hemithea-odysseus': { color: '#ffe6a8', sigil: 'ra-fast-ship' },
+    'hemithea-medea': { color: '#7ef0a8', sigil: 'ra-bubbling-potion' },
+    'hemithea-atalanta': { color: '#a6f0c2', sigil: 'ra-barbed-arrow' },
+    'hemithea-hercules': { color: '#ff7575', sigil: 'ra-muscle-fat' },
+    'hemithea-jason': { color: '#a6f0c2', sigil: 'ra-ocean-emblem' },
+    'huaxia-qin-shi-huang': { color: '#ff8b6a', sigil: 'ra-scroll-unfurled' },
+    'huaxia-guan-yu': { color: '#ff8b6a', sigil: 'ra-broadsword' },
+    'huaxia-sun-wukong': { color: '#ffd050', sigil: 'ra-aura' },
+    'huaxia-zhuge-liang': { color: '#ff8b6a', sigil: 'ra-crystal-ball' },
+    'huaxia-huang-zhong': { color: '#ff8b6a', sigil: 'ra-arrow-cluster' },
+    'genesis-lucifer': { color: '#ffb07a', sigil: 'ra-falling' },
+    'genesis-azrael': { color: '#d08cff', sigil: 'ra-scythe' },
+    'genesis-gabriel': { color: '#fff8dc', sigil: 'ra-ocarina' },
+    'genesis-metatron': { color: '#fff8dc', sigil: 'ra-quill-ink' },
+    'genesis-raphael': { color: '#a6f0c2', sigil: 'ra-medical-pack' },
+    'transylvania-dracula': { color: '#d08cff', sigil: 'ra-batwings' },
+    'transylvania-monster': { color: '#ff7575', sigil: 'ra-brain-freeze' },
+    'transylvania-carmilla': { color: '#ff7cd5', sigil: 'ra-broken-heart' },
+    'transylvania-hyde': { color: '#ff7575', sigil: 'ra-round-bottom-flask' },
+    'transylvania-van-helsing': { color: '#ffe9a8', sigil: 'ra-bone-knife' },
+    'transylvania-invisible-man': { color: '#ff7cd5', sigil: 'ra-uncertainty' },
+    'asgard-odin': { color: '#bfe6ff', sigil: 'ra-eye-shield' },
+    'asgard-thor': { color: '#9fe8ff', sigil: 'ra-lightning-storm' },
+    'asgard-hel': { color: '#bfe6ff', sigil: 'ra-death-skull' },
+    'asgard-freyja': { color: '#ffe9a8', sigil: 'ra-feather-wing' },
+    'asgard-heimdall': { color: '#bfe6ff', sigil: 'ra-ringing-bell' },
+    'devas-shiva': { color: '#ffd98a', sigil: 'ra-fire-ring' },
+    'devas-kali': { color: '#ffd98a', sigil: 'ra-skull' },
+    'devas-indra': { color: '#9fe8ff', sigil: 'ra-focused-lightning' },
+    'devas-durga': { color: '#ffb07a', sigil: 'ra-flaming-trident' },
+    'devas-ganesha': { color: '#a6f0c2', sigil: 'ra-trefoil-lily' },
+    'devas-hanuman': { color: '#ffd98a', sigil: 'ra-boot-stomp' },
+    'devas-vishnu': { color: '#ffe9a8', sigil: 'ra-sunbeams' },
+    'tortuga-davy-jones': { color: '#7fe3d4', sigil: 'ra-crossed-bones' },
+    'tortuga-anne-bonny': { color: '#7fe3d4', sigil: 'ra-crossed-sabres' },
+    'tortuga-captain-kidd': { color: '#7fe3d4', sigil: 'ra-compass' },
+    'tortuga-calico-jack': { color: '#7fe3d4', sigil: 'ra-crossed-bones' },
+    'tortuga-flying-dutchman': { color: '#7fe3d4', sigil: 'ra-ship-emblem' },
+    'pandemonium-pride': { color: '#ffe9a8', sigil: 'ra-crown-of-thorns' },
+    'pandemonium-wrath': { color: '#ff7a4d', sigil: 'ra-muscle-up' },
+    'pandemonium-envy': { color: '#ff7a4d', sigil: 'ra-burning-eye' },
+    'pandemonium-gluttony': { color: '#ff7a4d', sigil: 'ra-meat-hook' },
+    'pandemonium-sloth': { color: '#ff7a4d', sigil: 'ra-hourglass' },
+    'pandemonium-lust': { color: '#ff7a4d', sigil: 'ra-heartburn' },
+  };
+  function castFxFor(uid) {
+    var actor = B && B.uidMap ? B.uidMap[uid] : null;
+    var id = actor && actor.card ? actor.card.id : null;
+    return CARD_CAST_FX[id] || null;
+  }
+
   function playCast(uid, element, signature) {
     var a = centreOf(uid);
     if (!a) return;
@@ -3620,6 +3679,16 @@
         signature: !!signature,
       });
     var fx = ELEMENT_FX[element] || ELEMENT_FX.Physical;
+    var over = castFxFor(uid);
+    if (over) {
+      fx = {
+        color: over.color,
+        style: fx.style,
+        trail: over.color,
+        sigil: over.sigil,
+        shape: fx.shape,
+      };
+    }
 
     var ring = spawn('fx-cast-ring' + (signature ? ' big' : ''), a.x, a.y, fx.color, 700);
     ring.innerHTML = '<span></span><span></span>';
@@ -4318,6 +4387,22 @@
   var REVIVE_TOTAL_MS = REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
   var reviveFx = {}; // uid -> { phase, at } so render() can resume the anim
 
+  /* THEMED RESURRECTIONS (Chapter II, 2026-08-19). The generic ceremony
+     is a pillar of gold - right for Wukong's trickster return, wrong for
+     everyone else. Each reviver gets its own ceremony: Medea's cauldron
+     bubbles emerald, Isis unfolds wings of light. Keyed by card id, read
+     off the `by` field the engine's revive log line now carries. */
+  var REVIVE_THEMES = {
+    'hemithea-medea': { color: '#7ef0a8', word: '#d8ffe9', audio: 'cauldron', bubbles: true },
+    'duat-isis': { color: '#ffe9a8', word: '#fff6d6', audio: 'radiance', wings: true },
+    'huaxia-sun-wukong': { color: '#ffd050', word: '#fff6d6', audio: null },
+  };
+  function reviveTheme(byUid) {
+    var src = B && B.uidMap ? B.uidMap[byUid] : null;
+    var id = src && src.card ? src.card.id : null;
+    return REVIVE_THEMES[id] || null;
+  }
+
   /* true while the legend should still be drawn as a corpse */
   function isDownForRevive(uid) {
     var st = reviveFx[uid];
@@ -4351,14 +4436,15 @@
       }, ms);
   }
 
-  function playRevive(uid, label) {
+  function playRevive(uid, label, theme) {
     var c = centreOf(uid);
     if (!c) return 0;
+    theme = theme || {};
     if (window.EOL.audio) {
       window.EOL.audio.duck(0.2, 1.3);
-      window.EOL.audio.battle('revive');
+      window.EOL.audio.battle('revive', { theme: theme.audio || null });
     }
-    var GOLD = '#ffd050';
+    var GOLD = theme.color || '#ffd050';
 
     // the board holds its breath
     var dim = spawn('fx-dim', 0, 0, null, REVIVE_TOTAL_MS + 300);
@@ -4400,7 +4486,7 @@
       pf.style.animationDelay = REVIVE_FALL_MS * 0.5 + s * 26 + 'ms';
     }
 
-    // 2. pillar of golden light climbs out of the smoke
+    // 2. pillar of light climbs out of the smoke, in the reviver's colour
     setTimeout(function () {
       // pillar stands on the card and rises off the top of the board
       // (CSS pins it to top:0, so --h is the distance down to the legend)
@@ -4416,12 +4502,26 @@
         }, d);
       });
 
-      // 4. embers stream upward
+      // 3b. Isis: wings of light fold open behind the returning legend
+      if (theme.wings) {
+        spawn('fx-isis-wing', c.x, c.y, '#fff6d6', 1250);
+        spawn('fx-isis-wing w2', c.x, c.y, GOLD, 1150);
+      }
+
+      // 4. embers stream upward - cauldron bubbles for Medea
       for (var i = 0; i < 18; i++) {
         var m = spawn('fx-revive-mote', c.x, c.y, i % 3 ? GOLD : '#fff3c4', 1200);
         m.style.setProperty('--sx', (Math.random() * 96 - 48).toFixed(1) + 'px');
         m.style.setProperty('--sy', (-46 - Math.random() * 82).toFixed(1) + 'px');
         m.style.animationDelay = i * 30 + 'ms';
+      }
+      if (theme.bubbles) {
+        for (var b = 0; b < 12; b++) {
+          var bu = spawn('fx-cauldron-bubble', c.x + (Math.random() * 54 - 27), c.y + 16, GOLD, 1150);
+          bu.style.setProperty('--sx', (Math.random() * 40 - 20).toFixed(1) + 'px');
+          bu.style.setProperty('--sy', (-36 - Math.random() * 78).toFixed(1) + 'px');
+          bu.style.animationDelay = b * 55 + 'ms';
+        }
       }
 
       // 5. the card pulses gold as it comes back. render() has rebuilt the
@@ -4441,9 +4541,20 @@
         bd.classList.remove('revive-flash');
       }, 700);
 
-      // 6. callout
+      // 6. callout - the word glows in the reviver's own colour
       var word = spawn('fx-revive-word', c.x, c.y, GOLD, 1400);
       word.textContent = label || 'REBORN';
+      if (theme.word) {
+        word.style.color = theme.word;
+        word.style.textShadow =
+          '0 0 12px ' +
+          GOLD +
+          ', 0 0 30px ' +
+          GOLD +
+          ', 0 0 58px ' +
+          GOLD +
+          ', 0 3px 10px rgba(0, 0, 0, 0.95)';
+      }
     }, REVIVE_FALL_MS + REVIVE_DOWN_MS);
 
     return REVIVE_TOTAL_MS + 500;
@@ -4763,11 +4874,11 @@
         var rdelay = (lastHit[l.meta.uid] || 0) + 420;
         revived[l.meta.uid] = rdelay + REVIVE_FALL_MS + REVIVE_DOWN_MS + REVIVE_RESTORE_MS;
         hold = Math.max(hold, rdelay + REVIVE_TOTAL_MS + 500);
-        (function (uid, d) {
+        (function (uid, d, theme) {
           setTimeout(function () {
-            playRevive(uid, 'REBORN');
+            playRevive(uid, 'REBORN', theme);
           }, d);
-        })(l.meta.uid, rdelay);
+        })(l.meta.uid, rdelay, reviveTheme(l.meta.by));
         return;
       }
       if (l.type === 'burn') {

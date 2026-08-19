@@ -259,7 +259,7 @@ window.EOL.registerFaction({
               ],
               other: [
                 { k: 'heal', pctMaxHp: 16, to: 'allies' },
-                { k: 'cleanse', n: 1, to: 'allies' },
+                { k: 'cleanse', count: 1, to: 'allies' },
               ],
             },
           ],

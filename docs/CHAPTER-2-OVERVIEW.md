@@ -566,21 +566,24 @@ per-frame JavaScript in any of it; CSS owns the atmosphere.
 | Extra layer | — | slow amber "arena breathing" glow over the arches |
 | Vignette | cold, tight | warmer, lifted off the arena so the arches are not crushed |
 | Ledger | The Recruiter's Ledger | **The Concord Register** |
-| Score | `road` — A minor, 74bpm, bells and space | `road2` — **D dorian, 88bpm**, processional pulse and a struck-metal filing ostinato |
+| Score | `road` — A minor, 74bpm, bells and space | `road2` — **D mixolydian, 116bpm**, a festival: oom-pah tuba, snare backbeat, tambourine, a dance tune and a second fiddle |
 
-**Why D dorian for the score.** The raised sixth is the whole difference
-between mournful and expectant. Chapter I is a person walking alone and
-natural minor suits it; the Concord is loud, political and funny before
-it is sad, and every attempt in plain D minor dragged it back toward
-Chapter I's grief. The form is a week in forty bars: arrival among
-half-built stands, the crowd filling in, a hush in the archive under the
-street, the schedule pressing, the floor at full noise, then a stripped
+**Why a festival, not a procession (rewritten 2026-08-19).** The first
+score was a processional in D dorian — stately, and stately is the one
+thing a festival city is not. The Concord is a city that exists for one
+week and is dismantled afterwards: market stalls, street bands, a crowd
+that drinks because the week is short. So the Road now plays a festival
+in D mixolydian — the flat seventh is the street-band colour, the
+difference between a court and a fair — at a 116bpm dance pace, with an
+oom-pah tuba bass, a snare backbeat and a tambourine on the offbeats.
+The form is still the week, fifty-two bars: morning market, the band
+arriving, a hush in the archive under the street, the schedule pressing,
+the floor at full noise with the crowd, the last dance, and a stripped
 reprise as the pavilions come down.
 
-The ostinato is deliberately metallic and on the offbeat — tablets being
-struck and filed, which is what the Concord actually does all week. It
-drops out entirely in the archive section, leaving a drone and one bell:
-the only place in the chapter where somebody is alone with a record.
+The archive section keeps the old score's one good instinct: the band
+drops out entirely, leaving a drone and one bell — the only place in
+the chapter where somebody is alone with a record.
 
 ---
 
@@ -592,8 +595,24 @@ Tracked honestly, because none of this is built:
   twelves, both exams, the boss card, and every scene.
 - ~~Boards are unassigned.~~ **Done** - every gate pins a board and both
   exams pin a three-board fight card, all drawn from the existing ten.
-- **Nothing is simmed.** Every WR above is authored. Chapter One's
-  numbers moved substantially under `sim/campaign_soak.js`.
+- **The win rates are still unsimmed.** Every WR above is authored.
+  Chapter One's numbers moved substantially under `sim/campaign_soak.js`.
+  What IS measured now (2026-08-19): every one of the 50 Chapter II
+  signature skills runs through the engine in `sim/verify_chapter2_skills.js`
+  (137 assertions, per-card), and the whole chapter flow - heroic
+  rewards, adaptive sideboarding, ledger-faithful bans, personalities -
+  is pinned by `sim/verify_chapter2_flow.js`. The authored win rates
+  remain the one number a soak still has to earn.
+- **The rivals now try their hardest** (2026-08-19). The chapter shipped
+  with every rival on `adaptive`, a personality that did not exist, and
+  with Chapter I's deterministic in-order six refills - the Understudy
+  filled ban-holes with her weakest bench and evaluated positions with
+  no character at all. Now: ten named personalities (understudy,
+  bookmaker, herald, collector, bridgeHero, undertaker, mason, wrecker,
+  auditor, redactor) bend the same full-depth search the player faces;
+  every rival sideboards live from its twelve with the authored opening
+  six seeded; and the two price personalities ban on the cost axis their
+  tells promise.
 - **The Redactor's "overrule" is unproven** — undoing and replaying an
   action is not something the engine currently does.
 - **Sargon, the Concord officials and the rivals have no cards.**
@@ -615,9 +634,10 @@ Tracked honestly, because none of this is built:
   backdrop (`assets/chapter-2/cw-bg.png`), its own particle weather
   (drifting parchment, rising embers, slow ash - against Chapter I's
   falling glints, wisps and dust), its own ledger (**The Concord
-  Register**, not the Recruiter's), and its own score (`road2`, D dorian
-  at 88bpm against Chapter I's A minor at 74). All switched by
-  `body[data-chapter]` from one `setChapter()` call.
+  Register**, not the Recruiter's), and its own score (`road2`, a D
+  mixolydian festival at 116bpm against Chapter I's A minor walk at
+  74). All switched by `body[data-chapter]` from one `setChapter()`
+  call.
 - **All twenty rival portraits are missing on purpose** (2026-08-18e).
   The art was deleted for the owner's own pass; `stage.portrait` is null
   everywhere and the UI shows a hood glyph. Briefs for all twenty are in

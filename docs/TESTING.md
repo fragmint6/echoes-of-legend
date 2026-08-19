@@ -31,8 +31,10 @@ cd /tmp && npm install puppeteer --no-audit --no-fund
 | Daily attempts / mode carousel                 | `node sim/verify_daily_ui.js`                     | <1s    |
 | Puzzle generation / solve length / difficulty  | `node sim/verify_puzzle_tempo.js`                 | ~9min  |
 | New factions / Chapter II legends + lore docs  | `node sim/verify_chapter2.js`                     | <1s    |
+| A Chapter II signature skill (per-card engine) | `node sim/verify_chapter2_skills.js`              | <1s    |
 | Renaming a faction or moving a card between them| `node sim/verify_id_migration.js`                 | <1s    |
 | Chapter II campaign data / gates / grants      | `node sim/verify_chapter2_campaign.js`            | <1s    |
+| Chapter II flow: rewards, fielding, bans, DOM  | `node sim/verify_chapter2_flow.js` (needs jsdom)  | ~14s   |
 | Moving a card between factions (fixtures/art/pools)| `node sim/verify_fixtures.js`                    | <1s    |
 | Card balance sweep (budgets, bands, dupes)     | `node sim/audit_factions.js`                      | <1s    |
 | Platform flags / the CrazyGames build          | `node sim/verify_platform.js`                     | <2s    |

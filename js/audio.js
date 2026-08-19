@@ -1041,6 +1041,36 @@
             wet: 0.58,
             pan: (r - 2.5) * 0.1,
           });
+        /* THEMED RESURRECTIONS (2026-08-19): the rising gliss above is
+           the shared skeleton; each reviver adds its own voice.
+             cauldron  - Medea: bubbles plopping to the surface, low and
+                        green, over the swell
+             radiance  - Isis: wings of light, a higher bell gliss that
+                        opens upward like the wing fan */
+        if (meta.theme === 'cauldron') {
+          for (var cb = 0; cb < 7; cb++)
+            tone({
+              freq: midi(48 + (cb % 3) * 4),
+              to: midi(62 + (cb % 3) * 3),
+              when: t + 0.25 + cb * 0.09,
+              dur: 0.16,
+              gain: 0.016,
+              type: 'sine',
+              wet: 0.3,
+              pan: (cb - 3) * 0.12,
+            });
+        } else if (meta.theme === 'radiance') {
+          for (var rb = 0; rb < 8; rb++)
+            tone({
+              freq: midi(69 + rb * 2),
+              when: t + 0.15 + rb * 0.07,
+              dur: 0.7,
+              gain: 0.02,
+              type: 'triangle',
+              wet: 0.62,
+              pan: (rb - 3.5) * 0.14,
+            });
+        }
         break;
       case 'coin':
         /* The visual coin spins for 1.45s. Accelerating metal ticks fill
@@ -1287,16 +1317,18 @@
        complete form near 120 seconds rather than stretching one tiny loop. */
     menu: { tempo: 82, steps: 16, key: 'D minor', phraseBars: 40 },
     road: { tempo: 74, steps: 16, key: 'A minor', phraseBars: 36 },
-    /* CHAPTER II's Road (2026-08-18f). A different place needs a
-       different score: Chapter I's `road` is a lonely walk in A minor
-       at 74bpm, all bells and space. The Concord is a CITY DURING A
-       BUSY WEEK - crowds, scaffolding, a schedule - so this is quicker
-       (88), in D dorian rather than natural minor (the raised sixth
-       keeps it civic and expectant instead of mournful), and built on a
-       steady processional pulse with a struck-metal ostinato standing
-       in for the record-keeping. Forty bars lands it near 109 seconds,
-       in the same two-minute envelope as every other track. */
-    road2: { tempo: 88, steps: 16, key: 'D dorian', phraseBars: 40 },
+    /* CHAPTER II's Road (rewritten 2026-08-19 - the CONCORD FESTIVAL).
+       Chapter I's `road` is a lonely walk in A minor at 74bpm, all
+       bells and space. The Concord is a city that exists for one week
+       and is dismantled afterwards, so this is a FESTIVAL, not a
+       procession: 116bpm dance pace, D mixolydian (the flat seventh is
+       the street-band colour), an oom-pah tuba, a snare backbeat, a
+       tambourine on the offbeats and a four-bar dance tune with a
+       second fiddle answering it - plus one quiet archive in the
+       middle where only a drone and a bell play. Fifty-two bars lands
+       near 108 seconds, in the same two-minute envelope as every
+       other track. */
+    road2: { tempo: 116, steps: 16, key: 'D mixolydian', phraseBars: 52 },
     prep: { tempo: 102, steps: 16, key: 'D minor', phraseBars: 52 },
     /* Match variants keep one key/progression while changing pace, register,
        pulse and voicing to suit bright, dark and neutral battlefields. */
@@ -1870,139 +1902,156 @@
     }
 
     if (name === 'road2') {
-      /* CHAPTER II - THE CONCORD. Forty bars / ~109 seconds.
+      /* CHAPTER II - THE CONCORD FESTIVAL (rewritten 2026-08-19).
          -----------------------------------------------------------
-         Chapter I's Road is a person walking alone; this is a city
-         that exists for one week and knows it. The form is a week:
-         arrival among half-built stands (0-7), the crowd filling in
-         (8-15), a hush in the archive under the street (16-19), the
-         schedule pressing on (20-27), the floor itself at full noise
-         (28-35), and a stripped reprise as the pavilions come down
-         (36-39) that hands cleanly back to bar one.
+         The previous score was a stately processional in D dorian, and
+         stately is the one thing a festival city is not. The Concord is
+         a city that exists for one week and is dismantled afterwards -
+         market stalls, street bands, a crowd that drinks because the
+         week is short. So the Road now plays a FESTIVAL:
 
-         D DORIAN, not D minor. The raised sixth (B natural) is the
-         whole difference between mournful and expectant - this chapter
-         is loud, political and funny before it is sad, and a natural
-         minor sixth kept dragging it toward Chapter I's grief.
+           D MIXOLYDIAN - the flat seventh is the street-band colour,
+           the difference between a court and a fair;
+           116bpm - a dance pace, not a walk;
+           an oom-pah tuba bass and a snare backbeat with a tambourine
+           on the offbeats - the sound of a band, not a procession;
+           a four-bar dance tune with a second fiddle answering it.
 
-         The ostinato is deliberately METALLIC and on the offbeat: it
-         is the sound of tablets being struck and filed, which is what
-         the Concord actually does all week. It drops out entirely in
-         the archive section, where the only thing left is the low
-         drone and a single bell - the one place in the chapter where
-         somebody is alone with a record. */
+         The form is still the week, fifty-two bars / ~108 seconds:
+           morning market (0-7), the band arrives (8-15), the archive
+           hush under the street (16-19), the schedule pressing
+           (20-27), the floor at full noise with the crowd (28-35),
+           the last dance (36-43), and the pavilions coming down
+           (44-51) - a stripped reprise that hands cleanly back to
+           bar one, because the city is rebuilt next century. */
       var c2Chords = [
-        [50, 57, 62], // Dm
-        [55, 62, 66], // Gmaj  <- the dorian sixth, the civic colour
-        [48, 55, 60], // C
-        [53, 60, 65], // F
+        [50, 54, 57], // D
+        [48, 52, 55], // C  <- the mixolydian seventh, the fairground lift
+        [47, 50, 55], // G
+        [45, 49, 52], // A
       ];
       var c2Chord = c2Chords[chordIndex];
+      var c2Root = c2Chord[0] - 12;
 
-      var c2Arrive = [74, null, null, 76, null, 77, null, null, 74, null, 72, null, null, 71, null, null];
-      var c2Crowd = [77, null, 79, null, 81, null, 79, null, 77, null, 76, null, 74, null, 76, null];
-      var c2Archive = [62, null, null, null, 65, null, null, null, 60, null, null, null, 62, null, null, null];
-      var c2Press = [74, 76, 77, null, 79, 77, 76, null, 74, 76, 79, null, 77, null, 74, null];
-      var c2Floor = [81, null, 83, 84, null, 83, 81, null, 79, null, 81, 83, null, 81, 79, null];
-      var c2Strike = [69, null, null, 71, null, null, 74, null, 71, null, null, 69, null, 67, null, null];
+      /* The dance tune, one phrase per chord - a reel: the hook (A)
+         rocks around the D, the answer (B) climbs through the flat
+         seventh, the tumble (C) runs down to the leading tone, and
+         the cadence (D) leans on the fifth and hands the loop back. */
+      var c2TuneA = [74, null, 74, 76, null, 74, 71, null, 69, null, 71, 69, null, 66, null, null];
+      var c2TuneB = [72, null, 72, 71, null, 69, 72, null, 71, null, 69, 67, null, 64, null, null];
+      var c2TuneC = [67, null, 69, 71, null, 69, 67, null, 71, null, 69, 67, null, 66, null, null];
+      var c2TuneD = [69, 71, null, 72, null, 71, 69, null, 66, null, 69, null, 71, null, null, null];
+      var c2Tune = [c2TuneA, c2TuneB, c2TuneC, c2TuneD][chordIndex];
+      var c2Bell = [62, null, null, null, 66, null, null, null, 69, null, null, null, 66, null, null, null];
 
-      var c2Part = [c2Arrive, c2Arrive, c2Crowd, c2Arrive];
-      if (phraseBar >= 8 && phraseBar < 16) c2Part = [c2Crowd, c2Arrive, c2Crowd, c2Press];
-      else if (phraseBar >= 16 && phraseBar < 20) c2Part = [c2Archive, c2Archive, c2Strike, c2Archive];
-      else if (phraseBar >= 20 && phraseBar < 28) c2Part = [c2Press, c2Crowd, c2Press, c2Floor];
-      else if (phraseBar >= 28 && phraseBar < 36) c2Part = [c2Floor, c2Press, c2Floor, c2Crowd];
-      else if (phraseBar >= 36) c2Part = [c2Strike, c2Arrive, c2Strike, c2Arrive];
-      var c2Lead = c2Part[phraseBar % 4];
-
-      var c2Quiet = phraseBar >= 16 && phraseBar < 20;
+      var c2Archive = phraseBar >= 16 && phraseBar < 20;
       var c2Busy = (phraseBar >= 8 && phraseBar < 16) || (phraseBar >= 20 && phraseBar < 28);
       var c2Peak = phraseBar >= 28 && phraseBar < 36;
-      var c2Strike36 = phraseBar >= 36;
+      var c2Dance = phraseBar >= 36 && phraseBar < 44;
+      var c2Strike = phraseBar >= 44;
 
-      /* The pad: wide and low in the archive, brighter and tighter on
-         the floor. */
+      /* The pad: a market-awning wash that thins to a drone under the
+         archive and opens wide again for the floor. */
       if (s === 0)
-        chord(c2Chord, t, stepDur * 15.6, c2Peak ? 0.016 : c2Quiet ? 0.0095 : 0.013, {
+        chord(c2Chord, t, stepDur * 15.6, c2Peak ? 0.017 : c2Archive ? 0.0085 : 0.013, {
           dest: dest,
-          wet: c2Quiet ? 0.72 : 0.5,
-          filter: c2Peak ? 2200 : c2Quiet ? 980 : 1500,
-          attack: c2Quiet ? 1.2 : 0.55,
-          release: c2Quiet ? 2.8 : 1.9,
+          wet: c2Archive ? 0.74 : 0.5,
+          filter: c2Peak ? 2300 : c2Archive ? 950 : 1600,
+          attack: c2Archive ? 1.25 : 0.5,
+          release: c2Archive ? 2.9 : 1.9,
         });
 
-      /* The drone under the whole city. */
-      if (s === 0 || (!c2Quiet && s === 8))
-        musicNote(
-          c2Chord[0] - 12,
-          t,
-          stepDur * (c2Quiet ? 14.8 : 6.2),
-          c2Peak ? 0.031 : c2Quiet ? 0.022 : 0.027,
-          'sine',
-          dest,
-          -0.18,
-          0.28,
-          540
-        );
+      /* THE MARKET BELL. A small chime on beat three of every other bar
+         in the calmer sections - a stall-holder calling the hour, gone
+         once the band is at full noise. */
+      if (!c2Archive && !c2Peak && s === 8 && bar % 2 === 1)
+        musicNote(c2Chord[0] + 24, t, stepDur * 1.1, 0.005, 'sine', dest, 0.3, 0.5, 6200);
 
-      /* THE FILING OSTINATO - struck metal on the offbeat, absent in
-         the archive. This is the signature the chapter is recognised
-         by, the way Chapter I is recognised by its bells. */
-      if (!c2Quiet && s % 2 === 1)
-        musicNote(
-          c2Chord[1] + 12,
-          t,
-          stepDur * 0.62,
-          c2Peak ? 0.0085 : c2Busy ? 0.0072 : 0.0055,
-          'square',
-          dest,
-          0.26,
-          0.34,
-          c2Peak ? 3400 : 2600
-        );
-
-      /* The lead. */
-      if (c2Lead[s] != null)
-        musicNote(
-          c2Lead[s],
-          t,
-          stepDur * (c2Quiet ? 3.4 : c2Peak ? 2.0 : 2.3),
-          c2Peak ? 0.022 : c2Quiet ? 0.015 : 0.019,
-          c2Peak ? 'triangle' : 'sine',
-          dest,
-          0.1,
-          c2Quiet ? 0.74 : 0.54,
-          5200
-        );
-
-      /* A crowd counter-line once the stands fill. */
-      if (c2Busy || c2Peak) {
-        var c2Counter = [null, 62, null, null, 65, null, null, 67, null, null, 65, null, 62, null, null, 60];
-        if (c2Counter[s] != null)
-          musicNote(c2Counter[s] + 12, t, stepDur * 1.6, 0.0062, 'sine', dest, -0.22, 0.44, 3000);
+      /* THE TUBA. Oom-pah on one and three - root, fifth, root, fifth -
+         the whole festival stands on it. It walks an offbeat when the
+         band is busy and drops to a single long note under the archive. */
+      if (c2Archive) {
+        if (s === 0)
+          musicNote(c2Root, t, stepDur * 15.2, 0.021, 'sine', dest, 0, 0.42, 480);
+      } else {
+        if (s === 0)
+          musicNote(c2Root, t, stepDur * (c2Peak ? 3.2 : 3.8), c2Peak ? 0.034 : 0.028, 'sine', dest, 0, 0.18, 620);
+        if (s === 8)
+          musicNote(c2Root + 7, t, stepDur * 3.4, 0.024, 'sine', dest, 0, 0.18, 560);
+        if (c2Busy || c2Peak) {
+          if (s === 4) musicNote(c2Root, t, stepDur * 2.2, 0.02, 'sine', dest, 0, 0.16, 600);
+          if (s === 12) musicNote(c2Root + 7, t, stepDur * 2.0, 0.017, 'sine', dest, 0, 0.16, 560);
+        }
       }
 
-      /* The floor's answering brass-ish stab, peak only. */
-      if (c2Peak && (s === 0 || s === 8))
-        chord([c2Chord[1] + 12, c2Chord[2] + 12], t, stepDur * 6.8, 0.0068, {
-          dest: dest,
-          wet: 0.6,
-          filter: 4200,
-          attack: 0.42,
-          release: 1.7,
-        });
-
-      /* PROCESSIONAL PULSE. Chapter I's road drum is a footstep; this
-         is a crowd, so it carries a backbeat rather than a lone tap. */
-      if (!c2Quiet) {
-        if (s === 0) roadDrum(t, c2Peak ? 0.04 : 0.033, dest, true);
-        if (s === 8) roadDrum(t, c2Peak ? 0.032 : 0.026, dest, false);
-        if ((c2Busy || c2Peak) && (s === 4 || s === 12))
-          roadDrum(t, c2Peak ? 0.024 : 0.019, dest, false);
-        if (c2Peak && s === 14) roadDrum(t, 0.017, dest, false);
+      /* THE BAND. Kick and snare backbeat, a tambourine on the
+         offbeats, hats only at full noise. Nothing plays in the
+         archive - the only quiet place in the whole city. */
+      if (!c2Archive) {
+        if (s === 0) kick(t, c2Peak ? 0.052 : c2Busy || c2Dance ? 0.042 : 0.03, dest);
+        if (s === 8) kick(t, c2Peak ? 0.036 : 0.024, dest);
+        if (s === 4 || s === 12) snare(t, c2Peak ? 0.05 : c2Busy || c2Dance ? 0.036 : 0.024, dest);
+        if ((c2Busy || c2Peak) && s % 4 === 2) prepTick(t, c2Peak ? 0.009 : 0.0065, dest, s === 14);
+        if (c2Peak && s % 2 === 1) hat(t, 0.012, dest, false);
+        if (c2Peak && s === 0) roadDrum(t, 0.026, dest, true);
+        if (c2Dance && s === 0) roadDrum(t, 0.02, dest, false);
       } else if (s === 0) {
-        roadDrum(t, 0.016, dest, false);
+        roadDrum(t, 0.013, dest, false);
       }
-      if (c2Strike36 && s === 10) roadDrum(t, 0.015, dest, false);
+
+      /* THE TUNE. The lead fiddle skips the archive (a single bell
+         there instead) and comes back thinned for the takedown. */
+      if (!c2Archive && !(c2Strike && bar % 2 === 1)) {
+        var c2n = c2Tune[s];
+        if (c2n != null)
+          musicNote(
+            c2n,
+            t,
+            stepDur * (c2Peak ? 2.1 : 2.5),
+            c2Peak ? 0.023 : c2Busy || c2Dance ? 0.02 : 0.017,
+            c2Peak ? 'triangle' : 'sine',
+            dest,
+            0.12,
+            c2Archive ? 0.74 : c2Strike ? 0.6 : 0.5,
+            c2Peak ? 5600 : 4800
+          );
+      } else if (c2Archive && c2Bell[s] != null) {
+        musicNote(c2Bell[s], t, stepDur * 3.6, 0.016, 'sine', dest, 0.2, 0.72, 4200);
+      } else if (c2Strike && s === 0 && bar % 2 === 0) {
+        musicNote(c2TuneA[0], t, stepDur * 3.2, 0.014, 'sine', dest, 0.1, 0.6, 3800);
+      }
+
+      /* THE SECOND FIDDLE. The tune again, an octave down and two
+         steps late - a canon the booth musicians pick up as the
+         stands fill, brighter at full noise. */
+      if (c2Busy || c2Peak) {
+        var c2c = c2Tune[(s + 14) % 16];
+        if (c2c != null)
+          musicNote(c2c - 12, t, stepDur * 1.9, c2Peak ? 0.0078 : 0.0062, 'triangle', dest, 0.22, 0.4, 3000);
+      }
+
+      /* THE BRASS. Short answering stabs off the beat at full noise -
+         the pavilion band announcing the main event. */
+      if (c2Peak && (s === 4 || s === 12))
+        battleBrass(c2Chord[1] + 12, t, stepDur * 3.4, s === 4 ? 0.011 : 0.0085, dest, s === 4 ? -0.2 : 0.2);
+      if (c2Dance && s === 8) battleBrass(c2Chord[0] + 12, t, stepDur * 3.0, 0.0075, dest, 0.1);
+
+      /* THE CROWD. A soft roar under the floor at full noise - not
+         percussion, not melody, just ten thousand people being a
+         festival. One wash per bar, shaped like a wave. */
+      if (c2Peak && s === 0)
+        noise({
+          when: t,
+          dur: 1.9,
+          gain: 0.011,
+          filterType: 'lowpass',
+          filter: 1200,
+          filterTo: 420,
+          q: 0.35,
+          bus: 'music',
+          dest: dest,
+          wet: 0.4,
+        });
       return;
     }
 

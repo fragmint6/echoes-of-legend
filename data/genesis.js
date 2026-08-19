@@ -167,6 +167,13 @@ window.EOL.registerFaction({
             {
               k: 'delayed',
               turns: 2,
+              /* The note on the card is a promise, so the seal outlives
+                 the one who set it: `persistAfterDeath` lets the hour
+                 land from a fallen caster. Every OTHER delayed effect
+                 in the game still dies with its caster - killing the
+                 diviner before the prophecy lands stays the counterplay
+                 against Zeus and Abe no Seimei. */
+              persistAfterDeath: true,
               effects: [{ k: 'dmg', power: 2.4, element: 'Shadow' }],
             },
           ],
@@ -319,7 +326,7 @@ window.EOL.registerFaction({
           target: { side: 'ally', pick: 'single', row: 'any' },
           effects: [
             { k: 'heal', pctMaxHp: 28, to: 'targets' },
-            { k: 'cleanse', n: 99, to: 'targets' },
+            { k: 'cleanse', count: 'all', to: 'targets' },
             { k: 'cancelDelayed', to: 'targets' },
           ],
         },

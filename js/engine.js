@@ -958,6 +958,7 @@
         srcUid: pn.srcUid,
         effects: pn.effects,
         scale: pn.scale,
+        persistAfterDeath: pn.persistAfterDeath,
       };
     }
     if (u.costMods) {
@@ -2034,15 +2035,40 @@
         var eMult = e.mult < 1 ? Math.max(0, e.mult - upPts(u, null) / 100) : e.mult;
         var applied = false;
         if (e.firstPerRound) {
-          // only signature Skills, and only the first one each round
-          if (!isAbilityDamage) return;
+          /* Athena's Divine Strategy answers signature Skills only. A
+             card whose text says the first HIT - any hit - declares
+             `firstPerRoundAny` (Dorian Gray's Portrait) and catches
+             Basics too. */
+          if (!isAbilityDamage && !e.firstPerRoundAny) return;
           if (u.roundFlags.athenaFirst) return;
           /* A preview must not spend the charge - it only reports what
              WOULD happen. Only a real hit consumes it. */
-          if (!dryRun) u.roundFlags.athenaFirst = true;
+          if (!dryRun) {
+            u.roundFlags.athenaFirst = true;
+            /* The passive's rider effects fire on the hit the first-
+               per-round gate answers. Without this, Dorian's portrait
+               deflected blows forever but never aged a day: the +3% DEF
+               growth is part of the same passive and had no other path
+               into the engine. */
+            var riders = (p.effects || []).filter(function (r) {
+              return r.k !== 'damageMult' && r.k !== 'damageResist' && r.k !== 'outgoingMult';
+            });
+            if (riders.length) {
+              applyEffects(B, u, [u], riders, {
+                trigger: 'incomingAbilityDamage',
+                immediate: true,
+                triggerTarget: attacker,
+              });
+            }
+          }
           m *= eMult;
           applied = true;
-          logMsg(B, 'passive', u.name + "'s Divine Strategy blunts the attack.", { uid: u.uid });
+          logMsg(
+            B,
+            'passive',
+            u.name + "'s " + (u.card && u.card.ability ? u.card.ability.name : 'guard') + ' blunts the attack.',
+            { uid: u.uid }
+          );
         } else if (e.ifAttackerMarked) {
           if (!(attacker.flags.marked > 0)) return;
           m *= eMult;
@@ -2153,7 +2179,12 @@
       afterDef *= CRIT_MULT;
     }
 
-    var dmg = Math.max(1, Math.round(afterDef));
+    /* The 1-damage floor keeps rounding from vanishing a real hit. A blow
+       FULLY negated by an incoming multiplier (Dorian Gray's Portrait,
+       mult 0) is not a rounding artefact - it is the card's whole point,
+       and flooring it to 1 leaked a scratch through the portrait every
+       round. */
+    var dmg = inM === 0 ? 0 : Math.max(1, Math.round(afterDef));
 
     // shield soaks first
     var absorbed = 0;
@@ -2499,11 +2530,16 @@
   function handleDeath(B, u, killerUid) {
     // Sun Wukong: revive once
     var p = passiveOf(u);
-    if (p && hasTrig(p, 'wouldDie') && !u.usedOnce.wouldDie) {
+    /* The Locker refuses Wukong's death-cheat before it fires, exactly as
+       it refuses every other revive. Without this guard the condemned
+       legend spent his one cheat, stayed dead, and still wore the
+       follow-up shield/taunt/ATK riders as a corpse. */
+    if (p && hasTrig(p, 'wouldDie') && !u.usedOnce.wouldDie && !u.flags.noRevive) {
       u.usedOnce.wouldDie = true;
       // logged first so the UI can play the revive before the buffs it grants
       logMsg(B, 'revive', u.name + ' refuses to fall - ' + u.card.ability.name + '!', {
         uid: u.uid,
+        by: u.uid,
         ability: u.card.ability.name,
       });
       emit(B, {
@@ -2522,6 +2558,27 @@
       });
       applyEffects(B, u, [u], p.effects, { trigger: 'wouldDie', immediate: true });
       return;
+    }
+
+    /* LOKI (selfDied): the only shipped card whose whole payload fires on
+       its OWN death. `selfKilled` reads the KILLER's passive (Perseus
+       grows on his first kill); Loki is the reverse - he is worth more
+       dead than alive, and his death advances the Asgard count that
+       turns Fenrir and Odin on. Fired while he is still flagged alive so
+       the effects resolve with him as their caster, then death proceeds
+       normally. */
+    if (p && hasTrig(p, 'selfDied')) {
+      emit(B, {
+        t: 'proc',
+        owner: u.uid,
+        ability: u.card.ability.name,
+        trigger: 'selfDied',
+        round: B.round,
+      });
+      applyEffects(B, u, [u], p.effects, { trigger: 'selfDied', immediate: true });
+      logMsg(B, 'passive', u.name + "'s end is the plan - " + u.card.ability.name + '!', {
+        uid: u.uid,
+      });
     }
 
     u.alive = false;
@@ -2749,13 +2806,16 @@
   function applyEffects(B, src, targets, effects, ctx) {
     /* A queued rider or multi-part cast stops with its caster. Damage had
        its own mid-cast guard, but heals, shields and stat effects did not,
-       allowing the remainder of an action to resolve from the grave. */
-    if (!src || !src.alive) return;
+       allowing the remainder of an action to resolve from the grave.
+       `persistedCaster` is the single intentional exception: a delayed
+       effect declared `persistAfterDeath` (Azrael's hour) is allowed to
+       land from a fallen caster, because the card's text promises it. */
+    if (!src || (!src.alive && !(ctx && ctx.persistedCaster))) return;
     ctx = ctx || {};
     (effects || []).forEach(function (e) {
       /* A counter can defeat the caster during an earlier damage effect
          in this very list; re-check between every component. */
-      if (!src.alive) return;
+      if (!src.alive && !ctx.persistedCaster) return;
       /* Per-trigger routing. A passive declaring `triggers: [...]` fires its
          whole effects list on ANY of them; an effect may add `on: 'name'`
          (or an array) to respond to only some. Effects without `on` are
@@ -3055,8 +3115,9 @@
              (Guan Yu, Susanoo) resolves inside dealDamage, so an AoE could
              kill its own caster on hit 1 and still land hits 2..n from a
              corpse. Pre-existing; surfaced by the energy-carryover pass,
-             which lets big AoEs be cast far more often. */
-          if (!src.alive) return;
+             which lets big AoEs be cast far more often. A delayed strike
+             declared `persistAfterDeath` is the one announced exception. */
+          if (!src.alive && !ctx.persistedCaster) return;
           if (!condMet(B, e.if, condCtx(ctx, t))) return;
           var aliveBefore = t.alive;
           var element = e.element === 'inherit' ? src.element : e.element;
@@ -3858,15 +3919,28 @@
           /* THE LOCKER HOLDS. Davy Jones's condemnation refuses every
              revive in the game - Isis, Medea, Osiris, Sun Wukong's
              death-cheat. Checked here, at the single revive site, so no
-             future revive card can accidentally bypass it. */
+             future revive card can accidentally bypass it. A REFUSED
+             revive spends nothing: Medea does not lose her one cauldron
+             to a corpse the Locker already claimed. */
           if (t.flags && t.flags.noRevive) {
             logMsg(B, 'debuff', t.name + ' cannot return - the Locker holds them.', {
               uid: t.uid,
             });
             return;
           }
+          /* ONCE-PER-BATTLE REVIVES. `maxStacks` on a revive effect is a
+             LIFETIME cap on the REVIVER (stackTotals lives on `src`), not
+             on the raised legend - a per-target cap would let one Medea
+             resurrect six different allies, which is not what "once per
+             battle" says. The cap is only spent when the legend actually
+             comes back, so a void attempt cannot burn the charge. */
+          if (e.stackTag && e.maxStacks && stacksUsed(src, e.stackTag) >= e.maxStacks) return;
           t.alive = true;
           t.hp = Math.round(t.maxHp * ((e.pctMaxHp + upPts(src, ctx)) / 100));
+          if (e.stackTag && e.maxStacks) {
+            src.stackTotals = src.stackTotals || {};
+            src.stackTotals[e.stackTag] = stacksUsed(src, e.stackTag) + 1;
+          }
           /* Generic `wipe` rider: a legend who comes back should come back
              CLEAN. Without it a revive inherited whatever killed it -
              Burn kept ticking, Exposed kept DEF at zero, and a stacked
@@ -3919,6 +3993,17 @@
             }
           }
           emit(B, { t: 'revive', uid: t.uid, by: src.uid, round: B.round, amount: t.hp });
+          /* The UI plays the resurrection off the LOG, not the event bus -
+             flashRecent() keys on a 'revive' line. Isis and Medea's effect
+             revives never wrote one, so the pillar/embers ceremony only
+             ever played for Wukong's death-cheat. `by` rides along so the
+             ceremony can be themed to the legend doing the raising. */
+          logMsg(B, 'revive', t.name + ' returns to the fight!', {
+            uid: t.uid,
+            by: src.uid,
+            ability: src.card ? src.card.ability.name : null,
+            amount: t.hp,
+          });
         });
         break;
       }
@@ -3991,6 +4076,8 @@
             srcUid: src.uid,
             effects: e.effects,
             scale: ctx.scale || 1,
+            /* Azrael: the hour lands even if the caster has fallen. */
+            persistAfterDeath: !!e.persistAfterDeath,
           });
         });
         /* This used to log "N enemies are marked", which described a
@@ -4074,12 +4161,19 @@
           var payload = e.payload || [];
           emit(B, { t: 'buffsConsumed', tgt: t.uid, count: n, by: src.uid, round: B.round });
           logMsg(B, 'buff', t.name + "'s blessings are spent (" + n + ').', { uid: t.uid });
-          /* the payout scales with how many stacks were cashed */
-          applyEffects(B, src, [t], payload, {
-            immediate: true,
-            scale: (ctx.scale || 1) * n,
-            signature: !!ctx.signature,
-          });
+          /* The payout fires once PER BUFF TAKEN, not once scaled by the
+             count. The old scaled form folded five stolen buffs into one
+             fat stack (Anne Bonny robbed a fully-buffed legend and walked
+             away +40% ATK from a card that says "Max: 4 stacks" of +8%).
+             Firing the payload n times lets each effect's own stackTag /
+             maxStacks cap the payout the way the card text promises. */
+          for (var pi = 0; pi < n; pi++) {
+            applyEffects(B, src, [t], payload, {
+              immediate: true,
+              scale: ctx.scale || 1,
+              signature: !!ctx.signature,
+            });
+          }
         });
         break;
       }
@@ -4767,9 +4861,16 @@
         /* Same rule as resolveDeferred: a dead caster's pending effects do
            not resolve. Abe no Seimei's shikigami was striking from the
            grave, which removed the counterplay of killing the diviner
-           before the prophecy lands. */
-        if (src && src.alive && u.alive) {
-          applyEffects(B, src, [u], p.effects, { scale: p.scale, immediate: true });
+           before the prophecy lands. A card whose TEXT promises otherwise
+           opts out per-effect with `persistAfterDeath` (Azrael's Appointed
+           Hour): the hour is announced to everyone, and the note on the
+           card says it comes even if he has fallen. */
+        if (u.alive && (p.persistAfterDeath || (src && src.alive))) {
+          applyEffects(B, src, [u], p.effects, {
+            scale: p.scale,
+            immediate: true,
+            persistedCaster: !!p.persistAfterDeath,
+          });
         }
       });
       u.pending = still;
