@@ -507,8 +507,8 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
   const audioSource = fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8');
   ok(
-    page.indexOf('<script src="js/audio.js"') >= 0 &&
-      page.indexOf('<script src="js/audio.js"') < page.indexOf('<script src="js/battle.js"'),
+    /<script src="js\/audio\.js(\?[^"]*)?"/.test(page) &&
+      page.indexOf('<script src="js/audio.js') < page.indexOf('<script src="js/battle.js'),
     'the audio director loads before gameplay modules'
   );
   ['audio-master', 'audio-music', 'audio-sfx', 'audio-mute', 'audio-test'].forEach((id) =>

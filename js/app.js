@@ -489,10 +489,18 @@
   /* the truth line under the Collection title: how many of the
      roster you actually OWN (it used to read '63 of 63 legends' at
      a fresh install - the filter count posing as a collection
-     count) */
+     count). It now prints BOTH numbers: a bare numerator is how a
+     stale build read '55 owned' while the grid showed all 115 -
+     with the denominator on screen, the two halves can never
+     silently disagree again. */
   function paintOwnedCount() {
     var el = document.getElementById('owned-count');
-    if (el && window.EOL.econ) el.textContent = window.EOL.econ.ownedCount();
+    if (el && window.EOL.econ)
+      el.textContent =
+        window.EOL.econ.ownedCount() +
+        ' / ' +
+        window.EOL.econ.obtainableEntries().length +
+        ' legends';
   }
 
   /* ownership changes at runtime (packs, gate grants): every painted

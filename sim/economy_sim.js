@@ -165,6 +165,96 @@ Object.keys(shop.PACKS).forEach((key) => {
   );
 });
 
+/* C. the ownership math is roster-driven (2026-08-19) */
+/* C. the ownership math is roster-driven (2026-08-19) */
+const ECONOMY_SRC = fs.readFileSync(path.join(ROOT, 'js/economy.js'), 'utf8');
+console.log('C. the ledger never disagrees with itself');
+{
+  /* The empty-cache guard: calling starterIds() before the faction
+     files land must NOT poison the session - [] used to be cached
+     (it is truthy), and every later count ran 12 starters short.
+     Re-eval the module in a clean sub-environment to prove it. */
+  const MEM2 = {};
+  const sub = {
+    localStorage: {
+      getItem: (k) => (k in MEM2 ? MEM2[k] : null),
+      setItem: (k, v) => {
+        MEM2[k] = String(v);
+      },
+      removeItem: (k) => {
+        delete MEM2[k];
+      },
+    },
+    document: { addEventListener() {}, dispatchEvent() {} },
+    CustomEvent: function () {},
+    window: null,
+  };
+  sub.window = { EOL: { factions: [] } };
+  new Function('localStorage', 'document', 'CustomEvent', 'window', ECONOMY_SRC)(
+    sub.localStorage,
+    sub.document,
+    sub.CustomEvent,
+    sub.window
+  );
+  const subEcon = sub.window.EOL.econ;
+  const early = subEcon.starterIds();
+  ok(early.length === 0, 'before the faction files land, the starter list is honestly empty (' + early.length + ')');
+  sub.window.EOL.factions = EOL.factions; // the faction files arrive
+  const late = subEcon.starterIds();
+  ok(late.length === 12, 'and once they land, the SAME session resolves all twelve starters (' + late.length + ')');
+}
+
+console.log('D. the old save shapes count what the grid shows');
+{
+  /* the exact reported bug, reproduced against the live ledger: an
+     old build's save owns all of Chapter I and nothing else. */
+  const MEM3 = {};
+  const sub = {
+    localStorage: {
+      getItem: (k) => (k in MEM3 ? MEM3[k] : null),
+      setItem: (k, v) => {
+        MEM3[k] = String(v);
+      },
+      removeItem: (k) => {
+        delete MEM3[k];
+      },
+    },
+    document: { addEventListener() {}, dispatchEvent() {} },
+    CustomEvent: function () {},
+    window: null,
+  };
+  sub.window = { EOL: { factions: EOL.factions } };
+  new Function('localStorage', 'document', 'CustomEvent', 'window', ECONOMY_SRC)(
+    sub.localStorage,
+    sub.document,
+    sub.CustomEvent,
+    sub.window
+  );
+  const subEcon2 = sub.window.EOL.econ;
+  const ch1 = [];
+  EOL.factions.forEach((f) => {
+    if (['huaxia', 'asgard', 'hemithea', 'pandemonium', 'devas', 'genesis', 'transylvania', 'tortuga'].indexOf(f.id) >= 0) return;
+    f.cards.forEach((c) => {
+      if (f.id !== 'grimmwood') ch1.push(c.id);
+    });
+  });
+  MEM3['eol.owned.v1'] = JSON.stringify(ch1);
+  ok(subEcon2.ownedCount() === 55, 'an old Chapter-I-only save counts 55 owned (' + subEcon2.ownedCount() + ')');
+  ok(
+    subEcon2.obtainableEntries().filter((e) => subEcon2.owns(e.card.id)).length === subEcon2.ownedCount(),
+    'the grid loop and the counter derive the SAME number'
+  );
+  /* and the reconcile repairs the polluted ledger to the same truth */
+  MEM3['eol.owned.v1'] = JSON.stringify(
+    ch1.concat(['transylvania-hyde', 'campaign-asmodeus', 'transylvania-mr-hyde', 'transylvania-mr-hyde'])
+  );
+  const r = subEcon2.reconcile();
+  /* 43 ch1 + 12 starter + Mr. Hyde = 56; two ghost rows drop. */
+  ok(r.owned === 56 && r.dropped === 2, 'reconcile drops only the ghosts (' + r.owned + ' owned, ' + r.dropped + ' dropped)');
+  const after = JSON.parse(MEM3['eol.owned.v1']);
+  ok(after.length === new Set(after).size, 'the written ledger has no duplicates');
+}
+
 console.log('B. the run: Chapter 1 coins -> packs -> the grind');
 econ._reset();
 const rng = mulberry(77);

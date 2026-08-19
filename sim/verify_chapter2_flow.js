@@ -631,6 +631,75 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  /* ---------- J. the ownership ledger is roster-driven ---------- */
+  console.log('J. the ownership ledger reconciles - old saves, stale ids, one truth');
+  {
+    const LS = w.localStorage;
+    /* Recreate the reported bug: an OLD save owns all of Chapter I
+       (43 non-starters in the ledger) and nothing of Chapter II. The
+       counter and the grid must tell the SAME story. */
+    LS.removeItem('eol.owned.v1');
+    const ch1NonStarters = [];
+    (EOL.factions || []).forEach((f) => {
+      if (['huaxia', 'asgard', 'hemithea', 'pandemonium', 'devas', 'genesis', 'transylvania', 'tortuga'].indexOf(f.id) >= 0) return;
+      f.cards.forEach((c) => {
+        if (f.id !== 'grimmwood') ch1NonStarters.push(c.id);
+      });
+    });
+    LS.setItem('eol.owned.v1', JSON.stringify(ch1NonStarters));
+    d.dispatchEvent(new w.CustomEvent('eol:owned', {}));
+    const ownCount = () =>
+      EOL.econ.obtainableEntries().filter((e) => EOL.econ.owns(e.card.id)).length;
+    t(EOL.econ.ownedCount() === 55, 'an old Chapter-I-only save counts 55 owned');
+    t(
+      ownCount() === EOL.econ.ownedCount(),
+      'the counter and the grid derive the SAME number from the same ledger'
+    );
+    t(
+      d.getElementById('owned-count').textContent === '55 / 115 legends',
+      'the collection header prints both numbers (' + d.getElementById('owned-count').textContent + ') - a bare numerator can never lie again'
+    );
+    t(EOL.econ.owns('hemithea-achilles') === false, 'the grid agrees: a Chapter II crown is unowned');
+
+    /* The account-save repair: a ledger polluted with stale ids (the
+       pre-rename slugs, the boss card, duplicates) and missing cards
+       the campaign actually granted. Reconcile must drop nothing the
+       player earned, drop the ghosts, and leave the ledger equal to
+       what owns() reports. */
+    LS.setItem(
+      'eol.owned.v1',
+      JSON.stringify(
+        ch1NonStarters.concat([
+          'transylvania-hyde', // pre-rename slug - a ghost in a new build
+          'transylvania-monster', // same
+          'takamagahara-inari', // a faction that no longer exists
+          'campaign-asmodeus', // the boss is not collectible
+          'transylvania-mr-hyde', // earned legitimately
+          'transylvania-mr-hyde', // duplicate row
+          'hemithea-achilles', // the Crown from Gate XI
+        ])
+      )
+    );
+    const report = EOL.dev.reconcile();
+    /* 43 chapter-I non-starters + 12 starter + Mr. Hyde + Achilles =
+       57; the four ghost rows drop. */
+    t(
+      report.indexOf('57 owned') >= 0 && report.indexOf('4 stale ids dropped') >= 0,
+      'reconcile reports the repaired ledger (' + report + ')'
+    );
+    t(EOL.econ.owns('transylvania-mr-hyde'), 'an earned card survives the reconcile');
+    t(!EOL.econ.owns('transylvania-hyde') && !EOL.econ.owns('transylvania-monster'), 'the pre-rename ghosts are gone');
+    t(!EOL.econ.owns('takamagahara-inari') && !EOL.econ.owns('campaign-asmodeus'), 'the dead faction and the boss are not in the roster');
+    t(
+      ownCount() === EOL.econ.ownedCount(),
+      'after the repair, counter and grid agree exactly'
+    );
+    const raw = JSON.parse(LS.getItem('eol.owned.v1'));
+    t(raw.length === new Set(raw).size, 'the written ledger has no duplicate rows');
+    /* a second reconcile is a no-op - idempotent by construction */
+    t(EOL.dev.reconcile().indexOf('already consistent') >= 0, 'a second reconcile finds nothing to do');
+  }
+
   server.close();
   console.log('');
   console.log(fails + ' fail(s)');

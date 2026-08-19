@@ -85,7 +85,15 @@ const RETIRED_PREFIXES = ['takamagahara', 'gehenna', 'devaloka', 'jotunheim', 'a
 
 /* Files that are ALLOWED to name retired ids, because remapping them
    is their job. */
-const MIGRATION_FILES = ['js/id-migration.js', 'sim/verify_id_migration.js'];
+const MIGRATION_FILES = [
+  'js/id-migration.js',
+  'sim/verify_id_migration.js',
+  /* these two DELIBERATELY feed retired ids into the reconcile
+     ledger as test fixtures - the whole point is proving ghosts
+     drop out of old saves, so the scanner must not flag the bait */
+  'sim/economy_sim.js',
+  'sim/verify_chapter2_flow.js',
+];
 
 /* ids that look like card ids but are not roster cards */
 const NON_ROSTER = new Set(['campaign-gilgamesh', 'campaign-asmodeus']);

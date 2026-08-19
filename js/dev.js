@@ -15,6 +15,9 @@
                                which is not collectible at all)
        EOL.dev.wheel()         print the Wheel of Seven (the element
                                matchup cycle, advantage 1.08)
+       EOL.dev.reconcile()     rebuild the ownership ledger against
+                               the live roster - repairs a save whose
+                               collection counter and grid disagree
        EOL.dev.openRoad()      unlock every campaign gate
        EOL.dev.resetRoad()     blank the campaign + tutorial ONLY
                                (cards and coins kept) and reload
@@ -107,6 +110,26 @@
         lines.push('  ' + el + ' -> sears ' + E.ELEMENT_BEATS[el]);
       });
       return lines.join('\n');
+    },
+    /* THE OWNERSHIP RECONCILE (2026-08-19). The answer to "the
+       collection shows 115 owned but the counter says 55": rebuild
+       the ledger from the live roster, both campaigns' grants and
+       the starter shelf, write it back, and push the corrected
+       snapshot to the account vault. Nothing earned is dropped;
+       stale ids (old names, the boss card, junk rows) are. */
+    reconcile: function () {
+      var econ = window.EOL.econ;
+      if (!econ || !econ.reconcile) return 'economy not loaded';
+      var r = econ.reconcile();
+      vaultNudge();
+      return (
+        'ledger reconciled: ' +
+        r.owned +
+        ' owned (of ' +
+        econ.obtainableEntries().length +
+        ' obtainable)' +
+        (r.changed ? ' - ' + r.dropped + ' stale ids dropped' : ' - already consistent')
+      );
     },
     openRoad: function () {
       var c = window.EOL.campaign;

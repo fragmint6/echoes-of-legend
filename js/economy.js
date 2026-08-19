@@ -58,10 +58,45 @@
       return 0;
     }
   }
+  /* THE OWNERSHIP LEDGER IS ROSTER-DRIVEN (2026-08-19).
+     -------------------------------------------------------------
+     The old build's collection count and the new build's grid were
+     reading two different truths - a stale cached bundle on one
+     hand, an account save written by an older build on the other -
+     and the result was a screen that owned all 115 legends while
+     the counter said 55. Two laws kill that whole class of bug:
+
+       1. every read of the owned array is sanitized against the
+          live roster (stale ids from before a rename, the boss card,
+          junk rows all drop out; duplicates collapse);
+       2. every count is derived from the SAME roster, so a
+          denominator and a numerator can never disagree again. */
+  var ROSTER_IDS = null;
+  function rosterIds() {
+    if (ROSTER_IDS) return ROSTER_IDS;
+    var set = {};
+    (window.EOL.factions || []).forEach(function (f) {
+      (f.cards || []).forEach(function (c) {
+        set[c.id] = true;
+      });
+    });
+    ROSTER_IDS = set;
+    return ROSTER_IDS;
+  }
+  function sanitizeOwned(arr) {
+    var roster = rosterIds();
+    var seen = {};
+    return (arr || []).filter(function (id) {
+      if (!roster[id] || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
   function readArr(key) {
     try {
       var v = JSON.parse(localStorage.getItem(key));
-      return Array.isArray(v) ? v : [];
+      if (!Array.isArray(v)) return [];
+      return key === OWNED_KEY ? sanitizeOwned(v) : v;
     } catch (e) {
       return [];
     }
@@ -75,19 +110,23 @@
   }
 
   /* the starter twelve: the entire Grimmwood faction, same source of
-     truth the deck manager seeds from */
+     truth the deck manager seeds from. The empty result is NOT cached:
+     an early call before the faction files land would otherwise poison
+     every ownership count for the whole session ([] is truthy, so the
+     old guard happily stored it). */
   var STARTER = null;
   function starterIds() {
-    if (STARTER) return STARTER;
+    if (STARTER && STARTER.length) return STARTER;
     var f = (window.EOL.factions || []).filter(function (x) {
       return x.id === 'grimmwood';
     })[0];
-    STARTER = f
+    var ids = f
       ? f.cards.map(function (c) {
           return c.id;
         })
       : [];
-    return STARTER;
+    if (ids.length) STARTER = ids;
+    return ids;
   }
 
   /* ONE-TIME IMPORT: saves from before the economy carried campaign
@@ -107,13 +146,69 @@
           prog.grants.forEach(function (id) {
             if (owned.indexOf(id) < 0) owned.push(id);
           });
-          write(OWNED_KEY, owned);
+          write(OWNED_KEY, sanitizeOwned(owned));
         }
       }
       write(MIGRATED_KEY, '1');
     } catch (e) {
       /* a broken save must never break the boot */
     }
+  }
+
+  /* THE RECONCILE PASS (2026-08-19). One command, one source of
+     truth. Every ownership source the game writes - the owned
+     ledger, both campaigns' grants, and the starter shelf - is
+     unioned against the live roster, and the result is written
+     back. It repairs the database/local disagreement in place:
+     nothing the player earned is dropped, stale ids are, and the
+     count that comes out is exactly the count the grid shows.
+
+     Runs on every boot (it is idempotent and cheap) AND from the
+     console as EOL.dev.reconcile() so a broken account save can be
+     fixed without touching a database row by hand. */
+  function reconcile() {
+    var rawArr = (function () {
+      try {
+        var v = JSON.parse(localStorage.getItem(OWNED_KEY));
+        return Array.isArray(v) ? v : [];
+      } catch (e) {
+        return [];
+      }
+    })();
+    var out = {};
+    starterIds().forEach(function (id) {
+      out[id] = true;
+    });
+    rawArr.forEach(function (id) {
+      out[id] = true;
+    });
+    ['eol.campaign.ch1.progress', 'eol.campaign.ch2.progress'].forEach(function (key) {
+      try {
+        var prog = JSON.parse(localStorage.getItem(key));
+        (prog && prog.grants ? prog.grants : []).forEach(function (id) {
+          out[id] = true;
+        });
+      } catch (e) {
+        /* private mode or broken save - the ledger still reconciles */
+      }
+    });
+    var owned = sanitizeOwned(Object.keys(out));
+    var current = readArr(OWNED_KEY);
+    var same = current.length === owned.length && owned.every(function (id, i) {
+      return current[i] === id;
+    });
+    if (!same) {
+      write(OWNED_KEY, owned);
+      /* a mid-session repair must repaint the grid and the counters */
+      emitOwned();
+    }
+    return {
+      owned: owned.length,
+      changed: !same,
+      dropped: rawArr.filter(function (id) {
+        return owned.indexOf(id) < 0;
+      }).length,
+    };
   }
 
   function emitCoins() {
@@ -297,8 +392,19 @@
 
   function owns(id) {
     migrate();
+    ensureReconciled();
     if (starterIds().indexOf(id) >= 0) return true;
     return readArr(OWNED_KEY).indexOf(id) >= 0;
+  }
+  /* THE RECONCILE RUNS ONCE PER BOOT, BEFORE THE FIRST OWNERSHIP
+     QUESTION - whatever wrote the ledger (an old build, a cloud
+     restore, a rename that predates the id-migration) is folded
+     against the live roster before any counter or grid can read it. */
+  var RECONCILED = false;
+  function ensureReconciled() {
+    if (RECONCILED) return;
+    RECONCILED = true;
+    reconcile();
   }
   function grant(ids, opts) {
     migrate();
@@ -378,6 +484,8 @@
     owns: owns,
     grant: grant,
     starterIds: starterIds,
+    rosterIds: rosterIds,
+    reconcile: reconcile,
     obtainableEntries: obtainableEntries,
     unownedEntries: unownedEntries,
     packableEntries: packableEntries,
