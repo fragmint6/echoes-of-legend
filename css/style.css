@@ -31398,3 +31398,14 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
   width: 272px;
   max-width: min(272px, calc(100vw - 28px));
 }
+
+/* Let option rows use the full list content box. Horizontal overflow is
+   already clipped, so the former seven-pixel safety gutter only made the
+   right edge look noticeably emptier than the left. */
+.dd-options {
+  padding-right: 0;
+  padding-left: 0;
+}
+.dd-options .dd-opt {
+  width: 100%;
+}
