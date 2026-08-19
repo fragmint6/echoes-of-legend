@@ -133,10 +133,20 @@ const server = http.createServer((req, res) => {
   const normal = EOL.campaign.rewardFor(stage11, 'normal');
   t(normal.coins === 100 && !normal.legendPack && !normal.companion, 'normal stays coins-only (100)');
   /* The old one-off: Legend Gate I's 300-coin foothold is now simply
-     the table's normal-gate Legend payout - no special case anywhere. */
+     the table's normal-gate Legend payout - no special case anywhere.
+     And Gate I now rides the road like every other gate: on Legend it
+     crowns Evil Queen alongside those coins. */
   EOL.campaign.setChapter(1);
   const ch1Gate1 = EOL.campaign.rewardFor(EOL.campaign._stageById(1), 'legend');
-  t(ch1Gate1.coins === 300 && ch1Gate1.legendPack == null, 'Chapter I gate I on Legend pays the table 300 (the old foothold, now generic)');
+  t(
+    ch1Gate1.coins === 300 && ch1Gate1.legendPack === 'grimmwood-evil-queen',
+    'Chapter I gate I on Legend pays the table 300 AND crowns Evil Queen'
+  );
+  const ch1Gate1Heroic = EOL.campaign.rewardFor(EOL.campaign._stageById(1), 'heroic');
+  t(
+    ch1Gate1Heroic.coins === 200 && ch1Gate1Heroic.companion === 'grimmwood-big-bad-wolf',
+    'Chapter I gate I on Heroic pays 200 AND grants its set echo, Big Bad Wolf'
+  );
   t(EOL.campaign.rewardFor(EOL.campaign._stageById(10), 'normal').coins === 500, 'the Chapter I boss pays 500 on Normal');
   EOL.campaign.setChapter(2);
 
@@ -295,16 +305,20 @@ const server = http.createServer((req, res) => {
     const gate11 = d.querySelector('[data-campaign-stage="11"] .sc-rewards');
     const txt = gate11 ? gate11.textContent : '';
     t(
-      txt.indexOf('200') >= 0 && txt.indexOf('Epic echo') >= 0 && txt.indexOf('Hemithea') >= 0,
-      'gate XI heroic shows +200 coins AND the Hemithea Epic echo (' + txt.replace(/\s+/g, ' ').trim() + ')'
+      txt.indexOf('200') >= 0 && txt.indexOf('Odysseus') >= 0,
+      'gate XI heroic shows +200 coins AND names its set echo, Odysseus (' + txt.replace(/\s+/g, ' ').trim() + ')'
+    );
+    t(
+      txt.indexOf('Epic echo') < 0,
+      'the retired "Epic echo - Faction" loot-label wording is gone from the plate'
     );
   }
   {
     const gate16 = d.querySelector('[data-campaign-stage="16"] .sc-rewards');
     const txt = gate16 ? gate16.textContent : '';
     t(
-      txt.indexOf('Epic echo') >= 0 && txt.indexOf('Asgard') >= 0,
-      'the Undertaker hands over the Asgard epic on the plate too'
+      txt.indexOf('Fenrir') >= 0,
+      'the Undertaker names his set echo, Fenrir, on the plate too'
     );
   }
   {

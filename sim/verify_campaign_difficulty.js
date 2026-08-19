@@ -200,17 +200,21 @@ const epicEntry = EOL.factions
   .find((entry) => entry.card.id === epicId);
 ok(
   progress.coins === 300 &&
+    epicId === 'grimmwood-big-bad-wolf' &&
     epicEntry &&
     epicEntry.card.rarity === 'epic' &&
     epicEntry.faction.id === 'grimmwood',
-  'a Heroic first clear pays its 200 coins (100 Normal + 200 Heroic in the shared wallet) and persists its random faction Epic'
+  'a Heroic first clear pays its 200 coins (100 Normal + 200 Heroic in the shared wallet) and persists its SET epic - Big Bad Wolf'
 );
 C.setDifficulty('legend');
 C._recordClear(stages[0]);
 progress = C.getProgress();
 ok(
-  progress.coins === 600 && progress.cleared.includes(1),
-  'a Legend Gate I first clear adds its 300 coins to the shared wallet'
+  progress.coins === 600 &&
+    progress.cleared.includes(1) &&
+    progress.pendingLegend === 1 &&
+    granted.includes('grimmwood-evil-queen'),
+  "a Legend Gate I first clear adds its 300 coins and crowns the queen - Gate I's set Legendary"
 );
 C._recordClear(stages[1]);
 progress = C.getProgress();

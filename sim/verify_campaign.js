@@ -255,11 +255,17 @@ EOL.factions.forEach(function (f) {
     if (st.grants && st.grants.legendPack) packs.push(st.grants.legendPack);
   });
   ok(packs.length === new Set(packs).size, 'no legendary is granted twice');
+  /* THE CROWN LAW, updated 2026-08-19: Gate I now crowns Evil Queen
+     on Legend, so Grimmwood rides the road like every other faction.
+     Its OTHER legendary - Rumpelstiltskin - stays on the starter
+     shelf, because the player boots owning the whole Grimmwood
+     twelve. Huaxia remains withheld (the Chapter II reveal). */
   var wanted = [];
   EOL.factions.forEach(function (f) {
-    if (f.id === 'grimmwood' || f.id === 'huaxia') return;
+    if (f.id === 'huaxia') return;
     f.cards.forEach(function (c) {
-      if (c.rarity === 'legendary') wanted.push(c.id);
+      if (c.rarity === 'legendary' && c.id !== 'grimmwood-rumpelstiltskin')
+        wanted.push(c.id);
     });
   });
   ok(
@@ -267,7 +273,7 @@ EOL.factions.forEach(function (f) {
       wanted.every(function (id) {
         return packs.indexOf(id) >= 0;
       }),
-    'every obtainable faction legendary rides exactly one Legend Pack (' +
+    'every road-crowned legendary rides exactly one Legend Pack - Rumpelstiltskin stays on the starter shelf (' +
       packs.length +
       ' of ' +
       wanted.length +

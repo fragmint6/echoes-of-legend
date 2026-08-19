@@ -381,6 +381,17 @@ window.EOL = window.EOL || {};
            marked move, the handoff, or a battle event. That keeps the
            words current regardless of how quickly the player reads. */
       },
+      /* THE OPENING GATE'S SET REWARDS (2026-08-19, owner ruling).
+         Gate I was the one gate whose Heroic tier fell through to a
+         RANDOM Grimmwood epic and whose Legend tier granted nothing,
+         because the gate had no authored companion/legend. The chapter
+         now follows the same set-epic law as every other gate:
+         Heroic pins Big Bad Wolf (the wolf is Grimmwood's set epic),
+         Legend pins Evil Queen (one of Grimmwood's two crowns). The
+         cards are already on the starter shelf, so the grant is the
+         Road writing them down as EARNED - the ceremonies still play
+         and the epilogue says exactly that. */
+      grants: { legendPack: 'grimmwood-evil-queen', companion: 'grimmwood-big-bad-wolf' },
       resultWin: 'The Recruiter closes his ledger - Gate I is yours.',
       resultLose:
         'The Recruiter sets down his quill. "Dead? At MY gate? Embarrassing - for me, Blank, not you. Take the rematch. Nobody has ever died at my gate twice."',
@@ -1357,6 +1368,16 @@ window.EOL = window.EOL || {};
       {
         speaker: 'The Recruiter',
         text: 'The old man closes the ledger - then thinks better of it and opens it again. "Hansel and Gretel: banned, and furious about it. Cinderella: banned, and gracious about it. It is always the ones who promise happy endings who fight hardest when someone tries to delete them."',
+      },
+      {
+        speaker: 'The Recruiter',
+        /* OFFER, NOT ARRIVAL - the same ruling as every later gate
+           (2026-08-18d). Normal is coins-only, and on top of that the
+           whole Grimmwood twelve is already the player's starter shelf,
+           so these two cannot "join" anything. On Heroic the Road marks
+           the wolf earned, on Legend the queen - the grant matches this
+           line, card for card. */
+        text: '"The Road began with Grimmwood already in your hands - all twelve of them, the wolf and the queen among the rest. On Heroic the wolf is marked yours by right of the gate. On Legend, the queen." He turns the ledger so you can see the line. "I do not hand over what you already carry. I write it down."',
       },
       {
         speaker: 'The Wayfarer',

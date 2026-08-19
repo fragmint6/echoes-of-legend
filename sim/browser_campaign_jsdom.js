@@ -829,9 +829,10 @@ const server = http.createServer((req, res) => {
   const heroicGate1 = d.querySelector('[data-campaign-stage="1"] .sc-rewards');
   t(
     heroicGate1.textContent.indexOf('200') >= 0 &&
-      heroicGate1.textContent.indexOf('Epic') >= 0 &&
+      heroicGate1.textContent.indexOf('Big Bad Wolf') >= 0 &&
+      heroicGate1.textContent.indexOf('Random') < 0 &&
       heroicGate1.textContent.indexOf('Legendary') < 0,
-    'Heroic faction gates advertise only double coins and their Epic'
+    'Heroic faction gates advertise their coins and the SET echo - Gate I names Big Bad Wolf, never a random dip'
   );
   d.querySelector('[data-road-difficulty="legend"]').click();
   await sleep(200);

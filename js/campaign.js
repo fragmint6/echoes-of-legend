@@ -2106,12 +2106,21 @@
     }
     var parts = [];
     if (reward.coins) parts.push('+' + reward.coins + ' coins');
+    /* The epicFaction fallback is DEAD for every shipped gate (2026-08-19):
+       Heroic always grants a pinned companion now, Gate I included. The
+       branch survives as a safety net for a future gate authored without
+       one. */
     if (reward.epicFaction) parts.push('Random ' + factionName(reward.epicFaction) + ' Epic');
     if (reward.choice) parts.push('Choose ' + reward.choice.count + ' ' + reward.choice.label + ' cards');
     /* The pack itself is the reveal. The result receipt confirms the
        reward category without naming the card before the wrapper opens. */
     if (reward.legendPack) parts.push('Legendary reward pack');
-    if (reward.companion) parts.push('a second echo');
+    /* The set echo is named - there is nothing random to conceal, and
+       "a second echo" told the player nothing useful. */
+    if (reward.companion) {
+      var companionPart = entriesFor([reward.companion])[0];
+      parts.push(companionPart ? companionPart.card.name : 'a second echo');
+    }
     if (!parts.length) parts.push('Gate cleared · No coin reward');
     return difficulty.name + ' · ' + parts.join(' · ');
   }
@@ -2498,26 +2507,25 @@
           factionName(reward.epicFaction) +
           ' Epic</span>'
       );
-    /* THE SECOND NAMED ECHO (companion). The plate used to render coins
-       and legend packs only, so every gate's companion reward was
-       invisible until the epilogue - gate XI Heroic read as "+300 coins
-       and nothing else" even though it hands over Odysseus, an epic
-       from Hemithea. The chip prints the card's REAL rarity (Lancelot
-       is common, Brutus rare, Odysseus epic) and faction without naming
-       the card: the reveal is still the reveal. */
+    /* THE SET ECHO (2026-08-19, owner ruling). Every Heroic gate hands
+       over ONE set card - the companion its epilogue names - never a
+       random lucky dip. The chip therefore NAMES the card, because
+       there is nothing random to hide. The retired wording was
+       "Epic echo - Hemithea", which read like a procedurally generated
+       loot label; "Odysseus" does not. The card's REAL rarity still
+       drives the chip colour (Lancelot is common, Brutus rare,
+       Odysseus and the wolf epic), and the reveal ceremony at clear
+       time is unchanged. */
     if (reward.companion) {
       var companionEntry = entriesFor([reward.companion])[0];
       var companionRarity = companionEntry ? companionEntry.card.rarity : 'epic';
-      var companionFaction = companionEntry ? companionEntry.faction.id : null;
       var companionCls = companionRarity === 'epic' ? 'epic' : '';
-      var companionLabel =
-        companionRarity.charAt(0).toUpperCase() + companionRarity.slice(1) + ' echo';
-      if (companionFaction) companionLabel = companionLabel + ' - ' + factionName(companionFaction);
+      var companionName = companionEntry ? companionEntry.card.name : 'an echo';
       chips.push(
         '<span class="sc-reward ' +
           companionCls +
           '"><i data-icon-domain="game" class="ra ra-gem"></i>' +
-          companionLabel +
+          companionName +
           '</span>'
       );
     }
