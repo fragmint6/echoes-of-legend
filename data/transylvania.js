@@ -99,7 +99,7 @@ window.EOL.registerFaction({
     },
 
     {
-      id: 'transylvania-monster',
+      id: 'transylvania-frankensteins-monster',
       name: "Frankenstein's Monster",
       rarity: 'epic',
       role: 'Tank',
@@ -135,7 +135,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-brain-freeze',
-      art: 'assets/legends/transylvania-monster.png',
+      art: 'assets/legends/transylvania-frankensteins-monster.png',
     },
 
     {
@@ -169,7 +169,7 @@ window.EOL.registerFaction({
     },
 
     {
-      id: 'transylvania-hyde',
+      id: 'transylvania-mr-hyde',
       name: 'Mr. Hyde',
       rarity: 'epic',
       role: 'Bruiser',
@@ -214,7 +214,7 @@ window.EOL.registerFaction({
         },
       },
       icon: 'ra-round-bottom-flask',
-      art: 'assets/legends/transylvania-hyde.png',
+      art: 'assets/legends/transylvania-mr-hyde.png',
     },
 
     {

@@ -262,11 +262,11 @@ window.EOL.legendLore = {
     'He keeps the record, which means he decides what the record says. Metatron can close a mouth mid-sentence and has done it often enough that most of the host chooses its words carefully around him.',
   'transylvania-dracula':
     'Old, courteous, and entirely uninterested in your consent. Dracula takes a little from everyone in the room and wears it better than any of them did, which he considers the natural order rather than a theft.',
-  'transylvania-monster':
+  'transylvania-frankensteins-monster':
     'He learned to speak by listening at a wall, learned to read from three books in a ditch, and asked only for one person in the world who would not scream. Frankenstein\'s Monster is enormous, articulate, and still waiting for an answer.',
   'transylvania-carmilla':
     'She arrives as a guest, stays as a friend, and leaves the household weaker in ways nobody can quite date. Carmilla is unhurried and genuinely affectionate, which is the part that makes her difficult to be angry about.',
-  'transylvania-hyde':
+  'transylvania-mr-hyde':
     'The draught does not create him. It simply removes the argument against him. Mr. Hyde is what was already in the house with the door finally open, and he gets less careful about his own skin every time he is let out.',
   'transylvania-van-helsing':
     'An old academic with a bag of very specific tools and no patience whatsoever for the supernatural\'s sense of ceremony. Van Helsing undoes preparation - whatever ward you spent the evening arranging, he has a method for it.',

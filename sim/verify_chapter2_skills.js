@@ -513,7 +513,7 @@ console.log('D. Transylvania - the things that move between people');
 {
   /* Dracula: the ATK drain and gain are equal and do not stack with
      themselves. */
-  const B = battle([g('transylvania-dracula'), g('transylvania-monster'), g('transylvania-carmilla'), ...FILLER]);
+  const B = battle([g('transylvania-dracula'), g('transylvania-frankensteins-monster'), g('transylvania-carmilla'), ...FILLER]);
   const dr = unit(B, 'transylvania-dracula');
   E.useAbility(B, dr, dr.card.ability, []);
   ok(foes(B).every((u) => atkPct(B, u, 'atk') === -8), 'every enemy bleeds 8% ATK');
@@ -522,13 +522,13 @@ console.log('D. Transylvania - the things that move between people');
   ok(atkPct(B, dr, 'atk') === 8, 'a second cast does not stack the theft');
 
   /* The Monster: the full defensive line. */
-  const B2 = battle([g('transylvania-monster'), g('transylvania-dracula'), g('transylvania-carmilla'), ...FILLER]);
-  const mon = unit(B2, 'transylvania-monster');
+  const B2 = battle([g('transylvania-frankensteins-monster'), g('transylvania-dracula'), g('transylvania-carmilla'), ...FILLER]);
+  const mon = unit(B2, 'transylvania-frankensteins-monster');
   E.useAbility(B2, mon, mon.card.ability, []);
   ok(mon.flags.taunt > 0 && mon.shield > 0 && atkPct(B2, mon, 'def') === 12, 'the Monster provokes, shields and hardens');
 
   /* Carmilla: the DEF is taken, the health is kept. */
-  const B3 = battle([g('transylvania-carmilla'), g('transylvania-dracula'), g('transylvania-monster'), ...FILLER]);
+  const B3 = battle([g('transylvania-carmilla'), g('transylvania-dracula'), g('transylvania-frankensteins-monster'), ...FILLER]);
   const ca = unit(B3, 'transylvania-carmilla');
   wound(ca, 0.4);
   const t = foes(B3)[0];
@@ -537,8 +537,8 @@ console.log('D. Transylvania - the things that move between people');
   ok(ca.hp > ca.maxHp * 0.4, 'and Carmilla feeds on it');
 
   /* Hyde: the draught pays -9% DEF per drink, capped at three. */
-  const B4 = battle([g('transylvania-hyde'), g('transylvania-dracula'), g('transylvania-monster'), ...FILLER]);
-  const hy = unit(B4, 'transylvania-hyde');
+  const B4 = battle([g('transylvania-mr-hyde'), g('transylvania-dracula'), g('transylvania-frankensteins-monster'), ...FILLER]);
+  const hy = unit(B4, 'transylvania-mr-hyde');
   const t4 = foes(B4)[0];
   B4.energy.player = 250;
   for (let i = 0; i < 4; i++) {
@@ -548,7 +548,7 @@ console.log('D. Transylvania - the things that move between people');
   ok(atkPct(B4, hy, 'def') === -27, 'three draughts, exactly -27% DEF');
 
   /* Van Helsing: the shield is destroyed outright. */
-  const B5 = battle([g('transylvania-van-helsing'), g('transylvania-dracula'), g('transylvania-monster'), ...FILLER]);
+  const B5 = battle([g('transylvania-van-helsing'), g('transylvania-dracula'), g('transylvania-frankensteins-monster'), ...FILLER]);
   const vh = unit(B5, 'transylvania-van-helsing');
   const t5 = foes(B5)[0];
   t5.shield = 400;
@@ -556,7 +556,7 @@ console.log('D. Transylvania - the things that move between people');
   ok(t5.shield === 0, "the hunter's kit destroys the Shield");
 
   /* The Invisible Man: damage plus the vanishing. */
-  const B6 = battle([g('transylvania-invisible-man'), g('transylvania-dracula'), g('transylvania-monster'), ...FILLER]);
+  const B6 = battle([g('transylvania-invisible-man'), g('transylvania-dracula'), g('transylvania-frankensteins-monster'), ...FILLER]);
   const inv = unit(B6, 'transylvania-invisible-man');
   const t6 = foes(B6)[0];
   const hp6 = t6.hp;
@@ -565,7 +565,7 @@ console.log('D. Transylvania - the things that move between people');
 
   /* Dorian: the first signature hit each round is borne by the
      portrait, and the DEF grows with it. */
-  const B7 = battle([g('transylvania-dorian-gray'), g('transylvania-dracula'), g('transylvania-monster'), ...FILLER]);
+  const B7 = battle([g('transylvania-dorian-gray'), g('transylvania-dracula'), g('transylvania-frankensteins-monster'), ...FILLER]);
   const do7 = unit(B7, 'transylvania-dorian-gray');
   const foe7 = foes(B7)[0];
   const hp7 = do7.hp;
