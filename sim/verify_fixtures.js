@@ -409,21 +409,23 @@ console.log('D4. Chapter II rival art is deleted, not dangling');
       );
     }
   });
-  /* And nothing anywhere may still reference the deleted directory. */
-  const refs = [];
-  jsFiles()
-    .concat([path.join(ROOT, 'index.html'), path.join(ROOT, 'css/style.css')])
-    .forEach((f) => {
-      if (!fs.existsSync(f)) return;
-      /* This suite names the path in order to search for it, and
-         ART-SPEC documents where the art will go when it returns.
-         Neither is a live reference. */
-      if (path.resolve(f) === path.resolve(__filename)) return;
-      if (fs.readFileSync(f, 'utf8').indexOf('assets/rivals') >= 0) refs.push(path.relative(ROOT, f));
+  /* THE RIVALS SHIP (2026-08-19): the art returned - every stage's
+     portrait points at a file that exists, and the folder is real.
+     (The "portrait is null or a real file" checks above kept passing
+     while the art was deleted; now the pins say it is BACK.) */
+  ok(fs.existsSync(path.join(ROOT, 'assets/rivals')), 'assets/rivals is shipped');
+  ok(
+    fs.readdirSync(path.join(ROOT, 'assets/rivals')).filter((f) => f.endsWith('.png')).length === 20,
+    'all twenty rival portraits (one per gate, both chapters) ship as PNGs'
+  );
+  [window.EOL.campaignCh1, window.EOL.campaignCh2].forEach((story) => {
+    (story.stages || []).forEach((st) => {
+      ok(
+        st.portrait && fs.existsSync(path.join(ROOT, st.portrait)),
+        'chapter ' + story.id + ' stage ' + st.id + ': rival portrait resolves (' + st.portrait + ')'
+      );
     });
-  ok(refs.length === 0, 'no source file references the deleted assets/rivals' + (refs.length ? ' (' + refs.join(', ') + ')' : ''));
-  ok(!fs.existsSync(path.join(ROOT, 'assets/rivals')), 'assets/rivals is gone');
-  ok(!fs.existsSync(path.join(ROOT, 'assets/rivals-src')), 'assets/rivals-src is gone');
+  });
   /* The briefs the owner asked for must exist for all twenty. */
   const spec = fs.readFileSync(path.join(ROOT, 'docs/ART-SPEC.md'), 'utf8');
   ok(/## 6\. Rival briefs/.test(spec), 'ART-SPEC has a rival-brief section');

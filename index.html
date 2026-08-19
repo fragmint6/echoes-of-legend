@@ -3394,9 +3394,10 @@
           <i class="ri-close-line"></i>
         </button>
         <div class="chapter-dialogue-bust" aria-hidden="true">
-          <!-- Rival art deleted 2026-08-18e for the owner's own pass.
-               The bust starts EMPTY with the glyph visible; js/campaign.js
-               swaps them per line and already handles a null portrait. -->
+          <!-- Every rival portrait ships in assets/rivals/ (128x176).
+               The bust starts EMPTY with the glyph visible;
+               js/campaign.js swaps them per line and still handles a
+               null portrait (the Wayfarer has no face). -->
           <img id="chapter-dialogue-portrait" alt="" draggable="false" hidden />
           <span class="chapter-dialogue-glyph" id="chapter-dialogue-glyph"
             ><i data-icon-domain="game" class="ra ra-hood"></i

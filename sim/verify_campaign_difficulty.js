@@ -14,6 +14,7 @@ global.document = {
   readyState: 'loading',
   body: { dataset: {} },
   addEventListener() {},
+  dispatchEvent() {},
   getElementById() {
     return null;
   },
@@ -35,6 +36,10 @@ require('../data/roles.js');
 require('../data/battlefields.js');
 require('../data/campaign-ch1.js');
 require('../js/engine.js');
+/* Real economy + upgrades: grants of owned cards bank copies, and the
+   suite proves it below. */
+require('../js/upgrades.js');
+require('../js/economy.js');
 require('../js/campaign.js');
 
 let checks = 0;
@@ -166,20 +171,9 @@ ok(
   'Legend retains every existing faction Legendary reward'
 );
 
-/* Independent progression plus concrete first-clear payouts. */
-const paid = [];
-const granted = [];
-EOL.econ = {
-  addCoins(value) {
-    paid.push(value);
-  },
-  grant(ids) {
-    granted.push(...ids);
-  },
-  owns() {
-    return false;
-  },
-};
+/* Independent progression plus concrete first-clear payouts. The real
+   economy runs: a fresh account owns the whole Grimmwood starter
+   shelf, so Gate I's set rewards arrive as COPIES. */
 C._recordClear(stages[0]);
 let progress = C.getProgress();
 ok(
@@ -206,6 +200,10 @@ ok(
     epicEntry.faction.id === 'grimmwood',
   'a Heroic first clear pays its 200 coins (100 Normal + 200 Heroic in the shared wallet) and persists its SET epic - Big Bad Wolf'
 );
+ok(
+  EOL.upgrades.dupesOf('grimmwood-big-bad-wolf') === 1,
+  'the wolf grant changes the collection even though the starter shelf owns him - one copy banked'
+);
 C.setDifficulty('legend');
 C._recordClear(stages[0]);
 progress = C.getProgress();
@@ -213,14 +211,17 @@ ok(
   progress.coins === 600 &&
     progress.cleared.includes(1) &&
     progress.pendingLegend === 1 &&
-    granted.includes('grimmwood-evil-queen'),
-  "a Legend Gate I first clear adds its 300 coins and crowns the queen - Gate I's set Legendary"
+    EOL.upgrades.dupesOf('grimmwood-evil-queen') === 1,
+  "a Legend Gate I first clear adds its 300 coins and crowns the queen - a COPY banked, never a silent no-op"
 );
 C._recordClear(stages[1]);
 progress = C.getProgress();
 ok(
-  progress.coins === 900 && progress.pendingLegend === 2 && granted.includes('camelot-king-arthur'),
-  'every Legend gate pays coins - Gate II adds another 300 and still grants its crown at clear time'
+  progress.coins === 900 &&
+    progress.pendingLegend === 2 &&
+    EOL.econ.owns('camelot-king-arthur') &&
+    EOL.upgrades.dupesOf('camelot-king-arthur') === 0,
+  'every Legend gate pays coins - Gate II adds another 300, a NEW crown joins the collection, and no phantom copy is banked'
 );
 C.setDifficulty('normal');
 ok(C.getProgress().cleared.includes(1), 'switching back restores the saved Normal run');

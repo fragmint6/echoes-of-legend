@@ -663,7 +663,20 @@
         var cards = [];
         if (reward.legendPack) cards.push(reward.legendPack);
         if (prog.pendingEpic && prog.pendingEpic.stage === stage.id) cards.push(prog.pendingEpic.card);
-        window.EOL.econ.grant(cards);
+        /* EVERY REWARD GRANT CHANGES THE COLLECTION (2026-08-19,
+           owner ruling). Cards are upgradeable with copies, so a
+           grant of a card you already own - the whole Grimmwood
+           shelf, a crown from a previous run - banks a duplicate
+           instead of quietly doing nothing. The reveal ceremony
+           shows the copy for what it is. */
+        var duped = cards.filter(function (id) {
+          return window.EOL.econ.owns(id);
+        });
+        window.EOL.econ.grant(cards, { dupes: true });
+        if (duped.length) {
+          prog.grantDupes = prog.grantDupes || {};
+          prog.grantDupes[stage.id] = duped;
+        }
         if (reward.coins) window.EOL.econ.addCoins(reward.coins);
       }
     } else {
@@ -2361,8 +2374,10 @@
       p2.choices[stage.id] = picked.slice();
       if (p2.pendingChoice === stage.id) p2.pendingChoice = null;
       saveProgress(p2);
-      /* the chosen echoes are OWNED now, not just remembered */
-      if (window.EOL.econ) window.EOL.econ.grant(picked);
+      /* the chosen echoes are OWNED now, not just remembered - and a
+         choice of a card you already carry banks a copy (2026-08-19:
+         copies are upgrade material, no grant is a no-op) */
+      if (window.EOL.econ) window.EOL.econ.grant(picked, { dupes: true });
       modal.hidden = true;
       if (window.EOL.audio) window.EOL.audio.campaign('reward');
       done();
@@ -2416,12 +2431,20 @@
       return;
     }
     if (!rewardTheaterReady(reofferPendingLegend)) return;
+    /* A copy, not an arrival: recordClear remembered which granted
+       cards were already owned, and the ceremony says so. */
+    var duplicate =
+      prog.grantDupes && prog.grantDupes[stage.id]
+        ? prog.grantDupes[stage.id].indexOf(cardId) >= 0
+        : false;
     var opened = window.EOL.shop.openCampaignReward(cardId, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
       rarity: 'legendary',
+      duplicate: duplicate,
     });
     if (!opened) return;
     prog.pendingLegend = null;
+    if (prog.grantDupes) delete prog.grantDupes[stage.id];
     saveProgress(prog);
   }
 
@@ -2442,12 +2465,18 @@
        would print the wrong frame and the wrong colour for four of the
        seven gates. */
     var pendingCard = cardById(pending.card);
+    var duplicate =
+      prog.grantDupes && prog.grantDupes[stage.id]
+        ? prog.grantDupes[stage.id].indexOf(pending.card) >= 0
+        : false;
     var opened = window.EOL.shop.openCampaignReward(pending.card, {
       gate: 'Gate ' + ROMAN[stage.id] + ' cleared',
       rarity: pendingCard ? pendingCard.rarity : 'epic',
+      duplicate: duplicate,
     });
     if (!opened) return;
     prog.pendingEpic = null;
+    if (prog.grantDupes) delete prog.grantDupes[stage.id];
     saveProgress(prog);
   }
 

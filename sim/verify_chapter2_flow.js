@@ -352,23 +352,71 @@ const server = http.createServer((req, res) => {
       /\.art-portrait img,\s*\.bart-portrait img,[^}]*\.tutor-face\s*\{[^}]*filter:\s*blur\(0\.75px\)/s.test(cssSrc),
       'every legend-art render site carries the blur rule instead'
     );
-    /* THE 64x88 LAW: every fixed art frame renders at the source's
-       native size - the dialogue bust, the rival plate, the detail
-       panel and the small faces. The 256px experiment is retired. */
-    const bustRule = /\.chapter-dialogue-bust\s*\{[^}]*width:\s*64px;[^}]*height:\s*88px;/s;
-    t(bustRule.test(cssSrc), 'the dialogue bust renders the art at native 64x88');
-    t(
-      /\.rival-art\.has-portrait\s*\{[^}]*flex-basis:\s*64px;[^}]*min-height:\s*88px;/s.test(cssSrc),
-      'the rival plate frame is native 64x88'
-    );
+    /* THE NATIVE-SIZE LAW: every fixed art frame renders at the
+       source's own size - LEGEND art at 64x88 (card detail), RIVAL
+       portraits at 128x176 (dialogue bust). The 256px experiment is
+       retired. */
+    const bustRule = /\.chapter-dialogue-bust\s*\{[^}]*width:\s*128px;[^}]*height:\s*176px;/s;
+    t(bustRule.test(cssSrc), 'the dialogue bust renders rival portraits at their native 128x176');
     t(
       /\.cd-art\s*\{[^}]*width:\s*64px;[^}]*height:\s*88px;/s.test(cssSrc),
-      'the card-detail art panel is native 64x88'
+      'the card-detail art panel stays at the legend art native 64x88'
     );
     t(
       !/\.chapter-dialogue-bust\s*\{[^}]*width:\s*256px/s.test(cssSrc),
       'the 256px experiment is retired'
     );
+
+    /* EVERY RIVAL HAS A FACE: each stage in both chapters carries a
+       portrait path that resolves to a shipped file. */
+    const missingPortraits = [];
+    [1, 2].forEach((ch) => {
+      EOL.campaign.setChapter(ch);
+      EOL.campaign.story.stages.forEach((st) => {
+        if (!st.portrait) {
+          missingPortraits.push(st.id + ' (null)');
+        } else if (!fs.existsSync(path.join(ROOT, st.portrait))) {
+          missingPortraits.push(st.id + ' (' + st.portrait + ')');
+        }
+      });
+    });
+    t(missingPortraits.length === 0, 'all twenty rivals ship a portrait that resolves' + (missingPortraits.length ? ' -> ' + missingPortraits.join(', ') : ''));
+    EOL.campaign.setChapter(2);
+  }
+
+  /* ---------- G. every reward grant changes the collection ---------- */
+  console.log('G. grants always pay - copies are upgrade material');
+  {
+    /* A grant of an owned card is a COPY, banked toward that card's
+       next level - never a silent no-op. The plain grant (packs, dev
+       ownership tools) must NOT bank copies, because packs already
+       bank their own duplicates around their ceremony. */
+    const U = EOL.upgrades;
+    const plainBefore = U.dupesOf('grimmwood-evil-queen');
+    EOL.econ.grant(['grimmwood-evil-queen']);
+    t(U.dupesOf('grimmwood-evil-queen') === plainBefore, 'a plain grant does not double-bank copies');
+    EOL.econ.grant(['grimmwood-evil-queen'], { dupes: true });
+    t(U.dupesOf('grimmwood-evil-queen') === plainBefore + 1, 'a reward grant of an owned card banks one copy');
+    EOL.econ.grant(['grimmwood-big-bad-wolf'], { dupes: true });
+    t(U.dupesOf('grimmwood-big-bad-wolf') === 1, 'starter-shelf cards bank copies too');
+    /* The full campaign path: clearing Gate I on Heroic grants the
+       wolf - owned since boot - and the collection still moves. */
+    EOL.campaign.setChapter(1);
+    EOL.campaign.setDifficulty('heroic');
+    const wolfBefore = U.dupesOf('grimmwood-big-bad-wolf');
+    EOL.campaign._recordClear(EOL.campaign._stageById(1));
+    t(U.dupesOf('grimmwood-big-bad-wolf') === wolfBefore + 1, 'clearing Gate I Heroic banks the wolf copy through recordClear');
+    EOL.campaign.setDifficulty('legend');
+    const queenBefore = U.dupesOf('grimmwood-evil-queen');
+    EOL.campaign._recordClear(EOL.campaign._stageById(1));
+    t(U.dupesOf('grimmwood-evil-queen') === queenBefore + 1, 'clearing Gate I Legend banks the queen copy through recordClear');
+    t(
+      !!(EOL.campaign.getProgress().grantDupes && EOL.campaign.getProgress().grantDupes[1]) &&
+        EOL.campaign.getProgress().grantDupes[1].indexOf('grimmwood-evil-queen') >= 0,
+      'the progress records which granted cards were copies, so the ceremony can say so'
+    );
+    EOL.campaign.setChapter(2);
+    EOL.campaign.setDifficulty('heroic');
   }
 
   server.close();

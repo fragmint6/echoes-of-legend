@@ -311,7 +311,11 @@
 
   /* CAMPAIGN CARD PACKS: campaign.js opens these after a Heroic Epic or
      Legend crown clear. The card is already granted by recordClear (a
-     mid-ceremony refresh cannot eat it); this is one-card theater only. */
+     mid-ceremony refresh cannot eat it); this is one-card theater only.
+     A DUPLICATE grant (the card was already owned - the starter shelf,
+     a crown from another run) wears the same copy tag a pack duplicate
+     does: it is not a dud, it is Echo Shards plus a step toward the
+     card's next level. */
   function openCampaignReward(cardId, meta) {
     var entry = null;
     (window.EOL.factions || []).forEach(function (f) {
@@ -321,7 +325,17 @@
     });
     if (!entry) return false;
     var rarity = meta && meta.rarity === 'epic' ? 'epic' : 'legend';
-    if (window.EOL.econ) window.EOL.econ.grant([cardId]); // idempotent safety
+    /* Idempotent safety only - the copy itself was banked by
+       recordClear through econ.grant({dupes:true}); a second bank
+       here would double-count the duplicate. */
+    if (window.EOL.econ) window.EOL.econ.grant([cardId]);
+    if (meta && meta.duplicate) {
+      entry.duplicate = true;
+      entry.shards = window.EOL.upgrades
+        ? window.EOL.upgrades.shardYield(entry.card.rarity)
+        : 0;
+      lastDupes.push(entry);
+    }
     currentAwardMeta = meta || {};
     currentAwardMeta.rarity = rarity === 'legend' ? 'legendary' : 'epic';
     results = [entry];

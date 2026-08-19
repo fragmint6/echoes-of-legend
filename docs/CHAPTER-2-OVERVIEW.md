@@ -531,6 +531,14 @@ IS 300, so the foothold is simply the table. The authored `grants.coins`
 values in the stage data were removed with it - the table is the single
 source of truth in `js/campaign.js`.
 
+**Every reward grant changes the collection** (2026-08-19). Cards are
+upgradeable with copies, so a grant of a card you already own - the
+whole Grimmwood starter shelf, a crown from a previous run - banks a
+DUPLICATE toward that card's next level instead of quietly doing
+nothing. The reveal ceremony wears the same copy tag a pack duplicate
+does (Echo Shards + a step toward the next level). Pack purchases keep
+their own duplicate banking, so nothing double-counts.
+
 | Gate | Fields | Unlocks | Legendary |
 |---|---|---|---|
 | XI The Understudy | Hemithea | Hemithea | **Achilles** |
@@ -655,7 +663,9 @@ Tracked honestly, because none of this is built:
   mixolydian festival at 116bpm against Chapter I's A minor walk at
   74). All switched by `body[data-chapter]` from one `setChapter()`
   call.
-- **All twenty rival portraits are missing on purpose** (2026-08-18e).
-  The art was deleted for the owner's own pass; `stage.portrait` is null
-  everywhere and the UI shows a hood glyph. Briefs for all twenty are in
+- ~~**All twenty rival portraits are missing.**~~ **Done 2026-08-19** -
+  every rival ships a 128x176 portrait in `assets/rivals/` (the twenty
+  rivals plus Gilgamesh and the Recruiter, with its own MANIFEST), and
+  every stage's `portrait` points at it - the dialogue bust, the prep
+  plate and the battle barks all render it. Briefs remain in
   `docs/ART-SPEC.md` section 6.

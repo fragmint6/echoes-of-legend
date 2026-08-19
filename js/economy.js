@@ -300,16 +300,26 @@
     if (starterIds().indexOf(id) >= 0) return true;
     return readArr(OWNED_KEY).indexOf(id) >= 0;
   }
-  function grant(ids) {
+  function grant(ids, opts) {
     migrate();
     var owned = readArr(OWNED_KEY);
     var added = [];
     (ids || []).forEach(function (id) {
-      if (starterIds().indexOf(id) >= 0) return;
-      if (owned.indexOf(id) < 0) {
-        owned.push(id);
-        added.push(id);
+      /* A grant of a card you already carry is a COPY (2026-08-19,
+         owner ruling): duplicates are upgrade material, so no reward
+         grant is ever a no-op. Reward paths opt in via {dupes:true}
+         and the copy banks toward the card's next level (overflow to
+         Echo Shards) through the upgrades system. The pack shelf keeps
+         the plain call - it banks its own duplicates around its
+         ceremony, so double-counting is impossible. */
+      if (owns(id)) {
+        if (opts && opts.dupes && window.EOL.upgrades && window.EOL.upgrades.addDuplicate) {
+          window.EOL.upgrades.addDuplicate(id, 1);
+        }
+        return;
       }
+      owned.push(id);
+      added.push(id);
     });
     if (added.length) {
       write(OWNED_KEY, owned);

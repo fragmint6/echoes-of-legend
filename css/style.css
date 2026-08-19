@@ -24318,18 +24318,17 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* THE 64x88 LAW (2026-08-19, owner ruling): every fixed frame that
-   renders legend art shows it at its NATIVE 64x88 - no upscale, no
-   interpolation, the crispest pixels the source has. Full-bleed card
-   sites (collection, battle tile, pack fronts) still cover their card
-   frames from the same 64x88 source. */
+/* RIVAL PORTRAITS are their own asset family (128x176 - see
+   assets/rivals/MANIFEST.csv), and the bust renders them at that
+   native size: 128x176, no upscale, no crop. The 64x88 law applies
+   to LEGEND art; this frame shows rivals only. */
 .chapter-dialogue-bust {
   position: relative;
   align-self: center;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 88px;
+  width: 128px;
+  height: 176px;
   margin: 10px 0 10px 12px;
   overflow: hidden;
   border-radius: 10px;
@@ -24338,8 +24337,8 @@ body[data-gfx='low'] .rival-card.is-first:hover {
 }
 .chapter-dialogue-bust img {
   display: block;
-  width: 64px;
-  height: 88px;
+  width: 128px;
+  height: 176px;
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24474,7 +24473,8 @@ html.mqw640 .chapter-dialogue-bar {
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 0;
 }
-/* native 64x88 everywhere - the mobile bust is the desktop bust */
+/* half-scale (64x88) on small screens keeps the rival portrait's
+   pixel grid even */
 html.mqw640 .chapter-dialogue-bust {
   width: 64px;
   height: 88px;
