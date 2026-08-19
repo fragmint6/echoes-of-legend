@@ -88,6 +88,16 @@
     return window.EOL.upgrades;
   }
 
+  var CHAPTER_ONE_FACTIONS = [
+    'grimmwood', 'camelot', 'sherwood', 'olympus',
+    'yamato', 'roma', 'kami', 'duat',
+  ];
+  function chapterOf(faction) {
+    return CHAPTER_ONE_FACTIONS.indexOf(faction.id) >= 0
+      ? { n: 1, label: 'Chapter I', icon: 'ri-flag-line' }
+      : { n: 2, label: 'Chapter II', icon: 'ri-book-2-line' };
+  }
+
   function entryFor(id) {
     if (window.EOL.ui && window.EOL.ui.entryFor) return window.EOL.ui.entryFor(id);
     var found = null;
@@ -109,7 +119,6 @@
   function statTable(card) {
     var up = U();
     var s = up ? up.statsFor(card.id, card) : null;
-    var lv = up ? up.levelOf(card.id) : 0;
     var rows = [
       {
         k: 'HP',
@@ -141,7 +150,9 @@
       '<div class="cd-stats">' +
       rows
         .map(function (r) {
-          var moved = lv > 0 && r.now !== r.base;
+          /* Show the comparison only when this exact stat owns at least
+             one booster. Level alone is not a reason to repeat a base value. */
+          var moved = !!(s && s.counts && s.counts[r.key] > 0);
           var fmt = function (v) {
             return r.pct ? v + '%' : Math.round(v).toLocaleString();
           };
@@ -388,6 +399,7 @@
     var owned = !econ || econ.owns(card.id);
     var up = U();
     var lvNow = up ? up.levelOf(card.id) : 0;
+    var cardChapter = chapterOf(faction);
 
     var art = card.art
       ? '<img src="' + esc(card.art) + '" alt="" draggable="false" />'
@@ -396,9 +408,8 @@
     var isActive = card.ability.type === 'Active';
     var cost =
       isActive && card.ability.cost != null
-        ? '<span class="ab-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
-          card.ability.cost +
-          '</span>'
+        ? '<span class="ab-cost cd-energy-cost" title="Energy cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
+          '<b>' + card.ability.cost + '</b><span>Energy</span></span>'
         : '';
 
     host.innerHTML =
@@ -419,6 +430,9 @@
       '">' +
       art +
       '</div>' +
+      /* Lore belongs to the portrait: it reads as the legend's caption
+         and no longer crowds the mechanical information column. */
+      (card.lore ? '<p class="cd-lore cd-art-lore">' + esc(card.lore) + '</p>' : '') +
       '</div>' +
       '<div class="cd-info-col">' +
       '<div class="cd-ident">' +
@@ -444,6 +458,11 @@
       '"></i>' +
       esc(card.element) +
       '</span>' +
+      '<span class="cd-tag chapter" data-chapter="' +
+      cardChapter.n +
+      '"><i class="' + cardChapter.icon + '" aria-hidden="true"></i>' +
+      cardChapter.label +
+      '</span>' +
       /* THE LEVEL IS ALWAYS STATED for a legend you own, including
          LEVEL 0. "No badge" is ambiguous - it could mean unupgraded
          or it could mean the UI forgot - and a player deciding where
@@ -463,17 +482,16 @@
          bows to another. */
       elementWheelLine(card) +
       '</div>' +
-      /* THE LORE. Only rendered when the legend actually has some -
-         an empty quote block is worse than no quote block. */
-      (card.lore ? '<p class="cd-lore">' + esc(card.lore) + '</p>' : '') +
       statTable(card) +
-      '<div class="cd-skill" style="--ab-c:' +
-      (isActive ? 'var(--rar-1)' : '#7fe3c0') +
+      '<div class="cd-skill' + (isActive ? ' is-active' : ' is-passive') + '" style="--ab-c:' +
+      (isActive ? 'var(--r-epic-1, #c07cff)' : '#7fe3c0') +
       '">' +
       '<div class="cd-skill-top">' +
-      '<span class="ab-type">' +
+      '<span class="ab-type"><i class="' +
+      (isActive ? 'ri-sword-line' : 'ri-repeat-line') +
+      '" aria-hidden="true"></i>' +
       esc(card.ability.type) +
-      '</span>' +
+      ' skill</span>' +
       cost +
       '</div>' +
       '<h3 class="cd-skill-name">' +
@@ -636,9 +654,9 @@
       /* Mirrors statsFor() exactly - if these two ever disagree the
          number animates to a value the card does not actually have. */
       prev = {
-        hp: was.hp ? Math.round(card.stats.hp * (1 + up.STAT_PER_LEVEL * was.hp)) : card.stats.hp,
+        hp: was.hp ? Math.round(card.stats.hp * (1 + up.HP_PER_LEVEL * was.hp)) : card.stats.hp,
         atk: was.atk
-          ? Math.round(card.stats.atk * (1 + up.STAT_PER_LEVEL * was.atk))
+          ? Math.round(card.stats.atk * (1 + up.ATK_PER_LEVEL * was.atk))
           : card.stats.atk,
         def: was.def ? card.stats.def + up.DEF_POINTS_PER_LEVEL * was.def : card.stats.def,
       };
@@ -682,6 +700,15 @@
     openId = id;
     lastFocus = document.activeElement;
     modal.hidden = false;
+    /* The entrance animation belongs to OPENING, not to the card forever.
+       Upgrade celebrations temporarily use their own animation; leaving
+       mg-rise on .cd-card caused it to restart when that animation ended. */
+    modal.classList.remove('opening');
+    void modal.offsetWidth;
+    modal.classList.add('opening');
+    window.setTimeout(function () {
+      modal.classList.remove('opening');
+    }, 320);
     document.body.dataset.modal = '1';
     var close = $('cd-close');
     if (close) close.focus();
@@ -858,7 +885,8 @@
       ].forEach(function (row) {
         var tile = body.querySelector('.cd-stat[data-stat="' + row[0] + '"] .cd-stat-v');
         if (!tile) return;
-        var moved = row[2] !== row[1];
+        var counts = up.boostCounts(id);
+        var moved = !!counts[row[0]];
         tile.classList.toggle('up', moved);
         var base = tile.querySelector('.cd-stat-base');
         if (base) {
@@ -905,12 +933,9 @@
     if (lvl) {
       var id = lvl.dataset.upLevel;
       var before = up.levelOf(id);
-      /* NO DEFAULT BOOST (owner ruling 2026-08-16). The level lands
-         unassigned and the player picks - a stat quietly chosen on
-         their behalf is a decision taken away, and the old default
-         ("more of whatever you already had") was wrong every time
-         somebody wanted to diversify. */
-      var r = up.levelUp(id);
+      /* New levels start on ATK so the upgrade has an immediate, visible
+         result. Every per-level button remains freely reassignable. */
+      var r = up.levelUp(id, 'atk');
       if (r.ok) {
         /* THE CEREMONY. Played first, then the panel is patched in
            place - a full re-render here is what made the dialog

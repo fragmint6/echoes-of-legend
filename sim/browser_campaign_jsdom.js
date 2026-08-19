@@ -1141,10 +1141,10 @@ const server = http.createServer((req, res) => {
         gate2Rewards.querySelectorAll('.sc-reward').length === 2 &&
         !!gate2Rewards.querySelector('.coin') &&
         !!gate2Rewards.querySelector('.legendary') &&
-        gate2Rewards.textContent.indexOf('Legendary reward pack') >= 0 &&
+        gate2Rewards.textContent.indexOf('King Arthur') >= 0 &&
         gate2Rewards.textContent.indexOf('300') >= 0 &&
-        gate2Rewards.textContent.indexOf('King Arthur') < 0,
-      'a Legend gate receipt shows its 300 coins beside the spoiler-free pack'
+        gate2Rewards.textContent.indexOf('Legendary reward pack') < 0,
+      'a Legend gate receipt shows its 300 coins and names King Arthur'
     );
     for (let g = 0; g < 30 && w.EOL.shop.state() !== 'summary'; g++) {
       if (w.EOL.shop.state() === 'await') w.EOL.shop.charge();

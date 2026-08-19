@@ -33,6 +33,8 @@
   var BY_ID = null;
   var idSeq = 1;
   var hintTimer = null;
+  var pendingDeleteId = null;
+  var deleteReturnFocus = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -290,6 +292,36 @@
     decks.splice(i, 1);
     if (editing && editing.id === id) editing = null;
     save(); /* the vault syncs the whole deck list - nothing per-deck */
+  }
+
+  function closeDeleteConfirm(restoreFocus) {
+    var modal = $('deck-delete-modal');
+    if (modal) modal.hidden = true;
+    pendingDeleteId = null;
+    if (restoreFocus && deleteReturnFocus && deleteReturnFocus.focus) deleteReturnFocus.focus();
+    deleteReturnFocus = null;
+  }
+
+  function askDelete(deck, trigger) {
+    if (!deck || deck.id === GRIMMWOOD_STARTER_ID) return;
+    var modal = $('deck-delete-modal');
+    if (!modal) return;
+    pendingDeleteId = deck.id;
+    deleteReturnFocus = trigger || document.activeElement;
+    var name = $('deck-delete-name');
+    if (name) name.textContent = deck.name;
+    modal.hidden = false;
+    var cancel = $('deck-delete-cancel');
+    if (cancel) cancel.focus();
+  }
+
+  function confirmDelete() {
+    if (!pendingDeleteId) return;
+    var id = pendingDeleteId;
+    closeDeleteConfirm(false);
+    removeDeck(id);
+    renderManager();
+    if (window.EOL.audio) window.EOL.audio.ui('confirm');
   }
 
   /* ---------------- editor state ---------------- */
@@ -550,8 +582,7 @@
       var delBtn = el.querySelector('.dc-del');
       if (delBtn)
         delBtn.addEventListener('click', function () {
-          removeDeck(d.id);
-          renderManager();
+          askDelete(d, delBtn);
         });
       host.appendChild(el);
     });
@@ -681,8 +712,34 @@
   }
 
   function renderHeader() {
+    var total = count();
     var c = $('deck-count');
-    if (c) c.textContent = count();
+    if (c) c.textContent = total;
+    var fill = $('deck-meter-fill');
+    if (fill) fill.style.width = Math.min(100, (total / DECK_SIZE) * 100) + '%';
+    var ready = $('deck-ready-label');
+    if (ready) ready.textContent = total === DECK_SIZE ? 'Battle-ready deck' : DECK_SIZE - total + ' slots remaining';
+
+    var entries = editing ? entriesOf(editing) : [];
+    var crowns = window.EOL.deckRules ? window.EOL.deckRules.legendaryCount(entries) : 0;
+    var legendStatus = $('deck-legend-status');
+    if (legendStatus)
+      legendStatus.innerHTML =
+        '<i data-icon-domain="game" class="ra ra-crown"></i>' + crowns + ' / 2 Legendary';
+
+    var roleCounts = {};
+    entries.forEach(function (entry) {
+      roleCounts[entry.card.role] = (roleCounts[entry.card.role] || 0) + 1;
+    });
+    var peak = 0;
+    Object.keys(roleCounts).forEach(function (role) { peak = Math.max(peak, roleCounts[role]); });
+    var roleStatus = $('deck-role-status');
+    if (roleStatus) {
+      roleStatus.classList.toggle('near-cap', peak >= MAX_PER_ROLE);
+      roleStatus.innerHTML = '<i class="ri-team-line"></i>' + (peak ? 'Highest role ' + peak : 'Max 4 per role');
+    }
+    var workbench = document.querySelector('.deck-workbench');
+    if (workbench) workbench.classList.toggle('is-ready', total === DECK_SIZE);
   }
 
   function render() {
@@ -759,7 +816,7 @@
     window.EOL.ui.buildDropdown(host, 'Faction', factionOpts, function (v) {
       stateFilter.faction = v;
       applyGridFilter();
-    });
+    }, { searchable: true, searchPlaceholder: 'Search factions...' });
     window.EOL.ui.buildDropdown(host, 'Rarity', rarityOpts, function (v) {
       stateFilter.rarity = v;
       applyGridFilter();
@@ -815,15 +872,17 @@
         return a.card.name.localeCompare(b.card.name, 'en', { sensitivity: 'base' });
       });
     sorted.forEach(function (e, i) {
-      var el = window.EOL.ui.buildCard(e.card, e.faction, i, { markUnowned: true });
+      var el = window.EOL.ui.buildCard(e.card, e.faction, i, {
+        markUnowned: true,
+        upgrades: true,
+      });
       /* No +/x button. Clicking the card already adds or removes it, so
          the badge was a second control for the same action sitting on
          top of the art. */
       el.addEventListener('click', function () {
-        if (window.matchMedia('(hover: none)').matches) {
-          if (window.EOL.audio) window.EOL.audio.card('pick');
-          return; // tap = details
-        }
+        /* A card always means add/remove, on mouse and touch alike. The old
+           touch-only early return made cards such as Adam impossible to add
+           on phones and tablets. Details have their own explicit button. */
         toggle(e.card.id);
       });
       /* THE DETAIL DIALOG, on its own control.
@@ -894,6 +953,19 @@
     if (doneBtn) doneBtn.addEventListener('click', closeEditor);
     var backBtn = $('btn-deck-back');
     if (backBtn) backBtn.addEventListener('click', closeEditor);
+
+    var deleteCancel = $('deck-delete-cancel');
+    var deleteConfirm = $('deck-delete-confirm');
+    var deleteScrim = $('deck-delete-scrim');
+    if (deleteCancel) deleteCancel.addEventListener('click', function () { closeDeleteConfirm(true); });
+    if (deleteScrim) deleteScrim.addEventListener('click', function () { closeDeleteConfirm(true); });
+    if (deleteConfirm) deleteConfirm.addEventListener('click', confirmDelete);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && $('deck-delete-modal') && !$('deck-delete-modal').hidden) {
+        event.preventDefault();
+        closeDeleteConfirm(true);
+      }
+    });
 
     var nameIn = $('deck-name');
     if (nameIn) {

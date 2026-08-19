@@ -469,6 +469,25 @@
   /* ---------------------------------------------------------
      rendering
      --------------------------------------------------------- */
+  var UP_BOOST_ICON = { atk: 'ra-sword', hp: 'ra-health', def: 'ra-shield' };
+  function battleUpgradeChrome(u) {
+    var lv = Math.max(0, Math.min(3, +u.upLevel || 0));
+    if (!lv) return '';
+    var stars = '';
+    for (var i = 0; i < lv; i++) stars += '<i></i>';
+    var boosts = (u.upBoosts || []).map(function (boost, index) {
+      if (!boost || !UP_BOOST_ICON[boost]) return '';
+      return (
+        '<span data-boost="' + boost + '" title="Level ' + (index + 1) + ' ' + boost.toUpperCase() +
+        ' booster"><i data-icon-domain="game" class="ra ' + UP_BOOST_ICON[boost] + '"></i></span>'
+      );
+    }).join('');
+    return (
+      '<span class="bcard-up-stars" aria-label="Level ' + lv + '">' + stars + '</span>' +
+      '<span class="bcard-up-boosts">' + boosts + '</span>'
+    );
+  }
+
   /* `deadView` renders the legend as a corpse regardless of engine state.
      A revive resolves synchronously in the engine, so without this the
      card would already show its restored HP and new buffs while the
@@ -632,6 +651,7 @@
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
+      battleUpgradeChrome(u) +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
       '<div class="bcard-top">' +
@@ -714,6 +734,10 @@
     function row(a, isSig) {
       var cost = a.type === 'Active' ? E.costOf(B, u, a) : null;
       var afford = a.type !== 'Active' || B.energy[u.side] >= cost;
+      var text = a.text;
+      if (isSig && u.upLevel && window.EOL.scaleSkillText) {
+        text = window.EOL.scaleSkillText(a.text, u.card, u.upLevel * 2);
+      }
       return (
         '<div class="tip-ab' +
         (afford ? '' : ' poor') +
@@ -734,11 +758,27 @@
           : '') +
         '</div>' +
         '<div class="tip-ab-text">' +
-        a.text +
+        text +
         (a.note ? '<div class="tip-note">' + a.note + '</div>' : '') +
         '</div>' +
         '</div>'
       );
+    }
+    var upgradeTip = '';
+    if (u.upLevel) {
+      var boostTip = (u.upBoosts || []).map(function (boost) {
+        if (!boost || !UP_BOOST_ICON[boost]) return '';
+        return '<span data-boost="' + boost + '"><i data-icon-domain="game" class="ra ' +
+          UP_BOOST_ICON[boost] + '"></i>' + boost.toUpperCase() + '</span>';
+      }).join('');
+      upgradeTip =
+        '<div class="tip-upgrade">' +
+        '<div class="tip-upgrade-head"><b>Level ' + u.upLevel + '</b><span>' + boostTip + '</span></div>' +
+        '<div class="tip-raw-stats">' +
+        '<span><i data-icon-domain="game" class="ra ra-health"></i><b>' + Math.round(u.maxHp).toLocaleString() + '</b> HP</span>' +
+        '<span><i data-icon-domain="game" class="ra ra-sword"></i><b>' + Math.round(u.baseAtk).toLocaleString() + '</b> ATK</span>' +
+        '<span><i data-icon-domain="game" class="ra ra-shield"></i><b>' + u.baseDef + '%</b> DEF</span>' +
+        '</div></div>';
     }
     return (
       '<div class="btip">' +
@@ -757,6 +797,7 @@
       (E.isFront(u) ? 'Front' : 'Back') +
       ' Row</span>' +
       '</div>' +
+      upgradeTip +
       row(sig, true) +
       row(role, false) +
       '</div>'

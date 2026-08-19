@@ -145,7 +145,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,700&display=swap"
       rel="stylesheet"
     />
 
@@ -172,7 +172,7 @@
          plain image. -->
     <link rel="icon" href="assets/favicon.ico?v=20260819c" sizes="any" />
     <link rel="apple-touch-icon" href="assets/icon-128.png?v=20260819c" />
-    <link rel="stylesheet" href="css/style.css?v=20260819c" />
+    <link rel="stylesheet" href="css/style.css?v=20260819n" />
     <link rel="stylesheet" href="css/daily.css?v=20260819c" />
     <!-- Build differences (CrazyGames portal build). Last, so it wins on
          equal specificity. Paired with js/platform.js below. -->
@@ -562,7 +562,7 @@
              stands between a new player and the Play button. The full
              text lives in Settings under Privacy. -->
         <p class="home-policy" id="home-policy" hidden>
-          <i class="ri-shield-check-line" aria-hidden="true"></i>
+          <i class="ri-forbid-2-line" aria-hidden="true"></i>
           <span>
             This game stores your progress and anonymous play statistics.
             See <b>Settings › Privacy</b> for what is kept and how to remove it.
@@ -1037,49 +1037,45 @@
 
     <!-- ==================== DECK EDITOR ==================== -->
     <section class="view deck" data-view="deck">
-      <header class="col-header">
+      <header class="col-header mast deck-mast">
         <button class="back-btn" id="btn-deck-back">
           <i class="ri-arrow-left-line"></i><span>Back</span>
         </button>
         <div class="col-titles">
-          <h2 class="col-title">Deck Editor</h2>
-          <p class="col-sub">
-            <span id="deck-count">0</span> of 12 legends - max 4 per role, 2 Legendaries
-            <button
-              type="button"
-              class="tipdot"
-              data-tip="A deck holds 12 legends, with at most 4 of the same role and 2 Legendary cards. Bring a mix: tough front-liners, damage dealers, and support."
-              aria-label="Tip"
-            >
-              <i class="ri-question-line"></i>
-            </button>
-          </p>
+          <span class="mast-emblem" aria-hidden="true"><i data-icon-domain="game" class="ra ra-shield"></i></span>
+          <h2 class="col-title">Forge a Deck</h2>
+          <span class="mast-rule" aria-hidden="true"></span>
+          <p class="col-sub">Choose twelve legends. The order is yours to read, not a battle formation.</p>
         </div>
-        <input
-          class="deck-name-input"
-          id="deck-name"
-          maxlength="24"
-          placeholder="Name this deck"
-          autocomplete="off"
-          spellcheck="false"
-        />
       </header>
 
-      <div class="deck-tray">
-        <div class="deck-rows">
-          <div class="deck-row-tag">
-            Your Twelve
-            <span class="deck-row-note"
-              >order here doesn't matter - you pick your battle six when the fight starts</span
-            >
+      <section class="deck-workbench" aria-label="Deck composition">
+        <div class="deck-command">
+          <label class="deck-name-field" for="deck-name">
+            <span>Deck name</span>
+            <input
+              class="deck-name-input"
+              id="deck-name"
+              maxlength="24"
+              placeholder="Name this deck"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+          <div class="deck-completion">
+            <div class="deck-count-ring"><strong id="deck-count">0</strong><span>/ 12</span></div>
+            <div class="deck-progress-copy">
+              <b id="deck-ready-label">Building your twelve</b>
+              <span class="deck-meter"><i id="deck-meter-fill"></i></span>
+            </div>
           </div>
-          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
-        </div>
-        <div class="deck-side">
+          <div class="deck-laws" aria-label="Deck rules">
+            <span id="deck-role-status"><i class="ri-team-line"></i>Max 4 per role</span>
+            <span id="deck-legend-status"><i data-icon-domain="game" class="ra ra-crown"></i>0 / 2 Legendary</span>
+          </div>
           <div class="deck-hint">
             <i class="ri-information-line"></i>
-            Click a legend to add or remove them. Saves itself as you build - 12 legends and at most
-            4 of any role makes it battle-ready.
+            Click any owned legend below to add or remove it. Invalid choices now explain the exact rule blocking them.
           </div>
           <div class="deck-actions">
             <button class="btn btn-ghost btn-slim" id="btn-deck-clear">
@@ -1090,7 +1086,14 @@
             </button>
           </div>
         </div>
-      </div>
+        <div class="deck-roster-tray">
+          <div class="deck-row-tag">
+            <span>Your Twelve</span>
+            <span class="deck-row-note">click a filled slot to remove it</span>
+          </div>
+          <div class="deck-slots deck-slots-12" id="deck-slots-12"></div>
+        </div>
+      </section>
 
       <!-- same toolbar as the collection -->
       <div class="toolbar">
@@ -1115,6 +1118,24 @@
 
       <footer>Echoes of Legend - Prototype</footer>
     </section>
+
+    <div class="deck-delete-modal" id="deck-delete-modal" hidden role="dialog" aria-modal="true" aria-labelledby="deck-delete-title">
+      <div class="deck-delete-scrim" id="deck-delete-scrim"></div>
+      <div class="deck-delete-card">
+        <span class="deck-delete-icon"><i class="ri-delete-bin-line"></i></span>
+        <div>
+          <span class="deck-delete-kicker">Permanent action</span>
+          <h3 id="deck-delete-title">Delete this deck?</h3>
+          <p><b id="deck-delete-name">This deck</b> will be removed from this device and your next cloud save.</p>
+        </div>
+        <div class="deck-delete-actions">
+          <button type="button" class="btn btn-ghost btn-slim" id="deck-delete-cancel">Keep deck</button>
+          <button type="button" class="btn btn-slim deck-delete-confirm" id="deck-delete-confirm">
+            <i class="ri-delete-bin-line"></i><span>Delete permanently</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- ==================== SHOP ==================== -->
     <section class="view shop" data-view="shop">
@@ -1207,14 +1228,20 @@
           <h3 class="product-name">Daily Pack</h3>
           <button class="btn btn-primary buy-pack" data-pack="daily"></button>
           <div class="product-info">
-            <span class="product-tip">Free, once a day</span>
-            <p class="product-desc">
-              One legend from every corner of the roster - with a slim
-              chance of an <b>Epic</b>.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 75% &middot; Rare 20% &middot; Epic 5%</span>
-            </p>
+            <div class="product-tip"><i class="ri-calendar-check-line"></i><span><b>Daily gift</b>Free once per day</span></div>
+            <div class="product-info-body">
+              <p class="product-desc">A daily draw from every unlocked corner of the roster. A small ritual, with a real chance to reveal an <b>Epic</b>.</p>
+              <div class="pack-facts">
+                <span><i class="ri-stack-line"></i><b>1</b> card</span>
+                <span><i class="ri-flag-line"></i>All factions</span>
+              </div>
+              <div class="odds-title"><span>Reveal odds</span><em>per card</em></div>
+              <div class="odds-grid">
+                <span class="odds-common"><b>Common</b><i style="--odds:75%"></i><strong>75%</strong></span>
+                <span class="odds-rare"><b>Rare</b><i style="--odds:20%"></i><strong>20%</strong></span>
+                <span class="odds-epic"><b>Epic</b><i style="--odds:5%"></i><strong>5%</strong></span>
+              </div>
+            </div>
           </div>
         </article>
 
@@ -1230,15 +1257,19 @@
           <h3 class="product-name">Echoes Pack</h3>
           <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           <div class="product-info">
-            <span class="product-tip">Chapter I shelf</span>
-            <p class="product-desc">
-              Grimmwood, Camelot, Sherwood, Olympus, Yamato, Roma, Kami
-              and Duat. Five legends, and the final card is always <b>Epic</b>.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
-              <span><b>Final card</b> Epic 100%</span>
-            </p>
+            <div class="product-tip"><i class="ri-book-open-line"></i><span><b>Chapter I collection</b>The Road's eight houses</span></div>
+            <div class="product-info-body">
+              <p class="product-desc">Five Chapter I legends. The fifth reveal is protected and will always be <b>Epic</b>.</p>
+              <div class="pack-facts"><span><i class="ri-stack-line"></i><b>5</b> cards</span><span><i class="ri-trophy-line"></i>Epic finisher</span></div>
+              <div class="faction-list"><b>Factions</b><span>Grimmwood</span><span>Camelot</span><span>Sherwood</span><span>Olympus</span><span>Yamato</span><span>Roma</span><span>Kami</span><span>Duat</span></div>
+              <div class="odds-title"><span>Reveal odds</span><em>cards 1–4</em></div>
+              <div class="odds-grid">
+                <span class="odds-common"><b>Common</b><i style="--odds:45%"></i><strong>45%</strong></span>
+                <span class="odds-rare"><b>Rare</b><i style="--odds:35%"></i><strong>35%</strong></span>
+                <span class="odds-epic"><b>Epic</b><i style="--odds:20%"></i><strong>20%</strong></span>
+              </div>
+              <div class="guarantee"><i class="ri-sparkling-2-line"></i><span>Final reveal</span><b>Epic · 100%</b></div>
+            </div>
           </div>
         </article>
         <article class="product" data-product="archive" hidden>
@@ -1248,16 +1279,19 @@
           <h3 class="product-name">Archive Pack</h3>
           <button class="btn btn-primary buy-pack" data-pack="archive"></button>
           <div class="product-info">
-            <span class="product-tip">Chapter II shelf</span>
-            <p class="product-desc">
-              Huaxia, Asgard, Hemithea, Pandemonium, Devas, Genesis,
-              Transylvania and Tortuga. Five legends, and the final card is always
-              <b>Epic</b>.
-            </p>
-            <p class="product-odds">
-              <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
-              <span><b>Final card</b> Epic 100%</span>
-            </p>
+            <div class="product-tip"><i class="ri-book-2-line"></i><span><b>Chapter II archive</b>Unlocked by clearing Gate X</span></div>
+            <div class="product-info-body">
+              <p class="product-desc">Five Chapter II legends from the Concord's archive. The fifth reveal is protected and will always be <b>Epic</b>.</p>
+              <div class="pack-facts"><span><i class="ri-stack-line"></i><b>5</b> cards</span><span><i class="ri-trophy-line"></i>Epic finisher</span></div>
+              <div class="faction-list"><b>Factions</b><span>Huaxia</span><span>Asgard</span><span>Hemithea</span><span>Pandemonium</span><span>Devas</span><span>Genesis</span><span>Transylvania</span><span>Tortuga</span></div>
+              <div class="odds-title"><span>Reveal odds</span><em>cards 1–4</em></div>
+              <div class="odds-grid">
+                <span class="odds-common"><b>Common</b><i style="--odds:45%"></i><strong>45%</strong></span>
+                <span class="odds-rare"><b>Rare</b><i style="--odds:35%"></i><strong>35%</strong></span>
+                <span class="odds-epic"><b>Epic</b><i style="--odds:20%"></i><strong>20%</strong></span>
+              </div>
+              <div class="guarantee"><i class="ri-sparkling-2-line"></i><span>Final reveal</span><b>Epic · 100%</b></div>
+            </div>
           </div>
         </article>
         <p class="product-note shelf-note">
@@ -1294,29 +1328,10 @@
             <i class="ri-search-line" aria-hidden="true"></i>
             <input type="text" id="echo-search" placeholder="Search your legends..." />
           </div>
-          <div class="echo-seg" role="group" aria-label="Filter">
-            <button type="button" class="echo-seg-btn sel" data-echo-filter="ready">
-              Ready to level
-            </button>
-            <button type="button" class="echo-seg-btn" data-echo-filter="upgradable">
-              Upgradable
-            </button>
-            <button type="button" class="echo-seg-btn" data-echo-filter="all">All</button>
-          </div>
-          <!-- THE CHAPTER TABS (2026-08-19): the shelf of owned legends
-               is long now, so it pages by chapter - gold for the Road,
-               blue for the Concord, neutral for everything. -->
-          <div class="echo-seg echo-chapters" role="group" aria-label="Chapter">
-            <button type="button" class="echo-seg-btn echo-chapter sel" data-echo-chapter="all">
-              All chapters
-            </button>
-            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch1">
-              <i class="ri-flag-line" aria-hidden="true"></i>Chapter I
-            </button>
-            <button type="button" class="echo-seg-btn echo-chapter" data-echo-chapter="ch2">
-              <i class="ri-book-2-line" aria-hidden="true"></i>Chapter II
-            </button>
-          </div>
+          <!-- Status and chapter are dropdowns so the toolbar remains compact
+               as the shop gains more filtering axes. js/shop.js builds both
+               with the same accessible control used by Collection. -->
+          <div class="filters echo-dropdowns" id="echo-dropdowns"></div>
         </div>
 
         <div class="echo-grid" id="echo-grid"></div>
@@ -4269,7 +4284,7 @@
     <script src="data/hemithea.js?v=20260819c"></script>
     <script src="data/pandemonium.js?v=20260819c"></script>
     <script src="data/devas.js?v=20260819c"></script>
-    <script src="data/genesis.js?v=20260819c"></script>
+    <script src="data/genesis.js?v=20260819n"></script>
     <script src="data/transylvania.js?v=20260819c"></script>
     <script src="data/tortuga.js?v=20260819c"></script>
     <script src="data/battlefields.js?v=20260819c"></script>
@@ -4284,19 +4299,19 @@
          before gameplay modules so every flow can call it safely. -->
     <script src="js/audio.js?v=20260819c"></script>
     <script src="js/economy.js?v=20260819c"></script>
-    <script src="js/upgrades.js?v=20260819c"></script>
+    <script src="js/upgrades.js?v=20260819l"></script>
     <script src="js/quests.js?v=20260819c"></script>
     <script src="js/quest-board.js?v=20260819c"></script>
-    <script src="js/card-detail.js?v=20260819c"></script>
-    <script src="js/engine.js?v=20260819c"></script>
+    <script src="js/card-detail.js?v=20260819m"></script>
+    <script src="js/engine.js?v=20260819l"></script>
     <script src="js/ai.js?v=20260819c"></script>
-    <script src="js/battle.js?v=20260819c"></script>
-    <script src="js/deck.js?v=20260819c"></script>
+    <script src="js/battle.js?v=20260819n"></script>
+    <script src="js/deck.js?v=20260819n"></script>
     <script src="js/pool.js?v=20260819c"></script>
-    <script src="js/play.js?v=20260819c"></script>
+    <script src="js/play.js?v=20260819n"></script>
     <script src="js/daily.js?v=20260819c"></script>
-    <script src="js/campaign.js?v=20260819c"></script>
-    <script src="js/shop.js?v=20260819c"></script>
+    <script src="js/campaign.js?v=20260819m"></script>
+    <script src="js/shop.js?v=20260819g"></script>
     <!-- Supabase SDK. Loaded from the CDN and guarded: if it fails
          (offline, blocked, file:// with no network) js/auth.js detects
          the missing global and the game runs local-only.
@@ -4344,7 +4359,7 @@
     <script src="js/mp.js?v=20260819c"></script>
     <script src="js/netplay.js?v=20260819c"></script>
     <script src="js/history.js?v=20260819c"></script>
-    <script src="js/app.js?v=20260819c"></script>
+    <script src="js/app.js?v=20260819i"></script>
 
     <!-- CrazyGames SDK bridge. Portal build only, and loaded LAST so the
          game is fully wired before a third-party CDN script is even

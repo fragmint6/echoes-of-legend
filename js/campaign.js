@@ -2125,9 +2125,13 @@
        one. */
     if (reward.epicFaction) parts.push('Random ' + factionName(reward.epicFaction) + ' Epic');
     if (reward.choice) parts.push('Choose ' + reward.choice.count + ' ' + reward.choice.label + ' cards');
-    /* The pack itself is the reveal. The result receipt confirms the
-       reward category without naming the card before the wrapper opens. */
-    if (reward.legendPack) parts.push('Legendary reward pack');
+    /* Legend difficulty is deterministic, so name the crown exactly as
+       Heroic names its companion instead of hiding useful information
+       behind the generic pack category. */
+    if (reward.legendPack) {
+      var legendPart = entriesFor([reward.legendPack])[0];
+      parts.push(legendPart ? legendPart.card.name : 'Legendary reward');
+    }
     /* The set echo is named - there is nothing random to conceal, and
        "a second echo" told the player nothing useful. */
     if (reward.companion) {
@@ -2566,10 +2570,15 @@
           reward.choice.label +
           '</span>'
       );
-    if (reward.legendPack)
+    if (reward.legendPack) {
+      var legendEntry = entriesFor([reward.legendPack])[0];
+      var legendName = legendEntry ? legendEntry.card.name : 'Legendary reward';
       chips.push(
-        '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>Legendary reward pack</span>'
+        '<span class="sc-reward legendary"><i data-icon-domain="game" class="ra ra-crown"></i>' +
+          legendName +
+          '</span>'
       );
+    }
     if (!chips.length)
       chips.push('<span class="sc-reward no-coins"><i class="ri-forbid-2-line"></i>No coin reward</span>');
     row.innerHTML =

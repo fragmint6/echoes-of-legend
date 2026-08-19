@@ -187,9 +187,9 @@ window.EOL.registerFaction({
       id: 'genesis-gabriel',
       name: 'Gabriel',
       rarity: 'epic',
-      role: 'Caster',
+      role: 'Controller',
       element: 'Light',
-      stats: { hp: 4820, atk: 1870, def: 17 },
+      stats: { hp: 5300, atk: 1350, def: 19 },
       ability: {
         type: 'Active',
         name: 'The Annunciation',
@@ -236,9 +236,11 @@ window.EOL.registerFaction({
            the book's first man belongs in it more than any archangel
            does.
 
-           He fills the faction's only structural hole. Genesis shipped
-           with three Casters, one Bruiser, one Sniper, one Medic, one
-           Controller and NO TANK - so a mono-Genesis draft had nothing
+           He fills the faction's only structural hole. Genesis ships
+           with two Casters, one Bruiser, one Sniper, one Medic, two
+           Controllers and one Tank - Gabriel's accelerator is control,
+           while Adam is the body that lets the delayed plan survive. Before
+           Adam, a mono-Genesis draft had nothing
            to stand in front, which is a real problem for a faction whose
            whole plan is surviving two rounds while a delayed hit cooks.
 

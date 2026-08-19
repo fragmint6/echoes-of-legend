@@ -7,9 +7,9 @@
    now real, and they feed two things at once.
 
      UPGRADE   0..3 levels per card, costing 1 / 3 / 5 duplicates
-               (9 cumulative). Every level grants BOTH a compounding
-               +1.5% skill power AND +2% of one stat the player picks
-               (ATK, DEF or HP), freely re-assignable outside battle.
+               (9 cumulative). Every level grants +2 skill points and
+               one chosen raw-stat boost: +5% ATK, +7% HP, or +3 DEF
+               points, freely re-assignable outside battle.
 
      SHARDS    every duplicate also yields Echo Shards, and shards
                craft a duplicate of a card you ALREADY OWN at any
@@ -77,8 +77,14 @@
      which the old compounding multiplier was not. Kept in lockstep
      with upAdd()/upPts() in js/engine.js. */
   var POWER_PER_LEVEL = 0.02;
-  /* chosen stat, per level */
-  var STAT_PER_LEVEL = 0.02;
+  /* Chosen raw-stat boost per level. HP gets the largest percentage
+     because health must survive an entire enemy turn; ATK is smaller
+     because it amplifies every damaging action. DEF is percentage-point
+     mitigation and therefore uses its own flat constant below. */
+  var ATK_PER_LEVEL = 0.05;
+  var HP_PER_LEVEL = 0.07;
+  /* Legacy public alias retained for older integrations that read it. */
+  var STAT_PER_LEVEL = ATK_PER_LEVEL;
   /* COINS PER LEVEL (owner ruling 2026-08-16). Copies alone were a
      pure time gate; a price makes levelling compete with packs for
      the same wallet, which is what makes it a decision. Flat rather
@@ -86,13 +92,9 @@
   var COIN_COST = 500;
   var STATS = ['atk', 'def', 'hp'];
 
-  /* DEF is a percentage-POINT damage reducer (roster range 10..30,
-     engine clamp 0..75), not a scalable stat: multiplying it by 1.02
-     rounds straight back to where it started. So DEF gets flat points
-     instead, sized to match the other two choices in value - +1.5
-     points per level is +5.3% to +6.9% effective HP at max, against
-     +6% for the HP choice. Kept in lockstep with engine.js. */
-  var DEF_POINTS_PER_LEVEL = 1.5;
+  /* DEF is itself displayed as a percentage, so its booster adds three
+     flat percentage points: 30% becomes 33%. */
+  var DEF_POINTS_PER_LEVEL = 3;
 
   var SHARD_YIELD = { common: 15, rare: 60, epic: 200, legendary: 400 };
   var SHARD_CRAFT = { common: 300, rare: 1200, epic: 4000, legendary: 8000 };
@@ -403,15 +405,11 @@
     return { ok: true, cost: cost, dupes: r.dupes };
   }
 
-  /* SPEND banked duplicates on the next level. Explicit rather than
-     automatic: the stat choice should be deliberate. */
-  /* SPEND banked duplicates on the next level. Explicit rather than
-     automatic: the boost choice should be deliberate, and it is now
-     made PER LEVEL - the new stat is appended, leaving the earlier
-     levels' choices alone. */
-  /* `stat` is OPTIONAL. Omit it and the new level lands unassigned -
-     the player picks afterwards, which is the default the UI uses so
-     no boost is silently chosen on their behalf. */
+  /* SPEND banked duplicates on the next level. Boosts are recorded per
+     level, leaving earlier choices alone. `stat` is optional: ATK is the
+     visible default for every new level;
+     callers may still pass HP or DEF explicitly, and the player can freely
+     reassign any level afterwards outside battle. */
   function levelUp(id, stat) {
     var r = rec(id);
     if (r.boosts.length >= MAX_LEVEL) return { ok: false, reason: 'maxed' };
@@ -425,7 +423,7 @@
       if (!econ.spend(COIN_COST)) return { ok: false, reason: 'coins', coins: COIN_COST };
     }
     r.dupes -= cost;
-    r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : null);
+    r.boosts.push(STATS.indexOf(stat) >= 0 ? stat : 'atk');
     save();
     return {
       ok: true,
@@ -492,8 +490,8 @@
     var c = boostCounts(id);
     var lv = levelOf(id);
     return {
-      hp: c.hp ? Math.round(card.stats.hp * (1 + STAT_PER_LEVEL * c.hp)) : card.stats.hp,
-      atk: c.atk ? Math.round(card.stats.atk * (1 + STAT_PER_LEVEL * c.atk)) : card.stats.atk,
+      hp: c.hp ? Math.round(card.stats.hp * (1 + HP_PER_LEVEL * c.hp)) : card.stats.hp,
+      atk: c.atk ? Math.round(card.stats.atk * (1 + ATK_PER_LEVEL * c.atk)) : card.stats.atk,
       def: c.def ? card.stats.def + DEF_POINTS_PER_LEVEL * c.def : card.stats.def,
       lv: lv,
       counts: c,
@@ -508,6 +506,8 @@
     POWER_PER_LEVEL: POWER_PER_LEVEL,
     COIN_COST: COIN_COST,
     STAT_PER_LEVEL: STAT_PER_LEVEL,
+    ATK_PER_LEVEL: ATK_PER_LEVEL,
+    HP_PER_LEVEL: HP_PER_LEVEL,
     DEF_POINTS_PER_LEVEL: DEF_POINTS_PER_LEVEL,
     STATS: STATS,
     SHARD_YIELD: SHARD_YIELD,

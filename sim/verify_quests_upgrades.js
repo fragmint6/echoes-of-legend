@@ -178,26 +178,25 @@ sec('D. Chosen stat, and only the chosen stat');
     upgrades: { 'duat-anubis': { lv: 3, stat: 'atk' } },
   });
   const ua = unitOf(atkB, 'duat-anubis');
-  ok(ua.baseAtk === Math.round(baseAtk * 1.06), 'ATK choice is +2%/level');
+  ok(ua.baseAtk === Math.round(baseAtk * 1.15), 'ATK choice is +5%/level');
   ok(ua.maxHp === baseHp && ua.baseDef === baseDef, 'ATK choice leaves HP and DEF alone');
 
   const hpB = E.createBattle(mine(), foes(), {
     upgrades: { 'duat-anubis': { lv: 3, stat: 'hp' } },
   });
   const uh = unitOf(hpB, 'duat-anubis');
-  ok(uh.maxHp === Math.round(baseHp * 1.06), 'HP choice is +2%/level');
+  ok(uh.maxHp === Math.round(baseHp * 1.21), 'HP choice is +7%/level');
   ok(uh.hp === uh.maxHp, 'HP choice starts the fight full');
   ok(uh.baseAtk === baseAtk, 'HP choice leaves ATK alone');
 
-  /* DEF is a percentage-POINT reducer clamped 0..75 across a 10..30
-     roster, so a multiplicative bonus would round back to nothing.
-     It gets flat points instead. */
+  /* DEF is already a displayed percentage, so the booster adds three
+     percentage points per level. */
   const defB = E.createBattle(mine(), foes(), {
     upgrades: { 'duat-anubis': { lv: 3, stat: 'def' } },
   });
   const ud = unitOf(defB, 'duat-anubis');
-  ok(ud.baseDef > baseDef, 'DEF choice actually moves DEF (it is points, not a multiplier)');
-  ok(ud.baseDef === baseDef + 4.5, 'DEF choice is +1.5 points per level');
+  ok(ud.baseDef > baseDef, 'DEF choice visibly moves DEF');
+  ok(ud.baseDef === baseDef + 9, 'DEF choice is +3 flat points per level');
   ok(ud.baseAtk === baseAtk && ud.maxHp === baseHp, 'DEF choice leaves ATK and HP alone');
 }
 
@@ -380,8 +379,8 @@ sec('J2. PER-LEVEL BOOSTS - a card can mix its three levels');
 
   /* The display maths must move each stat by ITS OWN count. */
   const st = U.statsFor(id, card);
-  ok(st.atk === Math.round(card.stats.atk * 1.04), 'two ATK levels = +4% ATK');
-  ok(st.hp === Math.round(card.stats.hp * 1.02), 'one HP level = +2% HP');
+  ok(st.atk === Math.round(card.stats.atk * 1.1), 'two ATK levels = +10% ATK');
+  ok(st.hp === Math.round(card.stats.hp * 1.07), 'one HP level = +7% HP');
   ok(st.def === card.stats.def, 'a stat nobody chose does not move');
   ok(st.lv === 3, 'the level is still three');
 
@@ -410,7 +409,7 @@ sec('J2. PER-LEVEL BOOSTS - a card can mix its three levels');
   ok(U.levelOf(id) === U.boostsOf(id).length, 'level is derived from the boosts array');
 }
 
-sec('J3. A v1 save migrates without changing anybody\u2019s numbers');
+sec('J3. A v1 save migrates into the current boost balance');
 {
   U._reset();
   const id = 'duat-anubis';
@@ -430,8 +429,8 @@ sec('J3. A v1 save migrates without changing anybody\u2019s numbers');
     'the single old stat becomes that stat on every purchased level'
   );
   ok(
-    U.statsFor(id, card).hp === Math.round(card.stats.hp * 1.04),
-    'and the resulting numbers are IDENTICAL to what v1 produced'
+    U.statsFor(id, card).hp === Math.round(card.stats.hp * 1.14),
+    'and the migrated boosts use the current HP rate'
   );
   localStorage.removeItem('eol.upgrades.v1');
 }
@@ -1119,7 +1118,7 @@ sec('S8. The Echo Shop is a shopfront, not a list');
   const shop = fs.readFileSync(path.join(ROOT, 'js/shop.js'), 'utf8');
   ok(/echo-counter/.test(html), 'the shard balance is the subject of the screen');
   ok(/echo-afford/.test(html) && /enough for a copy of/.test(shop), 'and says what it can buy');
-  ok(/data-echo-filter/.test(html), 'filtering is a segmented control, not a checkbox');
+  ok(/echo-dropdowns/.test(html) && /buildEchoFilters/.test(shop), 'status and chapter filtering use dropdown controls');
   ok(!/echo-only-useful/.test(html) && !/echo-only-useful/.test(shop), 'the old checkbox is gone');
   ok(/ec-bar/.test(shop), 'each legend shows progress toward its next level');
   ok(/ec-pip/.test(shop), 'and its current level as pips');
@@ -1227,30 +1226,29 @@ sec('S11. Every legend gains something from an upgrade');
   );
 }
 
-sec('S11b. A new level starts with NO boost chosen');
+sec('S11b. A new level defaults to an ATK boost');
 {
   U._reset();
   EOL.econ._reset();
   /* on the SIX board, so the engine assertions below can find it */
   const id = 'duat-anubis';
   U.addDuplicate(id, 9);
-  U.levelUp(id);                       // no stat argument
+  U.levelUp(id);                       // omitted stat uses the visible default
   ok(U.levelOf(id) === 1, 'the level is bought');
-  ok(U.boostsOf(id)[0] === null, 'and its boost is unassigned');
-  ok(U.boostCounts(id).atk === 0, 'an unassigned level moves no stat');
+  ok(U.boostsOf(id)[0] === 'atk', 'and ATK is selected by default');
+  ok(U.boostCounts(id).atk === 1, 'the level records one ATK boost');
   const card = CARD[id].card;
-  ok(U.statsFor(id, card).atk === card.stats.atk, 'so the stats have not changed');
-  /* ...but the LEVEL still pays the flat skill bonus. */
-  ok(near(U.powerAdd(U.levelOf(id)), 0.02, 1e-9), 'the skill bonus is paid by the LEVEL, not the boost');
-  /* and the engine must not demote the card for the null */
+  ok(U.statsFor(id, card).atk > card.stats.atk, 'so ATK increases immediately');
+  /* The LEVEL also pays the flat skill bonus. */
+  ok(near(U.powerAdd(U.levelOf(id)), 0.02, 1e-9), 'the skill bonus is paid by the level');
   const B = E.createBattle(mine(), foes(), { upgrades: U.payloadFor([id]) });
   const u = unitOf(B, id);
   ok(u.upLevel === 1, 'the engine still sees a level-1 card');
-  ok(u.baseAtk === card.stats.atk, 'with no stat moved');
+  ok(u.baseAtk > card.stats.atk, 'with the ATK boost applied');
 
   U.setBoost(id, 1, 'hp');
-  ok(U.boostsOf(id)[0] === 'hp', 'picking assigns that level');
-  ok(U.statsFor(id, card).hp > card.stats.hp, 'and the stat moves then');
+  ok(U.boostsOf(id)[0] === 'hp', 'the default remains freely reassignable');
+  ok(U.statsFor(id, card).hp > card.stats.hp, 'and the new stat moves');
 }
 
 sec('S11c. The dialog patches in place instead of re-rendering');
@@ -1263,8 +1261,8 @@ sec('S11c. The dialog patches in place instead of re-rendering');
   ok(/rowHost\.appendChild/.test(quiet), 'a new level APPENDS one row');
   ok(/btn\.innerHTML/.test(quiet) && /note\.innerHTML/.test(quiet), 'the button and note are patched');
   ok(!/render\(/.test(quiet), 'and it never calls the full render');
-  /* levelUp must not pass a default stat */
-  ok(/up\.levelUp\(id\)/.test(detail), 'levelling asks for no default boost');
+  /* The dialog states the same default as the upgrade model. */
+  ok(/up\.levelUp\(id, 'atk'\)/.test(detail), 'levelling visibly selects ATK by default');
 }
 
 sec('S11d. The dialog keeps the "was N" line honest');
