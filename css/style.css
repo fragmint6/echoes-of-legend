@@ -23867,11 +23867,11 @@ body[data-gfx='low'] .c2-glow {
 
 /* Rival plates use the same full-art portrait law as ordinary legend cards:
    a complete opaque scene, face high in the frame, with the text plate
-   allowed to own the lower edge. The normal-card source is 128 x 176 and
-   `cover` crops it like the collection/battle card does. */
+   allowed to own the lower edge. EXPERIMENT 2026-08-19: the plate's
+   portrait frame is 256px (4x the 64x88 source) instead of 128px. */
 .rival-art.has-portrait {
-  flex-basis: 128px;
-  min-height: 128px;
+  flex-basis: 256px;
+  min-height: 256px;
   margin: 6px 10px 0;
   border: 1px solid color-mix(in srgb, var(--rival-a) 35%, rgba(255, 255, 255, 0.12));
   border-radius: 10px 10px 3px 3px;
@@ -24300,16 +24300,17 @@ body[data-gfx='low'] .rival-card.is-first:hover {
   color: #fff0c2;
   background: rgba(70, 55, 34, 0.75);
 }
-/* The bust renders the FULL 128x176 legend-art frame, pixel-crisp at its
-   native 1x scale (the same art contract as the legend cards - see
-   .art-portrait), fully inside the bar. No crop, no overhang. */
+/* EXPERIMENT 2026-08-19: the bust renders the FULL legend-art frame at
+   256x352 (4x the 64x88 source) instead of 128x176 (2x). See the note
+   in js/dev.js - this is the 'what happens at 256px' trial, one
+   revert away if the owner prefers the 128px frame. */
 .chapter-dialogue-bust {
   position: relative;
   align-self: center;
   display: grid;
   place-items: center;
-  width: 128px;
-  height: 176px;
+  width: 256px;
+  height: 352px;
   margin: 10px 0 10px 12px;
   overflow: hidden;
   border-radius: 10px;
@@ -24318,8 +24319,8 @@ body[data-gfx='low'] .rival-card.is-first:hover {
 }
 .chapter-dialogue-bust img {
   display: block;
-  width: 128px;
-  height: 176px;
+  width: 256px;
+  height: 352px;
   object-fit: contain;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
@@ -24454,15 +24455,16 @@ html.mqw640 .chapter-dialogue-bar {
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 0;
 }
-/* half-scale (64x88) keeps the pixel grid even on small screens */
+/* half-scale (128x176 - the OLD full frame) keeps the pixel grid even
+   on small screens while the desktop frame experiments at 256x352 */
 html.mqw640 .chapter-dialogue-bust {
-  width: 64px;
-  height: 88px;
+  width: 128px;
+  height: 176px;
   margin: 8px 0 8px 8px;
 }
 html.mqw640 .chapter-dialogue-bust img {
-  width: 64px;
-  height: 88px;
+  width: 128px;
+  height: 176px;
 }
 html.mqw640 .chapter-dialogue-glyph {
   font-size: 30px;
