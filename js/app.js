@@ -621,7 +621,10 @@
   function buildDropdown(host, label, opts, onPick, config) {
     config = config || {};
     var dd = document.createElement('div');
-    dd.className = 'dd' + (config.searchable ? ' dd-searchable' : '');
+    dd.className =
+      'dd' +
+      (config.searchable ? ' dd-searchable' : '') +
+      (opts.length > 8 ? ' dd-scrollable' : '');
 
     var btn = document.createElement('button');
     btn.className = 'dd-btn';

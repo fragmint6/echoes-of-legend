@@ -31384,3 +31384,17 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
     animation: none;
   }
 }
+
+/* Eight options are the baseline capacity of every filter menu. Only menus
+   with a ninth option become scroll regions, and only those long menus get
+   the extra width that keeps their scrollbar away from labels/checkmarks. */
+.dd-options {
+  max-height: 272px;
+}
+.dd-options .dd-opt {
+  min-height: 34px;
+}
+.dd-scrollable .dd-menu {
+  width: 272px;
+  max-width: min(272px, calc(100vw - 28px));
+}
