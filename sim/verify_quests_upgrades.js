@@ -529,6 +529,62 @@ sec('K2. Upgrades must travel, or the boards desync');
     NP.checksum(c1) === NP.checksum(c2),
     'two clients carrying the SAME payload stay in lockstep'
   );
+
+  /* THE LATCH MUST KEEP THE LEVELS WITH THE IDS.
+     -------------------------------------------------------------
+     The two clients never reach a phase at the same instant, so an
+     opponent's `six` can land before this client has built the screen
+     that waits for it - netplay latches it and replays it when
+     startSix() runs. startSix() used to clear `six.up` while leaving
+     `six.theirs` in place, so a fast opponent's ids survived and their
+     LEVELS were thrown away: this client built their team stock while
+     they built it upgraded, and the very next checksum killed the
+     match. The ids and the levels are one message; only end() may
+     reset them, and only together. */
+  const wireUp = { 'duat-anubis': { lv: 3, boosts: ['atk', 'atk', 'hp'] } };
+  /* netplay hands outbound messages to EOL.mp; this suite has no
+     transport, so a sink is enough - the assertions are about what
+     the RECEIVING side keeps, not about what goes out. */
+  window.EOL.mp = window.EOL.mp || { send: function () {} };
+  const latch = (early) => {
+    NP.end();
+    NP.begin({ seed: 7, host: true, oppName: 'Foe', match: { host: true } });
+    const msg = { seq: 0, kind: 'six', body: { ids: ['a', 'b', 'c', 'd', 'e', 'f'], up: wireUp } };
+    let delivered = null;
+    if (early) {
+      NP.receive(msg); // their six outruns our phase
+      NP.startSix((ids) => {
+        delivered = ids;
+      });
+    } else {
+      NP.startSix((ids) => {
+        delivered = ids;
+      });
+      NP.receive(msg);
+    }
+    NP.submitSix(['x', 'y', 'z', 'p', 'q', 'r'], {});
+    return { delivered: delivered, up: NP.foeUpgrades() };
+  };
+
+  const late = latch(false);
+  ok(!!late.delivered, 'a six arriving after the phase opens is delivered');
+  ok(
+    late.up && late.up['duat-anubis'] && late.up['duat-anubis'].lv === 3,
+    'and it carries the opponent\u2019s levels'
+  );
+
+  const early = latch(true);
+  ok(!!early.delivered, 'a LATCHED six (arrived first) is still delivered');
+  ok(
+    early.up && early.up['duat-anubis'] && early.up['duat-anubis'].lv === 3,
+    'and its levels survive the latch - dropping them desyncs the match'
+  );
+  ok(
+    JSON.stringify(early.up) === JSON.stringify(late.up),
+    'the order the two messages arrive in changes nothing'
+  );
+  NP.end();
+  ok(!NP.foeUpgrades(), 'ending the match clears the levels with the ids');
 }
 
 /* =============================================================
@@ -1338,6 +1394,122 @@ sec('S12. The Echo Shop sorts by rarity and refuses full cards');
   ok(!/banked/.test(emitted), 'the upgrade panel does not say "banked"');
   ok(!/banked/.test(shop.replace(/\/\*[\s\S]*?\*\//g, '')), 'and neither does the Echo Shop');
   ok(/up-copies/.test(emitted) && /copies/.test(emitted), 'it reads held / needed');
+}
+
+/* =============================================================
+   S13. A LEVELLED CARD LOOKS LEVELLED ON EVERY SURFACE
+   -------------------------------------------------------------
+   §2 says where upgrades APPLY; docs §6 says where they must be
+   VISIBLE. The engine was applying them correctly in every mode
+   while three of the four screens a player looks at still drew
+   stock cards, so the whole system read as broken.
+   ============================================================= */
+sec('S13. Upgrades are visible on the prep board and in battle');
+{
+  const play = fs.readFileSync(path.join(ROOT, 'js/play.js'), 'utf8');
+  const battle = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
+
+  /* THE PREPARATION BOARD - where the six is actually chosen. */
+  ok(/function prepUpgradeLevel/.test(play), 'the prep board asks whether a card is upgraded');
+  const lvFn = play.slice(
+    play.indexOf('function prepUpgradeLevel'),
+    play.indexOf('function prepVisibleStats')
+  );
+  /* It must be the SAME predicate upgradesFor() enforces, or the
+     board promises numbers the engine will not build. */
+  ok(/'draft'/.test(lvFn), 'a draft prep shows stock cards');
+  ok(/puzzle/.test(lvFn), 'and so does the puzzle');
+  ok(/foe|enemy/.test(lvFn), 'the rival is never drawn as upgraded');
+  ok(/owns/.test(lvFn), 'and an unowned legend carries no level');
+
+  const tipFn = play.slice(play.indexOf('function showPrepTip'), play.indexOf('function hidePrepTip'));
+  /* HP used to be printed straight off the card here while ATK and
+     DEF went through prepVisibleStats, so an +HP build was the one
+     boost the preparation board never showed. */
+  ok(
+    !/c\.stats\.hp\.toLocaleString\(\)/.test(tipFn),
+    'the prep panel does not print raw base HP'
+  );
+  ok(/visibleStats\.hp/.test(tipFn), 'it prints the upgraded HP like the other two stats');
+  ok(/prepUpgradeHTML/.test(tipFn), 'the panel states the level and its boosts');
+  ok(/upLv/.test(tipFn), 'and scales the signature to that level');
+
+  const boardFn = play.slice(play.indexOf('function boardCard'), play.indexOf('Name fitting for prep'));
+  ok(/bcard-up-stars/.test(boardFn), 'a prep tile wears its level stars');
+  ok(/bcard-up-boosts/.test(boardFn), 'and its boost pips');
+  ok(/prepUpgradeLevel/.test(boardFn), 'driven by the same predicate, so the rival stays bare');
+
+  /* Only the card's OWN signature scales - a role Basic is shared
+     machinery and stays stock, exactly as the engine treats it. */
+  const rowFn = play.slice(play.indexOf('function tipAbRow'), play.indexOf('function prepUpgradeHTML') >= 0 ? play.indexOf('function tipAbRow') + 2000 : play.length);
+  ok(/scaleSkillText/.test(rowFn), 'the prep skill row can scale');
+  ok(/tipAbRow\(basic, 'role', 'Basic'\)/.test(tipFn), 'the Basic row is passed no level');
+
+  /* THE LIVE BATTLE FLYOUT. The upgrade block and the scaled skill
+     text used to live in an abilityTip() builder that nothing ever
+     called, so neither reached the screen. */
+  ok(!/function abilityTip\b/.test(battle), 'the dead abilityTip builder is gone');
+  ok(/function upgradeDockHTML/.test(battle), 'the flyout has an upgrade block');
+  ok(
+    /upgradeDockHTML\(u\)/.test(battle.slice(battle.indexOf('function paintDock'))),
+    'and paintDock actually renders it'
+  );
+  ok(/function skillTextFor/.test(battle), 'the flyout scales the signature text');
+  ok(
+    /skillTextFor\(u, a, isSig\)/.test(battle),
+    'and the ability row uses it instead of the printed text'
+  );
+  const stFn = battle.slice(battle.indexOf('function skillTextFor'), battle.indexOf('function skillTextFor') + 400);
+  ok(/!isSig/.test(stFn), 'a role Basic is never scaled');
+}
+
+sec('S14. The printed worth of a booster matches the constants');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const detail = fs.readFileSync(path.join(ROOT, 'js/card-detail.js'), 'utf8');
+
+  /* THE NUMBERS THE PLAYER READS. The slots used to title every stat
+     "+2% <stat>" and the dialog promised "+2% of a stat" - wrong for
+     all three boosters. The +2 belongs to the SKILL bonus, which is
+     what made the error easy to miss. */
+  ok(U.ATK_PER_LEVEL === 0.05, 'ATK is +5% a level');
+  ok(U.HP_PER_LEVEL === 0.07, 'HP is +7% a level');
+  ok(U.DEF_POINTS_PER_LEVEL === 3, 'DEF is +3 percentage points a level');
+  ok(U.POWER_PER_LEVEL === 0.02, 'and the skill bonus is the +2');
+
+  const slotFn = app.slice(app.indexOf('function boostSlots'), app.indexOf('function skillText'));
+  ok(!/: \+2% '/.test(slotFn), 'the boost slots no longer claim +2% for every stat');
+  ok(/boostWorth/.test(slotFn), 'they state each booster\u2019s real worth');
+  const worthFn = app.slice(app.indexOf('function boostWorth'), app.indexOf('function boostSlots'));
+  ok(
+    /ATK_PER_LEVEL/.test(worthFn) && /HP_PER_LEVEL/.test(worthFn) && /DEF_POINTS_PER_LEVEL/.test(worthFn),
+    'read from EOL.upgrades, so the label cannot drift from the maths'
+  );
+
+  const emitted = detail.replace(/\/\*[\s\S]*?\*\//g, '');
+  ok(!/\+2%<\/b> of a stat/.test(emitted), 'the dialog no longer promises "+2% of a stat"');
+  ok(
+    /ATK_PER_LEVEL/.test(emitted) && /HP_PER_LEVEL/.test(emitted),
+    'it quotes the real per-stat figures'
+  );
+  /* The ceremony was still announcing the retired compounding rule at
+     the exact moment the player is looking hardest. */
+  ok(!/\+1\.5% skill power/.test(emitted), 'the level-up ceremony drops the retired +1.5%');
+  ok(/POWER_PER_LEVEL/.test(emitted), 'and states the flat skill points instead');
+}
+
+sec('S15. The collection card carries no hover shine');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  /* Owner request 2026-08-19. Removed as a NODE, not hidden in CSS: an
+     invisible card-sized gradient is still a layer the compositor
+     carries for every card in a scrolling grid. */
+  ok(!/<div class="card-sheen">/.test(app), 'buildCard renders no sheen layer');
+  ok(
+    !/^\.card-sheen\s*\{/m.test(css) && !/\.card:hover \.card-sheen/.test(css),
+    'and no rule is left behind styling an element that never appears'
+  );
 }
 
 sec('T. The board cannot be closed');

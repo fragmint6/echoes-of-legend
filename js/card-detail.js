@@ -197,12 +197,13 @@
   /* ---------------------------------------------------------
      THE UPGRADE PANEL
      -------------------------------------------------------------
-     Levels 0..3, bought with duplicates (1 / 3 / 5). Every level
-     grants a compounding +1.5% skill power, plus +2% of a stat
-     chosen FOR THAT LEVEL - so "two ATK and one HP" is a real
-     build, and a maxed card is three small decisions instead of one
-     toggle. Each level's choice is re-assignable for free outside a
-     battle.
+     Levels 0..3, bought with duplicates (1 / 3 / 5) plus a coin fee.
+     Every level grants a FLAT +2 percentage points to every number in
+     the signature skill, plus one booster chosen FOR THAT LEVEL -
+     +5% ATK, +7% HP or +3 DEF percentage points - so "two ATK and one
+     HP" is a real build, and a maxed card is three small decisions
+     instead of one toggle. Each level's choice is re-assignable for
+     free outside a battle.
 
      The shard CRAFT button is deliberately absent: buying copies is
      shopping, and it lives in the Shop's Echo Shop tab where you can
@@ -354,8 +355,22 @@
           'very number in the skill below is <b>+' +
           Math.round(up.powerAdd(lv) * 100) +
           '</b> higher.</p>'
-        : '<p class="cd-up-worth">Every level adds <b>+2%</b> of a stat you pick ' +
-          '<b>for that level</b>, and <b>+2 points</b> to every number in the skill ' +
+        : /* THE REAL NUMBERS, read from EOL.upgrades. This used to
+             promise "+2% of a stat", which is not any of the three
+             boosters: ATK is +5%, HP is +7%, and DEF adds flat
+             percentage points because DEF is printed as a percentage.
+             The skill bonus really is +2 points, which is what made
+             the wrong figure so easy to miss. */
+          '<p class="cd-up-worth">Every level adds one booster you pick ' +
+          '<b>for that level</b> &mdash; <b>+' +
+          Math.round(up.ATK_PER_LEVEL * 100) +
+          '% ATK</b>, <b>+' +
+          Math.round(up.HP_PER_LEVEL * 100) +
+          '% HP</b> or <b>+' +
+          up.DEF_POINTS_PER_LEVEL +
+          ' DEF points</b> &mdash; and <b>+' +
+          Math.round(up.POWER_PER_LEVEL * 100) +
+          ' points</b> to every number in the skill ' +
           '(a 50% hit becomes 52%). Mix them however you like &mdash; the choices are ' +
           'free to change outside a battle.</p>') +
       '<div class="up-actions">' +
@@ -597,7 +612,13 @@
       (maxed ? 'MAX LEVEL' : 'LEVEL ' + toLevel) +
       '</b>' +
       '<small>' +
-      (maxed ? 'fully upgraded' : '+1.5% skill power') +
+      /* The skill bonus has been FLAT +2 points per level since the
+         2026-08-16 ruling; the ceremony was still announcing the old
+         compounding 1.5% multiplier at the exact moment the player is
+         looking hardest at what they just bought. */
+      (maxed
+        ? 'fully upgraded'
+        : '+' + Math.round((up ? up.POWER_PER_LEVEL : 0.02) * 100) + ' skill points') +
       '</small>' +
       '</span>';
 

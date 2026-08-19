@@ -728,80 +728,62 @@
     return one ? 'Locked: ' + one : '';
   }
 
-  function abilityTip(u) {
-    var sig = u.card.ability;
-    var role = E.roleAbility(u);
-    function row(a, isSig) {
-      var cost = a.type === 'Active' ? E.costOf(B, u, a) : null;
-      var afford = a.type !== 'Active' || B.energy[u.side] >= cost;
-      var text = a.text;
-      if (isSig && u.upLevel && window.EOL.scaleSkillText) {
-        text = window.EOL.scaleSkillText(a.text, u.card, u.upLevel * 2);
-      }
-      return (
-        '<div class="tip-ab' +
-        (afford ? '' : ' poor') +
-        '">' +
-        '<div class="tip-ab-top">' +
-        '<span class="tip-tag ' +
-        (a.type === 'Passive' ? 'passive' : isSig ? 'sig' : 'role') +
-        '">' +
-        (a.type === 'Passive' ? 'Passive' : isSig ? 'Signature' : 'Basic Skill') +
-        '</span>' +
-        '<span class="tip-ab-name">' +
-        esc(a.name) +
-        '</span>' +
-        (a.type === 'Active'
-          ? '<span class="tip-cost"><i data-icon-domain="game" class="ra ra-lightning-bolt"></i>' +
-            cost +
-            '</span>'
-          : '') +
-        '</div>' +
-        '<div class="tip-ab-text">' +
-        text +
-        (a.note ? '<div class="tip-note">' + a.note + '</div>' : '') +
-        '</div>' +
-        '</div>'
-      );
-    }
-    var upgradeTip = '';
-    if (u.upLevel) {
-      var boostTip = (u.upBoosts || []).map(function (boost) {
+  /* THE UPGRADE BLOCK IN THE HOVER PANEL.
+     -------------------------------------------------------------
+     A levelled legend's raw numbers already show on its card, but the
+     panel is where a player reads what a legend IS mid-fight, so it
+     has to say the level out loud and name the boosts that bought it.
+
+     This used to live in an `abilityTip()` builder that nothing ever
+     called - the live surface is paintDock()'s flyout, so the whole
+     block (and the scaled skill text with it) rendered nowhere and
+     upgrades were invisible in battle outside the small card chrome. */
+  function upgradeDockHTML(u) {
+    if (!u || !u.upLevel) return '';
+    var boostTip = (u.upBoosts || [])
+      .map(function (boost) {
         if (!boost || !UP_BOOST_ICON[boost]) return '';
-        return '<span data-boost="' + boost + '"><i data-icon-domain="game" class="ra ' +
-          UP_BOOST_ICON[boost] + '"></i>' + boost.toUpperCase() + '</span>';
-      }).join('');
-      upgradeTip =
-        '<div class="tip-upgrade">' +
-        '<div class="tip-upgrade-head"><b>Level ' + u.upLevel + '</b><span>' + boostTip + '</span></div>' +
-        '<div class="tip-raw-stats">' +
-        '<span><i data-icon-domain="game" class="ra ra-health"></i><b>' + Math.round(u.maxHp).toLocaleString() + '</b> HP</span>' +
-        '<span><i data-icon-domain="game" class="ra ra-sword"></i><b>' + Math.round(u.baseAtk).toLocaleString() + '</b> ATK</span>' +
-        '<span><i data-icon-domain="game" class="ra ra-shield"></i><b>' + u.baseDef + '%</b> DEF</span>' +
-        '</div></div>';
-    }
+        return (
+          '<span data-boost="' +
+          boost +
+          '"><i data-icon-domain="game" class="ra ' +
+          UP_BOOST_ICON[boost] +
+          '"></i>' +
+          boost.toUpperCase() +
+          '</span>'
+        );
+      })
+      .join('');
     return (
-      '<div class="btip">' +
-      '<div class="tip-head">' +
-      '<span class="tip-name">' +
-      esc(u.name) +
-      '</span>' +
-      '<span class="tip-meta">' +
-      esc(u.role) +
-      '<span class="tip-dot">&middot;</span><span style="color:' +
-      (ELEMENT_COLOR[u.element] || '#fff') +
-      '">' +
-      esc(u.element) +
-      '</span>' +
-      '<span class="tip-dot">&middot;</span>' +
-      (E.isFront(u) ? 'Front' : 'Back') +
-      ' Row</span>' +
-      '</div>' +
-      upgradeTip +
-      row(sig, true) +
-      row(role, false) +
-      '</div>'
+      '<div class="tip-upgrade">' +
+      '<div class="tip-upgrade-head"><b>Level ' +
+      u.upLevel +
+      '</b><span>' +
+      boostTip +
+      '</span></div>' +
+      '<div class="tip-raw-stats">' +
+      '<span><i data-icon-domain="game" class="ra ra-health"></i><b>' +
+      Math.round(u.maxHp).toLocaleString() +
+      '</b> HP</span>' +
+      '<span><i data-icon-domain="game" class="ra ra-sword"></i><b>' +
+      Math.round(u.baseAtk).toLocaleString() +
+      '</b> ATK</span>' +
+      '<span><i data-icon-domain="game" class="ra ra-shield"></i><b>' +
+      u.baseDef +
+      '%</b> DEF</span>' +
+      '</div></div>'
     );
+  }
+
+  /* The Signature Skill as THIS unit performs it. The engine adds a
+     flat +2 percentage points per level to every magnitude the
+     signature owns (upAdd/upPts in js/engine.js), so the printed text
+     has to move by exactly the same points or the panel quotes stock
+     numbers for an upgraded cast. Basics are shared machinery and
+     stay stock, which is also what the engine does. */
+  function skillTextFor(u, a, isSig) {
+    if (!isSig || !u.upLevel || !window.EOL.scaleSkillText) return a.text;
+    return window.EOL.scaleSkillText(a.text, u.card, u.upLevel * 2);
   }
 
   /* FLIP: remember where every card sits before a rebuild so we can
@@ -1624,7 +1606,10 @@
         : '') +
       '</div>' +
       '<div class="dk-ab-text">' +
-      rich(a.text) +
+      /* SCALED TO THIS UNIT'S LEVEL. The engine is already casting the
+         upgraded numbers; printing the stock ones here told the player
+         their upgrade did nothing to the thing it is for. */
+      rich(skillTextFor(u, a, isSig)) +
       (a.note ? '<div class="dk-note">' + rich(a.note) + '</div>' : '') +
       '</div>' +
       (reason
@@ -1979,6 +1964,9 @@
           )
         : '') +
       '</div>' +
+      /* The level and its boosts, between the raw stats they moved and
+         the skill they scale. */
+      upgradeDockHTML(u) +
       '<div class="dk-abs">' +
       abilityRowHTML(u, sig, true, interactive, 0) +
       abilityRowHTML(u, role, false, interactive, 1) +

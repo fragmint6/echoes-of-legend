@@ -154,13 +154,20 @@
          opts.enemyUpgrades, never read from storage here - the engine
          has no opinion about who owns what. A mode that passes
          nothing fights with stock cards, which is what keeps drafts
-         and the Daily Puzzle honest. `upPower` multiplies signature
-         damage/heal/shield output; the stat share is folded into
-         baseAtk/baseDef/maxHp at creation. */
+         and the Daily Puzzle honest.
+
+         The stat share is folded into baseAtk/baseDef/maxHp at
+         creation. The SKILL share is not a factor on the unit at all:
+         it is read per effect through upAdd()/upPts(), which add a
+         FLAT +2 percentage points per level (owner ruling
+         2026-08-16). `upPower` is the retired compounding multiplier,
+         kept only so an older reader finds a 1 rather than undefined
+         - NOTHING in the engine multiplies by it, and new code must
+         use upAdd()/upPts() instead. */
       upLevel: 0,
       upStat: null,
       upBoosts: null, // one stat name per level purchased
-      upPower: 1,
+      upPower: 1, // legacy, unread - see upAdd()/upPts()
       battle: null, // set on createBattle so stats can read round/board state
       uid: 'u' + ++uid,
       card: card,
@@ -888,6 +895,9 @@
         /* One word for the build, for anything that wants a label.
            The maths below never reads it. */
         u.upStat = n.hp > n.atk && n.hp >= n.def ? 'hp' : n.def > n.atk && n.def >= n.hp ? 'def' : 'atk';
+        /* Legacy field, deliberately still written: nothing multiplies
+           by it (the skill bonus is flat, via upAdd/upPts), but a
+           saved replay or an older harness may still read it. */
         u.upPower = Math.pow(1.015, lv);
         if (n.atk) u.baseAtk = Math.round(u.baseAtk * (1 + 0.05 * n.atk));
         if (n.hp) {

@@ -1203,6 +1203,13 @@
     var pct = r.maxed ? 100 : Math.min(100, (Math.min(r.dupes, r.need) / r.need) * 100);
     var boosts = U.boostsOf(r.card.id)
       .map(function (b) {
+        /* A level whose boost has not been chosen yet is stored as
+           null (legacy saves, §1.6). It used to render as
+           `class="ra undefined"` - an invisible glyph in a slot that
+           looked filled. It gets an explicit empty socket instead. */
+        if (!b || !BOOST_ICON[b]) {
+          return '<i class="ec-boost empty" title="Boost not chosen yet"></i>';
+        }
         return (
           '<i data-icon-domain="game" class="ra ' +
           BOOST_ICON[b] +

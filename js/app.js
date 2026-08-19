@@ -129,6 +129,19 @@
      identical. */
   var BOOST_ICON = { atk: 'ra-sword', def: 'ra-shield', hp: 'ra-health' };
   var BOOST_NAME = { atk: 'ATK', def: 'DEF', hp: 'HP' };
+  /* WHAT EACH BOOSTER IS ACTUALLY WORTH, in the words the rest of the
+     game uses. The slots used to title every stat "+2% <stat>", which
+     was wrong for all three: ATK is +5%, HP is +7%, and DEF adds three
+     flat percentage POINTS because DEF is itself printed as a
+     percentage. Read from EOL.upgrades so the label can never drift
+     from the constants the engine applies. */
+  function boostWorth(stat, U) {
+    if (!U) return '';
+    if (stat === 'atk') return '+' + Math.round(U.ATK_PER_LEVEL * 100) + '% ATK';
+    if (stat === 'hp') return '+' + Math.round(U.HP_PER_LEVEL * 100) + '% HP';
+    if (stat === 'def') return '+' + U.DEF_POINTS_PER_LEVEL + ' DEF points';
+    return '';
+  }
 
   /* Three slots in a row across the overlay's top-right. Deliberately
      NOT wrapped in a panel - the owner wanted them floating, and a
@@ -147,8 +160,8 @@
           b +
           '" title="Level ' +
           (i + 1) +
-          ': +2% ' +
-          BOOST_NAME[b] +
+          ': ' +
+          (boostWorth(b, U) || BOOST_NAME[b]) +
           '"><i data-icon-domain="game" class="ra ' +
           BOOST_ICON[b] +
           '"></i></span>'
@@ -276,7 +289,14 @@
       artLayer +
       '</div>' +
       '<div class="card-vignette"></div>' +
-      '<div class="card-sheen"></div>' +
+      /* NO SHEEN LAYER (owner request 2026-08-19). The hover shine
+         swept a bright diagonal band across the whole card, which
+         washed over exactly the things the card exists to show - the
+         portrait, the stat bars, and now the level stars and boost
+         slots. Removed as a NODE rather than hidden in CSS: an
+         absolutely-positioned, card-sized gradient that is never
+         visible is still a layer the compositor carries on every
+         card in a scrolling grid. */
       '<div class="card-frame"></div>' +
       /* THE STAR CREST. Set into the middle of the top border, so the
          upgrade level reads at a glance across a scrolling grid -

@@ -1176,30 +1176,11 @@ body {
     radial-gradient(ellipse 78% 62% at 50% 42%, transparent 42%, rgba(4, 5, 10, 0.62) 100%);
 }
 
-/* animated sheen sweep on hover */
-.card-sheen {
-  position: absolute;
-  inset: -40%;
-  z-index: 3;
-  pointer-events: none;
-  background: linear-gradient(
-    105deg,
-    transparent 38%,
-    color-mix(in srgb, var(--rar-1) 26%, transparent) 48%,
-    rgba(255, 255, 255, 0.22) 51%,
-    transparent 62%
-  );
-  transform: translateX(-115%);
-  opacity: 0;
-  transition: none;
-}
-.card:hover .card-sheen {
-  opacity: 1;
-  transform: translateX(115%);
-  transition:
-    transform 0.9s var(--ease),
-    opacity 0.3s ease;
-}
+/* The hover sheen sweep was removed (owner request 2026-08-19): it
+   swept a bright band over the portrait, the stat bars and the
+   upgrade chrome the card exists to show. `.card-sheen` is no longer
+   rendered by buildCard() in js/app.js, so its rules are gone rather
+   than left behind to style an element that never appears. */
 
 /* rarity frame */
 .card-frame {
@@ -14164,7 +14145,6 @@ body[data-gfx='low'] *::after {
    already carries the scene, so these layers go entirely. */
 body[data-gfx='low'] .mb-motes,
 body[data-gfx='low'] .mb-fog,
-body[data-gfx='low'] .card-sheen,
 body[data-gfx='low'] .scene .sc-haze,
 body[data-gfx='low'] .scene .sc-fx2 {
   display: none !important;
@@ -27669,6 +27649,14 @@ body[data-gfx='low'] .shop-code-scrim {
 .ec-boost[data-boost='hp'] {
   color: #ff5f7e;
 }
+/* A bought level whose boost is still unchosen: a dashed socket, the
+   same language the collection card's empty slots speak. */
+.ec-boost.empty {
+  width: 11px;
+  height: 11px;
+  border: 1px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+}
 .ec-status {
   display: inline-flex;
   align-items: center;
@@ -31431,16 +31419,12 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
 }
 .card-art,
 .card-vignette,
-.card-sheen,
 .card-frame,
 .card-overlay {
   border-radius: inherit;
 }
 .card-overlay {
   overflow: hidden;
-}
-.card-sheen {
-  clip-path: inset(0 round var(--radius));
 }
 .card-stars {
   --star-c: var(--rar-1);
@@ -31527,13 +31511,6 @@ body {
   transform: none;
 }
 
-/* With the card clipping its own layers again, the original full-width sheen
-   sweep stays inside the rounded frame. */
-.card-sheen {
-  border-radius: 0;
-  clip-path: none;
-}
-
 /* Stars remain visible over the details wash and sit across the top border,
    but no longer depend on escaping the card's clipping boundary. */
 .card-stars,
@@ -31572,11 +31549,6 @@ body {
 .card:hover .card-stars {
   top: -13.5px;
   z-index: 14;
-}
-.card-sheen {
-  /* .card-sheen is 180% of the card because of inset:-40%; 22.222%
-     maps that oversized layer back to the exact card rectangle. */
-  clip-path: inset(22.222% round var(--radius));
 }
 
 /* ========================================================================
@@ -31815,3 +31787,28 @@ body {
 .deck-delete-confirm { border:1px solid rgba(255,95,126,.62); background:linear-gradient(180deg,#a83d52,#712437); color:#fff; }
 .deck-delete-confirm:hover { background:linear-gradient(180deg,#c84d65,#8b2d43); box-shadow:0 8px 22px rgba(255,95,126,.22); }
 @media (max-width:520px) { .deck-delete-actions { flex-direction:column-reverse; } .deck-delete-actions .btn { width:100%; } }
+
+/* ========================================================================
+   PREPARATION BOARD: UPGRADE STATE (2026-08-19)
+   ------------------------------------------------------------------------
+   The six is CHOSEN here, so the board that hosts that decision shows the
+   same upgrade facts the battle board does. The tile chrome reuses the
+   live-battle classes (.bcard-up-stars / .bcard-up-boosts) because a prep
+   tile IS a battle card - one look, both screens.
+   ======================================================================== */
+/* An upgraded stat in the hover panel, in the same colour the scaled
+   skill numbers use, so "which of the three did my copies buy?" is
+   answered by looking rather than by remembering the base value. */
+.dk-up-stat {
+  color: var(--r-epic-1);
+  font-weight: 900;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--r-epic-1) 34%, transparent);
+}
+/* The level block inside the prep flyout. .tip-upgrade already carries
+   the frame; this only trims it to the narrower panel. */
+.dk-upgrade {
+  margin: 0 0 9px;
+}
+.dk-upgrade .tip-upgrade-head > b {
+  font-size: 9px;
+}

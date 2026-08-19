@@ -196,6 +196,15 @@ So the deck message now carries upgrade levels alongside the ids
 upgraded units. The opponent's levels are applied to the opponent's team exactly as
 received.
 
+**The levels and the ids are ONE message and must be latched together.** The two clients
+never reach a phase at the same instant, so `netplay.js` latches an opponent's `six`
+that arrives before this client has opened the phase, and replays it when `startSix()`
+runs. `startSix()` therefore must not clear `six.up`: it used to, while leaving
+`six.theirs` in place, so a fast opponent's ids survived the latch and their **levels
+were thrown away**. The receiving client then built that team stock while the sender
+built it upgraded — two different boards, and the first hit failed the checksum and
+killed the match as a desync. Only `end()` resets the pair, together.
+
 **Known limitation, recorded deliberately:** the client is the authority here. The
 server never sees decks, and `isLegal()` validates size, distinctness, role caps and
 legendary count — never ownership. A modified client could already claim cards it does
@@ -505,3 +514,56 @@ Scaled numbers render in the upgrade colour with the original in a tooltip. Stoc
 drafts, packs, the Daily Puzzle — never scale, because there the card really is stock.
 `sim/verify_all.js` walks all 63 legends and asserts no number is scaled that the engine
 leaves alone, and that every scaled number equals value × the multiplier.
+
+---
+
+## 6. The surfaces a levelled card must show it on
+
+*(2026-08-19. §2 says where upgrades **apply**; this says where they are **visible**. The
+two drifted apart: the engine was applying levels correctly in every mode §2 lists, but
+three of the four screens a player actually looks at were still drawing stock cards, so
+the whole system read as "not working" even where it was.)*
+
+| Surface | Shows | Built by |
+|---|---|---|
+| **Collection card** | Lv badge, three boost slots, level stars, upgraded stat bars, scaled skill text | `buildCard` / `upgradeBadges` (`js/app.js`) |
+| **Card detail dialog** | base-vs-upgraded stats, per-level boost rows, scaled skill text, the controls | `js/card-detail.js` |
+| **Preparation board** | level stars + boost pips on the tile; level block, upgraded stats and scaled signature in the hover panel | `boardCard` / `showPrepTip` (`js/play.js`) |
+| **Live battle** | level stars + boost pips on the card; level block, live stats and scaled signature in the flyout | `battleUpgradeChrome` / `paintDock` (`js/battle.js`) |
+
+Three rules hold on every one of them:
+
+- **Your legends only.** The rival is always stock, so rival tiles and rival flyouts never
+  render upgrade chrome. `prepUpgradeLevel()` in `js/play.js` is the preparation board's
+  copy of the `upgradesFor()` predicate, asked of one card, and it returns 0 for the enemy
+  side, for drafts, and for the puzzle — the same answer the engine will act on.
+- **The Basic never scales.** Only the card's own Signature Skill carries the flat bonus,
+  because that is exactly what `upAdd()`/`upPts()` do in the engine. A role Basic is shared
+  machinery and prints stock numbers on every surface.
+- **The numbers must equal `statsFor()`.** The preparation tile, the battle card and the
+  fight all read the same maths, so a player never inspects one number and fights with
+  another. Champions are the single documented exception: the Legend's Trial HP bump is a
+  battlefield effect applied *after* upgrades, and it belongs to the board, not the card.
+
+### 6.1 What was wrong before
+
+- **The battle flyout showed nothing.** The upgrade block and the scaled-skill logic lived
+  in an `abilityTip()` builder that no code path ever called; the live panel is
+  `paintDock()`'s flyout, which had neither. Both now live on the flyout itself.
+- **The preparation board showed nothing.** It is the screen where the six is *chosen*, and
+  it drew stock tiles and a hover panel whose HP came straight off the card — so an
+  all-HP build was invisible at the exact moment it mattered.
+- **The multiplayer latch dropped the opponent's levels** (§2.1).
+- **The printed worth was wrong.** The boost slots titled every stat `+2% <stat>` and the
+  dialog promised `+2% of a stat`; the real boosters are +5% ATK, +7% HP and +3 DEF
+  points. The `+2` belongs to the *skill* bonus, which is what made the error easy to
+  miss. The level-up ceremony was still announcing the retired `+1.5% skill power`. All of
+  these now read their figures from `EOL.upgrades` so they cannot drift again.
+
+### 6.2 The hover sheen is gone
+
+*(Owner request 2026-08-19.)* Collection cards no longer carry `.card-sheen` — the
+diagonal shine that swept across on hover. It washed over the portrait, the stat bars and
+the upgrade chrome that hover exists to reveal. Removed as a **node**, not hidden in CSS:
+a card-sized gradient layer that is never visible is still a layer the compositor carries
+for every card in a scrolling grid.

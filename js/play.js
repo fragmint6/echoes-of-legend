@@ -735,10 +735,51 @@
     return Math.max(0, +prep.enemyStatBonus || 0);
   }
 
+  /* DOES THIS PREPARATION FIGHT WITH UPGRADES, ON THIS SIDE?
+     -------------------------------------------------------------
+     Exactly the rule upgradesFor() enforces when it builds the battle
+     payload, asked of one card: YOUR legends in an owned-card mode
+     carry their levels, and nothing else does. The rival is always
+     stock (a campaign rival scales through enemyStatBonus instead),
+     and drafts and the Daily Puzzle are stock on both sides.
+
+     Kept beside upgradesFor deliberately: the board a player inspects
+     before committing must show the numbers the engine will actually
+     build, or the preparation screen lies about their own team. */
+  function prepUpgradeLevel(card, side) {
+    var U = window.EOL.upgrades;
+    if (!U || !card) return 0;
+    if (side === 'foe' || side === 'enemy' || side === 'ledger') return 0;
+    var cfg = prep;
+    if (!cfg || cfg.mode === 'draft') return 0;
+    if (cfg.puzzle || cfg.campaignStage === 'puzzle') return 0;
+    if (window.EOL.econ && !window.EOL.econ.owns(card.id)) return 0;
+    return U.levelOf(card.id);
+  }
+
   function prepVisibleStats(card, side) {
     var bonus = prepRivalBonus(side);
     var stats = window.EOL.engine.scaledRivalStats(card.stats, bonus);
     stats.bonus = bonus;
+    /* YOUR upgraded legend shows its upgraded numbers. statsFor() is
+       the same maths the engine's applyUpgrades() runs, so the tile,
+       the battle card and the fight cannot disagree. Rival scaling and
+       upgrades are mutually exclusive by the rule above, so neither
+       can double-count the other. */
+    var U = window.EOL.upgrades;
+    if (!bonus && U && prepUpgradeLevel(card, side) > 0) {
+      var up = U.statsFor(card.id, card);
+      if (up) {
+        stats.hp = up.hp;
+        stats.atk = up.atk;
+        stats.def = up.def;
+        stats.upgraded = {
+          hp: up.hp !== card.stats.hp,
+          atk: up.atk !== card.stats.atk,
+          def: up.def !== card.stats.def,
+        };
+      }
+    }
     return stats;
   }
 
@@ -746,8 +787,61 @@
     var text = value.toLocaleString() + (suffix || '');
     return bonus ? '<span class="dk-scaled-stat">' + text + '</span>' : text;
   }
+  /* An upgraded stat is marked in the upgrade colour, exactly like the
+     scaled numbers in the skill text below it, so the player can see
+     which of the three their copies actually bought. */
+  function upgradedStatValue(value, suffix, moved) {
+    var text = value.toLocaleString() + (suffix || '');
+    return moved ? '<span class="dk-up-stat">' + text + '</span>' : text;
+  }
 
-  function tipAbRow(a, tag, tagTxt) {
+  /* The level chip + boost list for the preparation hover panel. Same
+     shape the battle flyout uses, so a legend reads identically on the
+     board it is chosen on and the board it fights on. */
+  var PREP_BOOST_ICON = { atk: 'ra-sword', hp: 'ra-health', def: 'ra-shield' };
+  function prepUpgradeHTML(card, lv) {
+    var U = window.EOL.upgrades;
+    if (!U || !lv) return '';
+    var boosts = U.boostsOf(card.id)
+      .map(function (b) {
+        if (!b || !PREP_BOOST_ICON[b]) return '';
+        return (
+          '<span data-boost="' +
+          b +
+          '"><i data-icon-domain="game" class="ra ' +
+          PREP_BOOST_ICON[b] +
+          '"></i>' +
+          b.toUpperCase() +
+          '</span>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="tip-upgrade dk-upgrade">' +
+      '<div class="tip-upgrade-head"><b>Level ' +
+      lv +
+      '</b><span>' +
+      boosts +
+      '</span></div>' +
+      '</div>'
+    );
+  }
+
+  /* `up` is {card, lv} when this row is the card's OWN signature and
+     the card is upgraded: the printed numbers then move by the same
+     flat points the engine adds (js/engine.js upAdd/upPts). Null keeps
+     the row stock, which is right for role Basics and for every
+     stock-card surface. */
+  function tipAbRow(a, tag, tagTxt, up) {
+    var text = a.text;
+    if (up && up.lv && window.EOL.scaleSkillText) {
+      var U = window.EOL.upgrades;
+      text = window.EOL.scaleSkillText(
+        a.text,
+        up.card,
+        (U ? U.powerAdd(up.lv) : 0.02 * up.lv) * 100
+      );
+    }
     return (
       '<div class="dk-ab ' +
       tag +
@@ -768,7 +862,7 @@
         : '') +
       '</div>' +
       '<div class="dk-ab-text">' +
-      rich(a.text) +
+      rich(text) +
       (a.note ? '<div class="dk-note">' + rich(a.note) + '</div>' : '') +
       '</div>' +
       '</div>'
@@ -878,6 +972,8 @@
     var c = e.card,
       m = statMax();
     var visibleStats = prepVisibleStats(c, side);
+    var upMoved = visibleStats.upgraded || {};
+    var upLv = prepUpgradeLevel(c, side);
     var sig = c.ability;
     var basic = window.EOL.engine.roleAbility({ role: c.role, element: c.element });
     var fresh = lastTipId !== c.id;
@@ -913,30 +1009,42 @@
       tipLine(
         'ra-health',
         'HP',
-        c.stats.hp.toLocaleString(),
-        (c.stats.hp / m.hp) * 100,
+        /* HP was printed straight off the card here while ATK and DEF
+           went through prepVisibleStats, so an +HP build was the one
+           boost the preparation board never showed. */
+        upgradedStatValue(visibleStats.hp, '', upMoved.hp),
+        (visibleStats.hp / m.hp) * 100,
         '#ff5f7e'
       ) +
       tipLine(
         'ra-sword',
         'ATK',
-        scaledStatValue(visibleStats.atk, '', visibleStats.bonus),
+        visibleStats.bonus
+          ? scaledStatValue(visibleStats.atk, '', visibleStats.bonus)
+          : upgradedStatValue(visibleStats.atk, '', upMoved.atk),
         (visibleStats.atk / m.atk) * 100,
         '#ffb347'
       ) +
       tipLine(
         'ra-shield',
         'DEF',
-        scaledStatValue(visibleStats.def, '%', visibleStats.bonus),
+        visibleStats.bonus
+          ? scaledStatValue(visibleStats.def, '%', visibleStats.bonus)
+          : upgradedStatValue(visibleStats.def, '%', upMoved.def),
         (visibleStats.def / m.def) * 100,
         '#5fb2ff'
       ) +
       '</div>' +
+      prepUpgradeHTML(c, upLv) +
       '<div class="dk-abs">' +
       tipAbRow(
         sig,
         sig.type === 'Passive' ? 'passive' : 'sig',
-        sig.type === 'Passive' ? 'Passive' : 'Skill'
+        sig.type === 'Passive' ? 'Passive' : 'Skill',
+        /* The signature is scaled to this copy's level; the role Basic
+           is shared machinery and stays stock, exactly as the engine
+           resolves them. */
+        upLv ? { card: c, lv: upLv } : null
       ) +
       tipAbRow(basic, 'role', 'Basic') +
       '</div>';
@@ -1082,6 +1190,42 @@
        (battle.js) but prep never did, so every orb rendered white. */
     wrap.style.setProperty('--el', elCol(c.element));
     if (prepAnim) wrap.style.animationDelay = i * 30 + 'ms';
+    /* THE LEVEL, ON THE TILE. The battle board wears stars and boost
+       pips (battleUpgradeChrome in js/battle.js); the preparation board
+       is where the six is actually CHOSEN, so it needs the same fact
+       without a hover - otherwise the one screen where the decision is
+       made is the one screen that hides what a legend is worth. */
+    var upLv = prepUpgradeLevel(c, side);
+    var upChrome = '';
+    if (upLv) {
+      var Ub = window.EOL.upgrades;
+      var starsHtml = new Array(upLv + 1).join('<i></i>');
+      var boostHtml = (Ub ? Ub.boostsOf(c.id) : [])
+        .map(function (b, bi) {
+          if (!b || !PREP_BOOST_ICON[b]) return '';
+          return (
+            '<span data-boost="' +
+            b +
+            '" title="Level ' +
+            (bi + 1) +
+            ' ' +
+            b.toUpperCase() +
+            ' booster"><i data-icon-domain="game" class="ra ' +
+            PREP_BOOST_ICON[b] +
+            '"></i></span>'
+          );
+        })
+        .join('');
+      upChrome =
+        '<span class="bcard-up-stars" aria-label="Level ' +
+        upLv +
+        '">' +
+        starsHtml +
+        '</span>' +
+        '<span class="bcard-up-boosts">' +
+        boostHtml +
+        '</span>';
+    }
     /* No HP/ATK/DEF strip in preparation: the numbers live in the hover
        panel, and stripping them here keeps the ban/pick grids readable. */
     wrap.innerHTML =
@@ -1100,6 +1244,7 @@
       '</div>' +
       '<div class="bcard-vig"></div>' +
       '<div class="bcard-frame"></div>' +
+      upChrome +
       '<span class="bcorner tl"></span><span class="bcorner tr"></span>' +
       '<span class="bcorner bl"></span><span class="bcorner br"></span>' +
       '<div class="bcard-top">' +

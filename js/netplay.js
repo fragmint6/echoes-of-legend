@@ -359,8 +359,15 @@
 
   function startSix(cb) {
     six.mine = null;
-    six.up = null;
     six.done = cb;
+    /* `six.theirs` AND `six.up` are deliberately NOT cleared here.
+       They are one message: onRemoteSix() writes both, and the whole
+       point of the latch is that the opponent's `six` can land before
+       this client has built the screen that waits for it. Clearing
+       `up` while keeping `theirs` kept the ids and threw the levels
+       away, so a latched opponent fought at stock power on our board
+       and at upgraded power on theirs - two different boards, and the
+       first hit desynced the match. end() resets both together. */
     maybeStartBattle(); // latched early arrival, same as bans
   }
 
