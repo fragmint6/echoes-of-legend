@@ -31734,7 +31734,14 @@ body {
    are laid out at the top of that mirror and pulled up half their own
    height so they straddle the border. */
 .bcard-up-stars {
-  --star-h: 21px;
+  /* Larger again on request (2026-08-19): 21px read as small against
+     the collection's 34px. The crest's vertical offset is derived from
+     this, so the two never drift apart. */
+  --star-h: 26px;
+  /* Rarity drives the star exactly as it does in the collection.
+     .bcard / .bcell-wrap already publish --rar-1 per rarity, so this
+     inherits the right colour on both boards with no extra plumbing. */
+  --star-c: var(--rar-1, #ffd682);
   position:absolute;
   z-index:14;
   top:50%;
@@ -31756,19 +31763,58 @@ body {
 .bcard-up-stars > i {
   margin-top:calc(var(--star-h) / -2);
 }
+/* THE SAME STAR THE COLLECTION WEARS (owner ruling 2026-08-19).
+   The battle crest used to be a single flat rarity-coloured fill,
+   which read as dull next to the collection's two-layer treatment.
+   It is now built the same way: a light-mixed OUTER star, with an
+   inset gradient ::after leaving a thick rarity-coloured rim showing
+   - a genuinely shaped border rather than a rectangle clipped after
+   the fact. Sizes are kept in proportion to .card-stars (34px star ->
+   7px radius -> 4px inset), scaled to the board's 26px. */
 .bcard-up-stars i {
+  position:relative;
   width:var(--star-h);
   height:var(--star-h);
-  flex:0 0 auto;
-  background:var(--rar-1, #ffd682);
+  flex:0 0 var(--star-h);
+  border-radius:5px;
+  background:color-mix(in srgb, var(--star-c) 72%, #fff);
   clip-path:polygon(50% 2%,60% 29%,88% 30%,66% 48%,74% 78%,50% 62%,26% 78%,34% 48%,12% 30%,40% 29%);
+  /* a dark seat as well as the rarity glow: unlike the collection grid,
+     this star sits over live artwork and has to stay legible on it */
   filter:
-    drop-shadow(0 0 1px #05060c)
+    drop-shadow(0 0 1px rgba(255,255,255,.8))
     drop-shadow(0 1px 2px rgba(0,0,0,.85))
-    drop-shadow(0 0 7px var(--rar-1, #ffd682));
+    drop-shadow(0 0 8px color-mix(in srgb, var(--star-c) 74%, transparent));
 }
-/* No per-board override any more: the mirror above resolves to the
-   visible card face on BOTH boards, so the prep tile needs no nudge. */
+.bcard-up-stars i::after {
+  content:'';
+  position:absolute;
+  /* Proportional, not fixed: the collection's rim is 4/34 of its star,
+     and deriving the inset the same way keeps the border weight
+     identical on the 26px battle star and the 22px prep one - and on
+     whatever size someone picks next. */
+  inset:calc(var(--star-h) * 4 / 34);
+  border-radius:4px;
+  background:linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--star-c) 24%, #fff) 0%,
+    var(--star-c) 48%,
+    color-mix(in srgb, var(--star-c) 72%, #050711) 100%
+  );
+  clip-path:inherit;
+}
+/* No per-board POSITION override: the mirror above resolves to the
+   visible card face on BOTH boards, so neither needs a nudge.
+
+   Size is a different matter. Half the star hangs above the tile, and
+   the prep grid packs its rows only 8-12px apart, so a 26px star there
+   would grow a 13px overhang that grazes the tile above. The battle
+   board can afford the full size - its top row clears .board's 14px
+   padding, and .bstats sits between the rows - so prep keeps a
+   slightly trimmer star. Both stay well above the old 21px. */
+.pcard .bcard-up-stars {
+  --star-h: 22px;
+}
 
 .tip-upgrade {
   margin:8px 0 10px;

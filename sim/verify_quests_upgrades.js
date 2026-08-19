@@ -1541,7 +1541,27 @@ sec('S16. Battle chrome: stars only, and a level box that does not repeat itself
     css.indexOf('.bcard-up-stars > i')
   );
   const px = /--star-h:\s*(\d+)px/.exec(wrapCss);
-  ok(px && +px[1] >= 20, 'the battle star is at least 20px (was 11px)');
+  ok(px && +px[1] >= 26, 'the battle star is at least 26px (was 11px, then 21px)');
+
+  /* THE BATTLE CREST IS THE COLLECTION CREST (owner ruling 2026-08-19).
+     A single flat fill read as dull beside the collection's two-layer
+     star, so the board now builds it the same way: a light-mixed outer
+     star plus an inset gradient ::after, leaving a thick rarity rim. */
+  const starCss = css.slice(
+    css.indexOf('.bcard-up-stars i {'),
+    css.indexOf('.tip-upgrade {')
+  );
+  ok(/background:\s*color-mix\([^)]*var\(--star-c\)/.test(starCss),
+    'the battle star is mixed off the rarity colour, not painted flat');
+  ok(/\.bcard-up-stars i::after/.test(starCss),
+    'and carries the inset layer that forms the shaped rarity border');
+  ok(/clip-path:\s*inherit/.test(starCss),
+    'whose inset inherits the star silhouette rather than showing a rectangle');
+  /* The colour has to actually reach the star. .bcard and .bcell-wrap
+     publish --rar-1 per rarity already; --star-c must read from it or
+     the whole crest falls back to one flat gold on every card. */
+  ok(/--star-c:\s*var\(--rar-1/.test(wrapCss),
+    'and --star-c is driven by the board\'s own rarity variable');
 
   /* THE CREST MUST NOT BE CLIPPED (owner report 2026-08-19).
      .bcard-inner is overflow:hidden for the portrait mask, so a crest
@@ -1568,6 +1588,20 @@ sec('S16. Battle chrome: stars only, and a level box that does not repeat itself
     'and is centred exactly like .bcard-inner, so it tracks the face at any slot height');
   ok(!/\.pcard \.bcard-up-stars\s*\{[^}]*top:/.test(css),
     'with no per-board nudge left to drift out of step');
+
+  /* HALF THE STAR HANGS ABOVE THE CARD, so its size is bounded by
+     whatever sits above it. The prep grid packs rows 8-12px apart, so
+     a full-size battle star there would graze the tile above; prep
+     therefore runs a trimmer star. If someone scales these up again,
+     this is the constraint that breaks first. */
+  const prepStar = /\.pcard \.bcard-up-stars\s*\{[^}]*--star-h:\s*(\d+)px/.exec(css);
+  ok(prepStar, 'the prep tile pins its own star size');
+  const prepGapMin = 8;
+  ok(prepStar && prepStar[1] / 2 <= prepGapMin + 4,
+    'and keeps its overhang inside the prep grid gap (' + (prepStar ? prepStar[1] / 2 : '?') + 'px)');
+  const boardPad = 14;
+  ok(px && +px[1] / 2 <= boardPad,
+    'the battle star clears .board\'s padding (' + (px ? +px[1] / 2 : '?') + 'px vs ' + boardPad + 'px)');
 
   /* The level box states the level and the boosters and stops there -
      the panel's own stat lines directly above already carry the
