@@ -8014,36 +8014,94 @@ body[data-gfx='low'] .set-pill.bump {
   border-radius: 0;
   background: none;
 }
-/* the hover panel: the desc and the odds appear ABOVE the pack when
-   the cursor asks - the shelf stays clean, the buy pill below stays
-   visible the whole time. */
+/* the hover panel (2026-08-19 restyle): a small parchment card that
+   floats above the pack, with a header strip, the odds as coloured
+   rarity chips and an arrow pointing down at the pack. */
 .product-info {
   position: absolute;
   left: 50%;
   top: 0;
-  transform: translateX(-50%) translateY(calc(-100% - 10px));
-  width: min(320px, calc(var(--vw1) * 88));
+  transform: translateX(-50%) translateY(calc(-100% - 14px));
+  width: min(300px, calc(var(--vw1) * 86));
   max-width: none;
-  padding: 14px 16px;
-  border: 1px solid rgba(255, 214, 130, 0.3);
-  border-radius: 14px;
+  padding: 0;
+  border: 1px solid rgba(255, 214, 130, 0.34);
+  border-radius: 12px;
   background:
-    radial-gradient(ellipse at 18% 10%, rgba(255, 205, 110, 0.1), transparent 55%),
-    linear-gradient(180deg, rgba(20, 24, 40, 0.98), rgba(9, 11, 20, 0.99));
+    radial-gradient(ellipse at 18% 0%, rgba(255, 205, 110, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(22, 25, 42, 0.99), rgba(10, 12, 22, 0.99));
   box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.65),
-    0 0 26px rgba(255, 205, 110, 0.12);
+    0 18px 44px rgba(0, 0, 0, 0.7),
+    0 0 26px rgba(255, 205, 110, 0.14);
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 0.22s var(--ease),
-    transform 0.22s var(--ease);
+    opacity 0.2s var(--ease),
+    transform 0.24s cubic-bezier(0.2, 1.2, 0.4, 1);
   z-index: 6;
+}
+/* the caret pointing at the pack */
+.product-info::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: linear-gradient(135deg, rgba(22, 25, 42, 0.99), rgba(10, 12, 22, 0.99));
+  border-right: 1px solid rgba(255, 214, 130, 0.34);
+  border-bottom: 1px solid rgba(255, 214, 130, 0.34);
 }
 .product:hover .product-info,
 .product:focus-within .product-info {
   opacity: 1;
-  transform: translateX(-50%) translateY(calc(-100% - 14px));
+  transform: translateX(-50%) translateY(calc(-100% - 18px));
+}
+/* the header strip: says what this pack IS at a glance */
+.product-tip {
+  display: block;
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 214, 130, 0.07);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffd682;
+}
+.product-desc {
+  padding: 9px 12px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--txt);
+  margin: 0;
+}
+.product-desc b {
+  color: var(--r-epic-1);
+}
+.product-odds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 12px 11px;
+  font-size: 11px;
+  color: var(--txt-dim);
+  margin: 0;
+}
+/* the odds read as rarity chips - colour coded, not a text wall */
+.product-odds > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+.product-odds > span b {
+  font-weight: 800;
+  color: var(--txt-faint);
 }
 /* touch screens cannot hover - the info flows inline instead */
 @media (hover: none) {
@@ -29780,8 +29838,10 @@ body[data-gfx='low'] .qb-body {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 22%;
+  /* the FULL frame, never cropped: the 64x88 portrait sits whole
+     inside the column, letterboxed on the tinted panel */
+  object-fit: contain;
+  object-position: center;
   image-rendering: pixelated;
 }
 .cd-art.locked img,
@@ -30498,4 +30558,212 @@ span.lg-portrait i {
 .nav-guide-face-empty i {
   font-size: 26px;
   color: rgba(255, 205, 130, 0.45);
+}
+
+
+/* =============================================================
+   THE MICROANIMATION SWEEP (2026-08-19)
+   -------------------------------------------------------------
+   Every interactable that was missing motion gets it here, in one
+   consistent language: lift on hover, press on click, and the
+   shop's own entrance/float rhythms. All respect body[data-gfx=low]
+   and prefers-reduced-motion further down the file.
+   ============================================================= */
+
+/* ---- the upgrade panel: buttons that grow into the press ---- */
+.up-btn {
+  transition:
+    transform 0.18s var(--ease),
+    box-shadow 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+.up-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--r-epic-1) 70%, transparent);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.4),
+    0 0 14px color-mix(in srgb, var(--r-epic-1) 25%, transparent);
+}
+.up-btn:not(:disabled):active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: none;
+}
+.up-btn:not(:disabled):hover .up-coin,
+.up-btn:not(:disabled):hover .up-icon {
+  transform: translateY(-1px);
+}
+.up-coin,
+.up-icon {
+  transition: transform 0.18s var(--ease);
+}
+.up-shop {
+  transition:
+    color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.up-shop:hover {
+  transform: translateX(2px);
+}
+.up-pip {
+  transition:
+    transform 0.16s var(--ease),
+    box-shadow 0.16s var(--ease),
+    border-color 0.16s var(--ease);
+}
+.up-pip:not(.on):hover {
+  transform: scale(1.25);
+  border-color: color-mix(in srgb, var(--r-epic-1) 60%, transparent);
+}
+
+/* ---- the shop tabs and segment buttons ---- */
+.shop-tab {
+  transition:
+    color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.shop-tab:hover {
+  transform: translateY(-1px);
+}
+.shop-tab:active {
+  transform: translateY(0) scale(0.96);
+}
+.echo-seg-btn {
+  transition:
+    background 0.16s var(--ease),
+    color 0.16s var(--ease),
+    transform 0.16s var(--ease);
+}
+.echo-seg-btn:hover {
+  transform: translateY(-1px);
+  color: var(--txt);
+}
+.echo-seg-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* ---- the shelf entrance: products rise in, one after another ---- */
+.product {
+  animation: shelf-in 0.5s var(--ease) backwards;
+}
+.product:nth-of-type(1) { animation-delay: 0.02s; }
+.product:nth-of-type(2) { animation-delay: 0.07s; }
+.product:nth-of-type(3) { animation-delay: 0.12s; }
+.product:nth-of-type(4) { animation-delay: 0.17s; }
+.product:nth-of-type(5) { animation-delay: 0.22s; }
+@keyframes shelf-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* the pack breathes while it sits on the shelf. The float rides the
+   standalone `translate` property so it composes with the hover
+   transform instead of owning it. */
+.product-pack {
+  animation: pack-float 4.2s ease-in-out infinite;
+}
+.product:hover .product-pack {
+  animation-play-state: paused;
+  translate: 0 0;
+}
+@keyframes pack-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
+/* the price pill shimmers as the cursor lands (::before - the
+   ::after slot belongs to the hover-bleed jitter fix) */
+.product .buy-pack:not(:disabled) {
+  position: relative;
+  overflow: hidden;
+}
+.product .buy-pack:not(:disabled)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.45s var(--ease);
+  pointer-events: none;
+  z-index: 0;
+}
+.product .buy-pack:not(:disabled):hover::before {
+  left: 120%;
+}
+.product .buy-pack > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- the echo cards arrive as each lazy batch renders ---- */
+.ec-card {
+  animation: shelf-in 0.34s var(--ease) backwards;
+}
+.ec-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, #ffd682 55%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 214, 130, 0.2), rgba(230, 171, 82, 0.1));
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition:
+    transform 0.18s var(--ease),
+    box-shadow 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+.ec-up:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 214, 130, 0.9);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+.ec-up:not(:disabled):active {
+  transform: translateY(0) scale(0.95);
+}
+.ec-up:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+.ec-up i {
+  color: #ffd682;
+  font-size: 12px;
+}
+.ec-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---- the dialog close and the chapter select press ---- */
+.cd-close {
+  transition:
+    transform 0.18s var(--ease),
+    color 0.18s var(--ease),
+    border-color 0.18s var(--ease);
+}
+.cd-close:hover {
+  transform: rotate(90deg);
+}
+.cd-close:active {
+  transform: rotate(90deg) scale(0.92);
 }

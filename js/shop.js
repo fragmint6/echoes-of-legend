@@ -1139,6 +1139,12 @@
           full: !maxed && wanted <= 0,
           buyable: !maxed && wanted > 0,
           cost: U.craftCost(c.rarity),
+          /* upgradeable in place: copies on hand AND coins in the
+             one wallet */
+          canUp:
+            !maxed &&
+            U.canLevel(c.id) &&
+            window.EOL.econ.coins() >= U.COIN_COST,
         });
       });
     });
@@ -1243,15 +1249,33 @@
       '<span class="ec-held">' +
       (r.maxed ? 'no levels left' : r.dupes + ' / ' + r.need + ' copies') +
       '</span>' +
+      '<span class="ec-actions">' +
+      /* THE UPGRADE BUTTON (2026-08-19): level up right here - it
+         costs the copies this card holds plus the coin fee, and it
+         lights up only when both are in hand. */
+      '<button type="button" class="ec-up' +
+      (r.canUp ? ' ok' : '') +
+      '" data-echo-up="' +
+      esc(r.card.id) +
+      '"' +
+      (r.canUp ? '' : ' disabled') +
+      ' title="Level up (uses ' +
+      (U && U.costOfNextLevel ? U.costOfNextLevel(r.card.id) : '') +
+      ' copies + ' +
+      (U ? U.COIN_COST : 500) +
+      ' coins)"><i class="ri-arrow-up-double-line"></i>' +
+      (U ? U.COIN_COST : 500).toLocaleString() +
+      '</button>' +
       '<button type="button" class="ec-buy' +
       (afford ? ' ok' : '') +
       '" data-echo-buy="' +
       esc(r.card.id) +
       '"' +
       (afford ? '' : ' disabled') +
-      '><i class="ri-sparkling-2-line"></i>' +
+      ' title="Craft a copy with shards"><i class="ri-sparkling-2-line"></i>' +
       r.cost.toLocaleString() +
       '</button>' +
+      '</span>' +
       '</div>' +
       '</div>' +
       '</article>'
@@ -1572,10 +1596,38 @@
     var echoGrid = el('echo-grid');
     if (echoGrid)
       echoGrid.addEventListener('click', function (e) {
-        var btn = e.target.closest ? e.target.closest('[data-echo-buy]') : null;
-        if (!btn) return;
         var U = upg();
         if (!U) return;
+        /* THE UPGRADE BUTTON first: level the card up in place. */
+        var upBtn = e.target.closest ? e.target.closest('[data-echo-up]') : null;
+        if (upBtn) {
+          var upr = U.levelUp(upBtn.dataset.echoUp);
+          if (upr.ok) {
+            if (window.EOL.ui.toast)
+              window.EOL.ui.toast(
+                'Leveled to ' + upr.lv + ' - assign the stat in the Collection',
+                'ri-arrow-up-double-line'
+              );
+            if (window.EOL.audio) window.EOL.audio.ui('levelup');
+          } else if (upr.reason === 'dupes') {
+            if (window.EOL.ui.toast)
+              window.EOL.ui.toast(
+                'Not enough copies - craft one below',
+                'ri-sparkling-2-fill'
+              );
+          } else if (upr.reason === 'coins') {
+            if (window.EOL.ui.toast)
+              window.EOL.ui.toast('Not enough coins - the Road pays', 'ri-coin-fill');
+          } else if (upr.reason === 'maxed') {
+            if (window.EOL.ui.toast)
+              window.EOL.ui.toast('That legend is already fully upgraded', 'ri-information-line');
+          }
+          paintEcho();
+          paintShop();
+          return;
+        }
+        var btn = e.target.closest ? e.target.closest('[data-echo-buy]') : null;
+        if (!btn) return;
         var r = U.craft(btn.dataset.echoBuy);
         if (r.ok) {
           if (window.EOL.ui.toast)
@@ -1629,6 +1681,7 @@
     openCampaignReward: openCampaignReward,
     openLegendPack: openLegendPack,
     paintShop: paintShop,
+    paintEcho: paintEcho,
     charge: charge,
     skip: skip,
     close: close,

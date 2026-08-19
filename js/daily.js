@@ -1846,6 +1846,7 @@
     /* Focused harness hooks: generation is otherwise intentionally private
        so no authored/checkpoint state becomes part of the public API. */
     _rng32: rng32,
+    _rosterPool: rosterPool,
     _runContinuation: runContinuation,
     _runContinuationReport: runContinuationReport,
     _tempo: tempo,

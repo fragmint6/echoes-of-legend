@@ -801,6 +801,100 @@ const server = http.createServer((req, res) => {
     );
   }
 
+  /* ---------- L. puzzles, tooltip, microanimations, echo upgrades ---------- */
+  console.log('L. puzzles draw Chapter II, the tooltip is a tooltip, upgrades in place');
+  {
+    /* THE PUZZLE FORGE loads the whole roster now - the worker and the
+       node tool both carried Chapter-I-only script lists. */
+    const workerSrc = fs.readFileSync(path.join(ROOT, 'js/daily-worker.js'), 'utf8');
+    const toolSrc = fs.readFileSync(path.join(ROOT, 'tools/generate_daily_puzzle.js'), 'utf8');
+    ['asgard', 'hemithea', 'pandemonium', 'devas', 'genesis', 'transylvania', 'tortuga'].forEach((f) => {
+      t(
+        workerSrc.indexOf("'../data/" + f + ".js'") >= 0 && toolSrc.indexOf("'data/" + f + ".js'") >= 0,
+        'both puzzle forges load ' + f + ' - Chapter II cards are in every puzzle pool'
+      );
+    });
+    /* the live roster pool, the thing the forge draws from */
+    t(
+      EOL.daily && EOL.daily._rosterPool && EOL.daily._rosterPool().length === 115,
+      'the browser roster pool spans all 115 legends (' + (EOL.daily._rosterPool() || []).length + ')'
+    );
+
+    /* THE PACK TOOLTIP: the buy pill sits OUTSIDE the hover panel -
+       structurally: within every product article, the button appears
+       BEFORE the tooltip div. */
+    const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    {
+      let pillOk = true;
+      htmlSrc.split('<article class="product').slice(1).forEach(function (chunk) {
+        const end = chunk.indexOf('</article>');
+        if (end < 0) return;
+        const body = chunk.slice(0, end);
+        const pill = body.indexOf('buy-pack');
+        const tip = body.indexOf('product-info');
+        if (pill < 0 || tip < 0 || pill > tip) pillOk = false;
+      });
+      t(pillOk, 'the buy button is a sibling of the pack, never inside the tooltip');
+    }
+    t(
+      htmlSrc.indexOf('</div>\n          <h3 class="product-name">Daily Pack</h3>') >= 0 ||
+        /<button class="btn btn-primary buy-pack" data-pack="daily"><\/button>\n          <div class="product-info">/.test(htmlSrc),
+      'the Daily pack flows: pack, name, pill, then the tooltip'
+    );
+
+    /* THE ECHO UPGRADE BUTTON: levels a card up in place. */
+    d.body.dataset.view = 'shop';
+    await sleep(300);
+    EOL.shop.paintShop();
+    /* give a card one copy and the coins, then press its upgrade */
+    const U = EOL.upgrades;
+    const tgtCard = EOL.campaign._entriesFor(['camelot-lancelot'])[0].card;
+    U.addDuplicate(tgtCard.id, 1);
+    EOL.econ.addCoins(500);
+    EOL.shop.paintEcho ? EOL.shop.paintEcho() : null;
+    await sleep(200);
+    const upBtn = d.querySelector('[data-echo-up="' + tgtCard.id + '"]');
+    t(!!upBtn && !upBtn.disabled, 'the upgrade button lights up when copies and coins are in hand');
+    const lvBefore = U.levelOf(tgtCard.id);
+    if (upBtn) {
+      upBtn.click();
+      await sleep(200);
+      t(U.levelOf(tgtCard.id) === lvBefore + 1, 'clicking it levels the card up in place');
+    }
+
+    /* THE DETAIL ART: the full frame, never cropped. */
+    const cssSrc = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+    t(
+      /\.cd-art img\s*\{[^}]*object-fit:\s*contain;/s.test(cssSrc),
+      'the card-detail art shows the whole 64x88 frame - no side cropping'
+    );
+
+    /* THE MICROANIMATION SWEEP: the interactables that had no motion
+       now share the lift/press language. */
+    t(
+      /\.up-btn:not\(:disabled\):hover\s*\{[^}]*translateY\(-2px\)/s.test(cssSrc),
+      'the level-up button lifts on hover'
+    );
+    t(
+      /\.up-btn:not\(:disabled\):active\s*\{[^}]*scale\(0\.96\)/s.test(cssSrc),
+      'and presses on click'
+    );
+    t(
+      /\.product\s*\{[\s\S]*?animation:\s*shelf-in/s.test(cssSrc) &&
+        /\.ec-card\s*\{[\s\S]*?animation:\s*shelf-in/s.test(cssSrc),
+      'the shelf products and echo cards rise in as they render'
+    );
+    t(
+      /\.product-pack\s*\{[\s\S]*?animation:\s*pack-float/s.test(cssSrc),
+      'the packs breathe with an idle float'
+    );
+    t(
+      /\.cd-close:hover\s*\{[^}]*rotate\(90deg\)/s.test(cssSrc) &&
+        /\.echo-seg-btn:active\s*\{[^}]*scale\(0\.95\)/s.test(cssSrc),
+      'the dialog close spins and the segment buttons press'
+    );
+  }
+
   server.close();
   console.log('');
   console.log(fails + ' fail(s)');

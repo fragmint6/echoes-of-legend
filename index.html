@@ -1169,28 +1169,32 @@
         <!-- THE FEATURED SHELF (2026-08-19): two packs a week, two
              factions each, named for how the pair is related. The
              weekly rotation lives in js/shop.js; the names, blurbs,
-             crests and odds below are painted from it. -->
+             crests and odds below are painted from it.
+             Each product flows: pack, name (always), buy pill
+             (always), then a hover tooltip with the details. -->
         <h3 class="shop-shelf-head"><i data-icon-domain="game" class="ra ra-daggers"></i>Featured this week</h3>
         <article class="product" id="product-featured-0">
           <div class="product-pack pk-host" data-pack="featured" data-slot="0">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Featured Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="featured" data-slot="0"></button>
           <div class="product-info">
-            <h3 class="product-name">Featured Pack</h3>
+            <span class="product-tip">Featured this week</span>
             <p class="product-desc"></p>
             <p class="product-odds"></p>
-            <button class="btn btn-primary buy-pack" data-pack="featured" data-slot="0"></button>
           </div>
         </article>
         <article class="product" id="product-featured-1">
           <div class="product-pack pk-host" data-pack="featured" data-slot="1">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Featured Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="featured" data-slot="1"></button>
           <div class="product-info">
-            <h3 class="product-name">Featured Pack</h3>
+            <span class="product-tip">Featured this week</span>
             <p class="product-desc"></p>
             <p class="product-odds"></p>
-            <button class="btn btn-primary buy-pack" data-pack="featured" data-slot="1"></button>
           </div>
         </article>
 
@@ -1200,16 +1204,17 @@
           <div class="product-pack pk-host" data-pack="daily">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Daily Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="daily"></button>
           <div class="product-info">
-            <h3 class="product-name">Daily Pack</h3>
+            <span class="product-tip">Free, once a day</span>
             <p class="product-desc">
-              Free, once a day. One legend from every corner of the roster - with a slim
+              One legend from every corner of the roster - with a slim
               chance of an <b>Epic</b>.
             </p>
             <p class="product-odds">
               <span><b>Card odds</b> Common 75% &middot; Rare 20% &middot; Epic 5%</span>
             </p>
-            <button class="btn btn-primary buy-pack" data-pack="daily"></button>
           </div>
         </article>
 
@@ -1222,27 +1227,30 @@
           <div class="product-pack pk-host" data-pack="echo">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Echoes Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           <div class="product-info">
-            <h3 class="product-name">Echoes Pack</h3>
+            <span class="product-tip">Chapter I shelf</span>
             <p class="product-desc">
-              Chapter I's shelf - Grimmwood, Camelot, Sherwood, Olympus, Yamato, Roma, Kami
+              Grimmwood, Camelot, Sherwood, Olympus, Yamato, Roma, Kami
               and Duat. Five legends, and the final card is always <b>Epic</b>.
             </p>
             <p class="product-odds">
               <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
               <span><b>Final card</b> Epic 100%</span>
             </p>
-            <button class="btn btn-primary buy-pack" data-pack="echo"></button>
           </div>
         </article>
         <article class="product" data-product="archive" hidden>
           <div class="product-pack pk-host" data-pack="archive">
             <div class="product-sheen"></div>
           </div>
+          <h3 class="product-name">Archive Pack</h3>
+          <button class="btn btn-primary buy-pack" data-pack="archive"></button>
           <div class="product-info">
-            <h3 class="product-name">Archive Pack</h3>
+            <span class="product-tip">Chapter II shelf</span>
             <p class="product-desc">
-              Chapter II's shelf - Huaxia, Asgard, Hemithea, Pandemonium, Devas, Genesis,
+              Huaxia, Asgard, Hemithea, Pandemonium, Devas, Genesis,
               Transylvania and Tortuga. Five legends, and the final card is always
               <b>Epic</b>.
             </p>
@@ -1250,7 +1258,6 @@
               <span><b>Card odds</b> Common 45% &middot; Rare 35% &middot; Epic 20%</span>
               <span><b>Final card</b> Epic 100%</span>
             </p>
-            <button class="btn btn-primary buy-pack" data-pack="archive"></button>
           </div>
         </article>
         <p class="product-note shelf-note">
