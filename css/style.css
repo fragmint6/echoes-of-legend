@@ -16341,6 +16341,11 @@ body[data-gfx='low'] .turn-clock.crit {
 
    image-rendering: pixelated stays - the art is authored with hard
    edges, so any smoothing at card scale reads as blur.
+
+   FLAT COLOUR PASS (2026-08-19): every legend-art render site also
+   passes through the inline #eol-flat SVG filter (see index.html),
+   which posterizes each channel to 5 levels. The result is flatter,
+   banded colours over the same crisp nearest-neighbour pixels.
    ============================================================= */
 .art-portrait,
 .bart-portrait {
@@ -16356,6 +16361,19 @@ body[data-gfx='low'] .turn-clock.crit {
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
   user-select: none;
+}
+/* One rule covers every site that renders legend art: collection and
+   pack cards, battle tiles, the card-detail modal, the dialogue bust,
+   the rival plate, and the small faces (bark, tutor, wayfinder). */
+.art-portrait img,
+.bart-portrait img,
+.cd-art img,
+.chapter-dialogue-bust img,
+.rival-portrait,
+.rival-bark-face,
+.nav-guide-face,
+.tutor-face {
+  filter: url(#eol-flat);
 }
 
 /* ---- collection card: full-bleed illustration ----

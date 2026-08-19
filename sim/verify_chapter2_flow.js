@@ -326,6 +326,24 @@ const server = http.createServer((req, res) => {
     await sleep(300);
   }
 
+  /* ---------- F. the flat colour pass is wired ---------- */
+  console.log('F. the flat colour pass (posterized legend art)');
+  {
+    const flat = d.getElementById('eol-flat');
+    t(!!flat && flat.tagName.toLowerCase() === 'filter', 'index.html defines the #eol-flat SVG filter');
+    t(
+      !!flat && flat.querySelector('feFuncR[type="discrete"]') != null,
+      'the filter quantizes channels (discrete transfer) rather than darkening or blending'
+    );
+    const cssSrc = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+    t(
+      /\.art-portrait img,\s*\.bart-portrait img,[^}]*\.tutor-face\s*\{[^}]*filter:\s*url\(#eol-flat\)/s.test(cssSrc),
+      'every legend-art render site carries the flat filter rule'
+    );
+    /* A filter reference that 404s would silently render nothing. */
+    t(cssSrc.indexOf('url(#eol-flat)') >= 0, 'the rule references the inline filter, not a file');
+  }
+
   server.close();
   console.log('');
   console.log(fails + ' fail(s)');
