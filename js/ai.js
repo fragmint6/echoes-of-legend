@@ -585,7 +585,14 @@
               if (e.perBuffMax != null) bn = Math.min(bn, e.perBuffMax);
               bonus += atk * e.perBuff * bn;
             }
-            var raw = (atk * e.power + bonus) * (1 - E.defOf(t) / 100);
+            /* The Wheel of Seven: the AI prices element matchups in the
+               same breath as defence, or it will never prefer the prey
+               its element sears over the neutral target. */
+            var elDmg = e.element === 'inherit' ? unit.element : e.element;
+            var raw =
+              (atk * e.power + bonus) *
+              (1 - E.defOf(t) / 100) *
+              E.elementMult(elDmg, t.element);
             if (raw >= t.hp)
               s += 900 + raw * 0.4; // finishing blow
             else s += raw;

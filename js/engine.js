@@ -51,6 +51,51 @@
      the post-DEF damage by exactly CRIT_MULT. No variance, no scaling,
      no battlefield can touch it - Crit Chance is the only moving part. */
   var CRIT_MULT = 1.5;
+
+  /* ---------------------------------------------------------
+     THE WHEEL OF SEVEN (2026-08-19) - elements are mechanical now.
+     ---------------------------------------------------------
+     Seven elements in a cycle; each sears one and bows to one:
+
+       Fire sears Nature
+       Nature grounds Lightning
+       Lightning strikes the body (Physical)
+       the blade cuts the spell (Physical over Magic)
+       the word binds the shadow (Magic over Shadow)
+       the shadow eclipses the Light
+       the sun outshines the flame (Light over Fire)
+
+     THE FAIRNESS LAW: advantage and disadvantage are EXACT
+     reciprocals - 1.08 and 1/1.08 - so the two halves of any matchup
+     cancel precisely. The wheel MOVES damage between matchups; it
+     adds none in aggregate. That is the whole point: every element
+     has exactly one predator and one prey, nothing is strictly
+     better, and the counterplay is the draft-and-ban game.
+
+     SCOPE: attacks and counter-strikes (everything that flows
+     through dealDamage). Burn ticks, which ignore DEF and shields
+     and live outside the attack pipeline, are untouched.
+
+     DETERMINISM: a pure function of two element strings. The mirror
+     lock, the AI search and the sim all read the same table.
+     --------------------------------------------------------- */
+  var ELEMENT_ADV = 1.08;
+  var ELEMENT_DIS = 1 / ELEMENT_ADV; // exact reciprocal - the fairness law
+  var ELEMENT_BEATS = {
+    Fire: 'Nature',
+    Nature: 'Lightning',
+    Lightning: 'Physical',
+    Physical: 'Magic',
+    Magic: 'Shadow',
+    Shadow: 'Light',
+    Light: 'Fire',
+  };
+  function elementMult(attackerElement, defenderElement) {
+    if (!attackerElement || !defenderElement) return 1;
+    if (ELEMENT_BEATS[attackerElement] === defenderElement) return ELEMENT_ADV;
+    if (ELEMENT_BEATS[defenderElement] === attackerElement) return ELEMENT_DIS;
+    return 1;
+  }
   var RAMP_FROM = 4;
   var RAMP_STEP = 0.15; // +15% ATK per round past the threshold
 
@@ -530,7 +575,11 @@
           var inM = incomingMult(B, unit, tgt, ctx.signature === true, true);
           B._multTrail = null;
           var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
-          var afterDef = raw * outM * inM * resistM * (1 - defOf(tgt) / 100);
+          /* The Wheel of Seven rides the preview exactly as it rides the
+             real cast - the number on the hover IS the number dealt. */
+          var elDmg = e.element === 'inherit' ? unit.element : e.element;
+          var elM = elementMult(elDmg, tgt.element);
+          var afterDef = raw * outM * inM * resistM * elM * (1 - defOf(tgt) / 100);
           var hit = Math.max(1, Math.round(afterDef));
           total += hit;
           found = true;
@@ -588,6 +637,15 @@
               });
           }
           st.push({ k: 'raw', label: 'Base damage', value: raw, subtotal: true });
+          if (elM !== 1)
+            st.push({
+              k: 'element',
+              label:
+                elM > 1
+                  ? 'Element advantage (' + ELEMENT_BEATS[elDmg] + ')'
+                  : 'Element disadvantage',
+              mult: elM,
+            });
           if (outM !== 1) st.push({ k: 'outgoing', label: 'Attacker bonus', mult: outM });
           if (inM !== 1) st.push({ k: 'incoming', label: 'Target damage taken', mult: inM });
           if (resistM !== 1)
@@ -2107,7 +2165,7 @@
     return t;
   }
 
-  function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders) {
+  function dealDamage(B, src, tgt, raw, element, isAbility, noCounter, noRiders, persisted) {
     if (!tgt.alive) return 0;
 
     /* Run, Run, Run / Breadcrumb Barricade recover BEFORE the incoming
@@ -2169,7 +2227,13 @@
        timed flag it becomes a real support tool - a Medic can pre-emptively
        harden an ally instead of only repairing damage after it lands. */
     var resistM = tgt.flags.resistPct > 0 ? 1 - Math.min(90, tgt.flags.resistPct) / 100 : 1;
-    var mult = outM * inM * resistM;
+    /* The Wheel of Seven: element matchup rides the same multiplier
+       train as every other damage law. It reads the DAMAGE's element -
+       the element this blow is made of, not the card's - so a Fire
+       card swinging a Physical basic pays Physical's matchup, and a
+       Physical card casting a Fire signature pays Fire's. */
+    var elM = elementMult(element, tgt.element);
+    var mult = outM * inM * resistM * elM;
     var afterDef = raw * mult * (1 - defOf(tgt) / 100);
 
     // crit - always exactly CRIT_MULT (1.5x), never variable
@@ -2311,7 +2375,14 @@
       overkill: Math.max(0, dmg - hpBefore),
       crit: crit,
       element: element,
+      elementStrong: elM > 1,
+      elementWeak: elM < 1,
+      elementMult: elM,
       ability: !!isAbility,
+      /* an announced persisted effect (Azrael's hour) is the ONE legal
+         damage source from a fallen caster - flag it so invariant
+         taps can tell the rule from a regression */
+      persisted: !!persisted,
       killed: tgt.hp <= 0,
       tgtFront: isFront(tgt),
       tgtTaunting: tgt.flags.taunt > 0,
@@ -2326,13 +2397,23 @@
       logMsg(
         B,
         'damage',
-        src.name + ' hits ' + tgt.name + ' for ' + dmg + (crit ? ' (CRIT)' : '') + '.',
+        src.name +
+          ' hits ' +
+          tgt.name +
+          ' for ' +
+          dmg +
+          (crit ? ' (CRIT)' : '') +
+          (elM > 1 ? ' (STRONG)' : elM < 1 ? ' (WEAK)' : '') +
+          '.',
         {
           uid: tgt.uid,
           src: src.uid,
           amount: dmg,
           crit: crit,
           element: element,
+          elementStrong: elM > 1,
+          elementWeak: elM < 1,
+          elementMult: elM,
           hpAfter: tgt.hp,
           shieldAfter: tgt.shield,
           maxHp: tgt.maxHp,
@@ -3175,7 +3256,8 @@
             element,
             ctx.signature === true,
             false,
-            ctx.rider === true
+            ctx.rider === true,
+            !!ctx.persistedCaster
           );
           /* THE FULL BLOW, NOT JUST THE HP LOST. dealDamage() returns the
              HP damage only - the shield soak is already subtracted from it.
@@ -4937,6 +5019,10 @@
   window.EOL = window.EOL || {};
   window.EOL.engine = {
     ENERGY_BY_ROUND: ENERGY_BY_ROUND,
+    ELEMENT_BEATS: ELEMENT_BEATS,
+    ELEMENT_ADV: ELEMENT_ADV,
+    ELEMENT_DIS: ELEMENT_DIS,
+    elementMult: elementMult,
     energyForRound: energyForRound,
     CRIT_MULT: CRIT_MULT,
     RAMP_FROM: RAMP_FROM,

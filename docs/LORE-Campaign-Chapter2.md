@@ -1015,3 +1015,29 @@ one:
 
 Whichever is chosen, **the Crown Law is unaffected**: legendaries are never
 sold, so the eight campaign legendaries stay campaign-only regardless.
+
+---
+
+## 9. The Wheel of Seven
+
+*Added 2026-08-19, when the elements became mechanical. The Concord
+has always staged its fights under rules, and this is the oldest one.*
+
+Every arena in the city is chalked with a wheel of seven spokes, one
+syllable on each, and the ring means what the judges say it has always
+meant: a fire burns the green, but the sun makes the fire pointless.
+The grounded tree swallows the storm, but the storm strikes the body.
+The body breaks the spell, the word binds the shadow, the shadow
+eclipses the light — and the light outshines the flame. Each element
+sears one and bows to one; nothing in the wheel is strongest, which is
+exactly why it has survived four hundred years of people arguing about
+everything else.
+
+In play: an attack made of an element that sears its target deals
+eight percent more; an attack made of an element that bows to its
+target deals the exact reciprocal less. The two halves cancel, which
+is the point. The wheel does not make damage; it moves it, the way a
+market moves money, and like the market it rewards reading the board
+before you act. The card each legend carries names its prey and its
+predator. The Concord calls this the one law nobody ever petitions to
+have corrected.

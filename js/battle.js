@@ -5090,6 +5090,14 @@
         verdict.textContent = 'CRITICAL';
         pop.appendChild(verdict);
       }
+      /* The Wheel of Seven: the number announces the matchup. Strong in
+         gold, weak in ash-blue - the same honesty the preview shows. */
+      if (l.meta.elementStrong || l.meta.elementWeak) {
+        var ev = document.createElement('span');
+        ev.className = 'pop-element ' + (l.meta.elementStrong ? 'strong' : 'weak');
+        ev.textContent = l.meta.elementStrong ? 'STRONG' : 'WEAK';
+        pop.appendChild(ev);
+      }
       // stack simultaneous numbers so they don't overlap
       var lane = popLane[l.meta.uid] || 0;
       popLane[l.meta.uid] = lane + 1;

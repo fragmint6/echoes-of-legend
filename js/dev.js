@@ -13,6 +13,8 @@
                                withheld shelf included (the one card
                                it does not grant is the campaign boss,
                                which is not collectible at all)
+       EOL.dev.wheel()         print the Wheel of Seven (the element
+                               matchup cycle, advantage 1.08)
        EOL.dev.openRoad()      unlock every campaign gate
        EOL.dev.resetRoad()     blank the campaign + tutorial ONLY
                                (cards and coins kept) and reload
@@ -94,6 +96,17 @@
         ids.length +
         (owned === ids.length ? ' (every collectible card)' : ' (some cards failed to grant)')
       );
+    },
+    /* THE WHEEL OF SEVEN, in one console line - each element sears
+       one and bows to one, advantage 1.08 / disadvantage 1/1.08. */
+    wheel: function () {
+      var E = window.EOL.engine;
+      if (!E || !E.ELEMENT_BEATS) return 'engine not loaded';
+      var lines = ['Wheel of Seven (advantage x1.08, disadvantage the exact reciprocal):'];
+      Object.keys(E.ELEMENT_BEATS).forEach(function (el) {
+        lines.push('  ' + el + ' -> sears ' + E.ELEMENT_BEATS[el]);
+      });
+      return lines.join('\n');
     },
     openRoad: function () {
       var c = window.EOL.campaign;

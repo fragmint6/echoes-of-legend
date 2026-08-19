@@ -1,9 +1,7 @@
 # DESIGN — Elements: from paint to mechanics
 
-*Written 2026-08-19 as a decision document, not an implementation.
-Nothing in here ships until the owner picks a direction. Candidate
-systems are labelled A-G; the data below is measured from the live
-roster, not estimated.*
+*Written 2026-08-19 as a decision document, then shipped the same day.
+The owner chose the Wheel; the implementation status is in §4.*
 
 ---
 
@@ -192,18 +190,32 @@ gentler; it makes it creep.
 
 **Ship: the Wheel, symmetric, damage-only, ±8%.**
 
-1. One function (`elementMult(attacker, defender)`) read in one
-   place — the damage pipeline — so `previewDamage`, the AI's
-   `scoreAction`, the mirror and the sim all inherit the identical
-   number. Deterministic by construction.
-2. Damage only: no effect on statuses, energy or healing. The
-   interaction stays a single, measurable dial.
-3. The UI already has the surfaces: a small wheel in the card
-   detail, a Strong/Weak tint on the targeting preview the game
-   already renders, and one combat-text word.
-4. ±8% is texture, not identity. The soak measures matchup deltas;
-   if they distort, the dial moves to ±5% or the whole thing comes
-   out in one commit. Reversible is part of fair.
+**SHIPPED 2026-08-19.** The Wheel of Seven is live:
+
+- The cycle: Fire sears Nature, Nature grounds Lightning, Lightning
+  strikes the body, the blade cuts the spell (Physical over Magic),
+  the word binds the shadow (Magic over Shadow), the shadow eclipses
+  the Light, the sun outshines the flame.
+- Advantage multiplies the damage of the matchup by **1.08**;
+  disadvantage by **1/1.08** — exact reciprocals, the fairness law.
+- It reads the DAMAGE's element, not the card's: a Fire card swinging
+  its Physical basic pays Physical's matchup.
+- Scope: attacks and counter-strikes (everything through
+  dealDamage). Burn ticks, which ignore DEF and shields and live
+  outside the attack pipeline, are untouched.
+- Surfaces: the damage hover breakdown shows an "Element advantage
+  (X)" row; damage numbers announce STRONG/WEAK; the card detail
+  prints the legend's prey and predator under the tags.
+- The AI prices the matchup in `scoreEffects`; the mirror lock and
+  the sim read the same pure table.
+- `sim/verify_elements.js` (49 assertions) holds the cycle, the
+  reciprocity law, pipeline application, preview honesty, AI pricing
+  and determinism.
+
+Balance numbers stay UNVERIFIED by design: the soak has not yet
+measured matchup deltas with the wheel on. The dial is one constant
+(`ELEMENT_ADV`); if the measurement distorts, it moves to 1.05 or
+the whole thing comes out in one commit.
 
 **What the Wheel does NOT fix, honestly stated:** the roster's
 element spread (Physical 30, Lightning 5). The cycle gives each
