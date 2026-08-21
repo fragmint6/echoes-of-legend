@@ -1302,6 +1302,34 @@
     }
   }
 
+  /* The heal chip's hover panel. Deliberately smaller than the damage
+     breakdown: a heal has one number, and the only things that surprise
+     a player are the two ways it can come out lower than the skill
+     prints - late-game decay, and healing a target that is nearly
+     full. Both are stated only when they actually apply. */
+  function healBreakdownHTML(hv, tgt) {
+    var foot = '';
+    if (hv.full) {
+      foot += '<div class="dpb-note good">Restores ' + tgt.name + ' to <b>full HP</b>.</div>';
+    }
+    if (hv.overheal > 0) {
+      foot +=
+        '<div class="dpb-note"><b>' +
+        hv.overheal.toLocaleString() +
+        '</b> of this is overheal - they are not missing enough HP to use it.</div>';
+    }
+    if (hv.decayed) {
+      foot +=
+        '<div class="dpb-note">Healing is being scaled by the round\u2019s decay, so this differs from the printed value.</div>';
+    }
+    if (!foot) return '';
+    return (
+      '<span class="dmg-breakdown"><span class="dpb-title">What this heal does</span>' +
+      foot +
+      '</span>'
+    );
+  }
+
   function dmgBreakdownHTML(pv, tgt, lethal) {
     var hits = pv && pv.hits;
     if (!hits || !hits.length) return '';
@@ -1344,6 +1372,18 @@
         '</b>.</div>';
     }
     if (lethal) foot += '<div class="dpb-note kill">This is lethal.</div>';
+    /* ENOUGH DAMAGE, BUT THEY STILL WILL NOT DIE (bug 2026-08-21).
+       A reprieve holds the target at 1 HP, so the forecast withholds
+       the skull - and says why, because "I did more than their HP and
+       they lived" is exactly the moment a player calls it a bug. */
+    else if (pv.reprieve) {
+      foot +=
+        '<div class="dpb-note">' +
+        (pv.reprieve === 'spirit'
+          ? 'Enough to kill, but the <b>Spirit World</b> holds them at <b>1 HP</b>. The next blow finishes it.'
+          : 'Enough to kill, but their Skill leaves them at <b>1 HP</b> once. The next blow finishes it.') +
+        '</div>';
+    }
     if (pv.bonus === true) {
       foot += '<div class="dpb-note good">The Skill\u2019s bonus condition is met.</div>';
     } else if (pv.bonus === false) {
@@ -1431,6 +1471,27 @@
                  assumed from the side. */
               flipBreakdown(chip);
             }
+          } else {
+            /* THE HEAL FORECAST (2026-08-21). The comment above says
+               "allies/heals show nothing", which was the old rule; a
+               heal is just as much a "will this be enough?" question as
+               a blow, so friendly targets now wear the number too. Only
+               when this skill really heals THIS target. */
+            var hv = E.previewHeal && E.previewHeal(B, sel.unit, sel.ability, u, sel.choose);
+            if (hv && hv.heal > 0) {
+              var hchip = el.querySelector('.dmg-preview');
+              if (!hchip) {
+                hchip = document.createElement('span');
+                el.appendChild(hchip);
+              }
+              hchip.className = 'dmg-preview heal-preview' + (hv.full ? ' full' : '');
+              hchip.innerHTML =
+                '<i data-icon-domain="game" class="ra ra-health"></i>+' +
+                hv.heal.toLocaleString() +
+                healBreakdownHTML(hv, u);
+              hchip.removeAttribute('title');
+              flipBreakdown(hchip);
+            }
           }
         }
       });
@@ -1483,6 +1544,22 @@
               pv.dmg.toLocaleString() +
               (pv.lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '');
             el.appendChild(chip);
+          }
+        } else {
+          /* THE HEAL FORECAST (2026-08-21): the same courtesy the enemy
+             side has always had. Without it a Medic was the only role
+             whose numbers the player had to guess at. Shown on the
+             friendly side only, and only when this skill actually heals
+             this target - a friendly buff with no heal shows nothing
+             rather than a misleading zero. */
+          var hv = E.previewHeal && E.previewHeal(B, u, ability, t, choose || 0);
+          if (hv && hv.heal > 0) {
+            var hchip = document.createElement('span');
+            hchip.className = 'dmg-preview heal-preview' + (hv.full ? ' full' : '');
+            hchip.innerHTML =
+              '<i data-icon-domain="game" class="ra ra-health"></i>+' +
+              hv.heal.toLocaleString();
+            el.appendChild(hchip);
           }
         }
       }

@@ -181,6 +181,22 @@ const BANDS = {
     [10, 15],
   ],
 };
+
+/* SANCTIONED BAND EXCEPTIONS.
+   The bands are the roster's guardrail and a card should need a reason
+   to leave one. Each entry here is an explicit owner decision, dated,
+   so an accidental typo still fails while a deliberate outlier does not
+   force the whole role's band open for every other card in it.
+
+   sherwood-robin-hood (2026-08-21): ATK 1955 -> 2250, above the Sniper
+   ceiling of 2000. Robin pays for it with the roster's harshest
+   drawback - `forceTarget: 'highestAtk'` means he NEVER chooses his
+   victim - and his conditional arms only pay against debuffed or
+   Marked enemies, which the opponent controls. He was the weakest
+   legendary on the shelf before this. */
+const BAND_EXCEPTIONS = {
+  'sherwood-robin-hood': { atk: [2250, 2250] },
+};
 const ROLES = Object.keys(BANDS);
 const RARITIES = ['legendary', 'epic', 'rare', 'common'];
 const ELEMENTS = ['Physical', 'Magic', 'Shadow', 'Light', 'Lightning', 'Fire', 'Nature'];
@@ -260,9 +276,11 @@ ALL.forEach((c) => {
 
   const b = BANDS[c.role],
     s = c.stats;
-  ok(s.hp >= b[0][0] && s.hp <= b[0][1], `${L}: HP ${s.hp} in ${c.role} band ${b[0].join('-')}`);
-  ok(s.atk >= b[1][0] && s.atk <= b[1][1], `${L}: ATK ${s.atk} in band ${b[1].join('-')}`);
-  ok(s.def >= b[2][0] && s.def <= b[2][1], `${L}: DEF ${s.def} in band ${b[2].join('-')}`);
+  const ex = BAND_EXCEPTIONS[c.id] || {};
+  const band = (i, key) => (ex[key] ? ex[key] : b[i]);
+  ok(s.hp >= band(0, 'hp')[0] && s.hp <= band(0, 'hp')[1], `${L}: HP ${s.hp} in ${c.role} band ${band(0, 'hp').join('-')}`);
+  ok(s.atk >= band(1, 'atk')[0] && s.atk <= band(1, 'atk')[1], `${L}: ATK ${s.atk} in band ${band(1, 'atk').join('-')}`);
+  ok(s.def >= band(2, 'def')[0] && s.def <= band(2, 'def')[1], `${L}: DEF ${s.def} in band ${band(2, 'def').join('-')}`);
 
   (iconUse[c.icon] = iconUse[c.icon] || []).push(L);
   if (ICONS) ok(ICONS.has(c.icon), `${L}: icon ${c.icon} exists in RPG Awesome`);
@@ -1680,6 +1698,48 @@ section('B9. Protection model - Taunt pierce / AoE no-collapse / Untargetable');
       c.name + ' ignores Provoke exactly as its text promises'
     );
   });
+
+  /* THE PASSIVE CASE (bug report 2026-08-21).
+     The two checks above both read `ability.spec`, so they can only see
+     cards whose pierce lives on an ACTIVE. A card whose identity is a
+     PASSIVE attacks with the shared role Basic, which no card may
+     annotate - Robin Hood promised "always targets the highest ATK
+     enemy" and was redirected by every Provoke regardless. The
+     card-level opt-in is `ability.passive.piercesTaunt`, and it has to
+     be proven against the Basic the legend actually swings. */
+  ALL.filter((c) => c.ability.type === 'Passive' && claimsPierce(c)).forEach((c) => {
+    const B = setup(c.id, { taunt: 'camelot-king-arthur' });
+    const u = U(B, c.id);
+    const basic = E.roleAbility(u);
+    ok(
+      E.piercesTaunt(u, basic),
+      c.name + ' pierces Provoke on the role Basic its passive fires through'
+    );
+    /* Piercing means the redirect never happens, so the FULL enemy line
+       stays legal - the provoker included. It does not make the
+       provoker untargetable, which is why this asserts breadth rather
+       than Arthur's absence. */
+    const pool = E.legalTargets(B, u, basic);
+    ok(
+      pool.length > 1,
+      c.name + ' keeps the whole line legal through a Provoke (' + pool.length + ' targets)'
+    );
+  });
+
+  /* ...and the opt-in must not leak. A passive that says nothing about
+     Provoke is still walled, so the new card-level flag cannot quietly
+     become "every passive ignores taunts". */
+  ALL.filter(
+    (c) => c.ability.type === 'Passive' && !claimsPierce(c) && c.role !== 'Sniper'
+  ).forEach((c) => {
+    const B = setup(c.id, { taunt: 'camelot-king-arthur' });
+    const u = U(B, c.id);
+    if (!u || u.card.id === 'camelot-king-arthur') return;
+    ok(
+      !E.piercesTaunt(u, E.roleAbility(u)),
+      'Taunt still walls the Basic of passive ' + c.name
+    );
+  });
 }
 
 /* =============================================================
@@ -2538,8 +2598,12 @@ section('SKILL TEXT SCALING');
   const at = EOL.scaleSkillText(ath.ability.text, ath, PTS);
   ok(/>21</.test(at), "Athena's 15% less damage reads 21% at max");
   ok(/>16</.test(at), '...and her 10% Marked reduction reads 16%');
+  /* Robin's arms were rebalanced 12%/10% -> 50%/75% (owner buff
+     2026-08-21), so the scaled readings move with them. */
   const rob = CARD['sherwood-robin-hood'];
-  ok(/>18</.test(EOL.scaleSkillText(rob.ability.text, rob, PTS)), "Robin Hood's 12% bonus reads 18%");
+  const rt = EOL.scaleSkillText(rob.ability.text, rob, PTS);
+  ok(/>56</.test(rt), "Robin Hood's 50% debuff bonus reads 56% at max");
+  ok(/>81</.test(rt), '...and his 75% Marked bonus reads 81%');
 
   /* THE FLAT RULE, stated once: 50 goes to 52, not 50.75. */
   const anu = CARD['duat-anubis'];

@@ -747,7 +747,73 @@
            everyone), and the total this hit must beat to kill. */
         preHeal: preHeal,
         effectiveHp: tgt.hp + tgt.shield + preHeal,
-        lethal: total >= tgt.hp + tgt.shield + preHeal,
+        /* A BLOW IS ONLY LETHAL IF THE TARGET IS ALLOWED TO DIE
+           (bug report 2026-08-21). Two reprieves hold a legend at 1 HP
+           instead of killing them, and the forecast used to ignore
+           both - so the skull promised a kill on Benkei, and on every
+           legend in the Spirit World, that the engine then refused to
+           deliver. Each is once-per-legend, so it only lies while the
+           reprieve is still unspent; after it is burned the same blow
+           really is lethal and the skull is correct again. */
+        lethal: total >= tgt.hp + tgt.shield + preHeal && !survivesLethal(B, tgt),
+        /* why the kill was withheld, so the UI can say so rather than
+           silently dropping the skull */
+        reprieve: total >= tgt.hp + tgt.shield + preHeal ? reprieveKind(B, tgt) : null,
+      };
+    } catch (e) {
+      return null; // a broken preview must never break a fight
+    }
+  }
+
+  /* THE HEAL FORECAST (feature 2026-08-21).
+     The mirror of previewDamage for friendly targets. Players could see
+     exactly what a blow would do to an enemy but had to guess what a
+     Medic would restore, which is the same information problem.
+
+     It must agree with the `heal` case in applyEffects AND with
+     healUnit(), so it reproduces all three terms that move the number:
+       - the pctMaxHp / power-of-ATK split, plus the upgrade bonuses
+       - healDecay(round), the escalating late-game healing penalty
+       - the target's own flags.healMod
+     and finally clamps to the HP actually missing, because a 4,000 heal
+     on a target missing 900 restores 900. `overheal` reports the
+     remainder so the UI can explain a small number on a big skill.
+
+     Conditional arms (`e.if`) are evaluated exactly as the real cast
+     does, so a heal that only fires below 50% HP forecasts 0 above it
+     rather than promising healing that will not arrive. */
+  function previewHeal(B, unit, ability, tgt, chooseIndex) {
+    try {
+      var spec = ability && ability.spec;
+      if (!B || !unit || !spec || !tgt || !tgt.alive || ability.type !== 'Active') return null;
+      var effects = spec.effects || [];
+      if (spec.choose && spec.choose[chooseIndex || 0]) {
+        effects = spec.choose[chooseIndex || 0].effects;
+      }
+      var ctx = { signature: !ability.basic, scale: 1, self: unit, preHp: {} };
+      var raw = 0;
+      effects.forEach(function (e) {
+        if (!e || e.k !== 'heal') return;
+        if (e.to === 'self' && tgt.uid !== unit.uid) return;
+        if (!condMet(B, e.if, condCtx(ctx, tgt))) return;
+        raw +=
+          e.pctMaxHp != null
+            ? tgt.maxHp * ((e.pctMaxHp + upPts(unit, ctx)) / 100)
+            : atkOf(unit) * ((e.power || 1) + upAdd(unit, ctx));
+      });
+      if (raw <= 0) return null;
+      /* the same two modifiers healUnit() applies before it lands */
+      var mod = healDecay(B.round);
+      if (tgt.flags && tgt.flags.healMod) mod += tgt.flags.healMod / 100;
+      var amt = Math.max(0, Math.round(raw * mod));
+      var missing = Math.max(0, tgt.maxHp - tgt.hp);
+      return {
+        heal: Math.min(amt, missing),
+        overheal: Math.max(0, amt - missing),
+        /* true when healing is being taxed or boosted, so the UI can
+           explain a number that does not match the printed skill */
+        decayed: mod !== 1,
+        full: missing > 0 && amt >= missing,
       };
     } catch (e) {
       return null; // a broken preview must never break a fight
@@ -1379,12 +1445,51 @@
   /* legacy alias kept so older call sites and tests keep resolving */
   var TAUNT_PIERCE_MULT = PROVOKE_TAX;
 
+  /* ---------------------------------------------------------
+     WHO IS ALLOWED TO DIE (used by the damage forecast)
+     ---------------------------------------------------------
+     Two once-per-legend reprieves hold a target at 1 HP instead of
+     killing it. dealDamage() applies them in this order, and these
+     mirror that order so the preview cannot disagree with the blow:
+
+       1. The Spirit World's `spiritReprieve`, gated on `spiritSpared`
+       2. Benkei-style `deathCheat`, gated on `deathCheated`
+
+     Both are SPENT flags: once burned, the next blow really does kill,
+     and the forecast must go back to promising it. Keep in step with
+     dealDamage() - if a third reprieve is ever added, it belongs in
+     both places. */
+  function reprieveKind(B, tgt) {
+    if (B && B.field && B.field.spiritReprieve && !tgt.spiritSpared) return 'spirit';
+    var p = passiveOf(tgt);
+    if (p && p.deathCheat && !tgt.deathCheated) return 'deathCheat';
+    return null;
+  }
+  function survivesLethal(B, tgt) {
+    return reprieveKind(B, tgt) !== null;
+  }
+
   /* Does this specific ability ignore the Provoke REDIRECT?
      Role default: Sniper signatures. A card may opt in explicitly with
-     `target.piercesTaunt` (or opt out with `piercesTaunt: false`). */
+     `target.piercesTaunt` (or opt out with `piercesTaunt: false`).
+
+     THE PASSIVE CASE (bug report 2026-08-21). The ability-level flag
+     cannot help a card whose identity lives in a PASSIVE, because such
+     a card attacks with the shared role Basic - an object owned by
+     data/roles.js that no single card may annotate. Robin Hood is the
+     example: his passive promises he always shoots the highest-ATK
+     enemy, yet every Provoke redirected him onto the taunting Tank,
+     because the Basic he swings is `basic` and the Sniper default only
+     covers signatures.
+
+     So a CARD may also opt in, via `ability.passive.piercesTaunt`, and
+     that applies to everything it does. This is checked after the
+     ability-level flag, so an individual ability can still opt out. */
   function piercesTaunt(unit, ability) {
     var t = (ability.spec || {}).target || {};
     if (t.piercesTaunt != null) return !!t.piercesTaunt;
+    var p = (unit.card && unit.card.ability && unit.card.ability.passive) || null;
+    if (p && p.piercesTaunt != null) return !!p.piercesTaunt;
     return unit.role === 'Sniper' && !ability.basic;
   }
 
@@ -5094,6 +5199,11 @@
     usableNow: usableNow,
     whyCantAct: whyCantAct,
     previewDamage: previewDamage,
+    previewHeal: previewHeal,
+    /* exported so the Provoke rules are directly testable - the
+       card-level opt-in added 2026-08-21 has no other observable
+       surface until a full turn resolves */
+    piercesTaunt: piercesTaunt,
     legalTargets: legalTargets,
     pickCount: pickCount,
     resolveTargets: resolveTargets,

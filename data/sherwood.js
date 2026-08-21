@@ -37,19 +37,37 @@ window.EOL.registerFaction({
       rarity: 'legendary',
       role: 'Sniper',
       element: 'Nature',
-      stats: { hp: 4530, atk: 1955, def: 10 },
+      /* BUFF 2026-08-21 (owner ruling). ATK 1955 -> 2250 and the two
+         conditional arms go 12%/10% -> 50%/75%. Robin was the weakest
+         legendary on the shelf: his passive spends his whole identity
+         on a target he does not choose, and the old 10-12% arms were
+         inside the noise of a single DEF point, so the drawback was
+         real and the payoff was not. The Marked arm is now the larger
+         of the two because Marked is a deliberate setup another legend
+         has to spend a turn creating, while debuffs land incidentally. */
+      stats: { hp: 4530, atk: 2250, def: 10 },
       ability: {
         type: 'Passive',
         name: "Outlaw's Aim",
         cost: null,
-        text: 'Always targets the enemy with the highest ATK and deals <b>12% increased damage</b> to debuffed enemies and <b>10% increased damage</b> to <b>Marked</b> enemies.',
+        text: 'Always targets the enemy with the highest ATK, ignores <b>Provoke</b>, and deals <b>50% increased damage</b> to debuffed enemies and <b>75% increased damage</b> to <b>Marked</b> enemies.',
         note: null,
         passive: {
           trigger: 'static',
           forceTarget: 'highestAtk',
+          /* THE PROVOKE FIX (bug report 2026-08-21). piercesTaunt()
+             defaults to `role === 'Sniper' && !ability.basic`, which
+             covers Sniper SIGNATURES. Robin's ability is a PASSIVE: he
+             attacks with the role Basic, so he was walled by every
+             Provoke despite being the roster's designated marksman -
+             and the redirect flatly contradicted `forceTarget` above.
+             A card-level flag is required here precisely because the
+             Basic belongs to data/roles.js and cannot be annotated per
+             card. Read by piercesTaunt() in js/engine.js. */
+          piercesTaunt: true,
           effects: [
-            { k: 'outgoingMult', mult: 1.12, when: { targetHasDebuff: true } },
-            { k: 'outgoingMult', mult: 1.1, when: { targetMarked: true } },
+            { k: 'outgoingMult', mult: 1.5, when: { targetHasDebuff: true } },
+            { k: 'outgoingMult', mult: 1.75, when: { targetMarked: true } },
           ],
         },
       },

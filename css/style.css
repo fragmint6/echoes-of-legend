@@ -26792,6 +26792,26 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
   font-size: 10px;
 }
 
+/* ---- the heal forecast (2026-08-21) -----------------------------
+   The friendly-side twin of the damage chip. Same geometry so the
+   two read as one system; the palette flips from the damage chip's
+   amber to the restorative green used by .pop.heal, because the
+   colour is the fastest way to tell "this helps them" from "this
+   hurts them" on a crowded board. */
+.dmg-preview.heal-preview {
+  border-color: rgba(126, 231, 160, 0.65);
+  background: rgba(8, 18, 12, 0.95);
+  color: #8fe3b0;
+}
+/* A heal that fills the bar is the one worth spotting at a glance. */
+.dmg-preview.heal-preview.full {
+  border-color: rgba(150, 245, 180, 0.95);
+  color: #b6ffcf;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.55),
+    0 0 12px rgba(126, 231, 160, 0.35);
+}
+
 /* ---- the hover breakdown ----------------------------------------
    Hidden until the chip is hovered. Positioned above the chip and
    centred on it; it flips below when the chip is near the top of the
@@ -30408,6 +30428,17 @@ body[data-gfx='low'] .card-ready {
   height: 26px;
   display: grid;
   place-items: center;
+  /* THE GLYPH WAS OFF-CENTRE (bug report 2026-08-21). This is a real
+     <button>, so it carries the UA's own padding and its centred text
+     baseline; place-items only centres the box the padding leaves
+     behind, which pushed the 'i' down and to the right. Zeroing the
+     padding and normalising the line box puts the glyph on the button's
+     actual centre. */
+  padding: 0;
+  line-height: 1;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid var(--line-2);
   border-radius: 7px;
   background: rgba(6, 8, 15, 0.82);
@@ -30418,6 +30449,13 @@ body[data-gfx='low'] .card-ready {
   transition:
     opacity 0.2s var(--ease),
     color 0.2s var(--ease);
+}
+/* The icon font's own line box is the other half of the problem: an
+   inline <i> sits on a text baseline, leaving descender space below it.
+   Making it a block with a 1:1 line-height removes that entirely. */
+.card-info i {
+  display: block;
+  line-height: 1;
 }
 .card:hover .card-info,
 .card-info:focus-visible {

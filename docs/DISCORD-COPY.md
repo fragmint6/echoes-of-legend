@@ -1,12 +1,68 @@
-# Discord Copy - First Demo Release
+# Discord Copy
 
-Three ready-to-paste messages, one per channel. Discord markdown throughout
+Ready-to-paste messages, one per channel. Discord markdown throughout
 (`**bold**`, `#`/`##` headers, `>` quotes, `-#` subtext). No em dashes.
+
+Two sets below: the **Chapter II update** (newest, post this now) and the
+**first demo release** copy kept for reference.
+
+---
+
+# Chapter II Update
+
+One message, 1,960 characters, under the 2,000 limit. Checked against the
+shipping build on 2026-08-19: 115 legends across 16 factions (60 of them new
+in Chapter II), gates XI-XX with exams at XV and XIX, four shelf packs, and
+the Wheel of Seven at 1.08 / (1/1.08).
+
+## #announcements
+
+```
+# Chapter II is live
+
+**The Hundred-Year Truce.** Every hundred years, in a city that exists for one week and is dismantled after, the dead settle the one thing they still disagree about: whose version is true. The winner holds the Canon for a century.
+
+**10 new gates** (XI to XX), two exams, one boss. Chapter II opens on a finished Chapter I shelf and the curve assumes it.
+
+**60 new legends** across 8 factions: Hemithea, Huaxia, Genesis, Transylvania, Asgard, Devas, Tortuga, Pandemonium. The roster is now **115 legends across 16 factions**. Huaxia was held back at launch for this and is finally obtainable.
+
+**Shop rework.** Four packs on the shelf:
+- **Daily** - free, 1 card, once a day
+- **Echoes** - 500, 5 cards, Chapter I pool
+- **Archive** - 500, 5 cards, Chapter II pool
+- **Featured** - 500, 5 cards, a rotating faction pair each week
+
+Every 500 pack guarantees an Epic. No legendary in any pack, ever. Those come from the Road.
+
+**Card upgrades.** Duplicates do something now. Level a card 0 to 3 for 1/3/5 copies plus 500 coins a level. Each level gives **+2 skill points** and one boost you pick: **+5% ATK**, **+7% HP** or **+3 DEF**. Every level carries its own, so two ATK and one HP is a real build, and it all re-assigns freely outside battle.
+
+**Echo Shards.** Duplicates also melt into shards, and shards craft a copy of a card you already own at any rarity. Crafting costs 20x what that rarity yields, so pulls always beat crafting on value. Shards are the pity floor, not the fast lane.
+
+Upgrades apply in Classic, campaign and multiplayer. Not drafts, not the Daily Puzzle.
+
+**The Wheel of Seven.** Elements are mechanical now. Each one sears the next and bows to the one before:
+> Fire > Nature > Light > Shadow > Magic > Lightning > Physical > Fire
+
+Advantage and disadvantage are exact reciprocals, 1.08 and 1/1.08, so the wheel moves damage between matchups and adds none overall. Every element has one predator and one prey.
+```
+
+-# If you want it shorter, the Echo Shards paragraph and the Hundred-Year
+-# Truce quote are the two most cuttable blocks - dropping both leaves about
+-# 1,450 characters and loses no mechanics.
+
+---
+
+# First Demo Release
+
+Three ready-to-paste messages, one per channel.
 
 Everything factual below was checked against the shipping build: 63 legends,
 9 factions, 6 roles, 10 battlefields, 2 bans, teams of 6 from decks of 12,
 and Unabridged (best-of-3 wars) in solo. Launch copy updated 2026-08-05;
 roadmap updated 2026-08-12.
+
+-# Superseded by the Chapter II copy above: the roster is now 115 legends
+-# across 16 factions, and the campaign has two chapters.
 
 ---
 

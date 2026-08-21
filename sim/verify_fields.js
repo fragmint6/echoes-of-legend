@@ -376,6 +376,44 @@ const SW_VICTIM = 'huaxia-guan-yu';
   ok(tgt.spiritSpared === true, 'the reprieve is recorded on the legend');
 }
 {
+  /* THE FORECAST MUST NOT PROMISE A KILL THE FIELD WILL REFUSE
+     (bug report 2026-08-21). previewDamage used to compare raw damage
+     against hp+shield and flash the skull, so on this board it lied on
+     literally every legend's first death. */
+  const B = board(F('spirit-world'));
+  B.energy.player = 150;
+  const killer = U(B, 'sherwood-guy-of-gisborne');
+  const tgt = U(B, SW_VICTIM);
+  tgt.hp = 1;
+  const pv = E.previewDamage(B, killer, E.roleAbility(killer), tgt, 0);
+  ok(pv && pv.dmg > tgt.hp, 'the blow really is bigger than their HP');
+  ok(pv && pv.lethal === false, 'but the forecast withholds the skull in the Spirit World');
+  ok(pv && pv.reprieve === 'spirit', 'and names the Spirit World as the reason');
+  /* once the reprieve is spent the same blow really does kill, and the
+     forecast has to go back to promising it */
+  tgt.spiritSpared = true;
+  const pv2 = E.previewDamage(B, killer, E.roleAbility(killer), tgt, 0);
+  ok(pv2 && pv2.lethal === true, 'once spent, the same blow forecasts lethal again');
+  ok(pv2 && pv2.reprieve === null, 'with no reprieve left to report');
+}
+{
+  /* The same honesty for a CARD-level reprieve. Benkei's `deathCheat`
+     holds him at 1 HP once, on any board. */
+  const B = board(F('colosseum'));
+  B.energy.player = 150;
+  const killer = U(B, 'sherwood-guy-of-gisborne');
+  const ben = U(B, 'yamato-benkei');
+  if (ben) {
+    ben.hp = 1;
+    const pv = E.previewDamage(B, killer, E.roleAbility(killer), ben, 0);
+    ok(pv && pv.lethal === false, 'Benkei: a fatal-looking blow is not forecast as lethal');
+    ok(pv && pv.reprieve === 'deathCheat', 'and the reason is his death-cheat');
+    ben.deathCheated = true;
+    const pv2 = E.previewDamage(B, killer, E.roleAbility(killer), ben, 0);
+    ok(pv2 && pv2.lethal === true, 'once his cheat is spent the forecast promises the kill');
+  }
+}
+{
   /* the reprieve is spent: the next lethal blow finishes the job */
   const B = board(F('spirit-world'));
   B.energy.player = 150;
