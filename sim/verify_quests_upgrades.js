@@ -1857,6 +1857,85 @@ sec('S22. The battlefield card cannot be orphaned or skipped');
   );
 }
 
+sec('S23. Killing an entrance animation never leaves a modal invisible');
+{
+  /* BUG REPORT 2026-08-21, second half: "bf-reveal is in the elements
+     panel with .show, but it is invisible on my friend's screen - and
+     still interactable."
+
+     .bf-card is authored at opacity:0 and made visible ONLY by bf-in's
+     `forwards` fill. The reduced-motion block killed that animation
+     with !important and restored nothing, so the card sat at zero
+     opacity forever while .bf-reveal.show stayed visibility:visible and
+     inset:0 - an invisible full-screen click trap over the ban phase.
+     This is a per-USER setting, which is why it hit one machine and not
+     another. */
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+
+  /* isolate the reduced-motion block that disables the reveal's motion */
+  const at = css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .bf-art *,");
+  ok(at > 0, 'the reveal still has a reduced-motion rule');
+  let depth = 0;
+  let end = -1;
+  for (let i = at; i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    else if (css[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  const blk = css.slice(at, end + 1);
+  ok(
+    /animation:\s*none\s*!important/.test(blk),
+    'and it still strips the entrance motion'
+  );
+  ok(
+    /\.bf-card \{[^}]*opacity:\s*1\s*!important/.test(blk),
+    'but restates the animation END STATE so the card is visible at once'
+  );
+  ok(
+    /\.bf-card \{[^}]*transform:\s*none\s*!important/.test(blk),
+    'including the transform, so it is not left offset'
+  );
+
+  /* THE GENERAL RULE. Any selector that starts at opacity:0 and relies
+     on an animation must not have that animation killed !important
+     without something putting the opacity back. Scan the whole sheet so
+     the next decorative-motion cull cannot recreate this. */
+  const startsInvisible = new Map();
+  const ruleRe = /(^|\})\s*([^{}@]+)\{([^{}]*)\}/g;
+  let m;
+  while ((m = ruleRe.exec(css))) {
+    const sel = m[2].replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/\s+/g, ' ');
+    const body = m[3];
+    if (/opacity:\s*0\s*[;\n]/.test(body) && /animation:\s*[a-zA-Z][\w-]*/.test(body)) {
+      sel.split(',').forEach((s) => {
+        s = s.trim();
+        if (s) startsInvisible.set(s, true);
+      });
+    }
+  }
+  const offenders = [];
+  const killRe = /([^{}]+)\{[^{}]*animation:\s*none\s*!important([^{}]*)\}/g;
+  while ((m = killRe.exec(css))) {
+    const rest = m[2];
+    if (/opacity:\s*1/.test(rest)) continue; // restored in the same rule
+    m[1].split(',').forEach((s) => {
+      s = s.trim().replace(/\s+/g, ' ');
+      const leaf = s.split(' ').filter(Boolean).pop();
+      if (startsInvisible.has(leaf) || startsInvisible.has(s)) offenders.push(s);
+    });
+  }
+  ok(
+    offenders.length === 0,
+    'no element that needs an animation to appear has it killed without a fallback' +
+      (offenders.length ? ' (' + offenders.join(', ') + ')' : '')
+  );
+}
+
 console.log(
   '\n' + (fail ? '\x1b[31m' : '\x1b[32m') + 'pass ' + pass + '  fail ' + fail + '\x1b[0m'
 );

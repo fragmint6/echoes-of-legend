@@ -12839,6 +12839,23 @@ html.mqw640 .draft-pack {
   .bf-card {
     animation: none !important;
   }
+  /* AN ENTRANCE ANIMATION IS NOT DECORATION (bug report 2026-08-21:
+     "bf-reveal is in the DOM and interactable but invisible").
+     .bf-card is authored at `opacity: 0` and is made visible ONLY by
+     bf-in's `forwards` fill. Killing the animation above therefore
+     stranded it at zero opacity permanently - while .bf-reveal.show
+     stayed visibility:visible and inset:0, so the full-screen scrim
+     went on swallowing every click. The player saw the ban phase
+     apparently freeze behind an invisible wall.
+
+     Reduced motion means ARRIVE INSTANTLY, never ARRIVE NEVER, so the
+     animation's end state has to be restated as the resting state.
+     The same pairing is already applied to the entrance staggers in
+     low-graphics mode further down this sheet. */
+  .bf-card {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 /* =============================================================
    BATTLEFIELD BOARDS
