@@ -310,13 +310,6 @@ body[data-gfx='low'] .daily-modal:not([aria-hidden='true']) .daily-forge,
 body[data-gfx='low'] .daily-modal:not([aria-hidden='true']) .daily-sigil {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .daily-modal:not([aria-hidden='true']),
-  .daily-modal:not([aria-hidden='true']) .daily-forge,
-  .daily-modal:not([aria-hidden='true']) .daily-sigil {
-    animation: none;
-  }
-}
 
 /* In-battle provenance. Unlike the battlefield chip, this does not open:
    it is only a compact reminder that this is the official Daily Puzzle. */

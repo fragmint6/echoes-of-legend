@@ -4780,9 +4780,12 @@
      -------------------------------------------------------- */
   function playCoinFlip(face, label) {
     var heads = face === 'heads';
-    var reduced =
-      document.body.dataset.gfx === 'low' ||
-      (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    /* THE GAME'S OWN SETTING DECIDES (owner ruling 2026-08-21).
+       This used to OR in the OS `prefers-reduced-motion` query, so a
+       Windows "show animations off" / macOS "reduce motion" user got
+       the stripped presentation with no way to turn it back on. Motion
+       is now controlled by Settings > Graphics alone. */
+    var reduced = document.body.dataset.gfx === 'low';
     /* IMPACT IS AT 1450ms, NOT 1510ms. The flight keyframes put the
        coin on the table at 96% of a 1.51s animation, and js/audio.js
        already rings its landing tone at t+1.45s. Firing the land pulse,

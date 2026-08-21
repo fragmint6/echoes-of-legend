@@ -1857,76 +1857,80 @@ sec('S22. The battlefield card cannot be orphaned or skipped');
   );
 }
 
-sec('S23. Killing an entrance animation never leaves a modal invisible');
+sec('S23. The OS reduce-motion setting does not reach the game');
 {
-  /* BUG REPORT 2026-08-21, second half: "bf-reveal is in the elements
-     panel with .show, but it is invisible on my friend's screen - and
-     still interactable."
+  /* OWNER RULING 2026-08-21. A player on Windows "show animations off"
+     / macOS "Reduce motion" used to silently get a DIFFERENT game: 28
+     stylesheet blocks stripped motion, and js/app.js started them in
+     Low graphics with no way back. It also caused a real bug - the
+     battlefield reveal's entrance animation was killed without
+     restoring the opacity it animated FROM, so .bf-card sat at opacity
+     0 while its full-screen scrim still swallowed clicks. The card was
+     in the DOM with .show, invisible, and interactable.
 
-     .bf-card is authored at opacity:0 and made visible ONLY by bf-in's
-     `forwards` fill. The reduced-motion block killed that animation
-     with !important and restored nothing, so the card sat at zero
-     opacity forever while .bf-reveal.show stayed visibility:visible and
-     inset:0 - an invisible full-screen click trap over the ban phase.
-     This is a per-USER setting, which is why it hit one machine and not
-     another. */
+     Motion is now owned by ONE switch the player controls:
+     Settings > Graphics, i.e. body[data-gfx='low']. */
   const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+  const daily = fs.readFileSync(path.join(ROOT, 'css/daily.css'), 'utf8');
+  /* comments legitimately explain the removal, so strip them first */
+  const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  /* isolate the reduced-motion block that disables the reveal's motion */
-  const at = css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .bf-art *,");
-  ok(at > 0, 'the reveal still has a reduced-motion rule');
-  let depth = 0;
-  let end = -1;
-  for (let i = at; i < css.length; i++) {
-    if (css[i] === '{') depth++;
-    else if (css[i] === '}') {
-      depth--;
-      if (depth === 0) {
-        end = i;
-        break;
-      }
+  ok(
+    !/@media\s*\(prefers-reduced-motion/.test(strip(css)),
+    'style.css has no prefers-reduced-motion query left'
+  );
+  ok(
+    !/@media\s*\(prefers-reduced-motion/.test(strip(daily)),
+    'daily.css has none either'
+  );
+
+  /* No JS may branch on it. app.js used to pick the Low default from
+     it; battle.js and card-detail.js OR'd it into their own checks. */
+  ['js/app.js', 'js/battle.js', 'js/card-detail.js', 'js/play.js', 'js/deck.js'].forEach(
+    (f) => {
+      const src = strip(fs.readFileSync(path.join(ROOT, f), 'utf8'));
+      ok(
+        !/prefers-reduced-motion/.test(src),
+        f + ' does not read the OS motion preference'
+      );
     }
-  }
-  const blk = css.slice(at, end + 1);
-  ok(
-    /animation:\s*none\s*!important/.test(blk),
-    'and it still strips the entrance motion'
-  );
-  ok(
-    /\.bf-card \{[^}]*opacity:\s*1\s*!important/.test(blk),
-    'but restates the animation END STATE so the card is visible at once'
-  );
-  ok(
-    /\.bf-card \{[^}]*transform:\s*none\s*!important/.test(blk),
-    'including the transform, so it is not left offset'
   );
 
-  /* THE GENERAL RULE. Any selector that starts at opacity:0 and relies
-     on an animation must not have that animation killed !important
-     without something putting the opacity back. Scan the whole sheet so
-     the next decorative-motion cull cannot recreate this. */
-  const startsInvisible = new Map();
+  /* THE REPLACEMENT MUST STILL WORK. Low graphics is now the only
+     motion control, so it has to remain wired. */
+  ok(/body\[data-gfx='low'\]/.test(css), "body[data-gfx='low'] still drives reduced motion");
+  const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  ok(/var GFX_KEY = 'eol.gfx';/.test(app), 'the graphics choice is still persisted');
+  ok(
+    /applyGfx\(saved === 'low' \? 'low' : 'high'\);/.test(app),
+    'and the saved choice alone decides the mode'
+  );
+
+  /* THE UNDERLYING TRAP, guarded generally: an element that starts at
+     opacity:0 and depends on an animation must never have that
+     animation killed !important without something restoring opacity.
+     .bf-card was the only instance; this keeps it that way. */
+  const startsInvisible = new Set();
   const ruleRe = /(^|\})\s*([^{}@]+)\{([^{}]*)\}/g;
   let m;
   while ((m = ruleRe.exec(css))) {
     const sel = m[2].replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/\s+/g, ' ');
     const body = m[3];
     if (/opacity:\s*0\s*[;\n]/.test(body) && /animation:\s*[a-zA-Z][\w-]*/.test(body)) {
-      sel.split(',').forEach((s) => {
-        s = s.trim();
-        if (s) startsInvisible.set(s, true);
+      sel.split(',').forEach((x) => {
+        x = x.trim();
+        if (x) startsInvisible.add(x);
       });
     }
   }
   const offenders = [];
   const killRe = /([^{}]+)\{[^{}]*animation:\s*none\s*!important([^{}]*)\}/g;
   while ((m = killRe.exec(css))) {
-    const rest = m[2];
-    if (/opacity:\s*1/.test(rest)) continue; // restored in the same rule
-    m[1].split(',').forEach((s) => {
-      s = s.trim().replace(/\s+/g, ' ');
-      const leaf = s.split(' ').filter(Boolean).pop();
-      if (startsInvisible.has(leaf) || startsInvisible.has(s)) offenders.push(s);
+    if (/opacity:\s*1/.test(m[2])) continue;
+    m[1].split(',').forEach((x) => {
+      x = x.trim().replace(/\s+/g, ' ');
+      const leaf = x.split(' ').filter(Boolean).pop();
+      if (startsInvisible.has(leaf) || startsInvisible.has(x)) offenders.push(x);
     });
   }
   ok(

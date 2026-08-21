@@ -1,3 +1,26 @@
+/* ============================================================
+   OS "reduce motion" DOES NOT REACH THIS GAME (owner ruling
+   2026-08-21).
+   ------------------------------------------------------------
+   There used to be 28 `@media (prefers-reduced-motion: reduce)`
+   blocks in the stylesheets, and js/app.js additionally started
+   such a player in Low graphics by default.
+
+   Two problems with that. It silently gave those players a
+   DIFFERENT game - stripped animations they never asked this game
+   for and could not turn back on. And it was a real bug source:
+   the reveal's entrance animation was killed without restoring the
+   opacity it animated FROM, so the battlefield card rendered
+   invisible while its full-screen scrim still swallowed clicks.
+
+   Motion is now controlled by ONE switch the player owns:
+   Settings > Graphics (High/Low), i.e. body[data-gfx='low'].
+   That path is unaffected by this removal - none of the deleted
+   blocks mentioned data-gfx - and it remains the place to add any
+   future motion reduction. Do not reintroduce a
+   prefers-reduced-motion query here; put it behind Low instead.
+   ============================================================ */
+
 /* =============================================================
    Echoes of Legend - Core Theme
    ============================================================= */
@@ -1758,14 +1781,6 @@ html.mqw640 .search-wrap input {
   width: 100%;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.08s !important;
-  }
-}
 
 /* =============================================================
    BATTLE VIEW  -  horizontal layout
@@ -5814,14 +5829,6 @@ body[data-gfx='low'] .fx-coin-wrap.heads .fx-coin-spin {
   transform: rotateY(0deg);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fx-layer {
-    display: none;
-  }
-  .board.shake {
-    animation: none;
-  }
-}
 
 /* =============================================================
    Status effect visuals (buffs / debuffs)
@@ -6773,59 +6780,6 @@ body[data-gfx='low'] .set-pill.bump {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fx-status,
-  .fx-stat-ring,
-  .fx-rune,
-  .fx-mote,
-  .fx-dim,
-  .fx-crit-slash,
-  .fx-crit-ring {
-    display: none;
-  }
-  .fx-smoke,
-  .fx-revive-pillar,
-  .fx-revive-flare,
-  .fx-revive-ring,
-  .fx-revive-mote {
-    display: none;
-  }
-  .board.crit-flash,
-  .board.revive-flash {
-    animation: none;
-  }
-  .bcell-wrap.falling,
-  .bcell-wrap.down,
-  .bcell-wrap.restoring,
-  .bcard.reborn .bcard-inner {
-    animation: none;
-  }
-  .fx-burn-glow,
-  .fx-burn-flame {
-    display: none;
-  }
-  .bcard.burning-hit .bcard-inner {
-    animation: none;
-  }
-  .fx-zigzag,
-  .fx-meteor,
-  .fx-bloom,
-  .fx-rays,
-  .fx-rune-stamp,
-  .fx-rift,
-  .fx-quake,
-  .fx-mote,
-  .fx-strike-flash,
-  .fx-branch,
-  .fx-ion,
-  .fx-scorch,
-  .fx-halo,
-  .fx-gloom,
-  .fx-dust,
-  .fx-rune-ghost {
-    display: none;
-  }
-}
 
 /* =============================================================
    ARENA - added depth layers
@@ -7070,13 +7024,6 @@ body[data-gfx='low'] .set-pill.bump {
   );
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .arena-sky,
-  .arena-stars,
-  .arena-runes span {
-    animation: none;
-  }
-}
 
 /* =============================================================
    ABILITY FX - cast tells, richer impacts, support visuals
@@ -7507,26 +7454,6 @@ body[data-gfx='low'] .set-pill.bump {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fx-cast-ring,
-  .fx-cast-sigil,
-  .fx-gather,
-  .fx-shock-disc,
-  .fx-chunk,
-  .fx-heal-ring,
-  .fx-heal-mote,
-  .fx-barrier,
-  .fx-barrier-shard,
-  .fx-cleanse-ring,
-  .fx-cleanse-mote,
-  .fx-energy-burst,
-  .fx-energy-bit {
-    display: none;
-  }
-  .bcard.casting .bcard-inner {
-    animation: none;
-  }
-}
 
 /* =============================================================
    DECK BUILDER
@@ -12834,29 +12761,6 @@ html.mqw640 .draft-pack {
   font-style: italic;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .bf-art *,
-  .bf-card {
-    animation: none !important;
-  }
-  /* AN ENTRANCE ANIMATION IS NOT DECORATION (bug report 2026-08-21:
-     "bf-reveal is in the DOM and interactable but invisible").
-     .bf-card is authored at `opacity: 0` and is made visible ONLY by
-     bf-in's `forwards` fill. Killing the animation above therefore
-     stranded it at zero opacity permanently - while .bf-reveal.show
-     stayed visibility:visible and inset:0, so the full-screen scrim
-     went on swallowing every click. The player saw the ban phase
-     apparently freeze behind an invisible wall.
-
-     Reduced motion means ARRIVE INSTANTLY, never ARRIVE NEVER, so the
-     animation's end state has to be restated as the resting state.
-     The same pairing is already applied to the entrance staggers in
-     low-graphics mode further down this sheet. */
-  .bf-card {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
 /* =============================================================
    BATTLEFIELD BOARDS
    -------------------------------------------------------------
@@ -16926,12 +16830,6 @@ body.time-low .time-warn {
 body[data-gfx='low'].time-low .time-warn {
   animation: time-heartbeat 1.4s ease-in-out infinite;
 }
-@media (prefers-reduced-motion: reduce) {
-  body.time-low .time-warn {
-    animation: none;
-    opacity: 0.5;
-  }
-}
 
 /* =============================================================
    MAIN MENU PARALLAX BACKDROP
@@ -17259,16 +17157,6 @@ body[data-gfx='low'] .mb-embers,
 body[data-gfx='low'] .mb-wisps,
 body[data-gfx='low'] .mb-shoot {
   display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .menu-bg > span {
-    animation: none !important;
-  }
-  .mb-embers,
-  .mb-wisps,
-  .mb-shoot {
-    display: none;
-  }
 }
 
 /* -------------------------------------------------------------
@@ -17755,11 +17643,6 @@ body[data-gfx='low'] .mb-shoot {
 
 body[data-gfx='low'] .mb-motes {
   display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .mb-motes {
-    display: none;
-  }
 }
 
 /* The hover panel's portrait plate used to render the legend's art on the
@@ -18417,12 +18300,6 @@ body[data-gfx='low'] .mb-motes {
 body[data-gfx='low'] .sc-drift,
 body[data-gfx='low'] .sc-weather {
   display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sc-drift,
-  .sc-weather {
-    display: none;
-  }
 }
 
 /* =============================================================
@@ -19970,15 +19847,6 @@ html.mqw560 .set-block {
   justify-content: center;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .merge-choice {
-    transition: none;
-  }
-  .merge-choice:hover,
-  .merge-choice:focus-visible {
-    transform: none;
-  }
-}
 
 /* =============================================================
    AOE DETONATION SUITE v2 (2026-08)
@@ -20900,11 +20768,6 @@ body[data-tips='off'] .tipdot {
 body[data-gfx='low'] #tip-float.show {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  #tip-float.show {
-    animation: none;
-  }
-}
 
 /* Settings > Display: the tips switch mirrors the gfx switch, in ice
    blue so the two toggles never read as the same control */
@@ -20972,8 +20835,9 @@ body[data-gfx='low'] .tips-thumb {
    - small state changes everywhere answer with a tiny animation:
      tabs, war-length picks, account menu, checkboxes, filter chips,
      focus rings, deck rows
-   body[data-gfx='low'] + prefers-reduced-motion strip all of it at
-   the bottom of this block.
+   body[data-gfx='low'] strips all of it at the bottom of this block.
+   (The OS prefers-reduced-motion query was removed 2026-08-21 - see
+   the note at the top of this file.)
    ============================================================= */
 
 /* ---------------- buttons: physics + shine ---------------- */
@@ -21435,31 +21299,6 @@ body[data-gfx='low'] .tipdot,
 body[data-gfx='low'] .ht-line {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .mg-out,
-  .mg-out-r,
-  .mg-in,
-  .mg-in-r,
-  .mg-in .war-length,
-  .mg-in-r .war-length,
-  .mg-in .mode-card,
-  .mg-in-r .mode-card,
-  .home-actions .btn,
-  .wl-opt[aria-pressed='true'],
-  .col-tab.sel,
-  .acct-menu,
-  .acct-menu-item,
-  .auth-modal .auth-card,
-  .mm-modal .mm-card,
-  .deck-modal .dm-card,
-  .auth-scrim,
-  .mm-scrim,
-  .empty-state,
-  .tipdot,
-  .ht-line {
-    animation: none;
-  }
-}
 
 /* ---------------- LUSTRE PASS: cinema backplates ----------------
    The non-match views floated on a void. Each one now gets the menu's
@@ -21559,15 +21398,6 @@ body[data-gfx='low'] .shop::before,
 body[data-gfx='low'] .prep::before,
 body[data-gfx='low'] .deck::before {
   animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .play::before,
-  .collection::before,
-  .shop::before,
-  .prep::before,
-  .deck::before {
-    animation: none;
-  }
 }
 
 /* =============================================================
@@ -21836,11 +21666,6 @@ body[data-gfx='low'] .home-cloud-cta > i:last-child {
 }
 body[data-gfx='low'] .home-emblem::after {
   animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-emblem::after {
-    animation: none;
-  }
 }
 
 /* =============================================================
@@ -22648,15 +22473,6 @@ body[data-gfx='low'] .mb-ash,
 body[data-gfx='low'] .mb-spores {
   display: none !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  .mb-ultra,
-  .mb-rays,
-  .mb-fogbanks,
-  .mb-ash,
-  .mb-spores {
-    display: none;
-  }
-}
 
 /* ======================================================================
    CAMPAIGN - chapter select  (2026-08-05)
@@ -22888,17 +22704,6 @@ body[data-gfx='low'] .ch-mist {
 }
 body[data-gfx='low'] .chapter-card:hover {
   transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ch-mist {
-    animation: none;
-  }
-  .chapter-card,
-  .ch-wm,
-  .ch-cta,
-  .ch-cta i {
-    transition: none;
-  }
 }
 
 /* ======================================================================
@@ -23378,10 +23183,6 @@ body[data-gfx='low'] .c2-embers,
 body[data-gfx='low'] .c2-ash,
 body[data-gfx='low'] .c2-glow {
   display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .cw-glints, .cw-wisps, .cw-motes,
-  .c2-leaves, .c2-embers, .c2-ash, .c2-glow { display: none; }
 }
 
 /* ---------------- chapter view chrome ---------------- */
@@ -24432,15 +24233,6 @@ html.mqh820 .rival-art.has-portrait {
 body[data-gfx='low'] .rival-card.is-first:hover {
   transform: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .rival-card,
-  .rival-open i {
-    transition: none;
-  }
-  .rival-card.is-first:hover {
-    transform: none;
-  }
-}
 
 /* ---------------- Campaign dialogue: bottom-anchored bar ----------------
    The old centred card covered the middle of the screen and read as
@@ -24711,12 +24503,6 @@ html.mqw640 .chapter-dialogue-foot {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px 12px;
-}
-@media (prefers-reduced-motion: reduce) {
-  .chapter-dialogue-bar,
-  .chapter-dialogue-copy p.line-in {
-    animation: none;
-  }
 }
 
 /* ---------------- Campaign: contextual dialogue during the match -----------
@@ -25405,21 +25191,6 @@ html.mqw640 .tutor-face {
     box-shadow:
       inset 0 0 0 2px rgba(255, 227, 160, 0.9),
       0 0 18px rgba(255, 190, 80, 0.5);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .prep-c.tutor-pick,
-  .btn.tutor-pick,
-  .endturn-btn.tutor-pick,
-  .bcard.tutor-pick .bcard-inner,
-  .dk-ab.tutor-pick {
-    animation: none;
-    box-shadow:
-      0 0 0 3px rgba(255, 227, 160, 0.95),
-      0 0 28px rgba(255, 190, 80, 0.65);
-  }
-  .tutor {
-    animation: none;
   }
 }
 /* LOW-GRAPHICS MODE keeps the SAME static gold ring as reduced-motion.
@@ -28248,13 +28019,6 @@ body[data-gfx='low'] .mode-carousel-arrow,
 body[data-gfx='low'] .mode-carousel-dots > button {
   transition: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .mode-carousel .mode-card,
-  .mode-carousel-arrow,
-  .mode-carousel-dots > button {
-    transition: none;
-  }
-}
 
 /* =============================================================
    PRIVATE ROOM
@@ -29401,12 +29165,6 @@ body[data-gfx='low'] .quest-board.has-claim .qb-body {
 body[data-gfx='low'] .qb-body {
   backdrop-filter: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .quest-board.has-claim .qb-body,
-  .quest-board {
-    animation: none;
-  }
-}
 
 /* THE READY MARKER. A legend with enough banked copies to buy a level
    should be findable from across the grid. The card wears a bright
@@ -30167,11 +29925,6 @@ body[data-gfx='low'] .qb-body {
 body[data-gfx='low'] .up-row.unset .up-stat {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .up-row.unset .up-stat {
-    animation: none;
-  }
-}
 /* The whole block glows when a level is affordable, so the panel
    itself is the call to action. */
 .cd-up[data-ready='1'] {
@@ -30212,8 +29965,8 @@ body[data-gfx='low'] .up-row.unset .up-stat {
    Nine duplicates is a long grind and the old payoff was a pip
    quietly switching on. Overlay is appended to .cd-card by
    js/card-detail.js and removed when it finishes, so nothing here
-   persists. Both kill switches (body[data-gfx=low] and
-   prefers-reduced-motion) drop the particles and keep the stamp.
+   persists. The kill switch (body[data-gfx=low]) drops the particles
+   and keeps the stamp.
    ============================================================= */
 .lvup {
   position: absolute;
@@ -30413,25 +30166,6 @@ body[data-gfx='low'] .cd-card.lvup-kick,
 body[data-gfx='low'] .card-ready {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .cd-card.lvup-kick,
-  .card-ready,
-  .cd-stat-v.bump {
-    animation: none;
-  }
-  .lvup-stamp {
-    animation: lvup-stamp-plain 1.1s linear forwards;
-  }
-  @keyframes lvup-stamp-plain {
-    0%,
-    80% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-}
 
 /* The deck builder's per-card details button. The deck grid answers a
    CLICK by adding or removing the legend, so the dialog needs its own
@@ -30504,12 +30238,6 @@ body[data-gfx='low'] .cd-scrim {
 }
 body[data-gfx='low'] .cd-card {
   animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .cd-card,
-  .cd-scrim {
-    animation: none;
-  }
 }
 
 /* the shard wallet on the shop shelf */
@@ -30610,7 +30338,7 @@ span.lg-portrait i {
    Every interactable that was missing motion gets it here, in one
    consistent language: lift on hover, press on click, and the
    shop's own entrance/float rhythms. All respect body[data-gfx=low]
-   and prefers-reduced-motion further down the file.
+   further down the file.
    ============================================================= */
 
 /* ---- the upgrade panel: buttons that grow into the press ---- */
@@ -31417,15 +31145,6 @@ body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-tools,
 body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-grid,
 body[data-gfx='low'] #spanel-echo:not([hidden]) .echo-empty {
   animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  #spanel-echo:not([hidden]),
-  #spanel-echo:not([hidden]) .echo-counter,
-  #spanel-echo:not([hidden]) .echo-tools,
-  #spanel-echo:not([hidden]) .echo-grid,
-  #spanel-echo:not([hidden]) .echo-empty {
-    animation: none;
-  }
 }
 
 /* Eight options are the baseline capacity of every filter menu. Only menus

@@ -554,13 +554,12 @@
      ============================================================= */
   var MAX_SHARDS = 18;
 
+  /* ONE kill switch, not two (owner ruling 2026-08-21): the game's own
+     Graphics setting. The OS `prefers-reduced-motion` query used to be
+     OR'd in here, which meant a player whose system asks for less
+     motion could not opt back into the full presentation. */
   function reducedMotion() {
-    if (document.body.dataset.gfx === 'low') return true;
-    try {
-      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    } catch (e) {
-      return false;
-    }
+    return document.body.dataset.gfx === 'low';
   }
 
   function celebrate(id, fromLevel, toLevel) {

@@ -1553,19 +1553,16 @@
     } catch (e) {
       saved = 'high';
     }
-    /* respect the OS setting as the default if the user has never
-       chosen - someone on reduce-motion should not have to opt out */
-    try {
-      if (
-        !localStorage.getItem(GFX_KEY) &&
-        window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ) {
-        saved = 'low';
-      }
-    } catch (e) {
-      /* ignore */
-    }
+    /* THE OS SETTING NO LONGER PICKS THE DEFAULT (owner ruling
+       2026-08-21). This used to start a `prefers-reduced-motion` user
+       in Low graphics. It was well meant, but it meant a player whose
+       system asks for less motion silently got a different game -
+       stripped animations they never chose, and one genuine bug where
+       the battlefield card was left invisible because a killed
+       entrance animation never restored its opacity.
+
+       The game ships in High for everyone; Settings > Graphics is the
+       only thing that changes it, and the choice persists. */
     applyGfx(saved === 'low' ? 'low' : 'high');
     document.querySelectorAll('.gfx-opt').forEach(function (b) {
       b.addEventListener('click', function () {
