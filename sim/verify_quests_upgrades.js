@@ -1756,6 +1756,52 @@ sec('T. The board cannot be closed');
   );
 }
 
+sec('S21. Legendaries cannot be banned in ANY format');
+{
+  /* OWNER RULING 2026-08-21. Draft used to be the one exception, on the
+     reasoning that its 36-card table holds a known six crowns. The
+     ruling is that the crown rule belongs to the GAME, not to a format:
+     a legend you drafted is yours to field. */
+  const play = fs.readFileSync(path.join(ROOT, 'js/play.js'), 'utf8');
+
+  ok(
+    !/allowLegendBans\s*=\s*cfg\.mode\s*===\s*'draft'/.test(play),
+    'draft is no longer wired as the legendary-ban exception'
+  );
+  ok(
+    /var allowLegendBans = false;/.test(play),
+    'and the bot brains are told plainly not to ban crowns'
+  );
+
+  /* The protection must be UNCONDITIONAL - the whole bug was that the
+     enemy deck's crowns were only swept into `unbannable` inside an
+     `if (!allowLegendBans)` arm, so draft skipped it entirely. */
+  const startPrep = play.slice(play.indexOf('var isMp = !!cfg.mp;'));
+  const sweep = startPrep.indexOf("e.card.rarity === 'legendary'");
+  const guard = startPrep.indexOf('if (!allowLegendBans)');
+  ok(sweep > 0, 'the enemy deck is still swept for crowns');
+  ok(
+    guard === -1 || guard > sweep,
+    'and that sweep is no longer gated behind a format check'
+  );
+
+  /* The AI reads the same flag through banCandidates, so a false here
+     has to actually filter. */
+  ok(
+    /function banCandidates\(deckEntries, allowLegendaries\)[\s\S]{0,220}rarity !== 'legendary'/.test(
+      play
+    ),
+    'banCandidates still filters crowns out when told to'
+  );
+
+  /* The player-facing refusal already existed for constructed; it now
+     covers draft too, so the message must still be there. */
+  ok(
+    /crown cards cannot be banned/.test(play),
+    'and a blocked click still explains itself'
+  );
+}
+
 console.log(
   '\n' + (fail ? '\x1b[31m' : '\x1b[32m') + 'pass ' + pass + '  fail ' + fail + '\x1b[0m'
 );

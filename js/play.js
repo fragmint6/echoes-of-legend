@@ -1598,20 +1598,27 @@
        host rolls it from the shared match rng and it is derived, not
        re-rolled, on the guest. */
     var isMp = !!cfg.mp;
-    /* Legendary cards are protected from bans in constructed formats
-       (Classic singles and Unabridged). Draft's rarity law lives at its
-       36-card table, so draft bans remain ordinary. Merge authored
-       exceptions such as Gilgamesh with every crown in the enemy deck
-       before setBegin snapshots the rule for all games of a set. */
-    var allowLegendBans = cfg.mode === 'draft';
-    if (!allowLegendBans) {
-      var protectedIds = (cfg.unbannable || []).slice();
-      (cfg.enemy12 || []).forEach(function (e) {
-        if (e.card.rarity === 'legendary' && protectedIds.indexOf(e.card.id) < 0)
-          protectedIds.push(e.card.id);
-      });
-      cfg.unbannable = protectedIds;
-    }
+    /* LEGENDARY CARDS ARE NEVER BANNABLE, IN ANY FORMAT (owner ruling
+       2026-08-21). Draft used to be the exception: its 36-card table is
+       built to hold exactly six crowns (DRAFT_LEGENDARIES is a floor
+       AND a ceiling), so banning one was counterplay against a known
+       quantity rather than against whatever the opponent happened to
+       bring. The owner's call is that the crown rule is a rule of the
+       GAME, not of one format - a legend you drafted is yours to field.
+
+       Merge authored exceptions such as Gilgamesh with every crown in
+       the enemy deck before setBegin snapshots the rule for all games
+       of a set. */
+    var protectedIds = (cfg.unbannable || []).slice();
+    (cfg.enemy12 || []).forEach(function (e) {
+      if (e.card.rarity === 'legendary' && protectedIds.indexOf(e.card.id) < 0)
+        protectedIds.push(e.card.id);
+    });
+    cfg.unbannable = protectedIds;
+    /* Kept as a named constant rather than inlined `false`: the bot ban
+       brains below take it as an argument, and a reader should see WHY
+       they are being told not to ban crowns. */
+    var allowLegendBans = false;
     /* THE SET: a fresh prep under warLength 'set' begins a new war
        (fight card drawn here, game 1's board pre-designated). ANY
        non-continuing prep kills a stale set, so quitting mid-set can
