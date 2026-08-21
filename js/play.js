@@ -195,6 +195,10 @@
 
   /* ---------------- preparation state ---------------- */
   var prep = null; // active preparation state
+  /* Generation counter for the battlefield reveal. Bumped on every
+     reveal and on every teardown, so an async open() that resolves
+     after the world moved on can tell that it is stale. */
+  var revealSeq = 0;
   var prepAnim = false; // entrance stagger runs on phase ENTRY only -
   // a re-render mid-phase must not replay it
 
@@ -1517,9 +1521,39 @@
       var unlockT = setTimeout(unlock, 900);
       card.addEventListener('animationend', unlock);
     };
-    if (field.art) warmOrTimeout(field, 500).then(open);
-    else open();
+    /* THE WARM WINDOW IS A RACE (bug report 2026-08-21: "the battlefield
+       card sometimes doesn't show after bans"). warmOrTimeout resolves
+       up to 500ms later, and the caller has already awaited ~1.15s of
+       ban-stamp time before that. If the player leaves preparation
+       inside that window - back button, opponent left, match broken -
+       `prep` is null by the time this resolves and open() would raise
+       the curtain over whatever screen they are now looking at.
+
+       The token is the generation counter: only the reveal that is
+       still the CURRENT one may open. A superseded call resolves and
+       does nothing. */
+    var token = ++revealSeq;
+    var guardedOpen = function () {
+      if (token !== revealSeq) return; // superseded by a later reveal
+      if (!prep) return; // preparation ended while the art warmed
+      open();
+    };
+    if (field.art) warmOrTimeout(field, 500).then(guardedOpen);
+    else guardedOpen();
     return true;
+  }
+
+  /* Slam the battlefield card shut and forget any in-flight reveal.
+     Called from every path that tears preparation down, because the
+     card's ONLY other exit was its own "Field your six" button - so a
+     player who left before pressing it orphaned the modal on top of the
+     next screen, and the next match's reveal then had nothing to open. */
+  function closeBattlefieldReveal() {
+    revealSeq++;
+    var host = $('bf-reveal');
+    if (!host) return;
+    host.classList.remove('show');
+    host.setAttribute('aria-hidden', 'true');
   }
 
   /* Layered scene markup per battlefield - every layer is animated in CSS. */
@@ -2392,9 +2426,19 @@
          boards go public the moment both sides' bans are locked, so
          fielding happens with full knowledge of the whole card. Single
          games keep the classic one-board reveal. */
-      if (setState) {
-        showFightCard(afterReveal);
-      } else if (!revealBattlefield(prep.field, afterReveal)) afterReveal();
+      /* WHICHEVER CARD IS CHOSEN, SOMETHING MUST OPEN (bug report
+         2026-08-21). This branch is decided AFTER an await, and
+         showFightCard() silently no-ops when `setState` has since gone
+         - which the eol:view listener does on any exit from prep. The
+         set could therefore be killed between the branch being taken
+         and the card being drawn, and the player reached fielding with
+         no board reveal at all. Falling back to the single-board reveal
+         means the terrain is always announced; the final fallback keeps
+         the coach tip from being swallowed with it. */
+      var revealed = setState ? showFightCard(afterReveal) === true : false;
+      if (!revealed) {
+        if (!prep || !revealBattlefield(prep.field, afterReveal)) afterReveal();
+      }
     }
   }
 
@@ -2554,6 +2598,7 @@
       });
     }
     var cfg = prep;
+    closeBattlefieldReveal();
     prep = null;
     window.EOL.ui.show('battle');
     /* THE SCRIPTED MATCH (gate I): the pre-computed line replays only
@@ -2636,6 +2681,7 @@
       return;
     }
     var cfg = prep;
+    closeBattlefieldReveal();
     prep = null;
     /* Mark the battle as started. A reconnect during the fight cannot
        be rebuilt (the action log is not stored), so the rejoin path
@@ -2709,6 +2755,7 @@
     NP.end();
     if (window.EOL.mp && window.EOL.mp.leave) window.EOL.mp.leave();
     draft = null;
+    closeBattlefieldReveal();
     prep = null;
     mpState = null;
     clearDraftMarks();
@@ -2884,6 +2931,7 @@
   function onMatchBroken(text) {
     toast(text, 'ri-error-warning-line');
     window.EOL.netplay.end('remote');
+    closeBattlefieldReveal();
     prep = null;
     draft = null;
     mpState = null;
@@ -2894,6 +2942,7 @@
   function leaveMatch() {
     window.EOL.netplay.end();
     if (window.EOL.mp) window.EOL.mp.leave();
+    closeBattlefieldReveal();
     prep = null;
     draft = null;
     mpState = null;
@@ -3709,9 +3758,16 @@
     return land;
   }
 
+  /* Returns TRUE when the fight card is actually on screen. The caller
+     in revealBansAndAdvance needs to know: if the set was killed while
+     the ban stamps were being read, this no-ops, and the player would
+     otherwise reach fielding having never been shown the terrain. */
   function showFightCard(cb) {
     var m = $('set-fightcard');
-    if (!m || !setState) return cb && cb();
+    /* Returns false WITHOUT running cb: the single caller falls back to
+       the one-board reveal, which will run cb itself. Firing it here as
+       well would open the Phase-2 coach tip twice. */
+    if (!m || !setState) return false;
     fightTitle(
       'ra-scroll-unfurled',
       'UNABRIDGED - FIGHT CARD',
@@ -3756,6 +3812,7 @@
     };
     btn.addEventListener('click', done);
     m.hidden = false;
+    return true;
   }
   /* Loser-of-game picks the next battlefield. Called with the losing
      side ('you' | 'foe'). The bot picks at random for v1 (roadmap: a
@@ -4148,7 +4205,20 @@
   /* The chip and the war die the moment the player leaves the set's
      two views (home-press, mid-set quit) - the next startPrep would
      also guard, but the chip must not linger over the menu. */
+  /* THE CATCH-ALL (bug report 2026-08-21). The battlefield card's only
+     exit used to be its own "Field your six" button, so ANY other way
+     out of preparation - back button, opponent left, a rejoin, the
+     campaign bouncing you to a results screen - left the modal hanging
+     over the next view. It then had to be dismissed before the next
+     match could raise its own card, which is what read as "the
+     battlefield card sometimes doesn't show".
+
+     Teardown paths call closeBattlefieldReveal() directly; this covers
+     every remaining navigation, including code that swaps the view
+     without going through them. */
   document.addEventListener('eol:view', function (e) {
+    var vv = typeof e.detail === 'string' ? e.detail : e.detail && e.detail.view;
+    if (vv && vv !== 'prep') closeBattlefieldReveal();
     if (!setState) return;
     /* `eol:view` carries the view NAME as its detail, not an object -
        see ui.show() in js/app.js and every other listener in the
@@ -4861,6 +4931,7 @@
       toast('Your opponent left the match', 'ri-error-warning-line');
       window.EOL.netplay.end('remote');
       draft = null;
+      closeBattlefieldReveal();
       prep = null;
       mpState = null;
       clearDraftMarks();
@@ -5461,6 +5532,7 @@
     if (bprep)
       bprep.addEventListener('click', function () {
         confirmQuit(function () {
+          closeBattlefieldReveal();
           prep = null;
           if (window.EOL.ui && window.EOL.ui.goBack) window.EOL.ui.goBack();
           else window.EOL.ui.show('play');

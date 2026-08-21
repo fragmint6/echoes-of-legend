@@ -1802,6 +1802,61 @@ sec('S21. Legendaries cannot be banned in ANY format');
   );
 }
 
+sec('S22. The battlefield card cannot be orphaned or skipped');
+{
+  /* BUG REPORT 2026-08-21: "the battlefield card isn't showing after the
+     ban phase sometimes". Two independent causes, both about state
+     moving underneath an async reveal. */
+  const play = fs.readFileSync(path.join(ROOT, 'js/play.js'), 'utf8');
+
+  /* 1. THE MODAL HAD ONE EXIT. bf-reveal was only ever closed by its own
+     "Field your six" button, so any other way out of preparation left
+     it hanging over the next screen - and the next match's card then
+     had nothing to open. */
+  ok(
+    /function closeBattlefieldReveal\(\)/.test(play),
+    'there is a single teardown for the battlefield card'
+  );
+  const closes = (play.match(/closeBattlefieldReveal\(\);/g) || []).length;
+  ok(closes >= 7, 'every path that tears preparation down closes it (' + closes + ' call sites)');
+  ok(
+    /if \(vv && vv !== 'prep'\) closeBattlefieldReveal\(\);/.test(play),
+    'and navigating away from prep closes it as a catch-all'
+  );
+
+  /* 2. THE WARM WINDOW IS A RACE. revealBattlefield resolves an image
+     preload up to 500ms later; without a generation token a superseded
+     or abandoned reveal could still raise the curtain. */
+  ok(/var revealSeq = 0;/.test(play), 'the reveal carries a generation counter');
+  ok(
+    /var token = \+\+revealSeq;/.test(play) && /if \(token !== revealSeq\) return;/.test(play),
+    'and a stale reveal refuses to open'
+  );
+  ok(
+    /if \(!prep\) return; \/\/ preparation ended while the art warmed/.test(play),
+    'as does one whose preparation ended while the art warmed'
+  );
+
+  /* 3. UNABRIDGED COULD SHOW NOTHING AT ALL. The set/single branch is
+     chosen after an await, and showFightCard() no-ops when setState has
+     since been killed - which the eol:view listener does on any exit.
+     It must report that, and the caller must fall back. */
+  ok(
+    /if \(!m \|\| !setState\) return false;/.test(play),
+    'showFightCard reports when it did not open'
+  );
+  ok(
+    /var revealed = setState \? showFightCard\(afterReveal\) === true : false;/.test(play),
+    'the caller checks that report'
+  );
+  ok(
+    /if \(!revealed\) \{\s*if \(!prep \|\| !revealBattlefield\(prep\.field, afterReveal\)\) afterReveal\(\);/.test(
+      play
+    ),
+    'and falls back to the single-board reveal, still running the coach tip'
+  );
+}
+
 console.log(
   '\n' + (fail ? '\x1b[31m' : '\x1b[32m') + 'pass ' + pass + '  fail ' + fail + '\x1b[0m'
 );
