@@ -576,21 +576,28 @@
     return (
       '' +
       '<div class="bstats">' +
-      '<div class="bhp">' +
+      '<div class="bhp' + (!deadView && u.shield > 0 ? ' has-shield' : '') + '">' +
       '<i data-icon-domain="game" class="ra ra-health bhp-ico"></i>' +
+      /* HP AND SHIELD ARE TWO BARS, NOT ONE (owner request 2026-08-21).
+         The shield used to be drawn at left:0 ON TOP of the HP fill, so
+         a shielded legend's real HP was hidden behind it - they read as
+         healthy while the engine saw them near death. That is not just
+         cosmetic: every HP-percentage condition in the game tests RAW
+         HP, so Miyamoto Musashi's "above 80% HP" arm looked like it was
+         misfiring when it was reading a number the bar never showed.
+         The shield now has its own track underneath. */
+      '<span class="bbar-stack">' +
       '<span class="bbar">' +
       '<span class="bbar-fill" style="width:' +
       pct +
       '%"></span>' +
+      '</span>' +
       (!deadView && u.shield > 0
-        ? '<span class="bbar-shield" style="width:' + shieldPct + '%"></span>'
+        ? '<span class="bbar sbar"><span class="bbar-shield" style="width:' +
+          shieldPct +
+          '%"></span></span>'
         : '') +
       '</span>' +
-      /* The number shown is HP + SHIELD (what you must chew through),
-         but every HP-percentage condition in the game tests RAW HP. A
-         shielded legend can therefore read as "half health" while the
-         engine sees them near death. The title spells out the split so
-         the difference is inspectable rather than a trap. */
       '<span class="bhp-txt' +
       (!deadView && u.shield > 0 ? ' shielded' : '') +
       '"' +
@@ -614,8 +621,19 @@
           ) +
           '"') +
       '>' +
-      (deadView ? '0' : Math.ceil(u.hp + u.shield).toLocaleString()) +
+      /* THE NUMBER IS RAW HP, and the shield is stated SEPARATELY
+         (owner request 2026-08-21). It used to print hp + shield as one
+         figure, which is what a player must chew through but is NOT
+         what any HP condition in the game reads - so a shielded legend
+         showed "full health" while Musashi's above-80% arm correctly
+         saw them at half. Two numbers, two bars, no contradiction. */
+      (deadView ? '0' : Math.ceil(u.hp).toLocaleString()) +
       '</span>' +
+      (!deadView && u.shield > 0
+        ? '<span class="bhp-sh"><i data-icon-domain="game" class="ra ra-round-shield"></i>' +
+          Math.ceil(u.shield).toLocaleString() +
+          '</span>'
+        : '') +
       '</div>' +
       '<div class="bnums">' +
       '<span class="bnum' +
@@ -1566,7 +1584,7 @@
                 '<i data-icon-domain="game" class="ra ra-sword"></i>' +
                 pv.dmg.toLocaleString() +
                 (pv.bonus === true
-                  ? '<i data-icon-domain="game" class="ra ra-star-formation dp-bonus"></i>'
+                  ? '<i data-icon-domain="game" class="ra ra-sunbeams dp-bonus"></i>'
                   : '') +
                 (lethal ? '<i data-icon-domain="game" class="ra ra-skull dp-skull"></i>' : '') +
                 dmgBreakdownHTML(pv, u, lethal);
@@ -5383,10 +5401,29 @@
                 Math.min(100, ((l.meta.shieldAfter || 0) / l.meta.maxHp) * 100) + '%';
             }
             if (hpTxt) {
-              hpTxt.textContent = Math.ceil(
-                l.meta.hpAfter + (l.meta.shieldAfter || 0)
-              ).toLocaleString();
+              /* RAW HP only - matches the split bars (2026-08-21). This
+                 used to print hp+shield, so the live number contradicted
+                 both the HP bar beside it and every HP condition the
+                 engine tests. */
+              hpTxt.textContent = Math.ceil(l.meta.hpAfter).toLocaleString();
             }
+            /* Keep the separate shield figure in step, and let the whole
+               shield track disappear the moment the shield breaks -
+               otherwise an empty second bar lingers under the card. */
+            var shTxt = wrap.querySelector('.bhp-sh');
+            var shTrack = wrap.querySelector('.bbar.sbar');
+            var shAfter = Math.ceil(l.meta.shieldAfter || 0);
+            if (shTxt) {
+              if (shAfter > 0) {
+                shTxt.innerHTML =
+                  '<i data-icon-domain="game" class="ra ra-round-shield"></i>' +
+                  shAfter.toLocaleString();
+                shTxt.hidden = false;
+              } else {
+                shTxt.hidden = true;
+              }
+            }
+            if (shTrack) shTrack.hidden = shAfter <= 0;
           }
         }
       }
@@ -5810,7 +5847,7 @@
          from their wallet or collection. */
       if (coinsEl && cam.rewards) {
         coinsEl.innerHTML =
-          '<i data-icon-domain="game" class="ra ra-open-treasure-chest"></i><span>' +
+          '<i data-icon-domain="game" class="ra ra-trophy"></i><span>' +
           esc(cam.rewards) +
           '</span>';
         coinsEl.classList.add('campaign-rewards');

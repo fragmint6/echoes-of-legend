@@ -269,8 +269,21 @@ ok(
 );
 ok(
   /Math\.max\(0, Math\.round\(\(u\.hp \/ u\.maxHp\) \* 100\)\) \+ '%'/m.test(battle) &&
-    /deadView \? '0' : Math\.ceil\(u\.hp \+ u\.shield\)/.test(battle),
+    /deadView \? '0' : Math\.ceil\(u\.hp\)\.toLocaleString\(\)/.test(battle),
   'battle flyouts show HP percent while board cards retain actual HP values'
+);
+/* SHIELD IS NOT HP (owner request 2026-08-21). The card used to print
+   hp + shield as one figure over a single bar, so a shielded legend read
+   as healthier than the engine considered them - every HP-percentage
+   condition tests RAW hp, which is what made Musashi's above-80% arm look
+   broken. The two pools are now separate numbers on separate bars. */
+ok(
+  !/Math\.ceil\(u\.hp \+ u\.shield\)/.test(battle),
+  'the HP figure no longer folds the shield into it'
+);
+ok(
+  /class="bbar sbar"/.test(battle) && /class="bhp-sh"/.test(battle),
+  'the shield has its own bar and its own readout'
 );
 /* The percentage is ROUNDED, not ceiled. Math.ceil displayed 29.01% as
    "30%", which sat inside Goldilocks' 30-70% bonus window while the

@@ -31823,3 +31823,62 @@ body {
   font-weight: 600;
   line-height: 1.45;
 }
+
+/* =============================================================
+   SHIELD IS ITS OWN BAR (owner request 2026-08-21)
+   -------------------------------------------------------------
+   The shield used to be painted at left:0 directly OVER the HP
+   fill, which hid the very number the game's rules care about:
+   every HP-percentage condition tests RAW HP, so a shielded legend
+   looked healthy while the engine saw them near death. Musashi's
+   "above 80% HP" arm was reported as broken for exactly this
+   reason - it was reading a value the bar refused to show.
+
+   Now the two stack: HP on top, shield on a thinner track beneath
+   it, and the readout prints raw HP with the shield beside it.
+   ============================================================= */
+.bbar-stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* The shield track is slimmer than the HP bar - it is a secondary
+   pool, and an equal-weight second bar made the card read as having
+   two health bars. */
+.bbar.sbar {
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(150, 210, 255, 0.14);
+  border-color: rgba(150, 210, 255, 0.16);
+}
+.bbar-shield {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(160, 220, 255, 0.9), rgba(210, 240, 255, 0.95));
+  box-shadow: 0 0 8px rgba(150, 210, 255, 0.8);
+  transition: width 0.4s var(--ease);
+}
+/* The shield amount, stated separately from HP so the two are never
+   mistaken for one pool. */
+.bhp-sh {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  color: #a9dcff;
+  font-size: 9px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bhp-sh i {
+  font-size: 9px;
+}
+/* the HP figure keeps its own colour: it is no longer "hp+shield" */
+.bhp-txt.shielded {
+  color: var(--txt);
+}
