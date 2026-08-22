@@ -26599,6 +26599,19 @@ body[data-gfx='low'] .dk-ab.tutor-pick {
     0 4px 14px rgba(0, 0, 0, 0.55),
     0 0 12px rgba(126, 231, 160, 0.35);
 }
+/* The heal's breakdown panel carries the chip's colour too (owner
+   request 2026-08-21: heals explain themselves like hits do). Without
+   this it inherited the damage panel's amber frame, which read as
+   "this hurts" on a friendly target. The chip chain inside stays
+   neutral - only the frame and the total are restated. */
+.dmg-preview.heal-preview .dmg-breakdown {
+  border-color: rgba(126, 231, 160, 0.42);
+  background: rgba(8, 16, 12, 0.98);
+}
+.dmg-preview.heal-preview .dpb-chip.tot i,
+.dmg-preview.heal-preview .dpb-chip.sub i {
+  color: #8fe3b0;
+}
 
 /* ---- the hover breakdown ----------------------------------------
    Hidden until the chip is hovered. Positioned above the chip and
@@ -31676,4 +31689,137 @@ body {
 }
 .dk-upgrade .tip-upgrade-head > b {
   font-size: 9px;
+}
+
+/* =============================================================
+   NEXT-ROUND ENERGY FORECAST (2026-08-21)
+   -------------------------------------------------------------
+   A small "+N" beside each side's Energy readout saying what next
+   round will pay them. Energy carries over and the comeback grant
+   scales with the legend deficit, so this was arithmetic the player
+   otherwise had to do from the rulebook mid-fight.
+
+   The chip is hoverable and its panel shows the working, in the same
+   language as the damage chip's breakdown - same geometry, same
+   reveal, recoloured to the Energy blue so the two read as siblings
+   rather than the same thing.
+   ============================================================= */
+.en-next {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: 3px;
+  padding: 1px 6px 1px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 215, 255, 0.4);
+  background: rgba(12, 30, 44, 0.9);
+  color: #8fe0ff;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  cursor: help;
+  transition:
+    border-color 0.18s var(--ease),
+    color 0.18s var(--ease);
+}
+.en-next > i {
+  font-size: 10px;
+  line-height: 1;
+}
+.en-next:hover,
+.en-next:focus-visible {
+  border-color: rgba(99, 215, 255, 0.85);
+  color: #d6f4ff;
+}
+/* Earning the comeback grant is good news and worth spotting. */
+.en-next.boosted {
+  border-color: rgba(143, 227, 176, 0.6);
+  color: #9ff0c0;
+}
+/* Capped income is a WARNING: energy is being thrown away. */
+.en-next.capped {
+  border-color: rgba(255, 179, 71, 0.65);
+  color: #ffc879;
+}
+
+.en-breakdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  z-index: 60;
+  display: block;
+  width: max-content;
+  min-width: 200px;
+  max-width: min(320px, calc(var(--vw1) * 86));
+  padding: 9px 11px 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(99, 215, 255, 0.42);
+  background: rgba(9, 16, 24, 0.98);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.7);
+  color: var(--txt);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: normal;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.14s var(--ease),
+    transform 0.14s var(--ease),
+    visibility 0.14s;
+}
+.en-next:hover .en-breakdown,
+.en-next:focus-visible .en-breakdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.enb-title {
+  display: block;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--txt-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.enb-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 2px 0;
+  color: var(--txt-dim);
+  font-variant-numeric: tabular-nums;
+}
+.enb-row b {
+  color: var(--txt);
+  font-weight: 800;
+}
+.enb-row.good b {
+  color: #8fe3b0;
+}
+.enb-row.bad b {
+  color: #ff9d9d;
+}
+.enb-row.enb-total {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.enb-row.enb-total b {
+  color: #8fe0ff;
+}
+.enb-note {
+  margin-top: 6px;
+  color: #ffc879;
+  font-weight: 600;
+  line-height: 1.45;
 }

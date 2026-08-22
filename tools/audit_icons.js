@@ -31,7 +31,7 @@ var remix45 = new Set(
   (
     'ri-add-circle-line ri-add-line ri-arrow-down-s-line ri-arrow-go-back-line ' +
     'ri-arrow-left-line ri-arrow-left-s-line ri-arrow-right-line ri-arrow-right-s-line ' +
-    'ri-arrow-up-down-line ri-bar-chart-2-line ri-book-2-line ri-book-open-line ' +
+    'ri-arrow-up-down-line ri-arrow-up-line ri-bar-chart-2-line ri-book-2-line ri-book-open-line ' +
     'ri-calculator-line ri-calendar-check-line ' +
     'ri-chat-3-line ri-check-double-line ri-check-line ri-checkbox-circle-fill ' +
     'ri-checkbox-circle-line ri-close-line ri-cloud-line ri-coin-fill ri-cursor-line ' +

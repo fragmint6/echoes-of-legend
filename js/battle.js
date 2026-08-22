@@ -922,6 +922,7 @@
       $('en-cap-' + s).textContent = '/' + cap;
       var alive = E.unitsOf(B, s).length;
       $('alive-' + s).textContent = alive;
+      paintEnergyForecast(s);
     });
     $('round-num').textContent = B.round;
 
@@ -1281,6 +1282,101 @@
      what the panel would visually escape from, and the game is
      scaled, so window coordinates alone would misjudge it. */
   var DPB_H = 190; /* generous estimate; only decides the side */
+  /* NEXT ROUND'S ENERGY, ON THE BAR (feature 2026-08-21).
+     Both sides show what the next round will pay them. Energy carries
+     over and the comeback grant scales with how far behind you are, so
+     "how much will I have next round?" was arithmetic the player had to
+     do from the rulebook. The chip answers it, and its hover panel
+     shows the working exactly as the damage chip does.
+
+     The engine owns the maths (E.energyForecast) - this only formats
+     it, so the HUD can never disagree with what nextRound() pays. */
+  function energyForecastHTML(f, side) {
+    var rows = '';
+    var row = function (label, value, cls) {
+      rows +=
+        '<div class="enb-row' +
+        (cls ? ' ' + cls : '') +
+        '"><span>' +
+        label +
+        '</span><b>' +
+        value +
+        '</b></div>';
+    };
+    row('Round ' + f.round + ' grant', '+' + f.base);
+    if (f.fieldMod)
+      row(
+        (B.field && B.field.name) || 'Battlefield',
+        (f.fieldMod > 0 ? '+' : '') + f.fieldMod,
+        f.fieldMod > 0 ? 'good' : 'bad'
+      );
+    /* The comeback grant is the least discoverable rule in the game -
+       name the deficit that earned it rather than just the number. */
+    if (f.comeback)
+      row(
+        'Outnumbered by ' + f.deficit + ' legend' + (f.deficit === 1 ? '' : 's'),
+        '+' + f.comeback,
+        'good'
+      );
+    var foot = '';
+    if (f.wasted > 0) {
+      /* A capped side is the one case where the headline number is
+         smaller than the sum above it, so it has to be explained. */
+      foot =
+        '<div class="enb-note">' +
+        f.wasted +
+        ' of that is lost - ' +
+        (side === 'player' ? 'your' : 'their') +
+        ' bank caps at <b>' +
+        f.cap +
+        '</b>.</div>';
+    }
+    return (
+      '<span class="en-breakdown"><span class="enb-title">Next round\u2019s Energy</span>' +
+      rows +
+      '<div class="enb-row enb-total"><span>Received</span><b>+' +
+      f.gain +
+      '</b></div>' +
+      '<div class="enb-row"><span>Bank after</span><b>' +
+      f.after +
+      '/' +
+      f.cap +
+      '</b></div>' +
+      foot +
+      '</span>'
+    );
+  }
+
+  function paintEnergyForecast(side) {
+    var el = $('en-next-' + side);
+    if (!el) return;
+    /* Nothing to forecast once the battle is decided. */
+    if (!B || B.over || !E.energyForecast) {
+      el.hidden = true;
+      return;
+    }
+    var f;
+    try {
+      f = E.energyForecast(B, side);
+    } catch (e) {
+      el.hidden = true;
+      return;
+    }
+    if (!f) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.classList.toggle('capped', f.wasted > 0);
+    el.classList.toggle('boosted', f.comeback > 0);
+    el.setAttribute(
+      'aria-label',
+      (side === 'player' ? 'You' : 'The enemy') + ' will receive ' + f.gain + ' Energy next round'
+    );
+    el.innerHTML =
+      '<i class="ri-arrow-up-line"></i>' + f.gain + energyForecastHTML(f, side);
+  }
+
   function flipBreakdown(chip) {
     try {
       var r = chip.getBoundingClientRect();
@@ -1307,10 +1403,24 @@
      a player are the two ways it can come out lower than the skill
      prints - late-game decay, and healing a target that is nearly
      full. Both are stated only when they actually apply. */
+  /* THE HEAL SHOWS ITS WORKING TOO (owner request 2026-08-21).
+     This used to print only a note or two. It now renders the same
+     chip chain the damage breakdown does, off the `steps` the engine
+     records in previewHeal - so "why is my 22% heal restoring this
+     much?" is answerable by hovering, exactly as it is for a hit. */
   function healBreakdownHTML(hv, tgt) {
+    var steps = hv && hv.steps;
+    var body = '';
+    if (steps && steps.length) {
+      var line = '';
+      steps.forEach(function (s, i) {
+        line += stepChipHTML(s, i > 0 ? chipConnector(s) : '');
+      });
+      body = '<div class="dpb-line">' + line + '</div>';
+    }
     var foot = '';
     if (hv.full) {
-      foot += '<div class="dpb-note good">Restores ' + tgt.name + ' to <b>full HP</b>.</div>';
+      foot += '<div class="dpb-note good">Restores ' + esc(tgt.name) + ' to <b>full HP</b>.</div>';
     }
     if (hv.overheal > 0) {
       foot +=
@@ -1320,11 +1430,12 @@
     }
     if (hv.decayed) {
       foot +=
-        '<div class="dpb-note">Healing is being scaled by the round\u2019s decay, so this differs from the printed value.</div>';
+        '<div class="dpb-note">Healing is scaled by the round\u2019s decay, so this differs from the printed value.</div>';
     }
-    if (!foot) return '';
+    if (!body && !foot) return '';
     return (
-      '<span class="dmg-breakdown"><span class="dpb-title">What this heal does</span>' +
+      '<span class="dmg-breakdown"><span class="dpb-title">How this is calculated</span>' +
+      body +
       foot +
       '</span>'
     );
@@ -1556,10 +1667,16 @@
           if (hv && hv.heal > 0) {
             var hchip = document.createElement('span');
             hchip.className = 'dmg-preview heal-preview' + (hv.full ? ' full' : '');
+            /* The breakdown belongs on BOTH heal chips (owner request
+               2026-08-21). This one was built without it, so hovering
+               a heal here explained nothing while the damage chip
+               beside it showed its full chain. */
             hchip.innerHTML =
               '<i data-icon-domain="game" class="ra ra-health"></i>+' +
-              hv.heal.toLocaleString();
+              hv.heal.toLocaleString() +
+              healBreakdownHTML(hv, t);
             el.appendChild(hchip);
+            flipBreakdown(hchip);
           }
         }
       }
@@ -6268,6 +6385,9 @@
     playEnergy: playEnergy,
     render: render,
     /* test hooks for the bot's draft (harness only) */
+    _B: function () {
+      return B;
+    },
     _draft: draftBotTeam,
     _draftValue: draftValue,
     _markSets: markSets,

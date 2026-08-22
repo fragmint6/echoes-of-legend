@@ -792,24 +792,70 @@
       }
       var ctx = { signature: !ability.basic, scale: 1, self: unit, preHp: {} };
       var raw = 0;
+      /* THE WORKING-OUT, exactly as previewDamage records it: every
+         factor in the order it is applied, and only the ones that
+         actually did something. Presentation only - the arithmetic
+         beside it stays the single source of truth. */
+      var steps = [];
       effects.forEach(function (e) {
         if (!e || e.k !== 'heal') return;
         if (e.to === 'self' && tgt.uid !== unit.uid) return;
         if (!condMet(B, e.if, condCtx(ctx, tgt))) return;
-        raw +=
-          e.pctMaxHp != null
-            ? tgt.maxHp * ((e.pctMaxHp + upPts(unit, ctx)) / 100)
-            : atkOf(unit) * ((e.power || 1) + upAdd(unit, ctx));
+        var part;
+        if (e.pctMaxHp != null) {
+          var pct = e.pctMaxHp + upPts(unit, ctx);
+          part = tgt.maxHp * (pct / 100);
+          steps.push({ k: 'maxhp', label: 'Their Max HP', value: tgt.maxHp });
+          steps.push({
+            k: 'pct',
+            label: 'Heal power',
+            mult: pct / 100,
+            base: upPts(unit, ctx) ? e.pctMaxHp / 100 : undefined,
+            upLevel: upPts(unit, ctx) ? unit.upLevel : undefined,
+          });
+        } else {
+          var pw = (e.power || 1) + upAdd(unit, ctx);
+          part = atkOf(unit) * pw;
+          steps.push({ k: 'atk', label: 'Attack', value: atkOf(unit) });
+          steps.push({
+            k: 'power',
+            label: 'Heal power',
+            mult: pw,
+            base: upAdd(unit, ctx) ? e.power || 1 : undefined,
+            upLevel: upAdd(unit, ctx) ? unit.upLevel : undefined,
+          });
+        }
+        raw += part;
       });
       if (raw <= 0) return null;
+      steps.push({ k: 'raw', label: 'Base healing', value: raw, subtotal: true });
       /* the same two modifiers healUnit() applies before it lands */
-      var mod = healDecay(B.round);
+      var decay = healDecay(B.round);
+      var mod = decay;
       if (tgt.flags && tgt.flags.healMod) mod += tgt.flags.healMod / 100;
+      if (decay !== 1)
+        steps.push({ k: 'decay', label: 'Round ' + B.round + ' healing decay', mult: decay });
+      if (tgt.flags && tgt.flags.healMod)
+        steps.push({
+          k: 'healMod',
+          label: (tgt.flags.healMod > 0 ? 'Healing boost' : 'Healing reduction') +
+            ' (' + (tgt.flags.healMod > 0 ? '+' : '') + tgt.flags.healMod + '%)',
+          mult: 1 + tgt.flags.healMod / 100,
+        });
       var amt = Math.max(0, Math.round(raw * mod));
       var missing = Math.max(0, tgt.maxHp - tgt.hp);
+      var landed = Math.min(amt, missing);
+      if (amt !== Math.round(raw))
+        steps.push({ k: 'healed', label: 'Healing', value: amt, subtotal: true });
+      /* The cap is part of the sum the player is reading, so a heal cut
+         short by a nearly-full ally shows WHERE it was cut. */
+      if (landed !== amt)
+        steps.push({ k: 'missing', label: 'HP actually missing', value: missing });
+      steps.push({ k: 'total', label: 'Restored', value: landed, subtotal: true });
       return {
-        heal: Math.min(amt, missing),
+        heal: landed,
         overheal: Math.max(0, amt - missing),
+        steps: steps,
         /* true when healing is being taxed or boosted, so the UI can
            explain a number that does not match the printed skill */
         decayed: mod !== 1,
@@ -5006,6 +5052,48 @@
     });
   }
 
+  /* WHAT NEXT ROUND WILL PAY (feature 2026-08-21).
+     The HUD forecasts each side's income, so a player can plan a bank
+     rather than discover it. This MUST agree with nextRound() below -
+     same grant, same battlefield modifier, same comeback rule, same
+     clamp - so the two are written against the same helpers and any
+     change to one belongs in both.
+
+     `gain` is what actually lands after the cap, which is the honest
+     number: a side sitting on 145/150 is paid 5, not 100, and saying
+     100 would be a lie the player can check. `granted` keeps the
+     pre-clamp figure so the UI can explain the difference. */
+  function energyForecast(B, side) {
+    if (!B || !B.energy || !side) return null;
+    var next = B.round + 1;
+    var base = energyForRound(next);
+    var fieldMod = (B.field && B.field.energyPerRound) || 0;
+    var grant = Math.max(0, base + fieldMod);
+    var alive = {
+      player: unitsOf(B, 'player').length,
+      enemy: unitsOf(B, 'enemy').length,
+    };
+    var deficit = Math.max(0, alive[opposite(side)] - alive[side]);
+    var comeback = B.noComeback ? 0 : deficit * COMEBACK_PER_LEGEND;
+    var granted = grant + comeback;
+    var cap = energyCap(B);
+    var have = B.energy[side];
+    var gain = Math.max(0, Math.min(cap, have + granted) - have);
+    return {
+      round: next,
+      base: base,
+      fieldMod: fieldMod,
+      comeback: comeback,
+      deficit: deficit,
+      granted: granted,
+      gain: gain,
+      wasted: granted - gain, // lost to the cap
+      cap: cap,
+      have: have,
+      after: Math.min(cap, have + granted),
+    };
+  }
+
   /* advance to the next round: refresh energy, expire buffs, fire delayed effects */
   function nextRound(B) {
     B.round += 1;
@@ -5231,6 +5319,7 @@
     COMEBACK_PER_LEGEND: COMEBACK_PER_LEGEND,
     ENERGY_CAP: ENERGY_CAP,
     energyCap: energyCap,
+    energyForecast: energyForecast,
     addEnergy: addEnergy,
     energyForRound: energyForRound,
     tickBurn: tickBurn,

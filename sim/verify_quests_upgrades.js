@@ -1940,6 +1940,65 @@ sec('S23. The OS reduce-motion setting does not reach the game');
   );
 }
 
+sec('S24. Next-round Energy forecast, and heals that show their working');
+{
+  /* FEATURE 2026-08-21. Two readability requests:
+       - the top bar says how much Energy each side gets next round
+       - the pre-cast HEAL chip explains itself the way the damage
+         chip already does */
+  const eng = fs.readFileSync(path.join(ROOT, 'js/engine.js'), 'utf8');
+  const battle = fs.readFileSync(path.join(ROOT, 'js/battle.js'), 'utf8');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8');
+
+  /* THE ENGINE OWNS THE MATHS. The HUD must not re-derive income, or
+     it will drift from what nextRound() actually pays. */
+  ok(/function energyForecast\(B, side\)/.test(eng), 'the engine exposes an energy forecast');
+  ok(/energyForecast: energyForecast,/.test(eng), 'and exports it');
+  const fc = eng.slice(eng.indexOf('function energyForecast'), eng.indexOf('function nextRound'));
+  ok(/energyForRound\(next\)/.test(fc), 'it uses the same round grant table');
+  ok(/energyPerRound/.test(fc), 'includes the battlefield modifier');
+  ok(/COMEBACK_PER_LEGEND/.test(fc), 'includes the comeback grant');
+  ok(/energyCap\(B\)/.test(fc), 'and clamps to the storage cap');
+  /* the honest number is what LANDS, not what is granted */
+  ok(/gain:/.test(fc) && /wasted:/.test(fc), 'it reports both what lands and what the cap wastes');
+
+  /* BOTH SIDES get a chip - the request named the enemy explicitly. */
+  ok(/id="en-next-player"/.test(html), 'the player has a forecast chip');
+  ok(/id="en-next-enemy"/.test(html), 'and so does the enemy');
+  ok(/function paintEnergyForecast\(side\)/.test(battle), 'the HUD paints it');
+  ok(
+    /paintEnergyForecast\(s\);/.test(battle),
+    'from the same loop that paints the energy bars'
+  );
+  ok(/\.en-next \{/.test(css) && /\.en-breakdown \{/.test(css), 'the chip and its panel are styled');
+  ok(/aria-label/.test(battle.slice(battle.indexOf('function paintEnergyForecast'), battle.indexOf('function flipBreakdown'))),
+    'and it is announced to screen readers');
+
+  /* THE HEAL EXPLAINS ITSELF. previewHeal must record the same kind of
+     `steps` chain previewDamage does, and both chip sites must render
+     it - the ability-row site originally built the chip without one. */
+  const ph = eng.slice(eng.indexOf('function previewHeal'), eng.indexOf('function scaledRivalStats'));
+  ok(/steps\.push\(/.test(ph), 'previewHeal records its working');
+  ok(/label: 'Heal power'/.test(ph), 'naming the heal coefficient');
+  ok(/healing decay/.test(ph), 'the round decay when it applies');
+  ok(/steps: steps,/.test(ph), 'and returns the chain');
+  const hb = battle.slice(
+    battle.indexOf('function healBreakdownHTML'),
+    battle.indexOf('function dmgBreakdownHTML')
+  );
+  ok(/stepChipHTML/.test(hb), 'the heal panel renders that chain with the shared chip helper');
+  ok(/How this is calculated/.test(hb), 'under the same title as the damage panel');
+  /* count CALLS, not the definition (which is `function
+     healBreakdownHTML(hv, tgt)` and would otherwise match) */
+  const healSites = (battle.match(/[^n] healBreakdownHTML\(hv, /g) || []).length;
+  ok(healSites === 2, 'BOTH heal chips carry the breakdown (' + healSites + '/2)');
+  ok(
+    /\.dmg-preview\.heal-preview \.dmg-breakdown/.test(css),
+    'and the heal panel is tinted green rather than damage-amber'
+  );
+}
+
 console.log(
   '\n' + (fail ? '\x1b[31m' : '\x1b[32m') + 'pass ' + pass + '  fail ' + fail + '\x1b[0m'
 );
